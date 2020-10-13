@@ -4,6 +4,7 @@ This code is created to analyse the signal from scintillator diagnostics. Suppor
 
 ** Prerequites**
 Needed packages:
+
 -Numpy
 -Matplotlib
 -roipoly: To select ROIs in the image (https://github.com/jdoepfert/roipoly.py)
