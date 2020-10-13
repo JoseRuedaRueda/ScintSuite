@@ -2,7 +2,7 @@
 
 This code is created to analyse the signal from scintillator diagnostics. Support for FILD, INPA and i-HIBp is planned. To include a different diagnostic, please contact Jose Rueda: jose.rueda@ipp.mpg.de 
 
-** Prerequites**
+** Prerequites **
 Needed packages:
 
 -Numpy
