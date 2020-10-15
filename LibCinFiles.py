@@ -1,10 +1,7 @@
 # ------------------------------------------------------------------------------
 # This module is created to handle the .cin (.cine) files, binary files
 # created by the Phantom cameras
-#
-# It contains:
-#   - readHeader: To read the header of a .cin file
-# -------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # import MatModule as mat
 
 
@@ -13,26 +10,26 @@ import numpy as np
 
 def read_header(filename: str, verbose=False):
     """
+    Read the header info of a .cin file.
 
-                           **readHeader**
-     Jose Rueda: ruejo@ipp.mpg.de
+    Jose Rueda: ruejo@ipp.mpg.de
 
-     Read the header info of a cin file.
-    :param filename: name of the file to open (path to file, not just the name)
-    :param verbose: Optional, to display the content of the header
-    :return: dictionary containing header information. Example:
-        Type : [18755]
-        Headersize : [44]
-        Compression : [0]
-        Version : [1]
-        FirstMovieImage : [4294936030]
-        TotalImageCount : [35145]
-        FirstImageNo : [4294967276]
-        ImageCount : [101]
-        OffImageHeader : [44]
-        OffSetup : [84]
-        OffImageOffsets : [12540]
-        TriggerTime : {'fractions':[2223483095], 'seconds': [1584121042]}
+
+    @param filename: name of the file to open (path to file, not just the name)
+    @param verbose: Optional, to display the content of the header
+    @return: dictionary containing header information. Example:
+            Type : [18755]
+            Headersize : [44]
+            Compression : [0]
+            Version : [1]
+            FirstMovieImage : [4294936030]
+            TotalImageCount : [35145]
+            FirstImageNo : [4294967276]
+            ImageCount : [101]
+            OffImageHeader : [44]
+            OffSetup : [84]
+            OffImageOffsets : [12540]
+            TriggerTime : {'fractions':[2223483095], 'seconds': [1584121042]}
     """
 
     # Section 1: Read the file header
@@ -46,11 +43,11 @@ def read_header(filename: str, verbose=False):
                   'Compression': np.fromfile(fid, 'uint16', 1)}
     # It represent the cine file header structure size as number of bytes
     # Compression applied to the data
-    if cin_header['Compression'] == 0:
+    if cin_header['Compression'] == 0 & verbose:
         print('The video is saved as grey images\n')
-    elif cin_header['Compression'] == 1:
+    elif cin_header['Compression'] == 1 & verbose:
         print('The video is saved as jpeg compressed files \n')
-    elif cin_header['Compression'] == 2:
+    elif cin_header['Compression'] == 2 & verbose:
         print('The video is saved as raw uninterpolated color\n')
     else:
         print('Error reading the header, compression number wrong')
@@ -90,20 +87,17 @@ def read_header(filename: str, verbose=False):
     return cin_header
 
 
-def read_settings(filename: str, bit_pos: int, verbose=False):
+def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     """
-    **readSettings**
+    Read the settings from a .cin file
 
     Jose Rueda: jose.rueda@ipp.mpg.de
 
-    Read the settings from a .cin file
-
-
-    :param filename: name of the file to read (full path)
-    :param bit_pos: Position of the file where the setting structure starts
-    :param verbose: verbose results or not
-    :return: dictionary containing all the camera settings
-    todo: Check if the coefficient matrix of UF is ok or must be transposed
+    @param filename: name of the file to read (full path)
+    @param bit_pos: Position of the file where the setting structure starts
+    @param verbose: verbose results or not
+    @return: dictionary containing all the camera settings
+    @todo: Check if the coefficient matrix of UF is ok or must be transposed
     """
 
     # Open file and go to the position of the settins structure
@@ -160,7 +154,7 @@ def read_settings(filename: str, bit_pos: int, verbose=False):
                     'ImHeight': np.fromfile(fid, 'uint16', 1),
                     'EDRShutter16': np.fromfile(fid, 'uint16', 1),
                     'Serial': np.fromfile(fid, 'uint32', 1)}
-    if cin_settings['Serial'] == 24167:
+    if cin_settings['Serial'] == 24167 & verbose:
         print('Data was saved with a camera belonging to Prof. E Viezzer')
     cin_settings['Saturation'] = np.fromfile(fid, 'int32', 1)
     cin_settings['Res5'] = np.fromfile(fid, 'uint8', 1)
@@ -757,14 +751,16 @@ def read_settings(filename: str, bit_pos: int, verbose=False):
     #                        // End of SETUP in software version 771 (Dec 2017)
 
 
-def read_image_header(filename: str, bit_pos: int, verbose=False):
+def read_image_header(filename: str, bit_pos: int, verbose: bool = False):
     """
-    **readImageHeader**
     Read the image header of a .cin file
-    :param filename: name of the .cin file (full path to the file)
-    :param bit_pos: position of the file wuere the image header starts
-    :param verbose: flag to display content of the header
-    :return: Image header (dictionary)
+
+    Josse Rueda: jose.rueda@ipp.mpg.de
+
+    @param filename: name of the .cin file (full path to the file)
+    @param bit_pos: position of the file wuere the image header starts
+    @param verbose: flag to display content of the header
+    @return: Image header (dictionary)
     """
     # Open file and go to the position of the image header
     fid = open(filename, 'r')
@@ -780,10 +776,8 @@ def read_image_header(filename: str, bit_pos: int, verbose=False):
     # Size of the frame in pixels
     # number of planes for the target devices
     if cin_image_header['biPlanes'] != 1:
-        print(
-            'The number of planes not equal 1, possible problem reading the '
-            'file')
-
+        print('The number of planes not equal 1, possible problem reading the '
+              'file')
     # number of bits per pixels
     cin_image_header['biBitCount'] = np.fromfile(fid, 'uint16', 1)
     # Compression of the image
@@ -796,7 +790,7 @@ def read_image_header(filename: str, bit_pos: int, verbose=False):
     # Color settings
     cin_image_header['biClrUsed'] = np.fromfile(fid, 'uint32', 1)
     cin_image_header['biClrImportant'] = np.fromfile(fid, 'uint32', 1)
-    if cin_image_header['biClrImportant'] == 4096:
+    if cin_image_header['biClrImportant'] == 4096 & verbose:
         print('The actual depth used for the scale is 2^12')
     fid.close()
     # return and print
@@ -809,12 +803,14 @@ def read_image_header(filename: str, bit_pos: int, verbose=False):
 
 def read_time_base(filename: str, header: dict, settings: dict):
     """
-    **read_time_base**
     Read the time base of the .cin video (relative to the trigger)
-    :param filename: name of the file to open (full path)
-    :param header: header created by the function read_header
-    :param settings: setting dictionary created by read_settings
-    :return:
+
+    Jose Rueda: jose.rueda@ipp.mpg.de
+
+    @param filename: name of the file to open (full path)
+    @param header: header created by the function read_header
+    @param settings: setting dictionary created by read_settings
+    @return: np array with the time point for each recorded frame
     """
     # Open file and go to the position of the image header
     fid = open(filename, 'r')
@@ -846,18 +842,22 @@ def read_time_base(filename: str, header: dict, settings: dict):
             fid.seek(header['OffSetup'] + settings['Length'] + cumulate_size)
 
 
-def read_frame(filename: str, header: dict, settings: dict, imageheader: dict,
+def read_frame(filename: str, header: dict, imageheader: dict,
                frames_number, limitation: bool = True, limit: int = 2048):
     """
-    
-    :param filename: 
-    :param header: 
-    :param settings: 
-    :param imageheader: 
-    :param frames_number: 
-    :param limitation: 
-    :param limit: 
-    :return: 
+    Read frames from a .cin file
+
+    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+
+    @param filename: Name of the cin file (ful path)
+    @param header: dictionary with the header information
+    @param imageheader: dictionary with the image header information
+    @param frames_number: np array with the frame numbers to load
+    @param limitation: maximum size allowed to the ouput variable, in Mbytes, to
+    avoid overloading the memory trying to load the whole video og 100 Gb
+    @param limit: bool flag to decide if we apply the limitation of we
+    operate in mode: YOLO
+    @return: M, 3D numpy arry with the frames M[px,py,nframes]
     """
     # --- check if the requested frames are in the file
     flags_below = frames_number < header['FirstImageNo']
@@ -873,7 +873,7 @@ def read_frame(filename: str, header: dict, settings: dict, imageheader: dict,
         print(np.sum(flags_below))
         print(header['FirstImageNo'])
         print(flags_above)
-        print('the requested frame is not in the file')
+        print('The requested frame is not in the file!!!')
         return
 
     # --- Check the output size:
@@ -881,11 +881,12 @@ def read_frame(filename: str, header: dict, settings: dict, imageheader: dict,
     if nframe > 1:
         # weight of the output array in megabytes
         talla = imageheader['biWidth'] * \
-                imageheader['biHeight'] * nframe * 2 /1024/1024
+                imageheader['biHeight'] * nframe * 2 / 1024 / 1024
         # If the weight is too much, stop (to do not load tens og Gb of video
         # in the memory and kill the computer
-        if ((talla > limit) & limitation):
+        if (talla > limit) & limitation:
             print('Output will be larger than the limit, stopping')
+            return
 
     # #  Section 1: Get frames position
     # Open file and go to the position of the image header
@@ -901,32 +902,51 @@ def read_frame(filename: str, header: dict, settings: dict, imageheader: dict,
     # #  Section 2: Read the images
     # Preallocate output array
     M = np.zeros((int(imageheader['biWidth']), int(imageheader['biHeight']),
-                  nframe), dtype=np.int16,order='F')
+                  nframe), dtype=np.int16, order='F')
     # Image size from header information
-    img_size_header = imageheader['biWidth'] * imageheader['biHeight'] # Image size
+    img_size_header = imageheader['biWidth'] * imageheader[
+        'biHeight']  # Image size
     # Read the frames
     for i in range(nframe):
         #  Go to the position of the file
-        iframe = frames_number[i]-header['FirstImageNo']
-        # print(position_array[iframe])
-        # print(iframe)
+        iframe = frames_number[i] - header['FirstImageNo']
         fid.seek(position_array[iframe])
         #  Skip header of the frame
         length_annotation = np.fromfile(fid, 'uint32', 1)
-        fid.seek(position_array[iframe]+length_annotation-4)
+        fid.seek(position_array[iframe] + length_annotation - 4)
         #  Read frame
         image_size = np.fromfile(fid, 'uint32', 1)  # In bytes
-        if image_size/2 != img_size_header:
-            print(image_size/2)
+        if image_size / 2 != img_size_header:
+            print(image_size / 2)
             print(img_size_header)
             print('Image sizes does not coincides')
             return
 
         M[:, :, i] = np.reshape(np.fromfile(fid, 'uint16',
                                             int(img_size_header)),
-                                            (int(imageheader['biWidth']),
-                                             int(imageheader['biHeight'])), order='F')
-
+                                (int(imageheader['biWidth']),
+                                 int(imageheader['biHeight'])),
+                                order='F')
     fid.close()
-    return M.squeeze() # eliminate extra dimension in case we have just loaded
-                       # one frame
+    return M.squeeze()  # eliminate extra dimension in case we have just loaded
+    # one frame
+
+
+class cin:
+    """
+    Class witht the information of a cin file
+
+    header, image header,settings and time base will be stored here, the frames
+    itself not, we can not work with 100Gb of data in memory!!!
+    @param file: For the initialization, file (full path) to be loaded)
+    """
+    # Class with information of the .cin files: Note: header, image header,
+    # settings and time base will be stored here, the frames itself not,
+    # we can not work with 100Gb of data in memory!!!
+    def __init__(self, file):
+        self.file = file
+        self.header = read_header(file)
+        self.settings = read_settings(file, self.header['OffSetup'])
+        self.imageheader = read_image_header(file,self.header[
+            'OffImageHeader'])
+        self.timebase = read_time_base(file, self.header, self.settings)
