@@ -857,7 +857,7 @@ def read_frame(filename: str, header: dict, imageheader: dict,
     avoid overloading the memory trying to load the whole video og 100 Gb
     @param limit: bool flag to decide if we apply the limitation of we
     operate in mode: YOLO
-    @return: M, 3D numpy arry with the frames M[px,py,nframes]
+    @return M:, 3D numpy arry with the frames M[px,py,nframes]
     """
     # --- check if the requested frames are in the file
     flags_below = frames_number < header['FirstImageNo']
@@ -936,14 +936,14 @@ class cin:
     """
     Class witht the information of a cin file
 
-    header, image header,settings and time base will be stored here, the frames
+    header, image header, settings and time base will be stored here, the frames
     itself not, we can not work with 100Gb of data in memory!!!
     @param file: For the initialization, file (full path) to be loaded)
     """
     # Class with information of the .cin files: Note: header, image header,
     # settings and time base will be stored here, the frames itself not,
     # we can not work with 100Gb of data in memory!!!
-    def __init__(self, file):
+    def __init__(self, file: str):
         self.file = file
         self.header = read_header(file)
         self.settings = read_settings(file, self.header['OffSetup'])
