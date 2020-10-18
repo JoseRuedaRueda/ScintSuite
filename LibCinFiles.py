@@ -1,9 +1,10 @@
-# ------------------------------------------------------------------------------
-# This module is created to handle the .cin (.cine) files, binary files
-# created by the Phantom cameras
-# ------------------------------------------------------------------------------
-# import MatModule as mat
+"""@package LibCinFiles
+Module to handle the .cin files
 
+This module is created to handle the .cin (.cine) files, binary files
+created by the Phantom cameras. In its actual state it can read everything
+from the file, but it can't write/create a cin file
+"""
 
 import numpy as np
 
@@ -14,22 +15,10 @@ def read_header(filename: str, verbose=False):
 
     Jose Rueda: ruejo@ipp.mpg.de
 
-
     @param filename: name of the file to open (path to file, not just the name)
     @param verbose: Optional, to display the content of the header
-    @return: dictionary containing header information. Example:
-            Type : [18755]
-            Headersize : [44]
-            Compression : [0]
-            Version : [1]
-            FirstMovieImage : [4294936030]
-            TotalImageCount : [35145]
-            FirstImageNo : [4294967276]
-            ImageCount : [101]
-            OffImageHeader : [44]
-            OffSetup : [84]
-            OffImageOffsets : [12540]
-            TriggerTime : {'fractions':[2223483095], 'seconds': [1584121042]}
+    @return cin_header: dictionary containing header information, see the
+    inline comments in the code for a full description of each dictionary field
     """
 
     # Section 1: Read the file header
@@ -96,8 +85,9 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     @param filename: name of the file to read (full path)
     @param bit_pos: Position of the file where the setting structure starts
     @param verbose: verbose results or not
-    @return: dictionary containing all the camera settings
-    @todo: Check if the coefficient matrix of UF is ok or must be transposed
+    @return: dictionary containing all the camera settings. See the inline
+    comments at the end of the function
+    @todo Check if the coefficient matrix of UF is ok or must be transposed
     """
 
     # Open file and go to the position of the settins structure
@@ -760,7 +750,8 @@ def read_image_header(filename: str, bit_pos: int, verbose: bool = False):
     @param filename: name of the .cin file (full path to the file)
     @param bit_pos: position of the file wuere the image header starts
     @param verbose: flag to display content of the header
-    @return: Image header (dictionary)
+    @return: Image header (dictionary), see inlien comments for a full
+    description of each dictionary field
     """
     # Open file and go to the position of the image header
     fid = open(filename, 'r')
@@ -810,7 +801,7 @@ def read_time_base(filename: str, header: dict, settings: dict):
     @param filename: name of the file to open (full path)
     @param header: header created by the function read_header
     @param settings: setting dictionary created by read_settings
-    @return: np array with the time point for each recorded frame
+    @return cin_time: np array with the time point for each recorded frame
     """
     # Open file and go to the position of the image header
     fid = open(filename, 'r')
@@ -853,11 +844,12 @@ def read_frame(filename: str, header: dict, imageheader: dict,
     @param header: dictionary with the header information
     @param imageheader: dictionary with the image header information
     @param frames_number: np array with the frame numbers to load
-    @param limitation: maximum size allowed to the ouput variable, in Mbytes, to
-    avoid overloading the memory trying to load the whole video og 100 Gb
+    @param limitation: maximum size allowed to the output variable,
+    in Mbytes, to avoid overloading the memory trying to load the whole
+    video of 100 Gb
     @param limit: bool flag to decide if we apply the limitation of we
     operate in mode: YOLO
-    @return M:, 3D numpy arry with the frames M[px,py,nframes]
+    @return M:, 3D numpy array with the frames M[px,py,nframes]
     """
     # --- check if the requested frames are in the file
     flags_below = frames_number < header['FirstImageNo']
@@ -934,19 +926,28 @@ def read_frame(filename: str, header: dict, imageheader: dict,
 
 class cin:
     """
-    Class witht the information of a cin file
+    Class with the information of a cin file
 
-    header, image header, settings and time base will be stored here, the frames
-    itself not, we can not work with 100Gb of data in memory!!!
-    @param file: For the initialization, file (full path) to be loaded)
+    The header, image header, settings and time base will be stored here,
+    the frames itself not, we can not work with 100Gb of data in memory!!!
     """
     # Class with information of the .cin files: Note: header, image header,
     # settings and time base will be stored here, the frames itself not,
     # we can not work with 100Gb of data in memory!!!
     def __init__(self, file: str):
+        """
+        Initialise the class
+
+        @param file: For the initialization, file (full path) to be loaded)
+        """
+        ## Name of the .cin file (full path)
         self.file = file
+        ## Header dictionary with the file info
         self.header = read_header(file)
+        ## Settings dictionary
         self.settings = read_settings(file, self.header['OffSetup'])
+        ## Image Header dictionary
         self.imageheader = read_image_header(file,self.header[
             'OffImageHeader'])
+        ## Time array
         self.timebase = read_time_base(file, self.header, self.settings)

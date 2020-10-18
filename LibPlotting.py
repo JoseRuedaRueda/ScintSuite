@@ -64,7 +64,7 @@ def axis_beauty(ax, param_dict: dict):
         font['fontname'] = param_dict['fontname']
     if 'fontsize' in param_dict:
         font['size'] = param_dict['fontsize']
-        #ax.tick_params(labelsize=param_dict['fontsize'])
+        # ax.tick_params(labelsize=param_dict['fontsize'])
     if 'xlabel' in param_dict:
         ax.set_xlabel(param_dict['xlabel'], **font)
     if 'ylabel' in param_dict:
