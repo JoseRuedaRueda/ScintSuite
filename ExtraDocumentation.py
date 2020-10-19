@@ -2,14 +2,14 @@
 Format needed for the scintillator file
 
 @section structure Structure of the file
-    1 One line with comments
-    2 The name of the plate: 'Name=$Name'
-    3 The number of vertices: 'N_vertices='
-    4 x,y,z of the vertices, separated by commas
-    5 A dummy line: 'Normal vector'
-    6 the coordinates of the actcual normal vector
-    7 A dummy line: Unit
-    8 the units in which the vertices are provided, cm, m, inch supported
+    - One line with comments
+    - The name of the plate: 'Name=$Name'
+    - The number of vertices: 'N_vertices='
+    - x,y,z of the vertices, separated by commas
+    - A dummy line: 'Normal vector'
+    - the coordinates of the actcual normal vector
+    - A dummy line: Unit
+    - the units in which the vertices are provided, cm, m, inch supported
 
 @section example Example of file
 \verbatim
@@ -27,5 +27,5 @@ Normal_vector
 1.,0.,0.
 Unit
 cm
-\endverbatin
+\endverbatim
 """
