@@ -1,5 +1,6 @@
-# This module contains all the plotting routines of the scintillator suite
-# ------------------------------------------------------------------------------
+"""@package LibPlotting
+Module to plot
+"""
 import matplotlib.pyplot as plt
 
 

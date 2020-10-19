@@ -85,7 +85,7 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     @param filename: name of the file to read (full path)
     @param bit_pos: Position of the file where the setting structure starts
     @param verbose: verbose results or not
-    @return: dictionary containing all the camera settings. See the inline
+    @return cin_settings: dictionary containing all the camera settings. See the inline
     comments at the end of the function
     @todo Check if the coefficient matrix of UF is ok or must be transposed
     """
@@ -750,8 +750,8 @@ def read_image_header(filename: str, bit_pos: int, verbose: bool = False):
     @param filename: name of the .cin file (full path to the file)
     @param bit_pos: position of the file wuere the image header starts
     @param verbose: flag to display content of the header
-    @return: Image header (dictionary), see inlien comments for a full
-    description of each dictionary field
+    @return cin_image_header: Image header (dictionary), see inlien comments
+    for a full description of each dictionary field
     """
     # Open file and go to the position of the image header
     fid = open(filename, 'r')
@@ -849,7 +849,7 @@ def read_frame(filename: str, header: dict, imageheader: dict,
     video of 100 Gb
     @param limit: bool flag to decide if we apply the limitation of we
     operate in mode: YOLO
-    @return M:, 3D numpy array with the frames M[px,py,nframes]
+    @return M: 3D numpy array with the frames M[px,py,nframes]
     """
     # --- check if the requested frames are in the file
     flags_below = frames_number < header['FirstImageNo']

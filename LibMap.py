@@ -94,7 +94,7 @@ class GridParams:
 
     def __init__(self):
         """
-        Initialiser of the class
+        Initializer of the class
         """
         # Image parameters: To transform from pixel to cm on the scintillator
         ## cm/pixel in the x direction
@@ -137,10 +137,42 @@ class Scintillator:
         ## Material used in the scintillator plate
         self.material = material
         # Read the file
-        ## Coordintes of the vertex of the scintillator (X,Y,Z)
-        self.coord_real = np.loadtxt(file, skiprows=3, delimiter=',')
-        ## Coordintes of the vertex of the scintillator in pixels
+        with open(file) as f:
+            # Dummy line with description
+            f.readline()
+            # Line with the scinllator name
+            dummy = f.readline()
+            ## Name of the scintillator plate given in the simulation
+            self.name = dummy[5:-1]
+            # Line with the number of vertices
+            dummy = f.readline()
+            ## Number of vertices
+            self.n_vertices = int(dummy[11:-1])
+            # Skip the data with the vertices and the normal vector
+            for i in range(self.n_vertices+3):
+                f.readline()
+
+            ## Units in which the scintillator data is loaded:
+            dummy = f.readline()
+            self.orig_units = dummy[:-1]
+
+        ## Coordinates of the vertex of the scintillator (X,Y,Z). In cm
+        self.coord_real = np.loadtxt(file, skiprows=3, delimiter=',',
+                                     max_rows=self.n_vertices)
+        ## Normal vector
+        self.normal_vector = np.loadtxt(file, skiprows=4+self.n_vertices,
+                                        delimiter=',', max_rows=1)
+        ## Coordinates of the vertex of the scintillator in pixels
         self.coord_pix = None
+        # We want the coordinates in cm, if 'cm' is not the unit, apply the
+        # corresponding transformation. (Void it is interpreter as cm)
+        factors = {'cm': 1, 'm': 0.01, 'inch': 2.54}
+        if self.orig_units in factors:
+            self.coord_real = self.coord_real * factors[self.orig_units]
+        else:
+            print('Not recognised unit, possible wrong format file!!!')
+            print('Maybe you are using and old FILDSIM file, so do not panic')
+            return
 
     def plot_px(self, ax):
         """
