@@ -41,6 +41,7 @@ def create_roi(fig):
     @return roi: The PloyRoi object
     """
     # Define the roi
+    print('Please select the vertex of the roi in the figure')
     roi = RoiPoly(color='r', fig=fig)
     # Show again the image with the roi
     fig.show()

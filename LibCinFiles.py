@@ -833,16 +833,14 @@ def read_time_base(filename: str, header: dict, settings: dict):
             fid.seek(header['OffSetup'] + settings['Length'] + cumulate_size)
 
 
-def read_frame(filename: str, header: dict, imageheader: dict,
+def read_frame(cin_object,
                frames_number, limitation: bool = True, limit: int = 2048):
     """
     Read frames from a .cin file
 
     Jose Rueda Rueda: jose.rueda@ipp.mpg.de
 
-    @param filename: Name of the cin file (ful path)
-    @param header: dictionary with the header information
-    @param imageheader: dictionary with the image header information
+    @param cin_object: Cin Object with the file information
     @param frames_number: np array with the frame numbers to load
     @param limitation: maximum size allowed to the output variable,
     in Mbytes, to avoid overloading the memory trying to load the whole
@@ -852,18 +850,18 @@ def read_frame(filename: str, header: dict, imageheader: dict,
     @return M: 3D numpy array with the frames M[px,py,nframes]
     """
     # --- check if the requested frames are in the file
-    flags_below = frames_number < header['FirstImageNo']
-    if header['FirstImageNo'] > 0:
-        flags_above = frames_number > (header['FirstImageNo'] +
-                                       header['ImageCount'])
+    flags_below = frames_number < cin_object.header['FirstImageNo']
+    if cin_object.header['FirstImageNo'] > 0:
+        flags_above = frames_number > (cin_object.header['FirstImageNo'] +
+                                       cin_object.header['ImageCount'])
     else:
-        flags_above = frames_number > (header['FirstImageNo'] +
-                                       header['ImageCount'] - 1)
+        flags_above = frames_number > (cin_object.header['FirstImageNo'] +
+                                       cin_object.header['ImageCount'] - 1)
 
     if (np.sum(flags_above) + np.sum(flags_below)) > 0:
         print(np.sum(flags_above))
         print(np.sum(flags_below))
-        print(header['FirstImageNo'])
+        print(cin_object.header['FirstImageNo'])
         print(flags_above)
         print('The requested frame is not in the file!!!')
         return
@@ -872,8 +870,8 @@ def read_frame(filename: str, header: dict, imageheader: dict,
     nframe = np.size(frames_number)
     if nframe > 1:
         # weight of the output array in megabytes
-        talla = imageheader['biWidth'] * \
-                imageheader['biHeight'] * nframe * 2 / 1024 / 1024
+        talla = cin_object.imageheader['biWidth'] * \
+                cin_object.imageheader['biHeight'] * nframe * 2 / 1024 / 1024
         # If the weight is too much, stop (to do not load tens og Gb of video
         # in the memory and kill the computer
         if (talla > limit) & limitation:
@@ -882,26 +880,29 @@ def read_frame(filename: str, header: dict, imageheader: dict,
 
     # #  Section 1: Get frames position
     # Open file and go to the position of the image header
-    fid = open(filename, 'r')
-    fid.seek(header['OffImageOffsets'])
+    fid = open(cin_object.file, 'r')
+    fid.seek(cin_object.header['OffImageOffsets'])
 
-    if header['Version'] == 0:  # old format
-        position_array = np.fromfile(fid, 'int32', int(header['ImageCount']))
+    if cin_object.header['Version'] == 0:  # old format
+        position_array = np.fromfile(fid, 'int32',
+                                     int(cin_object.header['ImageCount']))
     else:
-        position_array = np.fromfile(fid, 'int64', int(header['ImageCount']))
+        position_array = np.fromfile(fid, 'int64',
+                                     int(cin_object.header['ImageCount']))
 
     # --------------------------------------------------------------------------
     # #  Section 2: Read the images
     # Preallocate output array
-    M = np.zeros((int(imageheader['biWidth']), int(imageheader['biHeight']),
-                  nframe), dtype=np.int16, order='F')
+    M = np.zeros((int(cin_object.imageheader['biWidth']),
+                  int(cin_object.imageheader['biHeight']), nframe),
+                 dtype=np.int16, order='F')
     # Image size from header information
-    img_size_header = imageheader['biWidth'] * imageheader[
-        'biHeight']  # Image size
+    img_size_header = cin_object.imageheader['biWidth'] * \
+                      cin_object.imageheader['biHeight']  # Image size
     # Read the frames
     for i in range(nframe):
         #  Go to the position of the file
-        iframe = frames_number[i] - header['FirstImageNo']
+        iframe = frames_number[i] - cin_object.header['FirstImageNo']
         fid.seek(position_array[iframe])
         #  Skip header of the frame
         length_annotation = np.fromfile(fid, 'uint32', 1)
@@ -916,21 +917,22 @@ def read_frame(filename: str, header: dict, imageheader: dict,
 
         M[:, :, i] = np.reshape(np.fromfile(fid, 'uint16',
                                             int(img_size_header)),
-                                (int(imageheader['biWidth']),
-                                 int(imageheader['biHeight'])),
+                                (int(cin_object.imageheader['biWidth']),
+                                 int(cin_object.imageheader['biHeight'])),
                                 order='F')
     fid.close()
     return M.squeeze()  # eliminate extra dimension in case we have just loaded
     # one frame
 
 
-class cin:
+class Cin:
     """
     Class with the information of a cin file
 
     The header, image header, settings and time base will be stored here,
     the frames itself not, we can not work with 100Gb of data in memory!!!
     """
+
     # Class with information of the .cin files: Note: header, image header,
     # settings and time base will be stored here, the frames itself not,
     # we can not work with 100Gb of data in memory!!!
@@ -947,7 +949,23 @@ class cin:
         ## Settings dictionary
         self.settings = read_settings(file, self.header['OffSetup'])
         ## Image Header dictionary
-        self.imageheader = read_image_header(file,self.header[
+        self.imageheader = read_image_header(file, self.header[
             'OffImageHeader'])
         ## Time array
         self.timebase = read_time_base(file, self.header, self.settings)
+
+    def read_frame(self, frames_number, limitation: bool = True,
+                   limit: int = 2048):
+        """
+        Just a wrapper to call the read_frame function
+
+        @param frames_number: np array with the frame numbers to load
+        @param limitation: maximum size allowed to the output variable,
+        in Mbytes, to avoid overloading the memory trying to load the whole
+        video of 100 Gb
+        @param limit: bool flag to decide if we apply the limitation of we
+        operate in mode: YOLO
+        @return M: 3D numpy array with the frames M[px,py,nframes]
+        """
+        M = read_frame(self, frames_number, limitation=limitation, limit=limit)
+        return M
