@@ -29,12 +29,15 @@ def trace(frames, mask):
     return tr
 
 
-def create_roi(fig):
+def create_roi(fig, re_display=False):
     """
-    Just a wrapper for the RoiPoly features to reopen the figure after the
-    roi selection
+    Wrapper for the RoiPoly features
 
     Jose Rueda: ruejo@ipp.mpg.de
+
+    Just a wrapper for the roipoly capabilities which allows for the reopening
+    of the figures
+    @todo I can't understant why in spyder it does not work the .show....
 
     @param fig: fig object where the image is found
     @return fig: The figure with the roi plotted
@@ -44,8 +47,9 @@ def create_roi(fig):
     print('Please select the vertex of the roi in the figure')
     roi = RoiPoly(color='r', fig=fig)
     # Show again the image with the roi
-    fig.show()
-    roi.display_roi()
+    if re_display:
+        fig.show()
+        roi.display_roi()
     return fig, roi
 
 
@@ -80,25 +84,42 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
     # rewritten properly, but it should work and be really fast
     # #  Section 1: Get frames position
     # Open file and go to the position of the image header
-    img_size_header = int(cin_object.imageheader['biWidth'] *
-                          cin_object.imageheader['biHeight'])  # Image size
     fid = open(cin_object.file, 'r')
     fid.seek(cin_object.header['OffImageOffsets'])
-    position_array = np.fromfile(fid, 'int64', int(cin_object.header[
-                                                       'ImageCount']))
+    # Position of the frames
+    if cin_object.header['Version'] == 0:  # old format
+        position_array = np.fromfile(fid, 'int32',
+                                     int(cin_object.header['ImageCount']))
+    else:
+        position_array = np.fromfile(fid, 'int64',
+                                     int(cin_object.header['ImageCount']))
+    # 8-bits or 16 bits frames:
+    size_info = cin_object.settings['RealBPP']
+    if size_info <= 8:
+        # BPP = 8  # Bits per pixel
+        data_type = 'uint8'
+    else:
+        # BPP = 16  # Bits per pixel
+        data_type = 'uint16'
+    # Image size (in bytes)
+    # img_size_header = int(cin_object.imageheader['biWidth'] *
+    #                     cin_object.imageheader['biHeight']) * BPP / 8
+    # Number of pixels
+    npixels = cin_object.imageheader['biWidth'] * \
+        cin_object.imageheader['biHeight']
     itt = 0  # Index to cover the array during the loop
     # Read the frames
     for i in range(i1, i2):
         #  Go to the position of the file
-        iframe = i - cin_object.header['FirstImageNo']
+        iframe = i  # - cin_object.header['FirstImageNo']
         fid.seek(position_array[iframe])
         #  Skip header of the frame
         length_annotation = np.fromfile(fid, 'uint32', 1)
         fid.seek(position_array[iframe] + length_annotation - 4)
         #  Read frame
         np.fromfile(fid, 'uint32', 1)  # Image size in bytes
-        dummy = np.reshape(np.fromfile(fid, 'uint16',
-                                       int(img_size_header)),
+        dummy = np.reshape(np.fromfile(fid, data_type,
+                                       int(npixels)),
                            (int(cin_object.imageheader['biWidth']),
                             int(cin_object.imageheader['biHeight'])),
                            order='F')

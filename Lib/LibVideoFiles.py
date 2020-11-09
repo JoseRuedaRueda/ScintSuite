@@ -1,14 +1,21 @@
-"""@package LibCinFiles
-Module to handle the .cin files
+"""@package LibVideoFiles
+
+Module to handle the video from the different cameras
 
 This module is created to handle the .cin (.cine) files, binary files
 created by the Phantom cameras. In its actual state it can read everything
-from the file, but it can't write/create a cin file
+from the file, but it can't write/create a cin file. It also load data from
+PNG files as the old FILD_GUI and is able to work with tiff files
 """
 
+import os
 import numpy as np
+import matplotlib.pyplot as plt
 
 
+# ------------------------------------------------------------------------------
+# --- Section 1: Methods for the .cin files
+# ------------------------------------------------------------------------------
 def read_header(filename: str, verbose=False):
     """
     Read the header info of a .cin file.
@@ -32,22 +39,26 @@ def read_header(filename: str, verbose=False):
                   'Compression': np.fromfile(fid, 'uint16', 1)}
     # It represent the cine file header structure size as number of bytes
     # Compression applied to the data
-    if cin_header['Compression'] == 0 & verbose:
-        print('The video is saved as grey images\n')
-    elif cin_header['Compression'] == 1 & verbose:
-        print('The video is saved as jpeg compressed files \n')
-    elif cin_header['Compression'] == 2 & verbose:
-        print('The video is saved as raw uninterpolated color\n')
+    if cin_header['Compression'] == 0:
+        if verbose:
+            print('The video is saved as grey images\n')
+    elif cin_header['Compression'] == 1:
+        if verbose:
+            print('The video is saved as jpeg compressed files \n')
+    elif cin_header['Compression'] == 2:
+        if verbose:
+            print('The video is saved as raw uninterpolated color\n')
     else:
+        print('Compression : ', cin_header['Compression'])
         print('Error reading the header, compression number wrong')
-        return
+        return cin_header
     # Version of the cine file
     cin_header['Version'] = np.fromfile(fid, 'uint16', 1)
     if cin_header['Version'] == 0:
         print('This is a rather old version of the cine file, there could be '
               'some problems, stay alert\n')
     # number of the first recorded frame, relative to the trigger event
-    cin_header['FirstMovieImage'] = np.fromfile(fid, 'uint32', 1)
+    cin_header['FirstMovieImage'] = np.fromfile(fid, 'int32', 1)
     # total number of frames taken by the camera
     cin_header['TotalImageCount'] = np.fromfile(fid, 'uint32', 1)
     # number of the first saved frame in the ['cin file, relative to the trigger
@@ -85,8 +96,8 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     @param filename: name of the file to read (full path)
     @param bit_pos: Position of the file where the setting structure starts
     @param verbose: verbose results or not
-    @return cin_settings: dictionary containing all the camera settings. See the inline
-    comments at the end of the function
+    @return cin_settings: dictionary containing all the camera settings. See the
+    inline comments at the end of the function
     @todo Check if the coefficient matrix of UF is ok or must be transposed
     """
 
@@ -96,7 +107,7 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
         print('Reading .cin settings')
     fid.seek(bit_pos)
 
-    # -- Requested frame rate
+    # Requested frame rate
     cin_settings = {'FrameRate16': np.fromfile(fid, 'uint16', 1),
                     'Shutter16': np.fromfile(fid, 'uint16', 1),
                     'PostTrigger16': np.fromfile(fid, 'uint16', 1),
@@ -144,7 +155,7 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
                     'ImHeight': np.fromfile(fid, 'uint16', 1),
                     'EDRShutter16': np.fromfile(fid, 'uint16', 1),
                     'Serial': np.fromfile(fid, 'uint32', 1)}
-    if cin_settings['Serial'] == 24167 & verbose:
+    if cin_settings['Serial'] == 24167 and verbose:
         print('Data was saved with a camera belonging to Prof. E Viezzer')
     cin_settings['Saturation'] = np.fromfile(fid, 'int32', 1)
     cin_settings['Res5'] = np.fromfile(fid, 'uint8', 1)
@@ -225,7 +236,7 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     cin_settings['Sensor'] = np.fromfile(fid, 'uint32', 1)
     if cin_settings['SoftwareVersion'] <= 625:
         return cin_settings
-    # ---- Adquisition parameters in NS
+    # --- Adquisition parameters in NS
     cin_settings['ShutterNs'] = np.fromfile(fid, 'uint32', 1)
     cin_settings['EDRShutterNs'] = np.fromfile(fid, 'uint32', 1)
     cin_settings['FrameDelayNs'] = np.fromfile(fid, 'uint32', 1)
@@ -347,14 +358,13 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     if cin_settings['SoftwareVersion'] <= 771:
         return cin_settings
     fid.close()
-    # return and print
+    # --- return and print
     # Print if needed
     if verbose:
         for y in cin_settings:
             print(y, ':', cin_settings[y])
     return cin_settings
     #  uint16_t FrameRate16;     // Frame rate fps---UPDF replaced by FrameRate
-    #  uint16_t Shutter16;  // Exposition time mu s---UPDF replaced by ShutterNs
     #  uint16_t PostTrigger16;   // ---UPDF replaced by PostTrigger
     #  uint16_t FrameDelay16;    // ---UPDF replaced by FrameDelayNs
     #  uint16_t AspectRatio;     // ---UPDF replaced by ImWidth, ImHeight
@@ -392,7 +402,6 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     #                            // 2 dsk+SAM
     #                            // 3 Data Translation DT9802
     #                            // 4 Data Translation DT3010
-
     #  int16_t ChOption[8];      // Per channel analog options;
     #                            // now:bit 0...3 analog gain (1,2,4,8)
     #  float AnaGain[8];     // User gain correction for conversion from voltage
@@ -401,7 +410,6 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     #                            // chars/name ended each by a byte = 0
     #  char AnaName[8][11];     // Channel name for the first 8 analog channels:
     #                            // max 10 chars/name ended each by a byte = 0
-
     #  int32_t lFirstImage;      // Range of images for continuous recording:
     #                            // first image
     #  uint32_t dwImageCount;    // Image count for continuous recording;
@@ -417,7 +425,6 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     #  uint16_t Res14;           // ---TBI bMainsFreq (Mains frequency:
     #                            // TRUE = 60Hz USA, FALSE = 50Hz
     #                            // Europe, for signal view in DSP)
-
     #                            // Time board - settings for PC104 irig board
     #                            // used in Phantom v3 not used anymore after v3
     #  uint8_t Res15;            // ---TBI bTimeCode;
@@ -428,15 +435,12 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     #                            // Next day of year with leap second
     #  double Res18;          // ---TBI dDelayTC Propagation delay for time code
     #  double Res19;          // ---TBI dDelayTC Propagation delay for time code
-
     #  uint16_t Res20;           // ---TBI GenBits
     #  int32_t Res1;             // ---TBI GenBits
     #  int32_t Res2;             // ---TBI GenBits
     #  int32_t Res3;             // ---TBI GenBits
-
     #  uint16_t ImWidth;      // Image dimensions in v4 and newer cameras: Width
     #  uint16_t ImHeight;        // Image height
-
     #  uint16_t EDRShutter16;    // ---UPDF replaced by EDRShutterNs
     #  uint32_t Serial;          // Camera serial number
     #  int32_t Saturation;       // ---UPDF replaced by float fSaturation
@@ -478,7 +482,6 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     #                            // v6 and v6.2
     #                            // Masks: 0x80000000: TLgray 0x40000000: TRgray
     #                            // 0x20000000: BLgray 0x10000000: BRgray
-
     #                            // Final adjustments after image processing:
     #  int32_t Bright;           // ---UPDF replaced by fOffset
     #  uint32_t Res21;           // ---TBI
@@ -494,9 +497,7 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     #                            // TR, BL, BR for multihead
     #  int32_t Rotate;           // Rotate the image 0=do nothing
     #                            // +90=counterclockwise -90=clockwise
-
     #  WBGAIN WBView;      // White balance to apply on color interpolated Cines
-
     #  uint32_t RealBPP;         // Real number of bits per pixel for this cine
     #                            // 8 on 8 bit cameras
     #                            // (v3, 4, 5, 6, 42, 43, 51, 62, 72, 9)
@@ -514,16 +515,13 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     #  int32_t FilterCode;       // ImageProcessing: area processing code
     #  int32_t FilterParam;      // ImageProcessing: optional parameter
     #  IMFILTER UF;         // User filter: a 3x3 or 5x5 user convolution filter
-
     #  uint32_t BlackCalSVer;    // Software Version used for Black Reference
     #  uint32_t WhiteCalSVer;    // Software Version used for White Calibration
     #  uint32_t GrayCalSVer;     // Software Version used for Gray Calibration
     #  bool32_t bStampTime;      // Stamp time (in continuous recording)
     #                            // 1 = absolute time, 3 = from trigger
     #                         // End of SETUP in software version 605 (Nov 2003)
-
     #  uint32_t SoundDest;   // Sound device 0: none, 1: Speaker, 2: sound board
-
     #  //Frame rate profile
     #  uint32_t FRPSteps;        // Suplimentary steps in frame rate profile
     #                            // 0 means no frame rate profile
@@ -564,7 +562,6 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     #                         // End of SETUP in software version 607 (Oct 2004)
     #  uint32_t RangeCode;   // Range data code: describes the range data format
     #  uint32_t RangeSize;       // Range data, per image size
-
     #  uint32_t Decimation;      // Factor to reduce the frame rate when sending
     #                            //the images to i3 external memory by fiber
     #                         // End of SETUP in software version 614 (Feb 2005)
@@ -723,16 +720,13 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     #  float fDecimation;  // Decimation coefficient employed when this cine was
     #                            // saved to file.
     #                            // End of SETUP in software version 745
-
     #  uint32_t MagSerial;    // The serial of the magazine where the cine was
     #                            // recorded or stored (if any, null otherwise)
-
     #  uint32_t CSSerial; // Cine Save serial: The serial of the device (camera,
     #                            // cine station) used to save the cine to file
     #  double dFrameRate;      // High precision acquisition frame rate, replace
     #                            // uint32_t FrameRate
     #                            // End of SETUP in software version 751
-
     #  uint32_t SensorMode    // Camera sensor Mode used to define what mode the
     #                            // Sensor is in
     #                      // This is currently valid for the Flex4K, VEO 4K and
@@ -753,7 +747,7 @@ def read_image_header(filename: str, bit_pos: int, verbose: bool = False):
     @return cin_image_header: Image header (dictionary), see inlien comments
     for a full description of each dictionary field
     """
-    # Open file and go to the position of the image header
+    # --- Open file and go to the position of the image header
     fid = open(filename, 'r')
     if verbose:
         print('Reading .cin image header')
@@ -781,7 +775,7 @@ def read_image_header(filename: str, bit_pos: int, verbose: bool = False):
     # Color settings
     cin_image_header['biClrUsed'] = np.fromfile(fid, 'uint32', 1)
     cin_image_header['biClrImportant'] = np.fromfile(fid, 'uint32', 1)
-    if cin_image_header['biClrImportant'] == 4096 & verbose:
+    if cin_image_header['biClrImportant'] == 4096 and verbose:
         print('The actual depth used for the scale is 2^12')
     fid.close()
     # return and print
@@ -822,25 +816,23 @@ def read_time_base(filename: str, header: dict, settings: dict):
             np.fromfile(fid, 'uint16', 1)  # Reserved number
             dummy = np.fromfile(fid, 'uint32', int(2 * header['ImageCount'][:]))
             cin_time: float = np.float64(dummy[1::2]) - \
-                              np.float64(header['TriggerTime']['seconds']) + \
-                              (np.float64(dummy[0::2]) -
-                               np.float64(header['TriggerTime']
-                                          ['fractions'])) / 2.0 ** 32
+                np.float64(header['TriggerTime']['seconds']) + \
+                (np.float64(dummy[0::2]) -
+                 np.float64(header['TriggerTime']['fractions'])) / 2.0 ** 32
             # return
             fid.close()
             return cin_time
-        else:
-            fid.seek(header['OffSetup'] + settings['Length'] + cumulate_size)
+        fid.seek(header['OffSetup'] + settings['Length'] + cumulate_size)
 
 
-def read_frame(cin_object,
-               frames_number, limitation: bool = True, limit: int = 2048):
+def read_frame_cin(cin_object, frames_number, limitation: bool = True,
+                   limit: int = 2048):
     """
     Read frames from a .cin file
 
     Jose Rueda Rueda: jose.rueda@ipp.mpg.de
 
-    @param cin_object: Cin Object with the file information
+    @param cin_object: Video Object with the file information
     @param frames_number: np array with the frame numbers to load
     @param limitation: maximum size allowed to the output variable,
     in Mbytes, to avoid overloading the memory trying to load the whole
@@ -849,7 +841,8 @@ def read_frame(cin_object,
     operate in mode: YOLO
     @return M: 3D numpy array with the frames M[px,py,nframes]
     """
-    # --- check if the requested frames are in the file
+    # --- Section 0: Initial checks
+    # check if the requested frames are in the file
     flags_below = frames_number < cin_object.header['FirstImageNo']
     if cin_object.header['FirstImageNo'] > 0:
         flags_above = frames_number > (cin_object.header['FirstImageNo'] +
@@ -864,9 +857,9 @@ def read_frame(cin_object,
         print(cin_object.header['FirstImageNo'])
         print(flags_above)
         print('The requested frame is not in the file!!!')
-        return
+        return 0
 
-    # --- Check the output size:
+    # Check the output size:
     nframe = np.size(frames_number)
     if nframe > 1:
         # weight of the output array in megabytes
@@ -874,11 +867,11 @@ def read_frame(cin_object,
                 cin_object.imageheader['biHeight'] * nframe * 2 / 1024 / 1024
         # If the weight is too much, stop (to do not load tens og Gb of video
         # in the memory and kill the computer
-        if (talla > limit) & limitation:
+        if (talla > limit) and limitation:
             print('Output will be larger than the limit, stopping')
-            return
+            return 0
 
-    # #  Section 1: Get frames position
+    # --- Section 1: Get frames position
     # Open file and go to the position of the image header
     fid = open(cin_object.file, 'r')
     fid.seek(cin_object.header['OffImageOffsets'])
@@ -889,75 +882,256 @@ def read_frame(cin_object,
     else:
         position_array = np.fromfile(fid, 'int64',
                                      int(cin_object.header['ImageCount']))
-
     # --------------------------------------------------------------------------
-    # #  Section 2: Read the images
+    # ---  Section 2: Read the images
+
+    # Image size from header information
+    # First look for the actual number of pixel used to store information of
+    # the counts in each pixel. If this is 8 or less the images will be saved
+    # in 8 bit format, else, 16 bits will be used
+    size_info = cin_object.settings['RealBPP']
+    if size_info <= 8:
+        BPP = 8  # Bits per pixel
+        data_type = 'uint8'
+    else:
+        BPP = 16  # Bits per pixel
+        data_type = 'uint16'
+
     # Preallocate output array
     M = np.zeros((int(cin_object.imageheader['biWidth']),
                   int(cin_object.imageheader['biHeight']), nframe),
-                 dtype=np.int16, order='F')
-    # Image size from header information
+                 dtype=data_type, order='F')
     img_size_header = cin_object.imageheader['biWidth'] * \
-                      cin_object.imageheader['biHeight']  # Image size
+        cin_object.imageheader['biHeight'] * BPP / 8  # In bytes
+    npixels = cin_object.imageheader['biWidth'] * \
+        cin_object.imageheader['biHeight']
     # Read the frames
     for i in range(nframe):
         #  Go to the position of the file
-        iframe = frames_number[i] - cin_object.header['FirstImageNo']
+        iframe = frames_number[i]  # - cin_object.header['FirstImageNo']
         fid.seek(position_array[iframe])
         #  Skip header of the frame
         length_annotation = np.fromfile(fid, 'uint32', 1)
         fid.seek(position_array[iframe] + length_annotation - 4)
         #  Read frame
         image_size = np.fromfile(fid, 'uint32', 1)  # In bytes
-        if image_size / 2 != img_size_header:
-            print(image_size / 2)
+        if image_size != img_size_header:
+            print(image_size)
             print(img_size_header)
-            print('Image sizes does not coincides')
-            return
+            print('Image sizes (in bytes) does not coincides')
+            return 0
 
-        M[:, :, i] = np.reshape(np.fromfile(fid, 'uint16',
-                                            int(img_size_header)),
+        M[:, :, i] = np.reshape(np.fromfile(fid, data_type,
+                                            int(npixels)),
                                 (int(cin_object.imageheader['biWidth']),
                                  int(cin_object.imageheader['biHeight'])),
                                 order='F')
     fid.close()
     return M.squeeze()  # eliminate extra dimension in case we have just loaded
-    # one frame
+    #                     one frame
 
 
-class Cin:
+# ------------------------------------------------------------------------------
+# --- Section 2: Methods for the .png files
+# ------------------------------------------------------------------------------
+
+
+def read_data_png(path):
     """
-    Class with the information of a cin file
+    Read info for a case where the measurements are stored as png
+
+    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+
+    Return a series of dictionaries similars to the case of a cin file,
+    with all the info we can extract from the png
+
+    @param path: path to the folder where the pngs are located
+    @return time_base: time base of the frames (s)
+    @return image_header: dictionary containing the info about the image size,
+    and shape
+    @return header: Header 'similar' to the case of a cin file
+    @return settingf: dictionary similar to the case of the cin file (it only
+    contain the exposition time)
+
+    """
+    # Look for the png file with the time base and exposition time
+    f = []
+    look_for_png = True
+    for file in os.listdir(path):
+        if file.endswith('.txt'):
+            f.append(os.path.join(path, file))
+        if file.endswith('.png') and look_for_png:
+            dummy = plt.imread(os.path.join(path, file))
+            si = dummy.shape
+            imageheader = {'biWidth': si[0],
+                           'biHeight': si[1]}
+            look_for_png = False
+    # If no png was found, raise and error
+    if look_for_png:
+        print('No .png files in the folder...')
+        return 0, 0, 0, 0
+    n_files = len(f)
+    if n_files == 0:
+        print('no txt file with the information found in the directory!!')
+        return 0, 0, 0, 0
+    elif n_files > 1:
+        print('Several txt files found...')
+        return 0, 0, 0, 0
+    else:
+        dummy = np.loadtxt(f[0], skiprows=2, comments='(')
+        header = {'ImageCount': int(dummy[-1, 0])}
+        settings = {'ShutterNs': dummy[0, 2] / 1000.0}
+        time_base = dummy[:, 3]
+        # Sometimes the camera break and set the says that all the frames
+        # where recorded at t = 0... in this case just assume a time base on
+        # the basis of the exposition time
+        std_time = np.std(time_base)
+        if std_time < 1e-2:
+            time_base = np.linspace(0, dummy[-1, 0] * dummy[0, 2] / 1000,
+                                    int(dummy[-1, 0]) + 1)
+            print('Caution!! the experimental time base was broken, a time '
+                  'base has been generated on the basis of theexposure time')
+    # extract the shot number from the path
+    header['shot'] = int(path[-5:])
+
+    return header, imageheader, settings, time_base
+
+
+def read_frame_png(video_object, frames_number=None, limitation: bool = True,
+                   limit: int = 2048):
+    """
+    Read .png files
+
+    Jose Rueda: jose.rueda@ipp.mpg.de
+
+    Important, PNG are supposed to be created already in a gray scale!!!
+    @param video_object: Video class with the info of the video
+    @param frames_number: array with the number of the frames to be loaded,
+    if none, all frames will be loaded
+    @param limitation: if we want to set a limitation of the size we can load
+    @param limit: Limit to the size, in megabytes
+    @return M: array of frames, [px in x, px in y, number of frames]
+    """
+    # Frames would have a name as shot-framenumber.png example: 30585-001.png
+
+    # check the size of the files, assume that the data will be saved as float32
+    # bits format:
+    size_frame = video_object.imageheader['biWidth'] * \
+                 video_object.imageheader['biWidth'] * 2 / 1024 / 1024
+    if frames_number is None:
+        # In this case, we load everything
+        if limitation and \
+                size_frame * video_object.header['ImageCount'] > limit:
+            print('Loading all frames is too much')
+            return 0
+
+        M = np.zeros((video_object.imageheader['biWidth'],
+                      video_object.imageheader['biHeight'],
+                      video_object.header['ImageCount']), dtype=np.float32)
+        counter = 0
+        for file in os.listdir(video_object.path):
+            if file.endswith('.png'):
+                M[:, :, counter] = plt.imread(
+                    os.path.join(video_object.path, file)).astype(np.float32)
+                counter = counter + 1
+    else:
+        # Load only the selected frames
+        counter = 0
+        current_frame = 0
+        if limitation and \
+                size_frame * len(frames_number) > limit:
+            print('Loading all frames is too much')
+            return 0
+        M = np.zeros((video_object.imageheader['biWidth'],
+                      video_object.imageheader['biHeight'],
+                      len(frames_number)), dtype=np.float32)
+
+        for file in os.listdir(video_object.path):
+            if file.endswith('.png'):
+                current_frame = current_frame + 1
+                if current_frame in frames_number:
+                    M[:, :, counter] = plt.imread(
+                        os.path.join(video_object.path, file)).astype(
+                            np.float32)
+                    counter = counter + 1
+    return M
+
+
+# ------------------------------------------------------------------------------
+# --- Section 3: Video files
+# ------------------------------------------------------------------------------
+
+
+class Video:
+    """
+    Class with the information of the recorded video
 
     The header, image header, settings and time base will be stored here,
     the frames itself not, we can not work with 100Gb of data in memory!!!
     """
 
-    # Class with information of the .cin files: Note: header, image header,
-    # settings and time base will be stored here, the frames itself not,
-    # we can not work with 100Gb of data in memory!!!
     def __init__(self, file: str):
         """
         Initialise the class
 
-        @param file: For the initialization, file (full path) to be loaded)
+        @param file: For the initialization, file (full path) to be loaded),
+        if the path point to a .cin file, the .cin file will be loaded. If
+        the path points to a folder, the prgram will look for png files or
+        tiff files inside
         """
-        ## Name of the .cin file (full path)
-        self.file = file
-        ## Header dictionary with the file info
-        self.header = read_header(file)
-        ## Settings dictionary
-        self.settings = read_settings(file, self.header['OffSetup'])
-        ## Image Header dictionary
-        self.imageheader = read_image_header(file, self.header[
-            'OffImageHeader'])
-        ## Time array
-        self.timebase = read_time_base(file, self.header, self.settings)
+        if os.path.isfile(file):
+            ## Path to the file and filename
+            self.path, self.file_name = os.path.split(file)
+            ## Name of the file (full path)
+            self.file = file
 
-    def read_frame(self, frames_number, limitation: bool = True,
+            # Check if the file is actually a .cin file
+            if file[-4:] == '.cin' or file[-5:] == '.cine':
+                ## Header dictionary with the file info
+                self.header = read_header(file)
+                ## Settings dictionary
+                self.settings = read_settings(file, self.header['OffSetup'])
+                ## Image Header dictionary
+                self.imageheader = read_image_header(file, self.header[
+                    'OffImageHeader'])
+                ## Time array
+                self.timebase = read_time_base(file, self.header, self.settings)
+                self.type_of_file = '.cin'
+        elif os.path.isdir(file):
+            ## path to the file
+            self.path = file
+            # Do a quick run for the folder looking of .tiff or .png files
+            f = []
+            for (dirpath, dirnames, filenames) in os.walk(self.path):
+                f.extend(filenames)
+                break
+
+            for i in range(len(f)):
+                if f[i][-4:] == '.png':
+                    self.type_of_file = '.png'
+                    print('Found PNG files!')
+                    break
+                elif f[i][-4:] == '.tif':
+                    self.type_of_file = '.tif'
+            # if we do not have .png or tiff, give an error
+            if self.type_of_file != '.png' and self.type_of_file != '.tiff':
+                print('No .pgn or .tiff files found')
+                return
+
+            # If we have a .png file, a .txt must be present with the
+            # information of the exposure time and from a basic frame we can
+            # load the file size
+            if self.type_of_file == '.png':
+                self.header, self.imageheader, self.settings,\
+                    self.timebase = read_data_png(self.path)
+
+    def read_frame(self, frames_number=None, limitation: bool = True,
                    limit: int = 2048):
         """
-        Just a wrapper to call the read_frame function
+        Call the read_frame function
+
+        Just a wrapper to call the read_frame function, depending of the
+        format in which the experimental data has been recorded
 
         @param frames_number: np array with the frame numbers to load
         @param limitation: maximum size allowed to the output variable,
@@ -967,5 +1141,10 @@ class Cin:
         operate in mode: YOLO
         @return M: 3D numpy array with the frames M[px,py,nframes]
         """
-        M = read_frame(self, frames_number, limitation=limitation, limit=limit)
+        if self.type_of_file == '.cin':
+            M = read_frame_cin(self, frames_number, limitation=limitation,
+                               limit=limit)
+        elif self.type_of_file == '.png':
+            M = read_frame_png(self, frames_number, limitation=limitation,
+                               limit=limit)
         return M
