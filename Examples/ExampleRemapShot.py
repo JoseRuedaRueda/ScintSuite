@@ -14,11 +14,6 @@ jose rueda (jose.rueda@ipp.mpg.de) by email
 # General python packages
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
-
-# Packages from the suite
-sys.path.extend(['/afs/ipp-garching.mpg.de/home/r/ruejo/PycharmProjects/Scint_suite/Lib'])
-
 import LibPlotting as ssplt
 import LibVideoFiles as sscin
 import LibMap as ssmap
@@ -26,8 +21,8 @@ import LibTimeTraces as sstt
 
 # ------------------------------------------------------------------------------
 # Section 0: Settings
-cin_file_name = '/p/IPP/AUG/rawfiles/FIT/36/36358_v710.cin'
-reference_frame_name = './FILD_calibration/FILD_reference_640x480_03062019.png'
+cin_file_name = '/p/IPP/AUG/rawfiles/FIT/34/34570_v710.cin'
+reference_frame_name = './FILD_calibration/FILD_reference_800x600_03062019.png'
 scintillator_name = './aug_fild1_scint.pl'
 t0 = 2.16       # Reference time (to select the ROI) in s
 
@@ -39,7 +34,7 @@ ref_frame = cin.read_frame(dummy)
 
 # Create plot
 fig_ref, ax_ref = plt.subplots()
-ax_ref.imshow(ref_frame, vmax=60)
+ax_ref.imshow(ref_frame)
 
 # Define roi
 fig_ref, roi = sstt.create_roi(fig_ref)
@@ -77,8 +72,6 @@ scint.plot_real(ax_scin_FILDSIM)
 
 # Plot the calibration frame
 fig_call_frame, ax_call_frame = plt.subplots()
-cal_frame = plt.imread(reference_frame_name)
-cal_frame_tr = cal_frame[:,:,1].transpose()
-cal_frame_inv = cal_frame_tr[:,::-1]
-ax_call_frame.imshow(cal_frame_inv)
+cal_frame = sscin.load_png_files(reference_frame_name)
+ax_call_frame.imshow(cal_frame)
 

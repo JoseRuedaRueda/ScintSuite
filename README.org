@@ -12,3 +12,9 @@ Needed packages:
 ** Note for developers 
     - Indentation must be done via 4 spaces!
     - PEP 8 guide should be followed without exception autorished by all developers via the gitlab 'issues' page 
+
+** Version control
+Each release will be denoted by 3 numbers: a.b.c meaning:
+    - c: bug fixed and improved comments and documentation. The higer the number, the better
+    - b: include new optional capabilities, versions a.b1.c1 and a.b2.c2, should run perfectly with the same inputs. The higher b, the more extra capabilities you have
+    - a: indicate major changes in the code, versions with different 'a' may be not compatible

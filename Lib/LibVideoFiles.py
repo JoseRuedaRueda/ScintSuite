@@ -898,8 +898,10 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
         data_type = 'uint16'
 
     # Preallocate output array
-    M = np.zeros((int(cin_object.imageheader['biWidth']),
-                  int(cin_object.imageheader['biHeight']), nframe),
+    # To be in line with olf FILD GUI (and be able to use old FILD callibration)
+    # the matrix will be [height,width] 
+    M = np.zeros((int(cin_object.imageheader['biHeight']),
+                  int(cin_object.imageheader['biWidth']), nframe),
                  dtype=data_type, order='F')
     img_size_header = cin_object.imageheader['biWidth'] * \
         cin_object.imageheader['biHeight'] * BPP / 8  # In bytes
@@ -925,7 +927,7 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
                                             int(npixels)),
                                 (int(cin_object.imageheader['biWidth']),
                                  int(cin_object.imageheader['biHeight'])),
-                                order='F')
+                                order='F').transpose()
     fid.close()
     return M.squeeze()  # eliminate extra dimension in case we have just loaded
     #                     one frame
@@ -997,6 +999,29 @@ def read_data_png(path):
     return header, imageheader, settings, time_base
 
 
+def rgb2gray(rgb):
+    """Transform rgb images to gray"""
+    return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
+
+
+def load_png_files(filename):
+    """
+    Load the png with an order compatible with IDL
+
+    IDL load things internally in a way different from python. In order the new
+    suite to be compatible with all FILD calibrations of the last 20 years,
+    an inversion should be done to load png in the same way as IDL
+
+    @param filename: full path pointing to the png
+    """
+
+    dummy = plt.imread(filename)
+    if len(dummy.shape)> 2:     # We have an rgb png, transform it to gray
+        dummy = rgb2gray(dummy)
+
+    return dummy[::-1, :]
+
+
 def read_frame_png(video_object, frames_number=None, limitation: bool = True,
                    limit: int = 2048):
     """
@@ -1031,7 +1056,7 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
         counter = 0
         for file in os.listdir(video_object.path):
             if file.endswith('.png'):
-                M[:, :, counter] = plt.imread(
+                M[:, :, counter] = load_png_files(
                     os.path.join(video_object.path, file)).astype(np.float32)
                 counter = counter + 1
     else:

@@ -4,6 +4,7 @@ Module to calculate time traces
 import numpy as np
 from roipoly import RoiPoly
 import datetime
+import time
 
 
 def trace(frames, mask):
@@ -65,7 +66,7 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
     @param t2: final time to calculate the timetrace [in s]
     @return tt: TimeTrace object
     """
-
+    # --- Section 0: Initialise the arrays
     # Initialise the timetrace object
     tt = TimeTrace()
     tt.mask = mask
@@ -82,8 +83,10 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
     # open and close several time the file as well as navigate trough it... I
     # will create temporally a copy of that routine, this need to be
     # rewritten properly, but it should work and be really fast
-    # #  Section 1: Get frames position
+    # ---  Section 1: Get frames position
     # Open file and go to the position of the image header
+    print('Opening .cin file and reading data')
+    tic = time.time()
     fid = open(cin_object.file, 'r')
     fid.seek(cin_object.header['OffImageOffsets'])
     # Position of the frames
@@ -108,7 +111,7 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
     npixels = cin_object.imageheader['biWidth'] * \
         cin_object.imageheader['biHeight']
     itt = 0  # Index to cover the array during the loop
-    # Read the frames
+    # --- Section 2: Read the frames
     for i in range(i1, i2):
         #  Go to the position of the file
         iframe = i  # - cin_object.header['FirstImageNo']
@@ -122,12 +125,14 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
                                        int(npixels)),
                            (int(cin_object.imageheader['biWidth']),
                             int(cin_object.imageheader['biHeight'])),
-                           order='F')
+                           order='F').transpose()
         tt.sum_of_roi[itt] = np.sum(dummy[mask])
         tt.mean_of_roi[itt] = np.mean(dummy[mask])
         tt.std_of_roi[itt] = np.std(dummy[mask])
         itt = itt + 1
     fid.close()
+    toc = time.time()
+    print('Elapsed time [s]: ', toc - tic)
     return tt
 
 
