@@ -843,22 +843,26 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
     """
     # --- Section 0: Initial checks
     # check if the requested frames are in the file
-    flags_below = frames_number < cin_object.header['FirstImageNo']
-    if cin_object.header['FirstImageNo'] > 0:
-        flags_above = frames_number > (cin_object.header['FirstImageNo'] +
-                                       cin_object.header['ImageCount'])
-    else:
-        flags_above = frames_number > (cin_object.header['FirstImageNo'] +
-                                       cin_object.header['ImageCount'] - 1)
+    # flags_below = frames_number < cin_object.header['FirstImageNo']
+    # if cin_object.header['FirstImageNo'] > 0:
+    #     flags_above = frames_number > (cin_object.header['FirstImageNo'] +
+    #                                    cin_object.header['ImageCount'])
+    # else:
+    #     flags_above = frames_number > (cin_object.header['FirstImageNo'] +
+    #                                    cin_object.header['ImageCount'] - 1)
 
-    if (np.sum(flags_above) + np.sum(flags_below)) > 0:
-        print(np.sum(flags_above))
-        print(np.sum(flags_below))
-        print(cin_object.header['FirstImageNo'])
-        print(flags_above)
-        print('The requested frame is not in the file!!!')
+    # if (np.sum(flags_above) + np.sum(flags_below)) > 0:
+    #     print(np.sum(flags_above))
+    #     print(np.sum(flags_below))
+    #     print(cin_object.header['FirstImageNo'])
+    #     print(flags_above)
+    #     print('The requested frame is not in the file!!!')
+    #     return 0
+    flags_negative = frames_number < 0
+    flags_above = frames_number > cin_object.header['ImageCount']
+    if (np.sum(flags_above) + np.sum(flags_negative)) > 0:
+        print('The requested frames are not in the file!!!')
         return 0
-
     # Check the output size:
     nframe = np.size(frames_number)
     if nframe > 1:
@@ -902,7 +906,7 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
     # the matrix will be [height,width] 
     M = np.zeros((int(cin_object.imageheader['biHeight']),
                   int(cin_object.imageheader['biWidth']), nframe),
-                 dtype=data_type, order='F')
+                 dtype=data_type)
     img_size_header = cin_object.imageheader['biWidth'] * \
         cin_object.imageheader['biHeight'] * BPP / 8  # In bytes
     npixels = cin_object.imageheader['biWidth'] * \

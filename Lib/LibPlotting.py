@@ -2,7 +2,8 @@
 Module to plot
 """
 import matplotlib.pyplot as plt
-
+import numpy as np
+from matplotlib.colors import LinearSegmentedColormap
 
 # Basic 1D plotting
 def p1D(ax, x, y, param_dict: dict = None):
@@ -94,3 +95,18 @@ def axis_beauty(ax, param_dict: dict):
     ax.tick_params(which='both', direction='in', color='k', bottom=True,
                    top=True, left=True, right=True)
     return ax
+
+
+
+def Gamma_II(n=256):
+    """
+    Gamma II colormap
+
+    This function creates the colormap that coincides with the
+    Gamma_II_colormap of IDL.
+
+    @param n: numbers of levels of the output colormap
+    """
+    cmap = LinearSegmentedColormap.from_list(
+        'mycmap', ['black', 'blue', 'red', 'yellow', 'white'], N=n)
+    return cmap

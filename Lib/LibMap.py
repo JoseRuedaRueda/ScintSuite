@@ -4,19 +4,12 @@ Module to remap the scintillator
 It contains the routines to load and aling the strike maps, as well as
 perform the remapping
 """
-# import time
+import time
+import math
 import numpy as np
 import matplotlib.pyplot as plt
-import math
-
-
-# def remap_grid(timing=True):
-#     if timing:
-#         tic = time.time()
-#
-#     if timing:
-#         toc = time.time()
-#         print('Elapsed time: ', toc - tic)
+import scipy.interpolate as scipy_interp
+import LibPlotting as ssplt 
 
 
 def transform_to_pixel(x, y, grid_param):
@@ -265,6 +258,32 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
     return xmag, mag, alpha, offset[0], offset[1]
 
 
+def remap(smap, timing=True):
+    """
+    Remap a frame
+
+    Jose Rueda: jose.rueda@ipp.mpg.de
+
+    @param smap: StrikeMap() object with the strike map
+    @param timing: Flag to time the routine or not
+    """
+    # --- 0: Check inputs
+    if smap.xpixel is None:
+        print('Please, transform to pixel the strike map before!!!')
+        error = 1
+        return error, 0
+    
+    
+    if timing:
+        tic = time.time()
+
+    
+
+    if timing:
+        toc = time.time()
+        print('Elapsed time: ', toc - tic)
+
+
 class CalibrationDatabase:
     """
     Class with with the database of parameter to align the scintillator
@@ -382,9 +401,9 @@ class CalibrationDatabase:
         @param camera: Camera used
         @param cal_type: Type of calibration we want
         @param diag_ID: ID of the diagnostic we want
-        @return ID: ID of the calibration which fulfil the requirements
+        @return cal: CalParams() object
         """
-        print(len(self.data['ID']))
+
         flags = np.zeros(len(self.data['ID']))
         for i in range(len(self.data['ID'])):
             if (self.data['shot1'][i] <= shot) * \
@@ -395,7 +414,7 @@ class CalibrationDatabase:
                 flags[i] = True
 
         n_true = sum(flags)
-        print(n_true)
+
         if n_true == 0:
             print('No entry find in the database, revise database')
             return
@@ -405,7 +424,14 @@ class CalibrationDatabase:
             print(self.data['ID'][flags])
         else:
             dummy = np.argmax(np.array(flags))
-            return self.data['ID'][dummy]
+            cal = CalParams()
+            cal.xscale = self.data['xscale'][dummy]
+            cal.yscale = self.data['yscale'][dummy]
+            cal.xshift = self.data['xshift'][dummy]
+            cal.yshift = self.data['yshift'][dummy]
+            cal.deg = self.data['deg'][dummy]
+
+            return cal
 
 
 class StrikeMap:
@@ -421,6 +447,9 @@ class StrikeMap:
         @param file: Full path to file with the strike map
         @todo Eliminate flag and extract info from file name??
         """
+        ## Associated diagnostic
+        if flag == 0:
+            self.diag = 'FILD'
         ## X-position, in pixles, of the strike map
         self.xpixel = None
         ## Y-Position, in pixels, of the strike map
@@ -451,6 +480,12 @@ class StrikeMap:
             self.collimator_factor = dummy[ind, 7]
             ## Average incident angle of the FILDSIM markers
             self.avg_incident_angle = dummy[ind, 8]
+            ## Matrix to translate from pixels in the camera to gyroradius
+            self.gyr_interp = None
+            ## Matrix to translate from pixels in the camera to pitch
+            self.pit_interp = None
+            ## Matrix to translate from pixels in the camera to collimator factor
+            self.col_interp = None
 
     def plot_real(self, ax, plt_param: dict = None, line_param: dict = None):
         """
@@ -510,7 +545,7 @@ class StrikeMap:
         ## todo include labels energy/pitch in the plot
         ax.plot(self.y, self.z, **plt_param)
 
-    def plot_pix(self, ax, plt_param: dict = None, line_param: dict = None):
+    def plot_pix(self, ax, plt_param: dict = None, line_param: dict = {}):
         """
         Plot the strike map (x,y = pixels on the camera)
 
@@ -576,6 +611,117 @@ class StrikeMap:
         @param calib: a CalParams() object with the calibration info
         """
         self.xpixel, self.ypixel = transform_to_pixel(self.y, self.z, calib)
+    
+    def interp_grid(self, frame_shape, method=2, plot=False):
+        """
+        Interpolate grid values on the frames
+    
+        Error codes:
+            - 0: Scintillator map pixel position not calculated before
+            - 1: Interpolating method not recognised
+    
+        @param smap: StrikeMap() object
+        @param frame_shape: Size of the frame used for the calibration (in px)
+        @param method: method to calculate the interpolation:
+            - 0: griddata nearest (not recomended)
+            - 1: griddata linear
+            - 2: griddata cubic
+        """
+        # --- 0: Check inputs
+        if self.xpixel is None:
+            print('Please, transform to pixel the strike map before!!!')
+            error = 1
+            return error
+        # --- 1: Create grid for the interpolation
+        grid_x, grid_y = np.mgrid[0:frame_shape[0], 0:frame_shape[1]]
+        # --- 2: Interpolate the gyroradius
+        dummy = np.column_stack((self.xpixel, self.ypixel))
+        if method == 0:
+            if self.diag == 'FILD':
+                self.gyr_interp = scipy_interp.griddata(dummy,
+                                                        self.gyroradius,
+                                                        (grid_x, grid_y),
+                                                        method='nearest')
+                self.gyr_interp = self.gyr_interp.transpose()
+                self.pit_interp = scipy_interp.griddata(dummy,
+                                                        self.pitch,
+                                                        (grid_x, grid_y),
+                                                        method='nearest')
+                self.pit_interp = self.pit_interp.transpose()
+                self.col_interp = scipy_interp.griddata(dummy,
+                                                        self.collimator_factor,
+                                                        (grid_x, grid_y),
+                                                        method='nearest')
+                self.col_interp = self.col_interp.transpose()
+        elif method == 1:
+            if self.diag == 'FILD':
+                self.gyr_interp = scipy_interp.griddata(dummy,
+                                                        self.gyroradius,
+                                                        (grid_x, grid_y),
+                                                        method='linear')
+                self.gyr_interp = self.gyr_interp.transpose()
+                self.pit_interp = scipy_interp.griddata(dummy,
+                                                        self.pitch,
+                                                        (grid_x, grid_y),
+                                                        method='linear')
+                self.pit_interp = self.pit_interp.transpose()
+                self.col_interp = scipy_interp.griddata(dummy,
+                                                        self.collimator_factor,
+                                                        (grid_x, grid_y),
+                                                        method='linear')
+                self.col_interp = self.col_interp.transpose()
+        elif method == 2:
+            if self.diag == 'FILD':
+                self.gyr_interp = scipy_interp.griddata(dummy,
+                                                        self.gyroradius,
+                                                        (grid_x, grid_y),
+                                                        method='cubic')
+                self.gyr_interp = self.gyr_interp.transpose()
+                self.pit_interp = scipy_interp.griddata(dummy,
+                                                        self.pitch,
+                                                        (grid_x, grid_y),
+                                                        method='cubic')
+                self.pit_interp = self.pit_interp.transpose()
+                self.col_interp = scipy_interp.griddata(dummy,
+                                                        self.collimator_factor,
+                                                        (grid_x, grid_y),
+                                                        method='cubic')
+                self.col_interp = self.col_interp.transpose()
+        else:
+            error = 2
+            print('Method not understood')
+            return error
+
+        # --- Plot
+        if plot:
+            if self.diag == 'FILD':
+                fig, axes = plt.subplots(2, 2)
+                # Plot the scintillator grid
+                self.plot_pix(axes[0, 0], line_param={'color': 'k'})
+                axes[0, 0].set_xlim(0, frame_shape[0])
+                axes[0, 0].set_ylim(0, frame_shape[1])
+                # Plot the interpolated gyroradius
+                c1 = axes[0, 1].contourf(grid_x, grid_y,
+                                         self.gyr_interp.transpose(),
+                                         cmap=ssplt.Gamma_II())
+                axes[0, 1].set_xlim(0, frame_shape[0])
+                axes[0, 1].set_ylim(0, frame_shape[1])
+                fig.colorbar(c1, ax=axes[0, 1], shrink=0.9)
+                # Plot the interpolated gyroradius
+                c2 = axes[1, 0].contourf(grid_x, grid_y,
+                                         self.pit_interp.transpose(),
+                                         cmap=ssplt.Gamma_II())
+                axes[1, 0].set_xlim(0, frame_shape[0])
+                axes[1, 0].set_ylim(0, frame_shape[1])
+                fig.colorbar(c2, ax=axes[1, 0], shrink=0.9)
+                # Plot the interpolated gyroradius
+                c3 = axes[1, 1].contourf(grid_x, grid_y,
+                                         self.col_interp.transpose(),
+                                         cmap=ssplt.Gamma_II())
+                axes[1, 1].set_xlim(0, frame_shape[0])
+                axes[1, 1].set_ylim(0, frame_shape[1])
+                fig.colorbar(c3, ax=axes[1, 1], shrink=0.9)
+
 
 class CalParams:
     """
@@ -654,7 +800,7 @@ class Scintillator:
             print('Maybe you are using and old FILDSIM file, so do not panic')
             return
 
-    def plot_px(self, ax, plt_par: dict):
+    def plot_pix(self, ax, plt_par: dict):
         """
         Plot the scintillator, in pixels, in the axes ax
         

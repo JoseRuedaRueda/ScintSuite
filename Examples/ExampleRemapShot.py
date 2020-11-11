@@ -15,63 +15,58 @@ jose rueda (jose.rueda@ipp.mpg.de) by email
 import numpy as np
 import matplotlib.pyplot as plt
 import LibPlotting as ssplt
-import LibVideoFiles as sscin
+import LibVideoFiles as ssvid
 import LibMap as ssmap
-import LibTimeTraces as sstt
 
 # ------------------------------------------------------------------------------
 # Section 0: Settings
-cin_file_name = '/p/IPP/AUG/rawfiles/FIT/34/34570_v710.cin'
+cin_file_name = '/p/IPP/AUG/rawfiles/FIT/36/36358_v710.cin'
 reference_frame_name = './FILD_calibration/FILD_reference_800x600_03062019.png'
-scintillator_name = './aug_fild1_scint.pl'
-t0 = 2.16       # Reference time (to select the ROI) in s
-
+calibration_database = './Calibrations/FILD/calibration_database.txt'
+scintillator_name = '.temp_data/aug_fild1_scint.pl'
+strike_map = '/afs/ipp-garching.mpg.de/home/j/jgq/PUBLIC/FILDSIM_strike_maps/FILD1_0.6MA_2.5T_strike_map.dat' 
+shot = 36358
+camera = 'PHANTOM'
+cal_type = 'PIX'
+diag_ID = 1     # FILD Number
 # ------------------------------------------------------------------------------
-# Section 1: Read the cin file and create the roi
-cin = sscin.Video(cin_file_name)
+
+# %% Section 1: Load calibration
+database = ssmap.CalibrationDatabase(calibration_database)
+cal = database.get_calibration(shot, camera, cal_type, diag_ID)
+# ------------------------------------------------------------------------------
+
+# %% Section 2: Load and remap strike map
+smap = ssmap.StrikeMap(0, strike_map)
+smap.calculate_pixel_coordinates(cal)
+smap.interp_grid(np.array([800, 600]), plot=True, method=1)
+# ------------------------------------------------------------------------------
+
+# %% Section 3: test of the remapping algorithm
+# Load a frame
+cin = ssvid.Video(cin_file_name)
+t0 = 2.50
 dummy = np.array([np.argmin(abs(cin.timebase-t0))])
 ref_frame = cin.read_frame(dummy)
 
 # Create plot
 fig_ref, ax_ref = plt.subplots()
 ax_ref.imshow(ref_frame)
+x = smap.pit_interp.flatten()
+y = smap.gyr_interp.flatten()
+z = ref_frame.flatten()
 
-# Define roi
-fig_ref, roi = sstt.create_roi(fig_ref)
+flags = ~np.isnan(x)
+x2 = x[flags]
+y2 = y[flags]
+z2 = z[flags]
 
-# Create the mask
-mask = roi.get_mask(ref_frame)
-# ------------------------------------------------------------------------------
-# Section 2: Calculate and display the time traces
-time_trace = sstt.time_trace_cine(cin, mask, t1=0, t2=7.0)
-# Plot the time trace
-fig_tt, [ax_tt1, ax_tt2, ax_tt3] = plt.subplots(1, 3)
-ax_tt1 = ssplt.p1D(ax_tt1, time_trace.time_base, time_trace.sum_of_roi,
-            {'linewidth': 2, 'color': 'r'})
-ax_tt1 = ssplt.axis_beauty(ax_tt1,{'xlabel': 't [s]', 'ylabel': 'Counts',
-                                   'grid': 'both'})
-# plot the mean of the timetrace
-ax_tt2 = ssplt.p1D(ax_tt2, time_trace.time_base, time_trace.mean_of_roi,
-            {'linewidth': 2, 'color': 'r'})
-ax_tt2 = ssplt.axis_beauty(ax_tt2, {'xlabel': 't [s]', 'ylabel': 'Mean',
-                                   'grid': 'both'})
-# plot the std of the timetrace
-ax_tt3 = ssplt.p1D(ax_tt3, time_trace.time_base, time_trace.std_of_roi,
-            {'linewidth': 2, 'color': 'r'})
-ax_tt3 = ssplt.axis_beauty(ax_tt3, {'xlabel': 't [s]', 'ylabel': 'std',
-                                    'grid': 'both'})
-plt.tight_layout()
+flags = ~np.isnan(y2)
+x3 = x2[flags]
+y3 = y2[flags]
+z3 = z2[flags]
 
-# ------------------------------------------------------------------------------
-# Section 3: Orientate the scintillator
-scint = ssmap.Scintillator(scintillator_name)
 
-# plot the scintillator
-fig_scint_FILDSIM, ax_scin_FILDSIM = plt.subplots()
-scint.plot_real(ax_scin_FILDSIM)
-
-# Plot the calibration frame
-fig_call_frame, ax_call_frame = plt.subplots()
-cal_frame = sscin.load_png_files(reference_frame_name)
-ax_call_frame.imshow(cal_frame)
-
+H, xedges, yedges = np.histogram2d(x3, y3,bins=[50,50], weights=z2)
+plt.imshow(H.T, interpolation='nearest', origin='low',
+        extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]])
