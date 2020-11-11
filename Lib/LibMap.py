@@ -641,51 +641,60 @@ class StrikeMap:
                 self.gyr_interp = scipy_interp.griddata(dummy,
                                                         self.gyroradius,
                                                         (grid_x, grid_y),
-                                                        method='nearest')
+                                                        method='nearest',
+                                                        fill_value=1000)
                 self.gyr_interp = self.gyr_interp.transpose()
                 self.pit_interp = scipy_interp.griddata(dummy,
                                                         self.pitch,
                                                         (grid_x, grid_y),
-                                                        method='nearest')
+                                                        method='nearest',
+                                                        fill_value=1000)
                 self.pit_interp = self.pit_interp.transpose()
                 self.col_interp = scipy_interp.griddata(dummy,
                                                         self.collimator_factor,
                                                         (grid_x, grid_y),
-                                                        method='nearest')
+                                                        method='nearest',
+                                                        fill_value=1000)
                 self.col_interp = self.col_interp.transpose()
         elif method == 1:
             if self.diag == 'FILD':
                 self.gyr_interp = scipy_interp.griddata(dummy,
                                                         self.gyroradius,
                                                         (grid_x, grid_y),
-                                                        method='linear')
+                                                        method='linear',
+                                                        fill_value=1000)
                 self.gyr_interp = self.gyr_interp.transpose()
                 self.pit_interp = scipy_interp.griddata(dummy,
                                                         self.pitch,
                                                         (grid_x, grid_y),
-                                                        method='linear')
+                                                        method='linear',
+                                                        fill_value=1000)
                 self.pit_interp = self.pit_interp.transpose()
                 self.col_interp = scipy_interp.griddata(dummy,
                                                         self.collimator_factor,
                                                         (grid_x, grid_y),
-                                                        method='linear')
+                                                        method='linear',
+                                                        fill_value=1000)
                 self.col_interp = self.col_interp.transpose()
         elif method == 2:
             if self.diag == 'FILD':
                 self.gyr_interp = scipy_interp.griddata(dummy,
                                                         self.gyroradius,
                                                         (grid_x, grid_y),
-                                                        method='cubic')
+                                                        method='cubic',
+                                                        fill_value=1000)
                 self.gyr_interp = self.gyr_interp.transpose()
                 self.pit_interp = scipy_interp.griddata(dummy,
                                                         self.pitch,
                                                         (grid_x, grid_y),
-                                                        method='cubic')
+                                                        method='cubic',
+                                                        fill_value=1000)
                 self.pit_interp = self.pit_interp.transpose()
                 self.col_interp = scipy_interp.griddata(dummy,
                                                         self.collimator_factor,
                                                         (grid_x, grid_y),
-                                                        method='cubic')
+                                                        method='cubic',
+                                                        fill_value=1000)
                 self.col_interp = self.col_interp.transpose()
         else:
             error = 2

@@ -1,0 +1,296 @@
+\hypertarget{classLib_1_1LibVideoFiles_1_1Video}{}\doxysection{Lib.\+Lib\+Video\+Files.\+Video Class Reference}
+\label{classLib_1_1LibVideoFiles_1_1Video}\index{Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}}
+
+
+Class with the information of the recorded video.  
+
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{classLib_1_1LibVideoFiles_1_1Video_af6f57cc867e80fd2a5ca7fd4abac1f70}{\+\_\+\+\_\+init\+\_\+\+\_\+}} (self, str \mbox{\hyperlink{classLib_1_1LibVideoFiles_1_1Video_a60bbe2e4fc6df84280ca6fa50fde3a76}{file}})
+\begin{DoxyCompactList}\small\item\em Initialise the class. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{classLib_1_1LibVideoFiles_1_1Video_afef98c1ff3655f650736b412d0235ba6}{read\+\_\+frame}} (self, frames\+\_\+number=None, bool limitation=True, int limit=2048)
+\begin{DoxyCompactList}\small\item\em Call the read\+\_\+frame function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classLib_1_1LibVideoFiles_1_1Video_a99e2548ea46689f241812b2671901264}{file\+\_\+name}}
+\begin{DoxyCompactList}\small\item\em Path to the file and filename. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classLib_1_1LibVideoFiles_1_1Video_a60bbe2e4fc6df84280ca6fa50fde3a76}{file}}
+\begin{DoxyCompactList}\small\item\em Name of the file (full path) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classLib_1_1LibVideoFiles_1_1Video_ae6aed059cd601e9c14cf9db59c729807}{header}}
+\begin{DoxyCompactList}\small\item\em Header dictionary with the file info. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classLib_1_1LibVideoFiles_1_1Video_af7fd2e3881061187867fcba1f0aa9dae}{settings}}
+\begin{DoxyCompactList}\small\item\em Settings dictionary. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classLib_1_1LibVideoFiles_1_1Video_af250b2b5baf1c32d3569c287c7e60ccb}{imageheader}}
+\begin{DoxyCompactList}\small\item\em Image Header dictionary. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classLib_1_1LibVideoFiles_1_1Video_a0ccc34a4e31b8de88ec5b3ef34335b6e}{timebase}}
+\begin{DoxyCompactList}\small\item\em Time array. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classLib_1_1LibVideoFiles_1_1Video_a402d688fc9de94a77a263f2b0ea948e3}{type\+\_\+of\+\_\+file}}
+\item 
+\mbox{\hyperlink{classLib_1_1LibVideoFiles_1_1Video_ae5aba61dd759c663326ea5161b623f07}{path}}
+\begin{DoxyCompactList}\small\item\em path to the file \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Class with the information of the recorded video. 
+
+The header, image header, settings and time base will be stored here, the frames itself not, we can not work with 100Gb of data in memory!!! 
+
+Definition at line 1094 of file Lib\+Video\+Files.\+py.
+
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classLib_1_1LibVideoFiles_1_1Video_af6f57cc867e80fd2a5ca7fd4abac1f70}\label{classLib_1_1LibVideoFiles_1_1Video_af6f57cc867e80fd2a5ca7fd4abac1f70}} 
+\index{Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}!\_\_init\_\_@{\_\_init\_\_}}
+\index{\_\_init\_\_@{\_\_init\_\_}!Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}}
+\doxysubsubsection{\texorpdfstring{\_\_init\_\_()}{\_\_init\_\_()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Video\+Files.\+Video.\+\_\+\+\_\+init\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{str}]{file }\end{DoxyParamCaption})}
+
+
+
+Initialise the class. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em file} & For the initialization, file (full path) to be loaded), if the path point to a .cin file, the .cin file will be loaded. If the path points to a folder, the prgram will look for png files or tiff files inside \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 1102 of file Lib\+Video\+Files.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1102     \textcolor{keyword}{def }\_\_init\_\_(self, file: str):}
+\DoxyCodeLine{1103         \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{1104 \textcolor{stringliteral}{        Initialise the class}}
+\DoxyCodeLine{1105 \textcolor{stringliteral}{}}
+\DoxyCodeLine{1106 \textcolor{stringliteral}{        @param file: For the initialization, file (full path) to be loaded),}}
+\DoxyCodeLine{1107 \textcolor{stringliteral}{        if the path point to a .cin file, the .cin file will be loaded. If}}
+\DoxyCodeLine{1108 \textcolor{stringliteral}{        the path points to a folder, the prgram will look for png files or}}
+\DoxyCodeLine{1109 \textcolor{stringliteral}{        tiff files inside}}
+\DoxyCodeLine{1110 \textcolor{stringliteral}{        "{}"{}"{}}}
+\DoxyCodeLine{1111         \textcolor{keywordflow}{if} os.path.isfile(file):}
+\DoxyCodeLine{1112             }
+\DoxyCodeLine{1113             self.path, self.file\_name = os.path.split(file)}
+\DoxyCodeLine{1114             }
+\DoxyCodeLine{1115             self.file = file}
+\DoxyCodeLine{1116 }
+\DoxyCodeLine{1117             \textcolor{comment}{\# Check if the file is actually a .cin file}}
+\DoxyCodeLine{1118             \textcolor{keywordflow}{if} file[-\/4:] == \textcolor{stringliteral}{'.cin'} \textcolor{keywordflow}{or} file[-\/5:] == \textcolor{stringliteral}{'.cine'}:}
+\DoxyCodeLine{1119                 }
+\DoxyCodeLine{1120                 self.header = \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_abc2edfc37ec1fdad2929f2f645026fbd}{read\_header}}(file)}
+\DoxyCodeLine{1121                 }
+\DoxyCodeLine{1122                 self.settings = \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_a9ed2eb7e4f33d2592cfe07b360120611}{read\_settings}}(file, self.header[\textcolor{stringliteral}{'OffSetup'}])}
+\DoxyCodeLine{1123                 }
+\DoxyCodeLine{1124                 self.imageheader = \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_a1b4f57be4245c6ad6cc7e25654c45221}{read\_image\_header}}(file, self.header[}
+\DoxyCodeLine{1125                     \textcolor{stringliteral}{'OffImageHeader'}])}
+\DoxyCodeLine{1126                 }
+\DoxyCodeLine{1127                 self.timebase = \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_a046dca2bb29261400fd64594e3ef5e2a}{read\_time\_base}}(file, self.header, self.settings)}
+\DoxyCodeLine{1128                 self.type\_of\_file = \textcolor{stringliteral}{'.cin'}}
+\DoxyCodeLine{1129         \textcolor{keywordflow}{elif} os.path.isdir(file):}
+\DoxyCodeLine{1130             }
+\DoxyCodeLine{1131             self.path = file}
+\DoxyCodeLine{1132             \textcolor{comment}{\# Do a quick run for the folder looking of .tiff or .png files}}
+\DoxyCodeLine{1133             f = []}
+\DoxyCodeLine{1134             \textcolor{keywordflow}{for} (dirpath, dirnames, filenames) \textcolor{keywordflow}{in} os.walk(self.path):}
+\DoxyCodeLine{1135                 f.extend(filenames)}
+\DoxyCodeLine{1136                 \textcolor{keywordflow}{break}}
+\DoxyCodeLine{1137 }
+\DoxyCodeLine{1138             \textcolor{keywordflow}{for} i \textcolor{keywordflow}{in} range(len(f)):}
+\DoxyCodeLine{1139                 \textcolor{keywordflow}{if} f[i][-\/4:] == \textcolor{stringliteral}{'.png'}:}
+\DoxyCodeLine{1140                     self.type\_of\_file = \textcolor{stringliteral}{'.png'}}
+\DoxyCodeLine{1141                     print(\textcolor{stringliteral}{'Found PNG files!'})}
+\DoxyCodeLine{1142                     \textcolor{keywordflow}{break}}
+\DoxyCodeLine{1143                 \textcolor{keywordflow}{elif} f[i][-\/4:] == \textcolor{stringliteral}{'.tif'}:}
+\DoxyCodeLine{1144                     self.type\_of\_file = \textcolor{stringliteral}{'.tif'}}
+\DoxyCodeLine{1145             \textcolor{comment}{\# if we do not have .png or tiff, give an error}}
+\DoxyCodeLine{1146             \textcolor{keywordflow}{if} self.type\_of\_file != \textcolor{stringliteral}{'.png'} \textcolor{keywordflow}{and} self.type\_of\_file != \textcolor{stringliteral}{'.tiff'}:}
+\DoxyCodeLine{1147                 print(\textcolor{stringliteral}{'No .pgn or .tiff files found'})}
+\DoxyCodeLine{1148                 \textcolor{keywordflow}{return}}
+\DoxyCodeLine{1149 }
+\DoxyCodeLine{1150             \textcolor{comment}{\# If we have a .png file, a .txt must be present with the}}
+\DoxyCodeLine{1151             \textcolor{comment}{\# information of the exposure time and from a basic frame we can}}
+\DoxyCodeLine{1152             \textcolor{comment}{\# load the file size}}
+\DoxyCodeLine{1153             \textcolor{keywordflow}{if} self.type\_of\_file == \textcolor{stringliteral}{'.png'}:}
+\DoxyCodeLine{1154                 self.header, self.imageheader, self.settings,\(\backslash\)}
+\DoxyCodeLine{1155                     self.timebase = \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_ae506d8855a1038c7663c5f382fdb54c5}{read\_data\_png}}(self.path)}
+\DoxyCodeLine{1156 }
+
+\end{DoxyCode}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classLib_1_1LibVideoFiles_1_1Video_afef98c1ff3655f650736b412d0235ba6}\label{classLib_1_1LibVideoFiles_1_1Video_afef98c1ff3655f650736b412d0235ba6}} 
+\index{Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}!read\_frame@{read\_frame}}
+\index{read\_frame@{read\_frame}!Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}}
+\doxysubsubsection{\texorpdfstring{read\_frame()}{read\_frame()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Video\+Files.\+Video.\+read\+\_\+frame (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{frames\+\_\+number = {\ttfamily None},  }\item[{bool }]{limitation = {\ttfamily True},  }\item[{int }]{limit = {\ttfamily 2048} }\end{DoxyParamCaption})}
+
+
+
+Call the read\+\_\+frame function. 
+
+Just a wrapper to call the read\+\_\+frame function, depending of the format in which the experimental data has been recorded
+
+
+\begin{DoxyParams}{Parameters}
+{\em frames\+\_\+number} & np array with the frame numbers to load \\
+\hline
+{\em limitation} & maximum size allowed to the output variable, in Mbytes, to avoid overloading the memory trying to load the whole video of 100 Gb \\
+\hline
+{\em limit} & bool flag to decide if we apply the limitation of we operate in mode\+: YOLO \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+M\+: 3D numpy array with the frames M\mbox{[}px,py,nframes\mbox{]} 
+\end{DoxyReturn}
+
+
+Definition at line 1157 of file Lib\+Video\+Files.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1158                    limit: int = 2048):}
+\DoxyCodeLine{1159         \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{1160 \textcolor{stringliteral}{        Call the read\_frame function}}
+\DoxyCodeLine{1161 \textcolor{stringliteral}{}}
+\DoxyCodeLine{1162 \textcolor{stringliteral}{        Just a wrapper to call the read\_frame function, depending of the}}
+\DoxyCodeLine{1163 \textcolor{stringliteral}{        format in which the experimental data has been recorded}}
+\DoxyCodeLine{1164 \textcolor{stringliteral}{}}
+\DoxyCodeLine{1165 \textcolor{stringliteral}{        @param frames\_number: np array with the frame numbers to load}}
+\DoxyCodeLine{1166 \textcolor{stringliteral}{        @param limitation: maximum size allowed to the output variable,}}
+\DoxyCodeLine{1167 \textcolor{stringliteral}{        in Mbytes, to avoid overloading the memory trying to load the whole}}
+\DoxyCodeLine{1168 \textcolor{stringliteral}{        video of 100 Gb}}
+\DoxyCodeLine{1169 \textcolor{stringliteral}{        @param limit: bool flag to decide if we apply the limitation of we}}
+\DoxyCodeLine{1170 \textcolor{stringliteral}{        operate in mode: YOLO}}
+\DoxyCodeLine{1171 \textcolor{stringliteral}{        @return M: 3D numpy array with the frames M[px,py,nframes]}}
+\DoxyCodeLine{1172 \textcolor{stringliteral}{        "{}"{}"{}}}
+\DoxyCodeLine{1173         \textcolor{keywordflow}{if} self.type\_of\_file == \textcolor{stringliteral}{'.cin'}:}
+\DoxyCodeLine{1174             M = \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_a99446db207ed9af45934d2c9e56da015}{read\_frame\_cin}}(self, frames\_number, limitation=limitation,}
+\DoxyCodeLine{1175                                limit=limit)}
+\DoxyCodeLine{1176         \textcolor{keywordflow}{elif} self.type\_of\_file == \textcolor{stringliteral}{'.png'}:}
+\DoxyCodeLine{1177             M = \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_ae924a42206ef8402754cc711f4037657}{read\_frame\_png}}(self, frames\_number, limitation=limitation,}
+\DoxyCodeLine{1178                                limit=limit)}
+\DoxyCodeLine{1179         \textcolor{keywordflow}{return} M}
+
+\end{DoxyCode}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{classLib_1_1LibVideoFiles_1_1Video_a60bbe2e4fc6df84280ca6fa50fde3a76}\label{classLib_1_1LibVideoFiles_1_1Video_a60bbe2e4fc6df84280ca6fa50fde3a76}} 
+\index{Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}!file@{file}}
+\index{file@{file}!Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}}
+\doxysubsubsection{\texorpdfstring{file}{file}}
+{\footnotesize\ttfamily Lib.\+Lib\+Video\+Files.\+Video.\+file}
+
+
+
+Name of the file (full path) 
+
+
+
+Definition at line 1115 of file Lib\+Video\+Files.\+py.
+
+\mbox{\Hypertarget{classLib_1_1LibVideoFiles_1_1Video_a99e2548ea46689f241812b2671901264}\label{classLib_1_1LibVideoFiles_1_1Video_a99e2548ea46689f241812b2671901264}} 
+\index{Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}!file\_name@{file\_name}}
+\index{file\_name@{file\_name}!Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}}
+\doxysubsubsection{\texorpdfstring{file\_name}{file\_name}}
+{\footnotesize\ttfamily Lib.\+Lib\+Video\+Files.\+Video.\+file\+\_\+name}
+
+
+
+Path to the file and filename. 
+
+
+
+Definition at line 1113 of file Lib\+Video\+Files.\+py.
+
+\mbox{\Hypertarget{classLib_1_1LibVideoFiles_1_1Video_ae6aed059cd601e9c14cf9db59c729807}\label{classLib_1_1LibVideoFiles_1_1Video_ae6aed059cd601e9c14cf9db59c729807}} 
+\index{Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}!header@{header}}
+\index{header@{header}!Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}}
+\doxysubsubsection{\texorpdfstring{header}{header}}
+{\footnotesize\ttfamily Lib.\+Lib\+Video\+Files.\+Video.\+header}
+
+
+
+Header dictionary with the file info. 
+
+
+
+Definition at line 1120 of file Lib\+Video\+Files.\+py.
+
+\mbox{\Hypertarget{classLib_1_1LibVideoFiles_1_1Video_af250b2b5baf1c32d3569c287c7e60ccb}\label{classLib_1_1LibVideoFiles_1_1Video_af250b2b5baf1c32d3569c287c7e60ccb}} 
+\index{Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}!imageheader@{imageheader}}
+\index{imageheader@{imageheader}!Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}}
+\doxysubsubsection{\texorpdfstring{imageheader}{imageheader}}
+{\footnotesize\ttfamily Lib.\+Lib\+Video\+Files.\+Video.\+imageheader}
+
+
+
+Image Header dictionary. 
+
+
+
+Definition at line 1124 of file Lib\+Video\+Files.\+py.
+
+\mbox{\Hypertarget{classLib_1_1LibVideoFiles_1_1Video_ae5aba61dd759c663326ea5161b623f07}\label{classLib_1_1LibVideoFiles_1_1Video_ae5aba61dd759c663326ea5161b623f07}} 
+\index{Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}!path@{path}}
+\index{path@{path}!Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}}
+\doxysubsubsection{\texorpdfstring{path}{path}}
+{\footnotesize\ttfamily Lib.\+Lib\+Video\+Files.\+Video.\+path}
+
+
+
+path to the file 
+
+
+
+Definition at line 1131 of file Lib\+Video\+Files.\+py.
+
+\mbox{\Hypertarget{classLib_1_1LibVideoFiles_1_1Video_af7fd2e3881061187867fcba1f0aa9dae}\label{classLib_1_1LibVideoFiles_1_1Video_af7fd2e3881061187867fcba1f0aa9dae}} 
+\index{Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}!settings@{settings}}
+\index{settings@{settings}!Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}}
+\doxysubsubsection{\texorpdfstring{settings}{settings}}
+{\footnotesize\ttfamily Lib.\+Lib\+Video\+Files.\+Video.\+settings}
+
+
+
+Settings dictionary. 
+
+
+
+Definition at line 1122 of file Lib\+Video\+Files.\+py.
+
+\mbox{\Hypertarget{classLib_1_1LibVideoFiles_1_1Video_a0ccc34a4e31b8de88ec5b3ef34335b6e}\label{classLib_1_1LibVideoFiles_1_1Video_a0ccc34a4e31b8de88ec5b3ef34335b6e}} 
+\index{Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}!timebase@{timebase}}
+\index{timebase@{timebase}!Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}}
+\doxysubsubsection{\texorpdfstring{timebase}{timebase}}
+{\footnotesize\ttfamily Lib.\+Lib\+Video\+Files.\+Video.\+timebase}
+
+
+
+Time array. 
+
+
+
+Definition at line 1127 of file Lib\+Video\+Files.\+py.
+
+\mbox{\Hypertarget{classLib_1_1LibVideoFiles_1_1Video_a402d688fc9de94a77a263f2b0ea948e3}\label{classLib_1_1LibVideoFiles_1_1Video_a402d688fc9de94a77a263f2b0ea948e3}} 
+\index{Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}!type\_of\_file@{type\_of\_file}}
+\index{type\_of\_file@{type\_of\_file}!Lib.LibVideoFiles.Video@{Lib.LibVideoFiles.Video}}
+\doxysubsubsection{\texorpdfstring{type\_of\_file}{type\_of\_file}}
+{\footnotesize\ttfamily Lib.\+Lib\+Video\+Files.\+Video.\+type\+\_\+of\+\_\+file}
+
+
+
+Definition at line 1128 of file Lib\+Video\+Files.\+py.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Lib/\mbox{\hyperlink{LibVideoFiles_8py}{Lib\+Video\+Files.\+py}}\end{DoxyCompactItemize}

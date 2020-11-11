@@ -1,0 +1,33 @@
+\hypertarget{LibVideoFiles_8py}{}\doxysection{Lib/\+Lib\+Video\+Files.py File Reference}
+\label{LibVideoFiles_8py}\index{Lib/LibVideoFiles.py@{Lib/LibVideoFiles.py}}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classLibVideoFiles_1_1Video}{Lib\+Video\+Files.\+Video}}
+\begin{DoxyCompactList}\small\item\em Class with the information of the recorded video. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespaceLibVideoFiles}{Lib\+Video\+Files}}
+\begin{DoxyCompactList}\small\item\em Module to handle the video from the different cameras. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{namespaceLibVideoFiles_a6533b3ba45e104ac6a2a1f3bd0f268f6}{Lib\+Video\+Files.\+read\+\_\+header}} (str filename, verbose=False)
+\begin{DoxyCompactList}\small\item\em Read the header info of a .cin file. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibVideoFiles_a2d425d35b0bed831afe1c9f7d5cef2fc}{Lib\+Video\+Files.\+read\+\_\+settings}} (str filename, int bit\+\_\+pos, bool verbose=False)
+\begin{DoxyCompactList}\small\item\em Read the settings from a .cin file. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibVideoFiles_a8d768ea4b8378a2451183683b24e2825}{Lib\+Video\+Files.\+read\+\_\+image\+\_\+header}} (str filename, int bit\+\_\+pos, bool verbose=False)
+\begin{DoxyCompactList}\small\item\em Read the image header of a .cin file. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibVideoFiles_a3d2a9c8cc4d0a146bebb680d9d4b6be5}{Lib\+Video\+Files.\+read\+\_\+time\+\_\+base}} (str filename, dict header, dict settings)
+\begin{DoxyCompactList}\small\item\em Read the time base of the .cin video (relative to the trigger) \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibVideoFiles_ae9d68cb35ba160e0324a61a8eee7eaf1}{Lib\+Video\+Files.\+read\+\_\+frame\+\_\+cin}} (cin\+\_\+object, frames\+\_\+number, bool limitation=True, int limit=2048)
+\begin{DoxyCompactList}\small\item\em Read frames from a .cin file. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibVideoFiles_a4d1b5730e7175448348a5786c5805ce9}{Lib\+Video\+Files.\+read\+\_\+data\+\_\+png}} (path)
+\begin{DoxyCompactList}\small\item\em Read info for a case where the measurements are stored as png. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibVideoFiles_a35b71bb95ab80072e570878ea85c5c54}{Lib\+Video\+Files.\+rgb2gray}} (rgb)
+\begin{DoxyCompactList}\small\item\em Transform rgb images to gray. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibVideoFiles_af1ef97c9dee2d465e67cac1237f0a0d4}{Lib\+Video\+Files.\+load\+\_\+png\+\_\+files}} (filename)
+\begin{DoxyCompactList}\small\item\em Load the png with an order compatible with IDL. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibVideoFiles_a7697be88cfc522cd6dd644f47ddfcb44}{Lib\+Video\+Files.\+read\+\_\+frame\+\_\+png}} (video\+\_\+object, frames\+\_\+number=None, bool limitation=True, int limit=2048)
+\begin{DoxyCompactList}\small\item\em Read .png files. \end{DoxyCompactList}\end{DoxyCompactItemize}

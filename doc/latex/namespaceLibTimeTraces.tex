@@ -1,0 +1,256 @@
+\hypertarget{namespaceLibTimeTraces}{}\doxysection{Lib\+Time\+Traces Namespace Reference}
+\label{namespaceLibTimeTraces}\index{LibTimeTraces@{LibTimeTraces}}
+
+
+Module to calculate time traces.  
+
+
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classLibTimeTraces_1_1TimeTrace}{Time\+Trace}}
+\begin{DoxyCompactList}\small\item\em Class with information of the time trace. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{namespaceLibTimeTraces_aee5d05ba3d6081550e432ef258ee54c5}{trace}} (frames, mask)
+\begin{DoxyCompactList}\small\item\em Calculate the trace of a region given by a mask. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibTimeTraces_a53666d42fe4a521c4386d33de043e8bd}{create\+\_\+roi}} (fig, re\+\_\+display=False)
+\begin{DoxyCompactList}\small\item\em Wrapper for the Roi\+Poly features. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibTimeTraces_a6c4840dcc6f1f5a29efda71cb244601a}{time\+\_\+trace\+\_\+cine}} (cin\+\_\+object, mask, t1=0, t2=10)
+\begin{DoxyCompactList}\small\item\em Calculate the time trace from a cin file. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Module to calculate time traces. 
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{namespaceLibTimeTraces_a53666d42fe4a521c4386d33de043e8bd}\label{namespaceLibTimeTraces_a53666d42fe4a521c4386d33de043e8bd}} 
+\index{LibTimeTraces@{LibTimeTraces}!create\_roi@{create\_roi}}
+\index{create\_roi@{create\_roi}!LibTimeTraces@{LibTimeTraces}}
+\doxysubsubsection{\texorpdfstring{create\_roi()}{create\_roi()}}
+{\footnotesize\ttfamily def Lib\+Time\+Traces.\+create\+\_\+roi (\begin{DoxyParamCaption}\item[{}]{fig,  }\item[{}]{re\+\_\+display = {\ttfamily False} }\end{DoxyParamCaption})}
+
+
+
+Wrapper for the Roi\+Poly features. 
+
+Jose Rueda\+: \href{mailto:ruejo@ipp.mpg.de}{\texttt{ ruejo@ipp.\+mpg.\+de}}
+
+Just a wrapper for the roipoly capabilities which allows for the reopening of the figures \begin{DoxyRefDesc}{Todo}
+\item[\mbox{\hyperlink{todo__todo000007}{Todo}}]I can\textquotesingle{}t understant why in spyder it does not work the .show....\end{DoxyRefDesc}
+
+
+
+\begin{DoxyParams}{Parameters}
+{\em fig} & fig object where the image is found \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+fig\+: The figure with the roi plotted 
+
+roi\+: The Ploy\+Roi object 
+\end{DoxyReturn}
+
+
+Definition at line 33 of file Lib\+Time\+Traces.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{33 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLibTimeTraces_a53666d42fe4a521c4386d33de043e8bd}{create\_roi}}(fig, re\_display=False):}
+\DoxyCodeLine{34     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{35 \textcolor{stringliteral}{    Wrapper for the RoiPoly features}}
+\DoxyCodeLine{36 \textcolor{stringliteral}{}}
+\DoxyCodeLine{37 \textcolor{stringliteral}{    Jose Rueda: ruejo@ipp.mpg.de}}
+\DoxyCodeLine{38 \textcolor{stringliteral}{}}
+\DoxyCodeLine{39 \textcolor{stringliteral}{    Just a wrapper for the roipoly capabilities which allows for the reopening}}
+\DoxyCodeLine{40 \textcolor{stringliteral}{    of the figures}}
+\DoxyCodeLine{41 \textcolor{stringliteral}{    @todo I can't understant why in spyder it does not work the .show....}}
+\DoxyCodeLine{42 \textcolor{stringliteral}{}}
+\DoxyCodeLine{43 \textcolor{stringliteral}{    @param fig: fig object where the image is found}}
+\DoxyCodeLine{44 \textcolor{stringliteral}{    @return fig: The figure with the roi plotted}}
+\DoxyCodeLine{45 \textcolor{stringliteral}{    @return roi: The PloyRoi object}}
+\DoxyCodeLine{46 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{47     \textcolor{comment}{\# Define the roi}}
+\DoxyCodeLine{48     print(\textcolor{stringliteral}{'Please select the vertex of the roi in the figure'})}
+\DoxyCodeLine{49     roi = RoiPoly(color=\textcolor{stringliteral}{'r'}, fig=fig)}
+\DoxyCodeLine{50     \textcolor{comment}{\# Show again the image with the roi}}
+\DoxyCodeLine{51     \textcolor{keywordflow}{if} re\_display:}
+\DoxyCodeLine{52         fig.show()}
+\DoxyCodeLine{53         roi.display\_roi()}
+\DoxyCodeLine{54     \textcolor{keywordflow}{return} fig, roi}
+\DoxyCodeLine{55 }
+\DoxyCodeLine{56 }
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLibTimeTraces_a6c4840dcc6f1f5a29efda71cb244601a}\label{namespaceLibTimeTraces_a6c4840dcc6f1f5a29efda71cb244601a}} 
+\index{LibTimeTraces@{LibTimeTraces}!time\_trace\_cine@{time\_trace\_cine}}
+\index{time\_trace\_cine@{time\_trace\_cine}!LibTimeTraces@{LibTimeTraces}}
+\doxysubsubsection{\texorpdfstring{time\_trace\_cine()}{time\_trace\_cine()}}
+{\footnotesize\ttfamily def Lib\+Time\+Traces.\+time\+\_\+trace\+\_\+cine (\begin{DoxyParamCaption}\item[{}]{cin\+\_\+object,  }\item[{}]{mask,  }\item[{}]{t1 = {\ttfamily 0},  }\item[{}]{t2 = {\ttfamily 10} }\end{DoxyParamCaption})}
+
+
+
+Calculate the time trace from a cin file. 
+
+Jose Rueda\+: \href{mailto:jose.rueda@ipp.mpg.de}{\texttt{ jose.\+rueda@ipp.\+mpg.\+de}}
+
+
+\begin{DoxyParams}{Parameters}
+{\em cin\+\_\+object} & cin file object (see class cin of Lib\+Cin\+Files.\+py) \\
+\hline
+{\em mask} & binary mask defining the roi \\
+\hline
+{\em t1} & initial time to calculate the timetrace \mbox{[}in s\mbox{]} \\
+\hline
+{\em t2} & final time to calculate the timetrace \mbox{[}in s\mbox{]} \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+tt\+: \mbox{\hyperlink{classLibTimeTraces_1_1TimeTrace}{Time\+Trace}} object 
+\end{DoxyReturn}
+
+
+Definition at line 57 of file Lib\+Time\+Traces.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{57 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLibTimeTraces_a6c4840dcc6f1f5a29efda71cb244601a}{time\_trace\_cine}}(cin\_object, mask, t1=0, t2=10):}
+\DoxyCodeLine{58     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{59 \textcolor{stringliteral}{    Calculate the time trace from a cin file}}
+\DoxyCodeLine{60 \textcolor{stringliteral}{}}
+\DoxyCodeLine{61 \textcolor{stringliteral}{    Jose Rueda: jose.rueda@ipp.mpg.de}}
+\DoxyCodeLine{62 \textcolor{stringliteral}{}}
+\DoxyCodeLine{63 \textcolor{stringliteral}{    @param cin\_object: cin file object (see class cin of LibCinFiles.py)}}
+\DoxyCodeLine{64 \textcolor{stringliteral}{    @param mask: binary mask defining the roi}}
+\DoxyCodeLine{65 \textcolor{stringliteral}{    @param t1: initial time to calculate the timetrace [in s]}}
+\DoxyCodeLine{66 \textcolor{stringliteral}{    @param t2: final time to calculate the timetrace [in s]}}
+\DoxyCodeLine{67 \textcolor{stringliteral}{    @return tt: TimeTrace object}}
+\DoxyCodeLine{68 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{69     \textcolor{comment}{\# -\/-\/-\/ Section 0: Initialise the arrays}}
+\DoxyCodeLine{70     \textcolor{comment}{\# Initialise the timetrace object}}
+\DoxyCodeLine{71     tt = TimeTrace()}
+\DoxyCodeLine{72     tt.mask = mask}
+\DoxyCodeLine{73 }
+\DoxyCodeLine{74     \textcolor{comment}{\# Look for the index in the data base}}
+\DoxyCodeLine{75     i1 = (np.abs(cin\_object.timebase -\/ t1)).argmin()}
+\DoxyCodeLine{76     i2 = (np.abs(cin\_object.timebase -\/ t2)).argmin()}
+\DoxyCodeLine{77     \textcolor{comment}{\# Initialise the arrays}}
+\DoxyCodeLine{78     tt.time\_base = cin\_object.timebase[i1:i2]}
+\DoxyCodeLine{79     tt.sum\_of\_roi = np.zeros(i2 -\/ i1)}
+\DoxyCodeLine{80     tt.mean\_of\_roi = np.zeros(i2 -\/ i1)}
+\DoxyCodeLine{81     tt.std\_of\_roi = np.zeros(i2 -\/ i1)}
+\DoxyCodeLine{82     \textcolor{comment}{\# I could call for each time the read\_cine\_image, but that would imply to}}
+\DoxyCodeLine{83     \textcolor{comment}{\# open and close several time the file as well as navigate trough it... I}}
+\DoxyCodeLine{84     \textcolor{comment}{\# will create temporally a copy of that routine, this need to be}}
+\DoxyCodeLine{85     \textcolor{comment}{\# rewritten properly, but it should work and be really fast}}
+\DoxyCodeLine{86     \textcolor{comment}{\# -\/-\/-\/  Section 1: Get frames position}}
+\DoxyCodeLine{87     \textcolor{comment}{\# Open file and go to the position of the image header}}
+\DoxyCodeLine{88     print(\textcolor{stringliteral}{'Opening .cin file and reading data'})}
+\DoxyCodeLine{89     tic = time.time()}
+\DoxyCodeLine{90     fid = open(cin\_object.file, \textcolor{stringliteral}{'r'})}
+\DoxyCodeLine{91     fid.seek(cin\_object.header[\textcolor{stringliteral}{'OffImageOffsets'}])}
+\DoxyCodeLine{92     \textcolor{comment}{\# Position of the frames}}
+\DoxyCodeLine{93     \textcolor{keywordflow}{if} cin\_object.header[\textcolor{stringliteral}{'Version'}] == 0:  \textcolor{comment}{\# old format}}
+\DoxyCodeLine{94         position\_array = np.fromfile(fid, \textcolor{stringliteral}{'int32'},}
+\DoxyCodeLine{95                                      int(cin\_object.header[\textcolor{stringliteral}{'ImageCount'}]))}
+\DoxyCodeLine{96     \textcolor{keywordflow}{else}:}
+\DoxyCodeLine{97         position\_array = np.fromfile(fid, \textcolor{stringliteral}{'int64'},}
+\DoxyCodeLine{98                                      int(cin\_object.header[\textcolor{stringliteral}{'ImageCount'}]))}
+\DoxyCodeLine{99     \textcolor{comment}{\# 8-\/bits or 16 bits frames:}}
+\DoxyCodeLine{100     size\_info = cin\_object.settings[\textcolor{stringliteral}{'RealBPP'}]}
+\DoxyCodeLine{101     \textcolor{keywordflow}{if} size\_info <= 8:}
+\DoxyCodeLine{102         \textcolor{comment}{\# BPP = 8  \# Bits per pixel}}
+\DoxyCodeLine{103         data\_type = \textcolor{stringliteral}{'uint8'}}
+\DoxyCodeLine{104     \textcolor{keywordflow}{else}:}
+\DoxyCodeLine{105         \textcolor{comment}{\# BPP = 16  \# Bits per pixel}}
+\DoxyCodeLine{106         data\_type = \textcolor{stringliteral}{'uint16'}}
+\DoxyCodeLine{107     \textcolor{comment}{\# Image size (in bytes)}}
+\DoxyCodeLine{108     \textcolor{comment}{\# img\_size\_header = int(cin\_object.imageheader['biWidth'] *}}
+\DoxyCodeLine{109     \textcolor{comment}{\#                     cin\_object.imageheader['biHeight']) * BPP / 8}}
+\DoxyCodeLine{110     \textcolor{comment}{\# Number of pixels}}
+\DoxyCodeLine{111     npixels = cin\_object.imageheader[\textcolor{stringliteral}{'biWidth'}] * \(\backslash\)}
+\DoxyCodeLine{112         cin\_object.imageheader[\textcolor{stringliteral}{'biHeight'}]}
+\DoxyCodeLine{113     itt = 0  \textcolor{comment}{\# Index to cover the array during the loop}}
+\DoxyCodeLine{114     \textcolor{comment}{\# -\/-\/-\/ Section 2: Read the frames}}
+\DoxyCodeLine{115     \textcolor{keywordflow}{for} i \textcolor{keywordflow}{in} range(i1, i2):}
+\DoxyCodeLine{116         \textcolor{comment}{\#  Go to the position of the file}}
+\DoxyCodeLine{117         iframe = i  \textcolor{comment}{\# -\/ cin\_object.header['FirstImageNo']}}
+\DoxyCodeLine{118         fid.seek(position\_array[iframe])}
+\DoxyCodeLine{119         \textcolor{comment}{\#  Skip header of the frame}}
+\DoxyCodeLine{120         length\_annotation = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{121         fid.seek(position\_array[iframe] + length\_annotation -\/ 4)}
+\DoxyCodeLine{122         \textcolor{comment}{\#  Read frame}}
+\DoxyCodeLine{123         np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)  \textcolor{comment}{\# Image size in bytes}}
+\DoxyCodeLine{124         dummy = np.reshape(np.fromfile(fid, data\_type,}
+\DoxyCodeLine{125                                        int(npixels)),}
+\DoxyCodeLine{126                            (int(cin\_object.imageheader[\textcolor{stringliteral}{'biWidth'}]),}
+\DoxyCodeLine{127                             int(cin\_object.imageheader[\textcolor{stringliteral}{'biHeight'}])),}
+\DoxyCodeLine{128                            order=\textcolor{stringliteral}{'F'}).transpose()}
+\DoxyCodeLine{129         tt.sum\_of\_roi[itt] = np.sum(dummy[mask])}
+\DoxyCodeLine{130         tt.mean\_of\_roi[itt] = np.mean(dummy[mask])}
+\DoxyCodeLine{131         tt.std\_of\_roi[itt] = np.std(dummy[mask])}
+\DoxyCodeLine{132         itt = itt + 1}
+\DoxyCodeLine{133     fid.close()}
+\DoxyCodeLine{134     toc = time.time()}
+\DoxyCodeLine{135     print(\textcolor{stringliteral}{'Elapsed time [s]: '}, toc -\/ tic)}
+\DoxyCodeLine{136     \textcolor{keywordflow}{return} tt}
+\DoxyCodeLine{137 }
+\DoxyCodeLine{138 }
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLibTimeTraces_aee5d05ba3d6081550e432ef258ee54c5}\label{namespaceLibTimeTraces_aee5d05ba3d6081550e432ef258ee54c5}} 
+\index{LibTimeTraces@{LibTimeTraces}!trace@{trace}}
+\index{trace@{trace}!LibTimeTraces@{LibTimeTraces}}
+\doxysubsubsection{\texorpdfstring{trace()}{trace()}}
+{\footnotesize\ttfamily def Lib\+Time\+Traces.\+trace (\begin{DoxyParamCaption}\item[{}]{frames,  }\item[{}]{mask }\end{DoxyParamCaption})}
+
+
+
+Calculate the trace of a region given by a mask. 
+
+Jose Rueda\+: \href{mailto:ruejo@ipp.mpg.de}{\texttt{ ruejo@ipp.\+mpg.\+de}}
+
+Given the set of frames, frames\mbox{[}px,py,number\+\_\+frames\mbox{]} and the mask\mbox{[}px,py\mbox{]} this function just sum all the pixels inside the mask for all the frames
+
+
+\begin{DoxyParams}{Parameters}
+{\em frames} & 3D array containing the frames\mbox{[}px,py,number\+\_\+frames\mbox{]} \\
+\hline
+{\em mask} & Binary matrix which the pixels which must be consider, generated by roipoly \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+tr\+: numpy array with the sum of the pixels inside the mask 
+\end{DoxyReturn}
+
+
+Definition at line 10 of file Lib\+Time\+Traces.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{10 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLibTimeTraces_aee5d05ba3d6081550e432ef258ee54c5}{trace}}(frames, mask):}
+\DoxyCodeLine{11     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{12 \textcolor{stringliteral}{    Calculate the trace of a region given by a mask}}
+\DoxyCodeLine{13 \textcolor{stringliteral}{}}
+\DoxyCodeLine{14 \textcolor{stringliteral}{    Jose Rueda: ruejo@ipp.mpg.de}}
+\DoxyCodeLine{15 \textcolor{stringliteral}{}}
+\DoxyCodeLine{16 \textcolor{stringliteral}{    Given the set of frames, frames[px,py,number\_frames] and the mask[px,py]}}
+\DoxyCodeLine{17 \textcolor{stringliteral}{    this function just sum all the pixels inside the mask for all the frames}}
+\DoxyCodeLine{18 \textcolor{stringliteral}{}}
+\DoxyCodeLine{19 \textcolor{stringliteral}{    @param frames: 3D array containing the frames[px,py,number\_frames]}}
+\DoxyCodeLine{20 \textcolor{stringliteral}{    @param mask: Binary matrix which the pixels which must be consider,}}
+\DoxyCodeLine{21 \textcolor{stringliteral}{    generated by roipoly}}
+\DoxyCodeLine{22 \textcolor{stringliteral}{    @return tr: numpy array with the sum of the pixels inside the mask}}
+\DoxyCodeLine{23 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{24     \textcolor{comment}{\# Allocate output array}}
+\DoxyCodeLine{25     n = frames.shape[2]}
+\DoxyCodeLine{26     tr = np.zeros(n)}
+\DoxyCodeLine{27     \textcolor{comment}{\# calculate the trace}}
+\DoxyCodeLine{28     \textcolor{keywordflow}{for} iframe \textcolor{keywordflow}{in} range(n):}
+\DoxyCodeLine{29         tr[iframe] = sum(frames[mask, iframe])}
+\DoxyCodeLine{30     \textcolor{keywordflow}{return} tr}
+\DoxyCodeLine{31 }
+\DoxyCodeLine{32 }
+
+\end{DoxyCode}

@@ -1,3 +1,7 @@
+"""@package paths
+Contains the path to initialise the suite
+"""
+
 import os
 import sys
 

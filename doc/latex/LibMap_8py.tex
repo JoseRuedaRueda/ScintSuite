@@ -1,0 +1,29 @@
+\hypertarget{LibMap_8py}{}\doxysection{Lib/\+Lib\+Map.py File Reference}
+\label{LibMap_8py}\index{Lib/LibMap.py@{Lib/LibMap.py}}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classLibMap_1_1CalibrationDatabase}{Lib\+Map.\+Calibration\+Database}}
+\begin{DoxyCompactList}\small\item\em Class with with the database of parameter to align the scintillator. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classLibMap_1_1StrikeMap}{Lib\+Map.\+Strike\+Map}}
+\begin{DoxyCompactList}\small\item\em Class with the information of the strike map. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classLibMap_1_1CalParams}{Lib\+Map.\+Cal\+Params}}
+\begin{DoxyCompactList}\small\item\em Class with the information to relate points in the camera sensor with points in the scintillator. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classLibMap_1_1Scintillator}{Lib\+Map.\+Scintillator}}
+\begin{DoxyCompactList}\small\item\em Class with the scintillator information. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespaceLibMap}{Lib\+Map}}
+\begin{DoxyCompactList}\small\item\em Module to remap the scintillator. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{namespaceLibMap_ac38fcf0ae779d053833f37492ef245c8}{Lib\+Map.\+transform\+\_\+to\+\_\+pixel}} (x, y, grid\+\_\+param)
+\begin{DoxyCompactList}\small\item\em Transform from X,Y coordinates (points along the scintillator) to pixels in the camera. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibMap_a38dbf93de245aba1e6bda775b10bedfa}{Lib\+Map.\+get\+\_\+points}} (fig, scintillator, bool plt\+\_\+flag=True, int npoints=3)
+\begin{DoxyCompactList}\small\item\em Get the points of the scintillator via ginput method. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibMap_abeb9b36f78beec2f76470080bde20e4d}{Lib\+Map.\+calculate\+\_\+transformation\+\_\+factors}} (scintillator, fig, bool plt\+\_\+flag=True)
+\begin{DoxyCompactList}\small\item\em Calculate the transformation factor to align the strike map with the camera sensor. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibMap_a15b8e38e11c7ebf83daf570394cd1b78}{Lib\+Map.\+remap}} (smap, timing=True)
+\begin{DoxyCompactList}\small\item\em Remap a frame. \end{DoxyCompactList}\end{DoxyCompactItemize}

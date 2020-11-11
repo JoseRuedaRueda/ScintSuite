@@ -1,0 +1,149 @@
+\hypertarget{classLibMap_1_1CalParams}{}\doxysection{Lib\+Map.\+Cal\+Params Class Reference}
+\label{classLibMap_1_1CalParams}\index{LibMap.CalParams@{LibMap.CalParams}}
+
+
+Class with the information to relate points in the camera sensor with points in the scintillator.  
+
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{classLibMap_1_1CalParams_a25d1f9b6479944a04c21ddda267edc1f}{\+\_\+\+\_\+init\+\_\+\+\_\+}} (self)
+\begin{DoxyCompactList}\small\item\em Initializer of the class. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classLibMap_1_1CalParams_aae9b75c54f097d42c554a359125e7cd0}{xscale}}
+\begin{DoxyCompactList}\small\item\em pixel/cm in the x direction \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classLibMap_1_1CalParams_a9a591cf34c88d149aac5e1f084c6f60b}{yscale}}
+\begin{DoxyCompactList}\small\item\em pixel/cm in the y direction \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classLibMap_1_1CalParams_a33280dea418170a7333292c318344166}{xshift}}
+\begin{DoxyCompactList}\small\item\em Offset to align 0,0 of the sensor with the scintillator (x direction) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classLibMap_1_1CalParams_abf554c673d5f8c9ef4c83b98bb17bb8f}{yshift}}
+\begin{DoxyCompactList}\small\item\em Offset to align 0,0 of the sensor with the scintillator (y direction) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classLibMap_1_1CalParams_a1e2b96dc391b349b716860548bc3a0e5}{deg}}
+\begin{DoxyCompactList}\small\item\em Rotation angle to transform from the sensor to the scintillator. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Class with the information to relate points in the camera sensor with points in the scintillator. 
+
+Definition at line 726 of file Lib\+Map.\+py.
+
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classLibMap_1_1CalParams_a25d1f9b6479944a04c21ddda267edc1f}\label{classLibMap_1_1CalParams_a25d1f9b6479944a04c21ddda267edc1f}} 
+\index{LibMap.CalParams@{LibMap.CalParams}!\_\_init\_\_@{\_\_init\_\_}}
+\index{\_\_init\_\_@{\_\_init\_\_}!LibMap.CalParams@{LibMap.CalParams}}
+\doxysubsubsection{\texorpdfstring{\_\_init\_\_()}{\_\_init\_\_()}}
+{\footnotesize\ttfamily def Lib\+Map.\+Cal\+Params.\+\_\+\+\_\+init\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+
+
+Initializer of the class. 
+
+
+
+Definition at line 732 of file Lib\+Map.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{732     \textcolor{keyword}{def }\_\_init\_\_(self):}
+\DoxyCodeLine{733         \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{734 \textcolor{stringliteral}{        Initializer of the class}}
+\DoxyCodeLine{735 \textcolor{stringliteral}{        "{}"{}"{}}}
+\DoxyCodeLine{736         \textcolor{comment}{\# To transform the from real coordinates to pixel (see}}
+\DoxyCodeLine{737         \textcolor{comment}{\# transform\_to\_pixel())}}
+\DoxyCodeLine{738         }
+\DoxyCodeLine{739         self.xscale = 0}
+\DoxyCodeLine{740         }
+\DoxyCodeLine{741         self.yscale = 0}
+\DoxyCodeLine{742         }
+\DoxyCodeLine{743         self.xshift = 0}
+\DoxyCodeLine{744         }
+\DoxyCodeLine{745         self.yshift = 0}
+\DoxyCodeLine{746         }
+\DoxyCodeLine{747         self.deg = 0}
+\DoxyCodeLine{748 }
+\DoxyCodeLine{749 }
+
+\end{DoxyCode}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{classLibMap_1_1CalParams_a1e2b96dc391b349b716860548bc3a0e5}\label{classLibMap_1_1CalParams_a1e2b96dc391b349b716860548bc3a0e5}} 
+\index{LibMap.CalParams@{LibMap.CalParams}!deg@{deg}}
+\index{deg@{deg}!LibMap.CalParams@{LibMap.CalParams}}
+\doxysubsubsection{\texorpdfstring{deg}{deg}}
+{\footnotesize\ttfamily Lib\+Map.\+Cal\+Params.\+deg}
+
+
+
+Rotation angle to transform from the sensor to the scintillator. 
+
+
+
+Definition at line 747 of file Lib\+Map.\+py.
+
+\mbox{\Hypertarget{classLibMap_1_1CalParams_aae9b75c54f097d42c554a359125e7cd0}\label{classLibMap_1_1CalParams_aae9b75c54f097d42c554a359125e7cd0}} 
+\index{LibMap.CalParams@{LibMap.CalParams}!xscale@{xscale}}
+\index{xscale@{xscale}!LibMap.CalParams@{LibMap.CalParams}}
+\doxysubsubsection{\texorpdfstring{xscale}{xscale}}
+{\footnotesize\ttfamily Lib\+Map.\+Cal\+Params.\+xscale}
+
+
+
+pixel/cm in the x direction 
+
+
+
+Definition at line 739 of file Lib\+Map.\+py.
+
+\mbox{\Hypertarget{classLibMap_1_1CalParams_a33280dea418170a7333292c318344166}\label{classLibMap_1_1CalParams_a33280dea418170a7333292c318344166}} 
+\index{LibMap.CalParams@{LibMap.CalParams}!xshift@{xshift}}
+\index{xshift@{xshift}!LibMap.CalParams@{LibMap.CalParams}}
+\doxysubsubsection{\texorpdfstring{xshift}{xshift}}
+{\footnotesize\ttfamily Lib\+Map.\+Cal\+Params.\+xshift}
+
+
+
+Offset to align 0,0 of the sensor with the scintillator (x direction) 
+
+
+
+Definition at line 743 of file Lib\+Map.\+py.
+
+\mbox{\Hypertarget{classLibMap_1_1CalParams_a9a591cf34c88d149aac5e1f084c6f60b}\label{classLibMap_1_1CalParams_a9a591cf34c88d149aac5e1f084c6f60b}} 
+\index{LibMap.CalParams@{LibMap.CalParams}!yscale@{yscale}}
+\index{yscale@{yscale}!LibMap.CalParams@{LibMap.CalParams}}
+\doxysubsubsection{\texorpdfstring{yscale}{yscale}}
+{\footnotesize\ttfamily Lib\+Map.\+Cal\+Params.\+yscale}
+
+
+
+pixel/cm in the y direction 
+
+
+
+Definition at line 741 of file Lib\+Map.\+py.
+
+\mbox{\Hypertarget{classLibMap_1_1CalParams_abf554c673d5f8c9ef4c83b98bb17bb8f}\label{classLibMap_1_1CalParams_abf554c673d5f8c9ef4c83b98bb17bb8f}} 
+\index{LibMap.CalParams@{LibMap.CalParams}!yshift@{yshift}}
+\index{yshift@{yshift}!LibMap.CalParams@{LibMap.CalParams}}
+\doxysubsubsection{\texorpdfstring{yshift}{yshift}}
+{\footnotesize\ttfamily Lib\+Map.\+Cal\+Params.\+yshift}
+
+
+
+Offset to align 0,0 of the sensor with the scintillator (y direction) 
+
+
+
+Definition at line 745 of file Lib\+Map.\+py.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Lib/\mbox{\hyperlink{LibMap_8py}{Lib\+Map.\+py}}\end{DoxyCompactItemize}

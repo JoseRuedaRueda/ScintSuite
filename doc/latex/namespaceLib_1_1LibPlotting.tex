@@ -1,0 +1,251 @@
+\hypertarget{namespaceLib_1_1LibPlotting}{}\doxysection{Lib.\+Lib\+Plotting Namespace Reference}
+\label{namespaceLib_1_1LibPlotting}\index{Lib.LibPlotting@{Lib.LibPlotting}}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{namespaceLib_1_1LibPlotting_aa5408252c8d5e02028901ef8d2ff0608}{p1D}} (ax, x, y, dict param\+\_\+dict=None)
+\begin{DoxyCompactList}\small\item\em Basic 1D plot. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLib_1_1LibPlotting_af1193abedf08d9499f6351d3863bc219}{p1\+D\+\_\+shaded\+\_\+error}} (ax, x, y, u\+\_\+up, color=\textquotesingle{}k\textquotesingle{}, alpha=0.\+1, u\+\_\+down=-\/10001)
+\begin{DoxyCompactList}\small\item\em Plot confidence intervals. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLib_1_1LibPlotting_ac1dbb823135787ca6402488969ea2e33}{axis\+\_\+beauty}} (ax, dict param\+\_\+dict)
+\begin{DoxyCompactList}\small\item\em Modify axis labels, title, .... \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLib_1_1LibPlotting_a5c8b64ea7db06d52be0850101a2233ab}{Gamma\+\_\+\+II}} (n=256)
+\begin{DoxyCompactList}\small\item\em Gamma II colormap. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{namespaceLib_1_1LibPlotting_ac1dbb823135787ca6402488969ea2e33}\label{namespaceLib_1_1LibPlotting_ac1dbb823135787ca6402488969ea2e33}} 
+\index{Lib.LibPlotting@{Lib.LibPlotting}!axis\_beauty@{axis\_beauty}}
+\index{axis\_beauty@{axis\_beauty}!Lib.LibPlotting@{Lib.LibPlotting}}
+\doxysubsubsection{\texorpdfstring{axis\_beauty()}{axis\_beauty()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Plotting.\+axis\+\_\+beauty (\begin{DoxyParamCaption}\item[{}]{ax,  }\item[{dict}]{param\+\_\+dict }\end{DoxyParamCaption})}
+
+
+
+Modify axis labels, title, .... 
+
+Jose Rueda\+: \href{mailto:jose.rueda@ipp.mpg.de}{\texttt{ jose.\+rueda@ipp.\+mpg.\+de}}
+
+
+\begin{DoxyParams}{Parameters}
+{\em ax} & Axes. The axes to be modify \\
+\hline
+{\em param\+\_\+dict} & Dictionary with all the fields \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+ax\+: Modified axis 
+\end{DoxyReturn}
+
+
+Definition at line 53 of file Lib\+Plotting.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{53 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLib_1_1LibPlotting_ac1dbb823135787ca6402488969ea2e33}{axis\_beauty}}(ax, param\_dict: dict):}
+\DoxyCodeLine{54     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{55 \textcolor{stringliteral}{    Modify axis labels, title, ....}}
+\DoxyCodeLine{56 \textcolor{stringliteral}{}}
+\DoxyCodeLine{57 \textcolor{stringliteral}{    Jose Rueda: jose.rueda@ipp.mpg.de}}
+\DoxyCodeLine{58 \textcolor{stringliteral}{}}
+\DoxyCodeLine{59 \textcolor{stringliteral}{    @param ax: Axes. The axes to be modify}}
+\DoxyCodeLine{60 \textcolor{stringliteral}{    @param param\_dict: Dictionary with all the fields}}
+\DoxyCodeLine{61 \textcolor{stringliteral}{    @return ax: Modified axis}}
+\DoxyCodeLine{62 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{63     \textcolor{comment}{\# Define fonts}}
+\DoxyCodeLine{64     font = \{\}}
+\DoxyCodeLine{65     \textcolor{keywordflow}{if} \textcolor{stringliteral}{'fontname'} \textcolor{keywordflow}{in} param\_dict:}
+\DoxyCodeLine{66         font[\textcolor{stringliteral}{'fontname'}] = param\_dict[\textcolor{stringliteral}{'fontname'}]}
+\DoxyCodeLine{67     \textcolor{keywordflow}{if} \textcolor{stringliteral}{'fontsize'} \textcolor{keywordflow}{in} param\_dict:}
+\DoxyCodeLine{68         font[\textcolor{stringliteral}{'size'}] = param\_dict[\textcolor{stringliteral}{'fontsize'}]}
+\DoxyCodeLine{69         \textcolor{comment}{\# ax.tick\_params(labelsize=param\_dict['fontsize'])}}
+\DoxyCodeLine{70     \textcolor{keywordflow}{if} \textcolor{stringliteral}{'xlabel'} \textcolor{keywordflow}{in} param\_dict:}
+\DoxyCodeLine{71         ax.set\_xlabel(param\_dict[\textcolor{stringliteral}{'xlabel'}], **font)}
+\DoxyCodeLine{72     \textcolor{keywordflow}{if} \textcolor{stringliteral}{'ylabel'} \textcolor{keywordflow}{in} param\_dict:}
+\DoxyCodeLine{73         ax.set\_ylabel(param\_dict[\textcolor{stringliteral}{'ylabel'}], **font)}
+\DoxyCodeLine{74     \textcolor{keywordflow}{if} \textcolor{stringliteral}{'yscale'} \textcolor{keywordflow}{in} param\_dict:}
+\DoxyCodeLine{75         ax.set\_yscale(param\_dict[\textcolor{stringliteral}{'yscale'}])}
+\DoxyCodeLine{76     \textcolor{keywordflow}{if} \textcolor{stringliteral}{'xscale'} \textcolor{keywordflow}{in} param\_dict:}
+\DoxyCodeLine{77         ax.set\_xscale(param\_dict[\textcolor{stringliteral}{'xscale'}])}
+\DoxyCodeLine{78     \textcolor{keywordflow}{if} \textcolor{stringliteral}{'tickformat'} \textcolor{keywordflow}{in} param\_dict:}
+\DoxyCodeLine{79         ax.ticklabel\_format(style=param\_dict[\textcolor{stringliteral}{'tickformat'}],scilimits=(-\/2,2),}
+\DoxyCodeLine{80                             useMathText=\textcolor{keyword}{True})}
+\DoxyCodeLine{81         \textcolor{keywordflow}{if} \textcolor{stringliteral}{'fontsize'} \textcolor{keywordflow}{in} param\_dict:}
+\DoxyCodeLine{82             ax.yaxis.offsetText.set\_fontsize(param\_dict[\textcolor{stringliteral}{'fontsize'}])}
+\DoxyCodeLine{83         \textcolor{keywordflow}{if} \textcolor{stringliteral}{'fontname'} \textcolor{keywordflow}{in} param\_dict:}
+\DoxyCodeLine{84             ax.yaxis.offsetText.set\_fontname(param\_dict[\textcolor{stringliteral}{'fontname'}])}
+\DoxyCodeLine{85     \textcolor{keywordflow}{if} \textcolor{stringliteral}{'grid'} \textcolor{keywordflow}{in} param\_dict:}
+\DoxyCodeLine{86         \textcolor{keywordflow}{if} param\_dict[\textcolor{stringliteral}{'grid'}] == \textcolor{stringliteral}{'both'}:}
+\DoxyCodeLine{87             plt.grid(\textcolor{keyword}{True}, which=\textcolor{stringliteral}{'minor'}, linestyle=\textcolor{stringliteral}{':'})}
+\DoxyCodeLine{88             ax.minorticks\_on()}
+\DoxyCodeLine{89             plt.grid(\textcolor{keyword}{True}, which=\textcolor{stringliteral}{'major'})}
+\DoxyCodeLine{90         \textcolor{keywordflow}{else}:}
+\DoxyCodeLine{91             plt.grid(\textcolor{keyword}{True}, which=param\_dict[\textcolor{stringliteral}{'grid'}])}
+\DoxyCodeLine{92     \textcolor{comment}{\# Arrange ticks a ticks labels}}
+\DoxyCodeLine{93     plt.xticks(**font)}
+\DoxyCodeLine{94     plt.yticks(**font)}
+\DoxyCodeLine{95     ax.tick\_params(which=\textcolor{stringliteral}{'both'}, direction=\textcolor{stringliteral}{'in'}, color=\textcolor{stringliteral}{'k'}, bottom=\textcolor{keyword}{True},}
+\DoxyCodeLine{96                    top=\textcolor{keyword}{True}, left=\textcolor{keyword}{True}, right=\textcolor{keyword}{True})}
+\DoxyCodeLine{97     \textcolor{keywordflow}{return} ax}
+\DoxyCodeLine{98 }
+\DoxyCodeLine{99 }
+\DoxyCodeLine{100 }
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLib_1_1LibPlotting_a5c8b64ea7db06d52be0850101a2233ab}\label{namespaceLib_1_1LibPlotting_a5c8b64ea7db06d52be0850101a2233ab}} 
+\index{Lib.LibPlotting@{Lib.LibPlotting}!Gamma\_II@{Gamma\_II}}
+\index{Gamma\_II@{Gamma\_II}!Lib.LibPlotting@{Lib.LibPlotting}}
+\doxysubsubsection{\texorpdfstring{Gamma\_II()}{Gamma\_II()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Plotting.\+Gamma\+\_\+\+II (\begin{DoxyParamCaption}\item[{}]{n = {\ttfamily 256} }\end{DoxyParamCaption})}
+
+
+
+Gamma II colormap. 
+
+This function creates the colormap that coincides with the Gamma\+\_\+\+II\+\_\+colormap of IDL.
+
+
+\begin{DoxyParams}{Parameters}
+{\em n} & numbers of levels of the output colormap \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 101 of file Lib\+Plotting.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{101 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLib_1_1LibPlotting_a5c8b64ea7db06d52be0850101a2233ab}{Gamma\_II}}(n=256):}
+\DoxyCodeLine{102     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{103 \textcolor{stringliteral}{    Gamma II colormap}}
+\DoxyCodeLine{104 \textcolor{stringliteral}{}}
+\DoxyCodeLine{105 \textcolor{stringliteral}{    This function creates the colormap that coincides with the}}
+\DoxyCodeLine{106 \textcolor{stringliteral}{    Gamma\_II\_colormap of IDL.}}
+\DoxyCodeLine{107 \textcolor{stringliteral}{}}
+\DoxyCodeLine{108 \textcolor{stringliteral}{    @param n: numbers of levels of the output colormap}}
+\DoxyCodeLine{109 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{110     cmap = LinearSegmentedColormap.from\_list(}
+\DoxyCodeLine{111         \textcolor{stringliteral}{'mycmap'}, [\textcolor{stringliteral}{'black'}, \textcolor{stringliteral}{'blue'}, \textcolor{stringliteral}{'red'}, \textcolor{stringliteral}{'yellow'}, \textcolor{stringliteral}{'white'}], N=n)}
+\DoxyCodeLine{112     \textcolor{keywordflow}{return} cmap}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLib_1_1LibPlotting_aa5408252c8d5e02028901ef8d2ff0608}\label{namespaceLib_1_1LibPlotting_aa5408252c8d5e02028901ef8d2ff0608}} 
+\index{Lib.LibPlotting@{Lib.LibPlotting}!p1D@{p1D}}
+\index{p1D@{p1D}!Lib.LibPlotting@{Lib.LibPlotting}}
+\doxysubsubsection{\texorpdfstring{p1D()}{p1D()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Plotting.\+p1D (\begin{DoxyParamCaption}\item[{}]{ax,  }\item[{}]{x,  }\item[{}]{y,  }\item[{dict }]{param\+\_\+dict = {\ttfamily None} }\end{DoxyParamCaption})}
+
+
+
+Basic 1D plot. 
+
+Jose Rueda\+: \href{mailto:jose.rueda@ipp.mpg.de}{\texttt{ jose.\+rueda@ipp.\+mpg.\+de}}
+
+
+\begin{DoxyParams}{Parameters}
+{\em ax} & Axes. The axes to draw to \\
+\hline
+{\em x} & The x data \\
+\hline
+{\em y} & The y data \\
+\hline
+{\em param\+\_\+dict} & dict. Dictionary of kwargs to pass to ax.\+plot \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+out\+: ax.\+plot with the applied settings 
+\end{DoxyReturn}
+
+
+Definition at line 9 of file Lib\+Plotting.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{9 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLib_1_1LibPlotting_aa5408252c8d5e02028901ef8d2ff0608}{p1D}}(ax, x, y, param\_dict: dict = \textcolor{keywordtype}{None}):}
+\DoxyCodeLine{10     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{11 \textcolor{stringliteral}{    Basic 1D plot}}
+\DoxyCodeLine{12 \textcolor{stringliteral}{}}
+\DoxyCodeLine{13 \textcolor{stringliteral}{    Jose Rueda: jose.rueda@ipp.mpg.de}}
+\DoxyCodeLine{14 \textcolor{stringliteral}{}}
+\DoxyCodeLine{15 \textcolor{stringliteral}{    @param ax: Axes. The axes to draw to}}
+\DoxyCodeLine{16 \textcolor{stringliteral}{    @param x: The x data}}
+\DoxyCodeLine{17 \textcolor{stringliteral}{    @param y: The y data}}
+\DoxyCodeLine{18 \textcolor{stringliteral}{    @param param\_dict: dict. Dictionary of kwargs to pass to ax.plot}}
+\DoxyCodeLine{19 \textcolor{stringliteral}{    @return out: ax.plot with the applied settings}}
+\DoxyCodeLine{20 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{21     \textcolor{keywordflow}{if} param\_dict \textcolor{keywordflow}{is} \textcolor{keywordtype}{None}:}
+\DoxyCodeLine{22         param\_dict = \{\}}
+\DoxyCodeLine{23     ax.plot(x, y, **param\_dict)}
+\DoxyCodeLine{24     \textcolor{keywordflow}{return} ax}
+\DoxyCodeLine{25 }
+\DoxyCodeLine{26 }
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLib_1_1LibPlotting_af1193abedf08d9499f6351d3863bc219}\label{namespaceLib_1_1LibPlotting_af1193abedf08d9499f6351d3863bc219}} 
+\index{Lib.LibPlotting@{Lib.LibPlotting}!p1D\_shaded\_error@{p1D\_shaded\_error}}
+\index{p1D\_shaded\_error@{p1D\_shaded\_error}!Lib.LibPlotting@{Lib.LibPlotting}}
+\doxysubsubsection{\texorpdfstring{p1D\_shaded\_error()}{p1D\_shaded\_error()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Plotting.\+p1\+D\+\_\+shaded\+\_\+error (\begin{DoxyParamCaption}\item[{}]{ax,  }\item[{}]{x,  }\item[{}]{y,  }\item[{}]{u\+\_\+up,  }\item[{}]{color = {\ttfamily \textquotesingle{}k\textquotesingle{}},  }\item[{}]{alpha = {\ttfamily 0.1},  }\item[{}]{u\+\_\+down = {\ttfamily -\/10001} }\end{DoxyParamCaption})}
+
+
+
+Plot confidence intervals. 
+
+Jose Rueda\+: \href{mailto:jose.rueda@ipp.mpg.de}{\texttt{ jose.\+rueda@ipp.\+mpg.\+de}}
+
+Basic shaded region between y + u\+\_\+up and y -\/ u\+\_\+down. If no u\+\_\+down is provided, u\+\_\+down is taken as u\+\_\+up
+
+
+\begin{DoxyParams}{Parameters}
+{\em ax} & Axes. The axes to draw to \\
+\hline
+{\em x} & The x data \\
+\hline
+{\em y} & The y data \\
+\hline
+{\em u\+\_\+up} & The upper limit of the error to be plotted \\
+\hline
+{\em u\+\_\+down} & (Optional) the bottom limit of the error to be plotter \\
+\hline
+{\em color} & (Optional) Color of the shaded region \\
+\hline
+{\em alpha} & (Optional) Transparency parameter (0\+: full transparency, 1 opacity) \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+ax with the applied settings 
+\end{DoxyReturn}
+
+
+Definition at line 27 of file Lib\+Plotting.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{27 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLib_1_1LibPlotting_af1193abedf08d9499f6351d3863bc219}{p1D\_shaded\_error}}(ax, x, y, u\_up, color='k', alpha=0.1, u\_down=-\/10001):}
+\DoxyCodeLine{28     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{29 \textcolor{stringliteral}{    Plot confidence intervals}}
+\DoxyCodeLine{30 \textcolor{stringliteral}{}}
+\DoxyCodeLine{31 \textcolor{stringliteral}{    Jose Rueda: jose.rueda@ipp.mpg.de}}
+\DoxyCodeLine{32 \textcolor{stringliteral}{}}
+\DoxyCodeLine{33 \textcolor{stringliteral}{    Basic shaded region between y + u\_up and y -\/ u\_down. If no u\_down is}}
+\DoxyCodeLine{34 \textcolor{stringliteral}{    provided, u\_down is taken as u\_up}}
+\DoxyCodeLine{35 \textcolor{stringliteral}{}}
+\DoxyCodeLine{36 \textcolor{stringliteral}{    @param ax: Axes. The axes to draw to}}
+\DoxyCodeLine{37 \textcolor{stringliteral}{    @param x: The x data}}
+\DoxyCodeLine{38 \textcolor{stringliteral}{    @param y: The y data}}
+\DoxyCodeLine{39 \textcolor{stringliteral}{    @param u\_up: The upper limit of the error to be plotted}}
+\DoxyCodeLine{40 \textcolor{stringliteral}{    @param u\_down: (Optional) the bottom limit of the error to be plotter}}
+\DoxyCodeLine{41 \textcolor{stringliteral}{    @param color: (Optional) Color of the shaded region}}
+\DoxyCodeLine{42 \textcolor{stringliteral}{    @param alpha: (Optional) Transparency parameter (0: full transparency,}}
+\DoxyCodeLine{43 \textcolor{stringliteral}{    1 opacity)}}
+\DoxyCodeLine{44 \textcolor{stringliteral}{    @return ax with the applied settings}}
+\DoxyCodeLine{45 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{46     \textcolor{keywordflow}{if} u\_down == -\/10001:}
+\DoxyCodeLine{47         u\_down = u\_up}
+\DoxyCodeLine{48 }
+\DoxyCodeLine{49     ax.fill\_between(x, (y -\/ u\_down), (y + u\_up), color=color, alpha=alpha)}
+\DoxyCodeLine{50     \textcolor{keywordflow}{return} ax}
+\DoxyCodeLine{51 }
+\DoxyCodeLine{52 }
+
+\end{DoxyCode}

@@ -1,0 +1,225 @@
+\hypertarget{classLib_1_1LibTimeTraces_1_1TimeTrace}{}\doxysection{Lib.\+Lib\+Time\+Traces.\+Time\+Trace Class Reference}
+\label{classLib_1_1LibTimeTraces_1_1TimeTrace}\index{Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}}
+
+
+Class with information of the time trace.  
+
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{classLib_1_1LibTimeTraces_1_1TimeTrace_a62768074dc7eda8af1a2a6171b9a63c2}{\+\_\+\+\_\+init\+\_\+\+\_\+}} (self)
+\begin{DoxyCompactList}\small\item\em Initialise the \mbox{\hyperlink{classLib_1_1LibTimeTraces_1_1TimeTrace}{Time\+Trace}}. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{classLib_1_1LibTimeTraces_1_1TimeTrace_a13500a4a3147aa183d21b15ff7105d45}{export\+\_\+to\+\_\+ascii}} (self, str filename)
+\begin{DoxyCompactList}\small\item\em Export time trace to acsii. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classLib_1_1LibTimeTraces_1_1TimeTrace_aa1f4359e8bb22f45e519a25a03846bdf}{time\+\_\+base}}
+\begin{DoxyCompactList}\small\item\em Numpy array with the time bas. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classLib_1_1LibTimeTraces_1_1TimeTrace_a554779edfc3196e0a65ade91a838d100}{sum\+\_\+of\+\_\+roi}}
+\begin{DoxyCompactList}\small\item\em Numpy array with the total counts in the ROI. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classLib_1_1LibTimeTraces_1_1TimeTrace_a01f91d8ce9e1a229004a351dbe86bf03}{mean\+\_\+of\+\_\+roi}}
+\begin{DoxyCompactList}\small\item\em Numpy array with the mean of counts in the ROI. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classLib_1_1LibTimeTraces_1_1TimeTrace_ac5a84fde76576d999b6e649074580848}{std\+\_\+of\+\_\+roi}}
+\begin{DoxyCompactList}\small\item\em Numpy array with the std of counts in the ROI. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classLib_1_1LibTimeTraces_1_1TimeTrace_aa0b2bc75273e3d388d1b94b08faa386a}{mask}}
+\begin{DoxyCompactList}\small\item\em Binary mask defining the roy. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classLib_1_1LibTimeTraces_1_1TimeTrace_a8f201d76cca45e48ee31d123d1ca0b86}{roi}}
+\begin{DoxyCompactList}\small\item\em Binary mask defining the roy. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Class with information of the time trace. 
+
+Definition at line 139 of file Lib\+Time\+Traces.\+py.
+
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classLib_1_1LibTimeTraces_1_1TimeTrace_a62768074dc7eda8af1a2a6171b9a63c2}\label{classLib_1_1LibTimeTraces_1_1TimeTrace_a62768074dc7eda8af1a2a6171b9a63c2}} 
+\index{Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}!\_\_init\_\_@{\_\_init\_\_}}
+\index{\_\_init\_\_@{\_\_init\_\_}!Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}}
+\doxysubsubsection{\texorpdfstring{\_\_init\_\_()}{\_\_init\_\_()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Time\+Traces.\+Time\+Trace.\+\_\+\+\_\+init\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+
+
+Initialise the \mbox{\hyperlink{classLib_1_1LibTimeTraces_1_1TimeTrace}{Time\+Trace}}. 
+
+
+
+Definition at line 144 of file Lib\+Time\+Traces.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{144     \textcolor{keyword}{def }\_\_init\_\_(self):}
+\DoxyCodeLine{145         \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{146 \textcolor{stringliteral}{        Initialise the TimeTrace}}
+\DoxyCodeLine{147 \textcolor{stringliteral}{        "{}"{}"{}}}
+\DoxyCodeLine{148         }
+\DoxyCodeLine{149         self.time\_base = \textcolor{keywordtype}{None}}
+\DoxyCodeLine{150         }
+\DoxyCodeLine{151         self.sum\_of\_roi = \textcolor{keywordtype}{None}}
+\DoxyCodeLine{152         }
+\DoxyCodeLine{153         self.mean\_of\_roi = \textcolor{keywordtype}{None}}
+\DoxyCodeLine{154         }
+\DoxyCodeLine{155         self.std\_of\_roi = \textcolor{keywordtype}{None}}
+\DoxyCodeLine{156         }
+\DoxyCodeLine{157         self.mask = \textcolor{keywordtype}{None}}
+\DoxyCodeLine{158         }
+\DoxyCodeLine{159         self.roi = \textcolor{keywordtype}{None}}
+\DoxyCodeLine{160 }
+
+\end{DoxyCode}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classLib_1_1LibTimeTraces_1_1TimeTrace_a13500a4a3147aa183d21b15ff7105d45}\label{classLib_1_1LibTimeTraces_1_1TimeTrace_a13500a4a3147aa183d21b15ff7105d45}} 
+\index{Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}!export\_to\_ascii@{export\_to\_ascii}}
+\index{export\_to\_ascii@{export\_to\_ascii}!Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}}
+\doxysubsubsection{\texorpdfstring{export\_to\_ascii()}{export\_to\_ascii()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Time\+Traces.\+Time\+Trace.\+export\+\_\+to\+\_\+ascii (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{str}]{filename }\end{DoxyParamCaption})}
+
+
+
+Export time trace to acsii. 
+
+Jose Rueda\+: \href{mailto:jose.rueda@ipp.mpg.de}{\texttt{ jose.\+rueda@ipp.\+mpg.\+de}}
+
+
+\begin{DoxyParams}{Parameters}
+{\em self} & the \mbox{\hyperlink{classLib_1_1LibTimeTraces_1_1TimeTrace}{Time\+Trace}} object \\
+\hline
+{\em filename} & file where to write the data \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+None. A file is created with the information 
+\end{DoxyReturn}
+
+
+Definition at line 161 of file Lib\+Time\+Traces.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{161     \textcolor{keyword}{def }export\_to\_ascii(self, filename: str):}
+\DoxyCodeLine{162         \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{163 \textcolor{stringliteral}{        Export time trace to acsii}}
+\DoxyCodeLine{164 \textcolor{stringliteral}{}}
+\DoxyCodeLine{165 \textcolor{stringliteral}{        Jose Rueda: jose.rueda@ipp.mpg.de}}
+\DoxyCodeLine{166 \textcolor{stringliteral}{}}
+\DoxyCodeLine{167 \textcolor{stringliteral}{        @param self: the TimeTrace object}}
+\DoxyCodeLine{168 \textcolor{stringliteral}{        @param filename: file where to write the data}}
+\DoxyCodeLine{169 \textcolor{stringliteral}{        @return None. A file is created with the information}}
+\DoxyCodeLine{170 \textcolor{stringliteral}{        "{}"{}"{}}}
+\DoxyCodeLine{171         date = datetime.datetime.now()}
+\DoxyCodeLine{172         line = \textcolor{stringliteral}{'\# Time trace: '} + date.strftime(\textcolor{stringliteral}{"{}\%d-\/\%b-\/\%Y (\%H:\%M:\%S.\%f)"{}}) \(\backslash\)}
+\DoxyCodeLine{173                + \textcolor{stringliteral}{'\(\backslash\)n'} + \textcolor{stringliteral}{'Time [s]                     '} + \(\backslash\)}
+\DoxyCodeLine{174                \textcolor{stringliteral}{'Counts in Roi                     '} + \(\backslash\)}
+\DoxyCodeLine{175                \textcolor{stringliteral}{'Mean in Roi                     Std Roi'}}
+\DoxyCodeLine{176         length = self.time\_base.size}
+\DoxyCodeLine{177 }
+\DoxyCodeLine{178         np.savetxt(filename, np.hstack((self.time\_base.reshape(length, 1),}
+\DoxyCodeLine{179                                         self.sum\_of\_roi.reshape(length, 1),}
+\DoxyCodeLine{180                                         self.mean\_of\_roi.reshape(length, 1),}
+\DoxyCodeLine{181                                         self.std\_of\_roi.reshape(length, 1))),}
+\DoxyCodeLine{182                    delimiter=\textcolor{stringliteral}{'   ,   '}, header=line)}
+\DoxyCodeLine{183         f = open(\textcolor{stringliteral}{"{}output.txt"{}}, \textcolor{stringliteral}{"{}w"{}})}
+\DoxyCodeLine{184         print(\textcolor{stringliteral}{"{}\# Time trace "{}}, file=f)}
+\DoxyCodeLine{185         print(\textcolor{stringliteral}{"{}\# Date "{}}, datetime.datetime.now(), file=f)}
+\DoxyCodeLine{186         f.close()}
+
+\end{DoxyCode}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{classLib_1_1LibTimeTraces_1_1TimeTrace_aa0b2bc75273e3d388d1b94b08faa386a}\label{classLib_1_1LibTimeTraces_1_1TimeTrace_aa0b2bc75273e3d388d1b94b08faa386a}} 
+\index{Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}!mask@{mask}}
+\index{mask@{mask}!Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}}
+\doxysubsubsection{\texorpdfstring{mask}{mask}}
+{\footnotesize\ttfamily Lib.\+Lib\+Time\+Traces.\+Time\+Trace.\+mask}
+
+
+
+Binary mask defining the roy. 
+
+
+
+Definition at line 157 of file Lib\+Time\+Traces.\+py.
+
+\mbox{\Hypertarget{classLib_1_1LibTimeTraces_1_1TimeTrace_a01f91d8ce9e1a229004a351dbe86bf03}\label{classLib_1_1LibTimeTraces_1_1TimeTrace_a01f91d8ce9e1a229004a351dbe86bf03}} 
+\index{Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}!mean\_of\_roi@{mean\_of\_roi}}
+\index{mean\_of\_roi@{mean\_of\_roi}!Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}}
+\doxysubsubsection{\texorpdfstring{mean\_of\_roi}{mean\_of\_roi}}
+{\footnotesize\ttfamily Lib.\+Lib\+Time\+Traces.\+Time\+Trace.\+mean\+\_\+of\+\_\+roi}
+
+
+
+Numpy array with the mean of counts in the ROI. 
+
+
+
+Definition at line 153 of file Lib\+Time\+Traces.\+py.
+
+\mbox{\Hypertarget{classLib_1_1LibTimeTraces_1_1TimeTrace_a8f201d76cca45e48ee31d123d1ca0b86}\label{classLib_1_1LibTimeTraces_1_1TimeTrace_a8f201d76cca45e48ee31d123d1ca0b86}} 
+\index{Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}!roi@{roi}}
+\index{roi@{roi}!Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}}
+\doxysubsubsection{\texorpdfstring{roi}{roi}}
+{\footnotesize\ttfamily Lib.\+Lib\+Time\+Traces.\+Time\+Trace.\+roi}
+
+
+
+Binary mask defining the roy. 
+
+
+
+Definition at line 159 of file Lib\+Time\+Traces.\+py.
+
+\mbox{\Hypertarget{classLib_1_1LibTimeTraces_1_1TimeTrace_ac5a84fde76576d999b6e649074580848}\label{classLib_1_1LibTimeTraces_1_1TimeTrace_ac5a84fde76576d999b6e649074580848}} 
+\index{Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}!std\_of\_roi@{std\_of\_roi}}
+\index{std\_of\_roi@{std\_of\_roi}!Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}}
+\doxysubsubsection{\texorpdfstring{std\_of\_roi}{std\_of\_roi}}
+{\footnotesize\ttfamily Lib.\+Lib\+Time\+Traces.\+Time\+Trace.\+std\+\_\+of\+\_\+roi}
+
+
+
+Numpy array with the std of counts in the ROI. 
+
+
+
+Definition at line 155 of file Lib\+Time\+Traces.\+py.
+
+\mbox{\Hypertarget{classLib_1_1LibTimeTraces_1_1TimeTrace_a554779edfc3196e0a65ade91a838d100}\label{classLib_1_1LibTimeTraces_1_1TimeTrace_a554779edfc3196e0a65ade91a838d100}} 
+\index{Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}!sum\_of\_roi@{sum\_of\_roi}}
+\index{sum\_of\_roi@{sum\_of\_roi}!Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}}
+\doxysubsubsection{\texorpdfstring{sum\_of\_roi}{sum\_of\_roi}}
+{\footnotesize\ttfamily Lib.\+Lib\+Time\+Traces.\+Time\+Trace.\+sum\+\_\+of\+\_\+roi}
+
+
+
+Numpy array with the total counts in the ROI. 
+
+
+
+Definition at line 151 of file Lib\+Time\+Traces.\+py.
+
+\mbox{\Hypertarget{classLib_1_1LibTimeTraces_1_1TimeTrace_aa1f4359e8bb22f45e519a25a03846bdf}\label{classLib_1_1LibTimeTraces_1_1TimeTrace_aa1f4359e8bb22f45e519a25a03846bdf}} 
+\index{Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}!time\_base@{time\_base}}
+\index{time\_base@{time\_base}!Lib.LibTimeTraces.TimeTrace@{Lib.LibTimeTraces.TimeTrace}}
+\doxysubsubsection{\texorpdfstring{time\_base}{time\_base}}
+{\footnotesize\ttfamily Lib.\+Lib\+Time\+Traces.\+Time\+Trace.\+time\+\_\+base}
+
+
+
+Numpy array with the time bas. 
+
+
+
+Definition at line 149 of file Lib\+Time\+Traces.\+py.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Lib/\mbox{\hyperlink{LibTimeTraces_8py}{Lib\+Time\+Traces.\+py}}\end{DoxyCompactItemize}

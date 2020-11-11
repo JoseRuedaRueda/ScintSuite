@@ -1,0 +1,19 @@
+Format and fields of the calibration database\hypertarget{database_fields}{}\doxysection{fields present in the database}\label{database_fields}
+
+\begin{DoxyEnumerate}
+\item camera\+: Camera model used
+\item shot1\+: Initial shot for which the calibration is valid
+\item shot2\+: Final shot for which the calibration is valid
+\item xshift\+: shift in the x direction to align the map
+\item yshift\+: shift in the y direction to align the map
+\item xscale\+: scale in the x direction the align the map
+\item yscale\+: scale in the y direction to align the map
+\item deg\+: angle to rotate and align the map
+\item cal\+\_\+type\+: Type of calibration \mbox{[}PIX or IMAGE\mbox{]}
+\item diag\+\_\+\+ID\+: Number identifying which fild/inpa/i-\/\+HIBP is the calibration for
+\end{DoxyEnumerate}\hypertarget{database_struc_database}{}\doxysection{struc\+\_\+database}\label{database_struc_database}
+
+\begin{DoxyEnumerate}
+\item Lines with comments. In principle the default number is 5, but this number can be changes when we read the database, ie, any number can be valid as far as this number is passed as input when the database object is initialised
+\item Database, organised in rows, each row containing all data from one calibration, starting from a calibration ID and followed by all the fields in the order indicated above. See any example for more information 
+\end{DoxyEnumerate}

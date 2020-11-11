@@ -1,0 +1,1379 @@
+\hypertarget{namespaceLib_1_1LibVideoFiles}{}\doxysection{Lib.\+Lib\+Video\+Files Namespace Reference}
+\label{namespaceLib_1_1LibVideoFiles}\index{Lib.LibVideoFiles@{Lib.LibVideoFiles}}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classLib_1_1LibVideoFiles_1_1Video}{Video}}
+\begin{DoxyCompactList}\small\item\em Class with the information of the recorded video. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_abc2edfc37ec1fdad2929f2f645026fbd}{read\+\_\+header}} (str filename, verbose=False)
+\begin{DoxyCompactList}\small\item\em Read the header info of a .cin file. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_a9ed2eb7e4f33d2592cfe07b360120611}{read\+\_\+settings}} (str filename, int bit\+\_\+pos, bool verbose=False)
+\begin{DoxyCompactList}\small\item\em Read the settings from a .cin file. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_a1b4f57be4245c6ad6cc7e25654c45221}{read\+\_\+image\+\_\+header}} (str filename, int bit\+\_\+pos, bool verbose=False)
+\begin{DoxyCompactList}\small\item\em Read the image header of a .cin file. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_a046dca2bb29261400fd64594e3ef5e2a}{read\+\_\+time\+\_\+base}} (str filename, dict header, dict settings)
+\begin{DoxyCompactList}\small\item\em Read the time base of the .cin video (relative to the trigger) \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_a99446db207ed9af45934d2c9e56da015}{read\+\_\+frame\+\_\+cin}} (cin\+\_\+object, frames\+\_\+number, bool limitation=True, int limit=2048)
+\begin{DoxyCompactList}\small\item\em Read frames from a .cin file. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_ae506d8855a1038c7663c5f382fdb54c5}{read\+\_\+data\+\_\+png}} (path)
+\begin{DoxyCompactList}\small\item\em Read info for a case where the measurements are stored as png. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_aa6c83c7616a79f4242f8685b6e137a8a}{rgb2gray}} (rgb)
+\begin{DoxyCompactList}\small\item\em Transform rgb images to gray. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_a352d6ff249a904245dcc598102901123}{load\+\_\+png\+\_\+files}} (filename)
+\begin{DoxyCompactList}\small\item\em Load the png with an order compatible with IDL. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_ae924a42206ef8402754cc711f4037657}{read\+\_\+frame\+\_\+png}} (video\+\_\+object, frames\+\_\+number=None, bool limitation=True, int limit=2048)
+\begin{DoxyCompactList}\small\item\em Read .png files. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{namespaceLib_1_1LibVideoFiles_a352d6ff249a904245dcc598102901123}\label{namespaceLib_1_1LibVideoFiles_a352d6ff249a904245dcc598102901123}} 
+\index{Lib.LibVideoFiles@{Lib.LibVideoFiles}!load\_png\_files@{load\_png\_files}}
+\index{load\_png\_files@{load\_png\_files}!Lib.LibVideoFiles@{Lib.LibVideoFiles}}
+\doxysubsubsection{\texorpdfstring{load\_png\_files()}{load\_png\_files()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Video\+Files.\+load\+\_\+png\+\_\+files (\begin{DoxyParamCaption}\item[{}]{filename }\end{DoxyParamCaption})}
+
+
+
+Load the png with an order compatible with IDL. 
+
+IDL load things internally in a way different from python. In order the new suite to be compatible with all FILD calibrations of the last 20 years, an inversion should be done to load png in the same way as IDL
+
+
+\begin{DoxyParams}{Parameters}
+{\em filename} & full path pointing to the png \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 1011 of file Lib\+Video\+Files.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1011 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_a352d6ff249a904245dcc598102901123}{load\_png\_files}}(filename):}
+\DoxyCodeLine{1012     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{1013 \textcolor{stringliteral}{    Load the png with an order compatible with IDL}}
+\DoxyCodeLine{1014 \textcolor{stringliteral}{}}
+\DoxyCodeLine{1015 \textcolor{stringliteral}{    IDL load things internally in a way different from python. In order the new}}
+\DoxyCodeLine{1016 \textcolor{stringliteral}{    suite to be compatible with all FILD calibrations of the last 20 years,}}
+\DoxyCodeLine{1017 \textcolor{stringliteral}{    an inversion should be done to load png in the same way as IDL}}
+\DoxyCodeLine{1018 \textcolor{stringliteral}{}}
+\DoxyCodeLine{1019 \textcolor{stringliteral}{    @param filename: full path pointing to the png}}
+\DoxyCodeLine{1020 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{1021 }
+\DoxyCodeLine{1022     dummy = plt.imread(filename)}
+\DoxyCodeLine{1023     \textcolor{keywordflow}{if} len(dummy.shape)> 2:     \textcolor{comment}{\# We have an rgb png, transform it to gray}}
+\DoxyCodeLine{1024         dummy = \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_aa6c83c7616a79f4242f8685b6e137a8a}{rgb2gray}}(dummy)}
+\DoxyCodeLine{1025 }
+\DoxyCodeLine{1026     \textcolor{keywordflow}{return} dummy[::-\/1, :]}
+\DoxyCodeLine{1027 }
+\DoxyCodeLine{1028 }
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLib_1_1LibVideoFiles_ae506d8855a1038c7663c5f382fdb54c5}\label{namespaceLib_1_1LibVideoFiles_ae506d8855a1038c7663c5f382fdb54c5}} 
+\index{Lib.LibVideoFiles@{Lib.LibVideoFiles}!read\_data\_png@{read\_data\_png}}
+\index{read\_data\_png@{read\_data\_png}!Lib.LibVideoFiles@{Lib.LibVideoFiles}}
+\doxysubsubsection{\texorpdfstring{read\_data\_png()}{read\_data\_png()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Video\+Files.\+read\+\_\+data\+\_\+png (\begin{DoxyParamCaption}\item[{}]{path }\end{DoxyParamCaption})}
+
+
+
+Read info for a case where the measurements are stored as png. 
+
+Jose Rueda Rueda\+: \href{mailto:jose.rueda@ipp.mpg.de}{\texttt{ jose.\+rueda@ipp.\+mpg.\+de}}
+
+Return a series of dictionaries similars to the case of a cin file, with all the info we can extract from the png
+
+
+\begin{DoxyParams}{Parameters}
+{\em path} & path to the folder where the pngs are located \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+time\+\_\+base\+: time base of the frames (s) 
+
+image\+\_\+header\+: dictionary containing the info about the image size, and shape 
+
+header\+: Header \textquotesingle{}similar\textquotesingle{} to the case of a cin file 
+
+settingf\+: dictionary similar to the case of the cin file (it only contain the exposition time) 
+\end{DoxyReturn}
+
+
+Definition at line 945 of file Lib\+Video\+Files.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{945 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_ae506d8855a1038c7663c5f382fdb54c5}{read\_data\_png}}(path):}
+\DoxyCodeLine{946     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{947 \textcolor{stringliteral}{    Read info for a case where the measurements are stored as png}}
+\DoxyCodeLine{948 \textcolor{stringliteral}{}}
+\DoxyCodeLine{949 \textcolor{stringliteral}{    Jose Rueda Rueda: jose.rueda@ipp.mpg.de}}
+\DoxyCodeLine{950 \textcolor{stringliteral}{}}
+\DoxyCodeLine{951 \textcolor{stringliteral}{    Return a series of dictionaries similars to the case of a cin file,}}
+\DoxyCodeLine{952 \textcolor{stringliteral}{    with all the info we can extract from the png}}
+\DoxyCodeLine{953 \textcolor{stringliteral}{}}
+\DoxyCodeLine{954 \textcolor{stringliteral}{    @param path: path to the folder where the pngs are located}}
+\DoxyCodeLine{955 \textcolor{stringliteral}{    @return time\_base: time base of the frames (s)}}
+\DoxyCodeLine{956 \textcolor{stringliteral}{    @return image\_header: dictionary containing the info about the image size,}}
+\DoxyCodeLine{957 \textcolor{stringliteral}{    and shape}}
+\DoxyCodeLine{958 \textcolor{stringliteral}{    @return header: Header 'similar' to the case of a cin file}}
+\DoxyCodeLine{959 \textcolor{stringliteral}{    @return settingf: dictionary similar to the case of the cin file (it only}}
+\DoxyCodeLine{960 \textcolor{stringliteral}{    contain the exposition time)}}
+\DoxyCodeLine{961 \textcolor{stringliteral}{}}
+\DoxyCodeLine{962 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{963     \textcolor{comment}{\# Look for the png file with the time base and exposition time}}
+\DoxyCodeLine{964     f = []}
+\DoxyCodeLine{965     look\_for\_png = \textcolor{keyword}{True}}
+\DoxyCodeLine{966     \textcolor{keywordflow}{for} file \textcolor{keywordflow}{in} os.listdir(path):}
+\DoxyCodeLine{967         \textcolor{keywordflow}{if} file.endswith(\textcolor{stringliteral}{'.txt'}):}
+\DoxyCodeLine{968             f.append(os.path.join(path, file))}
+\DoxyCodeLine{969         \textcolor{keywordflow}{if} file.endswith(\textcolor{stringliteral}{'.png'}) \textcolor{keywordflow}{and} look\_for\_png:}
+\DoxyCodeLine{970             dummy = plt.imread(os.path.join(path, file))}
+\DoxyCodeLine{971             si = dummy.shape}
+\DoxyCodeLine{972             imageheader = \{\textcolor{stringliteral}{'biWidth'}: si[0],}
+\DoxyCodeLine{973                            \textcolor{stringliteral}{'biHeight'}: si[1]\}}
+\DoxyCodeLine{974             look\_for\_png = \textcolor{keyword}{False}}
+\DoxyCodeLine{975     \textcolor{comment}{\# If no png was found, raise and error}}
+\DoxyCodeLine{976     \textcolor{keywordflow}{if} look\_for\_png:}
+\DoxyCodeLine{977         print(\textcolor{stringliteral}{'No .png files in the folder...'})}
+\DoxyCodeLine{978         \textcolor{keywordflow}{return} 0, 0, 0, 0}
+\DoxyCodeLine{979     n\_files = len(f)}
+\DoxyCodeLine{980     \textcolor{keywordflow}{if} n\_files == 0:}
+\DoxyCodeLine{981         print(\textcolor{stringliteral}{'no txt file with the information found in the directory!!'})}
+\DoxyCodeLine{982         \textcolor{keywordflow}{return} 0, 0, 0, 0}
+\DoxyCodeLine{983     \textcolor{keywordflow}{elif} n\_files > 1:}
+\DoxyCodeLine{984         print(\textcolor{stringliteral}{'Several txt files found...'})}
+\DoxyCodeLine{985         \textcolor{keywordflow}{return} 0, 0, 0, 0}
+\DoxyCodeLine{986     \textcolor{keywordflow}{else}:}
+\DoxyCodeLine{987         dummy = np.loadtxt(f[0], skiprows=2, comments=\textcolor{stringliteral}{'('})}
+\DoxyCodeLine{988         header = \{\textcolor{stringliteral}{'ImageCount'}: int(dummy[-\/1, 0])\}}
+\DoxyCodeLine{989         settings = \{\textcolor{stringliteral}{'ShutterNs'}: dummy[0, 2] / 1000.0\}}
+\DoxyCodeLine{990         time\_base = dummy[:, 3]}
+\DoxyCodeLine{991         \textcolor{comment}{\# Sometimes the camera break and set the says that all the frames}}
+\DoxyCodeLine{992         \textcolor{comment}{\# where recorded at t = 0... in this case just assume a time base on}}
+\DoxyCodeLine{993         \textcolor{comment}{\# the basis of the exposition time}}
+\DoxyCodeLine{994         std\_time = np.std(time\_base)}
+\DoxyCodeLine{995         \textcolor{keywordflow}{if} std\_time < 1e-\/2:}
+\DoxyCodeLine{996             time\_base = np.linspace(0, dummy[-\/1, 0] * dummy[0, 2] / 1000,}
+\DoxyCodeLine{997                                     int(dummy[-\/1, 0]) + 1)}
+\DoxyCodeLine{998             print(\textcolor{stringliteral}{'Caution!! the experimental time base was broken, a time '}}
+\DoxyCodeLine{999                   \textcolor{stringliteral}{'base has been generated on the basis of theexposure time'})}
+\DoxyCodeLine{1000     \textcolor{comment}{\# extract the shot number from the path}}
+\DoxyCodeLine{1001     header[\textcolor{stringliteral}{'shot'}] = int(path[-\/5:])}
+\DoxyCodeLine{1002 }
+\DoxyCodeLine{1003     \textcolor{keywordflow}{return} header, imageheader, settings, time\_base}
+\DoxyCodeLine{1004 }
+\DoxyCodeLine{1005 }
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLib_1_1LibVideoFiles_a99446db207ed9af45934d2c9e56da015}\label{namespaceLib_1_1LibVideoFiles_a99446db207ed9af45934d2c9e56da015}} 
+\index{Lib.LibVideoFiles@{Lib.LibVideoFiles}!read\_frame\_cin@{read\_frame\_cin}}
+\index{read\_frame\_cin@{read\_frame\_cin}!Lib.LibVideoFiles@{Lib.LibVideoFiles}}
+\doxysubsubsection{\texorpdfstring{read\_frame\_cin()}{read\_frame\_cin()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Video\+Files.\+read\+\_\+frame\+\_\+cin (\begin{DoxyParamCaption}\item[{}]{cin\+\_\+object,  }\item[{}]{frames\+\_\+number,  }\item[{bool }]{limitation = {\ttfamily True},  }\item[{int }]{limit = {\ttfamily 2048} }\end{DoxyParamCaption})}
+
+
+
+Read frames from a .cin file. 
+
+Jose Rueda Rueda\+: \href{mailto:jose.rueda@ipp.mpg.de}{\texttt{ jose.\+rueda@ipp.\+mpg.\+de}}
+
+
+\begin{DoxyParams}{Parameters}
+{\em cin\+\_\+object} & \mbox{\hyperlink{classLib_1_1LibVideoFiles_1_1Video}{Video}} Object with the file information \\
+\hline
+{\em frames\+\_\+number} & np array with the frame numbers to load \\
+\hline
+{\em limitation} & maximum size allowed to the output variable, in Mbytes, to avoid overloading the memory trying to load the whole video of 100 Gb \\
+\hline
+{\em limit} & bool flag to decide if we apply the limitation of we operate in mode\+: YOLO \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+M\+: 3D numpy array with the frames M\mbox{[}px,py,nframes\mbox{]} 
+\end{DoxyReturn}
+
+
+Definition at line 828 of file Lib\+Video\+Files.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{829                    limit: int = 2048):}
+\DoxyCodeLine{830     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{831 \textcolor{stringliteral}{    Read frames from a .cin file}}
+\DoxyCodeLine{832 \textcolor{stringliteral}{}}
+\DoxyCodeLine{833 \textcolor{stringliteral}{    Jose Rueda Rueda: jose.rueda@ipp.mpg.de}}
+\DoxyCodeLine{834 \textcolor{stringliteral}{}}
+\DoxyCodeLine{835 \textcolor{stringliteral}{    @param cin\_object: Video Object with the file information}}
+\DoxyCodeLine{836 \textcolor{stringliteral}{    @param frames\_number: np array with the frame numbers to load}}
+\DoxyCodeLine{837 \textcolor{stringliteral}{    @param limitation: maximum size allowed to the output variable,}}
+\DoxyCodeLine{838 \textcolor{stringliteral}{    in Mbytes, to avoid overloading the memory trying to load the whole}}
+\DoxyCodeLine{839 \textcolor{stringliteral}{    video of 100 Gb}}
+\DoxyCodeLine{840 \textcolor{stringliteral}{    @param limit: bool flag to decide if we apply the limitation of we}}
+\DoxyCodeLine{841 \textcolor{stringliteral}{    operate in mode: YOLO}}
+\DoxyCodeLine{842 \textcolor{stringliteral}{    @return M: 3D numpy array with the frames M[px,py,nframes]}}
+\DoxyCodeLine{843 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{844     \textcolor{comment}{\# -\/-\/-\/ Section 0: Initial checks}}
+\DoxyCodeLine{845     \textcolor{comment}{\# check if the requested frames are in the file}}
+\DoxyCodeLine{846     \textcolor{comment}{\# flags\_below = frames\_number < cin\_object.header['FirstImageNo']}}
+\DoxyCodeLine{847     \textcolor{comment}{\# if cin\_object.header['FirstImageNo'] > 0:}}
+\DoxyCodeLine{848     \textcolor{comment}{\#     flags\_above = frames\_number > (cin\_object.header['FirstImageNo'] +}}
+\DoxyCodeLine{849     \textcolor{comment}{\#                                    cin\_object.header['ImageCount'])}}
+\DoxyCodeLine{850     \textcolor{comment}{\# else:}}
+\DoxyCodeLine{851     \textcolor{comment}{\#     flags\_above = frames\_number > (cin\_object.header['FirstImageNo'] +}}
+\DoxyCodeLine{852     \textcolor{comment}{\#                                    cin\_object.header['ImageCount'] -\/ 1)}}
+\DoxyCodeLine{853 }
+\DoxyCodeLine{854     \textcolor{comment}{\# if (np.sum(flags\_above) + np.sum(flags\_below)) > 0:}}
+\DoxyCodeLine{855     \textcolor{comment}{\#     print(np.sum(flags\_above))}}
+\DoxyCodeLine{856     \textcolor{comment}{\#     print(np.sum(flags\_below))}}
+\DoxyCodeLine{857     \textcolor{comment}{\#     print(cin\_object.header['FirstImageNo'])}}
+\DoxyCodeLine{858     \textcolor{comment}{\#     print(flags\_above)}}
+\DoxyCodeLine{859     \textcolor{comment}{\#     print('The requested frame is not in the file!!!')}}
+\DoxyCodeLine{860     \textcolor{comment}{\#     return 0}}
+\DoxyCodeLine{861     flags\_negative = frames\_number < 0}
+\DoxyCodeLine{862     flags\_above = frames\_number > cin\_object.header[\textcolor{stringliteral}{'ImageCount'}]}
+\DoxyCodeLine{863     \textcolor{keywordflow}{if} (np.sum(flags\_above) + np.sum(flags\_negative)) > 0:}
+\DoxyCodeLine{864         print(\textcolor{stringliteral}{'The requested frames are not in the file!!!'})}
+\DoxyCodeLine{865         \textcolor{keywordflow}{return} 0}
+\DoxyCodeLine{866     \textcolor{comment}{\# Check the output size:}}
+\DoxyCodeLine{867     nframe = np.size(frames\_number)}
+\DoxyCodeLine{868     \textcolor{keywordflow}{if} nframe > 1:}
+\DoxyCodeLine{869         \textcolor{comment}{\# weight of the output array in megabytes}}
+\DoxyCodeLine{870         talla = cin\_object.imageheader[\textcolor{stringliteral}{'biWidth'}] * \(\backslash\)}
+\DoxyCodeLine{871                 cin\_object.imageheader[\textcolor{stringliteral}{'biHeight'}] * nframe * 2 / 1024 / 1024}
+\DoxyCodeLine{872         \textcolor{comment}{\# If the weight is too much, stop (to do not load tens og Gb of video}}
+\DoxyCodeLine{873         \textcolor{comment}{\# in the memory and kill the computer}}
+\DoxyCodeLine{874         \textcolor{keywordflow}{if} (talla > limit) \textcolor{keywordflow}{and} limitation:}
+\DoxyCodeLine{875             print(\textcolor{stringliteral}{'Output will be larger than the limit, stopping'})}
+\DoxyCodeLine{876             \textcolor{keywordflow}{return} 0}
+\DoxyCodeLine{877 }
+\DoxyCodeLine{878     \textcolor{comment}{\# -\/-\/-\/ Section 1: Get frames position}}
+\DoxyCodeLine{879     \textcolor{comment}{\# Open file and go to the position of the image header}}
+\DoxyCodeLine{880     fid = open(cin\_object.file, \textcolor{stringliteral}{'r'})}
+\DoxyCodeLine{881     fid.seek(cin\_object.header[\textcolor{stringliteral}{'OffImageOffsets'}])}
+\DoxyCodeLine{882 }
+\DoxyCodeLine{883     \textcolor{keywordflow}{if} cin\_object.header[\textcolor{stringliteral}{'Version'}] == 0:  \textcolor{comment}{\# old format}}
+\DoxyCodeLine{884         position\_array = np.fromfile(fid, \textcolor{stringliteral}{'int32'},}
+\DoxyCodeLine{885                                      int(cin\_object.header[\textcolor{stringliteral}{'ImageCount'}]))}
+\DoxyCodeLine{886     \textcolor{keywordflow}{else}:}
+\DoxyCodeLine{887         position\_array = np.fromfile(fid, \textcolor{stringliteral}{'int64'},}
+\DoxyCodeLine{888                                      int(cin\_object.header[\textcolor{stringliteral}{'ImageCount'}]))}
+\DoxyCodeLine{889     \textcolor{comment}{\# -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{890     \textcolor{comment}{\# -\/-\/-\/  Section 2: Read the images}}
+\DoxyCodeLine{891 }
+\DoxyCodeLine{892     \textcolor{comment}{\# Image size from header information}}
+\DoxyCodeLine{893     \textcolor{comment}{\# First look for the actual number of pixel used to store information of}}
+\DoxyCodeLine{894     \textcolor{comment}{\# the counts in each pixel. If this is 8 or less the images will be saved}}
+\DoxyCodeLine{895     \textcolor{comment}{\# in 8 bit format, else, 16 bits will be used}}
+\DoxyCodeLine{896     size\_info = cin\_object.settings[\textcolor{stringliteral}{'RealBPP'}]}
+\DoxyCodeLine{897     \textcolor{keywordflow}{if} size\_info <= 8:}
+\DoxyCodeLine{898         BPP = 8  \textcolor{comment}{\# Bits per pixel}}
+\DoxyCodeLine{899         data\_type = \textcolor{stringliteral}{'uint8'}}
+\DoxyCodeLine{900     \textcolor{keywordflow}{else}:}
+\DoxyCodeLine{901         BPP = 16  \textcolor{comment}{\# Bits per pixel}}
+\DoxyCodeLine{902         data\_type = \textcolor{stringliteral}{'uint16'}}
+\DoxyCodeLine{903 }
+\DoxyCodeLine{904     \textcolor{comment}{\# Preallocate output array}}
+\DoxyCodeLine{905     \textcolor{comment}{\# To be in line with olf FILD GUI (and be able to use old FILD callibration)}}
+\DoxyCodeLine{906     \textcolor{comment}{\# the matrix will be [height,width] }}
+\DoxyCodeLine{907     M = np.zeros((int(cin\_object.imageheader[\textcolor{stringliteral}{'biHeight'}]),}
+\DoxyCodeLine{908                   int(cin\_object.imageheader[\textcolor{stringliteral}{'biWidth'}]), nframe),}
+\DoxyCodeLine{909                  dtype=data\_type)}
+\DoxyCodeLine{910     img\_size\_header = cin\_object.imageheader[\textcolor{stringliteral}{'biWidth'}] * \(\backslash\)}
+\DoxyCodeLine{911         cin\_object.imageheader[\textcolor{stringliteral}{'biHeight'}] * BPP / 8  \textcolor{comment}{\# In bytes}}
+\DoxyCodeLine{912     npixels = cin\_object.imageheader[\textcolor{stringliteral}{'biWidth'}] * \(\backslash\)}
+\DoxyCodeLine{913         cin\_object.imageheader[\textcolor{stringliteral}{'biHeight'}]}
+\DoxyCodeLine{914     \textcolor{comment}{\# Read the frames}}
+\DoxyCodeLine{915     \textcolor{keywordflow}{for} i \textcolor{keywordflow}{in} range(nframe):}
+\DoxyCodeLine{916         \textcolor{comment}{\#  Go to the position of the file}}
+\DoxyCodeLine{917         iframe = frames\_number[i]  \textcolor{comment}{\# -\/ cin\_object.header['FirstImageNo']}}
+\DoxyCodeLine{918         fid.seek(position\_array[iframe])}
+\DoxyCodeLine{919         \textcolor{comment}{\#  Skip header of the frame}}
+\DoxyCodeLine{920         length\_annotation = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{921         fid.seek(position\_array[iframe] + length\_annotation -\/ 4)}
+\DoxyCodeLine{922         \textcolor{comment}{\#  Read frame}}
+\DoxyCodeLine{923         image\_size = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)  \textcolor{comment}{\# In bytes}}
+\DoxyCodeLine{924         \textcolor{keywordflow}{if} image\_size != img\_size\_header:}
+\DoxyCodeLine{925             print(image\_size)}
+\DoxyCodeLine{926             print(img\_size\_header)}
+\DoxyCodeLine{927             print(\textcolor{stringliteral}{'Image sizes (in bytes) does not coincides'})}
+\DoxyCodeLine{928             \textcolor{keywordflow}{return} 0}
+\DoxyCodeLine{929 }
+\DoxyCodeLine{930         M[:, :, i] = np.reshape(np.fromfile(fid, data\_type,}
+\DoxyCodeLine{931                                             int(npixels)),}
+\DoxyCodeLine{932                                 (int(cin\_object.imageheader[\textcolor{stringliteral}{'biWidth'}]),}
+\DoxyCodeLine{933                                  int(cin\_object.imageheader[\textcolor{stringliteral}{'biHeight'}])),}
+\DoxyCodeLine{934                                 order=\textcolor{stringliteral}{'F'}).transpose()}
+\DoxyCodeLine{935     fid.close()}
+\DoxyCodeLine{936     \textcolor{keywordflow}{return} M.squeeze()  \textcolor{comment}{\# eliminate extra dimension in case we have just loaded}}
+\DoxyCodeLine{937     \textcolor{comment}{\#                     one frame}}
+\DoxyCodeLine{938 }
+\DoxyCodeLine{939 }
+\DoxyCodeLine{940 \textcolor{comment}{\# -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{941 \textcolor{comment}{\# -\/-\/-\/ Section 2: Methods for the .png files}}
+\DoxyCodeLine{942 \textcolor{comment}{\# -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{943 }
+\DoxyCodeLine{944 }
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLib_1_1LibVideoFiles_ae924a42206ef8402754cc711f4037657}\label{namespaceLib_1_1LibVideoFiles_ae924a42206ef8402754cc711f4037657}} 
+\index{Lib.LibVideoFiles@{Lib.LibVideoFiles}!read\_frame\_png@{read\_frame\_png}}
+\index{read\_frame\_png@{read\_frame\_png}!Lib.LibVideoFiles@{Lib.LibVideoFiles}}
+\doxysubsubsection{\texorpdfstring{read\_frame\_png()}{read\_frame\_png()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Video\+Files.\+read\+\_\+frame\+\_\+png (\begin{DoxyParamCaption}\item[{}]{video\+\_\+object,  }\item[{}]{frames\+\_\+number = {\ttfamily None},  }\item[{bool }]{limitation = {\ttfamily True},  }\item[{int }]{limit = {\ttfamily 2048} }\end{DoxyParamCaption})}
+
+
+
+Read .png files. 
+
+Jose Rueda\+: \href{mailto:jose.rueda@ipp.mpg.de}{\texttt{ jose.\+rueda@ipp.\+mpg.\+de}}
+
+Important, PNG are supposed to be created already in a gray scale!!! 
+\begin{DoxyParams}{Parameters}
+{\em video\+\_\+object} & \mbox{\hyperlink{classLib_1_1LibVideoFiles_1_1Video}{Video}} class with the info of the video \\
+\hline
+{\em frames\+\_\+number} & array with the number of the frames to be loaded, if none, all frames will be loaded \\
+\hline
+{\em limitation} & if we want to set a limitation of the size we can load \\
+\hline
+{\em limit} & Limit to the size, in megabytes \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+M\+: array of frames, \mbox{[}px in x, px in y, number of frames\mbox{]} 
+\end{DoxyReturn}
+
+
+Definition at line 1029 of file Lib\+Video\+Files.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1030                    limit: int = 2048):}
+\DoxyCodeLine{1031     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{1032 \textcolor{stringliteral}{    Read .png files}}
+\DoxyCodeLine{1033 \textcolor{stringliteral}{}}
+\DoxyCodeLine{1034 \textcolor{stringliteral}{    Jose Rueda: jose.rueda@ipp.mpg.de}}
+\DoxyCodeLine{1035 \textcolor{stringliteral}{}}
+\DoxyCodeLine{1036 \textcolor{stringliteral}{    Important, PNG are supposed to be created already in a gray scale!!!}}
+\DoxyCodeLine{1037 \textcolor{stringliteral}{    @param video\_object: Video class with the info of the video}}
+\DoxyCodeLine{1038 \textcolor{stringliteral}{    @param frames\_number: array with the number of the frames to be loaded,}}
+\DoxyCodeLine{1039 \textcolor{stringliteral}{    if none, all frames will be loaded}}
+\DoxyCodeLine{1040 \textcolor{stringliteral}{    @param limitation: if we want to set a limitation of the size we can load}}
+\DoxyCodeLine{1041 \textcolor{stringliteral}{    @param limit: Limit to the size, in megabytes}}
+\DoxyCodeLine{1042 \textcolor{stringliteral}{    @return M: array of frames, [px in x, px in y, number of frames]}}
+\DoxyCodeLine{1043 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{1044     \textcolor{comment}{\# Frames would have a name as shot-\/framenumber.png example: 30585-\/001.png}}
+\DoxyCodeLine{1045 }
+\DoxyCodeLine{1046     \textcolor{comment}{\# check the size of the files, assume that the data will be saved as float32}}
+\DoxyCodeLine{1047     \textcolor{comment}{\# bits format:}}
+\DoxyCodeLine{1048     size\_frame = video\_object.imageheader[\textcolor{stringliteral}{'biWidth'}] * \(\backslash\)}
+\DoxyCodeLine{1049                  video\_object.imageheader[\textcolor{stringliteral}{'biWidth'}] * 2 / 1024 / 1024}
+\DoxyCodeLine{1050     \textcolor{keywordflow}{if} frames\_number \textcolor{keywordflow}{is} \textcolor{keywordtype}{None}:}
+\DoxyCodeLine{1051         \textcolor{comment}{\# In this case, we load everything}}
+\DoxyCodeLine{1052         \textcolor{keywordflow}{if} limitation \textcolor{keywordflow}{and} \(\backslash\)}
+\DoxyCodeLine{1053                 size\_frame * video\_object.header[\textcolor{stringliteral}{'ImageCount'}] > limit:}
+\DoxyCodeLine{1054             print(\textcolor{stringliteral}{'Loading all frames is too much'})}
+\DoxyCodeLine{1055             \textcolor{keywordflow}{return} 0}
+\DoxyCodeLine{1056 }
+\DoxyCodeLine{1057         M = np.zeros((video\_object.imageheader[\textcolor{stringliteral}{'biWidth'}],}
+\DoxyCodeLine{1058                       video\_object.imageheader[\textcolor{stringliteral}{'biHeight'}],}
+\DoxyCodeLine{1059                       video\_object.header[\textcolor{stringliteral}{'ImageCount'}]), dtype=np.float32)}
+\DoxyCodeLine{1060         counter = 0}
+\DoxyCodeLine{1061         \textcolor{keywordflow}{for} file \textcolor{keywordflow}{in} os.listdir(video\_object.path):}
+\DoxyCodeLine{1062             \textcolor{keywordflow}{if} file.endswith(\textcolor{stringliteral}{'.png'}):}
+\DoxyCodeLine{1063                 M[:, :, counter] = \mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_a352d6ff249a904245dcc598102901123}{load\_png\_files}}(}
+\DoxyCodeLine{1064                     os.path.join(video\_object.path, file)).astype(np.float32)}
+\DoxyCodeLine{1065                 counter = counter + 1}
+\DoxyCodeLine{1066     \textcolor{keywordflow}{else}:}
+\DoxyCodeLine{1067         \textcolor{comment}{\# Load only the selected frames}}
+\DoxyCodeLine{1068         counter = 0}
+\DoxyCodeLine{1069         current\_frame = 0}
+\DoxyCodeLine{1070         \textcolor{keywordflow}{if} limitation \textcolor{keywordflow}{and} \(\backslash\)}
+\DoxyCodeLine{1071                 size\_frame * len(frames\_number) > limit:}
+\DoxyCodeLine{1072             print(\textcolor{stringliteral}{'Loading all frames is too much'})}
+\DoxyCodeLine{1073             \textcolor{keywordflow}{return} 0}
+\DoxyCodeLine{1074         M = np.zeros((video\_object.imageheader[\textcolor{stringliteral}{'biWidth'}],}
+\DoxyCodeLine{1075                       video\_object.imageheader[\textcolor{stringliteral}{'biHeight'}],}
+\DoxyCodeLine{1076                       len(frames\_number)), dtype=np.float32)}
+\DoxyCodeLine{1077 }
+\DoxyCodeLine{1078         \textcolor{keywordflow}{for} file \textcolor{keywordflow}{in} os.listdir(video\_object.path):}
+\DoxyCodeLine{1079             \textcolor{keywordflow}{if} file.endswith(\textcolor{stringliteral}{'.png'}):}
+\DoxyCodeLine{1080                 current\_frame = current\_frame + 1}
+\DoxyCodeLine{1081                 \textcolor{keywordflow}{if} current\_frame \textcolor{keywordflow}{in} frames\_number:}
+\DoxyCodeLine{1082                     M[:, :, counter] = plt.imread(}
+\DoxyCodeLine{1083                         os.path.join(video\_object.path, file)).astype(}
+\DoxyCodeLine{1084                             np.float32)}
+\DoxyCodeLine{1085                     counter = counter + 1}
+\DoxyCodeLine{1086     \textcolor{keywordflow}{return} M}
+\DoxyCodeLine{1087 }
+\DoxyCodeLine{1088 }
+\DoxyCodeLine{1089 \textcolor{comment}{\# -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{1090 \textcolor{comment}{\# -\/-\/-\/ Section 3: Video files}}
+\DoxyCodeLine{1091 \textcolor{comment}{\# -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{1092 }
+\DoxyCodeLine{1093 }
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLib_1_1LibVideoFiles_abc2edfc37ec1fdad2929f2f645026fbd}\label{namespaceLib_1_1LibVideoFiles_abc2edfc37ec1fdad2929f2f645026fbd}} 
+\index{Lib.LibVideoFiles@{Lib.LibVideoFiles}!read\_header@{read\_header}}
+\index{read\_header@{read\_header}!Lib.LibVideoFiles@{Lib.LibVideoFiles}}
+\doxysubsubsection{\texorpdfstring{read\_header()}{read\_header()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Video\+Files.\+read\+\_\+header (\begin{DoxyParamCaption}\item[{str}]{filename,  }\item[{}]{verbose = {\ttfamily False} }\end{DoxyParamCaption})}
+
+
+
+Read the header info of a .cin file. 
+
+Jose Rueda\+: \href{mailto:ruejo@ipp.mpg.de}{\texttt{ ruejo@ipp.\+mpg.\+de}}
+
+
+\begin{DoxyParams}{Parameters}
+{\em filename} & name of the file to open (path to file, not just the name) \\
+\hline
+{\em verbose} & Optional, to display the content of the header \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+cin\+\_\+header\+: dictionary containing header information, see the inline comments in the code for a full description of each dictionary field 
+\end{DoxyReturn}
+
+
+Definition at line 19 of file Lib\+Video\+Files.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{19 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_abc2edfc37ec1fdad2929f2f645026fbd}{read\_header}}(filename: str, verbose=\textcolor{keyword}{False}):}
+\DoxyCodeLine{20     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{21 \textcolor{stringliteral}{    Read the header info of a .cin file.}}
+\DoxyCodeLine{22 \textcolor{stringliteral}{}}
+\DoxyCodeLine{23 \textcolor{stringliteral}{    Jose Rueda: ruejo@ipp.mpg.de}}
+\DoxyCodeLine{24 \textcolor{stringliteral}{}}
+\DoxyCodeLine{25 \textcolor{stringliteral}{    @param filename: name of the file to open (path to file, not just the name)}}
+\DoxyCodeLine{26 \textcolor{stringliteral}{    @param verbose: Optional, to display the content of the header}}
+\DoxyCodeLine{27 \textcolor{stringliteral}{    @return cin\_header: dictionary containing header information, see the}}
+\DoxyCodeLine{28 \textcolor{stringliteral}{    inline comments in the code for a full description of each dictionary field}}
+\DoxyCodeLine{29 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{30 }
+\DoxyCodeLine{31     \textcolor{comment}{\# Section 1: Read the file header}}
+\DoxyCodeLine{32     fid = open(filename, \textcolor{stringliteral}{'r'})}
+\DoxyCodeLine{33     \textcolor{keywordflow}{if} verbose:}
+\DoxyCodeLine{34         print(\textcolor{stringliteral}{'Reading .cin header'})}
+\DoxyCodeLine{35 }
+\DoxyCodeLine{36     \textcolor{comment}{\# Sign number of all.cin files}}
+\DoxyCodeLine{37     cin\_header = \{\textcolor{stringliteral}{'Type'}: np.fromfile(fid, \textcolor{stringliteral}{'S2'}, 1),}
+\DoxyCodeLine{38                   \textcolor{stringliteral}{'Headersize'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{39                   \textcolor{stringliteral}{'Compression'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1)\}}
+\DoxyCodeLine{40     \textcolor{comment}{\# It represent the cine file header structure size as number of bytes}}
+\DoxyCodeLine{41     \textcolor{comment}{\# Compression applied to the data}}
+\DoxyCodeLine{42     \textcolor{keywordflow}{if} cin\_header[\textcolor{stringliteral}{'Compression'}] == 0:}
+\DoxyCodeLine{43         \textcolor{keywordflow}{if} verbose:}
+\DoxyCodeLine{44             print(\textcolor{stringliteral}{'The video is saved as grey images\(\backslash\)n'})}
+\DoxyCodeLine{45     \textcolor{keywordflow}{elif} cin\_header[\textcolor{stringliteral}{'Compression'}] == 1:}
+\DoxyCodeLine{46         \textcolor{keywordflow}{if} verbose:}
+\DoxyCodeLine{47             print(\textcolor{stringliteral}{'The video is saved as jpeg compressed files \(\backslash\)n'})}
+\DoxyCodeLine{48     \textcolor{keywordflow}{elif} cin\_header[\textcolor{stringliteral}{'Compression'}] == 2:}
+\DoxyCodeLine{49         \textcolor{keywordflow}{if} verbose:}
+\DoxyCodeLine{50             print(\textcolor{stringliteral}{'The video is saved as raw uninterpolated color\(\backslash\)n'})}
+\DoxyCodeLine{51     \textcolor{keywordflow}{else}:}
+\DoxyCodeLine{52         print(\textcolor{stringliteral}{'Compression : '}, cin\_header[\textcolor{stringliteral}{'Compression'}])}
+\DoxyCodeLine{53         print(\textcolor{stringliteral}{'Error reading the header, compression number wrong'})}
+\DoxyCodeLine{54         \textcolor{keywordflow}{return} cin\_header}
+\DoxyCodeLine{55     \textcolor{comment}{\# Version of the cine file}}
+\DoxyCodeLine{56     cin\_header[\textcolor{stringliteral}{'Version'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1)}
+\DoxyCodeLine{57     \textcolor{keywordflow}{if} cin\_header[\textcolor{stringliteral}{'Version'}] == 0:}
+\DoxyCodeLine{58         print(\textcolor{stringliteral}{'This is a rather old version of the cine file, there could be '}}
+\DoxyCodeLine{59               \textcolor{stringliteral}{'some problems, stay alert\(\backslash\)n'})}
+\DoxyCodeLine{60     \textcolor{comment}{\# number of the first recorded frame, relative to the trigger event}}
+\DoxyCodeLine{61     cin\_header[\textcolor{stringliteral}{'FirstMovieImage'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{62     \textcolor{comment}{\# total number of frames taken by the camera}}
+\DoxyCodeLine{63     cin\_header[\textcolor{stringliteral}{'TotalImageCount'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{64     \textcolor{comment}{\# number of the first saved frame in the ['cin file, relative to the trigger}}
+\DoxyCodeLine{65     cin\_header[\textcolor{stringliteral}{'FirstImageNo'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{66     \textcolor{comment}{\# number of saved frames}}
+\DoxyCodeLine{67     cin\_header[\textcolor{stringliteral}{'ImageCount'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{68     \textcolor{comment}{\# Offset of the BITMAPINFOHEADER structure in the cine file}}
+\DoxyCodeLine{69     cin\_header[\textcolor{stringliteral}{'OffImageHeader'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{70     \textcolor{comment}{\# Offset of the SETUP structure in the cine file}}
+\DoxyCodeLine{71     cin\_header[\textcolor{stringliteral}{'OffSetup'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{72     \textcolor{comment}{\# Offset in the cine file of an array with the positions of each image}}
+\DoxyCodeLine{73     \textcolor{comment}{\# stored in the file}}
+\DoxyCodeLine{74     cin\_header[\textcolor{stringliteral}{'OffImageOffsets'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{75     \textcolor{comment}{\# Trigger time}}
+\DoxyCodeLine{76     cin\_header[\textcolor{stringliteral}{'TriggerTime'}] = \{\textcolor{stringliteral}{'fractions'}: np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1),}
+\DoxyCodeLine{77                                  \textcolor{stringliteral}{'seconds'}: np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)\}}
+\DoxyCodeLine{78     \textcolor{comment}{\# Close the file}}
+\DoxyCodeLine{79     fid.close()}
+\DoxyCodeLine{80 }
+\DoxyCodeLine{81     \textcolor{comment}{\# Print if needed}}
+\DoxyCodeLine{82     \textcolor{keywordflow}{if} verbose:}
+\DoxyCodeLine{83         \textcolor{keywordflow}{for} y \textcolor{keywordflow}{in} cin\_header:}
+\DoxyCodeLine{84             print(y, \textcolor{stringliteral}{':'}, cin\_header[y])}
+\DoxyCodeLine{85 }
+\DoxyCodeLine{86     \textcolor{comment}{\# Return}}
+\DoxyCodeLine{87     \textcolor{keywordflow}{return} cin\_header}
+\DoxyCodeLine{88 }
+\DoxyCodeLine{89 }
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLib_1_1LibVideoFiles_a1b4f57be4245c6ad6cc7e25654c45221}\label{namespaceLib_1_1LibVideoFiles_a1b4f57be4245c6ad6cc7e25654c45221}} 
+\index{Lib.LibVideoFiles@{Lib.LibVideoFiles}!read\_image\_header@{read\_image\_header}}
+\index{read\_image\_header@{read\_image\_header}!Lib.LibVideoFiles@{Lib.LibVideoFiles}}
+\doxysubsubsection{\texorpdfstring{read\_image\_header()}{read\_image\_header()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Video\+Files.\+read\+\_\+image\+\_\+header (\begin{DoxyParamCaption}\item[{str}]{filename,  }\item[{int}]{bit\+\_\+pos,  }\item[{bool }]{verbose = {\ttfamily False} }\end{DoxyParamCaption})}
+
+
+
+Read the image header of a .cin file. 
+
+Josse Rueda\+: \href{mailto:jose.rueda@ipp.mpg.de}{\texttt{ jose.\+rueda@ipp.\+mpg.\+de}}
+
+
+\begin{DoxyParams}{Parameters}
+{\em filename} & name of the .cin file (full path to the file) \\
+\hline
+{\em bit\+\_\+pos} & position of the file wuere the image header starts \\
+\hline
+{\em verbose} & flag to display content of the header \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+cin\+\_\+image\+\_\+header\+: Image header (dictionary), see inlien comments for a full description of each dictionary field 
+\end{DoxyReturn}
+
+
+Definition at line 738 of file Lib\+Video\+Files.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{738 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_a1b4f57be4245c6ad6cc7e25654c45221}{read\_image\_header}}(filename: str, bit\_pos: int, verbose: bool = \textcolor{keyword}{False}):}
+\DoxyCodeLine{739     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{740 \textcolor{stringliteral}{    Read the image header of a .cin file}}
+\DoxyCodeLine{741 \textcolor{stringliteral}{}}
+\DoxyCodeLine{742 \textcolor{stringliteral}{    Josse Rueda: jose.rueda@ipp.mpg.de}}
+\DoxyCodeLine{743 \textcolor{stringliteral}{}}
+\DoxyCodeLine{744 \textcolor{stringliteral}{    @param filename: name of the .cin file (full path to the file)}}
+\DoxyCodeLine{745 \textcolor{stringliteral}{    @param bit\_pos: position of the file wuere the image header starts}}
+\DoxyCodeLine{746 \textcolor{stringliteral}{    @param verbose: flag to display content of the header}}
+\DoxyCodeLine{747 \textcolor{stringliteral}{    @return cin\_image\_header: Image header (dictionary), see inlien comments}}
+\DoxyCodeLine{748 \textcolor{stringliteral}{    for a full description of each dictionary field}}
+\DoxyCodeLine{749 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{750     \textcolor{comment}{\# -\/-\/-\/ Open file and go to the position of the image header}}
+\DoxyCodeLine{751     fid = open(filename, \textcolor{stringliteral}{'r'})}
+\DoxyCodeLine{752     \textcolor{keywordflow}{if} verbose:}
+\DoxyCodeLine{753         print(\textcolor{stringliteral}{'Reading .cin image header'})}
+\DoxyCodeLine{754     fid.seek(bit\_pos)}
+\DoxyCodeLine{755     \textcolor{comment}{\# read the image header}}
+\DoxyCodeLine{756     \textcolor{comment}{\# number of bytes of the structure}}
+\DoxyCodeLine{757     cin\_image\_header = \{\textcolor{stringliteral}{'biSize'}: np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1),}
+\DoxyCodeLine{758                         \textcolor{stringliteral}{'biWidth'}: np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1),}
+\DoxyCodeLine{759                         \textcolor{stringliteral}{'biHeight'}: np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1),}
+\DoxyCodeLine{760                         \textcolor{stringliteral}{'biPlanes'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1)\}}
+\DoxyCodeLine{761     \textcolor{comment}{\# Size of the frame in pixels}}
+\DoxyCodeLine{762     \textcolor{comment}{\# number of planes for the target devices}}
+\DoxyCodeLine{763     \textcolor{keywordflow}{if} cin\_image\_header[\textcolor{stringliteral}{'biPlanes'}] != 1:}
+\DoxyCodeLine{764         print(\textcolor{stringliteral}{'The number of planes not equal 1, possible problem reading the '}}
+\DoxyCodeLine{765               \textcolor{stringliteral}{'file'})}
+\DoxyCodeLine{766     \textcolor{comment}{\# number of bits per pixels}}
+\DoxyCodeLine{767     cin\_image\_header[\textcolor{stringliteral}{'biBitCount'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1)}
+\DoxyCodeLine{768     \textcolor{comment}{\# Compression of the image}}
+\DoxyCodeLine{769     cin\_image\_header[\textcolor{stringliteral}{'biCompression'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{770     \textcolor{comment}{\# Size of the image in bytes}}
+\DoxyCodeLine{771     cin\_image\_header[\textcolor{stringliteral}{'biSizeImage'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{772     \textcolor{comment}{\# Pixels per meter in the sensor}}
+\DoxyCodeLine{773     cin\_image\_header[\textcolor{stringliteral}{'biXPelsPerMeter'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{774     cin\_image\_header[\textcolor{stringliteral}{'biYPelsPerMeter'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{775     \textcolor{comment}{\# Color settings}}
+\DoxyCodeLine{776     cin\_image\_header[\textcolor{stringliteral}{'biClrUsed'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{777     cin\_image\_header[\textcolor{stringliteral}{'biClrImportant'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{778     \textcolor{keywordflow}{if} cin\_image\_header[\textcolor{stringliteral}{'biClrImportant'}] == 4096 \textcolor{keywordflow}{and} verbose:}
+\DoxyCodeLine{779         print(\textcolor{stringliteral}{'The actual depth used for the scale is 2\string^12'})}
+\DoxyCodeLine{780     fid.close()}
+\DoxyCodeLine{781     \textcolor{comment}{\# return and print}}
+\DoxyCodeLine{782     \textcolor{comment}{\# Print if needed}}
+\DoxyCodeLine{783     \textcolor{keywordflow}{if} verbose:}
+\DoxyCodeLine{784         \textcolor{keywordflow}{for} y \textcolor{keywordflow}{in} cin\_image\_header:}
+\DoxyCodeLine{785             print(y, \textcolor{stringliteral}{':'}, cin\_image\_header[y])}
+\DoxyCodeLine{786     \textcolor{keywordflow}{return} cin\_image\_header}
+\DoxyCodeLine{787 }
+\DoxyCodeLine{788 }
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLib_1_1LibVideoFiles_a9ed2eb7e4f33d2592cfe07b360120611}\label{namespaceLib_1_1LibVideoFiles_a9ed2eb7e4f33d2592cfe07b360120611}} 
+\index{Lib.LibVideoFiles@{Lib.LibVideoFiles}!read\_settings@{read\_settings}}
+\index{read\_settings@{read\_settings}!Lib.LibVideoFiles@{Lib.LibVideoFiles}}
+\doxysubsubsection{\texorpdfstring{read\_settings()}{read\_settings()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Video\+Files.\+read\+\_\+settings (\begin{DoxyParamCaption}\item[{str}]{filename,  }\item[{int}]{bit\+\_\+pos,  }\item[{bool }]{verbose = {\ttfamily False} }\end{DoxyParamCaption})}
+
+
+
+Read the settings from a .cin file. 
+
+Jose Rueda\+: \href{mailto:jose.rueda@ipp.mpg.de}{\texttt{ jose.\+rueda@ipp.\+mpg.\+de}}
+
+
+\begin{DoxyParams}{Parameters}
+{\em filename} & name of the file to read (full path) \\
+\hline
+{\em bit\+\_\+pos} & Position of the file where the setting structure starts \\
+\hline
+{\em verbose} & verbose results or not \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+cin\+\_\+settings\+: dictionary containing all the camera settings. See the inline comments at the end of the function 
+\end{DoxyReturn}
+\begin{DoxyRefDesc}{Todo}
+\item[\mbox{\hyperlink{todo__todo000008}{Todo}}]Check if the coefficient matrix of UF is ok or must be transposed\end{DoxyRefDesc}
+
+
+Definition at line 90 of file Lib\+Video\+Files.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{90 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_a9ed2eb7e4f33d2592cfe07b360120611}{read\_settings}}(filename: str, bit\_pos: int, verbose: bool = \textcolor{keyword}{False}):}
+\DoxyCodeLine{91     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{92 \textcolor{stringliteral}{    Read the settings from a .cin file}}
+\DoxyCodeLine{93 \textcolor{stringliteral}{}}
+\DoxyCodeLine{94 \textcolor{stringliteral}{    Jose Rueda: jose.rueda@ipp.mpg.de}}
+\DoxyCodeLine{95 \textcolor{stringliteral}{}}
+\DoxyCodeLine{96 \textcolor{stringliteral}{    @param filename: name of the file to read (full path)}}
+\DoxyCodeLine{97 \textcolor{stringliteral}{    @param bit\_pos: Position of the file where the setting structure starts}}
+\DoxyCodeLine{98 \textcolor{stringliteral}{    @param verbose: verbose results or not}}
+\DoxyCodeLine{99 \textcolor{stringliteral}{    @return cin\_settings: dictionary containing all the camera settings. See the}}
+\DoxyCodeLine{100 \textcolor{stringliteral}{    inline comments at the end of the function}}
+\DoxyCodeLine{101 \textcolor{stringliteral}{    @todo Check if the coefficient matrix of UF is ok or must be transposed}}
+\DoxyCodeLine{102 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{103 }
+\DoxyCodeLine{104     \textcolor{comment}{\# Open file and go to the position of the settins structure}}
+\DoxyCodeLine{105     fid = open(filename, \textcolor{stringliteral}{'r'})}
+\DoxyCodeLine{106     \textcolor{keywordflow}{if} verbose:}
+\DoxyCodeLine{107         print(\textcolor{stringliteral}{'Reading .cin settings'})}
+\DoxyCodeLine{108     fid.seek(bit\_pos)}
+\DoxyCodeLine{109 }
+\DoxyCodeLine{110     \textcolor{comment}{\# Requested frame rate}}
+\DoxyCodeLine{111     cin\_settings = \{\textcolor{stringliteral}{'FrameRate16'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{112                     \textcolor{stringliteral}{'Shutter16'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{113                     \textcolor{stringliteral}{'PostTrigger16'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{114                     \textcolor{stringliteral}{'FrameDelay16'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{115                     \textcolor{stringliteral}{'AspectRatio'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{116                     \textcolor{stringliteral}{'Res7'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{117                     \textcolor{stringliteral}{'Res8'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{118                     \textcolor{stringliteral}{'Res9'}: np.fromfile(fid, \textcolor{stringliteral}{'uint8'}, 1),}
+\DoxyCodeLine{119                     \textcolor{stringliteral}{'Res10'}: np.fromfile(fid, \textcolor{stringliteral}{'uint8'}, 1),}
+\DoxyCodeLine{120                     \textcolor{stringliteral}{'Res11'}: np.fromfile(fid, \textcolor{stringliteral}{'uint8'}, 1),}
+\DoxyCodeLine{121                     \textcolor{stringliteral}{'TrigFrame'}: np.fromfile(fid, \textcolor{stringliteral}{'uint8'}, 1),}
+\DoxyCodeLine{122                     \textcolor{stringliteral}{'Res12'}: np.fromfile(fid, \textcolor{stringliteral}{'uint8'}, 1),}
+\DoxyCodeLine{123                     \textcolor{stringliteral}{'DescriptionOld'}: np.fromfile(fid, \textcolor{stringliteral}{'S121'}, 1),}
+\DoxyCodeLine{124                     \textcolor{stringliteral}{'Mark'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{125                     \textcolor{stringliteral}{'Length'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{126                     \textcolor{stringliteral}{'Res13'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{127                     \textcolor{stringliteral}{'SigOption'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{128                     \textcolor{stringliteral}{'BinChannels'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{129                     \textcolor{stringliteral}{'SamplesPerImage'}: np.fromfile(fid, \textcolor{stringliteral}{'uint8'}, 1),}
+\DoxyCodeLine{130                     \textcolor{stringliteral}{'BinName'}: np.fromfile(fid, \textcolor{stringliteral}{'S11'}, 8),}
+\DoxyCodeLine{131                     \textcolor{stringliteral}{'AnaOption'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{132                     \textcolor{stringliteral}{'AnaChannels'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{133                     \textcolor{stringliteral}{'Res6'}: np.fromfile(fid, \textcolor{stringliteral}{'uint8'}, 1),}
+\DoxyCodeLine{134                     \textcolor{stringliteral}{'AnaBoard'}: np.fromfile(fid, \textcolor{stringliteral}{'uint8'}, 1),}
+\DoxyCodeLine{135                     \textcolor{stringliteral}{'ChOption'}: np.fromfile(fid, \textcolor{stringliteral}{'int16'}, 8),}
+\DoxyCodeLine{136                     \textcolor{stringliteral}{'AnaGain'}: np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 8),}
+\DoxyCodeLine{137                     \textcolor{stringliteral}{'AnaUnit'}: np.fromfile(fid, \textcolor{stringliteral}{'S6'}, 8),}
+\DoxyCodeLine{138                     \textcolor{stringliteral}{'AnaName'}: np.fromfile(fid, \textcolor{stringliteral}{'S11'}, 8),}
+\DoxyCodeLine{139                     \textcolor{stringliteral}{'lFirstImage'}: np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1),}
+\DoxyCodeLine{140                     \textcolor{stringliteral}{'dwImageCount'}: np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1),}
+\DoxyCodeLine{141                     \textcolor{stringliteral}{'nQFactor'}: np.fromfile(fid, \textcolor{stringliteral}{'int16'}, 1),}
+\DoxyCodeLine{142                     \textcolor{stringliteral}{'wCineFileType'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{143                     \textcolor{stringliteral}{'szCinePath'}: np.fromfile(fid, \textcolor{stringliteral}{'S65'}, 4),}
+\DoxyCodeLine{144                     \textcolor{stringliteral}{'Res14'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{145                     \textcolor{stringliteral}{'Res15'}: np.fromfile(fid, \textcolor{stringliteral}{'uint8'}, 1),}
+\DoxyCodeLine{146                     \textcolor{stringliteral}{'Res16'}: np.fromfile(fid, \textcolor{stringliteral}{'uint8'}, 1),}
+\DoxyCodeLine{147                     \textcolor{stringliteral}{'Res17'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{148                     \textcolor{stringliteral}{'Res18'}: np.fromfile(fid, \textcolor{stringliteral}{'float64'}, 1),}
+\DoxyCodeLine{149                     \textcolor{stringliteral}{'Res19'}: np.fromfile(fid, \textcolor{stringliteral}{'float64'}, 1),}
+\DoxyCodeLine{150                     \textcolor{stringliteral}{'Res20'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{151                     \textcolor{stringliteral}{'Res1'}: np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1),}
+\DoxyCodeLine{152                     \textcolor{stringliteral}{'Res2'}: np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1),}
+\DoxyCodeLine{153                     \textcolor{stringliteral}{'Res3'}: np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1),}
+\DoxyCodeLine{154                     \textcolor{stringliteral}{'ImWidth'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{155                     \textcolor{stringliteral}{'ImHeight'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{156                     \textcolor{stringliteral}{'EDRShutter16'}: np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1),}
+\DoxyCodeLine{157                     \textcolor{stringliteral}{'Serial'}: np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)\}}
+\DoxyCodeLine{158     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'Serial'}] == 24167 \textcolor{keywordflow}{and} verbose:}
+\DoxyCodeLine{159         print(\textcolor{stringliteral}{'Data was saved with a camera belonging to Prof. E Viezzer'})}
+\DoxyCodeLine{160     cin\_settings[\textcolor{stringliteral}{'Saturation'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{161     cin\_settings[\textcolor{stringliteral}{'Res5'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint8'}, 1)}
+\DoxyCodeLine{162     cin\_settings[\textcolor{stringliteral}{'AutoExposure'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{163     cin\_settings[\textcolor{stringliteral}{'bFlipH'}] = bool(np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1))}
+\DoxyCodeLine{164     cin\_settings[\textcolor{stringliteral}{'bFlipV'}] = bool(np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1))}
+\DoxyCodeLine{165     cin\_settings[\textcolor{stringliteral}{'Grid'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{166     cin\_settings[\textcolor{stringliteral}{'FrameRate'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{167     cin\_settings[\textcolor{stringliteral}{'Shutter'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{168     cin\_settings[\textcolor{stringliteral}{'EDRShutter'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{169     cin\_settings[\textcolor{stringliteral}{'PostTrigger'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{170     cin\_settings[\textcolor{stringliteral}{'FrameDelay'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{171     cin\_settings[\textcolor{stringliteral}{'bEnableColor'}] = bool(np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1))}
+\DoxyCodeLine{172     cin\_settings[\textcolor{stringliteral}{'CameraVersion'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{173     cin\_settings[\textcolor{stringliteral}{'FirmwareVersion'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{174     cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{175     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 551:}
+\DoxyCodeLine{176         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{177     cin\_settings[\textcolor{stringliteral}{'RecordingTimeZone'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{178     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 552:}
+\DoxyCodeLine{179         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{180     cin\_settings[\textcolor{stringliteral}{'CFA'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{181     cin\_settings[\textcolor{stringliteral}{'Bright'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{182     cin\_settings[\textcolor{stringliteral}{'Contrast'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{183     cin\_settings[\textcolor{stringliteral}{'Gamma'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{184     cin\_settings[\textcolor{stringliteral}{'Res21'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{185     cin\_settings[\textcolor{stringliteral}{'AutoExpLevel'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{186     cin\_settings[\textcolor{stringliteral}{'AutoExpSpeed'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{187     cin\_settings[\textcolor{stringliteral}{'AutoExpRect'}] = \{\textcolor{stringliteral}{'left'}: np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1),}
+\DoxyCodeLine{188                                    \textcolor{stringliteral}{'top'}: np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1),}
+\DoxyCodeLine{189                                    \textcolor{stringliteral}{'right'}: np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1),}
+\DoxyCodeLine{190                                    \textcolor{stringliteral}{'bottom'}: np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)\}}
+\DoxyCodeLine{191     cin\_settings[\textcolor{stringliteral}{'WBGain'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 8)}
+\DoxyCodeLine{192     cin\_settings[\textcolor{stringliteral}{'Rotate'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{193     cin\_settings[\textcolor{stringliteral}{'WBView'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 2)}
+\DoxyCodeLine{194     cin\_settings[\textcolor{stringliteral}{'RealBPP'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{195     cin\_settings[\textcolor{stringliteral}{'Conv8Min'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{196     cin\_settings[\textcolor{stringliteral}{'Conv8Max'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{197     cin\_settings[\textcolor{stringliteral}{'FilterCode'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{198     cin\_settings[\textcolor{stringliteral}{'FilterParam'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{199     cin\_settings[\textcolor{stringliteral}{'UF'}] = \{\textcolor{stringliteral}{'dim'}: np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1),}
+\DoxyCodeLine{200                           \textcolor{stringliteral}{'shifts'}: np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1),}
+\DoxyCodeLine{201                           \textcolor{stringliteral}{'bias'}: np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1),}
+\DoxyCodeLine{202                           \textcolor{stringliteral}{'Coef'}: np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 25).reshape((5, 5))\}}
+\DoxyCodeLine{203     cin\_settings[\textcolor{stringliteral}{'BlackCalSVer'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{204     cin\_settings[\textcolor{stringliteral}{'WhiteCalSVer'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{205     cin\_settings[\textcolor{stringliteral}{'GrayCalSVer'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{206     cin\_settings[\textcolor{stringliteral}{'bStampTime'}] = bool(np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1))}
+\DoxyCodeLine{207     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 605:}
+\DoxyCodeLine{208         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{209     cin\_settings[\textcolor{stringliteral}{'SoundDest'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{210     cin\_settings[\textcolor{stringliteral}{'FRPSteps'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{211     cin\_settings[\textcolor{stringliteral}{'FRPImgNr'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 16)}
+\DoxyCodeLine{212     cin\_settings[\textcolor{stringliteral}{'FRPRate'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 16)}
+\DoxyCodeLine{213     cin\_settings[\textcolor{stringliteral}{'FRPExp'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 16)}
+\DoxyCodeLine{214     cin\_settings[\textcolor{stringliteral}{'MCCnt'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{215     cin\_settings[\textcolor{stringliteral}{'MCPercent'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 64)}
+\DoxyCodeLine{216     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 606:}
+\DoxyCodeLine{217         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{218     cin\_settings[\textcolor{stringliteral}{'CICalib'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{219     cin\_settings[\textcolor{stringliteral}{'CalibWidth'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{220     cin\_settings[\textcolor{stringliteral}{'CalibHeight'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{221     cin\_settings[\textcolor{stringliteral}{'CalibRate'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{222     cin\_settings[\textcolor{stringliteral}{'CalibExp'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{223     cin\_settings[\textcolor{stringliteral}{'CalibEDR'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{224     cin\_settings[\textcolor{stringliteral}{'CalibTemp'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{225     cin\_settings[\textcolor{stringliteral}{'HeadSerial'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 4)}
+\DoxyCodeLine{226     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 607:}
+\DoxyCodeLine{227         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{228     cin\_settings[\textcolor{stringliteral}{'RangeCode'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{229     cin\_settings[\textcolor{stringliteral}{'RangeSize'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{230     cin\_settings[\textcolor{stringliteral}{'Decimation'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{231     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 614:}
+\DoxyCodeLine{232         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{233     cin\_settings[\textcolor{stringliteral}{'MasterSerial'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{234     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 624:}
+\DoxyCodeLine{235         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{236     cin\_settings[\textcolor{stringliteral}{'Sensor'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{237     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 625:}
+\DoxyCodeLine{238         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{239     \textcolor{comment}{\# -\/-\/-\/ Adquisition parameters in NS}}
+\DoxyCodeLine{240     cin\_settings[\textcolor{stringliteral}{'ShutterNs'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{241     cin\_settings[\textcolor{stringliteral}{'EDRShutterNs'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{242     cin\_settings[\textcolor{stringliteral}{'FrameDelayNs'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{243     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 631:}
+\DoxyCodeLine{244         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{245     cin\_settings[\textcolor{stringliteral}{'ImPosXAcq'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{246     cin\_settings[\textcolor{stringliteral}{'ImPosYAcq'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{247     cin\_settings[\textcolor{stringliteral}{'ImWidthAcq'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{248     cin\_settings[\textcolor{stringliteral}{'ImHeightAcq'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{249     cin\_settings[\textcolor{stringliteral}{'Description'}] = np.fromfile(fid, \textcolor{stringliteral}{'S4096'}, 1)}
+\DoxyCodeLine{250     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 637:}
+\DoxyCodeLine{251         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{252     cin\_settings[\textcolor{stringliteral}{'RisingEdge'}] = bool(np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1))}
+\DoxyCodeLine{253     cin\_settings[\textcolor{stringliteral}{'FilterTime'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{254     cin\_settings[\textcolor{stringliteral}{'LongReady'}] = bool(np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1))}
+\DoxyCodeLine{255     cin\_settings[\textcolor{stringliteral}{'ShutterOff'}] = bool(np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1))}
+\DoxyCodeLine{256     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 658:}
+\DoxyCodeLine{257         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{258     cin\_settings[\textcolor{stringliteral}{'Res4'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint8'}, 16)}
+\DoxyCodeLine{259     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 663:}
+\DoxyCodeLine{260         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{261     cin\_settings[\textcolor{stringliteral}{'bMetaWB'}] = bool(np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1))}
+\DoxyCodeLine{262     cin\_settings[\textcolor{stringliteral}{'Hue'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{263     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 671:}
+\DoxyCodeLine{264         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{265     cin\_settings[\textcolor{stringliteral}{'BlackLevel'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{266     cin\_settings[\textcolor{stringliteral}{'WhiteLevel'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{267     \textcolor{comment}{\# -\/-\/-\/ Lenses descriptions}}
+\DoxyCodeLine{268     cin\_settings[\textcolor{stringliteral}{'LensDescription'}] = np.fromfile(fid, \textcolor{stringliteral}{'S256'}, 1)}
+\DoxyCodeLine{269     cin\_settings[\textcolor{stringliteral}{'LensAperture'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{270     cin\_settings[\textcolor{stringliteral}{'LensFocusDistance'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{271     cin\_settings[\textcolor{stringliteral}{'LensFocalLength'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{272     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 691:}
+\DoxyCodeLine{273         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{274 }
+\DoxyCodeLine{275     \textcolor{comment}{\# -\/-\/-\/ Image Adjustement}}
+\DoxyCodeLine{276     cin\_settings[\textcolor{stringliteral}{'fOffset'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{277     cin\_settings[\textcolor{stringliteral}{'fGain'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{278     cin\_settings[\textcolor{stringliteral}{'fSaturation'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{279     cin\_settings[\textcolor{stringliteral}{'fHue'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{280     cin\_settings[\textcolor{stringliteral}{'Gamma'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{281     cin\_settings[\textcolor{stringliteral}{'fGammaR'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{282     cin\_settings[\textcolor{stringliteral}{'fGammaB'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{283     cin\_settings[\textcolor{stringliteral}{'fFlare'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{284     cin\_settings[\textcolor{stringliteral}{'fPedestalR'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{285     cin\_settings[\textcolor{stringliteral}{'fPedestalG'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{286     cin\_settings[\textcolor{stringliteral}{'fPedestalB'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{287     cin\_settings[\textcolor{stringliteral}{'fChroma'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{288 }
+\DoxyCodeLine{289     cin\_settings[\textcolor{stringliteral}{'ToneLabel'}] = np.fromfile(fid, \textcolor{stringliteral}{'S256'}, 1)}
+\DoxyCodeLine{290     cin\_settings[\textcolor{stringliteral}{'TonePoints'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)}
+\DoxyCodeLine{291     cin\_settings[\textcolor{stringliteral}{'fTone'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 64)}
+\DoxyCodeLine{292 }
+\DoxyCodeLine{293     cin\_settings[\textcolor{stringliteral}{'UserMatrixLabel'}] = np.fromfile(fid, \textcolor{stringliteral}{'S256'}, 1)}
+\DoxyCodeLine{294 }
+\DoxyCodeLine{295     cin\_settings[\textcolor{stringliteral}{'EnableMatrices'}] = bool(np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1))}
+\DoxyCodeLine{296     cin\_settings[\textcolor{stringliteral}{'cmUser'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 9)}
+\DoxyCodeLine{297 }
+\DoxyCodeLine{298     cin\_settings[\textcolor{stringliteral}{'EnableCrop'}] = bool(np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1))}
+\DoxyCodeLine{299     cin\_settings[\textcolor{stringliteral}{'CropRect'}] = \{\textcolor{stringliteral}{'left'}: np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1),}
+\DoxyCodeLine{300                                 \textcolor{stringliteral}{'top'}: np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1),}
+\DoxyCodeLine{301                                 \textcolor{stringliteral}{'right'}: np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1),}
+\DoxyCodeLine{302                                 \textcolor{stringliteral}{'bottom'}: np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1)\}}
+\DoxyCodeLine{303 }
+\DoxyCodeLine{304     cin\_settings[\textcolor{stringliteral}{'EnableResample'}] = bool(np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 1))}
+\DoxyCodeLine{305     cin\_settings[\textcolor{stringliteral}{'ResampleWidth'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{306     cin\_settings[\textcolor{stringliteral}{'ResampleHeight'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{307 }
+\DoxyCodeLine{308     cin\_settings[\textcolor{stringliteral}{'fGain16\_8'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{309     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 693:}
+\DoxyCodeLine{310         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{311     cin\_settings[\textcolor{stringliteral}{'FRPShape'}] = np.fromfile(fid, \textcolor{stringliteral}{'int32'}, 16)}
+\DoxyCodeLine{312     \textcolor{comment}{\# This is temporal!!! I have to learn how to read single bits in python}}
+\DoxyCodeLine{313     cin\_settings[\textcolor{stringliteral}{'TrigTC'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint8'}, 8)}
+\DoxyCodeLine{314     cin\_settings[\textcolor{stringliteral}{'fPbRate'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{315     cin\_settings[\textcolor{stringliteral}{'fTcRate'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{316     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 701:}
+\DoxyCodeLine{317         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{318     cin\_settings[\textcolor{stringliteral}{'CineName'}] = np.fromfile(fid, \textcolor{stringliteral}{'S256'}, 1)}
+\DoxyCodeLine{319     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 702:}
+\DoxyCodeLine{320         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{321     cin\_settings[\textcolor{stringliteral}{'fGainR'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{322     cin\_settings[\textcolor{stringliteral}{'fGainG'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{323     cin\_settings[\textcolor{stringliteral}{'fGainB'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{324     cin\_settings[\textcolor{stringliteral}{'cmCalib'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 9)}
+\DoxyCodeLine{325     cin\_settings[\textcolor{stringliteral}{'fWBTemp'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{326     cin\_settings[\textcolor{stringliteral}{'fWBCc'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{327     cin\_settings[\textcolor{stringliteral}{'CalibrationInfo'}] = np.fromfile(fid, \textcolor{stringliteral}{'S1024'}, 1)}
+\DoxyCodeLine{328     cin\_settings[\textcolor{stringliteral}{'OpticalFilter'}] = np.fromfile(fid, \textcolor{stringliteral}{'S1024'}, 1)}
+\DoxyCodeLine{329     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 709:}
+\DoxyCodeLine{330         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{331     cin\_settings[\textcolor{stringliteral}{'GpsInfo'}] = np.fromfile(fid, \textcolor{stringliteral}{'S256'}, 1)}
+\DoxyCodeLine{332     cin\_settings[\textcolor{stringliteral}{'Uuid'}] = np.fromfile(fid, \textcolor{stringliteral}{'S256'}, 1)}
+\DoxyCodeLine{333     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 719:}
+\DoxyCodeLine{334         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{335     cin\_settings[\textcolor{stringliteral}{'CreatedBy'}] = np.fromfile(fid, \textcolor{stringliteral}{'S256'}, 1)}
+\DoxyCodeLine{336     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 720:}
+\DoxyCodeLine{337         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{338     cin\_settings[\textcolor{stringliteral}{'RecBPP'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{339     cin\_settings[\textcolor{stringliteral}{'LowestFormatBPP'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1)}
+\DoxyCodeLine{340     cin\_settings[\textcolor{stringliteral}{'LowestFormatQ'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1)}
+\DoxyCodeLine{341     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 731:}
+\DoxyCodeLine{342         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{343     cin\_settings[\textcolor{stringliteral}{'fToe'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{344     cin\_settings[\textcolor{stringliteral}{'LogMode'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{345     cin\_settings[\textcolor{stringliteral}{'CameraModel'}] = np.fromfile(fid, \textcolor{stringliteral}{'S256'}, 1)}
+\DoxyCodeLine{346     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 742:}
+\DoxyCodeLine{347         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{348     cin\_settings[\textcolor{stringliteral}{'WBType'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{349     cin\_settings[\textcolor{stringliteral}{'fDecimation'}] = np.fromfile(fid, \textcolor{stringliteral}{'float32'}, 1)}
+\DoxyCodeLine{350     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 745:}
+\DoxyCodeLine{351         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{352     cin\_settings[\textcolor{stringliteral}{'MagSerial'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{353     cin\_settings[\textcolor{stringliteral}{'CSSerial'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{354     cin\_settings[\textcolor{stringliteral}{'dFrameRate'}] = np.fromfile(fid, \textcolor{stringliteral}{'float64'}, 1)}
+\DoxyCodeLine{355     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 751:}
+\DoxyCodeLine{356         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{357     cin\_settings[\textcolor{stringliteral}{'SensorMode'}] = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{358     \textcolor{keywordflow}{if} cin\_settings[\textcolor{stringliteral}{'SoftwareVersion'}] <= 771:}
+\DoxyCodeLine{359         \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{360     fid.close()}
+\DoxyCodeLine{361     \textcolor{comment}{\# -\/-\/-\/ return and print}}
+\DoxyCodeLine{362     \textcolor{comment}{\# Print if needed}}
+\DoxyCodeLine{363     \textcolor{keywordflow}{if} verbose:}
+\DoxyCodeLine{364         \textcolor{keywordflow}{for} y \textcolor{keywordflow}{in} cin\_settings:}
+\DoxyCodeLine{365             print(y, \textcolor{stringliteral}{':'}, cin\_settings[y])}
+\DoxyCodeLine{366     \textcolor{keywordflow}{return} cin\_settings}
+\DoxyCodeLine{367     \textcolor{comment}{\#  uint16\_t FrameRate16;     // Frame rate fps-\/-\/-\/UPDF replaced by FrameRate}}
+\DoxyCodeLine{368     \textcolor{comment}{\#  uint16\_t PostTrigger16;   // -\/-\/-\/UPDF replaced by PostTrigger}}
+\DoxyCodeLine{369     \textcolor{comment}{\#  uint16\_t FrameDelay16;    // -\/-\/-\/UPDF replaced by FrameDelayNs}}
+\DoxyCodeLine{370     \textcolor{comment}{\#  uint16\_t AspectRatio;     // -\/-\/-\/UPDF replaced by ImWidth, ImHeight}}
+\DoxyCodeLine{371     \textcolor{comment}{\#  uint16\_t Res7;            // -\/-\/-\/TBI Contrast16}}
+\DoxyCodeLine{372     \textcolor{comment}{\#                            // (analog controls, not available after}}
+\DoxyCodeLine{373     \textcolor{comment}{\#                            // Phantom v3)}}
+\DoxyCodeLine{374     \textcolor{comment}{\#  uint16\_t Res8;            // -\/-\/-\/TBI Bright16}}
+\DoxyCodeLine{375     \textcolor{comment}{\#  uint8\_t Res9;             // -\/-\/-\/TBI Rotate16}}
+\DoxyCodeLine{376     \textcolor{comment}{\#  uint8\_t Res10;            // -\/-\/-\/TBI TimeAnnotation}}
+\DoxyCodeLine{377     \textcolor{comment}{\#                            // (time always comes from camera )}}
+\DoxyCodeLine{378     \textcolor{comment}{\#  uint8\_t Res11;            // -\/-\/-\/TBI TrigCine (all cines are triggered)}}
+\DoxyCodeLine{379     \textcolor{comment}{\#  uint8\_t TrigFrame;        // Sync imaging mode:}}
+\DoxyCodeLine{380     \textcolor{comment}{\#                            // 0, 1, 2 = internal, external, locktoirig}}
+\DoxyCodeLine{381     \textcolor{comment}{\#  uint8\_t Res12;            // -\/-\/-\/TBI ShutterOn (the shutter is always on)}}
+\DoxyCodeLine{382     \textcolor{comment}{\#  char DescriptionOld[MAXLENDESCRIPTION\_OLD];}}
+\DoxyCodeLine{383     \textcolor{comment}{\#                          // -\/-\/-\/UPDF replaced by larger Description able to}}
+\DoxyCodeLine{384     \textcolor{comment}{\#                            // store 4k of user comments}}
+\DoxyCodeLine{385     \textcolor{comment}{\#  uint16\_t Mark;            // "{}ST"{} -\/ marker for setup file}}
+\DoxyCodeLine{386     \textcolor{comment}{\#  uint16\_t Length;          // Length of the current version of setup}}
+\DoxyCodeLine{387     \textcolor{comment}{\#  uint16\_t Res13;           // -\/-\/-\/TBI Binning (binning factor)}}
+\DoxyCodeLine{388     \textcolor{comment}{\#  uint16\_t SigOption;       // Global signals options:}}
+\DoxyCodeLine{389     \textcolor{comment}{\#                           // MAXSAMPLES = records the max possible samples}}
+\DoxyCodeLine{390     \textcolor{comment}{\#  int16\_t BinChannels;      // Number of binary channels read from the}}
+\DoxyCodeLine{391     \textcolor{comment}{\#                            // SAM (Signal Acquisition Module)}}
+\DoxyCodeLine{392     \textcolor{comment}{\#  uint8\_t SamplesPerImage;  // Number of samples acquired per image, both}}
+\DoxyCodeLine{393     \textcolor{comment}{\#                            // binary and analog;}}
+\DoxyCodeLine{394     \textcolor{comment}{\#  char BinName[8][11];      // Names for the first 8 binary signals having}}
+\DoxyCodeLine{395     \textcolor{comment}{\#                           // maximum 10 chars/name; each string ended by a}}
+\DoxyCodeLine{396     \textcolor{comment}{\#                            // byte = 0}}
+\DoxyCodeLine{397     \textcolor{comment}{\#  uint16\_t AnaOption;       // Global analog options single ended, bipolar}}
+\DoxyCodeLine{398     \textcolor{comment}{\#  int16\_t AnaChannels;      // Number of analog channels used (16 bit 2's}}
+\DoxyCodeLine{399     \textcolor{comment}{\#                            // complement per channel)}}
+\DoxyCodeLine{400     \textcolor{comment}{\#  uint8\_t Res6;             // -\/-\/-\/TBI (reserved)}}
+\DoxyCodeLine{401     \textcolor{comment}{\#  uint8\_t AnaBoard;         // Board type 0=none, 1=dsk (DSP system kit),}}
+\DoxyCodeLine{402     \textcolor{comment}{\#                            // 2 dsk+SAM}}
+\DoxyCodeLine{403     \textcolor{comment}{\#                            // 3 Data Translation DT9802}}
+\DoxyCodeLine{404     \textcolor{comment}{\#                            // 4 Data Translation DT3010}}
+\DoxyCodeLine{405     \textcolor{comment}{\#  int16\_t ChOption[8];      // Per channel analog options;}}
+\DoxyCodeLine{406     \textcolor{comment}{\#                            // now:bit 0...3 analog gain (1,2,4,8)}}
+\DoxyCodeLine{407     \textcolor{comment}{\#  float AnaGain[8];     // User gain correction for conversion from voltage}}
+\DoxyCodeLine{408     \textcolor{comment}{\#                            // to real units , per channel}}
+\DoxyCodeLine{409     \textcolor{comment}{\#  char AnaUnit[8][6];       // Measurement unit for analog channels: max 5}}
+\DoxyCodeLine{410     \textcolor{comment}{\#                            // chars/name ended each by a byte = 0}}
+\DoxyCodeLine{411     \textcolor{comment}{\#  char AnaName[8][11];     // Channel name for the first 8 analog channels:}}
+\DoxyCodeLine{412     \textcolor{comment}{\#                            // max 10 chars/name ended each by a byte = 0}}
+\DoxyCodeLine{413     \textcolor{comment}{\#  int32\_t lFirstImage;      // Range of images for continuous recording:}}
+\DoxyCodeLine{414     \textcolor{comment}{\#                            // first image}}
+\DoxyCodeLine{415     \textcolor{comment}{\#  uint32\_t dwImageCount;    // Image count for continuous recording;}}
+\DoxyCodeLine{416     \textcolor{comment}{\#                            // used also for signal recording}}
+\DoxyCodeLine{417     \textcolor{comment}{\#  int16\_t nQFactor;         // Quality -\/ for saving to compressed file at}}
+\DoxyCodeLine{418     \textcolor{comment}{\#                            // continuous recording; range 2...255}}
+\DoxyCodeLine{419     \textcolor{comment}{\#  uint16\_t wCineFileType;   // Cine file type -\/ for continuous recording}}
+\DoxyCodeLine{420     \textcolor{comment}{\#  char szCinePath[4][OLDMAXFILENAME]; //4 paths to save cine files -\/ for}}
+\DoxyCodeLine{421     \textcolor{comment}{\#                          // continuous recording. After upgrading to Win32}}
+\DoxyCodeLine{422     \textcolor{comment}{\#                            // this still remained 65 bytes long each}}
+\DoxyCodeLine{423     \textcolor{comment}{\#                            // GetShortPathName is used for the filenames}}
+\DoxyCodeLine{424     \textcolor{comment}{\#                            // saved here}}
+\DoxyCodeLine{425     \textcolor{comment}{\#  uint16\_t Res14;           // -\/-\/-\/TBI bMainsFreq (Mains frequency:}}
+\DoxyCodeLine{426     \textcolor{comment}{\#                            // TRUE = 60Hz USA, FALSE = 50Hz}}
+\DoxyCodeLine{427     \textcolor{comment}{\#                            // Europe, for signal view in DSP)}}
+\DoxyCodeLine{428     \textcolor{comment}{\#                            // Time board -\/ settings for PC104 irig board}}
+\DoxyCodeLine{429     \textcolor{comment}{\#                            // used in Phantom v3 not used anymore after v3}}
+\DoxyCodeLine{430     \textcolor{comment}{\#  uint8\_t Res15;            // -\/-\/-\/TBI bTimeCode;}}
+\DoxyCodeLine{431     \textcolor{comment}{\#                            // Time code: IRIG\_B, NASA36, IRIG-\/A}}
+\DoxyCodeLine{432     \textcolor{comment}{\#  uint8\_t Res16;            // -\/-\/TBI bPriority}}
+\DoxyCodeLine{433     \textcolor{comment}{\#                            // Time code has priority over PPS}}
+\DoxyCodeLine{434     \textcolor{comment}{\#  uint16\_t Res17;           // -\/-\/-\/TBI wLeapSecDY}}
+\DoxyCodeLine{435     \textcolor{comment}{\#                            // Next day of year with leap second}}
+\DoxyCodeLine{436     \textcolor{comment}{\#  double Res18;          // -\/-\/-\/TBI dDelayTC Propagation delay for time code}}
+\DoxyCodeLine{437     \textcolor{comment}{\#  double Res19;          // -\/-\/-\/TBI dDelayTC Propagation delay for time code}}
+\DoxyCodeLine{438     \textcolor{comment}{\#  uint16\_t Res20;           // -\/-\/-\/TBI GenBits}}
+\DoxyCodeLine{439     \textcolor{comment}{\#  int32\_t Res1;             // -\/-\/-\/TBI GenBits}}
+\DoxyCodeLine{440     \textcolor{comment}{\#  int32\_t Res2;             // -\/-\/-\/TBI GenBits}}
+\DoxyCodeLine{441     \textcolor{comment}{\#  int32\_t Res3;             // -\/-\/-\/TBI GenBits}}
+\DoxyCodeLine{442     \textcolor{comment}{\#  uint16\_t ImWidth;      // Image dimensions in v4 and newer cameras: Width}}
+\DoxyCodeLine{443     \textcolor{comment}{\#  uint16\_t ImHeight;        // Image height}}
+\DoxyCodeLine{444     \textcolor{comment}{\#  uint16\_t EDRShutter16;    // -\/-\/-\/UPDF replaced by EDRShutterNs}}
+\DoxyCodeLine{445     \textcolor{comment}{\#  uint32\_t Serial;          // Camera serial number}}
+\DoxyCodeLine{446     \textcolor{comment}{\#  int32\_t Saturation;       // -\/-\/-\/UPDF replaced by float fSaturation}}
+\DoxyCodeLine{447     \textcolor{comment}{\#                       // Color saturation adjustmment [-\/100,100] neutral 0}}
+\DoxyCodeLine{448     \textcolor{comment}{\#  uint8\_t Res5;             // -\/-\/-\/ TBI}}
+\DoxyCodeLine{449     \textcolor{comment}{\#  uint32\_t AutoExposure// Autoexposure enable 0=disable, 1=lock at trigger,}}
+\DoxyCodeLine{450     \textcolor{comment}{\#                            // 3=active after trigger}}
+\DoxyCodeLine{451     \textcolor{comment}{\#  bool32\_t bFlipH;          // Flips image horizontally}}
+\DoxyCodeLine{452     \textcolor{comment}{\#  bool32\_t bFlipV;          // Flips image vertically}}
+\DoxyCodeLine{453     \textcolor{comment}{\#  uint32\_t Grid;      // Displays a crosshair or a grid in setup, 0=no grid}}
+\DoxyCodeLine{454     \textcolor{comment}{\#                            // 2=cross hair, 8= grid with 8 intervals}}
+\DoxyCodeLine{455     \textcolor{comment}{\#  uint32\_t FrameRateInt;    // Frame rate in frames per seconds}}
+\DoxyCodeLine{456     \textcolor{comment}{\#  uint32\_t Shutter;         // -\/-\/-\/UPDF replaced by ShutterNs}}
+\DoxyCodeLine{457     \textcolor{comment}{\#                            // (here the value is in microseconds)}}
+\DoxyCodeLine{458     \textcolor{comment}{\#  uint32\_t EDRShutter;      // -\/-\/-\/UPDF replaced by EDRShutterNs}}
+\DoxyCodeLine{459     \textcolor{comment}{\#                            // (here the value is in microseconds)}}
+\DoxyCodeLine{460     \textcolor{comment}{\#  uint32\_t PostTrigger;     // Post trigger frames, measured in frames}}
+\DoxyCodeLine{461     \textcolor{comment}{\#  uint32\_t FrameDelay;      // -\/-\/-\/UPDF replaced by FrameDelayNs}}
+\DoxyCodeLine{462     \textcolor{comment}{\#                            // (here the value is in microseconds)}}
+\DoxyCodeLine{463     \textcolor{comment}{\#  bool32\_t bEnableColor;    // User option: when 0 forces gray images from}}
+\DoxyCodeLine{464     \textcolor{comment}{\#                            // color cameras}}
+\DoxyCodeLine{465     \textcolor{comment}{\#  uint32\_t CameraVersion;// The version of camera hardware (without decimal}}
+\DoxyCodeLine{466     \textcolor{comment}{\#                          // point). Examples of cameras produced after the}}
+\DoxyCodeLine{467     \textcolor{comment}{\#                            // year 2000}}
+\DoxyCodeLine{468     \textcolor{comment}{\#                            // Firewire: 4, 5, 6}}
+\DoxyCodeLine{469     \textcolor{comment}{\#                            // Ethernet: 42 43 51 7 72 73 9 91 10}}
+\DoxyCodeLine{470     \textcolor{comment}{\#                            // 650 (p65) 660 (hd) ....}}
+\DoxyCodeLine{471     \textcolor{comment}{\#  uint32\_t FirmwareVersion; // Firmware version}}
+\DoxyCodeLine{472     \textcolor{comment}{\#  uint32\_t SoftwareVersion; // Phantom software version}}
+\DoxyCodeLine{473     \textcolor{comment}{\#                         // End of SETUP in software version 551 (May 2001)}}
+\DoxyCodeLine{474     \textcolor{comment}{\#  int32\_t RecordingTimeZone;// The time zone active during the recording of}}
+\DoxyCodeLine{475     \textcolor{comment}{\#                            // the cine}}
+\DoxyCodeLine{476     \textcolor{comment}{\#                         // End of SETUP in software version 552 (May 2001)}}
+\DoxyCodeLine{477     \textcolor{comment}{\#  uint32\_t CFA;            // Code for the Color Filter Array of the sensor}}
+\DoxyCodeLine{478     \textcolor{comment}{\#                            // CFA\_NONE=0,(gray) CFA\_VRI=1(gbrg/rggb),}}
+\DoxyCodeLine{479     \textcolor{comment}{\#                            // CFA\_VRIV6=2(bggr/grbg), CFA\_BAYER=3(gb/rg)}}
+\DoxyCodeLine{480     \textcolor{comment}{\#                            // CFA\_BAYERFLIP=4 (rg/gb)}}
+\DoxyCodeLine{481     \textcolor{comment}{\#                        // high byte carries info about color/gray heads at}}
+\DoxyCodeLine{482     \textcolor{comment}{\#                            // v6 and v6.2}}
+\DoxyCodeLine{483     \textcolor{comment}{\#                            // Masks: 0x80000000: TLgray 0x40000000: TRgray}}
+\DoxyCodeLine{484     \textcolor{comment}{\#                            // 0x20000000: BLgray 0x10000000: BRgray}}
+\DoxyCodeLine{485     \textcolor{comment}{\#                            // Final adjustments after image processing:}}
+\DoxyCodeLine{486     \textcolor{comment}{\#  int32\_t Bright;           // -\/-\/-\/UPDF replaced by fOffset}}
+\DoxyCodeLine{487     \textcolor{comment}{\#  uint32\_t Res21;           // -\/-\/-\/TBI}}
+\DoxyCodeLine{488     \textcolor{comment}{\#  uint32\_t AutoExpLevel;    // Level for autoexposure control}}
+\DoxyCodeLine{489     \textcolor{comment}{\#  uint32\_t AutoExpSpeed;    // Speed for autoexposure control}}
+\DoxyCodeLine{490     \textcolor{comment}{\#  RECT AutoExpRect;         // Rectangle for autoexposure control}}
+\DoxyCodeLine{491     \textcolor{comment}{\#  WBGAIN WBGain[4];    // Gain adjust on R,B components, for white balance,}}
+\DoxyCodeLine{492     \textcolor{comment}{\#                            // at Recording}}
+\DoxyCodeLine{493     \textcolor{comment}{\#                            // 1.0 = do nothing,}}
+\DoxyCodeLine{494     \textcolor{comment}{\#                            // index 0: all image for v4,5,7...}}
+\DoxyCodeLine{495     \textcolor{comment}{\#                            // and TL head for v6, v6.2 (multihead)}}
+\DoxyCodeLine{496     \textcolor{comment}{\#                            // index 1, 2, 3 :}}
+\DoxyCodeLine{497     \textcolor{comment}{\#                            // TR, BL, BR for multihead}}
+\DoxyCodeLine{498     \textcolor{comment}{\#  int32\_t Rotate;           // Rotate the image 0=do nothing}}
+\DoxyCodeLine{499     \textcolor{comment}{\#                            // +90=counterclockwise -\/90=clockwise}}
+\DoxyCodeLine{500     \textcolor{comment}{\#  WBGAIN WBView;      // White balance to apply on color interpolated Cines}}
+\DoxyCodeLine{501     \textcolor{comment}{\#  uint32\_t RealBPP;         // Real number of bits per pixel for this cine}}
+\DoxyCodeLine{502     \textcolor{comment}{\#                            // 8 on 8 bit cameras}}
+\DoxyCodeLine{503     \textcolor{comment}{\#                            // (v3, 4, 5, 6, 42, 43, 51, 62, 72, 9)}}
+\DoxyCodeLine{504     \textcolor{comment}{\#                            // Phantom v7: 8 or 12}}
+\DoxyCodeLine{505     \textcolor{comment}{\#                            // 14 bit cameras 8, 10, 12, 14}}
+\DoxyCodeLine{506     \textcolor{comment}{\#                           // Pixels will be stored on 8 or 16 bit in files}}
+\DoxyCodeLine{507     \textcolor{comment}{\#                            // and in PC memory}}
+\DoxyCodeLine{508     \textcolor{comment}{\#                            //(if RealBPP>8 the storage will be on 16 bits)}}
+\DoxyCodeLine{509     \textcolor{comment}{\#  //First degree function to convert the 16 bits pixels to 8 bit}}
+\DoxyCodeLine{510     \textcolor{comment}{\#  //(for display or file convert)}}
+\DoxyCodeLine{511     \textcolor{comment}{\#  uint32\_t Conv8Min;        // -\/-\/-\/TBI}}
+\DoxyCodeLine{512     \textcolor{comment}{\#                            // Minimum value when converting to 8 bits}}
+\DoxyCodeLine{513     \textcolor{comment}{\#  uint32\_t Conv8Max;        // -\/-\/-\/UPDF replaced by fGain16\_8}}
+\DoxyCodeLine{514     \textcolor{comment}{\#                            // Max value when converting to 8 bits}}
+\DoxyCodeLine{515     \textcolor{comment}{\#  int32\_t FilterCode;       // ImageProcessing: area processing code}}
+\DoxyCodeLine{516     \textcolor{comment}{\#  int32\_t FilterParam;      // ImageProcessing: optional parameter}}
+\DoxyCodeLine{517     \textcolor{comment}{\#  IMFILTER UF;         // User filter: a 3x3 or 5x5 user convolution filter}}
+\DoxyCodeLine{518     \textcolor{comment}{\#  uint32\_t BlackCalSVer;    // Software Version used for Black Reference}}
+\DoxyCodeLine{519     \textcolor{comment}{\#  uint32\_t WhiteCalSVer;    // Software Version used for White Calibration}}
+\DoxyCodeLine{520     \textcolor{comment}{\#  uint32\_t GrayCalSVer;     // Software Version used for Gray Calibration}}
+\DoxyCodeLine{521     \textcolor{comment}{\#  bool32\_t bStampTime;      // Stamp time (in continuous recording)}}
+\DoxyCodeLine{522     \textcolor{comment}{\#                            // 1 = absolute time, 3 = from trigger}}
+\DoxyCodeLine{523     \textcolor{comment}{\#                         // End of SETUP in software version 605 (Nov 2003)}}
+\DoxyCodeLine{524     \textcolor{comment}{\#  uint32\_t SoundDest;   // Sound device 0: none, 1: Speaker, 2: sound board}}
+\DoxyCodeLine{525     \textcolor{comment}{\#  //Frame rate profile}}
+\DoxyCodeLine{526     \textcolor{comment}{\#  uint32\_t FRPSteps;        // Suplimentary steps in frame rate profile}}
+\DoxyCodeLine{527     \textcolor{comment}{\#                            // 0 means no frame rate profile}}
+\DoxyCodeLine{528     \textcolor{comment}{\#}}
+\DoxyCodeLine{529     \textcolor{comment}{\#}}
+\DoxyCodeLine{530     \textcolor{comment}{\#}}
+\DoxyCodeLine{531     \textcolor{comment}{\#}}
+\DoxyCodeLine{532     \textcolor{comment}{\#  int32\_t FRPImgNr[16];     // Image number where to change the rate and/or}}
+\DoxyCodeLine{533     \textcolor{comment}{\#                        // exposure allocated for 16 points (4 available in}}
+\DoxyCodeLine{534     \textcolor{comment}{\#                            // in v7)}}
+\DoxyCodeLine{535     \textcolor{comment}{\#  uint32\_t FRPRate[16];     // New value for frame rate (fps)}}
+\DoxyCodeLine{536     \textcolor{comment}{\#  uint32\_t FRPExp[16]       // New value for exposure}}
+\DoxyCodeLine{537     \textcolor{comment}{\#                            // (nanoseconds, not implemented in cameras)}}
+\DoxyCodeLine{538     \textcolor{comment}{\#  //Multicine partition}}
+\DoxyCodeLine{539     \textcolor{comment}{\#  int32\_t MCCnt;            // Partition count (= cine count -\/ 1)}}
+\DoxyCodeLine{540     \textcolor{comment}{\#                            // Preview cine does not need a partition}}
+\DoxyCodeLine{541     \textcolor{comment}{\#  float MCPercent[64];      // Percent of memory used for partitions}}
+\DoxyCodeLine{542     \textcolor{comment}{\#                            // Allocated for 64 partitions, 15 used in the}}
+\DoxyCodeLine{543     \textcolor{comment}{\#                            // current cameras}}
+\DoxyCodeLine{544     \textcolor{comment}{\#                         // End of SETUP in software version 606 (May 2004)}}
+\DoxyCodeLine{545     \textcolor{comment}{\#  // CALIBration on Current Image (CSR, current session reference)}}
+\DoxyCodeLine{546     \textcolor{comment}{\#  uint32\_t CICalib;         // This cine or this stg is the result of}}
+\DoxyCodeLine{547     \textcolor{comment}{\#                            // a current image calibration}}
+\DoxyCodeLine{548     \textcolor{comment}{\#                            // masks: 1 BlackRef, 2 WhiteCalib, 4 GrayCheck}}
+\DoxyCodeLine{549     \textcolor{comment}{\#                            // Last cicalib done at the acqui params:}}
+\DoxyCodeLine{550     \textcolor{comment}{\#  uint32\_t CalibWidth;      // Image dimensions}}
+\DoxyCodeLine{551     \textcolor{comment}{\#  uint32\_t CalibHeight;}}
+\DoxyCodeLine{552     \textcolor{comment}{\#  uint32\_t CalibRate;       // Frame rate (frames per second)}}
+\DoxyCodeLine{553     \textcolor{comment}{\#  uint32\_t CalibExp;        // Exposure duration (nanoseconds)}}
+\DoxyCodeLine{554     \textcolor{comment}{\#  uint32\_t CalibEDR;        // EDR (nanoseconds)}}
+\DoxyCodeLine{555     \textcolor{comment}{\#  uint32\_t CalibTemp;       // Sensor Temperature}}
+\DoxyCodeLine{556     \textcolor{comment}{\#  uint32\_t HeadSerial[4];   // Head serials for ethernet multihead cameras}}
+\DoxyCodeLine{557     \textcolor{comment}{\#                         // (v6.2) When multiple heads are saved in a file,}}
+\DoxyCodeLine{558     \textcolor{comment}{\#                            // the serials for existing heads are not zero}}
+\DoxyCodeLine{559     \textcolor{comment}{\#                          // When one head is saved in a file its serial is}}
+\DoxyCodeLine{560     \textcolor{comment}{\#                            // in HeadSerial[0] and the other head serials}}
+\DoxyCodeLine{561     \textcolor{comment}{\#                            // are 0xFFffFFff}}
+\DoxyCodeLine{562     \textcolor{comment}{\#                         // End of SETUP in software version 607 (Oct 2004)}}
+\DoxyCodeLine{563     \textcolor{comment}{\#  uint32\_t RangeCode;   // Range data code: describes the range data format}}
+\DoxyCodeLine{564     \textcolor{comment}{\#  uint32\_t RangeSize;       // Range data, per image size}}
+\DoxyCodeLine{565     \textcolor{comment}{\#  uint32\_t Decimation;      // Factor to reduce the frame rate when sending}}
+\DoxyCodeLine{566     \textcolor{comment}{\#                            //the images to i3 external memory by fiber}}
+\DoxyCodeLine{567     \textcolor{comment}{\#                         // End of SETUP in software version 614 (Feb 2005)}}
+\DoxyCodeLine{568     \textcolor{comment}{\#  uint32\_t MasterSerial; // Master camera Serial for external sync. 0 means}}
+\DoxyCodeLine{569     \textcolor{comment}{\#                            // none (this camera is not a slave of another}}
+\DoxyCodeLine{570     \textcolor{comment}{\#                            // camera)}}
+\DoxyCodeLine{571     \textcolor{comment}{\#                         // End of SETUP in software version 624 (Jun 2005)}}
+\DoxyCodeLine{572     \textcolor{comment}{\#  uint32\_t Sensor;          // Camera sensor code}}
+\DoxyCodeLine{573     \textcolor{comment}{\#                         // End of SETUP in software version 625 (Jul 2005)}}
+\DoxyCodeLine{574     \textcolor{comment}{\#  //Acquisition parameters in nanoseconds}}
+\DoxyCodeLine{575     \textcolor{comment}{\#  uint32\_t ShutterNs;       // Exposure, in nanoseconds}}
+\DoxyCodeLine{576     \textcolor{comment}{\#  uint32\_t EDRShutterNs;    // EDRExp, in nanoseconds}}
+\DoxyCodeLine{577     \textcolor{comment}{\#  uint32\_t FrameDelayNs;    // FrameDelay, in nanoseconds}}
+\DoxyCodeLine{578     \textcolor{comment}{\#                         // End of SETUP in software version 631 (Oct 2005)}}
+\DoxyCodeLine{579     \textcolor{comment}{\#  //Stamp outside the acquired image}}
+\DoxyCodeLine{580     \textcolor{comment}{\# //(this increases the image size by adding a border with text information)}}
+\DoxyCodeLine{581     \textcolor{comment}{\#  uint32\_t ImPosXAcq;       // Acquired image horizontal offset in}}
+\DoxyCodeLine{582     \textcolor{comment}{\#                            // sideStamped image}}
+\DoxyCodeLine{583     \textcolor{comment}{\#  uint32\_t ImPosYAcq;      // Acquired image vertical offset in sideStamped}}
+\DoxyCodeLine{584     \textcolor{comment}{\#                            // image}}
+\DoxyCodeLine{585     \textcolor{comment}{\#  uint32\_t ImWidthAcq;      // Acquired image width (different value from}}
+\DoxyCodeLine{586     \textcolor{comment}{\#                            // ImWidth if sideStamped file)}}
+\DoxyCodeLine{587     \textcolor{comment}{\#  uint32\_t ImHeightAcq;     // Acquired image height (different value from}}
+\DoxyCodeLine{588     \textcolor{comment}{\#                            // ImHeight if sideStamped file)}}
+\DoxyCodeLine{589     \textcolor{comment}{\#  char Description[MAXLENDESCRIPTION];//User description or comments}}
+\DoxyCodeLine{590     \textcolor{comment}{\#                            //(enlarged to 4096 characters)}}
+\DoxyCodeLine{591     \textcolor{comment}{\#                         // End of SETUP in software version 637 (Jul 2006)}}
+\DoxyCodeLine{592     \textcolor{comment}{\#  bool32\_t RisingEdge;      // TRUE rising, FALSE falling}}
+\DoxyCodeLine{593     \textcolor{comment}{\#  uint32\_t FilterTime;      // time constant}}
+\DoxyCodeLine{594     \textcolor{comment}{\#  bool32\_t LongReady;       // If TRUE the Ready is 1 from the start}}
+\DoxyCodeLine{595     \textcolor{comment}{\#                            // to the end of recording (needed for signal}}
+\DoxyCodeLine{596     \textcolor{comment}{\#                            // acquisition)}}
+\DoxyCodeLine{597     \textcolor{comment}{\#  bool32\_t ShutterOff;   // Shutter off -\/ to force maximum exposure for PIV}}
+\DoxyCodeLine{598     \textcolor{comment}{\#                         // End of SETUP in software version 658 (Mar 2008)}}
+\DoxyCodeLine{599     \textcolor{comment}{\#  uint8\_t Res4[16];         // -\/-\/-\/TBI}}
+\DoxyCodeLine{600     \textcolor{comment}{\#                         // End of SETUP in software version 663 (May 2008)}}
+\DoxyCodeLine{601     \textcolor{comment}{\#  bool32\_t bMetaWB;         // pixels value does not have WB applied}}
+\DoxyCodeLine{602     \textcolor{comment}{\#                            // (or any other processing)}}
+\DoxyCodeLine{603     \textcolor{comment}{\#  int32\_t Hue;              //-\/-\/-\/UPDF replaced by float fHue}}
+\DoxyCodeLine{604     \textcolor{comment}{\#                            // hue corection (degrees: -\/180 ...180)}}
+\DoxyCodeLine{605     \textcolor{comment}{\#                         // End of SETUP in software version 671 (May 2009)}}
+\DoxyCodeLine{606     \textcolor{comment}{\#  int32\_t BlackLevel;       // Black level in the raw pixels}}
+\DoxyCodeLine{607     \textcolor{comment}{\#  int32\_t WhiteLevel;       // White level in the raw pixels}}
+\DoxyCodeLine{608     \textcolor{comment}{\#  char LensDescription[256];// text with the producer, model,}}
+\DoxyCodeLine{609     \textcolor{comment}{\#                            // focal range etc ...}}
+\DoxyCodeLine{610     \textcolor{comment}{\#  float LensAperture;       // aperture f number}}
+\DoxyCodeLine{611     \textcolor{comment}{\#  float LensFocusDistance;  // distance where the objects are in focus in}}
+\DoxyCodeLine{612     \textcolor{comment}{\#                         // meters, not available from Canon motorized lens}}
+\DoxyCodeLine{613     \textcolor{comment}{\#  float LensFocalLength;    // current focal length; (zoom factor)}}
+\DoxyCodeLine{614     \textcolor{comment}{\#                         // End of SETUP in software version 691 (Jul 2010)}}
+\DoxyCodeLine{615     \textcolor{comment}{\#  float fOffset;            // [-\/1.0, 1.0], neutral 0.0;}}
+\DoxyCodeLine{616     \textcolor{comment}{\#                            // 1.0 means shift by the maximum pixel value}}
+\DoxyCodeLine{617     \textcolor{comment}{\#  float fGain;              // [0.0, Max], neutral 1.0;}}
+\DoxyCodeLine{618     \textcolor{comment}{\#  float fSaturation;        // [0.0, Max], neutral 1.0;}}
+\DoxyCodeLine{619     \textcolor{comment}{\#  float fHue;               // [-\/180.0, 180.0] neutral 0;}}
+\DoxyCodeLine{620     \textcolor{comment}{\#                       // degrees and fractions of degree to rotate the hue}}
+\DoxyCodeLine{621     \textcolor{comment}{\#  float fGamma;             // [0.0, Max], neutral 1.0; global gamma}}
+\DoxyCodeLine{622     \textcolor{comment}{\#                            // (or green gamma)}}
+\DoxyCodeLine{623     \textcolor{comment}{\#  float fGammaR;          // per component gammma (to be added to the field}}
+\DoxyCodeLine{624     \textcolor{comment}{\#                            // Gamma)}}
+\DoxyCodeLine{625     \textcolor{comment}{\#                            // 0 means neutral}}
+\DoxyCodeLine{626     \textcolor{comment}{\#  float fGammaB;}}
+\DoxyCodeLine{627     \textcolor{comment}{\#  float fFlare;             // [-\/1.0, 1.0], neutral 0.0;}}
+\DoxyCodeLine{628     \textcolor{comment}{\#                            // 1.0 means shift by the maximum pixel value}}
+\DoxyCodeLine{629     \textcolor{comment}{\#                            // pre White Balance offset}}
+\DoxyCodeLine{630     \textcolor{comment}{\#  float fPedestalR;         // [-\/1.0, 1.0], neutral 0.0;}}
+\DoxyCodeLine{631     \textcolor{comment}{\#                            // 1.0 means shift by the maximum pixel value}}
+\DoxyCodeLine{632     \textcolor{comment}{\#                            // after gamma offset}}
+\DoxyCodeLine{633     \textcolor{comment}{\#  float fPedestalG;}}
+\DoxyCodeLine{634     \textcolor{comment}{\#  float fPedestalB;}}
+\DoxyCodeLine{635     \textcolor{comment}{\#  float fChroma;            // [0.0, Max], neutral 1.0;}}
+\DoxyCodeLine{636     \textcolor{comment}{\#                            // chrominance adjustment (after gamma)}}
+\DoxyCodeLine{637     \textcolor{comment}{\#  char ToneLabel[256];}}
+\DoxyCodeLine{638     \textcolor{comment}{\#  int32\_t TonePoints;}}
+\DoxyCodeLine{639     \textcolor{comment}{\#  float fTone[32*2];        // up to 32 points + 0.0,0.0 1.0,1.0}}
+\DoxyCodeLine{640     \textcolor{comment}{\#                            // defining a LUT using spline curves}}
+\DoxyCodeLine{641     \textcolor{comment}{\#  char UserMatrixLabel[256];}}
+\DoxyCodeLine{642     \textcolor{comment}{\#  bool32\_t EnableMatrices;}}
+\DoxyCodeLine{643     \textcolor{comment}{\#  float cmUser[9];          // RGB color matrix}}
+\DoxyCodeLine{644     \textcolor{comment}{\#  bool32\_t EnableCrop;   // The Output image will contains only a rectangle}}
+\DoxyCodeLine{645     \textcolor{comment}{\#                            // portion of the input image}}
+\DoxyCodeLine{646     \textcolor{comment}{\#  RECT CropRect;}}
+\DoxyCodeLine{647     \textcolor{comment}{\#  bool32\_t EnableResample; // Resample image to a desired output Resolution}}
+\DoxyCodeLine{648     \textcolor{comment}{\#  uint32\_t ResampleWidth;}}
+\DoxyCodeLine{649     \textcolor{comment}{\#  uint32\_t ResampleHeight;}}
+\DoxyCodeLine{650     \textcolor{comment}{\#  float fGain16\_8;         // Gain coefficient used when converting to 8bps}}
+\DoxyCodeLine{651     \textcolor{comment}{\#                            // Input pixels (bitdepth>8) are multiplied by}}
+\DoxyCodeLine{652     \textcolor{comment}{\#                            // the factor: fGain16\_8 * (2**8 / 2**bitdepth)}}
+\DoxyCodeLine{653     \textcolor{comment}{\#                         // End of SETUP in software version 693 (Oct 2010)}}
+\DoxyCodeLine{654     \textcolor{comment}{\#}}
+\DoxyCodeLine{655     \textcolor{comment}{\#  uint32\_t FRPShape[16];    // 0: flat, 1 ramp}}
+\DoxyCodeLine{656     \textcolor{comment}{\#  TC TrigTC;                // Trigger frame SMPTE time code and user bits}}
+\DoxyCodeLine{657     \textcolor{comment}{\#  float fPbRate;          // Video playback rate (fps) active when the cine}}
+\DoxyCodeLine{658     \textcolor{comment}{\#                           // was captured}}
+\DoxyCodeLine{659     \textcolor{comment}{\#  float fTcRate;           // Playback rate (fps) used for generating SMPTE}}
+\DoxyCodeLine{660     \textcolor{comment}{\#                           // time code}}
+\DoxyCodeLine{661     \textcolor{comment}{\#                         // End of SETUP in software version 701 (Apr 2011)}}
+\DoxyCodeLine{662     \textcolor{comment}{\#}}
+\DoxyCodeLine{663     \textcolor{comment}{\#  char CineName[256];       // Cine name}}
+\DoxyCodeLine{664     \textcolor{comment}{\#                         // End of SETUP in software version 702 (May 2011)}}
+\DoxyCodeLine{665     \textcolor{comment}{\#  float fGainR;             // Per component gain -\/ user adjustment}}
+\DoxyCodeLine{666     \textcolor{comment}{\#  float fGainG;             // [0.0, Max], neutral 1.0;}}
+\DoxyCodeLine{667     \textcolor{comment}{\#  float fGainB;}}
+\DoxyCodeLine{668     \textcolor{comment}{\#  float cmCalib[9]// RGB color calibration matrix bringing camera pixels to}}
+\DoxyCodeLine{669     \textcolor{comment}{\#                  // rec 709. It includes the white balance set into the}}
+\DoxyCodeLine{670     \textcolor{comment}{\#                  // ph16 cameras using fWBTemp and fWBCc and the original}}
+\DoxyCodeLine{671     \textcolor{comment}{\#                  // factory calibration. The cine player should decompose}}
+\DoxyCodeLine{672     \textcolor{comment}{\#                  // this matrix in two components: a diagonal one with the}}
+\DoxyCodeLine{673     \textcolor{comment}{\#                  // white balance to be applied before interpolation and a}}
+\DoxyCodeLine{674     \textcolor{comment}{\#                  // normalized one to be applied after interpolation.}}
+\DoxyCodeLine{675     \textcolor{comment}{\#}}
+\DoxyCodeLine{676     \textcolor{comment}{\#  float fWBTemp;  // White balance based on color temperature and color}}
+\DoxyCodeLine{677     \textcolor{comment}{\#  float fWBCc;    // temperature and color compensation index.}}
+\DoxyCodeLine{678     \textcolor{comment}{\#                  // Its effect is included in the cmCalib.}}
+\DoxyCodeLine{679     \textcolor{comment}{\#  char CalibrationInfo[1024];}}
+\DoxyCodeLine{680     \textcolor{comment}{\#                  // Original calibration matrices: used to calculate}}
+\DoxyCodeLine{681     \textcolor{comment}{\#                  // cmCalib in the camera}}
+\DoxyCodeLine{682     \textcolor{comment}{\#  char OpticalFilter[1024];}}
+\DoxyCodeLine{683     \textcolor{comment}{\#                  // Optical filter matrix: used to calculate cmCalib in}}
+\DoxyCodeLine{684     \textcolor{comment}{\#                  // the camera}}
+\DoxyCodeLine{685     \textcolor{comment}{\#                  // End of SETUP in software version 709 (September 2011)}}
+\DoxyCodeLine{686     \textcolor{comment}{\#  MAXSTDSTRSZ = 256}}
+\DoxyCodeLine{687     \textcolor{comment}{\#  char GpsInfo[MAXSTDSTRSZ];}}
+\DoxyCodeLine{688     \textcolor{comment}{\#                  //Current position and status info as received from a}}
+\DoxyCodeLine{689     \textcolor{comment}{\#                  // GPS receiver}}
+\DoxyCodeLine{690     \textcolor{comment}{\#  char Uuid[MAXSTDSTRSZ];// Unique cine identifier}}
+\DoxyCodeLine{691     \textcolor{comment}{\#                      // End of SETUP in software version 719 (March 2012)}}
+\DoxyCodeLine{692     \textcolor{comment}{\#  char CreatedBy[MAXSTDSTRSZ];}}
+\DoxyCodeLine{693     \textcolor{comment}{\#                     // The name of the application that created this cine}}
+\DoxyCodeLine{694     \textcolor{comment}{\#                     // End of SETUP in software version 720 (March 2012)}}
+\DoxyCodeLine{695     \textcolor{comment}{\#  uint32\_t RecBPP;   // Acquisition bit depth. It can be 8, 10, 12 or 14}}
+\DoxyCodeLine{696     \textcolor{comment}{\#  uint16\_t LowestFormatBPP;}}
+\DoxyCodeLine{697     \textcolor{comment}{\#                   // Description of the minimum format out of all formats}}
+\DoxyCodeLine{698     \textcolor{comment}{\#  uint16\_t LowestFormatQ //the images of this cine have been represented on}}
+\DoxyCodeLine{699     \textcolor{comment}{\#                         //since the moment of acquisition.}}
+\DoxyCodeLine{700     \textcolor{comment}{\#                    // End of SETUP in software version 731 (February 2013)}}
+\DoxyCodeLine{701     \textcolor{comment}{\#  float fToe;               // Controls the gamma curve in the blacks.}}
+\DoxyCodeLine{702     \textcolor{comment}{\#                            // Neutral is 1.0f.}}
+\DoxyCodeLine{703     \textcolor{comment}{\#                            // Decreasing fToe lifts the blacks, while}}
+\DoxyCodeLine{704     \textcolor{comment}{\#                            // increasing it compresses them}}
+\DoxyCodeLine{705     \textcolor{comment}{\#}}
+\DoxyCodeLine{706     \textcolor{comment}{\#  uint32\_t LogMode;         // Configures the log mode.}}
+\DoxyCodeLine{707     \textcolor{comment}{\#                            // 0 -\/ log mode disabled.}}
+\DoxyCodeLine{708     \textcolor{comment}{\#                            // 1, 2, etc -\/ log mode enabled.}}
+\DoxyCodeLine{709     \textcolor{comment}{\#                        // If log mode enabled, gain, gamma, the pedestals,}}
+\DoxyCodeLine{710     \textcolor{comment}{\#                            // r/g/b gains, offset and flare are inactive.}}
+\DoxyCodeLine{711     \textcolor{comment}{\#}}
+\DoxyCodeLine{712     \textcolor{comment}{\#  char CameraModel[MAXSTDSTRSZ]; // Camera model string.}}
+\DoxyCodeLine{713     \textcolor{comment}{\#                            // End of SETUP in software version 742}}
+\DoxyCodeLine{714     \textcolor{comment}{\#}}
+\DoxyCodeLine{715     \textcolor{comment}{\#  uint32\_t WBType;      // For raw color cines, it describes how meta WB is}}
+\DoxyCodeLine{716     \textcolor{comment}{\#                            // stored.}}
+\DoxyCodeLine{717     \textcolor{comment}{\#                         // If bit 0 is set -\/ wb is stored in WBGain field.}}
+\DoxyCodeLine{718     \textcolor{comment}{\#                        // If bit 1 is set -\/ wb is stored in fWBTemp, fWBCc}}
+\DoxyCodeLine{719     \textcolor{comment}{\#                            // fields.}}
+\DoxyCodeLine{720     \textcolor{comment}{\#  float fDecimation;  // Decimation coefficient employed when this cine was}}
+\DoxyCodeLine{721     \textcolor{comment}{\#                            // saved to file.}}
+\DoxyCodeLine{722     \textcolor{comment}{\#                            // End of SETUP in software version 745}}
+\DoxyCodeLine{723     \textcolor{comment}{\#  uint32\_t MagSerial;    // The serial of the magazine where the cine was}}
+\DoxyCodeLine{724     \textcolor{comment}{\#                            // recorded or stored (if any, null otherwise)}}
+\DoxyCodeLine{725     \textcolor{comment}{\#  uint32\_t CSSerial; // Cine Save serial: The serial of the device (camera,}}
+\DoxyCodeLine{726     \textcolor{comment}{\#                            // cine station) used to save the cine to file}}
+\DoxyCodeLine{727     \textcolor{comment}{\#  double dFrameRate;      // High precision acquisition frame rate, replace}}
+\DoxyCodeLine{728     \textcolor{comment}{\#                            // uint32\_t FrameRate}}
+\DoxyCodeLine{729     \textcolor{comment}{\#                            // End of SETUP in software version 751}}
+\DoxyCodeLine{730     \textcolor{comment}{\#  uint32\_t SensorMode    // Camera sensor Mode used to define what mode the}}
+\DoxyCodeLine{731     \textcolor{comment}{\#                            // Sensor is in}}
+\DoxyCodeLine{732     \textcolor{comment}{\#                      // This is currently valid for the Flex4K, VEO 4K and}}
+\DoxyCodeLine{733     \textcolor{comment}{\#                            // VIRGO V2640}}
+\DoxyCodeLine{734     \textcolor{comment}{\#                      // it is undefined for all other camera (should be 0)}}
+\DoxyCodeLine{735     \textcolor{comment}{\#                        // End of SETUP in software version 771 (Dec 2017)}}
+\DoxyCodeLine{736 }
+\DoxyCodeLine{737 }
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLib_1_1LibVideoFiles_a046dca2bb29261400fd64594e3ef5e2a}\label{namespaceLib_1_1LibVideoFiles_a046dca2bb29261400fd64594e3ef5e2a}} 
+\index{Lib.LibVideoFiles@{Lib.LibVideoFiles}!read\_time\_base@{read\_time\_base}}
+\index{read\_time\_base@{read\_time\_base}!Lib.LibVideoFiles@{Lib.LibVideoFiles}}
+\doxysubsubsection{\texorpdfstring{read\_time\_base()}{read\_time\_base()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Video\+Files.\+read\+\_\+time\+\_\+base (\begin{DoxyParamCaption}\item[{str}]{filename,  }\item[{dict}]{header,  }\item[{dict}]{settings }\end{DoxyParamCaption})}
+
+
+
+Read the time base of the .cin video (relative to the trigger) 
+
+Jose Rueda\+: \href{mailto:jose.rueda@ipp.mpg.de}{\texttt{ jose.\+rueda@ipp.\+mpg.\+de}}
+
+
+\begin{DoxyParams}{Parameters}
+{\em filename} & name of the file to open (full path) \\
+\hline
+{\em header} & header created by the function read\+\_\+header \\
+\hline
+{\em settings} & setting dictionary created by read\+\_\+settings \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+cin\+\_\+time\+: np array with the time point for each recorded frame 
+\end{DoxyReturn}
+
+
+Definition at line 789 of file Lib\+Video\+Files.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{789 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_a046dca2bb29261400fd64594e3ef5e2a}{read\_time\_base}}(filename: str, header: dict, settings: dict):}
+\DoxyCodeLine{790     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{791 \textcolor{stringliteral}{    Read the time base of the .cin video (relative to the trigger)}}
+\DoxyCodeLine{792 \textcolor{stringliteral}{}}
+\DoxyCodeLine{793 \textcolor{stringliteral}{    Jose Rueda: jose.rueda@ipp.mpg.de}}
+\DoxyCodeLine{794 \textcolor{stringliteral}{}}
+\DoxyCodeLine{795 \textcolor{stringliteral}{    @param filename: name of the file to open (full path)}}
+\DoxyCodeLine{796 \textcolor{stringliteral}{    @param header: header created by the function read\_header}}
+\DoxyCodeLine{797 \textcolor{stringliteral}{    @param settings: setting dictionary created by read\_settings}}
+\DoxyCodeLine{798 \textcolor{stringliteral}{    @return cin\_time: np array with the time point for each recorded frame}}
+\DoxyCodeLine{799 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{800     \textcolor{comment}{\# Open file and go to the position of the image header}}
+\DoxyCodeLine{801     fid = open(filename, \textcolor{stringliteral}{'r'})}
+\DoxyCodeLine{802     fid.seek(header[\textcolor{stringliteral}{'OffSetup'}] + settings[\textcolor{stringliteral}{'Length'}])}
+\DoxyCodeLine{803 }
+\DoxyCodeLine{804     \textcolor{comment}{\# There are different blocks order in a different way depending on the}}
+\DoxyCodeLine{805     \textcolor{comment}{\# version of the camera, we are interested in the block identified with a}}
+\DoxyCodeLine{806     \textcolor{comment}{\# 1002 number}}
+\DoxyCodeLine{807     id\_number = 0}
+\DoxyCodeLine{808     cumulate\_size: int = 0}
+\DoxyCodeLine{809     \textcolor{keywordflow}{while} id\_number != 1002:}
+\DoxyCodeLine{810         size\_of\_the\_block = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, 1)}
+\DoxyCodeLine{811         cumulate\_size = cumulate\_size + size\_of\_the\_block}
+\DoxyCodeLine{812 }
+\DoxyCodeLine{813         id\_number = np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1)}
+\DoxyCodeLine{814 }
+\DoxyCodeLine{815         \textcolor{keywordflow}{if} id\_number == 1002:}
+\DoxyCodeLine{816             np.fromfile(fid, \textcolor{stringliteral}{'uint16'}, 1)  \textcolor{comment}{\# Reserved number}}
+\DoxyCodeLine{817             dummy = np.fromfile(fid, \textcolor{stringliteral}{'uint32'}, int(2 * header[\textcolor{stringliteral}{'ImageCount'}][:]))}
+\DoxyCodeLine{818             cin\_time: float = np.float64(dummy[1::2]) -\/ \(\backslash\)}
+\DoxyCodeLine{819                 np.float64(header[\textcolor{stringliteral}{'TriggerTime'}][\textcolor{stringliteral}{'seconds'}]) + \(\backslash\)}
+\DoxyCodeLine{820                 (np.float64(dummy[0::2]) -\/}
+\DoxyCodeLine{821                  np.float64(header[\textcolor{stringliteral}{'TriggerTime'}][\textcolor{stringliteral}{'fractions'}])) / 2.0 ** 32}
+\DoxyCodeLine{822             \textcolor{comment}{\# return}}
+\DoxyCodeLine{823             fid.close()}
+\DoxyCodeLine{824             \textcolor{keywordflow}{return} cin\_time}
+\DoxyCodeLine{825         fid.seek(header[\textcolor{stringliteral}{'OffSetup'}] + settings[\textcolor{stringliteral}{'Length'}] + cumulate\_size)}
+\DoxyCodeLine{826 }
+\DoxyCodeLine{827 }
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLib_1_1LibVideoFiles_aa6c83c7616a79f4242f8685b6e137a8a}\label{namespaceLib_1_1LibVideoFiles_aa6c83c7616a79f4242f8685b6e137a8a}} 
+\index{Lib.LibVideoFiles@{Lib.LibVideoFiles}!rgb2gray@{rgb2gray}}
+\index{rgb2gray@{rgb2gray}!Lib.LibVideoFiles@{Lib.LibVideoFiles}}
+\doxysubsubsection{\texorpdfstring{rgb2gray()}{rgb2gray()}}
+{\footnotesize\ttfamily def Lib.\+Lib\+Video\+Files.\+rgb2gray (\begin{DoxyParamCaption}\item[{}]{rgb }\end{DoxyParamCaption})}
+
+
+
+Transform rgb images to gray. 
+
+
+
+Definition at line 1006 of file Lib\+Video\+Files.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1006 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLib_1_1LibVideoFiles_aa6c83c7616a79f4242f8685b6e137a8a}{rgb2gray}}(rgb):}
+\DoxyCodeLine{1007     \textcolor{stringliteral}{"{}"{}"{}Transform rgb images to gray"{}"{}"{}}}
+\DoxyCodeLine{1008     \textcolor{keywordflow}{return} np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])}
+\DoxyCodeLine{1009 }
+\DoxyCodeLine{1010 }
+
+\end{DoxyCode}

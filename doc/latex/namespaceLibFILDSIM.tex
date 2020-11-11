@@ -1,0 +1,358 @@
+\hypertarget{namespaceLibFILDSIM}{}\doxysection{Lib\+FILDSIM Namespace Reference}
+\label{namespaceLibFILDSIM}\index{LibFILDSIM@{LibFILDSIM}}
+
+
+Module containing the routines to integrate the suite with FILDSIM capabilities.  
+
+
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{namespaceLibFILDSIM_a387dd9c2c4cce8661dee1dde001c6272}{calculate\+\_\+fild\+\_\+orientation}} (br, bz, bt, alpha, beta)
+\begin{DoxyCompactList}\small\item\em Routine to calculate the magnetic field orientation with tespect to FILD. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibFILDSIM_a27b28782cbeeea1626fef35d7d5d09fc}{calculate\+\_\+absolute\+\_\+calibration\+\_\+frame}} (cal\+\_\+frame, exposure\+\_\+time, pinhole\+\_\+area, calib\+\_\+exposure\+\_\+time, int\+\_\+photon\+\_\+flux, pixel\+\_\+area\+\_\+covered)
+\begin{DoxyCompactList}\small\item\em Calculate absolute photon flux. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibFILDSIM_ab0c03082ef6b49d3a3f166a877041815}{calculate\+\_\+absolute\+\_\+flux}} (raw\+\_\+frame, calibration\+\_\+frame, efficiency\+\_\+energy, efficiency\+\_\+yield, b\+\_\+field, band\+\_\+pass\+\_\+filter, interpolated\+\_\+gyro, interpolated\+\_\+fcol, roi, pinhole\+\_\+area, exposure\+\_\+time, A, Z, calib\+\_\+exposure\+\_\+time, pixel\+\_\+area\+\_\+covered, int\+\_\+photon\+\_\+flux, method, ignore\+\_\+fcol=False, lower\+\_\+limit=0.\+05)
+\begin{DoxyCompactList}\small\item\em Routine to estimate absolute flux of losses. \end{DoxyCompactList}\item 
+def \mbox{\hyperlink{namespaceLibFILDSIM_a7e49b5e887105566bf757e72ea1f3ddc}{get\+\_\+energy\+\_\+\+FILD}} (gyroradius, float B, int A=2, int Z=1)
+\begin{DoxyCompactList}\small\item\em Relate the gyroradius with the asociated energy (with the convenia given in FILDSIM. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Module containing the routines to integrate the suite with FILDSIM capabilities. 
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{namespaceLibFILDSIM_a27b28782cbeeea1626fef35d7d5d09fc}\label{namespaceLibFILDSIM_a27b28782cbeeea1626fef35d7d5d09fc}} 
+\index{LibFILDSIM@{LibFILDSIM}!calculate\_absolute\_calibration\_frame@{calculate\_absolute\_calibration\_frame}}
+\index{calculate\_absolute\_calibration\_frame@{calculate\_absolute\_calibration\_frame}!LibFILDSIM@{LibFILDSIM}}
+\doxysubsubsection{\texorpdfstring{calculate\_absolute\_calibration\_frame()}{calculate\_absolute\_calibration\_frame()}}
+{\footnotesize\ttfamily def Lib\+FILDSIM.\+calculate\+\_\+absolute\+\_\+calibration\+\_\+frame (\begin{DoxyParamCaption}\item[{}]{cal\+\_\+frame,  }\item[{}]{exposure\+\_\+time,  }\item[{}]{pinhole\+\_\+area,  }\item[{}]{calib\+\_\+exposure\+\_\+time,  }\item[{}]{int\+\_\+photon\+\_\+flux,  }\item[{}]{pixel\+\_\+area\+\_\+covered }\end{DoxyParamCaption})}
+
+
+
+Calculate absolute photon flux. 
+
+\begin{DoxyVerb}@param cal_frame: calibration frame [counts]
+@param exposure_time: in s
+@param pinhole_area: in m^2
+@param calib_exposure_time: in s
+@param int_photon_flux: in Photons/(s m^2)
+@param pixel_area_covered: in m^2
+@return frame: Calibrated frame [Counts * s * m^2 / photons]
+\end{DoxyVerb}
+ 
+
+Definition at line 72 of file Lib\+FILDSIM.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{74                                          pixel\_area\_covered):}
+\DoxyCodeLine{75     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{76 \textcolor{stringliteral}{    Calculate absolute photon flux}}
+\DoxyCodeLine{77 \textcolor{stringliteral}{}}
+\DoxyCodeLine{78 \textcolor{stringliteral}{}}
+\DoxyCodeLine{79 \textcolor{stringliteral}{    @param cal\_frame: calibration frame [counts]}}
+\DoxyCodeLine{80 \textcolor{stringliteral}{    @param exposure\_time: in s}}
+\DoxyCodeLine{81 \textcolor{stringliteral}{    @param pinhole\_area: in m\string^2}}
+\DoxyCodeLine{82 \textcolor{stringliteral}{    @param calib\_exposure\_time: in s}}
+\DoxyCodeLine{83 \textcolor{stringliteral}{    @param int\_photon\_flux: in Photons/(s m\string^2)}}
+\DoxyCodeLine{84 \textcolor{stringliteral}{    @param pixel\_area\_covered: in m\string^2}}
+\DoxyCodeLine{85 \textcolor{stringliteral}{    @return frame: Calibrated frame [Counts * s * m\string^2 / photons]}}
+\DoxyCodeLine{86 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{87 }
+\DoxyCodeLine{88     frame = cal\_frame * exposure\_time * pinhole\_area / (}
+\DoxyCodeLine{89                 calib\_exposure\_time * int\_photon\_flux * pixel\_area\_covered)}
+\DoxyCodeLine{90 }
+\DoxyCodeLine{91     \textcolor{keywordflow}{return} frame}
+\DoxyCodeLine{92 }
+\DoxyCodeLine{93 }
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLibFILDSIM_ab0c03082ef6b49d3a3f166a877041815}\label{namespaceLibFILDSIM_ab0c03082ef6b49d3a3f166a877041815}} 
+\index{LibFILDSIM@{LibFILDSIM}!calculate\_absolute\_flux@{calculate\_absolute\_flux}}
+\index{calculate\_absolute\_flux@{calculate\_absolute\_flux}!LibFILDSIM@{LibFILDSIM}}
+\doxysubsubsection{\texorpdfstring{calculate\_absolute\_flux()}{calculate\_absolute\_flux()}}
+{\footnotesize\ttfamily def Lib\+FILDSIM.\+calculate\+\_\+absolute\+\_\+flux (\begin{DoxyParamCaption}\item[{}]{raw\+\_\+frame,  }\item[{}]{calibration\+\_\+frame,  }\item[{}]{efficiency\+\_\+energy,  }\item[{}]{efficiency\+\_\+yield,  }\item[{}]{b\+\_\+field,  }\item[{}]{band\+\_\+pass\+\_\+filter,  }\item[{}]{interpolated\+\_\+gyro,  }\item[{}]{interpolated\+\_\+fcol,  }\item[{}]{roi,  }\item[{}]{pinhole\+\_\+area,  }\item[{}]{exposure\+\_\+time,  }\item[{}]{A,  }\item[{}]{Z,  }\item[{}]{calib\+\_\+exposure\+\_\+time,  }\item[{}]{pixel\+\_\+area\+\_\+covered,  }\item[{}]{int\+\_\+photon\+\_\+flux,  }\item[{}]{method,  }\item[{}]{ignore\+\_\+fcol = {\ttfamily False},  }\item[{}]{lower\+\_\+limit = {\ttfamily 0.05} }\end{DoxyParamCaption})}
+
+
+
+Routine to estimate absolute flux of losses. 
+
+\begin{DoxyRefDesc}{Todo}
+\item[\mbox{\hyperlink{todo__todo000001}{Todo}}]this is half done Based on the IDL routine writen by J. Galdón (\href{mailto:jgaldon@us.es}{\texttt{ jgaldon@us.\+es}})\end{DoxyRefDesc}
+
+
+
+\begin{DoxyParams}{Parameters}
+{\em raw\+\_\+frame} & as 2D numpy array \\
+\hline
+{\em calibration\+\_\+frame} & as 2D numpy array \\
+\hline
+{\em efficiency\+\_\+energy} & \mbox{[}Energy given in eV\mbox{]} \\
+\hline
+{\em efficiency\+\_\+yield} & \mbox{[}Gieven in photons /ion\mbox{]} \\
+\hline
+{\em b\+\_\+field} & \mbox{[}T\mbox{]} \\
+\hline
+{\em band\+\_\+pass\+\_\+filter} & \\
+\hline
+{\em interpolated\+\_\+gyro} & \mbox{[}cm\mbox{]} \\
+\hline
+{\em interpolated\+\_\+fcol} & \mbox{[}Nscint/\+Npinhole$\ast$100\mbox{]} \\
+\hline
+{\em roi} & \\
+\hline
+{\em pinhole\+\_\+area} & \mbox{[}m$^\wedge$2\mbox{]} \\
+\hline
+{\em exposure\+\_\+time} & \mbox{[}s\mbox{]} \\
+\hline
+{\em A} & \\
+\hline
+{\em Z} & \\
+\hline
+{\em calib\+\_\+exposure\+\_\+time} & \\
+\hline
+{\em pixel\+\_\+area\+\_\+covered} & \\
+\hline
+{\em int\+\_\+photon\+\_\+flux} & \\
+\hline
+{\em method} & \\
+\hline
+{\em ignore\+\_\+fcol} & \\
+\hline
+{\em lower\+\_\+limit} & \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\+: 
+\end{DoxyReturn}
+
+
+Definition at line 94 of file Lib\+FILDSIM.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{100                             lower\_limit=0.05):}
+\DoxyCodeLine{101     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{102 \textcolor{stringliteral}{    Routine to estimate absolute flux of losses}}
+\DoxyCodeLine{103 \textcolor{stringliteral}{}}
+\DoxyCodeLine{104 \textcolor{stringliteral}{    @todo this is half done}}
+\DoxyCodeLine{105 \textcolor{stringliteral}{    Based on the IDL routine writen by J. Galdón (jgaldon@us.es)}}
+\DoxyCodeLine{106 \textcolor{stringliteral}{}}
+\DoxyCodeLine{107 \textcolor{stringliteral}{    @param raw\_frame: as 2D numpy array}}
+\DoxyCodeLine{108 \textcolor{stringliteral}{    @param calibration\_frame: as 2D numpy array}}
+\DoxyCodeLine{109 \textcolor{stringliteral}{    @param efficiency\_energy: [Energy given in eV]}}
+\DoxyCodeLine{110 \textcolor{stringliteral}{    @param efficiency\_yield:  [Gieven in photons /ion]}}
+\DoxyCodeLine{111 \textcolor{stringliteral}{    @param b\_field: [T]}}
+\DoxyCodeLine{112 \textcolor{stringliteral}{    @param band\_pass\_filter:}}
+\DoxyCodeLine{113 \textcolor{stringliteral}{    @param interpolated\_gyro: [cm]}}
+\DoxyCodeLine{114 \textcolor{stringliteral}{    @param interpolated\_fcol: [Nscint/Npinhole*100]}}
+\DoxyCodeLine{115 \textcolor{stringliteral}{    @param roi:}}
+\DoxyCodeLine{116 \textcolor{stringliteral}{    @param pinhole\_area: [m\string^2]}}
+\DoxyCodeLine{117 \textcolor{stringliteral}{    @param exposure\_time: [s]}}
+\DoxyCodeLine{118 \textcolor{stringliteral}{    @param A:}}
+\DoxyCodeLine{119 \textcolor{stringliteral}{    @param Z:}}
+\DoxyCodeLine{120 \textcolor{stringliteral}{    @param calib\_exposure\_time:}}
+\DoxyCodeLine{121 \textcolor{stringliteral}{    @param pixel\_area\_covered:}}
+\DoxyCodeLine{122 \textcolor{stringliteral}{    @param int\_photon\_flux:}}
+\DoxyCodeLine{123 \textcolor{stringliteral}{    @param method:}}
+\DoxyCodeLine{124 \textcolor{stringliteral}{    @param ignore\_fcol:}}
+\DoxyCodeLine{125 \textcolor{stringliteral}{    @param lower\_limit:}}
+\DoxyCodeLine{126 \textcolor{stringliteral}{    @return:}}
+\DoxyCodeLine{127 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{128 }
+\DoxyCodeLine{129     \textcolor{comment}{\# Check if we are ignoring the collimator factor which means that we will}}
+\DoxyCodeLine{130     \textcolor{comment}{\# do the calculation in the scintillator, not at the pinhole [Real}}
+\DoxyCodeLine{131     \textcolor{comment}{\# plasma losses are at the pinhole, not the scintillator]}}
+\DoxyCodeLine{132     \textcolor{keywordflow}{if} ignore\_fcol:}
+\DoxyCodeLine{133         interpolated\_fcol = interpolated\_fcol * 0 + 1.0}
+\DoxyCodeLine{134         print(\textcolor{stringliteral}{'Ignoring collimator factor'},}
+\DoxyCodeLine{135               \textcolor{stringliteral}{'-\/-\/> Calculating Ion Flux at the scintillator not the pinhole!!!'})}
+\DoxyCodeLine{136     \textcolor{keywordflow}{else}:}
+\DoxyCodeLine{137         \textcolor{comment}{\# FILDSIM gives data in \%, let's normalise it to unity to work}}
+\DoxyCodeLine{138         interpolated\_fcol = interpolated\_fcol / 100.0}
+\DoxyCodeLine{139         \textcolor{comment}{\# Remove values which are to low, just to avoid numerical problems,}}
+\DoxyCodeLine{140         \textcolor{comment}{\# as the collimator factors goes in the denominator of the final}}
+\DoxyCodeLine{141         \textcolor{comment}{\# expression}}
+\DoxyCodeLine{142         flags = interpolated\_fcol < lower\_limit}
+\DoxyCodeLine{143         interpolated\_fcol[flags] = 0.0}
+\DoxyCodeLine{144 }
+\DoxyCodeLine{145     \textcolor{comment}{\# Check frames sizes and resize if necessary}}
+\DoxyCodeLine{146     \textcolor{keywordflow}{if} raw\_frame.shape != raw\_frame.shape:}
+\DoxyCodeLine{147         print(\textcolor{stringliteral}{'Size of the data frame and calibration frame not matching!!'})}
+\DoxyCodeLine{148         print(\textcolor{stringliteral}{'Artifitially resizing the calibration frame!!'})}
+\DoxyCodeLine{149         }
+\DoxyCodeLine{150 }
+\DoxyCodeLine{151     \textcolor{comment}{\# Check if the remap was done before calling this function}}
+\DoxyCodeLine{152     \textcolor{keywordflow}{if} np.max(interpolated\_gyro) <= 0:}
+\DoxyCodeLine{153         print(\textcolor{stringliteral}{'Remap was not done before call this function. Returning'})}
+\DoxyCodeLine{154         \textcolor{keywordflow}{return}}
+\DoxyCodeLine{155 }
+\DoxyCodeLine{156     \textcolor{comment}{\# Transform gyroradius to energy}}
+\DoxyCodeLine{157     interpolated\_energy = 0.5 * (interpolated\_gyro / 100.0) ** 2 * b\_field **\(\backslash\)}
+\DoxyCodeLine{158                           2 * Z ** 2 / ssp.mp * ssp.c ** 2}
+\DoxyCodeLine{159     }
+\DoxyCodeLine{160     efficiency\_frame = np.interp(interpolated\_energy, efficiency\_energy,}
+\DoxyCodeLine{161                                  efficiency\_yield)}
+\DoxyCodeLine{162     efficiency\_frame[efficiency\_energy < 1.0] = 1.0}
+\DoxyCodeLine{163 }
+\DoxyCodeLine{164 }
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLibFILDSIM_a387dd9c2c4cce8661dee1dde001c6272}\label{namespaceLibFILDSIM_a387dd9c2c4cce8661dee1dde001c6272}} 
+\index{LibFILDSIM@{LibFILDSIM}!calculate\_fild\_orientation@{calculate\_fild\_orientation}}
+\index{calculate\_fild\_orientation@{calculate\_fild\_orientation}!LibFILDSIM@{LibFILDSIM}}
+\doxysubsubsection{\texorpdfstring{calculate\_fild\_orientation()}{calculate\_fild\_orientation()}}
+{\footnotesize\ttfamily def Lib\+FILDSIM.\+calculate\+\_\+fild\+\_\+orientation (\begin{DoxyParamCaption}\item[{}]{br,  }\item[{}]{bz,  }\item[{}]{bt,  }\item[{}]{alpha,  }\item[{}]{beta }\end{DoxyParamCaption})}
+
+
+
+Routine to calculate the magnetic field orientation with tespect to FILD. 
+
+Important note, the original routine writen by joaquin in IDL received as input bt, br, bz... notice the diferent order or the inputs, to be consistent with the rest of this suite
+
+
+\begin{DoxyParams}{Parameters}
+{\em br} & Magnetic field in the r direction \\
+\hline
+{\em bz} & Magnetic field in the z direction \\
+\hline
+{\em bt} & Magnetic field in the toroidal direction \\
+\hline
+{\em alpha} & Poloidal orientation of FILD. Given in deg \\
+\hline
+{\em beta} & Pitch orientation of FILD, given in deg \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+theta\+: Euler angle to use as input in fildsim.\+f90 given in deg 
+
+phi\+: Euler angle to use as input in fildsim.\+f90 given in deg 
+\end{DoxyReturn}
+
+
+Definition at line 9 of file Lib\+FILDSIM.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{9 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLibFILDSIM_a387dd9c2c4cce8661dee1dde001c6272}{calculate\_fild\_orientation}}(br, bz, bt, alpha, beta):}
+\DoxyCodeLine{10     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{11 \textcolor{stringliteral}{    Routine to calculate the magnetic field orientation with tespect to FILD}}
+\DoxyCodeLine{12 \textcolor{stringliteral}{}}
+\DoxyCodeLine{13 \textcolor{stringliteral}{    Important note, the original routine writen by joaquin in IDL received as}}
+\DoxyCodeLine{14 \textcolor{stringliteral}{    input bt, br, bz... notice the diferent order or the inputs,}}
+\DoxyCodeLine{15 \textcolor{stringliteral}{    to be consistent with the rest of this suite}}
+\DoxyCodeLine{16 \textcolor{stringliteral}{}}
+\DoxyCodeLine{17 \textcolor{stringliteral}{    @param br: Magnetic field in the r direction}}
+\DoxyCodeLine{18 \textcolor{stringliteral}{    @param bz: Magnetic field in the z direction}}
+\DoxyCodeLine{19 \textcolor{stringliteral}{    @param bt: Magnetic field in the toroidal direction}}
+\DoxyCodeLine{20 \textcolor{stringliteral}{    @param alpha: Poloidal orientation of FILD. Given in deg}}
+\DoxyCodeLine{21 \textcolor{stringliteral}{    @param beta: Pitch orientation of FILD, given in deg}}
+\DoxyCodeLine{22 \textcolor{stringliteral}{    @return theta: Euler angle to use as input in fildsim.f90 given in deg}}
+\DoxyCodeLine{23 \textcolor{stringliteral}{    @return phi: Euler angle to use as input in fildsim.f90 given in deg}}
+\DoxyCodeLine{24 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{25 }
+\DoxyCodeLine{26     \textcolor{comment}{\# In AUG the magnetic field orientation is counter current.}}
+\DoxyCodeLine{27     \textcolor{comment}{\# FILDSIM.f90 works with the co-\/current reference}}
+\DoxyCodeLine{28     \textcolor{keywordflow}{if} bt < 0:}
+\DoxyCodeLine{29         bt = -\/bt}
+\DoxyCodeLine{30         br = -\/br}
+\DoxyCodeLine{31         bz = -\/bz}
+\DoxyCodeLine{32 }
+\DoxyCodeLine{33     \textcolor{comment}{\# Transform to radians}}
+\DoxyCodeLine{34     alpha = alpha * np.pi / 180.0}
+\DoxyCodeLine{35     beta = beta * np.pi / 180.0}
+\DoxyCodeLine{36 }
+\DoxyCodeLine{37     \textcolor{comment}{\# Refer the orientation of the BField wo the orientation of FILD}}
+\DoxyCodeLine{38     \textcolor{comment}{\# Alpha is measured from R (positive getting away from axis) to Z (positive)}}
+\DoxyCodeLine{39     bt1 = bt}
+\DoxyCodeLine{40     br1 = br * np.cos(alpha) -\/ bz * np.sin(alpha)}
+\DoxyCodeLine{41     bz1 = br * np.sin(alpha) + bz * np.cos(alpha)}
+\DoxyCodeLine{42 }
+\DoxyCodeLine{43     \textcolor{comment}{\# Now we rotate to the pitch orientation of FILD}}
+\DoxyCodeLine{44     \textcolor{comment}{\# Now we rotate in the toroidal z-\/plane}}
+\DoxyCodeLine{45     br2 = br1}
+\DoxyCodeLine{46     bt2 = bt1 * np.cos(beta) -\/ bz1 * np.sin(beta)}
+\DoxyCodeLine{47     bz2 = bt1 * np.sin(beta) + bz1 * np.cos(beta)}
+\DoxyCodeLine{48 }
+\DoxyCodeLine{49     \textcolor{comment}{\# NOW BT2,BZ2 and BR2 are the coordinates referred to the local FILD}}
+\DoxyCodeLine{50     \textcolor{comment}{\# reference.}}
+\DoxyCodeLine{51     \textcolor{comment}{\# According to FILDSIM.f90}}
+\DoxyCodeLine{52     \textcolor{comment}{\# BT2 -\/-\/-\/> Y component}}
+\DoxyCodeLine{53     \textcolor{comment}{\# BR2 -\/-\/-\/> X component}}
+\DoxyCodeLine{54     \textcolor{comment}{\# BZ2 -\/-\/-\/> Z component}}
+\DoxyCodeLine{55     \textcolor{comment}{\# THEN theta and phi are:}}
+\DoxyCodeLine{56     \textcolor{comment}{\# PHI -\/-\/> Euler Angle measured from y(positive) to x(positive)}}
+\DoxyCodeLine{57     \textcolor{comment}{\# THETA -\/-\/> Euler Angle measured from x(positive) to z(negative)}}
+\DoxyCodeLine{58 }
+\DoxyCodeLine{59     phi = ma.atan(br2 / bt2) * 180.0 / np.pi}
+\DoxyCodeLine{60     theta = ma.atan(-\/bz2 / bt2) * 180.0 / np.pi}
+\DoxyCodeLine{61     print(\textcolor{stringliteral}{'Bt, Bz, Br and B: '}, bt, bz, br, ma.sqrt(bt**2 + bz**2 + br**2))}
+\DoxyCodeLine{62     print(\textcolor{stringliteral}{'FILD orientation is (alpha,beta)= '}, alpha * 180.0 / np.pi,}
+\DoxyCodeLine{63           beta * 180.0 / np.pi)}
+\DoxyCodeLine{64     print(\textcolor{stringliteral}{'Alpha rotation: '}, bt1, bz1, br1, ma.sqrt(bt1**2 + bz1**2 + br1**2))}
+\DoxyCodeLine{65     print(\textcolor{stringliteral}{'Bx By Bz in FILDSIM are: '}, bt2, bz2, br2, ma.sqrt(}
+\DoxyCodeLine{66         bt2**2 + bz2**2 + br2**2))}
+\DoxyCodeLine{67     print(\textcolor{stringliteral}{'Euler angles are (phi,theta): '}, phi, theta)}
+\DoxyCodeLine{68 }
+\DoxyCodeLine{69     \textcolor{keywordflow}{return} phi, theta}
+\DoxyCodeLine{70 }
+\DoxyCodeLine{71 }
+
+\end{DoxyCode}
+\mbox{\Hypertarget{namespaceLibFILDSIM_a7e49b5e887105566bf757e72ea1f3ddc}\label{namespaceLibFILDSIM_a7e49b5e887105566bf757e72ea1f3ddc}} 
+\index{LibFILDSIM@{LibFILDSIM}!get\_energy\_FILD@{get\_energy\_FILD}}
+\index{get\_energy\_FILD@{get\_energy\_FILD}!LibFILDSIM@{LibFILDSIM}}
+\doxysubsubsection{\texorpdfstring{get\_energy\_FILD()}{get\_energy\_FILD()}}
+{\footnotesize\ttfamily def Lib\+FILDSIM.\+get\+\_\+energy\+\_\+\+FILD (\begin{DoxyParamCaption}\item[{}]{gyroradius,  }\item[{float}]{B,  }\item[{int }]{A = {\ttfamily 2},  }\item[{int }]{Z = {\ttfamily 1} }\end{DoxyParamCaption})}
+
+
+
+Relate the gyroradius with the asociated energy (with the convenia given in FILDSIM. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em gyroradius} & Perticle Larmor radius as taken from FILD strike map ( in cm) \\
+\hline
+{\em B} & Magnetc field, in T \\
+\hline
+{\em A} & Ion mass number \\
+\hline
+{\em Z} & Ion charge (in e units) \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+E\+: the energy in eV 
+\end{DoxyReturn}
+
+
+Definition at line 165 of file Lib\+FILDSIM.\+py.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{165 \textcolor{keyword}{def }\mbox{\hyperlink{namespaceLibFILDSIM_a7e49b5e887105566bf757e72ea1f3ddc}{get\_energy\_FILD}}(gyroradius, B: float, A: int = 2, Z: int = 1):}
+\DoxyCodeLine{166     \textcolor{stringliteral}{"{}"{}"{}}}
+\DoxyCodeLine{167 \textcolor{stringliteral}{    Relate the gyroradius with the asociated energy (with the convenia given}}
+\DoxyCodeLine{168 \textcolor{stringliteral}{    in FILDSIM}}
+\DoxyCodeLine{169 \textcolor{stringliteral}{}}
+\DoxyCodeLine{170 \textcolor{stringliteral}{    @param gyroradius: Perticle Larmor radius as taken from FILD strike map (}}
+\DoxyCodeLine{171 \textcolor{stringliteral}{    in cm)}}
+\DoxyCodeLine{172 \textcolor{stringliteral}{    @param B: Magnetc field, in T}}
+\DoxyCodeLine{173 \textcolor{stringliteral}{    @param A: Ion mass number}}
+\DoxyCodeLine{174 \textcolor{stringliteral}{    @param Z: Ion charge (in e units)}}
+\DoxyCodeLine{175 \textcolor{stringliteral}{    @return E: the energy in eV}}
+\DoxyCodeLine{176 \textcolor{stringliteral}{    "{}"{}"{}}}
+\DoxyCodeLine{177     m = ssp.mp * A  \textcolor{comment}{\# Mass of the ion}}
+\DoxyCodeLine{178     E = 0.5 * (gyroradius/100.0 * Z * B)**2 / m * ssp.c ** 2}
+\DoxyCodeLine{179     \textcolor{keywordflow}{return} E}
+\DoxyCodeLine{180 }
+\DoxyCodeLine{181 \textcolor{comment}{\# def get\_vpara(pitch):  \#\# DEPRECATED}}
+\DoxyCodeLine{182 \textcolor{comment}{\#     "{}"{}"{}}}
+\DoxyCodeLine{183 \textcolor{comment}{\#    Gives the projection of the velocity on the magnetic field, given the pitch}}
+\DoxyCodeLine{184 \textcolor{comment}{\#}}
+\DoxyCodeLine{185 \textcolor{comment}{\#     @param pitch: in deg, as given by FILD strike map}}
+\DoxyCodeLine{186 \textcolor{comment}{\#     @return vp: v\_parallel/v}}
+\DoxyCodeLine{187 \textcolor{comment}{\#     "{}"{}"{}}}
+\DoxyCodeLine{188 \textcolor{comment}{\#     return np.cos(pitch * np.pi / 180.0)}}
+
+\end{DoxyCode}
