@@ -39,7 +39,7 @@ cal = database.get_calibration(shot, camera, cal_type, diag_ID)
 # %% Section 2: Load and remap strike map
 smap = ssmap.StrikeMap(0, strike_map)
 smap.calculate_pixel_coordinates(cal)
-smap.interp_grid(np.array([800, 600]), plot=True, method=1)
+smap.interp_grid(np.array([800, 600]), plot=False, method=1)
 # ------------------------------------------------------------------------------
 
 # %% Section 3: test of the remapping algorithm
@@ -48,25 +48,7 @@ cin = ssvid.Video(cin_file_name)
 t0 = 2.50
 dummy = np.array([np.argmin(abs(cin.timebase-t0))])
 ref_frame = cin.read_frame(dummy)
-
-# Create plot
-fig_ref, ax_ref = plt.subplots()
-ax_ref.imshow(ref_frame)
-x = smap.pit_interp.flatten()
-y = smap.gyr_interp.flatten()
-z = ref_frame.flatten()
-
-flags = ~np.isnan(x)
-x2 = x[flags]
-y2 = y[flags]
-z2 = z[flags]
-
-flags = ~np.isnan(y2)
-x3 = x2[flags]
-y3 = y2[flags]
-z3 = z2[flags]
-
-
-H, xedges, yedges = np.histogram2d(x3, y3,bins=[50,50], weights=z2)
-plt.imshow(H.T, interpolation='nearest', origin='low',
-        extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]])
+# Perform the remaping with the default options
+remaped, pitch, energy = ssmap.remap(smap, ref_frame)
+# Plot the remapped frame
+plt.contourf(pitch, energy, remaped.T)

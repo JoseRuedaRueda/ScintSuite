@@ -258,30 +258,47 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
     return xmag, mag, alpha, offset[0], offset[1]
 
 
-def remap(smap, timing=True):
+def remap(smap, frame, x_min=10.0, x_max=90.0, delta_x=1,
+          y_min=1.0, y_max=10.0, delta_y=0.1, timing=True):
     """
     Remap a frame
 
     Jose Rueda: jose.rueda@ipp.mpg.de
 
     @param smap: StrikeMap() object with the strike map
-    @param timing: Flag to time the routine or not
+    @param frame: the frame to be remapped
+    @param x_min: Minimum value of the x coordinate, for FILD, pitch [º]
+    @param x_max: Maximum value of the x coordinate
+    @param delta_x: Spacing for the x coordinate
+    @param y_min: Minimim value of the y coordinate, for FILD, gyroradius [cm]
+    @param y_max: Maximum value of the y coordinate
+    @param delta_x: Spacing of the y coordinate
     """
     # --- 0: Check inputs
-    if smap.xpixel is None:
+    if smap.gyr_interp is None:
         print('Please, transform to pixel the strike map before!!!')
-        error = 1
-        return error, 0
-    
-    
-    if timing:
-        tic = time.time()
+        return 0, 0, 0
 
-    
+    # --- 1: Edges of the histogram
+    x_edges = np.arange(start=x_min, stop=x_max, step=delta_x)
+    y_edges = np.arange(start=y_min, stop=y_max, step=delta_y)
 
-    if timing:
-        toc = time.time()
-        print('Elapsed time: ', toc - tic)
+    # --- 2: Information of the calibration
+    if smap.diag == 'FILD':
+        x = smap.pit_interp.flatten()   # pitch associated to each pixel
+        y = smap.gyr_interp.flatten()   # gyroradius associated to each pixel
+
+    # --- 3: Remap (via histogram)
+    z = frame.flatten()
+    H, xedges, yedges = np.histogram2d(x, y, bins=[x_edges, y_edges], weights=z)
+    # Normalise H to counts per unit of each axis
+    H /= delta_x * delta_y
+
+    # --- 4: Calculate the centroids of the bins, for later plotting
+    x_cen = 0.5 * (x_edges[0:-1] + x_edges[1:])
+    y_cen = 0.5 * (y_edges[0:-1] + y_edges[1:])
+
+    return H, x_cen, y_cen
 
 
 class CalibrationDatabase:
