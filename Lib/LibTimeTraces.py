@@ -1,5 +1,10 @@
-"""@package LibTimeTraces
-Module to calculate time traces
+"""
+Package to calculate time traces
+
+Contains all the routines to calculate time traces. The RoiPoly module must be
+installed. If you use Spyder as Python IDE, please install the RoiPoly version
+which is compatible with Spyder. (See the readme of the project to get the link)
+
 """
 import numpy as np
 from roipoly import RoiPoly

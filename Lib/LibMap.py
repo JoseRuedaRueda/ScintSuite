@@ -301,6 +301,51 @@ def remap(smap, frame, x_min=10.0, x_max=90.0, delta_x=1,
     return H, x_cen, y_cen
 
 
+def guess_strike_map_name_FILD(phi: float, theta: float, 
+                                   machine: str = 'AUG'):
+        """
+        Give the name of the strike-map file
+
+        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+
+        Files are supposed to be named as given in the NamingSM_FILD.py file.
+        The data base is composed by strike maps calculated each 0.1 degree
+
+        @param phi: phi angle as defined in FILDSIM
+        @param theta: theta angle as defined in FILDSIM
+        @param machine: 3 characters identifying the machine
+        @return name: the name of the strike map file
+        """
+        # Set the angles with 1 decimal digit
+        phi_1 = round(phi, ndigits=1)
+        phi_label = str(abs(phi_1)) + '0000'
+        if abs(phi_1) < 10.0:
+            phi_label = '00' + phi_label
+        elif abs(phi_1) < 100.0:
+            phi_label = '0' + phi_label
+        elif abs(phi) > 360.0:
+            print('Phi is larger than 360º?!?', phi)
+
+        if phi_1 < 0:
+            phi_label = '-' + phi_label
+
+        theta_1 = round(theta, ndigits=1)
+        theta_label = str(abs(theta_1)) + '0000'
+        if abs(theta_1) < 10.0:
+            theta_label = '00' + theta_label
+        elif abs(theta_1) < 100.0:
+            theta_label = '0' + theta_label
+        elif abs(theta_1) > 360.0:
+            print('Theta is larger than 360º?!?', theta_label)
+
+        if theta_1 < 0:
+            theta_label = '-' + theta_label
+
+        name = machine + '_map_' + phi_label + '_' + theta_label + \
+            '_strike_map.dat'
+        return name
+
+
 class CalibrationDatabase:
     """
     Class with with the database of parameter to align the scintillator
@@ -504,7 +549,8 @@ class StrikeMap:
             ## Matrix to translate from pixels in the camera to collimator factor
             self.col_interp = None
 
-    def plot_real(self, ax, plt_param: dict = None, line_param: dict = None):
+    def plot_real(self, ax=None,
+                  plt_param: dict = {}, line_param: dict = {}):
         """
         Plot the strike map (x,y = dimensions in the scintillator)
 
@@ -534,6 +580,9 @@ class StrikeMap:
         if 'markerstyle' not in line_param:
             line_param['marker'] = ''
 
+        if ax is None:
+            fig, ax = plt.subplots()
+
         # Draw the lines of constant gyroradius, energy, or rho (depending on
         # the particular diagnostic) [These are the 'horizontal' lines]
         if hasattr(self, 'gyroradius'):
@@ -556,13 +605,14 @@ class StrikeMap:
                 ax.plot(self.y[flags], self.z[flags], **line_param)
         else:
             return
-            ## todo: change == by a < tol??
+            ## @todo: change == by a < tol??
 
         # Plot some markers in the grid position
-        ## todo include labels energy/pitch in the plot
+        ## @todo include labels energy/pitch in the plot
         ax.plot(self.y, self.z, **plt_param)
 
-    def plot_pix(self, ax, plt_param: dict = None, line_param: dict = {}):
+    def plot_pix(self, ax=None, plt_param: dict = {},
+                 line_param: dict = {}):
         """
         Plot the strike map (x,y = pixels on the camera)
 
@@ -590,6 +640,9 @@ class StrikeMap:
             line_param['color'] = 'w'
         if 'markerstyle' not in line_param:
             line_param['marker'] = ''
+            
+        if ax is None:
+            fig, ax = plt.subplots()
 
         # Draw the lines of constant gyroradius, energy, or rho (depending on
         # the particular diagnostic) [These are the 'horizontal' lines]
@@ -613,10 +666,10 @@ class StrikeMap:
                 ax.plot(self.xpixel[flags], self.ypixel[flags], **line_param)
         else:
             return
-            ## todo: change == by a < tol??
+            ## @todo: change == by a < tol??
 
         # Plot some markers in the grid position
-        ## todo include labels energy/pitch in the plot
+        ## @todo include labels energy/pitch in the plot
         ax.plot(self.xpixel, self.ypixel, **plt_param)
 
     def calculate_pixel_coordinates(self, calib):
