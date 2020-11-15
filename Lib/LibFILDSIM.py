@@ -1,12 +1,10 @@
-"""@package LibFILDSIM
-Module containing the routines to integrate the suite with FILDSIM capabilities
-"""
+"""@package LibFILDSIM Routines to iinteract with FILDSIM"""
 import numpy as np
 import math as ma
 import LibParameters as ssp
 
 
-def calculate_fild_orientation(br, bz, bt, alpha, beta):
+def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
     """
     Routine to calculate the magnetic field orientation with tespect to FILD
 
@@ -22,20 +20,23 @@ def calculate_fild_orientation(br, bz, bt, alpha, beta):
     @return theta: Euler angle to use as input in fildsim.f90 given in deg
     @return phi: Euler angle to use as input in fildsim.f90 given in deg
     """
-
     # In AUG the magnetic field orientation is counter current.
     # FILDSIM.f90 works with the co-current reference
-    if bt < 0:
-        bt = -bt
-        br = -br
-        bz = -bz
+    if Bt < 0:
+        bt = -Bt
+        br = -Br
+        bz = -Bz
+    else:
+        bt = Bt
+        br = Br
+        bz = Bz
 
     # Transform to radians
     alpha = alpha * np.pi / 180.0
     beta = beta * np.pi / 180.0
 
     # Refer the orientation of the BField wo the orientation of FILD
-    # Alpha is measured from R (positive getting away from axis) to Z (positive)
+    # Alpha measured from R (positive getting away from axis) to Z (positive)
     bt1 = bt
     br1 = br * np.cos(alpha) - bz * np.sin(alpha)
     bz1 = br * np.sin(alpha) + bz * np.cos(alpha)
@@ -58,23 +59,26 @@ def calculate_fild_orientation(br, bz, bt, alpha, beta):
 
     phi = ma.atan(br2 / bt2) * 180.0 / np.pi
     theta = ma.atan(-bz2 / bt2) * 180.0 / np.pi
-    print('Bt, Bz, Br and B: ', bt, bz, br, ma.sqrt(bt**2 + bz**2 + br**2))
-    print('FILD orientation is (alpha,beta)= ', alpha * 180.0 / np.pi,
-          beta * 180.0 / np.pi)
-    print('Alpha rotation: ', bt1, bz1, br1, ma.sqrt(bt1**2 + bz1**2 + br1**2))
-    print('Bx By Bz in FILDSIM are: ', bt2, bz2, br2, ma.sqrt(
-        bt2**2 + bz2**2 + br2**2))
-    print('Euler angles are (phi,theta): ', phi, theta)
+    if verbose:
+        print('Bt, Bz, Br and B: ', bt, bz, br, ma.sqrt(bt**2 + bz**2 + br**2))
+        print('FILD orientation is (alpha,beta)= ', alpha * 180.0 / np.pi,
+              beta * 180.0 / np.pi)
+        print('Alpha rotation: ', bt1, bz1, br1, ma.sqrt(bt1**2 + bz1**2 +
+                                                         br1**2))
+        print('Bx By Bz in FILDSIM are: ', bt2, bz2, br2, ma.sqrt(
+            bt2**2 + bz2**2 + br2**2))
+        print('Euler angles are (phi,theta): ', phi, theta)
 
     return phi, theta
 
 
-def calculate_absolute_calibration_frame(cal_frame, exposure_time, pinhole_area,
-                                         calib_exposure_time, int_photon_flux,\
-                                         pixel_area_covered):
+def calculate_absolute_calibration_frame(cal_frame, exposure_time,
+                                         pinhole_area, calib_exposure_time,
+                                         int_photon_flux, pixel_area_covered):
     """
     Calculate absolute photon flux
 
+    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
 
     @param cal_frame: calibration frame [counts]
     @param exposure_time: in s
@@ -84,7 +88,6 @@ def calculate_absolute_calibration_frame(cal_frame, exposure_time, pinhole_area,
     @param pixel_area_covered: in m^2
     @return frame: Calibrated frame [Counts * s * m^2 / photons]
     """
-
     frame = cal_frame * exposure_time * pinhole_area / (
                 calib_exposure_time * int_photon_flux * pixel_area_covered)
 
@@ -93,7 +96,7 @@ def calculate_absolute_calibration_frame(cal_frame, exposure_time, pinhole_area,
 
 def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
                             efficiency_yield, b_field, band_pass_filter,
-                            interpolated_gyro,interpolated_fcol, roi,
+                            interpolated_gyro, interpolated_fcol, roi,
                             pinhole_area, exposure_time, A, Z,
                             calib_exposure_time, pixel_area_covered,
                             int_photon_flux, method, ignore_fcol=False,
@@ -125,14 +128,13 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
     @param lower_limit:
     @return:
     """
-
     # Check if we are ignoring the collimator factor which means that we will
     # do the calculation in the scintillator, not at the pinhole [Real
     # plasma losses are at the pinhole, not the scintillator]
     if ignore_fcol:
         interpolated_fcol = interpolated_fcol * 0 + 1.0
         print('Ignoring collimator factor',
-              '--> Calculating Ion Flux at the scintillator not the pinhole!!!')
+              '--> Calculating Ion Flux at the scintillator not the pinhole!')
     else:
         # FILDSIM gives data in %, let's normalise it to unity to work
         interpolated_fcol = interpolated_fcol / 100.0
@@ -155,8 +157,8 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
 
     # Transform gyroradius to energy
     interpolated_energy = 0.5 * (interpolated_gyro / 100.0) ** 2 * b_field **\
-                          2 * Z ** 2 / ssp.mp * ssp.c ** 2
-    ## todo ask joaquin about this stuff of impossing efficiency larger than 1
+        2 * Z ** 2 / ssp.mp * ssp.c ** 2
+    ## todo ask joaquin about this stuff of imposing efficiency larger than 1
     efficiency_frame = np.interp(interpolated_energy, efficiency_energy,
                                  efficiency_yield)
     efficiency_frame[efficiency_energy < 1.0] = 1.0
@@ -164,10 +166,9 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
 
 def get_energy_FILD(gyroradius, B: float, A: int = 2, Z: int = 1):
     """
-    Relate the gyroradius with the asociated energy (with the convenia given
-    in FILDSIM
+    Relate the gyroradius with the associated energy (FILDSIM definition)
 
-    @param gyroradius: Perticle Larmor radius as taken from FILD strike map (
+    @param gyroradius: Particle Larmor radius as taken from FILD strike map (
     in cm)
     @param B: Magnetc field, in T
     @param A: Ion mass number
@@ -177,12 +178,3 @@ def get_energy_FILD(gyroradius, B: float, A: int = 2, Z: int = 1):
     m = ssp.mp * A  # Mass of the ion
     E = 0.5 * (gyroradius/100.0 * Z * B)**2 / m * ssp.c ** 2
     return E
-
-# def get_vpara(pitch):  ## DEPRECATED
-#     """
-#    Gives the projection of the velocity on the magnetic field, given the pitch
-#
-#     @param pitch: in deg, as given by FILD strike map
-#     @return vp: v_parallel/v
-#     """
-#     return np.cos(pitch * np.pi / 180.0)

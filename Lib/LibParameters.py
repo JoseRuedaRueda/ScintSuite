@@ -1,5 +1,4 @@
-"""@package LibParameters
-Module containing physical constants and camera information
+"""@package LibParameters Containing physical constants and camera information
 
 Basically here are hard-cored almost all the parameters of the suite
 """
@@ -8,11 +7,16 @@ ec = 1.602e-19  # Electron charge, in C
 mp = 938.272e6  # Mass of the proton, in eV/c^2
 c = 3e8         # Speed of light in m/s
 
+
 class Camera:
-    """
-    Class containing the properties of the cameras
-    """
+    """Class containing the properties of the cameras"""
+
     def __init__(self, model):
+        """
+        Initialise the class
+
+        @param model: Model of the used camera
+        """
         if model == 'VGA_Pixelfly':
             ## todo find the units in which pixel size ie given
             self.camera_name = 'VGA Pixelfly'
@@ -37,4 +41,3 @@ class Camera:
             self.dynamic_range = 12
         else:
             print('Camera not defined')
-

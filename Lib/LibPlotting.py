@@ -1,14 +1,14 @@
-"""@package LibPlotting
-Module to plot
-"""
+"""@package LibPlotting Module to plot"""
+
 import matplotlib.pyplot as plt
-import numpy as np
+# import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
+
 
 # Basic 1D plotting
 def p1D(ax, x, y, param_dict: dict = None):
     """
-    Basic 1D plot
+    Create basic 1D plot
 
     Jose Rueda: jose.rueda@ipp.mpg.de
 
@@ -76,7 +76,7 @@ def axis_beauty(ax, param_dict: dict):
     if 'xscale' in param_dict:
         ax.set_xscale(param_dict['xscale'])
     if 'tickformat' in param_dict:
-        ax.ticklabel_format(style=param_dict['tickformat'],scilimits=(-2,2),
+        ax.ticklabel_format(style=param_dict['tickformat'], scilimits=(-2, 2),
                             useMathText=True)
         if 'fontsize' in param_dict:
             ax.yaxis.offsetText.set_fontsize(param_dict['fontsize'])
@@ -95,7 +95,6 @@ def axis_beauty(ax, param_dict: dict):
     ax.tick_params(which='both', direction='in', color='k', bottom=True,
                    top=True, left=True, right=True)
     return ax
-
 
 
 def Gamma_II(n=256):

@@ -3,7 +3,8 @@ Package to calculate time traces
 
 Contains all the routines to calculate time traces. The RoiPoly module must be
 installed. If you use Spyder as Python IDE, please install the RoiPoly version
-which is compatible with Spyder. (See the readme of the project to get the link)
+which is compatible with Spyder.
+(See the readme of the project to get the link)
 
 """
 import numpy as np
@@ -37,7 +38,7 @@ def trace(frames, mask):
 
 def create_roi(fig, re_display=False):
     """
-    Wrapper for the RoiPoly features
+    Wrap for the RoiPoly features
 
     Jose Rueda: ruejo@ipp.mpg.de
 
@@ -142,14 +143,10 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
 
 
 class TimeTrace:
-    """
-    Class with information of the time trace
-    """
+    """Class with information of the time trace"""
 
     def __init__(self):
-        """
-        Initialise the TimeTrace
-        """
+        """Initialise the TimeTrace"""
         ## Numpy array with the time bas
         self.time_base = None
         ## Numpy array with the total counts in the ROI

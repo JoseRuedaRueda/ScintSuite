@@ -1,33 +1,77 @@
-"""@package LibDataAUG
-Module containing the routines to interact with the AUG database
-"""
+"""@package LibDataAUG Routines to interact with the AUG database"""
 
-import sys
-## todo a system path to AFS is hard written here
-# Path to the IPP python library
-sys.path.append('/afs/ipp/aug/ads-diags/common/python/lib')
 # Module to load the equilibrium
-from sf2equ_20200525 import EQU
-# Module to map the equilibrium
-import mapeq_20200507 as meq
+# from sf2equ_20200525 import EQU
+# # Module to map the equilibrium
+# import mapeq_20200507 as meq
 # Module to load vessel components
 import get_gc
 # Other libraries
 import numpy as np
 # import matplotlib.pyplot as plt
+# Module to map the equilibrium
+import map_equ as meq
 
 
+# def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
+#                   ed: int = 0, tiniEQU: float = None, tendEQU: float = None,
+#                   time: float = None, equ=None):
+#     """
+#     Wrapper to get AUG magnetic field
+
+#     Jose Rueda: jose.rueda@ipp.mpg.de
+
+#     Adapted from: https://www.aug.ipp.mpg.de/aug/manuals/map_equ/
+
+#     @param shot: Shot number
+#     @param Rin: Array of R positions (in pairs with zin) [m]
+#     @param zin: Array of z positions (in pairs with Rin) [m]
+#     @param diag: Diag for AUG database, default EQH
+#     @param exp: experiment, default AUGD
+#     @param ed: edition, default 0 (last)
+#     @param tiniEQU: Initial time to load the equilibrium object, only valid
+#     if equ is not pass as input (in s)
+#     @param tendEQU: End time to load the equilibrium object, only valid if
+#     equ is not pass as input (in s)
+#     @param time: Array of times where we want to calculate the field (the
+#     field would be calculated in a time as close as possible to this
+#     @param equ: equilibrium object of clas EQU (see
+#     https://www.aug.ipp.mpg.de/aug/manuals/map_equ/equ/html/classsf2equ__20200525_1_1EQU.html)
+#     @return br: Radial magnetic field (nt, nrz_in), [T]
+#     @return bz: z magnetic field (nt, nrz_in), [T]
+#     @return bt: toroidal magnetic field (nt, nrz_in), [T]
+#     @return bp: poloidal magnetic field (nt, nrz_in), [T]
+#     """
+#     # If the equilibrium object is not an input, let create it
+#     created = False
+#     if equ is None:
+#         equ = EQU(shot, diag=diag, exp=exp, ed=ed, tbeg=tiniEQU,
+#                   tend=tendEQU)
+#         created = True
+#     # Check if the shot number is correct
+#     else:
+#         if equ.shot != shot:
+#             print('Shot number of the received equilibrium does not match!')
+#             br = 0
+#             bz = 0
+#             bt = 0
+#             bp = 0
+#             return br, bz, bt, bp
+#     # Now calculate the field
+#     br, bz, bt = meq.rz2brzt(equ, r_in=Rin, z_in=zin, t_in=time)
+#     bp = np.hypot(br, bz)
+#     # If we opened the equilibrium object, let's close it
+#     if created:
+#         equ.close()
+#     return br, bz, bt, bp
 
 
 def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
-                  ed: int = 0, tiniEQU: float = None, tendEQU: float = None,
-                  time: float = None, equ=None):
+                  ed: int = 0, time: float = None, equ=None):
     """
-    Wrapper to get AUG magnetic field
+    Wrapp to get AUG magnetic field
 
     Jose Rueda: jose.rueda@ipp.mpg.de
-
-    Adapted from: https://www.aug.ipp.mpg.de/aug/manuals/map_equ/
 
     @param shot: Shot number
     @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
@@ -35,35 +79,25 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     @param diag: Diag for AUG database, default EQH
     @param exp: experiment, default AUGD
     @param ed: edition, default 0 (last)
-    @param tiniEQU: Initial time to load the equilibrium object, only valid
-    if equ is not pass as input (in s)
-    @param tendEQU: End time to load the equilibrium object, only valid if
-    equ is not pass as input (in s)
     @param time: Array of times where we want to calculate the field (the
     field would be calculated in a time as close as possible to this
-    @param equ: equilibrium object of clas EQU (see
-    https://www.aug.ipp.mpg.de/aug/manuals/map_equ/equ/html/classsf2equ__20200525_1_1EQU.html)
+    @param equ: equilibrium object from the library map_equ
     @return br: Radial magnetic field (nt, nrz_in), [T]
     @return bz: z magnetic field (nt, nrz_in), [T]
     @return bt: toroidal magnetic field (nt, nrz_in), [T]
     @return bp: poloidal magnetic field (nt, nrz_in), [T]
     """
     # If the equilibrium object is not an input, let create it
+    created = False
     if equ is None:
-        equ = EQU(shot, diag=diag, exp=exp, ed = ed, tbeg=tiniEQU,
-                  tend=tendEQU)
-    # If the equilibrium object is an input, check if the shot number is correct
-    else:
-        if equ.shot != shot:
-            print('Shot number of the received equilibrium does not match!')
-            br = 0
-            bz = 0
-            bt = 0
-            bp = 0
-            return br, bz, bt, bp
+        equ = meq.equ_map(36358, diag=diag, exp=exp, ed=ed)
+        created = True
     # Now calculate the field
-    br, bz, bt = meq.rz2brzt(equ, r_in=Rin, z_in=zin, t_in=time)
+    br, bz, bt = equ.rz2brzt(Rin, zin, t_in=time)
     bp = np.hypot(br, bz)
+    # If we opened the equilibrium object, let's close it
+    if created:
+        equ.Close()
     return br, bz, bt, bp
 
 

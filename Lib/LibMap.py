@@ -1,21 +1,19 @@
-"""@package LibMap
-Module to remap the scintillator
+"""@package LibMap Module to remap the scintillator
 
 It contains the routines to load and aling the strike maps, as well as
 perform the remapping
 """
-import time
+# import time
 import math
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
-import LibPlotting as ssplt 
+import LibPlotting as ssplt
 
 
 def transform_to_pixel(x, y, grid_param):
     """
-    Transform from X,Y coordinates (points along the scintillator) to pixels
-    in the camera
+    Transform from X,Y coordinates (scintillator) to pixels in the camera
 
     Jose Rueda Rueda: jose.rueda@ipp.mpg.de
 
@@ -29,9 +27,9 @@ def transform_to_pixel(x, y, grid_param):
     """
     alpha = grid_param.deg * np.pi / 180
     xpixel = (np.cos(alpha) * x - np.sin(alpha) * y) * grid_param.xscale + \
-                grid_param.xshift
+        grid_param.xshift
     ypixel = (np.sin(alpha) * x + np.cos(alpha) * y) * grid_param.yscale + \
-                grid_param.yshift
+        grid_param.yshift
 
     return xpixel, ypixel
 
@@ -129,7 +127,7 @@ def get_points(fig, scintillator, plt_flag: bool = True, npoints: int = 3):
 #                  math.sin(alpha_px - alpha_real) +
 #                  scintillator.coord_real[index[i], 2] *
 #                  math.cos(alpha_px - alpha_real)) * d_pix / d_real
-#         offset = offset + np.array(points_frame[i]) - np.array((x_new, y_new))
+#         offset = offset + np.array(points_frame[i]) -np.array((x_new, y_new))
 #         # print(alpha_px*180/np.pi, alpha_real*180/np.pi)
 #         # print((alpha_px-alpha_real)*180/np.pi)
 #     # Normalise magnification and angle
@@ -141,22 +139,24 @@ def get_points(fig, scintillator, plt_flag: bool = True, npoints: int = 3):
 
 def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
     """
-    Calculate the transformation factor to align the strike map with the
-    camera sensor
+    Calculate the transformation factor to align the strike map
 
     Jose Rueda: jose.rueda@ipp.mpg.de
+
+    Calculate the transformation factor to align the strike map with the
+    camera sensor. It ask for the user to select some points in the
+    scintillator and to select the same points in the calibration file
 
     @param scintillator: Scintillator object
     @param fig: figure where the calibration image is drawn
     @param plt_flag: flag to plot the selected points to align the scintillator
     @return xmag: magnification factor in the x direction to align strike map
-    @return mag: magnification factor in the y direction to align the strike map
+    @return mag: magnification factor in the y direction
     @return alpha: rotation angle to orientate the strike map
     @return offset: offset to place the strike map
     @todo check with a non inverted png if the minus I included to align the
     scintillator is needed or not
     """
-
     # Plot the scintillator
     fig_scint, ax_scint = plt.subplots()
     scintillator.plot_real(ax_scint)
@@ -186,10 +186,10 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
     print(a.shape)
 
     v21_pix = np.array([points_frame[0][0], points_frame[0][1], 0]) - \
-                  np.array([points_frame[1][0], points_frame[1][1], 0])
+        np.array([points_frame[1][0], points_frame[1][1], 0])
 
     v23_pix = np.array([points_frame[2][0], points_frame[2][1], 0]) - \
-                  np.array([points_frame[1][0], points_frame[1][1], 0])
+        np.array([points_frame[1][0], points_frame[1][1], 0])
 
     # See if an inversion of one of the axis is needed or not.
     normal_real = np.cross(v21_real, v23_real)
@@ -290,7 +290,8 @@ def remap(smap, frame, x_min=10.0, x_max=90.0, delta_x=1,
 
     # --- 3: Remap (via histogram)
     z = frame.flatten()
-    H, xedges, yedges = np.histogram2d(x, y, bins=[x_edges, y_edges], weights=z)
+    H, xedges, yedges = np.histogram2d(x, y, bins=[x_edges, y_edges],
+                                       weights=z)
     # Normalise H to counts per unit of each axis
     H /= delta_x * delta_y
 
@@ -301,8 +302,7 @@ def remap(smap, frame, x_min=10.0, x_max=90.0, delta_x=1,
     return H, x_cen, y_cen
 
 
-def guess_strike_map_name_FILD(phi: float, theta: float, 
-                                   machine: str = 'AUG'):
+def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG'):
         """
         Give the name of the strike-map file
 
@@ -347,15 +347,15 @@ def guess_strike_map_name_FILD(phi: float, theta: float,
 
 
 class CalibrationDatabase:
-    """
-    Class with with the database of parameter to align the scintillator
-    """
+    """Database of parameter to align the scintillator"""
 
     def __init__(self, filename: str, n_header: int = 5):
         """
         Read the calibration database, to align the strike maps
 
-        See @ref database for a full documentation of each field
+        See database page for a full documentation of each field
+
+        @author Jose Rueda Rueda: jose.rueda@ipp.mpg.de
 
         @param filename: Complete path to the file with the calibrations
         @param n_header: Number of header lines
@@ -465,7 +465,6 @@ class CalibrationDatabase:
         @param diag_ID: ID of the diagnostic we want
         @return cal: CalParams() object
         """
-
         flags = np.zeros(len(self.data['ID']))
         for i in range(len(self.data['ID'])):
             if (self.data['shot1'][i] <= shot) * \
@@ -497,9 +496,7 @@ class CalibrationDatabase:
 
 
 class StrikeMap:
-    """
-    Class with the information of the strike map
-    """
+    """Class with the information of the strike map"""
 
     def __init__(self, flag, file):
         """
@@ -542,11 +539,11 @@ class StrikeMap:
             self.collimator_factor = dummy[ind, 7]
             ## Average incident angle of the FILDSIM markers
             self.avg_incident_angle = dummy[ind, 8]
-            ## Matrix to translate from pixels in the camera to gyroradius
+            ## Translate from pixels in the camera to gyroradius
             self.gyr_interp = None
-            ## Matrix to translate from pixels in the camera to pitch
+            ## Translate from pixels in the camera to pitch
             self.pit_interp = None
-            ## Matrix to translate from pixels in the camera to collimator factor
+            ## Translate from pixels in the camera to collimator factor
             self.col_interp = None
 
     def plot_real(self, ax=None,
@@ -640,7 +637,7 @@ class StrikeMap:
             line_param['color'] = 'w'
         if 'markerstyle' not in line_param:
             line_param['marker'] = ''
-            
+
         if ax is None:
             fig, ax = plt.subplots()
 
@@ -681,15 +678,15 @@ class StrikeMap:
         @param calib: a CalParams() object with the calibration info
         """
         self.xpixel, self.ypixel = transform_to_pixel(self.y, self.z, calib)
-    
+
     def interp_grid(self, frame_shape, method=2, plot=False):
         """
         Interpolate grid values on the frames
-    
+
         Error codes:
             - 0: Scintillator map pixel position not calculated before
             - 1: Interpolating method not recognised
-    
+
         @param smap: StrikeMap() object
         @param frame_shape: Size of the frame used for the calibration (in px)
         @param method: method to calculate the interpolation:
@@ -804,23 +801,23 @@ class StrikeMap:
 
 class CalParams:
     """
-    Class with the information to relate points in the camera sensor with
-    points in the scintillator
+    Information to relate points in the camera sensor the scintillator
+
+    In a future, it will contains the correction of the optical distortion and
+    all the methods necesary to correct it.
     """
 
     def __init__(self):
-        """
-        Initializer of the class
-        """
+        """Initialize of the class"""
         # To transform the from real coordinates to pixel (see
         # transform_to_pixel())
         ## pixel/cm in the x direction
         self.xscale = 0
         ## pixel/cm in the y direction
         self.yscale = 0
-        ## Offset to align 0,0 of the sensor with the scintillator (x direction)
+        ## Offset to align 0,0 of the sensor with the scintillator
         self.xshift = 0
-        ## Offset to align 0,0 of the sensor with the scintillator (y direction)
+        ## Offset to align 0,0 of the sensor with the scintillator
         self.yshift = 0
         ## Rotation angle to transform from the sensor to the scintillator
         self.deg = 0
@@ -838,7 +835,16 @@ class Scintillator:
     of the scintillator data and work with y,z as they were x,y
     """
 
-    def __init__(self, file, material='TG-green'):
+    def __init__(self, file: str, material: str = 'TG-green'):
+        """
+        Initialize the class
+
+        @param    file: Path to the file with the scintillator geometry
+        @type:    str
+
+        @param    material: Defaults to 'TG-green'.
+        @type:    str
+        """
         ## Material used in the scintillator plate
         self.material = material
         # Read the file
@@ -882,7 +888,7 @@ class Scintillator:
     def plot_pix(self, ax, plt_par: dict):
         """
         Plot the scintillator, in pixels, in the axes ax
-        
+
         @param ax: axes where to plot
         @param plt_par: dictionary with the parameters to plot
         @return: Nothing, just update the plot
@@ -898,7 +904,7 @@ class Scintillator:
     def plot_real(self, ax, plt_par: dict):
         """
         Plot the scintillator, in cm, in the axes ax
-        
+
         @param ax: axes where to plot
         @param plt_par: dictionary with the parameters to plot
         @return: Nothing, just update the plot

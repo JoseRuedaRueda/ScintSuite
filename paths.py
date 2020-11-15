@@ -23,6 +23,7 @@ def paths_of_the_suite(machine='AUG'):
     EXAMPLE_DIR = 'Examples'
     AUG_Python = '/afs/ipp/aug/ads-diags/common/python/lib'
 
+
     # --- Section 1: Add folders to path
     sys.path.extend([os.path.join(HOME_DIR, ROIPOLY),
                      os.path.join(SUITE_DIR, LIB_DIR),
