@@ -47,17 +47,17 @@ time_trace = sstt.time_trace_cine(cin, mask, t1=0, t2=7.0)
 # Plot the time trace
 fig_tt, [ax_tt1, ax_tt2, ax_tt3] = plt.subplots(1, 3)
 ax_tt1 = ssplt.p1D(ax_tt1, time_trace.time_base, time_trace.sum_of_roi,
-            {'linewidth': 2, 'color': 'r'})
-ax_tt1 = ssplt.axis_beauty(ax_tt1,{'xlabel': 't [s]', 'ylabel': 'Counts',
-                                   'grid': 'both'})
+                   {'linewidth': 2, 'color': 'r'})
+ax_tt1 = ssplt.axis_beauty(ax_tt1, {'xlabel': 't [s]', 'ylabel': 'Counts',
+                                    'grid': 'both'})
 # plot the mean of the timetrace
 ax_tt2 = ssplt.p1D(ax_tt2, time_trace.time_base, time_trace.mean_of_roi,
-            {'linewidth': 2, 'color': 'r'})
+                   {'linewidth': 2, 'color': 'r'})
 ax_tt2 = ssplt.axis_beauty(ax_tt2, {'xlabel': 't [s]', 'ylabel': 'Mean',
-                                   'grid': 'both'})
+                                    'grid': 'both'})
 # plot the std of the timetrace
 ax_tt3 = ssplt.p1D(ax_tt3, time_trace.time_base, time_trace.std_of_roi,
-            {'linewidth': 2, 'color': 'r'})
+                   {'linewidth': 2, 'color': 'r'})
 ax_tt3 = ssplt.axis_beauty(ax_tt3, {'xlabel': 't [s]', 'ylabel': 'std',
                                     'grid': 'both'})
 plt.tight_layout()

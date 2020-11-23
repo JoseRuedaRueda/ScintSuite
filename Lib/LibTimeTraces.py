@@ -182,7 +182,7 @@ class TimeTrace:
                                         self.mean_of_roi.reshape(length, 1),
                                         self.std_of_roi.reshape(length, 1))),
                    delimiter='   ,   ', header=line)
-        f = open("output.txt", "w")
-        print("# Time trace ", file=f)
-        print("# Date ", datetime.datetime.now(), file=f)
-        f.close()
+        # f = open("output.txt", "w")
+        # print("# Time trace ", file=f)
+        # print("# Date ", datetime.datetime.now(), file=f)
+        # f.close()

@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
 import LibPlotting as ssplt
+import LibParameters as ssp
 
 
 def transform_to_pixel(x, y, grid_param):
@@ -258,8 +259,8 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
     return xmag, mag, alpha, offset[0], offset[1]
 
 
-def remap(smap, frame, x_min=10.0, x_max=90.0, delta_x=1,
-          y_min=1.0, y_max=10.0, delta_y=0.1, timing=True):
+def remap(smap, frame, x_min=20.0, x_max=80.0, delta_x=1,
+          y_min=1.5, y_max=10.0, delta_y=0.2, timing=True):
     """
     Remap a frame
 
@@ -302,48 +303,113 @@ def remap(smap, frame, x_min=10.0, x_max=90.0, delta_x=1,
     return H, x_cen, y_cen
 
 
-def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG'):
-        """
-        Give the name of the strike-map file
+def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
+                max_pitch: float, verbose: bool = False):
+    """
+    Cut the FILD signal to get a profile along gyroradius
 
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    @author:  Jose Rueda: jose.rueda@ipp.mpg.de
 
-        Files are supposed to be named as given in the NamingSM_FILD.py file.
-        The data base is composed by strike maps calculated each 0.1 degree
+    @param    remap_frame: np.array with the remapped frame
+    @type:    ndarray
 
-        @param phi: phi angle as defined in FILDSIM
-        @param theta: theta angle as defined in FILDSIM
-        @param machine: 3 characters identifying the machine
-        @return name: the name of the strike map file
-        """
-        # Set the angles with 1 decimal digit
-        phi_1 = round(phi, ndigits=1)
-        phi_label = str(abs(phi_1)) + '0000'
-        if abs(phi_1) < 10.0:
-            phi_label = '00' + phi_label
-        elif abs(phi_1) < 100.0:
-            phi_label = '0' + phi_label
-        elif abs(phi) > 360.0:
-            print('Phi is larger than 360º?!?', phi)
+    @param    pitch_centers: np array produced by the remap function
+    @type:    ndarray
 
-        if phi_1 < 0:
-            phi_label = '-' + phi_label
+    @param    min_pitch: minimum pitch to include
+    @type:    float
 
-        theta_1 = round(theta, ndigits=1)
-        theta_label = str(abs(theta_1)) + '0000'
-        if abs(theta_1) < 10.0:
-            theta_label = '00' + theta_label
-        elif abs(theta_1) < 100.0:
-            theta_label = '0' + theta_label
-        elif abs(theta_1) > 360.0:
-            print('Theta is larger than 360º?!?', theta_label)
+    @param    max_pitch: Maximum pitch to include
+    @type:    float
 
-        if theta_1 < 0:
-            theta_label = '-' + theta_label
+    @param    verbose: if true, the actual pitch interval will be printed
+    @type:    bool
 
-        name = machine + '_map_' + phi_label + '_' + theta_label + \
-            '_strike_map.dat'
-        return name
+    @return:  Description of returned object.
+    @rtype:   type
+
+    @raises   ExceptionName: exception if the desired pitch range is not in the
+    frame
+    """
+    # See which cells do we need
+    flags = (pitch_centers < max_pitch) * (pitch_centers > min_pitch)
+    if np.sum(flags) == 0:
+        raise Exception('No single cell satisfy the condition!')
+    # The pitch centers is the centroid of the cell, but a cell include counts
+    # which pitchs are in [p0-dp, p0+dp], therefore, let give to the user these
+    # to values
+    used_pitches = pitch_centers[flags]
+    delta = pitch_centers[1] - pitch_centers[0]
+    min_used_pitch = used_pitches[0] - 0.5 * delta
+    max_used_pitch = used_pitches[-1] + 0.5 * delta
+    dummy = remap_frame[flags, :]
+    profile = np.sum(dummy, axis=0)
+    if verbose:
+        print('The minimum pitch used is: ', min_used_pitch)
+        print('The Maximum pitch used is: ', max_used_pitch)
+    return profile
+
+
+def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
+                  max_gyr: float, verbose=False):
+    """
+    Cut the FILD signal to get a profile along pitch
+
+    @author:  Jose Rueda: jose.rueda@ipp.mpg.de
+
+    @param    remap_frame: np.array with the remapped frame
+    @type:    ndarray
+
+    @param    gyr_centers: np array produced by the remap function
+    @type:    ndarray
+
+    @param    min_gyr: minimum pitch to include
+    @type:    float
+
+    @param    max_gyr: Maximum pitch to include
+    @type:    float
+
+    @param    verbose: if true, the actual pitch interval will be printed
+    @type:    bool
+
+    @return:  Description of returned object.
+    @rtype:   type
+
+    @raises   ExceptionName: exception if the desired gyroradius range is not
+    in the frame
+    """
+    # See which cells do we need
+    flags = (gyr_centers < max_gyr) * (gyr_centers > min_gyr)
+    if np.sum(flags) == 0:
+        raise Exception('No single cell satisfy the condition!')
+    # The pitch centers is the centroid of the cell, but a cell include counts
+    # which pitchs are in [p0-dp, p0+dp], therefore, let give to the user these
+    # to values
+    used_gyr = gyr_centers[flags]
+    delta = gyr_centers[1] - gyr_centers[0]
+    min_used_gyr = used_gyr[0] - 0.5 * delta
+    max_used_gyr = used_gyr[-1] + 0.5 * delta
+    dummy = remap_frame[:, flags]
+    profile = np.sum(dummy, axis=1)
+    if verbose:
+        print('The minimum gyroradius used is: ', min_used_gyr)
+        print('The Maximum gyroradius used is: ', max_used_gyr)
+    return profile
+
+
+def get_energy_FILD(gyroradius, B: float, A: int = 2, Z: int = 1):
+    """
+    Relate the gyroradius with the associated energy (FILDSIM definition)
+
+    @param gyroradius: Larmor radius as taken from FILD strike map [in cm]
+    @param B: Magnetc field, [in T]
+    @param A: Ion mass number
+    @param Z: Ion charge [in e units]
+    @return E: the energy [in eV]
+    """
+    m = ssp.mp * A  # Mass of the ion
+    E = 0.5 * (gyroradius/100.0 * Z * B)**2 / m * ssp.c ** 2
+    return E
 
 
 class CalibrationDatabase:
@@ -700,7 +766,7 @@ class StrikeMap:
             error = 1
             return error
         # --- 1: Create grid for the interpolation
-        grid_x, grid_y = np.mgrid[0:frame_shape[0], 0:frame_shape[1]]
+        grid_x, grid_y = np.mgrid[0:frame_shape[1], 0:frame_shape[0]]
         # --- 2: Interpolate the gyroradius
         dummy = np.column_stack((self.xpixel, self.ypixel))
         if method == 0:
