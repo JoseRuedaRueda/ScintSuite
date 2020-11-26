@@ -32,6 +32,16 @@ def paths_of_the_suite(machine='AUG'):
         sys.path.extend([AUG_Python])
 
 
+class p:
+    """Paths of the different codes"""
+    def __init__(self):
+        """Initialise the class"""
+        self.FILDSIM = os.path.join(os.getenv("HOME"), 'FILDSIM/')
+        self.INPASIM = os.path.join(os.getenv("HOME"), 'INPASIM/')
+        self.CinFiles = '/p/IPP/AUG/rawfiles/FIT/'
+        self.StrikeMaps = os.path.join(os.getenv("HOME"), 'FILD_Strike_maps/')
+
+
 if __name__ == "__main__":
     paths_of_the_suite()
-    FILDSIM_path = os.path.join(os.getenv("HOME"), 'FILDSIM')
+    pa = p()

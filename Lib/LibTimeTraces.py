@@ -11,6 +11,9 @@ import numpy as np
 from roipoly import RoiPoly
 import datetime
 import time
+from scipy.fft import rfft, rfftfreq
+from scipy import signal
+import matplotlib.pyplot as plt
 
 
 def trace(frames, mask):
@@ -73,18 +76,14 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
     @return tt: TimeTrace object
     """
     # --- Section 0: Initialise the arrays
-    # Initialise the timetrace object
-    tt = TimeTrace()
-    tt.mask = mask
-
-    # Look for the index in the data base
+    # Look for the index in the time base
     i1 = (np.abs(cin_object.timebase - t1)).argmin()
     i2 = (np.abs(cin_object.timebase - t2)).argmin()
     # Initialise the arrays
-    tt.time_base = cin_object.timebase[i1:i2]
-    tt.sum_of_roi = np.zeros(i2 - i1)
-    tt.mean_of_roi = np.zeros(i2 - i1)
-    tt.std_of_roi = np.zeros(i2 - i1)
+    time_base = cin_object.timebase[i1:i2]
+    sum_of_roi = np.zeros(i2 - i1)
+    mean_of_roi = np.zeros(i2 - i1)
+    std_of_roi = np.zeros(i2 - i1)
     # I could call for each time the read_cine_image, but that would imply to
     # open and close several time the file as well as navigate trough it... I
     # will create temporally a copy of that routine, this need to be
@@ -132,22 +131,37 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
                            (int(cin_object.imageheader['biWidth']),
                             int(cin_object.imageheader['biHeight'])),
                            order='F').transpose()
-        tt.sum_of_roi[itt] = np.sum(dummy[mask])
-        tt.mean_of_roi[itt] = np.mean(dummy[mask])
-        tt.std_of_roi[itt] = np.std(dummy[mask])
+        sum_of_roi[itt] = np.sum(dummy[mask])
+        mean_of_roi[itt] = np.mean(dummy[mask])
+        std_of_roi[itt] = np.std(dummy[mask])
         itt = itt + 1
     fid.close()
     toc = time.time()
     print('Elapsed time [s]: ', toc - tic)
-    return tt
+    return time_base, sum_of_roi, mean_of_roi, std_of_roi
 
 
 class TimeTrace:
     """Class with information of the time trace"""
 
-    def __init__(self):
-        """Initialise the TimeTrace"""
-        ## Numpy array with the time bas
+    def __init__(self, video, mask, t1: float = None, t2: float = None):
+        """
+        Initialise the TimeTrace
+
+        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+
+        @param video: Video object used for the calculation of the trace
+        @param mask: mask to calculate the trace
+        @param t1: Initial time if None, first time in the video
+        @param t2: Final time if None, last time in the video
+        """
+        # Initialise the times to look for the time trace
+        if t1 is None:
+            t1 = video.time_base[0]
+        if t2 is None:
+            t2 = video.time_base[-1]
+        # Initialise the different arrays
+        ## Numpy array with the time base
         self.time_base = None
         ## Numpy array with the total counts in the ROI
         self.sum_of_roi = None
@@ -155,10 +169,18 @@ class TimeTrace:
         self.mean_of_roi = None
         ## Numpy array with the std of counts in the ROI
         self.std_of_roi = None
-        ## Binary mask defining the roy
-        self.mask = None
-        ## Binary mask defining the roy
+        ## Binary mask defining the roi
+        self.mask = mask
+        ## roiPoly object (not initialised by default!!!)
         self.roi = None
+        ## Spectrogram data
+        self.spec = {'taxis': None, 'faxis': None, 'data': None}
+        ## fft data
+        self.fft = {'faxis': None, 'data': None}
+
+        if video.type_of_file == '.cin':
+            self.time_base, self.sum_of_roi, self.mean_of_roi, self.std_of_roi\
+                = time_trace_cine(video, mask, t1, t2)
 
     def export_to_ascii(self, filename: str):
         """
@@ -182,7 +204,58 @@ class TimeTrace:
                                         self.mean_of_roi.reshape(length, 1),
                                         self.std_of_roi.reshape(length, 1))),
                    delimiter='   ,   ', header=line)
-        # f = open("output.txt", "w")
-        # print("# Time trace ", file=f)
-        # print("# Date ", datetime.datetime.now(), file=f)
-        # f.close()
+
+
+    def calculate_fft(self, params: dict = {}):
+        """
+        Calculate the fft of the time trace
+
+        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+
+        Only the fft of the sum of the counts in the roi is calculated, if you
+        want others to be calculated, open a request in the GitLab
+
+        @param    params: Dictionary containing optional arguments for scipyfft
+        see scipy.fft.rfft for full details
+        @type:    dict
+
+        @return:  nothing, just fill self.fft
+        """
+        N = len(self.time_base)
+        self.fft['faxis'] = rfftfreq(N, self.time_base[2] - self.time_base[1])
+        self.fft['data'] = rfft(self.sum_of_roi, **params)
+        return
+
+
+
+    def calculate_spectrogram(self, params: dict = {}, plot_flag=False):
+        """
+        Calculate the spectrogram of the time trace
+
+        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+
+        Only the spec of the sum of the counts in the roi is calculated, if you
+        want others to be calculated, open a request in the GitLab
+
+        @param    params: Dictionary containing optional arguments for the
+        spectrogram, see scipy.signal.spectrogram for the full details
+        @type:    dict
+
+        @return:  nothing, just fill self.spec
+        """
+        sampling_freq = 1 / (self.time_base[1] - self.time_base[0])
+        print(sampling_freq)
+        f, t, Sxx = signal.spectrogram(self.sum_of_roi, sampling_freq)
+        self.spec['faxis'] = f
+        self.spec['taxis'] = t + self.time_base[0]
+        self.spec['data'] = Sxx
+
+        # quick plot, more than to be used like an actual plot, is written here
+        # as an example of how to plot this
+        if plot_flag:
+            plt.pcolormesh(self.spec['taxis'], self.spec['faxis'],
+                           self.spec['data'], shading='gouraud')
+            plt.ylabel('Frequency [Hz]')
+            plt.xlabel('Time [sec]')
+            plt.show()
+        return
