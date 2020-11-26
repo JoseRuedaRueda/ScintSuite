@@ -5,7 +5,7 @@ Basically here are hard-cored almost all the parameters of the suite
 # Physics constants
 ec = 1.602e-19  # Electron charge, in C
 mp = 938.272e6  # Mass of the proton, in eV/c^2
-c = 3e8         # Speed of light in m/s
+c = 3.0e8         # Speed of light in m/s
 
 
 class Camera:

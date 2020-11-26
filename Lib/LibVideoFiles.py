@@ -1107,6 +1107,7 @@ class Video:
         the path points to a folder, the prgram will look for png files or
         tiff files inside
         """
+        ## Type of video
         self.type_of_file = None
         if os.path.isfile(file):
             ## Path to the file and filename

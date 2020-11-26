@@ -26,3 +26,7 @@ Each release will be denoted by 3 numbers: a.b.c meaning:
 - FILDSIM code: https://gitlab.mpcdf.mpg.de/jgq/FILDSIM.git
 - INPASIM code: https://gitlab.mpcdf.mpg.de/ruejo/inpasim.git
 - i-HIBPSIM code: https://gitlab.mpcdf.mpg.de/poyo/fosd.git
+
+** Complete docmentation
+- The routines in the Example folder are intended to ilustrate the use of the different tools in the suite
+- For a Doxygen generated documentation, see: https://hdvirtual.us.es/discovirt/index.php/s/FBjZ9FPfjjwMDS2 download the content and open the index.html file, inside the html folder
