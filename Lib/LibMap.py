@@ -5,6 +5,7 @@ perform the remapping
 """
 # import time
 import math
+import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
@@ -304,7 +305,8 @@ def remap(smap, frame, x_min=20.0, x_max=80.0, delta_x=1,
 
 
 def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
-                max_pitch: float, verbose: bool = False):
+                max_pitch: float, verbose: bool = False,
+                name=None, gyr=None):
     """
     Cut the FILD signal to get a profile along gyroradius
 
@@ -325,8 +327,7 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
     @param    verbose: if true, the actual pitch interval will be printed
     @type:    bool
 
-    @return:  Description of returned object.
-    @rtype:   type
+    @return   profile:  the profile in gyroradius
 
     @raises   ExceptionName: exception if the desired pitch range is not in the
     frame
@@ -347,11 +348,30 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
     if verbose:
         print('The minimum pitch used is: ', min_used_pitch)
         print('The Maximum pitch used is: ', max_used_pitch)
+    if name is not None:
+        if gyr is not None:
+            date = datetime.datetime.now()
+            line = 'Gyroradius profile: ' +\
+                date.strftime("%d-%b-%Y (%H:%M:%S.%f)") +\
+                '\n' +\
+                'The minimum pitch used is: ' + str(min_used_pitch) +\
+                '\n' +\
+                'The maximum pitch used is: ' + str(max_used_pitch) +\
+                '\n' +\
+                'Gyroradius [cm]                     ' + \
+                'Counts                        '
+            length = len(gyr)
+            np.savetxt(name, np.hstack((gyr.reshape(length, 1),
+                       profile.reshape(length, 1))),
+                       delimiter='   ,   ', header=line)
+        else:
+            raise Exception('You want to export but no pitch was given')
     return profile
 
 
 def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
-                  max_gyr: float, verbose=False):
+                  max_gyr: float, verbose: bool = False,
+                  name=None, pitch=None):
     """
     Cut the FILD signal to get a profile along pitch
 
@@ -372,8 +392,13 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
     @param    verbose: if true, the actual pitch interval will be printed
     @type:    bool
 
-    @return:  Description of returned object.
-    @rtype:   type
+    @param    name: Full path to the file to export the profile. if present,
+    file willbe written
+
+    @param    pitch: array of pitches used in the remapped, only used if the
+    export option is activated
+
+    @return   profile:  pitch profile of the signal
 
     @raises   ExceptionName: exception if the desired gyroradius range is not
     in the frame
@@ -394,6 +419,25 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
     if verbose:
         print('The minimum gyroradius used is: ', min_used_gyr)
         print('The Maximum gyroradius used is: ', max_used_gyr)
+
+    if name is not None:
+        if pitch is not None:
+            date = datetime.datetime.now()
+            line = '# Pitch profile: ' +\
+                date.strftime("%d-%b-%Y (%H:%M:%S.%f)") +\
+                '\n' +\
+                'The minimum gyroradius used is: ' + str(min_used_gyr) +\
+                '\n' +\
+                'The maximum gyroradius used is: ' + str(max_used_gyr) +\
+                '\n' +\
+                'Pitch [º]                     ' + \
+                'Counts                        '
+            length = len(pitch)
+            np.savetxt(name, np.hstack((pitch.reshape(length, 1),
+                       profile.reshape(length, 1))),
+                       delimiter='   ,   ', header=line)
+        else:
+            raise Exception('You want to export but no pitch was given')
     return profile
 
 
