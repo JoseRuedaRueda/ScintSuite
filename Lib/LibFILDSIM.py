@@ -1,4 +1,4 @@
-"""@package LibFILDSIM Routines to iinteract with FILDSIM"""
+"""Routines to iinteract with FILDSIM"""
 import os
 import numpy as np
 import math as ma

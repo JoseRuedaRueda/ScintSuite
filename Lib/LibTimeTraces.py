@@ -205,7 +205,6 @@ class TimeTrace:
                                         self.std_of_roi.reshape(length, 1))),
                    delimiter='   ,   ', header=line)
 
-
     def calculate_fft(self, params: dict = {}):
         """
         Calculate the fft of the time trace
@@ -225,8 +224,6 @@ class TimeTrace:
         self.fft['faxis'] = rfftfreq(N, self.time_base[2] - self.time_base[1])
         self.fft['data'] = rfft(self.sum_of_roi, **params)
         return
-
-
 
     def calculate_spectrogram(self, params: dict = {}, plot_flag=False):
         """

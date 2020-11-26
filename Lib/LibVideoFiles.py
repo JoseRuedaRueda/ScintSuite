@@ -1,4 +1,4 @@
-"""@package LibVideoFiles Module to handle the video from the different cameras
+"""Handle the video from the different cameras
 
 This module is created to handle the .cin (.cine) files, binary files
 created by the Phantom cameras. In its actual state it can read everything

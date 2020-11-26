@@ -1,4 +1,4 @@
-"""@package LibDataAUG Routines to interact with the AUG database"""
+"""Routines to interact with the AUG database"""
 
 # Module to load the equilibrium
 # from sf2equ_20200525 import EQU

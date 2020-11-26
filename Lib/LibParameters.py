@@ -1,4 +1,4 @@
-"""@package LibParameters Containing physical constants and camera information
+"""Contain physical constants and camera information
 
 Basically here are hard-cored almost all the parameters of the suite
 """

@@ -1,4 +1,4 @@
-"""@package LibMap Module to remap the scintillator
+"""Module to remap the scintillator
 
 It contains the routines to load and aling the strike maps, as well as
 perform the remapping
