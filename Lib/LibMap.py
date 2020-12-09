@@ -441,6 +441,116 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
     return profile
 
 
+def estimate_effective_pixel_area(frame_shape, xscale: float, yscale: float,
+                                  type: int = 0):
+    """
+    Estimate the efective area covered by a pixel
+
+    Jose Rueda Rueda: ruejo@ipp.mpg.de based on a routine of Joaquín Galdón
+
+    If there is no distortion:
+    Area_covered_by_1_pixel: A_omega=Area_scint/#pixels inside scintillator
+    #pixels inside scint=L'x_scint*L'y_scint=Lx_scint*xscale*Ly_scint*yscale
+    xscale and yscale are in units of : #pixels/cm
+    So A_omega can be approximated by: A_omega=1/(xscale*yscale) [cm^2]
+
+    @param frame_shape: shape of the frame
+    @params yscale: the scale [#pixel/cm] of the calibration to align the map
+    @params xscale: the scale [#pixel/cm] of the calibration to align the map
+    @param type: 0, ignore distortion, 1 include distortion
+    @return area: Matrix where each element is the areacavered by that pixel
+    @todo Include the model of distortion
+    """
+    # Initialise the matrix:
+    area = np.zeros(frame_shape)
+
+    if type == 0:
+        area[:] = abs(1./(xscale*yscale)*1.e-4)  # 1e-4 to be in m^2
+
+    return area
+
+
+def FILD_absolute_calibration_frame(calibration_frame, exposure_time: float,
+                                    pinhole_area: float, calib_exp_time: float,
+                                    int_photon_flux, pixel_area_covered):
+    """
+    Calculate FILD absolute calibration frame
+
+    Jose Rueda Rueda: jose.rueda@ipp.mpg.de copied from a IDL routine of jgq
+
+    About the units:
+        -# Int_photon_flux --> Photons/(s*m^2)
+        -# Pixel_area_covered --> m^2
+        -# Calib_exposure_time --> s
+        -# exposure_time --> s
+        -# pinhole_area --> m^2
+        -# Calibration frame (input) --> Counts
+
+        -# Raw Frame --> Counts
+        -# Calibration frame (output) --> Counts*s*m^2/photons
+        -# Photon flux frame --> Photons/(s*m^2)
+    @todo include the parameters in the docstring
+    @todo maybe a problem if size of calibration frame is not the area one
+    """
+    output = calibration_frame / pixel_area_covered * exposure_time * \
+        pinhole_area / (calib_exp_time*int_photon_flux)
+
+    return output
+
+
+def FILD_calculate_photon_flux(raw_frame, calibration_frame,
+                               pinhole_area: float, exposure_time: float,
+                               calib_exposure_time: float, pixel_area_covered,
+                               int_photon_flux, mask=None):
+    """
+    Convert a FILD frame into photon/s
+
+    Jose Rueda: ruejo@ipp.mpg.de  based on an IDL routine of Joaquin Galdón
+
+    About the units:
+        -# photon_flux: Photons/(s*m^2)
+        -# Area covered by the pixel: m^2
+        -# Calibration exposure time: s
+        -# Exposure time: s
+        -# pinhole area: m^2
+        -# Calibration frame [input]: counts
+        -# Calibration frame [output]: counts*s*m^2/photons
+        -# Photon flux frame: Photons/(s*m^2)
+    @todo include docstring of the inputs
+    """
+    # Chec frame shapes
+    # --- Section 0: Check the inputs
+    s1 = raw_frame.shape
+    s2 = calibration_frame.shape
+
+    if calibration_frame.size == 1:
+        print('Using mean calibration frame method:')
+        print('So Using single (mean) value instead of a 2D array')
+    else:
+        if (s1[0] != s2[0]) or (s1[1] != s2[0]):
+            print('Size of data frame and calibration frame not matching!!')
+            raise Exception('Use mean calibration frame method!!')
+    # --- Section 1: calibrate the frames
+    cal_frame_cal = \
+        FILD_absolute_calibration_frame(calibration_frame, exposure_time,
+                                        pinhole_area, calib_exposure_time,
+                                        int_photon_flux, pixel_area_covered)
+    photon_flux_frame = raw_frame / cal_frame_cal
+    photon_flux = np.nansum(photon_flux_frame, dtype=np.float)
+
+    if mask is not None:
+        print('USING ROI METHOD FOR PHOTON FRAME CALCULATION')
+        dummy_frame = photon_flux_frame * 0.0
+        dummy_frame[mask] = photon_flux_frame[mask]
+
+        photon_flux_frame = dummy_frame
+        photon_flux = np.nansum(photon_flux_frame, dtype=np.float)
+
+    return {'photon_flux_frame': photon_flux_frame,
+            'photon_flux': photon_flux, 'calibration_frame': cal_frame_cal,
+            'exposure_time': exposure_time, 'pinhole_area': pinhole_area}
+
+
 def get_energy_FILD(gyroradius, B: float, A: int = 2, Z: int = 1):
     """
     Relate the gyroradius with the associated energy (FILDSIM definition)
@@ -633,6 +743,8 @@ class StrikeMap:
             # Initialise the class
             ## Gyroradius of map points
             self.gyroradius = dummy[ind, 0]
+            ## Energy of map points
+            self.energy = None
             ## Pitch of map points
             self.pitch = dummy[ind, 1]
             ## x coordinates of map points
@@ -908,6 +1020,20 @@ class StrikeMap:
                 axes[1, 1].set_ylim(0, frame_shape[1])
                 fig.colorbar(c3, ax=axes[1, 1], shrink=0.9)
 
+    def get_energy(self, B0: float, Z: int = 1, A: int = 2):
+        """Get the energy associated with each gyroradius
+
+        Jose Rueda: jose.rueda@ipp.mpg.de
+
+        @param self:
+        @param B0: Magnetic field [in T]
+        @param Z: the charge [in e units]
+        @param A: the mass number
+        """
+        if self.diag == 'FILD':
+            self.energy = get_energy_FILD(self.gyroradius, B0, A=A, Z=Z)
+        return
+
 
 class CalParams:
     """
@@ -987,7 +1113,7 @@ class Scintillator:
         self.ypixel = None
         # We want the coordinates in cm, if 'cm' is not the unit, apply the
         # corresponding transformation. (Void it is interpreter as cm)
-        factors = {'cm': 1, 'm': 0.01, 'inch': 2.54}
+        factors = {'cm': 1, 'm': 0.01, 'mm': 0.1, 'inch': 2.54}
         if self.orig_units in factors:
             self.coord_real = self.coord_real * factors[self.orig_units]
         else:
@@ -995,7 +1121,7 @@ class Scintillator:
             print('Maybe you are using and old FILDSIM file, so do not panic')
             return
 
-    def plot_pix(self, ax, plt_par: dict):
+    def plot_pix(self, ax=None, plt_par: dict = {}):
         """
         Plot the scintillator, in pixels, in the axes ax
 
@@ -1009,9 +1135,11 @@ class Scintillator:
             plt_par['marker'] = ''
         if 'linestyle' not in plt_par:
             plt_par['linestyle'] = '--'
+        if ax is None:
+            fig, ax = plt.subplots()
         ax.plot(self.xpixel, self.ypixel, **plt_par)
 
-    def plot_real(self, ax, plt_par: dict):
+    def plot_real(self, ax=None, plt_par: dict = {}):
         """
         Plot the scintillator, in cm, in the axes ax
 
@@ -1025,6 +1153,8 @@ class Scintillator:
             plt_par['marker'] = ''
         if 'linestyle' not in plt_par:
             plt_par['linestyle'] = '--'
+        if ax is None:
+            fig, ax = plt.subplots()
         ax.plot(self.coord_real[:, 1], self.coord_real[:, 2], **plt_par)
 
     def calculate_pixel_coordinates(self, calib):
@@ -1036,7 +1166,7 @@ class Scintillator:
         @param calib: a CalParams() object with the calibration info
         @return: Nothing, just update the plot
         """
-        dummyx = self.cord_real[:, 1]
-        dummyy = self.cord_real[:, 2]
+        dummyx = self.coord_real[:, 1]
+        dummyy = self.coord_real[:, 2]
 
         self.xpixel, self.ypixel = transform_to_pixel(dummyx, dummyy, calib)

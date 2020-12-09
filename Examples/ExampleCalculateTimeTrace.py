@@ -21,10 +21,8 @@ import LibTimeTraces as sstt
 
 # ------------------------------------------------------------------------------
 # Section 0: Settings
-cin_file_name = '/p/IPP/AUG/rawfiles/FIT/34/34570_v710.cin'
-reference_frame_name = './FILD_calibration/FILD_reference_800x600_03062019.png'
-scintillator_name = './aug_fild1_scint.pl'
-t0 = 2.16       # Reference time (to select the ROI) in s
+cin_file_name = '/p/IPP/AUG/rawfiles/FIT/32/32326_v710.cin'
+t0 = 0.35       # Reference time (to select the ROI) in s
 
 # ------------------------------------------------------------------------------
 # Section 1: Read the cin file and create the roi

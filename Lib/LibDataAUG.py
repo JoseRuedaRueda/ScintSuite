@@ -136,3 +136,197 @@ def plot_vessel(ax, projection: str = 'poloidal', line_properties: dict = {},
         print('Not recognised argument')
 
     return
+
+
+def NBI_diaggeom_coordinates(nnbi):
+    """
+    Just the coordinates manually extracted for shot 32312
+
+    @param nnbi: the NBI number
+    @return coords: dictionary containing the coordiates of the initial and
+    final points. '0' are near the source, '1' are near the central column
+    """
+    r0 = np.array([2.6, 2.6, 2.6, 2.6, 2.6, 2.6, 2.6, 2.6])
+    r1 = np.array([1.046, 1.046, 1.046, 1.046, 1.048, 2.04, 2.04, 1.048])
+
+    z0 = np.array([0.022, 0.021, -0.021, -0.022,
+                   -0.019, -0.149, 0.149, 0.19])
+    z1 = np.array([-0.12, -0.145, 0.145, 0.12, -0.180, -0.6, 0.6, 0.180])
+
+    phi0 = np.array([-32.725, -31.88, -31.88, -32.725,
+                     145.58, 148.21, 148.21, 145.58]) * np.pi / 180.0
+    phi1 = np.array([-13.81, 10.07, 10.07, -13.81,
+                     -180.0, -99.43, -99.43, -180.0]) * np.pi / 180.0
+
+    x0 = r0 * np.cos(phi0)
+    x1 = r1 * np.cos(phi1)
+
+    y0 = r0 * np.sin(phi0)
+    y1 = r1 * np.sin(phi1)
+
+    coords = {'phi0': phi0[nnbi-1], 'phi1': phi1[nnbi-1],
+              'x0': x0[nnbi-1], 'y0': y0[nnbi-1],
+              'z0': z0[nnbi-1], 'x1': x1[nnbi-1],
+              'y1': y1[nnbi-1], 'z1': z1[nnbi-1]}
+    return coords
+
+
+class NBI:
+    """Class with the information and data from an NBI"""
+
+    def __init__(self, nnbi: int, shot: int = 32312, diaggeom=True, t=None):
+        """
+        Initialize the class
+
+        @todo: Implement the actual algorithm to look at the shotfiles for the
+        NBI geometry
+        @todo: Create a new package to set this structure as machine
+        independent??
+
+        @param    nnbi: number of the NBI
+        @type:    int
+
+        @param    shot: shot number
+        @type:    int
+
+        @param    diaggeom: If true, values extracted manually from diaggeom
+
+        @param    t: time [s] if it is present, the pitch along the injection
+        line will be calculated
+        """
+        ## Coordinates of the NBI
+        self.coords = None
+        ## Pitch information (injection pitch in each radial position)
+        self.pitch_profile = None
+        if diaggeom:
+            self.coords = NBI_diaggeom_coordinates(nnbi)
+        else:
+            raise Exception('Sorry, option not jet implemented')
+
+    def calc_pitch_profile(self, shot: int, time: float, rmin: float = 1.4,
+                           rmax: float = 2.2, delta: float = 0.04,
+                           BtIp: int = -1.0, deg: bool = False):
+        """
+        Calculate the pitch profile of the NBI along the injection line
+
+        If the 'pitch_profile' field of the NBI object is not created, it
+        initialise it, else, it just append the new time point (it will insert
+        the time point at the end, if first you call the function for t=1.0,
+        then for 0.5 and then for 2.5 you will create a bit of a mesh, please
+        use this function with a bit of logic)
+
+        DISCLAIMER: We will not check if the radial position concides with the
+        previous data in the pitch profile structure, it is your responsability
+        to use consistent input when calling this function
+
+        @todo implement using insert the insertion of the data on the right
+        temporal position
+
+        @param shot: Shot number
+        @param time: Time in seconds
+        @param rmin: miminum radius to be considered during the calculation
+        @param rmax: maximum radius to be considered during the calculation
+        @param delta: the spacing of the points along the NBI [m]
+        @param BtIp: sign of the magnetic field respect to the current, the
+        pitch will be defined as BtIp * v_par / v
+        @param deg: If true the pitch is acos(BtIp * v_par / v)
+        """
+        if self.coords is None:
+            raise Exception('Sorry, NBI coordinates are needed!!!')
+        # Get coordinate vector
+        v = np.array([self.coords['x1'] - self.coords['x0'],
+                      self.coords['y1'] - self.coords['y0'],
+                      self.coords['z1'] - self.coords['z0']])
+        normv = np.sqrt(v[0]**2 + v[1]**2 + v[2]**2)
+        # make the vector with the desired length
+        v *= delta / normv
+        # estimate the number of steps
+        nstep = np.int(normv / delta)
+        # 'walk' along the NBI
+        point = np.array([self.coords['x0'], self.coords['y0'],
+                          self.coords['z0']])
+        R = np.zeros(nstep)
+        Z = np.zeros(nstep)
+        phi = np.zeros(nstep)
+        flags = np.zeros(nstep, dtype=np.bool)
+        for istep in range(nstep):
+            Rdum = np.sqrt(point[0]**2 + point[1]**2)
+            if Rdum < rmin:
+                break
+            if Rdum < rmax:
+                R[istep] = Rdum
+                Z[istep] = point[2]
+                phi[istep] = np.arctan2(point[1], point[0])
+                flags[istep] = True
+            point = point + v
+        # calculate the magnetic field
+        R = R[flags]
+        Z = Z[flags]
+        phi = phi[flags]
+        ngood = R.size
+        pitch = np.zeros(ngood)
+        br, bz, bt, bp = get_mag_field(shot, R, Z, time=time)
+        bx = -np.cos(0.5*np.pi - phi) * bt + np.cos(phi) * br
+        by = np.sin(0.5*np.pi - phi) * bt + np.sin(phi) * br
+        B = np.vstack((bx, by, bz))
+        bnorm = np.sqrt(np.sum(B**2, axis=0))
+        pitch = (bx * v[0] + by * v[1] + bz * v[2]) / delta / bnorm
+        pitch = BtIp * pitch.squeeze()
+        if deg:
+            pitch = np.arccos(pitch) * 180.0 / np.pi
+        # Now we have the pitch profiles, we just need to store the info at the
+        # right place
+        if self.pitch_profile is None:
+            self.pitch_profile = {'t': np.array(time),
+                                  'z': Z, 'R': R, 'pitch': pitch}
+
+        else:
+            # number of already present times:
+            nt = len(self.pitch_profile['t'])
+            # see if the number of points along the NBI matches
+            npoints = self.pitch_profile['R'].size
+            if npoints / nt != R.size:
+                raise Exception('Have you changed delta from the last run?')
+            # insert the date where it should be
+            self.pitch_profile['t'] = \
+                np.vstack((self.pitch_profile['t'], time))
+            self.pitch_profile['z'] = \
+                np.vstack((self.pitch_profile['z'], Z))
+            self.pitch_profile['R'] = \
+                np.vstack((self.pitch_profile['R'], R))
+            self.pitch_profile['pitch'] = \
+                np.vstack((self.pitch_profile['pitch'], pitch))
+
+
+# def get_NBI_geometry(nnbi=3, shot=30585):
+#     """
+#     Get gometry of the NBI line
+#
+#     Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+#
+#     Extracted from the IDL routines of FIDASIM4
+#
+#     @params shot: shot number
+#     """
+
+    # # Number of NBIs:
+    # nsrc = 8
+    # # Parameters extracted from aug web page
+    # # R0(P):: Distance horizontal beam crossing to - torus axis [m]
+    # r0 = [284.2, 284.2, 284.2, 284.2, 329.6, 329.6, 329.6, 329.6]
+    # # PHI: angle between R and box [rad]
+    # phi = [15.0, 15.0, 15.0, 15.0, 18.90, 18.90, 18.90, 18.9] / 180.0 * np.pi
+    # # THETA:   angle towards P (horizontal beam crossing) [rad]
+# theta = [33.75, 33.75, 33.75, 33.75, 29., 29.0, 29.0, 29.0] / 180.0 * np.pi
+    # theta[4:7] += np.pi  # for NBI box 2
+    # theta -= np.pi / 8. * 3.   # rotate by 3 sectors (new coordinate system)
+    # # ALPHA: horizontal angle between Box-axis and source [rad]
+    # alpha = 4.1357 * [1., -1., -1., 1., 1., -1., -1., 1.] / 180.0 * np.pi
+    # # distance between P0 and Px!
+    # delta_x = [-50., -50., -50., -50., -50., 50., 50., -50.] / 100.0
+    # # radius of tangency:
+    # rtan = [0.53, 0.93, 0.93, 0.53, 0.84, 1.29, 1.29, 0.84]
+    # # vertical angle between box-axis and source [rad]
+    # beta = [-4.8991, -4.8991, 4.8991, 4.8991,
+    #         -4.8991, -6.6555, 6.6555, 4.8991] * np.pi / 180.0
+    # # @todo make the reading of beta from the database to work!!!

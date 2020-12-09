@@ -171,6 +171,7 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
 def write_namelist(p: str, runID: str = 'test', result_dir: str = './results/',
                    backtrace: str = '.false.', N_gyroradius: int = 7,
                    N_pitch: int = 7, save_orbits: int = 0,
+                   verbose: str = '.False.',
                    N_ions: int = 1500, step: float = 0.01,
                    helix_length: float = 10.0,
                    gyroradius=[2., 3., 4., 5., 6., 7., 8.],
@@ -221,6 +222,7 @@ def write_namelist(p: str, runID: str = 'test', result_dir: str = './results/',
     print("N_gyroradius=", N_gyroradius, ",", file=f, sep='')
     print("N_pitch=", N_pitch, ",", file=f, sep='')
     print("save_orbits=", save_orbits, ",", file=f, sep='')
+    print("verbose=", verbose, ",", file=f, sep='')
     print("/", file=f, sep='')
 
     print("", file=f, sep='')
