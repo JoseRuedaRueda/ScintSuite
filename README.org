@@ -22,6 +22,14 @@ Each release will be denoted by 3 numbers: a.b.c meaning:
 ** FILDSIM notes
 - You need to create an empty folder in the root of FILDSIM code with name 'cfg_files' in order to run the remap routine
 
+** Paths
+- The paths of the suite are hardcored in the file paths_suite.py. If you have FILDSIM, INPASIM and everyting installed in your home folder (strongly recomended), things should work, if not... you will have to modify this file yourself
+- IMPORTANT: In order to determine in which machine we are running this, the code will search in the path name, for example, if the path is /afs/ipp/... the suite will consider you are in ASDEX. Please do not execute the code for smart in a folder called IPP or the program will be crazy
+
+** Machine names
+- All devices are identified by three letters:
+  -- 'AUG': ASDEX Upgrade
+
 ** Useful links
 - FILDSIM code: https://gitlab.mpcdf.mpg.de/jgq/FILDSIM.git
 - INPASIM code: https://gitlab.mpcdf.mpg.de/ruejo/inpasim.git

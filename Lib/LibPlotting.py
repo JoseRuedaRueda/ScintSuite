@@ -107,5 +107,5 @@ def Gamma_II(n=256):
     @param n: numbers of levels of the output colormap
     """
     cmap = LinearSegmentedColormap.from_list(
-        'mycmap', ['black', 'blue', 'red', 'yellow', 'white'], N=n)
+        'Gamma_II', ['black', 'blue', 'red', 'yellow', 'white'], N=n)
     return cmap
