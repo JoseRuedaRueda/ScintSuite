@@ -25,7 +25,7 @@ import Lib as ss
 # -----------------------------------------------------------------------------
 # Section 0: Settings
 # -----------------------------------------------------------------------------
-shot = 38001     # shot number
+shot = 35953     # shot number
 t0 = 1.25        # Reference time (to select the ROI) in s
 fild_number = 4  # FILD number
 # -----------------------------------------------------------------------------
@@ -53,7 +53,7 @@ fig_ref, ax_ref = video.plot_frame(frame_index)
 fig_ref, roi = ss.tt.create_roi(fig_ref)
 
 # Create the mask
-mask = roi.get_mask(video.frames.squeeze())
+mask = roi.get_mask(video.exp_dat['frames'].squeeze())
 # -----------------------------------------------------------------------------
 # Section 2: Calculate and display the time traces
 video.read_frame()

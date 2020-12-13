@@ -993,12 +993,12 @@ def read_data_png(path):
         # the basis of the exposition time
         std_time = np.std(time_base)
         # Test if all the exposue time was the same
-        if std_time < 1e-2:
+        if std_time < 1e-2 and np.mean(time_base) < 0.1:
             time_base = np.linspace(0, dummy[-1, 0] * dummy[0, 2] / 1000,
                                     int(dummy[-1, 0]))
             print('Caution!! the experimental time base was broken, a time '
                   'base has been generated on the basis of theexposure time')
-        else:
+        elif np.mean(time_base) < 0.1:
             raise Exception('The time base was broken!!!')
     # extract the shot number from the path
     header['shot'] = int(path[-5:])
@@ -1044,7 +1044,7 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
     @return M: array of frames, [px in x, px in y, number of frames]
     """
     # Frames would have a name as shot-framenumber.png example: 30585-001.png
-
+    print('Reading PNG files')
     # check the size of the files, data will be saved as float32
     size_frame = video_object.imageheader['biWidth'] * \
         video_object.imageheader['biWidth'] * 2 / 1024 / 1024
@@ -1084,6 +1084,7 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
                         os.path.join(video_object.path, file)).astype(
                             np.float32)
                     counter = counter + 1
+        print('Number of loaded frames: ', counter)
     return M
 
 
@@ -1112,10 +1113,10 @@ class Video:
         # Initialise some variables
         ## Type of video
         self.type_of_file = None
-        ## Experimental data
-        self.exp_dat = {'frames': None,   #< Loaded frames
-                        'tframes': None,  #< Timebase of the loaded frames
-                        'nframes': None}  #< Frame numbers of the loaded frames
+        ## Loaded experimental data
+        self.exp_dat = {'frames': None,   # Loaded frames
+                        'tframes': None,  # Timebase of the loaded frames
+                        'nframes': None}  # Frame numbers of the loaded frames
         ## Time traces: space reservation for the future
         self.time_trace = None
 
@@ -1195,22 +1196,22 @@ class Video:
         """
         if self.type_of_file == '.cin':
             if internal:
-                self.frames = read_frame_cin(self, frames_number,
-                                             limitation=limitation,
-                                             limit=limit)
-                self.tframes = self.timebase[frames_number]
-                self.nframes = frames_number
+                self.exp_dat['frames'] = \
+                    read_frame_cin(self, frames_number, limitation=limitation,
+                                   limit=limit)
+                self.exp_dat['tframes'] = self.timebase[frames_number]
+                self.exp_dat['nframes'] = frames_number
             else:
                 M = read_frame_cin(self, frames_number, limitation=limitation,
                                    limit=limit)
                 return M
         elif self.type_of_file == '.png':
             if internal:
-                self.frames = read_frame_png(self, frames_number,
-                                             limitation=limitation,
-                                             limit=limit)
-                self.tframes = self.timebase[frames_number]
-                self.nframes = frames_number
+                self.exp_dat['frames'] = \
+                    read_frame_png(self, frames_number, limitation=limitation,
+                                   limit=limit)
+                self.exp_dat['tframes'] = self.timebase[frames_number]
+                self.exp_dat['nframes'] = frames_number
             else:
                 M = read_frame_png(self, frames_number, limitation=limitation,
                                    limit=limit)
@@ -1235,14 +1236,15 @@ class Video:
         @return ax: the axes where the frame has been drawn
         @return fig: the figure where the frame has been drawn
         """
-        if len(self.nframes) == 1:
-            if self.nframes == frame_number:
-                dummy = self.frames.squeeze()
+        if len(self.exp_dat['nframes']) == 1:
+            if self.exp_dat['nframes'] == frame_number:
+                dummy = self.exp_dat['frames'].squeeze()
             else:
                 raise Exception('Frame not in file')
         else:
-            frame_index = np.array([np.argmin(abs(self.nframes-frame_number))])
-            dummy = self.frames[:, :, frame_index].squeeze()
+            frame_index = np.array([np.argmin(abs(self.exp_dat['nframes'] -
+                                   frame_number))])
+            dummy = self.exp_dat['frames'][:, :, frame_index].squeeze()
 
         cmap = ssplt.Gamma_II()
         if ax is None:

@@ -52,7 +52,7 @@ fig_ref, ax_ref = video.plot_frame(frame_index)
 fig_ref, roi = ss.tt.create_roi(fig_ref)
 
 # Create the mask
-mask = roi.get_mask(video.frames)
+mask = roi.get_mask(video.exp_dat['frames'].squeeze())
 # -----------------------------------------------------------------------------
 # Section 2: Calculate and display the time traces
 # time_trace = sstt.time_trace_cine(cin, mask, t1=0, t2=7.0)

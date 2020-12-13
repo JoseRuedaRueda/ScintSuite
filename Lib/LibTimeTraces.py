@@ -170,7 +170,7 @@ class TimeTrace:
         """
         # Initialise the times to look for the time trace
         if t1 is None and t2 is None:
-            if video.tframes is None:
+            if video.exp_dat['tframes'] is None:
                 aa = 'Frames are not loaded in the video object, use t1 and t2'
                 raise Exception(aa)
         elif t1 is None and t2 is not None:
@@ -197,13 +197,15 @@ class TimeTrace:
 
         # Calculate the time trace
         if t1 is None:
-            self.time_base = video.tframes.squeeze()
+            self.time_base = video.exp_dat['tframes'].squeeze()
             self.sum_of_roi, self.mean_of_roi, self.std_of_roi\
-                = trace(video.frames, mask)
+                = trace(video.exp_dat['frames'], mask)
         else:
             if video.type_of_file == '.cin':
                 self.time_base, self.sum_of_roi, self.mean_of_roi,\
                     self.std_of_roi = time_trace_cine(video, mask, t1, t2)
+            else:
+                raise Exception('Still not implemented, contact ruejo')
 
     def export_to_ascii(self, filename: str):
         """
@@ -364,4 +366,5 @@ class TimeTrace:
         ax.pcolormesh(self.spec['taxis'], self.spec['faxis'],
                       self.spec['data'], shading='gouraud', cmap=cmap)
         ax = ssplt.axis_beauty(ax, options)
+        plt.show()
         return fig, ax
