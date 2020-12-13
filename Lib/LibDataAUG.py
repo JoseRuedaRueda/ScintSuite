@@ -138,7 +138,7 @@ def plot_vessel(ax, projection: str = 'poloidal', line_properties: dict = {},
     return
 
 
-def NBI_diaggeom_coordinates(nnbi):
+def _NBI_diaggeom_coordinates(nnbi):
     """
     Just the coordinates manually extracted for shot 32312
 
@@ -199,7 +199,7 @@ class NBI:
         ## Pitch information (injection pitch in each radial position)
         self.pitch_profile = None
         if diaggeom:
-            self.coords = NBI_diaggeom_coordinates(nnbi)
+            self.coords = _NBI_diaggeom_coordinates(nnbi)
         else:
             raise Exception('Sorry, option not jet implemented')
 

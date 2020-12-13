@@ -25,7 +25,7 @@ import LibPlotting as ssplt
 import map_equ as meq
 import time
 from matplotlib.widgets import Slider
-from paths import p
+from paths_suite import p
 
 # ------------------------------------------------------------------------------
 # Section 0: Settings

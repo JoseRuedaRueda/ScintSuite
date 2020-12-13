@@ -66,6 +66,7 @@ def axis_beauty(ax, param_dict: dict):
         font['fontname'] = param_dict['fontname']
     if 'fontsize' in param_dict:
         font['size'] = param_dict['fontsize']
+        labelsize = param_dict['fontsize']
         # ax.tick_params(labelsize=param_dict['fontsize'])
     if 'xlabel' in param_dict:
         ax.set_xlabel(param_dict['xlabel'], **font)
@@ -84,16 +85,14 @@ def axis_beauty(ax, param_dict: dict):
             ax.yaxis.offsetText.set_fontname(param_dict['fontname'])
     if 'grid' in param_dict:
         if param_dict['grid'] == 'both':
-            plt.grid(True, which='minor', linestyle=':')
+            ax.grid(True, which='minor', linestyle=':')
             ax.minorticks_on()
-            plt.grid(True, which='major')
+            ax.grid(True, which='major')
         else:
-            plt.grid(True, which=param_dict['grid'])
+            ax.grid(True, which=param_dict['grid'])
     # Arrange ticks a ticks labels
-    plt.xticks(**font)
-    plt.yticks(**font)
     ax.tick_params(which='both', direction='in', color='k', bottom=True,
-                   top=True, left=True, right=True)
+                   top=True, left=True, right=True, labelsize=labelsize)
     return ax
 
 
@@ -107,5 +106,5 @@ def Gamma_II(n=256):
     @param n: numbers of levels of the output colormap
     """
     cmap = LinearSegmentedColormap.from_list(
-        'Gamma_II', ['black', 'blue', 'red', 'yellow', 'white'], N=n)
+        'mycmap', ['black', 'blue', 'red', 'yellow', 'white'], N=n)
     return cmap

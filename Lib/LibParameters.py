@@ -12,7 +12,8 @@ c = 3.0e8         # Speed of light in m/s
 # -----------------------------------------------------------------------------
 # All values except for beta, are extracted from the paper:
 # J. Ayllon-Guerola et al 2019 JINST14 C10032
-# @todo find beta angles for the others FILD
+# betas are taken to be -12.0 for AUG
+# @todo include jet FILD as 'fild6', Jt-60 as 'fild7' as MAST-U as 'fild8'?
 fild1 = {'alpha': 0.0,   # Alpha angle [deg], see paper
          'beta': -12.0,  # beta angle [deg], see FILDSIM doc
          'sector': 8,    # The sector where FILD is located
@@ -20,16 +21,16 @@ fild1 = {'alpha': 0.0,   # Alpha angle [deg], see paper
          'z': 0.3,       # Z position [m]
          'phi_tor': 169.75}  # Toroidal position, [deg]
 
-fild2 = {'alpha': 0.0, 'beta': 1800.0, 'sector': 3, 'r': 2.180,
+fild2 = {'alpha': 0.0, 'beta': -12.0, 'sector': 3, 'r': 2.180,
          'z': 0.3, 'phi_tor': 57.25}
 
-fild3 = {'alpha': 72.0, 'beta': 1800.0, 'sector': 13, 'r': 1.975,
+fild3 = {'alpha': 72.0, 'beta': -12.0, 'sector': 13, 'r': 1.975,
          'z': 0.765, 'phi_tor': 282.25}
 
 fild4 = {'alpha': 0.0, 'beta': -12.0, 'sector': 8, 'r': 2.035,
          'z': -0.462, 'phi_tor': 169.75}
 
-fild5 = {'alpha': -45.0, 'beta': 1800.0, 'sector': 7, 'r': 1.772,
+fild5 = {'alpha': -45.0, 'beta': -12.0, 'sector': 7, 'r': 1.772,
          'z': -0.798, 'phi_tor': 147.25}
 
 FILD = (fild1, fild2, fild3, fild4, fild5)

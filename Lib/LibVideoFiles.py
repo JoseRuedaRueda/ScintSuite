@@ -3,18 +3,19 @@
 This module is created to handle the .cin (.cine) files, binary files
 created by the Phantom cameras. In its actual state it can read everything
 from the file, but it can't write/create a cin file. It also load data from
-PNG files as the old FILD_GUI and is able to work with tiff files
+PNG files as the old FILD_GUI and will be able to work with tiff files
 """
 
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import LibPlotting as ssplt
 
 
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # --- Section 1: Methods for the .cin files
-# ------------------------------------------------------------------------------
-def read_header(filename: str, verbose=False):
+# -----------------------------------------------------------------------------
+def read_header(filename: str, verbose: bool = False):
     """
     Read the header info of a .cin file.
 
@@ -958,9 +959,8 @@ def read_data_png(path):
     @return header: Header 'similar' to the case of a cin file
     @return settingf: dictionary similar to the case of the cin file (it only
     contain the exposition time)
-
     """
-    # Look for the png file with the time base and exposition time
+    # Look for a png to extract the file and a .txt for the time information
     f = []
     look_for_png = True
     for file in os.listdir(path):
@@ -992,15 +992,18 @@ def read_data_png(path):
         # where recorded at t = 0... in this case just assume a time base on
         # the basis of the exposition time
         std_time = np.std(time_base)
+        # Test if all the exposue time was the same
         if std_time < 1e-2:
             time_base = np.linspace(0, dummy[-1, 0] * dummy[0, 2] / 1000,
-                                    int(dummy[-1, 0]) + 1)
+                                    int(dummy[-1, 0]))
             print('Caution!! the experimental time base was broken, a time '
                   'base has been generated on the basis of theexposure time')
+        else:
+            raise Exception('The time base was broken!!!')
     # extract the shot number from the path
     header['shot'] = int(path[-5:])
 
-    return header, imageheader, settings, time_base
+    return header, imageheader, settings, time_base.squeeze()
 
 
 def rgb2gray(rgb):
@@ -1008,12 +1011,12 @@ def rgb2gray(rgb):
     return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
 
 
-def load_png_files(filename):
+def load_png_files(filename: str):
     """
     Load the png with an order compatible with IDL
 
     IDL load things internally in a way different from python. In order the new
-    suite to be compatible with all FILD calibrations of the last 20 years,
+    suite to be compatible with all FILD calibrations of the last 15 years,
     an inversion should be done to load png in the same way as IDL
 
     @param filename: full path pointing to the png
@@ -1033,7 +1036,6 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
 
     Jose Rueda: jose.rueda@ipp.mpg.de
 
-    Important, PNG are supposed to be created already in a gray scale!!!
     @param video_object: Video class with the info of the video
     @param frames_number: array with the number of the frames to be loaded,
     if none, all frames will be loaded
@@ -1050,7 +1052,7 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
         # In this case, we load everything
         if limitation and \
                 size_frame * video_object.header['ImageCount'] > limit:
-            print('Loading all frames is too much')
+            raise Exception('Loading all frames is too much')
             return 0
 
         M = np.zeros((video_object.imageheader['biWidth'],
@@ -1105,10 +1107,19 @@ class Video:
         @param file: For the initialization, file (full path) to be loaded),
         if the path point to a .cin file, the .cin file will be loaded. If
         the path points to a folder, the prgram will look for png files or
-        tiff files inside
+        tiff files inside (tiff comming soon)
         """
+        # Initialise some variables
         ## Type of video
         self.type_of_file = None
+        ## Experimental data
+        self.exp_dat = {'frames': None,   #< Loaded frames
+                        'tframes': None,  #< Timebase of the loaded frames
+                        'nframes': None}  #< Frame numbers of the loaded frames
+        ## Time traces: space reservation for the future
+        self.time_trace = None
+
+        # Fill the object depending if we have a .cin file or not
         if os.path.isfile(file):
             ## Path to the file and filename
             self.path, self.file_name = os.path.split(file)
@@ -1128,6 +1139,10 @@ class Video:
                 self.timebase = read_time_base(file, self.header,
                                                self.settings)
                 self.type_of_file = '.cin'
+            elif file[-4:] == '.png' or file[-4:] == '.tif':
+                raise Exception('To load png or tif, just give the folder')
+            else:
+                raise Exception('Not recognised file extension')
         elif os.path.isdir(file):
             ## path to the file
             self.path = file
@@ -1156,10 +1171,10 @@ class Video:
                 self.header, self.imageheader, self.settings,\
                     self.timebase = read_data_png(self.path)
         if self.type_of_file is None:
-            print('Not file found')
+            raise Exception('Not file found!')
 
     def read_frame(self, frames_number=None, limitation: bool = True,
-                   limit: int = 2048):
+                   limit: int = 2048, internal: bool = True):
         """
         Call the read_frame function
 
@@ -1170,14 +1185,67 @@ class Video:
         @param limitation: maximum size allowed to the output variable,
         in Mbytes, to avoid overloading the memory trying to load the whole
         video of 100 Gb
-        @param limit: bool flag to decide if we apply the limitation of we
-        operate in mode: YOLO
+        @param limit: bool flag to decide if we apply the limitation or if we
+        operate in YOLO mode
+        @param internal: If True, the frames will be stored in the 'frames'
+        variable of the video object. Else, it will be returned just as output
+        (usefull if you need to load another frame and you do not want to
+        overwrite your frames already loaded)
         @return M: 3D numpy array with the frames M[px,py,nframes]
         """
         if self.type_of_file == '.cin':
-            M = read_frame_cin(self, frames_number, limitation=limitation,
-                               limit=limit)
+            if internal:
+                self.frames = read_frame_cin(self, frames_number,
+                                             limitation=limitation,
+                                             limit=limit)
+                self.tframes = self.timebase[frames_number]
+                self.nframes = frames_number
+            else:
+                M = read_frame_cin(self, frames_number, limitation=limitation,
+                                   limit=limit)
+                return M
         elif self.type_of_file == '.png':
-            M = read_frame_png(self, frames_number, limitation=limitation,
-                               limit=limit)
-        return M
+            if internal:
+                self.frames = read_frame_png(self, frames_number,
+                                             limitation=limitation,
+                                             limit=limit)
+                self.tframes = self.timebase[frames_number]
+                self.nframes = frames_number
+            else:
+                M = read_frame_png(self, frames_number, limitation=limitation,
+                                   limit=limit)
+                return M
+        else:
+            raise Exception('Not initialised file type?')
+        return
+
+    def plot_frame(self, frame_number: int, ax=None, fig=None):
+        """
+        Plot a frame from the loaded frames
+
+        Not recommended for general use (it can be slow and it is not very
+        customizable) it is though just for a quick plot
+
+        Notice: If ax is given, fig should be also given
+
+        @param frame_number: Number of the frame to plot, relative to the video
+        file
+        @param fig: Figure where the frame must be drawn
+        @param ax: Axes where to plot, is none, just a new axes will be created
+        @return ax: the axes where the frame has been drawn
+        @return fig: the figure where the frame has been drawn
+        """
+        if len(self.nframes) == 1:
+            if self.nframes == frame_number:
+                dummy = self.frames.squeeze()
+            else:
+                raise Exception('Frame not in file')
+        else:
+            frame_index = np.array([np.argmin(abs(self.nframes-frame_number))])
+            dummy = self.frames[:, :, frame_index].squeeze()
+
+        cmap = ssplt.Gamma_II()
+        if ax is None:
+            fig, ax = plt.subplots()
+        ax.imshow(dummy, origin='lower', cmap=cmap)
+        return fig, ax

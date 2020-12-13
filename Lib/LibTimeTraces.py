@@ -4,7 +4,7 @@ Package to calculate time traces
 Contains all the routines to calculate time traces. The RoiPoly module must be
 installed. If you use Spyder as Python IDE, please install the RoiPoly version
 which is compatible with Spyder.
-(See the readme of the project to get the link)
+(See the Read-me of the project to get the link)
 
 """
 import numpy as np
@@ -14,6 +14,7 @@ import time
 from scipy.fft import rfft, rfftfreq
 from scipy import signal
 import matplotlib.pyplot as plt
+import LibPlotting as ssplt
 
 
 def trace(frames, mask):
@@ -32,11 +33,16 @@ def trace(frames, mask):
     """
     # Allocate output array
     n = frames.shape[2]
-    tr = np.zeros(n)
+    sum_of_roi = np.zeros(n)
+    std_of_roi = np.zeros(n)
+    mean_of_roi = np.zeros(n)
     # calculate the trace
     for iframe in range(n):
-        tr[iframe] = sum(frames[mask, iframe])
-    return tr
+        dummy = frames[:, :, iframe].squeeze()
+        sum_of_roi[iframe] = np.sum(dummy[mask])
+        mean_of_roi[iframe] = np.mean(dummy[mask])
+        std_of_roi[iframe] = np.std(dummy[mask])
+    return sum_of_roi, std_of_roi, mean_of_roi
 
 
 def create_roi(fig, re_display=False):
@@ -55,6 +61,8 @@ def create_roi(fig, re_display=False):
     """
     # Define the roi
     print('Please select the vertex of the roi in the figure')
+    print('Select each vertex with right click')
+    print('Once you finished, right click')
     roi = RoiPoly(color='r', fig=fig)
     # Show again the image with the roi
     if re_display:
@@ -150,16 +158,25 @@ class TimeTrace:
 
         Jose Rueda Rueda: jose.rueda@ipp.mpg.de
 
+        If no times are given, it will use the frames loaded in the video
+        object, if t1 and t2 are present, it will load the correspoding frames
+
         @param video: Video object used for the calculation of the trace
         @param mask: mask to calculate the trace
-        @param t1: Initial time if None, first time in the video
-        @param t2: Final time if None, last time in the video
+        @param t1: Initial time if None, the loaded frames in the video will be
+        used
+        @param t2: Final time if None, the loaded frames in the video will be
+        used
         """
         # Initialise the times to look for the time trace
-        if t1 is None:
-            t1 = video.time_base[0]
-        if t2 is None:
-            t2 = video.time_base[-1]
+        if t1 is None and t2 is None:
+            if video.tframes is None:
+                aa = 'Frames are not loaded in the video object, use t1 and t2'
+                raise Exception(aa)
+        elif t1 is None and t2 is not None:
+            raise Exception('Only one time was given!')
+        elif t1 is not None and t2 is None:
+            raise Exception('Only one time was given!')
         # Initialise the different arrays
         ## Numpy array with the time base
         self.time_base = None
@@ -178,9 +195,15 @@ class TimeTrace:
         ## fft data
         self.fft = {'faxis': None, 'data': None}
 
-        if video.type_of_file == '.cin':
-            self.time_base, self.sum_of_roi, self.mean_of_roi, self.std_of_roi\
-                = time_trace_cine(video, mask, t1, t2)
+        # Calculate the time trace
+        if t1 is None:
+            self.time_base = video.tframes.squeeze()
+            self.sum_of_roi, self.mean_of_roi, self.std_of_roi\
+                = trace(video.frames, mask)
+        else:
+            if video.type_of_file == '.cin':
+                self.time_base, self.sum_of_roi, self.mean_of_roi,\
+                    self.std_of_roi = time_trace_cine(video, mask, t1, t2)
 
     def export_to_ascii(self, filename: str):
         """
@@ -225,7 +248,7 @@ class TimeTrace:
         self.fft['data'] = rfft(self.sum_of_roi, **params)
         return
 
-    def calculate_spectrogram(self, params: dict = {}, plot_flag=False):
+    def calculate_spectrogram(self, params: dict = {}):
         """
         Calculate the spectrogram of the time trace
 
@@ -241,18 +264,104 @@ class TimeTrace:
         @return:  nothing, just fill self.spec
         """
         sampling_freq = 1 / (self.time_base[1] - self.time_base[0])
-        print(sampling_freq)
+        # print(sampling_freq)
         f, t, Sxx = signal.spectrogram(self.sum_of_roi, sampling_freq)
         self.spec['faxis'] = f
         self.spec['taxis'] = t + self.time_base[0]
         self.spec['data'] = Sxx
-
-        # quick plot, more than to be used like an actual plot, is written here
-        # as an example of how to plot this
-        if plot_flag:
-            plt.pcolormesh(self.spec['taxis'], self.spec['faxis'],
-                           self.spec['data'], shading='gouraud')
-            plt.ylabel('Frequency [Hz]')
-            plt.xlabel('Time [sec]')
-            plt.show()
         return
+
+    def plot_all(self, options: dict = {}):
+        """
+        Plot the sum time trace, the average timetrace and the std ones
+
+        Jose Rueda: jose.rueda@ipp.mpg.de
+
+        Plot the sum, std and average of the roi
+        @param options: Dictionary containing the options for the axis_beauty
+        function. Notice, the y and x label are fixed, if present in the
+        options, they will be ignored
+        @return fig_tt: figure where the time trace has been plotted
+        @return axes: list of axes where the lines have been plotted
+        """
+        # Initialise the options for the plotting
+        if 'fontsize' not in options:
+            options['fontsize'] = 16.0
+        if 'grid' not in options:
+            options['grid'] = 'both'
+        line_options = {'linewidth': 2, 'color': 'r'}
+
+        fig_tt, [ax_tt1, ax_tt2, ax_tt3] = plt.subplots(1, 3)
+        # Plot the sum of the counts in the roi
+        ax_tt1.plot(self.time_base, self.sum_of_roi, **line_options)
+        options['xlabel'] = 't [s]'
+        options['ylabel'] = 'Counts'
+        ax_tt1 = ssplt.axis_beauty(ax_tt1, options)
+
+        # plot the mean of the counts in the roi
+        ax_tt2.plot(self.time_base, self.mean_of_roi, **line_options)
+        options['xlabel'] = 't [s]'
+        options['ylabel'] = 'Mean'
+        ax_tt2 = ssplt.axis_beauty(ax_tt2, options)
+
+        # plot the std of the counts in the roi
+        ax_tt3.plot(self.time_base, self.std_of_roi, **line_options)
+        options['xlabel'] = 't [s]'
+        options['ylabel'] = '$\sigma$'
+        ax_tt3 = ssplt.axis_beauty(ax_tt3, options)
+        plt.tight_layout()
+        plt.show()
+
+        return fig_tt, [ax_tt1, ax_tt2, ax_tt3]
+
+    def plot_fft(self, options: dict = {}):
+        """
+        Plot the fft of the TimeTrace
+
+        Jose Rueda: jose.rueda@ipp.mpg.de
+
+        @param options: options for the axis_beauty method
+        @return fig: figure where the fft is plotted
+        @return ax: axes where the fft is plotted
+        """
+        if 'fontsize' not in options:
+            options['fontsize'] = 16.0
+        if 'grid' not in options:
+            options['grid'] = 'both'
+        if 'xlabel' not in options:
+            options['xlabel'] = 'Frequency [Hz]'
+        if 'ylabel' not in options:
+            options['ylabel'] = 'Amplitude'
+        line_options = {'linewidth': 2, 'color': 'r'}
+
+        fig, ax = plt.subplots()
+        ax.plot(self.fft['faxis'], abs(self.fft['data']), **line_options)
+        ax = ssplt.axis_beauty(ax, options)
+        plt.show()
+        return fig, ax
+
+    def plot_spectrogram(self, options: dict = {}):
+        """
+        Plot the spectrogram
+
+        Jose Rueda: jose.rueda@ipp.mpg.de
+
+        @param options: options for the axis_beauty method
+        @return fig: figure where the fft is plotted
+        @return ax: axes where the fft is plotted
+        """
+        if 'fontsize' not in options:
+            options['fontsize'] = 16.0
+        if 'grid' not in options:
+            options['grid'] = 'both'
+        if 'ylabel' not in options:
+            options['ylabel'] = 'Frequency [Hz]'
+        if 'xlabel' not in options:
+            options['xlabel'] = 'Time [s]'
+
+        fig, ax = plt.subplots()
+        cmap = ssplt.Gamma_II()
+        ax.pcolormesh(self.spec['taxis'], self.spec['faxis'],
+                      self.spec['data'], shading='gouraud', cmap=cmap)
+        ax = ssplt.axis_beauty(ax, options)
+        return fig, ax

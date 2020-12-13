@@ -25,9 +25,9 @@ import Lib as ss
 # -----------------------------------------------------------------------------
 # Section 0: Settings
 # -----------------------------------------------------------------------------
-shot = 32312     # shot number
-t0 = 0.35        # Reference time (to select the ROI) in s
-fild_number = 1  # FILD number
+shot = 38001     # shot number
+t0 = 1.25        # Reference time (to select the ROI) in s
+fild_number = 4  # FILD number
 # -----------------------------------------------------------------------------
 # Section 1: Read the video file and create the roi
 # -----------------------------------------------------------------------------
@@ -36,8 +36,9 @@ dummy = str(shot)
 if fild_number == 1:
     file = ss.paths.CinFiles + dummy[0:2] + '/' + dummy + '_v710.cin'
 else:
-    file = ss.paths.PngFiles + 'FILD' + str(fild_number) + dummy[0:2] + '/' +\
-        dummy + '/'
+    file = ss.paths.PngFiles + 'FILD' + str(fild_number) + '/' +\
+        dummy[0:2] + '/' + dummy
+
 
 video = ss.vid.Video(file)
 # --- Plot a frame to select the roi on it
@@ -52,11 +53,11 @@ fig_ref, ax_ref = video.plot_frame(frame_index)
 fig_ref, roi = ss.tt.create_roi(fig_ref)
 
 # Create the mask
-mask = roi.get_mask(video.frames)
+mask = roi.get_mask(video.frames.squeeze())
 # -----------------------------------------------------------------------------
 # Section 2: Calculate and display the time traces
-# time_trace = sstt.time_trace_cine(cin, mask, t1=0, t2=7.0)
-time_trace = ss.tt.TimeTrace(video, mask, t1=0.0, t2=10.0)
+video.read_frame()
+time_trace = ss.tt.TimeTrace(video, mask)
 # Plot the time trace
 time_trace.plot_all()
 # -----------------------------------------------------------------------------
