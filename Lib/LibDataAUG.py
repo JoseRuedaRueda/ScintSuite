@@ -12,6 +12,12 @@ import numpy as np
 # Module to map the equilibrium
 import map_equ as meq
 
+# -----------------------------------------------------------------------------
+# AUG paramters
+# -----------------------------------------------------------------------------
+## Length of the shot numbers
+shot_number_length = 5  # In AUG shots numbers are written with 5 numbers 00001
+
 
 # def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
 #                   ed: int = 0, tiniEQU: float = None, tendEQU: float = None,

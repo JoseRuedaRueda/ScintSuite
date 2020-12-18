@@ -7,11 +7,18 @@ PNG files as the old FILD_GUI and will be able to work with tiff files
 """
 
 import os
+import re
 import numpy as np
 import matplotlib.pyplot as plt
 import LibPlotting as ssplt
 import LibMap as ssmap
+import LibPaths as p
 from matplotlib.widgets import Slider
+from LibMachine import machine
+pa = p.Path(machine)
+del p
+if machine == 'AUG':
+    import LibDataAUG as ssdat
 
 
 # -----------------------------------------------------------------------------
@@ -1103,7 +1110,7 @@ class Video:
     the frames itself not, we can not work with 100Gb of data in memory!!!
     """
 
-    def __init__(self, file: str, diag: str = 'FILD'):
+    def __init__(self, file: str, diag: str = 'FILD', shot=None):
         """
         Initialise the class
 
@@ -1111,6 +1118,8 @@ class Video:
         if the path point to a .cin file, the .cin file will be loaded. If
         the path points to a folder, the prgram will look for png files or
         tiff files inside (tiff comming soon)
+        @param shot: Shot number, if is not given, the program will look for it
+        in the name of the loaded file
         """
         # Initialise some variables
         ## Type of video
@@ -1123,6 +1132,12 @@ class Video:
         self.remap_dat = None
         ## Time traces: space reservation for the future
         self.time_trace = None
+        ## Diagnostic used to record the data
+        self.diag = 'FILD'
+        ## Shot number
+        self.shot = shot
+        if shot is None:
+            self.guess_shot(file, ssdat.shot_number_length)
 
         # Fill the object depending if we have a .cin file or not
         if os.path.isfile(file):
@@ -1177,9 +1192,38 @@ class Video:
                     self.timebase = read_data_png(self.path)
         if self.type_of_file is None:
             raise Exception('Not file found!')
-        if diag == 'FILD':
-            ## Diagnostic used to record the data
-            self.diag = 'FILD'
+
+    def guess_shot(self, file, shot_number_length):
+        """
+        Guess the shot number from the name of the file
+
+        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+        @param file: Name of the file or folder containg the data. In that name
+        it is assumed to be the shot number in the proper format
+        @param shot_number_length: Number of characters expected from the shot
+        number in the file name (defined in the modulus of each machine)
+        """
+        list = re.findall(r'\d+', file)
+        list = np.array(list)
+        n = len(list)
+        flags = np.zeros(n, dtype=np.bool)
+        for i in range(n):
+            if len(list[i]) == shot_number_length:
+                flags[i] = True
+        ntrues = np.sum(flags)
+        if ntrues == 1:
+            # print(flags)
+            # print(list[flags])
+            self.shot = int(list[flags])
+        elif ntrues == 0:
+            er = 'No shot number found in the name of the file'
+            er2 = 'Give the shot number as input when loading the file'
+            raise Eception(er + er2)
+        else:
+            er = 'Several possibles shot number were found'
+            er2 = 'Give the shot number as input when loading the file'
+            print('Possible shot numbers ', list[flags])
+            raise Eception(er + er2)
 
     def read_frame(self, frames_number=None, limitation: bool = True,
                    limit: int = 2048, internal: bool = True):
