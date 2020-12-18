@@ -6,19 +6,13 @@ import LibTimeTraces as tt
 import LibVideoFiles as vid
 import LibExtra as extra
 import LibPaths as p
-# Guess the machine to know which module we need to import
-import os
-a = os.path.abspath(os.getcwd())
-b = a.split(sep='/')
-for name in b:
-    if name == 'ipp-garching.mpg.de' or name == 'ipp':
-        import LibDataAUG as ssdat
-        machine = 'AUG'
+import LibMachine as m
+if m.machine == 'AUG':
+    import LibDataAUG as dat
+    
 
+machine = m.machine
 paths = p.Path(machine)
 # Delte the intermedite variables to 'clean'
-del a
-del b
-del os
-del name
 del p
+del m

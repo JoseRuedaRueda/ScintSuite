@@ -91,8 +91,12 @@ def axis_beauty(ax, param_dict: dict):
         else:
             ax.grid(True, which=param_dict['grid'])
     # Arrange ticks a ticks labels
-    ax.tick_params(which='both', direction='in', color='k', bottom=True,
-                   top=True, left=True, right=True, labelsize=labelsize)
+    if 'fontsize' in param_dict:
+        ax.tick_params(which='both', direction='in', color='k', bottom=True,
+                       top=True, left=True, right=True, labelsize=labelsize)
+    else:
+        ax.tick_params(which='both', direction='in', color='k', bottom=True,
+                       top=True, left=True, right=True)
     return ax
 
 

@@ -1,9 +1,9 @@
-"""Routines to iinteract with FILDSIM"""
+"""Routines to interact with FILDSIM"""
 import os
 import numpy as np
 import math as ma
 import LibParameters as ssp
-import LibDataAUG as ssdat
+# import LibDataAUG as ssdat
 
 # @todo: include here an if to load aug librery or another one
 
@@ -169,13 +169,13 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
 
 
 def write_namelist(p: str, runID: str = 'test', result_dir: str = './results/',
-                   backtrace: str = '.false.', N_gyroradius: int = 7,
-                   N_pitch: int = 7, save_orbits: int = 0,
-                   verbose: str = '.False.',
-                   N_ions: int = 1500, step: float = 0.01,
+                   backtrace: str = '.false.', N_gyroradius: int = 11,
+                   N_pitch: int = 10, save_orbits: int = 0,
+                   verbose: str = '.false.',
+                   N_ions: int = 4500, step: float = 0.01,
                    helix_length: float = 10.0,
-                   gyroradius=[2., 3., 4., 5., 6., 7., 8.],
-                   pitch_angle=[80., 70., 60., 50., 40., 30., 20.],
+                   gyroradius=[1.5, 1.75, 2., 3., 4., 5., 6., 7., 8., 9., 10.],
+                   pitch=[85., 80., 70., 60., 50., 40., 30., 20., 10, 0.],
                    min_gyrophase: float = 1.0,
                    max_gyrophase: float = 1.8, start_x=[-0.025, 0.025],
                    start_y=[-0.1, 0.1], start_z=[0.0, 0.0],
@@ -198,7 +198,7 @@ def write_namelist(p: str, runID: str = 'test', result_dir: str = './results/',
     """
     # check the input parameters
     ngyr = len(gyroradius)
-    npitch = len(pitch_angle)
+    npitch = len(pitch)
     nscint = len(scintillator_files)
     nslit = len(slit_files)
     if ngyr != N_gyroradius:
@@ -236,8 +236,8 @@ def write_namelist(p: str, runID: str = 'test', result_dir: str = './results/',
     print(gyroradius[ngyr-1], ',', file=f, sep='')
     print("pitch_angle", end='=', file=f, sep='')
     for i in range(npitch-1):
-        print(pitch_angle[i], end=',', file=f, sep='')
-    print(pitch_angle[npitch-1], ',', file=f, sep='')
+        print(pitch[i], end=',', file=f, sep='')
+    print(pitch[npitch-1], ',', file=f, sep='')
     print('gyrophase_range=', min_gyrophase, ',', max_gyrophase, ',',
           file=f, sep='')
     print('start_x=', start_x[0], ',', start_x[1], ',', file=f, sep='')

@@ -6,11 +6,21 @@ perform the remapping
 # import time
 import math
 import datetime
+import time
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
 import LibPlotting as ssplt
 import LibParameters as ssp
+import LibFILDSIM as ssFILDSIM
+from LibMachine import machine
+import LibPaths as p
+pa = p.Path(machine)
+del p
+
+if machine == 'AUG':
+    import LibDataAUG as ssdat
 
 
 def transform_to_pixel(x, y, grid_param):
@@ -564,6 +574,153 @@ def get_energy_FILD(gyroradius, B: float, A: int = 2, Z: int = 1):
     m = ssp.mp * A  # Mass of the ion
     E = 0.5 * (gyroradius/100.0 * Z * B)**2 / m * ssp.c ** 2
     return E
+
+
+def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
+                                 rmax: float = 10.5, dr: float = 0.1,
+                                 pmin: float = 15.0, pmax: float = 90.0,
+                                 dp: float = 1.0, rprofmin: float = 1.5,
+                                 rprofmax: float = 9.0, pprofmin: float = 20.0,
+                                 pprofmax: float = 90.0, rfild: float = 2.186,
+                                 zfild: float = 0.32, alpha: float = 0.0,
+                                 beta: float = -12.0,
+                                 fildsim_options: dict = {},
+                                 verbose: bool = True):
+    """
+    Remap all loaded frames from a FILD video
+
+    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    @todo finish documentation of this function
+
+    @param    video: Video object (see LibVideoFiles)
+    @param    calibration: Calibation object (see Calibration class)
+    @param    shot: shot number
+    @param    rmin: minimum gyroradius to consider [cm]
+    @type:    float
+    @param    rmax: maximum gyroradius to consider [cm]
+    @type:    float
+
+    @param    dr: Description of parameter `dr`. Defaults to 0.1.
+    @type:    float
+
+    @param    pmin: Description of parameter `pmin`. Defaults to 15.0.
+    @type:    float
+
+    @param    pmax: Description of parameter `pmax`. Defaults to 90.0.
+    @type:    float
+
+    @param    dp: Description of parameter `dp`. Defaults to 1.0.
+    @type:    float
+
+    @param    rprofmin: Description of parameter `rprofmin`. Defaults to 1.0.
+    @type:    float
+
+    @param    rprofmax: Description of parameter `rprofmax`. Defaults to 4.7.
+    @type:    float
+
+    @param    pprofmin: Description of parameter `pprofmin`. Defaults to 20.0.
+    @type:    float
+
+    @param    pprofmax: Description of parameter `pprofmax`. Defaults to 90.0.
+    @type:    float
+
+    @param    rfild: Description of parameter `rfild`. Defaults to 2.186.
+    @type:    float
+
+    @param    zfild: Description of parameter `zfild`. Defaults to 0.32.
+    @type:    float
+
+    @param    alpha: Description of parameter `alpha`. Defaults to 0.0.
+    @type:    float
+
+    @param    beta: Description of parameter `beta`. Defaults to -12.0.
+    @type:    float
+
+    @return:  Description of returned object.
+    @rtype:   type
+
+    @raises   ExceptionName: Why the exception is raised.
+    """
+    # Get frame shape:
+    nframes = len(video.exp_dat['nframes'])
+    frame_shape = video.exp_dat['frames'].shape[0:2]
+    # Get the time (to measure elapsed time)
+    tic = time.time()
+    # Get the magnetic field: In principle we should be able to do this in an
+    # efficient way, but the AUG library to acces magnetic field is kind of a
+    # shit in python 3, so we need a work around
+    if machine == 'AUG':
+        import map_equ as meq
+        equ = meq.equ_map(shot, diag='EQH')
+    br = np.zeros(nframes)
+    bz = np.zeros(nframes)
+    bt = np.zeros(nframes)
+    b_field = np.zeros(nframes)
+    # br, bz, bt, bp =\
+    #     ssdat.get_mag_field(shot, rfild, zfild,
+    #                         time=video.exp_dat['tframes'])
+    # Get the modulus of the field
+    # b_field = np.sqrt(br**2 + bz**2 + bt**2)
+
+    # Initialise the variables:
+    # Get the dimension of the gyr and pitch profiles. Depending on the exact
+    # values, the ends can enter or not... To look for the dimession I just
+    # create a dummy vector and avoid 'complicated logic'
+    dum = np.arange(start=rmin, stop=rmax, step=dr)
+    ngyr = len(dum) - 1
+    dum = np.arange(start=pmin, stop=pmax, step=dp)
+    npit = len(dum) - 1
+    remaped_frames = np.zeros((npit, ngyr, nframes))
+    signal_in_gyr = np.zeros((ngyr, nframes))
+    signal_in_pit = np.zeros((npit, nframes))
+    # b_field = np.zeros(nframes)
+    theta = np.zeros(nframes)
+    phi = np.zeros(nframes)
+    name_old = ' '
+
+    for iframe in range(nframes):
+        if machine == 'AUG':
+            tframe = video.exp_dat['tframes'][iframe]
+            br[iframe], bz[iframe], bt[iframe], bp =\
+                ssdat.get_mag_field(shot, rfild, zfild, time=tframe, equ=equ)
+            b_field[iframe] = br[iframe]**2 + bz[iframe]**2 + bt[iframe]**2
+        phi[iframe], theta[iframe] = \
+            ssFILDSIM.calculate_fild_orientation(br[iframe], bz[iframe],
+                                                 bt[iframe], alpha, beta)
+        name = ssFILDSIM.find_strike_map(rfild, zfild, phi[iframe],
+                                         theta[iframe], pa.StrikeMaps,
+                                         pa.FILDSIM,
+                                         FILDSIM_options=fildsim_options)
+        # Only reload the strike map if it is needed
+        if name != name_old:
+            map = StrikeMap(0, os.path.join(pa.StrikeMaps, name))
+            map.calculate_pixel_coordinates(calibration)
+            # print('Interpolating grid')
+            map.interp_grid(frame_shape, plot=False, method=2)
+        name_old = name
+        remaped_frames[:, :, iframe], pitch, gyr = \
+            remap(map, video.exp_dat['frames'][:, :, iframe], x_min=pmin,
+                  x_max=pmax, delta_x=dp, y_min=rmin, y_max=rmax, delta_y=dr)
+        # Calculate the gyroradius and pitch profiles
+        dummy = remaped_frames[:, :, iframe].squeeze()
+        signal_in_gyr[:, iframe] = gyr_profile(dummy, pitch, pprofmin,
+                                               pprofmax)
+        signal_in_pit[:, iframe] = pitch_profile(dummy, gyr, rprofmin,
+                                                 rprofmax)
+        if verbose:
+            print('### Frame:', iframe + 1, 'of', nframes, 'remaped')
+    toc = time.time()
+    print('Whole time interval remaped in: ', toc-tic, ' s')
+
+    output = {'frames': remaped_frames, 'xaxis': pitch, 'yaxis': gyr,
+              'xlabel': 'Pitch [º]', 'ylabel': '$r_l [cm]$',
+              'sprofx': signal_in_pit, 'sprofy': signal_in_gyr,
+              'bfield': b_field, 'phi': phi, 'theta': theta}
+    opt = {'rmin': rmin, 'rmax': rmax, 'dr': dr, 'pmin': pmin, 'pmax': pmax,
+           'dp': dp, 'rprofmin': rprofmin, 'rprofmax': rprofmax,
+           'pprofmin': pprofmin, 'pprofmax': pprofmax, 'rfild': rfild,
+           'zfild': zfild, 'alpha': alpha, 'beta': beta}
+    return output, opt
 
 
 class CalibrationDatabase:

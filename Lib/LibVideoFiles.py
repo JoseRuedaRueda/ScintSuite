@@ -10,6 +10,8 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import LibPlotting as ssplt
+import LibMap as ssmap
+from matplotlib.widgets import Slider
 
 
 # -----------------------------------------------------------------------------
@@ -1101,7 +1103,7 @@ class Video:
     the frames itself not, we can not work with 100Gb of data in memory!!!
     """
 
-    def __init__(self, file: str):
+    def __init__(self, file: str, diag: str = 'FILD'):
         """
         Initialise the class
 
@@ -1117,6 +1119,8 @@ class Video:
         self.exp_dat = {'frames': None,   # Loaded frames
                         'tframes': None,  # Timebase of the loaded frames
                         'nframes': None}  # Frame numbers of the loaded frames
+        ## Remaped data
+        self.remap_dat = None
         ## Time traces: space reservation for the future
         self.time_trace = None
 
@@ -1173,6 +1177,9 @@ class Video:
                     self.timebase = read_data_png(self.path)
         if self.type_of_file is None:
             raise Exception('Not file found!')
+        if diag == 'FILD':
+            ## Diagnostic used to record the data
+            self.diag = 'FILD'
 
     def read_frame(self, frames_number=None, limitation: bool = True,
                    limit: int = 2048, internal: bool = True):
@@ -1220,6 +1227,42 @@ class Video:
             raise Exception('Not initialised file type?')
         return
 
+    def remap_loaded_frames(self, calibration, shot, options: dict = {}):
+        """
+        Remap all loaded frames in the video object
+
+        @param    calibration: Calibration object (see LibMap)
+        @type:    type
+
+        @param    shot: Shot number
+        @type:    type
+
+        @param    options: Options for the remapping routine. See
+        remap_all_loaded_frames_XXXX in the LibMap package for a full
+        description
+        @type:    dict
+
+        @return:  write in the object a dictionary containing with:
+            -# options: Options used for the remapping
+            -# frames: Remaped frames
+            -# xaxis: xaxis of the remapped frames
+            -# xlabel: name of the xaxis of he remaped frame (pitch for FILD)
+            -# yaxis: xaxis of the remapped frames
+            -# ylabel: name of the yaxis of he remaped frame (r for FILD)
+            -# sprofx: signal integrated over the y range given by options
+            -# sprofy: signal integrated over the x range given by options
+
+        @rtype:   type
+
+        @raises   ExceptionName: Why the exception is raised.
+        """
+
+        if self.diag == 'FILD':
+            self.remap_dat, opt = \
+                ssmap.remap_all_loaded_frames_FILD(self, calibration, shot,
+                                                   **options)
+            self.remap_dat['options'] = opt
+
     def plot_frame(self, frame_number: int, ax=None, fig=None):
         """
         Plot a frame from the loaded frames
@@ -1251,3 +1294,151 @@ class Video:
             fig, ax = plt.subplots()
         ax.imshow(dummy, origin='lower', cmap=cmap)
         return fig, ax
+
+    def plot_remaped_slider(self, ccmap=None):
+        """
+        Creates a plot with some sliders to see the remaped data
+
+        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+        """
+        # @todo solve this in a more elegant way
+        global exp_dat
+        global remap_dat
+        global ax
+        global cmap
+        global cbar_frame
+        global cbar_remap
+        global gyr
+        global pitch
+        # global rfild
+        # global zfild
+        global pa
+        global phi
+        global theta
+        global pEner
+        global plt_param
+        global options_plt_pitch
+        global options_plt_remap
+        global options_plt_gyr
+        fig, ax = plt.subplots(2, 2)
+        plt.subplots_adjust(left=0.25, bottom=0.25)
+        if ccmap is None:
+            cmap = ssplt.Gamma_II()
+        else:
+            cmap = ccmap
+        # Get the extreme of the counts, for the scale
+        max_rep = np.max(self.remap_dat['frames'])
+        min_rep = np.min(self.remap_dat['frames'])
+        max_fra = np.max(self.exp_dat['frames'])
+        min_fra = np.min(self.exp_dat['frames'])
+        # --- Initialise the four plots
+        # - Camera
+        plot_frame = ax[0, 0].imshow(self.exp_dat['frames'][:, :, 0],
+                                     origin='lower', cmap=cmap)
+        # plt_param = {'marker': 'None'}
+        cbar_frame = fig.colorbar(plot_frame, ax=ax[0, 0])
+        # - Remaped info
+        # @todo: think in giving as output this transposed
+        dummy = self.remap_dat['frames'][:, :, 0].squeeze().T
+        plot_remap = ax[0, 1].contourf(self.remap_dat['xaxis'],
+                                       self.remap_dat['yaxis'],
+                                       dummy, levels=20, cmap=cmap)
+        options_plt_remap = {'xlabel': self.remap_dat['xlabel'],
+                             'ylabel': self.remap_dat['ylabel']}
+        dum = ssplt.axis_beauty(ax[0, 1], options_plt_remap)
+        cbar_remap = fig.colorbar(plot_remap, ax=ax[0, 1])
+        # - pitch profile
+        plot_pitch = ax[1, 0].plot(self.remap_dat['xaxis'],
+                                   self.remap_dat['sprofx'][:, 0])
+        options_plt_pitch = {'ylabel': 'Counts',
+                             'xlabel': self.remap_dat['xlabel'],
+                             'grid': 'both'}
+        dum = ssplt.axis_beauty(ax[1, 0], options_plt_pitch)
+        # - gir profile
+        plot_gyr = ax[1, 1].plot(self.remap_dat['yaxis'],
+                                 self.remap_dat['sprofy'][:, 1])
+        options_plt_gyr = {'ylabel': 'Counts',
+                           'xlabel': self.remap_dat['ylabel'],
+                           'grid': 'both'}
+        dum = ssplt.axis_beauty(ax[1, 1], options_plt_gyr)
+        # --- Set the sliders
+        # - Time slider
+        axcolor = 'k'
+        dt = self.exp_dat['tframes'][1] - self.exp_dat['tframes'][0]
+        axtime = plt.axes([0.15, 0.97, 0.75, 0.02], facecolor=axcolor)
+        stime = Slider(axtime, 'Time [s]: ', self.exp_dat['tframes'][0],
+                       self.exp_dat['tframes'][-1], valfmt='%.3f',
+                       valinit=self.exp_dat['tframes'][0], valstep=dt)
+        # - Colormap for the frame
+        axmax_frame = plt.axes([0.15, 0.94, 0.30, 0.02], facecolor=axcolor)
+        axmin_frame = plt.axes([0.15, 0.91, 0.30, 0.02], facecolor=axcolor)
+        smin_frame = Slider(axmax_frame, 'Min [#]: ', 0.75 * min_fra,
+                            1.25 * max_fra, valinit=min_fra)
+        smax_frame = Slider(axmin_frame, 'Max [#]: ',  0.75 * min_fra,
+                            1.25 * max_fra, valinit=max_fra)
+        # - Colormap for the remap
+        axmax_rep = plt.axes([0.60, 0.94, 0.30, 0.02], facecolor=axcolor)
+        axmin_rep = plt.axes([0.60, 0.91, 0.30, 0.02], facecolor=axcolor)
+        smin_rep = Slider(axmax_rep, 'Min [#]: ', 0.75 * min_rep,
+                          1.25 * max_rep, valinit=min_rep)
+        smax_rep = Slider(axmin_rep, 'Max [#]: ',  0.75 * min_rep,
+                          1.25 * max_rep, valinit=max_rep)
+
+        exp_dat = self.exp_dat
+        remap_dat = self.remap_dat
+
+        # function to update the plots:
+        def update(val):
+            """Update the sliders"""
+
+            ####
+            # Get the time
+            t = stime.val
+            it = np.argmin(abs(exp_dat['tframes']-t))
+            # Get the limit of the colorbars
+            frame_min = smin_frame.val
+            frame_max = smax_frame.val
+            rep_min = smin_rep.val
+            rep_max = smax_rep.val
+            # - Plot the frame
+            ax[0, 0].clear()
+            dummy = exp_dat['frames'][:, :, it].squeeze()
+            plot_frame = ax[0, 0].imshow(dummy, origin='lower', cmap=cmap,
+                                         vmin=frame_min, vmax=frame_max)
+            cbar_frame.update_normal(plot_frame)
+            # Get and plot the strike map
+            # name = ssFILDSIM.find_strike_map(rfild, zfild, phi[it],
+            #                                  theta[it], pa.StrikeMaps,
+            #                                  pa.FILDSIM)
+            # map = ssmap.StrikeMap(0, os.path.join(pa.StrikeMaps, name))
+            # map.calculate_pixel_coordinates(cal)
+            # map.plot_pix(ax[0, 0], plt_param=plt_param)
+
+            # - Plot the remap
+            ax[0, 1].clear()
+            dummy = remap_dat['frames'][:, :, it].squeeze()
+            plot_remap = ax[0, 1].contourf(remap_dat['xaxis'],
+                                           remap_dat['yaxis'],
+                                           dummy.T, levels=20,
+                                           cmap=cmap, vmin=rep_min,
+                                           vmax=rep_max)
+            dum = ssplt.axis_beauty(ax[0, 1], options_plt_remap)
+            cbar_remap.update_normal(plot_remap)
+            # - Update the profiles
+            # Plot the profiles
+            ax[1, 0].clear()
+            ax[1, 0].plot(remap_dat['xaxis'],
+                          remap_dat['sprofx'][:, it])
+            dum = ssplt.axis_beauty(ax[1, 0], options_plt_pitch)
+            ax[1, 1].clear()
+            ax[1, 1].plot(remap_dat['yaxis'],
+                          remap_dat['sprofy'][:, it])
+            dum = ssplt.axis_beauty(ax[1, 1], options_plt_gyr)
+
+            fig.canvas.draw_idle()
+        stime.on_changed(update)
+        smin_frame.on_changed(update)
+        smax_frame.on_changed(update)
+        smin_rep.on_changed(update)
+        smax_rep.on_changed(update)
+        plt.show()
