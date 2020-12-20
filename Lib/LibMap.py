@@ -713,9 +713,13 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     print('Whole time interval remaped in: ', toc-tic, ' s')
 
     output = {'frames': remaped_frames, 'xaxis': pitch, 'yaxis': gyr,
-              'xlabel': 'Pitch [º]', 'ylabel': '$r_l [cm]$',
+              'xlabel': 'Pitch', 'ylabel': '$r_l$',
+              'xunits': '{}^o', 'yunits': 'cm',
               'sprofx': signal_in_pit, 'sprofy': signal_in_gyr,
-              'bfield': b_field, 'phi': phi, 'theta': theta}
+              'sprofxlabel': 'Signal integrated in r_l',
+              'sprofylabel': 'Signal integrated in pitch',
+              'bfield': b_field, 'phi': phi, 'theta': theta,
+              'tframes': video.exp_dat['tframes']}
     opt = {'rmin': rmin, 'rmax': rmax, 'dr': dr, 'pmin': pmin, 'pmax': pmax,
            'dp': dp, 'rprofmin': rprofmin, 'rprofmax': rprofmax,
            'pprofmin': pprofmin, 'pprofmax': pprofmax, 'rfild': rfild,

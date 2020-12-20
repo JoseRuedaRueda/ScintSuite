@@ -14,3 +14,4 @@ class Path:
         self.StrikeMaps = os.path.join(os.getenv("HOME"), 'FILD_Strike_maps/')
         self.CinFiles = '/p/IPP/AUG/rawfiles/FIT/'
         self.PngFiles = '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/'
+        self.ScintSuite = os.path.join(os.getenv("HOME"), 'ScintSuite/')

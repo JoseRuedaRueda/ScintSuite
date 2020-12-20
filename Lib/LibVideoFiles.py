@@ -8,6 +8,7 @@ PNG files as the old FILD_GUI and will be able to work with tiff files
 
 import os
 import re
+import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import LibPlotting as ssplt
@@ -15,6 +16,8 @@ import LibMap as ssmap
 import LibPaths as p
 from matplotlib.widgets import Slider
 from LibMachine import machine
+from version_suite import version
+from scipy.io import netcdf
 pa = p.Path(machine)
 del p
 if machine == 'AUG':
@@ -1289,6 +1292,7 @@ class Video:
         @return:  write in the object a dictionary containing with:
             -# options: Options used for the remapping
             -# frames: Remaped frames
+            -# time: time associated to the remapped points
             -# xaxis: xaxis of the remapped frames
             -# xlabel: name of the xaxis of he remaped frame (pitch for FILD)
             -# yaxis: xaxis of the remapped frames
@@ -1395,14 +1399,16 @@ class Video:
         plot_pitch = ax[1, 0].plot(self.remap_dat['xaxis'],
                                    self.remap_dat['sprofx'][:, 0])
         options_plt_pitch = {'ylabel': 'Counts',
-                             'xlabel': self.remap_dat['xlabel'],
+                             'xlabel': self.remap_dat['xlabel'] + ' [' +
+                             self.remap_dat['xunits'] + ']',
                              'grid': 'both'}
         dum = ssplt.axis_beauty(ax[1, 0], options_plt_pitch)
         # - gir profile
         plot_gyr = ax[1, 1].plot(self.remap_dat['yaxis'],
                                  self.remap_dat['sprofy'][:, 1])
         options_plt_gyr = {'ylabel': 'Counts',
-                           'xlabel': self.remap_dat['ylabel'],
+                           'xlabel': self.remap_dat['ylabel'] + ' [' +
+                           self.remap_dat['yunits'] + ']',
                            'grid': 'both'}
         dum = ssplt.axis_beauty(ax[1, 1], options_plt_gyr)
         # --- Set the sliders
@@ -1486,3 +1492,161 @@ class Video:
         smin_rep.on_changed(update)
         smax_rep.on_changed(update)
         plt.show()
+
+    def export_remap(self, format: str = 'pyhon'):
+        """
+        Export the dictionary containing the remaped data
+
+        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+
+        @param format: Format to write the resuls:
+            -#'python': pickle file
+            -#'matlab': matfile
+            -#'idl': IDL compatible format (not tested by the author)
+        """
+
+        # Test if the folder
+        name = os.path.join(pa.ScintSuite, 'Results', str(self.shot) + '_' +
+                            self.diag + '_remap.nc')
+        print('Saving results in: ', name)
+        # Write the data:
+        with netcdf.netcdf_file(name, 'w') as f:
+            f.history = 'Done with version ' + version
+
+            # Save shot number
+            f.createDimension('number', 1)
+            shot = f.createVariable('shot', 'i', ('number', ))
+            shot[:] = self.shot
+            shot.units = ' '
+            shot.long_name = 'Shot number'
+
+            # Save the time of the remapped frames
+            f.createDimension('tframes', len(self.remap_dat['tframes']))
+            time = f.createVariable('tframes', 'float64', ('tframes', ))
+            time[:] = self.remap_dat['tframes']
+            time.units = 's'
+            time.long_name = 'Time'
+
+            # Save the pitches
+            f.createDimension('xaxis', len(self.remap_dat['xaxis']))
+            xaxis = f.createVariable('xaxis', 'float64', ('xaxis', ))
+            xaxis[:] = self.remap_dat['xaxis']
+            xaxis.units = self.remap_dat['xunits']
+            xaxis.long_name = self.remap_dat['xlabel']
+
+            # Save the gyroradius
+            f.createDimension('yaxis', len(self.remap_dat['yaxis']))
+            yaxis = f.createVariable('yaxis', 'float64', ('yaxis', ))
+            yaxis[:] = self.remap_dat['yaxis']
+            yaxis.units = self.remap_dat['yunits']
+            yaxis.long_name = self.remap_dat['ylabel']
+
+            # Save the remapped data
+            frames = f.createVariable('frames', 'float64',
+                                      ('xaxis', 'yaxis', 'tframes'))
+            frames[:, :, :] = self.remap_dat['frames']
+            frames.units = 'Counts'
+            frames.long_name = 'Remapped frames'
+
+            # Save the modulus of the magnetic field at the FILD positon
+            bfield = f.createVariable('bfield', 'float64', ('tframes', ))
+            bfield[:] = self.remap_dat['bfield']
+            bfield.units = 'T'
+            bfield.long_name = 'Field at detector'
+
+            # Save the temporal evolution of the profiles
+            sprofx = f.createVariable('sprofx', 'float64',
+                                      ('xaxis', 'tframes'))
+            sprofx[:, :] = self.remap_dat['sprofx']
+            sprofx.units = 'a.u.'
+            sprofx.long_name = self.remap_dat['sprofxlabel']
+
+            sprofy = f.createVariable('sprofy', 'float64',
+                                      ('yaxis', 'tframes'))
+            sprofy[:, :] = self.remap_dat['sprofy']
+            sprofy.units = 'a.u.'
+            sprofy.long_name = self.remap_dat['sprofylabel']
+
+            # Save the specific FILD variables
+            if self.diag == 'FILD':
+                # Detector orienttion
+                theta = f.createVariable('theta', 'float64', ('tframes', ))
+                theta[:] = self.remap_dat['theta']
+                theta.units = '{}^o'
+                theta.long_name = 'theta'
+
+                phi = f.createVariable('phi', 'float64', ('tframes', ))
+                phi[:] = self.remap_dat['phi']
+                phi.units = '{}^o'
+                phi.long_name = 'phi'
+
+                # Options used for the remapping
+                rmin = f.createVariable('rmin', 'float64', ('number', ))
+                rmin[:] = self.remap_dat['options']['rmin']
+                rmin.units = 'cm'
+                rmin.long_name = 'Minimum r_l for the remap'
+
+                rmax = f.createVariable('rmax', 'float64', ('number', ))
+                rmax[:] = self.remap_dat['options']['rmax']
+                rmax.units = 'cm'
+                rmax.long_name = 'Maximum r_l for the remap'
+
+                dr = f.createVariable('dr', 'float64', ('number', ))
+                dr[:] = self.remap_dat['options']['dr']
+                dr.units = 'cm'
+                dr.long_name = 'dr_l for the remap'
+
+                dp = f.createVariable('dp', 'float64', ('number', ))
+                dr[:] = self.remap_dat['options']['dp']
+                dr.units = '{}^o'
+                dr.long_name = 'dp for the remap'
+
+                pmin = f.createVariable('pmin', 'float64', ('number', ))
+                pmin[:] = self.remap_dat['options']['pmin']
+                pmin.units = '{}^o'
+                pmin.long_name = 'Minimum pitch for the remap'
+
+                pmax = f.createVariable('pmax', 'float64', ('number', ))
+                pmax[:] = self.remap_dat['options']['pmax']
+                pmax.units = '{}^o'
+                pmax.long_name = 'Maximum pitch for the remap'
+
+                pprofmin = f.createVariable('pprofmin', 'float64', ('number',))
+                pprofmin[:] = self.remap_dat['options']['pprofmin']
+                pprofmin.units = '{}^o'
+                pprofmin.long_name = 'Minimum pitch to integrate the remap'
+
+                pprofmax = f.createVariable('pprofmax', 'float64', ('number',))
+                pprofmax[:] = self.remap_dat['options']['pprofmax']
+                pprofmax.units = '{}^o'
+                pprofmax.long_name = 'Maximum pitch to integrate the remap'
+
+                rprofmin = f.createVariable('rprofmin', 'float64', ('number',))
+                rprofmin[:] = self.remap_dat['options']['rprofmin']
+                rprofmin.units = 'cm'
+                rprofmin.long_name = 'Minimum r_l to integrate the remap'
+
+                rprofmax = f.createVariable('rprofmax', 'float64', ('number',))
+                rprofmax[:] = self.remap_dat['options']['rprofmax']
+                rprofmax.units = 'cm'
+                rprofmax.long_name = 'Maximum r_l to integrate the remap'
+
+                rfild = f.createVariable('rfild', 'float64', ('number',))
+                rfild[:] = self.remap_dat['options']['rfild']
+                rfild.units = 'm'
+                rfild.long_name = 'R FILD position'
+
+                zfild = f.createVariable('zfild', 'float64', ('number',))
+                zfild[:] = self.remap_dat['options']['zfild']
+                zfild.units = 'm'
+                zfild.long_name = 'z FILD position'
+
+                alpha = f.createVariable('alpha', 'float64', ('number',))
+                alpha[:] = self.remap_dat['options']['alpha']
+                alpha.units = '{}^o'
+                alpha.long_name = 'alpha orientation'
+
+                beta = f.createVariable('beta', 'float64', ('number',))
+                beta[:] = self.remap_dat['options']['beta']
+                beta.units = '{}^o'
+                beta.long_name = 'beta orientation'

@@ -1,0 +1,23 @@
+*.bin
+*.dat
+*.fig
+*.cfg
+*.bz2
+*~
+*.mat
+*.a
+*.png
+*.eps
+*__
+
+
+# Folders to ignore
+__pycache__/*
+temp_data/*
+FILD_calibration
+Results
+Lib/__init__.py
+doc/
+
+
+
