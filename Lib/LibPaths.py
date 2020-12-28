@@ -1,6 +1,4 @@
-"""
-This class contaion hardcored all the paths to the different folders and condes
-"""
+"""Paths to the different folders and codes"""
 import os
 
 
@@ -15,3 +13,4 @@ class Path:
         self.CinFiles = '/p/IPP/AUG/rawfiles/FIT/'
         self.PngFiles = '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/'
         self.ScintSuite = os.path.join(os.getenv("HOME"), 'ScintSuite/')
+        self.tracker = os.path.join(os.getenv("HOME"), 'iHIBPsim', 'bin/')

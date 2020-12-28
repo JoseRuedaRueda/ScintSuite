@@ -683,7 +683,8 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
             tframe = video.exp_dat['tframes'][iframe]
             br[iframe], bz[iframe], bt[iframe], bp =\
                 ssdat.get_mag_field(shot, rfild, zfild, time=tframe, equ=equ)
-            b_field[iframe] = br[iframe]**2 + bz[iframe]**2 + bt[iframe]**2
+            b_field[iframe] = np.sqrt(br[iframe]**2 + bz[iframe]**2 +
+                                      bt[iframe]**2)
         phi[iframe], theta[iframe] = \
             ssFILDSIM.calculate_fild_orientation(br[iframe], bz[iframe],
                                                  bt[iframe], alpha, beta)
