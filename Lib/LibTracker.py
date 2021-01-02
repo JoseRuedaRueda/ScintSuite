@@ -1,4 +1,4 @@
-"""Library containing the methods and classes to interact with iHIBPsim"""
+"""Contains the methods and classes to interact with iHIBPsim tracker"""
 
 import numpy as np
 from version_suite import version
@@ -18,7 +18,6 @@ def write_fields(filename: str, field: dict):
     @param filename: name of the file where to write
     @param field: dictionary created by the load_field routine of this library
     """
-
     with open(filename, 'w') as fid:
         # Write header with grid size information:
         field['nR'].tofile(fid)
@@ -88,7 +87,6 @@ def prepare_B_field(shot: int, time: float, diag: str = 'EQH',
              -#'z': z grid in z
              -#'phi': Ignore
     """
-
     ## todo: implement the 3D part
     R = np.linspace(Rmin, Rmax, num=nR)
     z = np.linspace(zmin, zmax, num=nz)
@@ -136,8 +134,8 @@ def write_tracker_namelist(name_of_namelist_file: str,
                            max_step: int = 1000000000,
                            save_orbits: str = '.TRUE.', Nmarkers: int = 250,
                            depos_file: str = '', triangle_file: str = '',
-                           file_out: str = 'output.pod',
-                           file_orbits: str = 'orbits.pod',
+                           file_out: str = 'output.bin',
+                           file_orbits: str = 'orbits.bin',
                            num_orbits: float = 1.0,
                            dt_orbit: float = 1.0e-8):
     """

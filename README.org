@@ -17,6 +17,11 @@ Each release will be denoted by 3 numbers: a.b.c meaning:
     - b: include new optional capabilities, versions a.b1.c1 and a.b2.c2, should run perfectly with the same inputs. The higher b, the more extra capabilities you have
     - a: indicate major changes in the code, versions with different 'a' may be not compatible
 
+** Branches:
+- master: Estable branch, things should work, may be a delay including new features
+- dev-branch: developers branch, thigs may have some small bugs. Include the latest features, not recomended for general public
+- 'tmp'-branch: linked to specific commits to include new features. Do not use these branches except you are the developer in charge of the new feature. Unicorns can appear
+
 ** FILDSIM notes
 - You need to create an empty folder in the root of FILDSIM code with name 'cfg_files' in order to run the remap routine
 
