@@ -5,7 +5,8 @@ import os
 class Path:
     """Paths of the different codes"""
 
-    def __init__(self, machine):
+    ## @todo: include here a proper machine dependent path to png files
+    def __init__(self, machine='AUG'):
         """Initialise the class"""
         self.FILDSIM = os.path.join(os.getenv("HOME"), 'FILDSIM/')
         self.INPASIM = os.path.join(os.getenv("HOME"), 'INPASIM/')

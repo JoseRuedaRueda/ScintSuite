@@ -30,7 +30,7 @@ from paths_suite import p
 # ------------------------------------------------------------------------------
 # Section 0: Settings
 # Paths:
-calibration_database = './Calibrations/FILD/calibration_database.txt'
+calibration_database = '.Data/Calibrations/FILD/calibration_database.txt'
 pa = p()  # 'Standard paths' of the suite
 # calibration data
 camera = 'PHANTOM'

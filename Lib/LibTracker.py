@@ -4,6 +4,7 @@ import numpy as np
 from version_suite import version
 from LibMachine import machine
 import LibPlotting as ssplt
+import LibParameters as sspar
 import matplotlib.pyplot as plt
 if machine == 'AUG':
     import LibDataAUG as ssdat
@@ -316,8 +317,29 @@ def load_orbits(filename: str, counter: int = 1, full_info: bool = True):
     return output
 
 
+def orbit_energy(orbit):
+    """
+    Get the energy of the marker in each point
+
+    Jose Rueda: ruejo@ipp.mpg.de
+
+    @todo: mission for Pablo, this should be just a method in the future
+    'orbit' method
+
+    @param orbit: the orbit loaded by the load orbit method. Notice, the
+    full_info flag mut be on!
+    @return orbit: orbit dict but with an extra 'field' the energy in keV
+    """
+    n = len(orbit)
+    for kk in range(n):
+        orbit[kk]['E'] = 0.5 * orbit['m'] * \
+            np.sqrt(orbit['vR']**2 + orbit['vz']**2 + orbit['vt']**2) * \
+            sspar.mp / sspar.c**2
+    return orbit
+
+
 def plot_orbit(orbit, view: str = '2D', ax_options: dict = {}, ax=None,
-               line_options: dict = {}):
+               line_options: dict = {}, shaded3d_options: dict = {}):
     """
     Plot the orbit
 
@@ -331,16 +353,21 @@ def plot_orbit(orbit, view: str = '2D', ax_options: dict = {}, ax=None,
     @param ax: axes where to plot, if none, new ones will be created. Note,
     if the '2D' mode is used, ax should be a list of axes, the first one for
     the Rz projection
-    @todo implement plotting toroidal vessel
+    @param shaded3d_options: dictionary with the options for the plotting of
+    the 3d vessel
     """
     # --- Initialise the plotting parameters
+    ax_options['ratio'] = 'equal'
+    # The ratio must be always equal, otherwise is terrorism
     if 'fontsize' not in ax_options:
         ax_options['fontsize'] = 16
     if 'grid' not in ax_options:
         ax_options['grid'] = 'both'
     if 'linewidth' not in line_options:
         line_options['linewidth'] = 2
-
+    # --- Get cartesian coordinates:
+    x = orbit['R'] * np.cos(orbit['phi'])
+    y = orbit['R'] * np.sin(orbit['phi'])
     if view == '2D':
         # Open the figure
         if ax is None:
@@ -350,14 +377,26 @@ def plot_orbit(orbit, view: str = '2D', ax_options: dict = {}, ax=None,
                    **line_options)
         ax_options['xlabel'] = 'R [m]'
         ax_options['ylabel'] = 'z [m]'
-        ssplt.plot_vessel(ax[0])
-        ax[0] = ssdat.axis_beauty(ax[0], ax_options)
+        ssplt.plot_vessel(ax=ax[0])
+        ax[0] = ssplt.axis_beauty(ax[0], ax_options)
         # Plot the xy projection
-        x = orbit['R'] * np.cos(orbit['phi'])
-        y = orbit['R'] * np.sin(orbit['phi'])
+
         ax[1].plot(x, y, label='ID: ' + str(orbit['ID']), **line_options)
         ax_options['xlabel'] = 'x [m]'
         ax_options['ylabel'] = 'y [m]'
-        # plot_vessel(ax[1])
+        ssplt.plot_vessel(projection='toroidal', ax=ax[1])
         ax[1] = ssplt.axis_beauty(ax[1], ax_options)
+        plt.tight_layout()
+    else:
+        # Open the figure
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+        # Plot the orbit
+        ax.plot(x, y, orbit['z'], **line_options)
+        ssplt.plot_vessel(ax=ax, shaded3d=True, params3d=shaded3d_options)
+        ax_options['xlabel'] = 'x [m]'
+        ax_options['ylabel'] = 'y [m]'
+        ax_options['zlabel'] = 'z [m]'
+        # ax = ssplt.axis_beauty(ax, ax_options)
     return ax
