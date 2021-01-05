@@ -24,7 +24,7 @@ import LibDataAUG as ssdat
 # ------------------------------------------------------------------------------
 # Section 0: Settings
 cin_file_name = '/p/IPP/AUG/rawfiles/FIT/32/32326_v710.cin'
-calibration_database = './Calibrations/FILD/calibration_database.txt'
+calibration_database = '.Data/Calibrations/FILD/calibration_database.txt'
 strike_map = '/afs/ipp-garching.mpg.de/home/j/jgq/PUBLIC/' + \
     'FILDSIM_strike_maps/FILD1_0.6MA_2.5T_strike_map.dat'
 shot = 32326

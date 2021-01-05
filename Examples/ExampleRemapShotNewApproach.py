@@ -21,7 +21,7 @@ import Lib as ss
 # ------------------------------------------------------------------------------
 # Section 0: Settings
 # Paths:
-calibration_database = './Calibrations/FILD/calibration_database.txt'
+calibration_database = '.Data/Calibrations/FILD/calibration_database.txt'
 # calibration data
 camera = 'PHANTOM'
 cal_type = 'PIX'

@@ -11,6 +11,11 @@ import numpy as np
 # import matplotlib.pyplot as plt
 # Module to map the equilibrium
 import map_equ as meq
+# ---
+import os
+from LibPaths import Path
+pa = Path()
+
 
 # -----------------------------------------------------------------------------
 # AUG paramters
@@ -107,6 +112,33 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     return br, bz, bt, bp
 
 
+def poloidal_vessel(shot: int = 30585, simplified: bool = False):
+    """
+    Get coordinate of the poloidal projection of the vessel
+
+    Jose Rueda: jose.rueda@ipp.mpg.de
+
+    @param shot: shot number to be used
+    @param simplified: if true, a 'basic' shape of the poloidal vessel will be
+    loaded, ideal for generate a 3D revolution surface from it
+    """
+    if simplified is not True:
+        r = []
+        z = []
+        # Get vessel coordinates
+        gc_r, gc_z = get_gc.get_gc(shot)
+        for key in gc_r.keys():
+            # print(key)
+            r += list(gc_r[key][:])
+            r.append(np.nan)
+            z += list(gc_z[key][:])
+            z.append(np.nan)
+        return np.array((r, z)).transpose()
+    else:
+        file = os.path.join(pa.ScintSuite, 'Data', 'Vessel', 'AUG_pol.txt')
+        return np.loadtxt(file, skiprows=4)
+
+
 def plot_vessel(ax, projection: str = 'poloidal', line_properties: dict = {},
                 nshot: int = 30585):
     """
@@ -175,6 +207,49 @@ def _NBI_diaggeom_coordinates(nnbi):
               'z0': z0[nnbi-1], 'x1': x1[nnbi-1],
               'y1': y1[nnbi-1], 'z1': z1[nnbi-1]}
     return coords
+
+
+def toroidal_vessel(rot: float = -np.pi/8.0*3.0):
+    """
+    Return the coordiates of the AUG vessel
+
+    Jose Rueda Rueda: ruejo@ipp.mpg.de
+
+    Note: x = NaN indicate the separation between vessel block
+
+    @param rot: angle to rotate the coordinate system
+    @return xy: np.array with the coordinates of the points [npoints, 2]
+    """
+    # --- Section 0: Read the data
+    # The files are a series of 'blocks' representing each piece of the vessel,
+    # each block is separated by an empty line. I will scan the file line by
+    # line looking for the position of those empty lines:
+    ## todo_ include rotation!! default -pi/8
+    file = os.path.join(pa.ScintSuite, 'Data', 'Vessel', 'AUG_tor.txt')
+    cc = 0
+    nmax = 2000
+    xy_vessel = np.zeros((nmax, 2))
+    with open(file) as f:
+        # read the comment block
+        dummy = f.readline()
+        dummy = f.readline()
+        dummy = f.readline()
+        dummy = f.readline()
+        # read the vessel components:
+        for i in range(nmax):
+            line = f.readline()
+            if line == '\n':
+                xy_vessel[cc, 0] = np.nan
+            elif line == '':
+                break
+            else:
+                dummy = line.split()
+                xx = np.float(dummy[0])
+                yy = np.float(dummy[1])
+                xy_vessel[cc, 0] = xx * np.cos(rot) - yy * np.sin(rot)
+                xy_vessel[cc, 1] = xx * np.sin(rot) + yy * np.cos(rot)
+            cc += 1
+    return xy_vessel[:cc-1, :]
 
 
 class NBI:
