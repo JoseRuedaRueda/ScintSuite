@@ -172,7 +172,7 @@ def write_namelist(p: str, runID: str = 'test', result_dir: str = './results/',
                    backtrace: str = '.false.', N_gyroradius: int = 11,
                    N_pitch: int = 10, save_orbits: int = 0,
                    verbose: str = '.false.',
-                   N_ions: int = 4500, step: float = 0.01,
+                   N_ions: int = 10000, step: float = 0.01,
                    helix_length: float = 10.0,
                    gyroradius=[1.5, 1.75, 2., 3., 4., 5., 6., 7., 8., 9., 10.],
                    pitch=[85., 80., 70., 60., 50., 40., 30., 20., 10, 0.],
@@ -277,7 +277,7 @@ def run_FILDSIM(FILDSIM_path, run_ID):
     @param FILDSIM_path: path to the FILDSIM code (main folder)
     @param runID: run ID, the configuration file is assumed to be runID.cfg
     """
-    FILDSIM = os.path.join(path, file)
+    FILDSIM = os.path.join(FILDSIM_path, 'bin', 'fidasim.exe')
     namelist = ' ' + run_ID + '.cfg'
     os.system(FILDSIM + namelist)
 
@@ -458,6 +458,9 @@ def find_strike_map(rfild: float, zfild: float,
     # set namelist name
     FILDSIM_options['runID'] = name[:-15]
     FILDSIM_options['result_dir'] = strike_path
+    ## @todo include here a precision
+    FILDSIM_options['theta'] = round(theta, ndigits=1)
+    FILDSIM_options['phi'] = round(phi, ndigits=1)
     if 'geometry_dir' not in FILDSIM_options:
         FILDSIM_options['geometry_dir'] = \
             os.path.join(FILDSIM_path, 'geometry/')
