@@ -156,7 +156,7 @@ def plot_3D_revolution(r, z, phi_min: float = 0.0, phi_max: float = 1.57,
 
 def plot_vessel(projection: str = 'pol', units: str = 'm', h: float = None,
                 color='k', linewidth=0.5, ax=None, shot: int = 30585,
-                shaded3d: bool = 'True', params3d: dict = {},
+                shaded3d: bool = 'False', params3d: dict = {},
                 tor_rot: float = -np.pi/8.0*3.0):
     """
     Plot the tokamak vessel
@@ -211,4 +211,4 @@ def plot_vessel(projection: str = 'pol', units: str = 'm', h: float = None,
     elif shaded3d:
         ax = plot_3D_revolution(vessel[:, 0], vessel[:, 1], ax=ax, **params3d)
 
-    return Axes3D
+    return ax

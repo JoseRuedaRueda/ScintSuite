@@ -9,6 +9,8 @@
 *.png
 *.eps
 *__
+Per_*
+*.pod
 
 
 # Folders to ignore
@@ -18,6 +20,3 @@ FILD_calibration
 Results
 Lib/__init__.py
 doc/
-
-
-
