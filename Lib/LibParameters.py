@@ -5,6 +5,7 @@ Basically here are hard-cored almost all the parameters of the suite
 # Physics constants
 ec = 1.602e-19  # Electron charge, in C
 mp = 938.272e6  # Mass of the proton, in eV/c^2
+mp_kg = 1.67262192369e-27  # Mass of the proton in kg
 c = 3.0e8       # Speed of light in m/s
 
 # -----------------------------------------------------------------------------

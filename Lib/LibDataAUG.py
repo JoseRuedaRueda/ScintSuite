@@ -112,6 +112,40 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     return br, bz, bt, bp
 
 
+def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
+            ed: int = 0, time: float = None, equ=None,
+            coord_out: str = 'rho_pol'):
+    """
+    Wrapp to get AUG magnetic field
+
+    Jose Rueda: jose.rueda@ipp.mpg.de
+
+    @param shot: Shot number
+    @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
+    @param zin: Array of z positions where to evaluate (in pairs with Rin) [m]
+    @param diag: Diag for AUG database, default EQH
+    @param exp: experiment, default AUGD
+    @param ed: edition, default 0 (last)
+    @param time: Array of times where we want to calculate the field (the
+    field would be calculated in a time as close as possible to this
+    @param equ: equilibrium object from the library map_equ
+    @param coord_out: the desired rho coordinate, default rho_pol
+    @return rho: The desired rho coordinate evaluated at the points
+    """
+    # If the equilibrium object is not an input, let create it
+    created = False
+    if equ is None:
+        equ = meq.equ_map(shot, diag=diag, exp=exp, ed=ed)
+        created = True
+    # Now calculate the field
+    rho = equ.rz2rho(Rin, zin, t_in=time, coord_out=coord_out,
+                     extrapolate=True)
+    # If we opened the equilibrium object, let's close it
+    if created:
+        equ.Close()
+    return rho
+
+
 def poloidal_vessel(shot: int = 30585, simplified: bool = False):
     """
     Get coordinate of the poloidal projection of the vessel

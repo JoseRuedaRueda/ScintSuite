@@ -450,7 +450,7 @@ def orbit_pitch(orbit, file: str = None, shot: int = None, IpBt: int = -1,
 
     @todo: mission for Pablo, this should be just a method in the future
     'orbit' method
-    @todo: implement pitch calculation when the field is given as 3 or 4 d
+    @todo: implement pitch calculation when the field is given as 3 or 4d
 
     @param orbit: the orbit loaded by the load orbit method. Notice, the
     full_info flag mut be on!
@@ -501,9 +501,125 @@ def orbit_pitch(orbit, file: str = None, shot: int = None, IpBt: int = -1,
     return orbit
 
 
+def orbit_mu(orbit, file: str = None, shot: int = None, IpBt: int = -1,
+             dimensions: int = 2, order: int = 1, limit: bool = True,
+             limit_step: int = 12000):
+    """
+    Calculate the pitch of the particle in each point of the orbit
+
+    Jose Rueda: ruejo@ipp.mpg.de
+
+    Note: In principle you can execute this just giving the path to the file
+    with the magnetic field used in the simulation or, giving the shot. In this
+    second case, the field from the database will be loaded. This option is
+    still not implemente but is leaved here as a future option, I still do not
+    have clear how this will be implemented in the GUI. Maybe the easier thing
+    will be to leaver the B file created and include a button saying: clean B
+    files...
+
+    @todo: mission for Pablo, this should be just a method in the future
+    'orbit' method
+    @todo: implement pitch calculation when the field is given as 3 or 4d
+
+    @param orbit: the orbit loaded by the load orbit method. Notice, the
+    full_info flag mut be on!
+    @param dimensions: dimensions of the field
+    @param interp_options: options for the scipy.interpolate.interp2d (or3).
+    By default: linear interpolation, to be consistent with the tracker, and
+    values outside the interpolation domain will be taken as zero
+    @return orbit: orbit dict but with an extra 'field' the pitch
+    """
+    if (file is None) and (shot is None):
+        raise Exception('Hello?? No file nor shot?!?')
+    # Load the field
+    if file is not None:
+        field = load_field(file, dimensions=dimensions, verbose=False)
+        print('Field loaded!')
+    # Perform the calculation
+    if dimensions == 2:
+        RR, zz = np.meshgrid(field['R'], field['z'])
+        BR_int = intp(field['R'], field['z'], field['fr'], kx=order, ky=order)
+        Bz_int = intp(field['R'], field['z'], field['fz'], kx=order, ky=order)
+        Bt_int = intp(field['R'], field['z'], field['ft'], kx=order, ky=order)
+        for k in range(len(orbit)):
+            if (limit is True) and (len(orbit[k]) > limit_step):
+                raise Exception('Hola Pablo te has pasao de puntos')
+
+            bR = BR_int.ev(orbit[k]['R'], orbit[k]['z'])
+            bz = Bz_int.ev(orbit[k]['R'], orbit[k]['z'])
+            bt = Bt_int.ev(orbit[k]['R'], orbit[k]['z'])
+            b = np.sqrt(bR**2 + bz**2 + bt**2)
+            v = np.sqrt(orbit[k]['vR']**2 + orbit[k]['vz']**2 +
+                        orbit[k]['vt']**2)
+            p = (orbit[k]['vR'] * bR + orbit[k]['vz'] * bz
+                 + orbit[k]['vt'] * bt) / b / v
+            orbit[k]['mu'] = orbit[k]['m'] * (1 - p**2) * v**2 / 2.0 / b \
+                * sspar.mp_kg
+            print('Orbit: ', k, ' of ', len(orbit) - 1, 'done')
+    else:
+        raise Exception('Option not implemented, talk to Pablo')
+
+    return orbit
+
+
+def orbit_p_phi(orbit, file: str = None, shot: int = None, order: int = 1,
+                limit: bool = True,
+                limit_step: int = 12000):
+    """
+    Calculate the pitch of the particle in each point of the orbit
+
+    Jose Rueda: ruejo@ipp.mpg.de
+
+    Note: In principle you can execute this just giving the path to the file
+    with the magnetic field used in the simulation or, giving the shot. In this
+    second case, the field from the database will be loaded. This option is
+    still not implemente but is leaved here as a future option, I still do not
+    have clear how this will be implemented in the GUI. Maybe the easier thing
+    will be to leaver the B file created and include a button saying: clean B
+    files...
+
+    @todo: mission for Pablo, this should be just a method in the future
+    'orbit' method
+    @todo: implement reading the equilibrium file of the tracker
+
+    @param orbit: the orbit loaded by the load orbit method. Notice, the
+    full_info flag mut be on!
+    @param dimensions: dimensions of the field
+    @param interp_options: options for the scipy.interpolate.interp2d (or3).
+    By default: linear interpolation, to be consistent with the tracker, and
+    values outside the interpolation domain will be taken as zero
+    @return orbit: orbit dict but with an extra 'field' the pitch
+    """
+    if (file is None) and (shot is None):
+        raise Exception('Hello?? No file nor shot?!?')
+    # Load the field
+    if file is not None:
+        raise Exception('To be done')
+        # To be implemented once I learn the structure of Pablo's equilibrium
+        # field = load_equilibrium(file, dimensions=dimensions, verbose=False)
+        # print('Equilibrium loaded loaded!')
+    else:
+        equ = ssdat.meq.equ_map(shot, diag='EQH')
+        equ.read_pfm()
+        i = np.argmin(np.abs(equ.t_eq - orbit[0]['time'][0]))
+        PFM = equ.pfm[:, :, i].squeeze()
+        PFM_int = intp(equ.Rmesh, equ.Zmesh, PFM, kx=order, ky=order)
+        equ.Close()
+    # Perform the calculation
+    for k in range(len(orbit)):
+        if (limit is True) and (len(orbit[k]) > limit_step):
+            raise Exception('Hola Pablo te has pasao de puntos')
+        orbit[k]['Pphi'] = sspar.mp_kg * orbit[k]['m'] * orbit[k]['vt'] *\
+            orbit[k]['R'] - orbit[k]['q'] * sspar.ec * \
+            PFM_int.ev(orbit[k]['R'], orbit[k]['z'])
+        print('Orbit: ', k, ' of ', len(orbit) - 1, 'done')
+
+    return orbit
+
+
 def plot_orbit(orbit, view: str = '2D', ax_options: dict = {}, ax=None,
                line_options: dict = {}, shaded3d_options: dict = {},
-               imin: int = 0, imax = None):
+               imin: int = 0, imax: int = None):
     """
     Plot the orbit
 
@@ -573,6 +689,64 @@ def plot_orbit(orbit, view: str = '2D', ax_options: dict = {}, ax=None,
         ax_options['zlabel'] = 'z [m]'
         # ax = ssplt.axis_beauty(ax, ax_options)
     return ax
+
+
+def plot_orbit_time_evolution(orbit, id_to_plot=[0], LN: float = 1.0,
+                              grid: bool = True, FS: float = 14.0):
+    """
+    Plot the orbit parameters (eergy, pitch, mu, Pphi)
+
+    Jose Rueda Rueda: Jose Rueda Rueda
+
+    NOTE: This is just to have a quick look, is NOT ready-to-publish format
+
+    @param orbit: array or orbits loaded by load_orbits
+    @param plot_options: font name and so on
+    @param LN: Line width to plot
+    @param FS: FontSize
+    @param grid: If true, activate the grid
+    @param id_to_plot: orbits to be plotted, list, default [0]
+    """
+    # Open the figure
+    fig, (ax1, ax2, ax3, ax4) = plt.subplots(nrows=4, sharex=True)
+    # Plot the constants
+    for i in id_to_plot:
+        # Plot the energy
+        ax1.plot(orbit[i]['time'], orbit[i]['E'], linewidth=LN,
+                 label='Orbit ' + str(orbit[i]['ID']))
+        # Plot the pitch
+        ax2.plot(orbit[i]['time'], orbit[i]['pitch'], linewidth=LN,
+                 label='Orbit ' + str(orbit[i]['ID']))
+        # Plot the magnetic moment
+        ax3.plot(orbit[i]['time'], orbit[i]['mu'], linewidth=LN,
+                 label='Orbit ' + str(orbit[i]['ID']))
+        # Plot the Canonical momentum
+        ax4.plot(orbit[i]['time'], orbit[i]['Pphi'], linewidth=LN,
+                 label='Orbit ' + str(orbit[i]['ID']))
+    plt.legend()
+    if grid:
+        ax1.grid(True, which='minor', linestyle=':')
+        ax1.minorticks_on()
+        ax1.grid(True, which='major')
+
+        ax2.grid(True, which='minor', linestyle=':')
+        ax2.minorticks_on()
+        ax2.grid(True, which='major')
+
+        ax3.grid(True, which='minor', linestyle=':')
+        ax3.minorticks_on()
+        ax3.grid(True, which='major')
+
+        ax4.grid(True, which='minor', linestyle=':')
+        ax4.minorticks_on()
+        ax4.grid(True, which='major')
+
+    ax1.set_ylabel('E [keV]', fontsize=FS)
+    ax2.set_ylabel('$\\lambda$', fontsize=FS)
+    ax3.set_ylabel('$\\mu [J/T]$', fontsize=FS)
+    ax4.set_ylabel('$P_\\phi$', fontsize=FS)
+    plt.xlabel('Time [s]')
+    return
 
 
 def cart2pol(r, v=None):
