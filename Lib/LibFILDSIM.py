@@ -160,8 +160,8 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
         return
 
     # Transform gyroradius to energy
-    interpolated_energy = 0.5 * (interpolated_gyro / 100.0) ** 2 * b_field **\
-        2 * Z ** 2 / ssp.mp * ssp.c ** 2
+    interpolated_energy = 0.5 * (interpolated_gyro / 100.0)**2 * b_field **\
+        2 * Z ** 2 / ssp.mp * ssp.c ** 2 / A
     ## todo ask joaquin about this stuff of imposing efficiency larger than 1
     efficiency_frame = np.interp(interpolated_energy, efficiency_energy,
                                  efficiency_yield)

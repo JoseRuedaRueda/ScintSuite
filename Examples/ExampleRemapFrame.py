@@ -23,17 +23,18 @@ import LibDataAUG as ssdat
 
 # ------------------------------------------------------------------------------
 # Section 0: Settings
-cin_file_name = '/p/IPP/AUG/rawfiles/FIT/32/32326_v710.cin'
-calibration_database = '.Data/Calibrations/FILD/calibration_database.txt'
-strike_map = '/afs/ipp-garching.mpg.de/home/j/jgq/PUBLIC/' + \
-    'FILDSIM_strike_maps/FILD1_0.6MA_2.5T_strike_map.dat'
-shot = 32326
+cin_file_name = '/p/IPP/AUG/rawfiles/FIT/32/32312_v710.cin'
+calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
+strike_map = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILD_Strike_maps/' + \
+    'AUG_map_-000.80000_008.10000_strike_map.dat'
+shot = 32312
 camera = 'PHANTOM'
 cal_type = 'PIX'
 diag_ID = 1     # FILD Number
 # FILD position, in m, to calculate the magnetic field
-rfild = 2.0
-zfild = 0.3
+rfild = 2.186
+zfild = 0.32
+t0 = 0.27
 # ------------------------------------------------------------------------------
 
 # %% Section 1: Load calibration
@@ -43,9 +44,8 @@ cal = database.get_calibration(shot, camera, cal_type, diag_ID)
 # %% Section 2: Load the frame
 # Load a frame
 cin = ssvid.Video(cin_file_name)
-t0 = 0.35
 dummy = np.array([np.argmin(abs(cin.timebase-t0))])
-ref_frame = cin.read_frame(dummy)
+ref_frame = cin.read_frame(dummy, internal=False)
 frame_shape = ref_frame.shape
 fig_ref, ax_ref = plt.subplots()
 ax_ref.imshow(ref_frame, origin='lower')
