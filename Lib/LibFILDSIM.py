@@ -282,7 +282,8 @@ def run_FILDSIM(FILDSIM_path, run_ID):
     os.system(FILDSIM + namelist)
 
 
-def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG'):
+def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
+                               decimals: int = 1):
         """
         Give the name of the strike-map file
 
@@ -294,35 +295,55 @@ def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG'):
         @param phi: phi angle as defined in FILDSIM
         @param theta: theta angle as defined in FILDSIM
         @param machine: 3 characters identifying the machine
+        @param decimals: number of decimal numbers to round the angles
         @return name: the name of the strike map file
         """
-        # Set the angles with 1 decimal digit
-        phi_1 = round(phi, ndigits=1)
-        phi_label = str(abs(phi_1)) + '0000'
-        if abs(phi_1) < 10.0:
-            phi_label = '00' + phi_label
-        elif abs(phi_1) < 100.0:
-            phi_label = '0' + phi_label
-        elif abs(phi) > 360.0:
-            print('Phi is larger than 360º?!?', phi)
-
-        if phi_1 < 0:
-            phi_label = '-' + phi_label
-
-        theta_1 = round(theta, ndigits=1)
-        theta_label = str(abs(theta_1)) + '0000'
-        if abs(theta_1) < 10.0:
-            theta_label = '00' + theta_label
-        elif abs(theta_1) < 100.0:
-            theta_label = '0' + theta_label
-        elif abs(theta_1) > 360.0:
-            print('Theta is larger than 360º?!?', theta_label)
-
-        if theta_1 < 0:
-            theta_label = '-' + theta_label
-
-        name = machine + '_map_' + phi_label + '_' + theta_label + \
-            '_strike_map.dat'
+        # OLD CODE: To be deleted
+        # # Set the angles with 1 decimal digit
+        # phi_1 = round(phi, ndigits=1)
+        # phi_label = str(abs(phi_1)) + '0000'
+        # if abs(phi_1) < 10.0:
+        #     phi_label = '00' + phi_label
+        # elif abs(phi_1) < 100.0:
+        #     phi_label = '0' + phi_label
+        # elif abs(phi) > 360.0:
+        #     print('Phi is larger than 360º?!?', phi)
+        #
+        # if phi_1 < 0:
+        #     phi_label = '-' + phi_label
+        #
+        # theta_1 = round(theta, ndigits=1)
+        # theta_label = str(abs(theta_1)) + '0000'
+        # if abs(theta_1) < 10.0:
+        #     theta_label = '00' + theta_label
+        # elif abs(theta_1) < 100.0:
+        #     theta_label = '0' + theta_label
+        # elif abs(theta_1) > 360.0:
+        #     print('Theta is larger than 360º?!?', theta_label)
+        #
+        # if theta_1 < 0:
+        #     theta_label = '-' + theta_label
+        #
+        # name = machine + '_map_' + phi_label + '_' + theta_label + \
+        #     '_strike_map.dat'
+        #
+        # New code, taked from one of Juanfran files :-)
+        p = round(phi, ndigits=decimals)
+        t = round(theta, ndigits=decimals)
+        if phi < 0:
+            if theta < 0:
+                name = machine +\
+                    "_map_{0:010.5f}_{1:010.5f}_strike_map.dat".format(p, t)
+            else:
+                name = machine +\
+                    "_map_{0:010.5f}_{1:09.5f}_strike_map.dat".format(p, t)
+        else:
+            if theta < 0:
+                name = machine +\
+                    "_map_{0:09.5f}_{1:010.5f}_strike_map.dat".format(p, t)
+            else:
+                name = machine +\
+                    "_map_{0:09.5f}_{1:09.5f}_strike_map.dat".format(p, t)
         return name
 
 
