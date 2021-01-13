@@ -13,9 +13,9 @@ You should run paths.py before!!!
 """
 
 # General python packages
-import os
+# import os
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import Lib as ss
 
 # ------------------------------------------------------------------------------
