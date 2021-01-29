@@ -24,7 +24,8 @@ import LibDataAUG as ssdat
 # ------------------------------------------------------------------------------
 # Section 0: Settings
 cin_file_name = '/p/IPP/AUG/rawfiles/FIT/32/32312_v710.cin'
-calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
+calibration_database = './Data/Calibrations/FILD/calibration_database2.dat'
+
 strike_map = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILD_Strike_maps/' + \
     'AUG_map_-000.80000_008.10000_strike_map.dat'
 shot = 32312
@@ -72,7 +73,7 @@ br, bz, bt, bp = ssdat.get_mag_field(shot, rfild, zfild, time=t0)
 b = np.hypot(bp, bt)
 
 # Obtain a gyroradius profile
-profile = ssmap.gyr_profile(remaped, pitch, 40.0, 60.0, verbose=True)
+profile = ssmap.gyr_profile(remaped, pitch, 20.0, 90.0, verbose=True)
 
 # Obtain a pitch profile
 profile_pitch = ssmap.pitch_profile(remaped, gyr, 2.0, 8.0, verbose=True)

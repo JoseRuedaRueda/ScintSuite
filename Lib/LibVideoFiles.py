@@ -1277,6 +1277,70 @@ class Video:
             raise Exception('Not initialised file type?')
         return
 
+    def subtract_noise(self, t1: float = None, t2: float = None, frame=None):
+        """
+        Subtract noise from camera frames
+
+        Jose Rueda: jose.rueda@ipp.mpg.de
+
+        This function subtract the noise from the experimental camera frames.
+        Two main ways exist: if t1 and t2 are provided, the noise will be
+        be considered as the average in this range. If 'frame' is given,
+        the noise to be substracted will be considered to be directly 'frame'
+
+        A new variable: 'original frames' will be created, where the original
+        frames will be loaded, in case one wants to revert the noise
+        subtraction
+
+        @param t1: Minimum time to average the noise
+        @param t2: Maximum time to average the noise
+        @param frame: Optinal, frame containing the noise to be subtracted
+        """
+        # Get shape and data type of the experimental data
+        nx, ny, nt = self.exp_dat['frames'].shape
+        original_dtype = self.exp_dat['frames'].dtype
+        # Calculate the noise frame, if needed:
+        if (t1 is not None) and (t2 is not None):
+            it1 = np.argmin(abs(self.exp_dat['tframes'] - t1))
+            it2 = np.argmin(abs(self.exp_dat['tframes'] - t2))
+            print(str(it2 - it1 + 1), ' frames will be used to average noise')
+            frame = np.mean(self.exp_dat['frames'][:, :, it1:(it2 + 1)],
+                            dtype=original_dtype, axis=2)
+        else:
+            nxf, nyf = frame.shape
+            if (nxf != nx) or (nyf != ny):
+                raise Exception('The noise frame has not the correct shape')
+        # Create the original frame array:
+        if 'original_frames' not in self.exp_dat:
+            self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
+        else:
+            print('original frames already present, not making new copy')
+        # Substract the noise
+        for i in range(nt):
+            # Perform the subtraction in float to avoid negative values in uint
+            dummy = \
+                self.exp_dat['frames'][:, :, i].squeeze().astype(np.float64) -\
+                frame.astype(np.float64)
+            # Set negative counts to zero:
+            dummy[dummy < 0] = 0.
+            self.exp_dat['frames'][:, :, i] = dummy.astype(original_dtype)
+        return
+
+    def return_to_original_frames(self):
+        """
+        Place in self.exp_dat['frames'] the real experimental frames
+
+        Jose Rueda: jrrueda@us.es
+
+        Useful if some operation was performed and we want to place
+        again the original frames at self.exp_dat['frames']
+        """
+        if 'original_frames' not in self.exp_dat:
+            raise Exception('A copy of the original frames was not found!')
+        else:
+            self.exp_dat['frames'] = self.exp_dat['original_frames'].copy()
+        return
+
     def remap_loaded_frames(self, calibration, shot, options: dict = {}):
         """
         Remap all loaded frames in the video object
@@ -1314,8 +1378,8 @@ class Video:
                                                    **options)
             self.remap_dat['options'] = opt
 
-    def plot_frame(self, frame_number: int, ax=None, fig=None, ccmap=None,
-                   strike_map=None):
+    def plot_frame(self, frame_number=None, ax=None, fig=None, ccmap=None,
+                   strike_map=None, t: float = None):
         """
         Plot a frame from the loaded frames
 
@@ -1325,7 +1389,7 @@ class Video:
         Notice: If ax is given, fig should be also given
 
         @param frame_number: Number of the frame to plot, relative to the video
-        file
+        file, optional
         @param fig: Figure where the frame must be drawn
         @param ax: Axes where to plot, is none, just a new axes will be created
         @param ccmap: colormap to be used, if none, Gamma_II from IDL
@@ -1333,15 +1397,31 @@ class Video:
         @return ax: the axes where the frame has been drawn
         @return fig: the figure where the frame has been drawn
         """
+        # --- Check inputs:
+        if (frame_number is not None) and (t is not None):
+            raise Exception('Do not give frame number and time!')
+        if (frame_number is None) and (t is None):
+            raise Exception("Didn't you want to plot something?")
         # --- Load the frames
-        if len(self.exp_dat['nframes']) == 1:
-            if self.exp_dat['nframes'] == frame_number:
-                dummy = self.exp_dat['frames'].squeeze()
+        # If we use the frame number explicitely
+        if frame_number is not None:
+            if len(self.exp_dat['nframes']) == 1:
+                if self.exp_dat['nframes'] == frame_number:
+                    dummy = self.exp_dat['frames'].squeeze()
+                    tf = self.exp_dat['tframes']
+                else:
+                    raise Exception('Frame not loaded')
             else:
-                raise Exception('Frame not loaded')
-        else:
-            frame_index = self.exp_dat['nframes'] == frame_number
-            dummy = self.exp_dat['frames'][:, :, frame_index].squeeze()
+                frame_index = self.exp_dat['nframes'] == frame_number
+                if np.sum(frame_index) == 0:
+                    raise Exception('Frame not loaded')
+                dummy = self.exp_dat['frames'][:, :, frame_index].squeeze()
+                tf = self.exp_dat['tframes'][frame_index]
+        # If we give the time:
+        if t is not None:
+            it = np.argmin(abs(self.exp_dat['tframes'] - t))
+            tf = self.exp_dat['tframes'][it]
+            dummy = self.exp_dat['frames'][:, :, it].squeeze()
         # --- Check the colormap
         if ccmap is None:
             cmap = ssplt.Gamma_II()
@@ -1351,6 +1431,7 @@ class Video:
         if ax is None:
             fig, ax = plt.subplots()
         ax.imshow(dummy, origin='lower', cmap=cmap)
+        ax.set_title('t = ' + str(tf) + (' s'))
         # --- Plot the StrikeMap
         if strike_map is not None:
             strike_map.plot_pix(ax=ax)
@@ -1508,15 +1589,18 @@ class Video:
         smin_rep.on_changed(update)
         smax_rep.on_changed(update)
         plt.show()
+        return fig, ax
 
-    def plot_profiles_in_time(self, ccmap=None, plt_params: dict = {}):
+    def plot_profiles_in_time(self, ccmap=None, plt_params: dict = {}, t=None):
         """
         Creates a plot with the evolution of the profiles
 
         Jose Rueda Rueda: jose.rueda@ipp.mpg.de
 
         @param ccmap: colormap to be used, if none, Gamma_II will be used
-        @plt_params: params for the function axis beauty plt
+        @param plt_params: params for the function axis beauty plt
+        @param t: time, if present, just a line plot for the profiles for that
+        time will be used
         @todo: substitute pprofmin and max, also with rl or we will have a
         future bug
         """
@@ -1528,78 +1612,109 @@ class Video:
         if 'fontsize' not in plt_params:
             plt_params['fontsize'] = 16
 
-        # Gyroradius profiles
-        fig1, ax1 = plt.subplots()
-        cont = ax1.contourf(self.remap_dat['tframes'],
-                            self.remap_dat['yaxis'],
-                            self.remap_dat['sprofy'], cmap=cmap)
-        cbar = plt.colorbar(cont)
-        cbar.set_label('Counts', fontsize=plt_params['fontsize'])
-        cbar.ax.tick_params(labelsize=plt_params['fontsize'])
-        # Write the shot number and detector id
-        gyr_level = self.remap_dat['yaxis'][-1] -\
-            0.1*(self.remap_dat['yaxis'][-1] -
-                 self.remap_dat['yaxis'][0])  # Jut a nice position
-        tpos1 = self.remap_dat['tframes'][0] + 0.05 * \
-            (self.remap_dat['tframes'][-1] - self.remap_dat['tframes'][0])
-        tpos2 = self.remap_dat['tframes'][0] + 0.95 * \
-            (self.remap_dat['tframes'][-1] - self.remap_dat['tframes'][0])
-        FS = plt_params['fontsize']
-        if self.diag == 'FILD':
-            plt.text(tpos1, gyr_level, '#' + str(self.shot),
-                     horizontalalignment='left', fontsize=0.9*FS, color='w',
-                     verticalalignment='bottom')
-            plt.text(tpos1, gyr_level,
-                     str(self.remap_dat['options']['pprofmin']) + 'º to ' +
-                     str(self.remap_dat['options']['pprofmax']) + 'º',
-                     horizontalalignment='left', fontsize=0.9*FS, color='w',
-                     verticalalignment='top')
-            plt.text(tpos2, gyr_level, self.diag + str(self.diag_ID),
-                     horizontalalignment='right', fontsize=0.9*FS, color='w',
-                     verticalalignment='bottom')
-            plt_params['xlabel'] = 'Time [s]'
-            plt_params['ylabel'] = self.remap_dat['ylabel'] + ' [' +\
-                self.remap_dat['yunits'] + ']'
-        ax1 = ssplt.axis_beauty(ax1, plt_params)
+        if t is None:  # 2d plots
+            # Gyroradius profiles
+            fig1, ax1 = plt.subplots()
+            cont = ax1.contourf(self.remap_dat['tframes'],
+                                self.remap_dat['yaxis'],
+                                self.remap_dat['sprofy'], cmap=cmap)
+            cbar = plt.colorbar(cont)
+            cbar.set_label('Counts [a.u.]', fontsize=plt_params['fontsize'])
+            cbar.ax.tick_params(labelsize=plt_params['fontsize'])
+            # Write the shot number and detector id
+            gyr_level = self.remap_dat['yaxis'][-1] -\
+                0.1*(self.remap_dat['yaxis'][-1] -
+                     self.remap_dat['yaxis'][0])  # Jut a nice position
+            tpos1 = self.remap_dat['tframes'][0] + 0.05 * \
+                (self.remap_dat['tframes'][-1] - self.remap_dat['tframes'][0])
+            tpos2 = self.remap_dat['tframes'][0] + 0.95 * \
+                (self.remap_dat['tframes'][-1] - self.remap_dat['tframes'][0])
+            FS = plt_params['fontsize']
+            if self.diag == 'FILD':
+                plt.text(tpos1, gyr_level, '#' + str(self.shot),
+                         horizontalalignment='left', fontsize=0.9*FS,
+                         color='w', verticalalignment='bottom')
+                plt.text(tpos1, gyr_level,
+                         str(self.remap_dat['options']['pprofmin']) + 'º to ' +
+                         str(self.remap_dat['options']['pprofmax']) + 'º',
+                         horizontalalignment='left', fontsize=0.9*FS,
+                         color='w', verticalalignment='top')
+                plt.text(tpos2, gyr_level, self.diag + str(self.diag_ID),
+                         horizontalalignment='right', fontsize=0.9*FS,
+                         color='w', verticalalignment='bottom')
+                plt_params['xlabel'] = 'Time [s]'
+                plt_params['ylabel'] = self.remap_dat['ylabel'] + ' [' +\
+                    self.remap_dat['yunits'] + ']'
+            ax1 = ssplt.axis_beauty(ax1, plt_params)
+            plt.tight_layout()
+            # Pitch profiles in time
+            fig2, ax2 = plt.subplots()
+            cont = ax2.contourf(self.remap_dat['tframes'],
+                                self.remap_dat['xaxis'],
+                                self.remap_dat['sprofx'], cmap=cmap)
+            cbar = plt.colorbar(cont)
+            cbar.set_label('Counts [a.u.]', fontsize=plt_params['fontsize'])
+            cbar.ax.tick_params(labelsize=plt_params['fontsize'])
+            # Write the shot number and detector id
+            level = self.remap_dat['xaxis'][-1] -\
+                0.1*(self.remap_dat['xaxis'][-1] -
+                     self.remap_dat['xaxis'][0])  # Jut a nice position
+            if self.diag == 'FILD':  # Add a labal with the integation range
+                plt.text(tpos1, level, '#' + str(self.shot),
+                         horizontalalignment='left', fontsize=0.9*FS,
+                         color='w', verticalalignment='bottom')
+                plt.text(tpos1, level,
+                         str(self.remap_dat['options']['rprofmin']) + 'cm to '
+                         + str(self.remap_dat['options']['rprofmax']) + 'cm',
+                         horizontalalignment='left', fontsize=0.9*FS,
+                         color='w', verticalalignment='top')
+                plt.text(tpos2, level, self.diag + str(self.diag_ID),
+                         horizontalalignment='right', fontsize=0.9*FS,
+                         color='w', verticalalignment='bottom')
+                plt_params['xlabel'] = 'Time [s]'
+                plt_params['ylabel'] = self.remap_dat['xlabel'] + ' [' +\
+                    self.remap_dat['xunits'] + ']'
+            ax2 = ssplt.axis_beauty(ax2, plt_params)
+            plt.tight_layout()
+        else:  # The line plots:
+            # Set the grid option for plotting
+            if 'grid' not in plt_params:
+                plt_params['grid'] = 'both'
+            # find the frame we want to plot
+            it = np.argmin(abs(self.remap_dat['tframes'] - t))
+            # Open the figure
+            fig, (ax1, ax2) = plt.subplots(1, 2)
+            # Plot the gyroradius profile:
+            ax1.plot(self.remap_dat['yaxis'], self.remap_dat['sprofy'][:, it])
+            if self.diag == 'FILD':
+                title = '#' + str(self.shot) + ' ' +\
+                    str(self.remap_dat['options']['pprofmin']) + 'º to ' +\
+                    str(self.remap_dat['options']['pprofmax']) + 'º'
+                plt_params['xlabel'] = self.remap_dat['ylabel'] + ' [' +\
+                    self.remap_dat['yunits'] + ']'
+                plt_params['ylabel'] = 'Counts [a.u.]'
+                ax1.set_title(title, fontsize=plt_params['fontsize'])
+            ax1 = ssplt.axis_beauty(ax1, plt_params)
 
-        fig2, ax2 = plt.subplots()
-        cont = ax2.contourf(self.remap_dat['tframes'],
-                            self.remap_dat['xaxis'],
-                            self.remap_dat['sprofx'], cmap=cmap)
-        cbar = plt.colorbar(cont)
-        cbar.set_label('Counts', fontsize=plt_params['fontsize'])
-        cbar.ax.tick_params(labelsize=plt_params['fontsize'])
-        # Write the shot number and detector id
-        level = self.remap_dat['xaxis'][-1] -\
-            0.1*(self.remap_dat['xaxis'][-1] -
-                 self.remap_dat['xaxis'][0])  # Jut a nice position
-        if self.diag == 'FILD':
-            plt.text(tpos1, level, '#' + str(self.shot),
-                     horizontalalignment='left', fontsize=0.9*FS, color='w',
-                     verticalalignment='bottom')
-            plt.text(tpos1, level,
-                     str(self.remap_dat['options']['rprofmin']) + 'cm to ' +
-                     str(self.remap_dat['options']['rprofmax']) + 'cm',
-                     horizontalalignment='left', fontsize=0.9*FS, color='w',
-                     verticalalignment='top')
-            plt.text(tpos2, gyr_level, self.diag + str(self.diag_ID),
-                     horizontalalignment='right', fontsize=0.9*FS, color='w',
-                     verticalalignment='bottom')
-            plt_params['xlabel'] = 'Time [s]'
-            plt_params['ylabel'] = self.remap_dat['xlabel'] + ' [' +\
-                self.remap_dat['xunits'] + ']'
-        ax2 = ssplt.axis_beauty(ax2, plt_params)
+            # Plot the gyroradius profile:
+            ax2.plot(self.remap_dat['xaxis'], self.remap_dat['sprofx'][:, it])
+            if self.diag == 'FILD':
+                title = '#' + str(self.shot) + ' ' +\
+                    str(self.remap_dat['options']['rprofmin']) + 'cm to ' +\
+                    str(self.remap_dat['options']['rprofmax']) + 'cm'
+                plt_params['xlabel'] = self.remap_dat['xlabel'] + ' [' +\
+                    self.remap_dat['xunits'] + ']'
+                plt_params['ylabel'] = 'Counts [a.u.]'
+                ax2.set_title(title, fontsize=plt_params['fontsize'])
+            ax2 = ssplt.axis_beauty(ax2, plt_params)
+            plt.tight_layout()
+        return
 
-    def export_remap(self, format: str = 'pyhon'):
+    def export_remap(self):
         """
         Export the dictionary containing the remaped data
 
         Jose Rueda Rueda: jose.rueda@ipp.mpg.de
-
-        @param format: Format to write the resuls:
-            -#'python': pickle file
-            -#'matlab': matfile
-            -#'idl': IDL compatible format (not tested by the author)
         """
 
         # Test if the folder
@@ -1642,7 +1757,7 @@ class Video:
             frames = f.createVariable('frames', 'float64',
                                       ('xaxis', 'yaxis', 'tframes'))
             frames[:, :, :] = self.remap_dat['frames']
-            frames.units = 'Counts'
+            frames.units = 'Counts per axis area'
             frames.long_name = 'Remapped frames'
 
             # Save the modulus of the magnetic field at the FILD positon

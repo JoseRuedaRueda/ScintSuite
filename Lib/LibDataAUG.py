@@ -4,6 +4,8 @@
 # from sf2equ_20200525 import EQU
 # # Module to map the equilibrium
 # import mapeq_20200507 as meq
+# Module to load shotfiles
+import dd
 # Module to load vessel components
 import get_gc
 # Other libraries
@@ -23,6 +25,11 @@ pa = Path()
 ## Length of the shot numbers
 shot_number_length = 5  # In AUG shots numbers are written with 5 numbers 00001
 
+## FILD diag names:
+# fast-channels:
+fild_diag = ['FHC', 'FHA', 'XXX', 'FHD', 'FHE']
+fild_signals = ['FILD3_', 'FIPM_', 'XXX', 'Chan-', 'Chan-']
+fild_number_of_channels = [20, 20, 99, 32, 64]
 
 # def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
 #                   ed: int = 0, tiniEQU: float = None, tendEQU: float = None,
@@ -284,6 +291,55 @@ def toroidal_vessel(rot: float = -np.pi/8.0*3.0):
                 xy_vessel[cc, 1] = xx * np.sin(rot) + yy * np.cos(rot)
             cc += 1
     return xy_vessel[:cc-1, :]
+
+
+def get_fast_channel(diag: str, diag_number: int, channels, shot: int):
+    """
+    Get the signal for the fast channels (PMT, APD)
+
+    Jose Rueda Rueda: jrrueda@us.es
+
+    @param diag: diagnostic: 'FILD' or 'INPA'
+    @param diag_number: 1-5
+    @param channels: channel number we want, or arry with channels
+    @param shot: shot file to be opened
+    """
+    # Check inputs:
+    if not ((diag == 'FILD') or (diag != 'INPA')):
+        raise Exception('No understood diagnostic')
+
+    # Load diagnostic names:
+    if diag == 'FILD':
+        if (diag_number > 5) or (diag_number < 1):
+            print('You requested: ', diag_number)
+            raise Exception('Wrong fild number')
+        diag_name = fild_diag[diag_number - 1]
+        signal_prefix = fild_signals[diag_number - 1]
+        nch = fild_number_of_channels[diag_number - 1]
+
+    # Look which channels we need to load:
+    try:    # If we received a numpy array, all is fine
+        nch_to_load = channels.size
+        ch = channels
+    except AttributeError:  # If not, we need to create it
+        ch = np.array([channels])
+        nch_to_load = ch.size
+
+    # Open the shot file
+    fast = dd.shotfile(diag_name, shot)
+    data = []
+    for ic in range(nch):
+        real_channel = ic + 1
+        if real_channel in ch:
+            name_channel = signal_prefix + "{0:02}".format(real_channel)
+            channel_dat = fast.getObjectData(name_channel.encode('UTF-8'))
+            data.append(channel_dat)
+        else:
+            data.append(None)
+    # get the time base (we will use last loaded channel)
+    time = fast.getTimeBase(name_channel.encode('UTF-8'))
+    print('Number of requested channels: ', nch_to_load)
+    return {'time': time, 'signal': data}
 
 
 class NBI:

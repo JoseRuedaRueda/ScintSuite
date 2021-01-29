@@ -10,7 +10,7 @@ class Path:
         """Initialise the class"""
         self.FILDSIM = os.path.join(os.getenv("HOME"), 'FILDSIM/')
         self.INPASIM = os.path.join(os.getenv("HOME"), 'INPASIM/')
-        self.StrikeMaps = os.path.join(os.getenv("HOME"), 'FILD_Strike_maps/')
+        self.StrikeMaps = os.path.join(os.getenv("HOME"), 'FILD_Strike_maps2/')
         self.CinFiles = '/p/IPP/AUG/rawfiles/FIT/'
         self.PngFiles = '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/'
         self.ScintSuite = os.path.join(os.getenv("HOME"), 'ScintSuite/')

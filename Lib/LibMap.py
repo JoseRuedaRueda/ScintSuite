@@ -22,6 +22,11 @@ del p
 if machine == 'AUG':
     import LibDataAUG as ssdat
 
+try:
+    import lmfit
+except ModuleNotFoundError:
+    print('lmfit not found, you cannot calculate resolutions')
+
 
 def transform_to_pixel(x, y, grid_param):
     """
@@ -288,8 +293,7 @@ def remap(smap, frame, x_min=20.0, x_max=80.0, delta_x=1,
     """
     # --- 0: Check inputs
     if smap.gyr_interp is None:
-        print('Please, transform to pixel the strike map before!!!')
-        return 0, 0, 0
+        raise Exception('Transform to pixel the strike map before!!!')
 
     # --- 1: Edges of the histogram
     x_edges = np.arange(start=x_min, stop=x_max, step=delta_x)
@@ -585,6 +589,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
                                  zfild: float = 0.32, alpha: float = 0.0,
                                  beta: float = -12.0,
                                  fildsim_options: dict = {},
+                                 method: int = 1,
                                  verbose: bool = True):
     """
     Remap all loaded frames from a FILD video
@@ -636,11 +641,15 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     @param    beta: Description of parameter `beta`. Defaults to -12.0.
     @type:    float
 
+    @param    method: ethod to interpolate the strike maps, default 1: linear
+
     @return:  Description of returned object.
     @rtype:   type
 
     @raises   ExceptionName: Why the exception is raised.
     """
+    # Print just some info:
+    print('Looking for strikemaps in: ', pa.StrikeMaps)
     # Get frame shape:
     nframes = len(video.exp_dat['nframes'])
     frame_shape = video.exp_dat['frames'].shape[0:2]
@@ -697,7 +706,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
             map = StrikeMap(0, os.path.join(pa.StrikeMaps, name))
             map.calculate_pixel_coordinates(calibration)
             # print('Interpolating grid')
-            map.interp_grid(frame_shape, plot=False, method=2)
+            map.interp_grid(frame_shape, plot=False, method=method)
         name_old = name
         remaped_frames[:, :, iframe], pitch, gyr = \
             remap(map, video.exp_dat['frames'][:, :, iframe], x_min=pmin,
@@ -712,7 +721,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
             print('### Frame:', iframe + 1, 'of', nframes, 'remaped')
     toc = time.time()
     print('Whole time interval remaped in: ', toc-tic, ' s')
-
+    print('Average time per frame: ', (toc-tic) / nframes, ' s')
     output = {'frames': remaped_frames, 'xaxis': pitch, 'yaxis': gyr,
               'xlabel': 'Pitch', 'ylabel': '$r_l$',
               'xunits': '{}^o', 'yunits': 'cm',
@@ -726,6 +735,46 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
            'pprofmin': pprofmin, 'pprofmax': pprofmax, 'rfild': rfild,
            'zfild': zfild, 'alpha': alpha, 'beta': beta}
     return output, opt
+
+
+# -----------------------------------------------------------------------------
+# FOR THE RESOLUTION CALCULATION
+# -----------------------------------------------------------------------------
+def _fit_to_model_(data, bins=20, model='Gauss'):
+    """
+    Make histogram of input data and fit to a model
+
+    Jose Rueda: jose.rueda@ipp.mpg.de
+
+    Note: inspired in Joaquin approach of IDL routines
+
+    @param bins: Can be the desired number of bins or the edges
+    @param model: 'Gauss' Pure Gaussian, 'sGauss' Screw Gaussian
+    """
+    # --- Make the histogram of the data
+    hist, edges = np.histogram(data, bins=bins)
+    hist = hist.astype(np.float64)
+    hist /= hist.max()  # Normalise to  have de data between 0 and 1
+    cent = 0.5 * (edges[1:] + edges[:-1])
+
+    # --- Make the fit
+    if model == 'Gauss':
+        model = lmfit.models.GaussianModel()
+        params = model.guess(hist, x=cent)
+        result = model.fit(hist, params, x=cent)
+        par = {'amplitude': result.params['amplitude'].value,
+               'center': result.params['center'].value,
+               'sigma': result.params['sigma'].value}
+    if model == 'sGauss':
+        model = lmfit.models.SkewedGaussianModel()
+        params = model.guess(hist, x=cent)
+        result = model.fit(hist, params, x=cent)
+        par = {'amplitude': result.params['amplitude'].value,
+               'center': result.params['center'].value,
+               'sigma': result.params['sigma'].value,
+               'gamma': result.params['gamma'].value}
+
+    return par, result
 
 
 class CalibrationDatabase:
@@ -889,14 +938,16 @@ class StrikeMap:
         @todo Eliminate flag and extract info from file name??
         """
         ## Associated diagnostic
-        if flag == 0:
+        if flag == 0 or flag == 'FILD':
             self.diag = 'FILD'
+        else:
+            raise Exception('Diagnostic not implemented')
         ## X-position, in pixles, of the strike map
         self.xpixel = None
         ## Y-Position, in pixels, of the strike map
         self.ypixel = None
 
-        if flag == 0:
+        if flag == 0 or flag == 'FILD':
             # Read the file
             dummy = np.loadtxt(file, skiprows=3)
             # See which rows has collimator factor larger than zero (ie see for
@@ -929,6 +980,10 @@ class StrikeMap:
             self.pit_interp = None
             ## Translate from pixels in the camera to collimator factor
             self.col_interp = None
+            ## Strike points used to calculate the map
+            self.strike_points = None
+            ## Resolution of FILD for each strike point
+            self.resolution = None
 
     def plot_real(self, ax=None,
                   plt_param: dict = {}, line_param: dict = {}):
@@ -1080,77 +1135,38 @@ class StrikeMap:
         """
         # --- 0: Check inputs
         if self.xpixel is None:
-            print('Please, transform to pixel the strike map before!!!')
-            error = 1
-            return error
+            raise Exception('Transform to pixel the strike map before')
         # --- 1: Create grid for the interpolation
         grid_x, grid_y = np.mgrid[0:frame_shape[1], 0:frame_shape[0]]
-        # --- 2: Interpolate the gyroradius
+        # --- 2: Interpolate the grid
         dummy = np.column_stack((self.xpixel, self.ypixel))
         if method == 0:
-            if self.diag == 'FILD':
-                self.gyr_interp = scipy_interp.griddata(dummy,
-                                                        self.gyroradius,
-                                                        (grid_x, grid_y),
-                                                        method='nearest',
-                                                        fill_value=1000)
-                self.gyr_interp = self.gyr_interp.transpose()
-                self.pit_interp = scipy_interp.griddata(dummy,
-                                                        self.pitch,
-                                                        (grid_x, grid_y),
-                                                        method='nearest',
-                                                        fill_value=1000)
-                self.pit_interp = self.pit_interp.transpose()
-                self.col_interp = scipy_interp.griddata(dummy,
-                                                        self.collimator_factor,
-                                                        (grid_x, grid_y),
-                                                        method='nearest',
-                                                        fill_value=1000)
-                self.col_interp = self.col_interp.transpose()
+            met = 'nearest'
         elif method == 1:
-            if self.diag == 'FILD':
-                self.gyr_interp = scipy_interp.griddata(dummy,
-                                                        self.gyroradius,
-                                                        (grid_x, grid_y),
-                                                        method='linear',
-                                                        fill_value=1000)
-                self.gyr_interp = self.gyr_interp.transpose()
-                self.pit_interp = scipy_interp.griddata(dummy,
-                                                        self.pitch,
-                                                        (grid_x, grid_y),
-                                                        method='linear',
-                                                        fill_value=1000)
-                self.pit_interp = self.pit_interp.transpose()
-                self.col_interp = scipy_interp.griddata(dummy,
-                                                        self.collimator_factor,
-                                                        (grid_x, grid_y),
-                                                        method='linear',
-                                                        fill_value=1000)
-                self.col_interp = self.col_interp.transpose()
+            met = 'linear'
         elif method == 2:
-            if self.diag == 'FILD':
-                self.gyr_interp = scipy_interp.griddata(dummy,
-                                                        self.gyroradius,
-                                                        (grid_x, grid_y),
-                                                        method='cubic',
-                                                        fill_value=1000)
-                self.gyr_interp = self.gyr_interp.transpose()
-                self.pit_interp = scipy_interp.griddata(dummy,
-                                                        self.pitch,
-                                                        (grid_x, grid_y),
-                                                        method='cubic',
-                                                        fill_value=1000)
-                self.pit_interp = self.pit_interp.transpose()
-                self.col_interp = scipy_interp.griddata(dummy,
-                                                        self.collimator_factor,
-                                                        (grid_x, grid_y),
-                                                        method='cubic',
-                                                        fill_value=1000)
-                self.col_interp = self.col_interp.transpose()
+            met = 'cubic'
         else:
-            error = 2
-            print('Method not understood')
-            return error
+            raise Exception('Not recognised interpolation method')
+        if self.diag == 'FILD':
+            self.gyr_interp = scipy_interp.griddata(dummy,
+                                                    self.gyroradius,
+                                                    (grid_x, grid_y),
+                                                    method=met,
+                                                    fill_value=1000)
+            self.gyr_interp = self.gyr_interp.transpose()
+            self.pit_interp = scipy_interp.griddata(dummy,
+                                                    self.pitch,
+                                                    (grid_x, grid_y),
+                                                    method=met,
+                                                    fill_value=1000)
+            self.pit_interp = self.pit_interp.transpose()
+            self.col_interp = scipy_interp.griddata(dummy,
+                                                    self.collimator_factor,
+                                                    (grid_x, grid_y),
+                                                    method=met,
+                                                    fill_value=1000)
+            self.col_interp = self.col_interp.transpose()
 
         # --- Plot
         if plot:
@@ -1195,6 +1211,209 @@ class StrikeMap:
         if self.diag == 'FILD':
             self.energy = get_energy_FILD(self.gyroradius, B0, A=A, Z=Z)
         return
+
+    def load_strike_points(self, file):
+        """
+        Load the strike points used to calculate the map
+
+        Jose Rueda: ruejo@ipp.mpg.de
+
+        @param file: File to be loaded. It should contai the strike points in
+        FILDSIM format (if we are loading FILD)
+        """
+        if self.diag == 'FILD':
+            self.strike_points = {}
+            # Load all the data
+            self.strike_points['Data'] = np.loadtxt(file, skiprows=3)
+            # Check with version of FILDSIM was used
+            if len(self.strike_points['Data']) == 8:
+                print('Old FILDSIM format, initial position NOT included')
+                old = True
+            elif len(self.strike_points['Data']) == 11:
+                print('New FILDSIM format, initial position included')
+                old = False
+            else:
+                raise Exception('Error loading file, not recognised columns')
+            # Write some help
+            self.strike_points['help'] =\
+                ['0: Gyroradius (cm)',
+                 '1: Pitch Angle (deg)',
+                 '2: Initial Gyrophase',
+                 '3-5: X (cm)  Y (cm)  Z (cm)',
+                 '6: Remapped gyro',
+                 '7: Remapped pitch',
+                 '8: Incidence angle']
+            if old:
+                self.strike_points['help'].append('9-11: Xi (cm)  Yi (cm)' +
+                                                  '  Zi (cm)')
+            # Get the 'pinhole' gyr and pitch values:
+            self.strike_points['pitch'] = \
+                np.unique(self.strike_points['Data'][:, 1])
+            self.strike_points['gyroradius'] = \
+                np.unique(self.strike_points['Data'][:, 0])
+        return
+
+    def plot_strike_points(self, ax=None, plt_param={}):
+        """
+        Scatter plot of the strik points
+
+        Note, no weighting is done, just a scatter plot, this is not a
+        sofisticated ready to print figure maker but just a quick plot to see
+        what is going on
+
+        @param ax: axes where to plot, if not given, new figure will pop up
+        @param plt_param: options for the matplotlib scatter function
+        """
+        # Open the figure if needed:
+        if ax is None:
+            fig, ax = plt.subplots()
+        # plot
+        if self.diag == 'FILD':
+            ax.scatter(self.strike_points['Data'][:, 4],
+                       self.strike_points['Data'][:, 5], ** plt_param)
+
+    def calculate_resolutions(self, dpitch: float = 1.0, dgyr: float = 0.1,
+                              p_method: str = 'Gauss',
+                              g_method: str = 'sGauss',
+                              min_statistics: int = 20):
+        """
+        Calculate the resolution associated with each point of the map
+
+        Jose Rueda Rueda
+        @todo: change calculate_resolution_options to allows for several
+        diagnostic!!!
+        @param
+        """
+        if self.strike_points is None:
+            raise Exception('You should load the strike points first!!')
+        if self.diag == 'FILD':
+            npitch = self.strike_points['pitch'].size
+            nr = self.strike_points['gyroradius'].size
+            npoints = np.zeros((nr, npitch))
+            parameters_pitch = {'amplitude': np.zeros((nr, npitch)),
+                                'center': np.zeros((nr, npitch)),
+                                'sigma': np.zeros((nr, npitch)),
+                                'gamma': np.zeros((nr, npitch))}
+            parameters_gyr = {'amplitude': np.zeros((nr, npitch)),
+                              'center': np.zeros((nr, npitch)),
+                              'sigma': np.zeros((nr, npitch)),
+                              'gamma': np.zeros((nr, npitch))}
+            print('Calculating FILD resolutions')
+            for ir in range(nr):
+                for ip in range(npitch):
+                    # Select the data
+                    data = self.strike_points['Data'][
+                        (self.strike_points['Data'][:, 0] ==
+                         self.strike_points['gyroradius'][ir]) *
+                        (self.strike_points['Data'][:, 1] ==
+                         self.strike_points['pitch'][ip]), :]
+                    npoints[ir, ip] = len(data[:, 0])
+                    # see if there is enough points:
+                    if len(data[:, 0]) < min_statistics:
+                        parameters_gyr['amplitude'][ir, ip] = np.nan
+                        parameters_gyr['center'][ir, ip] = np.nan
+                        parameters_gyr['sigma'][ir, ip] = np.nan
+                        parameters_gyr['gamma'][ir, ip] = np.nan
+
+                        parameters_pitch['amplitude'][ir, ip] = np.nan
+                        parameters_pitch['center'][ir, ip] = np.nan
+                        parameters_pitch['sigma'][ir, ip] = np.nan
+                        parameters_pitch['gamma'][ir, ip] = np.nan
+                    else:  # If we have enough points, make the fit
+                        # Prepare the bin edged according to the desired width
+                        edges_pitch = \
+                            np.arange(start=data[:, 7].min() - dpitch,
+                                      stop=data[:, 7].max() + dpitch,
+                                      step=dpitch)
+                        edges_gyr = \
+                            np.arange(start=data[:, 6].min() - dgyr,
+                                      stop=data[:, 6].max() + dgyr,
+                                      step=dgyr)
+                        par_p, result = _fit_to_model_(data, bins=edges_pitch,
+                                                       model=p_method)
+                        par_g, result = _fit_to_model_(data, bins=edges_gyr,
+                                                       model=g_method)
+                        # Save the data in the matrices:
+                        if p_method == 'Gauss':
+                            parameters_pitch['amplitude'][ir, ip] = \
+                                par_p['amplitude']
+                            parameters_pitch['center'][ir, ip] = \
+                                par_p['center']
+                            parameters_pitch['sigma'][ir, ip] = par_p['sigma']
+                            parameters_pitch['gamma'][ir, ip] = np.nan
+                        elif p_method == 'sGauss':
+                            parameters_pitch['amplitude'][ir, ip] = \
+                                par_p['amplitude']
+                            parameters_pitch['center'][ir, ip] = \
+                                par_p['center']
+                            parameters_pitch['sigma'][ir, ip] = par_p['sigma']
+                            parameters_pitch['gamma'][ir, ip] = par_p['gamma']
+
+                        if g_method == 'Gauss':
+                            parameters_gyr['amplitude'][ir, ip] = \
+                                par_g['amplitude']
+                            parameters_gyr['center'][ir, ip] = par_g['center']
+                            parameters_gyr['sigma'][ir, ip] = par_g['sigma']
+                            parameters_gyr['gamma'][ir, ip] = np.nan
+                        elif g_method == 'sGauss':
+                            parameters_gyr['amplitude'][ir, ip] = \
+                                par_g['amplitude']
+                            parameters_gyr['center'][ir, ip] = par_g['center']
+                            parameters_gyr['sigma'][ir, ip] = par_g['sigma']
+                            parameters_gyr['gamma'][ir, ip] = par_g['gamma']
+        self.resolution = {'Gyroradius': parameters_gyr,
+                           'Pitch': parameters_pitch,
+                           'nmarkers': npoints}
+        return
+
+    def plot_resolutions(self, ax_param: dict = {}, cMap=None, nlev: int = 20):
+        """
+        Plot the resolutions
+
+        Jose Rueda: ruejo@ipp.mpg.de
+
+        @todo: Implement label size in colorbar
+
+        @param ax_param: parameters for the axis beauty function. Note, labels
+        of the color axis are hard-cored, if you want custom axis labels you
+        would need to draw the plot on your own
+        @param cMap: is None, Gamma_II will be used
+        @param nlev: number of levels for the contour
+        """
+        # Open the figure and prepare the map:
+        fig, ax = plt.subplots(1, 2)
+
+        if cMap is None:
+            cmap = ssplt.Gamma_II()
+        else:
+            cmap = cMap
+        if 'fontsize' not in ax_param:
+            ax_param['fontsize'] = 14
+            # cFS = 14
+        # else:
+            # cFS = ax_param['fontsize']
+        if 'xlabel' not in ax_param:
+            ax_param['xlabel'] = '$\\lambda [{}^o]'
+        if 'ylabel' not in ax_param:
+            ax_param['ylabel'] = '$r_l [{}^o]'
+
+        if self.diag == 'FILD':
+            # Plot the gyroradius resolution
+            a1 = ax[0].contourf(self.strike_points['pitch'],
+                                self.strike_points['gyroradius'],
+                                self.resolution['Gyroradius']['sigma'],
+                                levels=nlev, cmap=cmap)
+            fig.colorbar(a1, ax=ax[0], label='$\\sigma_r [cm]$')
+            ax[0] = ssplt.axis_beauty(ax[0], ax_param)
+            # plot the pitch resolution
+            a = ax[1].contourf(self.strike_points['pitch'],
+                               self.strike_points['gyroradius'],
+                               self.resolution['Pitch']['sigma'],
+                               levels=nlev, cmap=cmap)
+            fig.colorbar(a, ax=ax[1], label='$\\sigma_\\lambda$')
+            ax[1] = ssplt.axis_beauty(ax[1], ax_param)
+            plt.tight_layout()
+            return
 
 
 class CalParams:

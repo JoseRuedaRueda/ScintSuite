@@ -8,6 +8,8 @@ import LibExtra as extra
 import LibPaths as p
 import LibMachine as m
 import LibTracker as tracker
+import LibIO as io
+import LibFastChannel as fc
 from version_suite import version
 if m.machine == 'AUG':
     import LibDataAUG as dat
