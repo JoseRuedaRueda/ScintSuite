@@ -309,7 +309,7 @@ class TimeTrace:
         # plot the std of the counts in the roi
         ax_tt3.plot(self.time_base, self.std_of_roi, **line_options)
         options['xlabel'] = 't [s]'
-        options['ylabel'] = '$\sigma$'
+        options['ylabel'] = '$\\sigma$'
         ax_tt3 = ssplt.axis_beauty(ax_tt3, options)
         plt.tight_layout()
         plt.show()
