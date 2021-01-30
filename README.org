@@ -41,3 +41,13 @@ All devices are identified by three letters:
 ** Complete docmentation
 - The routines in the Example folder are intended to ilustrate the use of the different tools in the suite
 - For a Doxygen generated documentation, see: <https://hdvirtual.us.es/discovirt/index.php/s/FBjZ9FPfjjwMDS2> download the content and open the index.html file, inside the html folder
+
+** Implementation of other machines
+The suite is thought to be machine independent, but some work must be done:
+- Create a module equivalent to LibDataAUG with the database methods of your machine
+- Include your paths in paths_suite.py and LibPaths.py
+- Include the calling of your nice module in the 'if' located at the beggining of most Libraries
+- Cry a bit because there are still things which don't work
+- Send an e-mail to jrrueda@us.es
+- Wait a couple of days for him to solve the issues
+- Enjoy!

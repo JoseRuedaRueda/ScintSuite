@@ -9,7 +9,9 @@ if machine == 'AUG':
     import LibDataAUG as ssdat
 
 
-# Basic 1D plotting
+# -----------------------------------------------------------------------------
+# --- 1D Plotting
+# -----------------------------------------------------------------------------
 def p1D(ax, x, y, param_dict: dict = None):
     """
     Create basic 1D plot
@@ -54,6 +56,9 @@ def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=-10001):
     return ax
 
 
+# -----------------------------------------------------------------------------
+# --- Axis tunning and colormap
+# -----------------------------------------------------------------------------
 def axis_beauty(ax, param_dict: dict):
     """
     Modify axis labels, title, ....
@@ -120,6 +125,9 @@ def Gamma_II(n=256):
     return cmap
 
 
+# -----------------------------------------------------------------------------
+# --- 3D Plotting
+# -----------------------------------------------------------------------------
 def plot_3D_revolution(r, z, phi_min: float = 0.0, phi_max: float = 1.57,
                        nphi: int = 25, ax=None,
                        color=[0.5, 0.5, 0.5], alpha: float = 0.75):
@@ -154,6 +162,9 @@ def plot_3D_revolution(r, z, phi_min: float = 0.0, phi_max: float = 1.57,
     return ax
 
 
+# -----------------------------------------------------------------------------
+# --- Vessel plot
+# -----------------------------------------------------------------------------
 def plot_vessel(projection: str = 'pol', units: str = 'm', h: float = None,
                 color='k', linewidth=0.5, ax=None, shot: int = 30585,
                 shaded3d: bool = 'False', params3d: dict = {},

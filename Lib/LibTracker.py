@@ -87,9 +87,9 @@ def prepare_B_field(shot: int, time: float, diag: str = 'EQH',
     return field
 
 
-def write_fields(filename: str, field: dict):
+def write_field(filename: str, field: dict):
     """
-    Write fields (electric or magnetics)
+    Write field (electric or magnetics)
 
     Jose Rueda: jose.rueda@ipp.mpg.de
 
@@ -462,7 +462,6 @@ def orbit_pitch(orbit, file: str = None, shot: int = None, IpBt: int = -1,
     values outside the interpolation domain will be taken as zero
     @return orbit: orbit dict but with an extra 'field' the pitch
     """
-
     # if 'kind' not in interp_options:
     #     interp_options['kind'] = 'linear'
     # if 'fill_value' not in interp_options:
@@ -649,9 +648,9 @@ def plot_orbit(orbit, view: str = '2D', ax_options: dict = {}, ax=None,
     x = orbit['R'] * np.cos(orbit['phi'])
     y = orbit['R'] * np.sin(orbit['phi'])
     if imax is None:
-        imax = len(x)
+        imax = len(x) - 1
     if imax > len(x):
-        imax = len(x)-1
+        imax = len(x) - 1
     if view == '2D':
         # Open the figure
         if ax is None:
