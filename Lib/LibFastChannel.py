@@ -13,6 +13,9 @@ if machine == 'AUG':
     import LibDataAUG as ssdat
 
 
+# -----------------------------------------------------------------------------
+# --- Classes
+# -----------------------------------------------------------------------------
 class Fast:
     """To interact with signals from the fast channel"""
 

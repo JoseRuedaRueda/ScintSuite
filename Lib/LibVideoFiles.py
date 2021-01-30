@@ -25,7 +25,7 @@ if machine == 'AUG':
 
 
 # -----------------------------------------------------------------------------
-# --- Section 1: Methods for the .cin files
+# Methods for the .cin files
 # -----------------------------------------------------------------------------
 def read_header(filename: str, verbose: bool = False):
     """
@@ -855,22 +855,6 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
     @return M: 3D numpy array with the frames M[px,py,nframes]
     """
     # --- Section 0: Initial checks
-    # check if the requested frames are in the file
-    # flags_below = frames_number < cin_object.header['FirstImageNo']
-    # if cin_object.header['FirstImageNo'] > 0:
-    #     flags_above = frames_number > (cin_object.header['FirstImageNo'] +
-    #                                    cin_object.header['ImageCount'])
-    # else:
-    #     flags_above = frames_number > (cin_object.header['FirstImageNo'] +
-    #                                    cin_object.header['ImageCount'] - 1)
-
-    # if (np.sum(flags_above) + np.sum(flags_below)) > 0:
-    #     print(np.sum(flags_above))
-    #     print(np.sum(flags_below))
-    #     print(cin_object.header['FirstImageNo'])
-    #     print(flags_above)
-    #     print('The requested frame is not in the file!!!')
-    #     return 0
     flags_negative = frames_number < 0
     flags_above = frames_number > cin_object.header['ImageCount']
     if (np.sum(flags_above) + np.sum(flags_negative)) > 0:
@@ -951,10 +935,8 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
 
 
 # ------------------------------------------------------------------------------
-# --- Section 2: Methods for the .png files
+# Methods for the .png files
 # ------------------------------------------------------------------------------
-
-
 def read_data_png(path):
     """
     Read info for a case where the measurements are stored as png
@@ -1101,10 +1083,8 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
 
 
 # ------------------------------------------------------------------------------
-# --- Section 3: Video files
+#  Classes
 # ------------------------------------------------------------------------------
-
-
 class Video:
     """
     Class with the information of the recorded video
@@ -1296,6 +1276,8 @@ class Video:
         @param t2: Maximum time to average the noise
         @param frame: Optinal, frame containing the noise to be subtracted
         """
+        print('.--. ... ..-. -')
+        print('Substracting noise')
         # Get shape and data type of the experimental data
         nx, ny, nt = self.exp_dat['frames'].shape
         original_dtype = self.exp_dat['frames'].dtype
@@ -1303,10 +1285,12 @@ class Video:
         if (t1 is not None) and (t2 is not None):
             it1 = np.argmin(abs(self.exp_dat['tframes'] - t1))
             it2 = np.argmin(abs(self.exp_dat['tframes'] - t2))
+            print('Using frames from the video')
             print(str(it2 - it1 + 1), ' frames will be used to average noise')
             frame = np.mean(self.exp_dat['frames'][:, :, it1:(it2 + 1)],
                             dtype=original_dtype, axis=2)
         else:
+            print('Using noise frame provider by the user')
             nxf, nyf = frame.shape
             if (nxf != nx) or (nyf != ny):
                 raise Exception('The noise frame has not the correct shape')
@@ -1431,7 +1415,7 @@ class Video:
         if ax is None:
             fig, ax = plt.subplots()
         ax.imshow(dummy, origin='lower', cmap=cmap)
-        ax.set_title('t = ' + str(tf) + (' s'))
+        ax.set_title('t = ' + str(round(tf, 4)) + (' s'))
         # --- Plot the StrikeMap
         if strike_map is not None:
             strike_map.plot_pix(ax=ax)
@@ -1591,7 +1575,8 @@ class Video:
         plt.show()
         return fig, ax
 
-    def plot_profiles_in_time(self, ccmap=None, plt_params: dict = {}, t=None):
+    def plot_profiles_in_time(self, ccmap=None, plt_params: dict = {}, t=None,
+                              nlev: int = 50, cbar_tick_format: str = '%.1E'):
         """
         Creates a plot with the evolution of the profiles
 
@@ -1601,6 +1586,8 @@ class Video:
         @param plt_params: params for the function axis beauty plt
         @param t: time, if present, just a line plot for the profiles for that
         time will be used
+        @param nlev: Number of levels for the contourf plots
+        @param cbar_tick_format: format for the colorbar ticks
         @todo: substitute pprofmin and max, also with rl or we will have a
         future bug
         """
@@ -1617,10 +1604,10 @@ class Video:
             fig1, ax1 = plt.subplots()
             cont = ax1.contourf(self.remap_dat['tframes'],
                                 self.remap_dat['yaxis'],
-                                self.remap_dat['sprofy'], cmap=cmap)
-            cbar = plt.colorbar(cont)
+                                self.remap_dat['sprofy'], nlev, cmap=cmap)
+            cbar = plt.colorbar(cont, format=cbar_tick_format)
             cbar.set_label('Counts [a.u.]', fontsize=plt_params['fontsize'])
-            cbar.ax.tick_params(labelsize=plt_params['fontsize'])
+            cbar.ax.tick_params(labelsize=plt_params['fontsize'] * .8)
             # Write the shot number and detector id
             gyr_level = self.remap_dat['yaxis'][-1] -\
                 0.1*(self.remap_dat['yaxis'][-1] -
@@ -1651,10 +1638,10 @@ class Video:
             fig2, ax2 = plt.subplots()
             cont = ax2.contourf(self.remap_dat['tframes'],
                                 self.remap_dat['xaxis'],
-                                self.remap_dat['sprofx'], cmap=cmap)
-            cbar = plt.colorbar(cont)
+                                self.remap_dat['sprofx'], nlev, cmap=cmap)
+            cbar = plt.colorbar(cont, format=cbar_tick_format)
             cbar.set_label('Counts [a.u.]', fontsize=plt_params['fontsize'])
-            cbar.ax.tick_params(labelsize=plt_params['fontsize'])
+            cbar.ax.tick_params(labelsize=plt_params['fontsize'] * .8)
             # Write the shot number and detector id
             level = self.remap_dat['xaxis'][-1] -\
                 0.1*(self.remap_dat['xaxis'][-1] -
