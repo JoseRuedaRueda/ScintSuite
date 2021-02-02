@@ -22,10 +22,14 @@ pa = p.Path(machine)
 del p
 if machine == 'AUG':
     import LibDataAUG as ssdat
+try:
+    import cv2
+except ModuleNotFoundError:
+    print('There would be no support for the mp4 videos, open cv not found')
 
 
 # -----------------------------------------------------------------------------
-# Methods for the .cin files
+# --- Methods for the .cin files
 # -----------------------------------------------------------------------------
 def read_header(filename: str, verbose: bool = False):
     """
@@ -934,9 +938,9 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
     #                     one frame
 
 
-# ------------------------------------------------------------------------------
-# Methods for the .png files
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# --- Methods for the .png files
+# -----------------------------------------------------------------------------
 def read_data_png(path):
     """
     Read info for a case where the measurements are stored as png
@@ -1082,9 +1086,50 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
     return M
 
 
-# ------------------------------------------------------------------------------
-#  Classes
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# --- mp4 files
+# -----------------------------------------------------------------------------
+def read_mp4_file(file, verbose: bool = True):
+    """
+    Read frames and time base from an mp4 file
+
+    Jose Rueda: jrrueda@us.es
+
+    @param file: full path to the file
+    """
+    # --- Open the video file
+    vid = cv2.VideoCapture(file)
+
+    # --- Get the number of frames in the video
+    nf = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
+    # --- Get the frame rate
+    fr = vid.get(cv2.CAP_PROP_FPS)
+    if verbose:
+        print('We will load: ', nf, ' frames')
+        print('Frame rate: ', fr)
+    # --- Read the frames
+    nx = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    ny = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
+
+    time = np.zeros(nf)
+    frames = np.zeros((nx, ny, nf))
+    counter = 0
+    success = True
+    while success:
+        success, image = vid.read()
+        if success:
+            time[counter] = vid.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+            # if frame is in rgb, transform to gray
+            if len(image.shape) > 1:
+                image = rgb2gray(image)
+            frames[:, :, counter] = image
+            counter += 1
+    return {'nf': nf, 'nx': nx, 'ny': ny, 'frames': frames, 'tframes': time}
+
+
+# -----------------------------------------------------------------------------
+# --- Classes
+# -----------------------------------------------------------------------------
 class Video:
     """
     Class with the information of the recorded video
@@ -1147,6 +1192,17 @@ class Video:
                 self.type_of_file = '.cin'
             elif file[-4:] == '.png' or file[-4:] == '.tif':
                 raise Exception('To load png or tif, just give the folder')
+            elif file[-4:] == '.mp4':
+                dummy = read_mp4_file(file, verbose=False)
+                # mp4 files are handle different as they are suppose to be just
+                # a dummy temporal format, not the one to save our real exp
+                # data, so the video will be loaded all from here and not
+                # reading specific frame will be used
+                self.timebase = dummy['tframes']
+                self.exp_dat['frames'] = dummy['frames']
+                self.exp_dat['tframes'] = dummy['tframes']
+                self.exp_dat['nframes'] = np.arange(dummy['nf'])
+                self.type_of_file = '.mp4'
             else:
                 raise Exception('Not recognised file extension')
         elif os.path.isdir(file):
@@ -1201,6 +1257,12 @@ class Video:
             # print(flags)
             # print(list[flags])
             self.shot = int(list[flags])
+        elif ntrues == 2:
+            # Maybe just the file is saved in a folder named as the shot, so we
+            # can have a second possitive here
+            options = list[flags]
+            if options[0] == options[1]:
+                self.shot = int(options[0])
         elif ntrues == 0:
             er = 'No shot number found in the name of the file'
             er2 = 'Give the shot number as input when loading the file'
@@ -1392,7 +1454,7 @@ class Video:
             if len(self.exp_dat['nframes']) == 1:
                 if self.exp_dat['nframes'] == frame_number:
                     dummy = self.exp_dat['frames'].squeeze()
-                    tf = self.exp_dat['tframes']
+                    tf = float(self.exp_dat['tframes'])
                 else:
                     raise Exception('Frame not loaded')
             else:
@@ -1400,7 +1462,7 @@ class Video:
                 if np.sum(frame_index) == 0:
                     raise Exception('Frame not loaded')
                 dummy = self.exp_dat['frames'][:, :, frame_index].squeeze()
-                tf = self.exp_dat['tframes'][frame_index]
+                tf = float(self.exp_dat['tframes'][frame_index])
         # If we give the time:
         if t is not None:
             it = np.argmin(abs(self.exp_dat['tframes'] - t))
