@@ -8,13 +8,16 @@ which is compatible with Spyder.
 
 """
 import numpy as np
-from roipoly import RoiPoly
 import datetime
 import time
 from scipy.fft import rfft, rfftfreq
 from scipy import signal
 import matplotlib.pyplot as plt
 import LibPlotting as ssplt
+try:
+    from roipoly import RoiPoly
+except ModuleNotFoundError:
+    print('You cannot calculate time traces, roipoly not found')
 
 
 def trace(frames, mask):

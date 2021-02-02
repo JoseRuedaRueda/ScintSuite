@@ -17,7 +17,6 @@ from LibMachine import machine
 import LibPaths as p
 pa = p.Path(machine)
 del p
-
 if machine == 'AUG':
     import LibDataAUG as ssdat
 
@@ -208,7 +207,7 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
 # --- Remap and profiles
 # -----------------------------------------------------------------------------
 def remap(smap, frame, x_min=20.0, x_max=80.0, delta_x=1,
-          y_min=1.5, y_max=10.0, delta_y=0.2, timing=True):
+          y_min=1.5, y_max=10.0, delta_y=0.2):
     """
     Remap a frame
 
