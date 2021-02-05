@@ -3,8 +3,11 @@ import os
 import numpy as np
 import math as ma
 import LibParameters as ssp
+import LibPlotting as ssplt
+import matplotlib.pyplot as plt
 from scipy import interpolate
 from scipy.special import erf
+from tqdm import tqdm   # For waitbars
 
 
 # -----------------------------------------------------------------------------
@@ -279,49 +282,78 @@ def build_weight_matrix(SMap, rscint, pscint, rpin, ppin,
     # Build the collimator factor matrix, in the old IDL implementation,
     # matrices for the sigmas and skew where also build, but in this python
     # code these matrices where constructed by the fitting routine
-    ngyr = len(SMap.resolution['gyroradius'])
-    npitch = len(SMap.resolution['pitch'])
-    fcol_aux = np.zeros(ngyr, npitch)
+    ngyr = len(SMap.strike_points['gyroradius'])
+    npitch = len(SMap.strike_points['pitch'])
+    fcol_aux = np.zeros((ngyr, npitch))
     for ir in range(ngyr):
         for ip in range(npitch):
-            flags = (SMap.gyroradius == SMap.resolution['gyroradius'][ir]) * \
-                (SMap.pitch == SMap.resolution['pitch'])
+            flags = (SMap.gyroradius == SMap.strike_points['gyroradius'][ir]) \
+                * (SMap.pitch == SMap.strike_points['pitch'][ip])
             if np.sum(flags) > 0:
                 fcol_aux[ir, ip] = SMap.collimator_factor[flags]
 
     # Interpolate the resolution and collimator factor matrices
     # - Create grid for interpolation:
-    xx, yy = np.meshgrid(SMap.resolution['gyroradius'],
-                         SMap.resolution['pitch'])
+    xx, yy = np.meshgrid(SMap.strike_points['gyroradius'],
+                         SMap.strike_points['pitch'])
+    xxx = xx.flatten()
+    yyy = yy.flatten()
     # - Create grid to evaluate the interpolation
-    xx_pin, yy_pin = np.meshgrid(rpin, ppin)
+    xxx_pin, yyy_pin = np.meshgrid(rpin, ppin)
     # - sigmas:
-    Sigmar = \
-        interpolate.interp2(xx, yy, SMap.resolution['Gyroradius']['sigma'].T)
-    sigmar = Sigmar(xx_pin, yy_pin).T
+    dummy = SMap.resolution['Gyroradius']['sigma'].T
+    dummy = dummy.flatten()
+    flags = np.isnan(dummy)
+    x1 = xxx[~flags]
+    y1 = yyy[~flags]
+    z1 = dummy[~flags]
+    sigmar = interpolate.griddata((x1, y1), z1, (xxx_pin, yyy_pin))
+    sigmar = sigmar.T
 
-    Sigmap = interpolate.interp2(xx, yy, SMap.resolution['Pitch']['sigma'].T)
-    sigmap = Sigmap(xx_pin, yy_pin).T
-
+    dummy = SMap.resolution['Pitch']['sigma'].T
+    dummy = dummy.flatten()
+    flags = np.isnan(dummy)
+    x1 = xxx[~flags]
+    y1 = yyy[~flags]
+    z1 = dummy[~flags]
+    sigmap = interpolate.griddata((x1, y1), z1, (xxx_pin, yyy_pin))
+    sigmap = sigmap.T
     # - Collimator factor
-    Fcol = interpolate.interp2(xx, yy, fcol_aux.T)
-    fcol = Fcol(xx_pin, yy_pin).T
-
+    dummy = fcol_aux.T
+    dummy = dummy.flatten()
+    x1 = xxx[~flags]
+    y1 = yyy[~flags]
+    z1 = dummy[~flags]
+    fcol = interpolate.griddata((x1, y1), z1, (xxx_pin, yyy_pin))
+    fcol = fcol.T
     # - Centroids:
-    Centroidr = \
-        interpolate.interp2(xx, yy, SMap.resolution['Gyroradius']['center'].T)
-    centroidr = Centroidr(xx_pin, yy_pin).T
+    dummy = SMap.resolution['Gyroradius']['center'].T
+    dummy = dummy.flatten()
+    flags = np.isnan(dummy)
+    x1 = xxx[~flags]
+    y1 = yyy[~flags]
+    z1 = dummy[~flags]
+    centroidr = interpolate.griddata((x1, y1), z1, (xxx_pin, yyy_pin))
+    centroidr = centroidr.T
 
-    Centroidp = \
-        interpolate.interp2(xx, yy, SMap.resolution['Pitch']['center'].T)
-    centroidp = Centroidp(xx_pin, yy_pin).T
-
+    dummy = SMap.resolution['Pitch']['center'].T
+    dummy = dummy.flatten()
+    flags = np.isnan(dummy)
+    x1 = xxx[~flags]
+    y1 = yyy[~flags]
+    z1 = dummy[~flags]
+    centroidp = interpolate.griddata((x1, y1), z1, (xxx_pin, yyy_pin))
+    centroidp = centroidp.T
     # - Screw
     try:
-        Gammar = \
-            interpolate.interp2(xx, yy,
-                                SMap.resolution['Gyroradius']['gamma'].T)
-        gamma = Gammar(xx_pin, yy_pin).T
+        dummy = SMap.resolution['Gyroradius']['gamma'].T
+        dummy = dummy.flatten()
+        flags = np.isnan(dummy)
+        x1 = xxx[~flags]
+        y1 = yyy[~flags]
+        z1 = dummy[~flags]
+        gamma = interpolate.griddata((x1, y1), z1, (xxx_pin, yyy_pin))
+        gamma = gamma.T
         print('Using Screw Gaussian model!')
         screw_model = True
     except KeyError:
@@ -339,8 +371,8 @@ def build_weight_matrix(SMap, rscint, pscint, rpin, ppin,
     # efficient way, bot for the moment, I will leave exactly as in the
     # original IDL routine
     res_matrix = np.zeros((nr_scint, np_scint, nr_pin, np_pin))
-
-    for ii in range(nr_scint):
+    print('Creating matrix')
+    for ii in tqdm(range(nr_scint)):
         for jj in range(np_scint):
             for kk in range(nr_pin):
                 for ll in range(np_pin):
@@ -366,8 +398,48 @@ def build_weight_matrix(SMap, rscint, pscint, rpin, ppin,
                                        (2. * sigmap[kk, ll]**2))
                     else:
                         res_matrix[ii, jj, kk, ll] = 0.0
-    res_matrix[np.isnan(res_matrix)] = 0.0
+    # res_matrix[np.isnan(res_matrix)] = 0.0
     return res_matrix
+
+
+def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
+           cmap=None, nlev=20):
+    """
+    Plot the weight function
+
+    Jose Rueda Rueda
+    @todo: add titles and print the used point
+
+    @param W4D: 4-D weight function
+    @param pr: array of gyroradius at the pinhole used to calculate W
+    @param pp: array of pitches at the pinhole used to calculate W
+    @param sr: array of gyroradius at the scintillator used to calculate W
+    @param sp: array of pitches at the scintillator used to calculate W
+    @param pp0: precise radius wanted at the pinhole to plot the scintillator W
+    @param pr0: precise pitch wanted at the pinhole to plot the scintillator W
+    @param sp0: precise radius wanted at the pinhole to plot the scintillator W
+    @param sr0: precise pitch wanted at the pinhole to plot the scintillator W
+    """
+    # --- Color map
+    if cmap is None:
+        ccmap = ssplt.Gamma_II()
+    # --- Potting of the scintillator weight
+    # We will select a point of the pinhole and see how it seen in the
+    # scintillator
+    if (pp0 is not None) and (pr0 is not None):
+        ip = np.argmin(abs(pp - pp0))
+        ir = np.argmin(abs(pr - pr0))
+        W = W4D[:, :, ir, ip]
+        fig, ax = plt.subplots()
+        a = ax.contourf(sp, sr, W, nlev, cmap=ccmap)
+        plt.colorbar(a, ax=ax)
+    if (sp0 is not None) and (sr0 is not None):
+        ip = np.argmin(abs(pp - sp0))
+        ir = np.argmin(abs(pr - sr0))
+        W = W4D[ir, ip, :, :]
+        fig, ax = plt.subplots()
+        a = ax.contourf(pp, pr, W, nlev, cmap=ccmap)
+        plt.colorbar(a, ax=ax)
 
 
 # -----------------------------------------------------------------------------
