@@ -36,6 +36,9 @@ fild5 = {'alpha': -45.0, 'beta': -12.0, 'sector': 7, 'r': 1.772,
 
 FILD = (fild1, fild2, fild3, fild4, fild5)
 
+iHIBP = {'port_center': np.array(0.687, -3.454, 0.03), 'sector': 13, 
+         'beta_std': 4.0, 'theta_std' = 0.0, 'source_radius': 7.0e-3}
+
 
 class Camera:
     """Class containing the properties of the cameras"""
