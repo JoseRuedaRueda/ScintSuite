@@ -1274,7 +1274,8 @@ class Video:
             raise Eception(er + er2)
 
     def read_frame(self, frames_number=None, limitation: bool = True,
-                   limit: int = 2048, internal: bool = True):
+                   limit: int = 2048, internal: bool = True, t1: float = None,
+                   t2: float = None):
         """
         Call the read_frame function
 
@@ -1291,8 +1292,23 @@ class Video:
         variable of the video object. Else, it will be returned just as output
         (usefull if you need to load another frame and you do not want to
         overwrite your frames already loaded)
+        @param t1: Initial time to load frames (alternative to frames number)
+        @param t2: Final time to load frames (alternative to frames number), if
+        just t1 is given , only one frame will be loaded
         @return M: 3D numpy array with the frames M[px,py,nframes]
         """
+        # --- Select frames to load
+        if (frames_number is not None) and (t1 is not None):
+            raise Exception('You cannot give frames number and time')
+        elif (t1 is not None) and (t2 is None):
+            frames_number = np.array([np.argmin(abs(self.timebase-t1))])
+        elif (t1 is not None) and (t2 is not None):
+            it1 = np.argmin(abs(self.timebase-t1))
+            it2 = np.argmin(abs(self.timebase-t2))
+            frames_number = np.arange(start=it1, stop=it2+1, step=1)
+        # else:
+        #     raise Exception('Something went wrong, check inputs')
+
         if self.type_of_file == '.cin':
             if internal:
                 self.exp_dat['frames'] = \

@@ -23,4 +23,12 @@ Main changes respect to FILD GUI
     be fine. But if you want to match a time trace calculate with this suite
     with one calculated with the old one, just multiply by 2**12 (or the bit
     size of your png files!!)
+
+@section resolutions FILD resolution calculation
+    -# By default, an adaptative bin width is used such that there are 4 bins
+    in a standard deviation of the probability distribution. In this way
+    we ensure to have enough bins to make the fitting withouth having too few
+    counts in each bin (example, before for low gyroradii you needed like 0.01
+    cm of bin width but if we use that bin width for large gyroradii, or we
+    launch tens of thousand of markers or there was too much noise)
 """

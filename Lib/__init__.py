@@ -10,6 +10,7 @@ import LibMachine as m
 import LibTracker as tracker
 import LibIO as io
 import LibFastChannel as fc
+import LibTomography as tomo
 from version_suite import version
 if m.machine == 'AUG':
     import LibDataAUG as dat
@@ -20,3 +21,9 @@ paths = p.Path(machine)
 # Delte the intermedite variables to 'clean'
 del p
 del m
+# -----------------------------------------------------------------------------
+# --- PRINT SUITE VERSION
+# -----------------------------------------------------------------------------
+print('-... .. . -. ...- . -. .. -.. ---')
+print('VERSION: ' + version)
+print('.-- . .-.. .-.. -.-. --- -- .')
