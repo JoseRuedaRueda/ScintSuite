@@ -6,7 +6,7 @@ Basically here are hard-cored almost all the parameters of the suite
 ec = 1.602e-19  # Electron charge, in C
 mp = 938.272e6  # Mass of the proton, in eV/c^2
 mp_kg = 1.67262192369e-27  # Mass of the proton in kg
-c = 3.0e8       # Speed of light in m/s
+c = 2.99792458e8       # Speed of light in m/s
 
 # -----------------------------------------------------------------------------
 #                           FILD PARAMETERS
@@ -36,7 +36,7 @@ fild5 = {'alpha': -45.0, 'beta': -12.0, 'sector': 7, 'r': 1.772,
 
 FILD = (fild1, fild2, fild3, fild4, fild5)
 
-iHIBP = {'port_center': np.array(0.687, -3.454, 0.03), 'sector': 13, 
+iHIBP = {'port_center': np.array((0.687, -3.454, 0.03)), 'sector': 13,
          'beta_std': 4.0, 'theta_std' = 0.0, 'source_radius': 7.0e-3}
 
 
