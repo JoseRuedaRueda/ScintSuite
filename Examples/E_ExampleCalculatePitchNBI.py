@@ -1,7 +1,7 @@
 """
-Particle pitch comparator
+Particle pitch comparative
 
-This script is done to show one of the litle extra features of the suite,
+This script is done to show one of the little extra features of the suite,
 given a radial position and a pitch, it calculate the pitch of the particle at
 other radial position (assuming conservation of magnetic moment and a field
 going like 1/R) and compare with the pitch profile of NBI. This allows to have
@@ -26,7 +26,7 @@ shot = 32312    # Shot to calculate the pitch profile
 # -----------------------------------------------------------------------------
 # - Define the vector were we will evaluate the pitch
 R = np.linspace(1.1, 2.2, 50)
-# - Calculate the pitch at those positions, fisrt pass to v_par/v
+# - Calculate the pitch at those positions, first pass to v_par/v
 P1 = np.cos(P0 * np.pi / 180.)
 P = ss.extra.pitch_at_other_place(R0, P1, R)
 P = 180. * np.arccos(P) / np.pi

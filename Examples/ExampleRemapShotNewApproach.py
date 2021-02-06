@@ -1,12 +1,12 @@
 """
-Load a video and perform the remaping for each frame
+Load a video and perform the remapping for each frame
 
 Created as an example to use the routines without the graphical user interface
 
 DISCLAIMER: This was created on the 09/12/2020. Since them several
 improvements may have been done, it is possible that some function has been
 changed and the script does not work at all now. If this happens, contact
-jose rueda (jose.rueda@ipp.mpg.de) by email
+jose rueda (jrrueda@us.es) by email
 
 You should run paths.py before!!!
 
@@ -52,12 +52,6 @@ par = {
     'alpha': 0.0,
     'beta': -12.0}
 # Plotting options
-# p1 = True  # Plot a window with some sliders to see the evolution of the shot
-# p2 = True   # Plot the evolution of the signal in gyroradius space
-# p3 = True   # Plot the evolution of the signal in the pitch space
-# p4 = True   # Plot the timetraces (see section4 for parameters)
-# pEner = True  # Use energy instead of gyroradius to plot in p1
-# FS = 16     # Font size
 # -----------------------------------------------------------------------------
 # %% Section 1: Load calibration
 # Innitialise the calibration database object

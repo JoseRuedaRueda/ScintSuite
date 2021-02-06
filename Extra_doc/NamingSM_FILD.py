@@ -11,4 +11,3 @@ Separated by '_' must appear:
 @section format Format of the strike maps
 As given by the FILDSIM code
 """
-

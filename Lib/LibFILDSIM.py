@@ -6,8 +6,8 @@ import LibParameters as ssp
 import LibPlotting as ssplt
 import matplotlib.pyplot as plt
 from scipy import interpolate
-from scipy.special import erf
-from tqdm import tqdm   # For waitbars
+from scipy.special import erf       # error function
+from tqdm import tqdm               # For waitbars
 
 
 # -----------------------------------------------------------------------------
@@ -15,10 +15,10 @@ from tqdm import tqdm   # For waitbars
 # -----------------------------------------------------------------------------
 def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
     """
-    Routine to calculate the magnetic field orientation with tespect to FILD
+    Routine to calculate the magnetic field orientation with respect to FILD
 
-    Important note, the original routine writen by joaquin in IDL received as
-    input bt, br, bz... notice the diferent order or the inputs,
+    Important note, the original routine written by Joaquin in IDL received as
+    input bt, br, bz... notice the different order or the inputs,
     to be consistent with the rest of this suite
 
     @param br: Magnetic field in the r direction
@@ -44,7 +44,7 @@ def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
     alpha = alpha * np.pi / 180.0
     beta = beta * np.pi / 180.0
 
-    # Refer the orientation of the BField wo the orientation of FILD
+    # Refer the orientation of the BField to the orientation of FILD
     # Alpha measured from R (positive getting away from axis) to Z (positive)
     bt1 = bt
     br1 = br * np.cos(alpha) - bz * np.sin(alpha)
@@ -90,7 +90,7 @@ def calculate_photon_flux(raw_frame, calibration_frame_in, exposure_time,
     """
     Convert counts int photons/s in a FILD frame
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     Note: Based in an IDL routine of Joaquin Galdón.
 
@@ -143,7 +143,7 @@ def calculate_photon_flux(raw_frame, calibration_frame_in, exposure_time,
         photon_flux_frame = dummy
         photon_flux = photon_flux_frame.sum()
 
-    # Create the ouput dictionary
+    # Create the output dictionary
     output = {
         'photon_flux_frame': photon_flux_frame,
         'photon_flux': photon_flux,
@@ -159,7 +159,7 @@ def calculate_absolute_calibration_frame(cal_frame, exposure_time,
     """
     Calculate absolute photon flux
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
     About the units:
         -# Int_photon_flux --> Photons/(s*m^2)
@@ -198,12 +198,12 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
     Routine to estimate absolute flux of losses
 
     @todo this is half done
-    Based on the IDL routine writen by J. Galdón (jgaldon@us.es)
+    Based on the IDL routine written by J. Galdón (jgaldon@us.es)
 
     @param raw_frame: as 2D numpy array
     @param calibration_frame: as 2D numpy array
     @param efficiency_energy: [Energy given in eV]
-    @param efficiency_yield:  [Gieven in photons /ion]
+    @param efficiency_yield:  [Given in photons /ion]
     @param b_field: [T]
     @param band_pass_filter:
     @param interpolated_gyro: [cm]
@@ -229,7 +229,7 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
         print('Ignoring collimator factor',
               '--> Calculating Ion Flux at the scintillator not the pinhole!')
     else:
-        # FILDSIM gives data in %, let's normalise it to unity to work
+        # FILDSIM gives data in %, let's normalize it to unity to work
         interpolated_fcol = interpolated_fcol / 100.0
         # Remove values which are to low, just to avoid numerical problems,
         # as the collimator factors goes in the denominator of the final
@@ -240,8 +240,8 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
     # Check frames sizes and resize if necessary
     if raw_frame.shape != raw_frame.shape:
         print('Size of the data frame and calibration frame not matching!!')
-        print('Artifitially resizing the calibration frame!!')
-        ## todo implement the rebining of the calibration frame
+        print('Artificially resizing the calibration frame!!')
+        ## todo implement the re-binning of the calibration frame
 
     # Check if the remap was done before calling this function
     if np.max(interpolated_gyro) <= 0:
@@ -251,7 +251,7 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
     # Transform gyroradius to energy
     interpolated_energy = 0.5 * (interpolated_gyro / 100.0)**2 * b_field **\
         2 * Z ** 2 / ssp.mp * ssp.c ** 2 / A
-    ## todo ask joaquin about this stuff of imposing efficiency larger than 1
+    ## todo ask Joaquin about this stuff of imposing efficiency larger than 1
     efficiency_frame = np.interp(interpolated_energy, efficiency_energy,
                                  efficiency_yield)
     efficiency_frame[efficiency_energy < 1.0] = 1.0
@@ -362,7 +362,7 @@ def build_weight_matrix(SMap, rscint, pscint, rpin, ppin,
 
     # Get the efficiency, if needed:
     if not bool(efficiency):
-        print('No efficiency data given, skyping efficiency')
+        print('No efficiency data given, skipping efficiency')
         eff = np.ones(nr_pin)
     else:
         eff = np.ones(nr_pin)
@@ -398,7 +398,7 @@ def build_weight_matrix(SMap, rscint, pscint, rpin, ppin,
                                        (2. * sigmap[kk, ll]**2))
                     else:
                         res_matrix[ii, jj, kk, ll] = 0.0
-    # res_matrix[np.isnan(res_matrix)] = 0.0
+    res_matrix[np.isnan(res_matrix)] = 0.0
     return res_matrix
 
 
@@ -407,7 +407,8 @@ def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
     """
     Plot the weight function
 
-    Jose Rueda Rueda
+    Jose Rueda Rueda: jrrueda@us.es
+
     @todo: add titles and print the used point
 
     @param W4D: 4-D weight function
@@ -466,7 +467,7 @@ def write_namelist(p: str, runID: str = 'test', result_dir: str = './results/',
                                'aug_fild1_slit_lateral_1_v2.pl',
                                'aug_fild1_slit_lateral_2_v2.pl']):
     """
-    Write the namellist for a FILDSIM simulation
+    Write the namelist for a FILDSIM simulation
 
     All parameters of the namelist have the meaning given in FILDSIM. See
     FILDSIM documentation for a full description
@@ -564,7 +565,7 @@ def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
         """
         Give the name of the strike-map file
 
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda Rueda: jrrueda@us.es
 
         Files are supposed to be named as given in the NamingSM_FILD.py file.
         The data base is composed by strike maps calculated each 0.1 degree
@@ -602,39 +603,19 @@ def find_strike_map(rfild: float, zfild: float,
     """
     Find the proper strike map. If not there, create it
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
     @param    rfild: radial position of FILD (in m)
-    @type:    float
-
     @param    zfild: Z position of FILD (in m)
-    @type:    float
-
     @param    phi: phi angle as defined in FILDSIM
-    @type:    float
-
     @param    theta: beta angle as defined in FILDSIM
-    @type:    float
-
     @param    strike_path: path of the folder with the strike maps
-    @type:    str
-
     @param    FILDSIM_path: path of the folder with FILDSIM
-    @type:    str
-
     @param    machine: string identifying the machine. Defaults to 'AUG'.
-    @type:    str
-
     @param    FILDSIM_options: FILDSIM namelist options
-    @type:    type
-
     @param    clean: True: eliminate the strike_points.dat when calling FILDSIM
-    @type:    bool
-
     @return   name:  name of the strikemap to load
-    @rtype:   str
-
-    @raises   ExceptionName: If FILDSIM is call but the file is not created.
+    @raises   Exception: If FILDSIM is call but the file is not created.
     """
     # Find the name of the strike map
     name = guess_strike_map_name_FILD(phi, theta, machine=machine)
@@ -665,7 +646,7 @@ def find_strike_map(rfild: float, zfild: float,
 
     if os.path.isfile(os.path.join(strike_path, name)):
         return name
-    # If we reach this point, somethin went wrong
+    # If we reach this point, something went wrong
     a = 'FILDSIM simulation has been done but the strike map can be found'
     raise Exception(a)
 
@@ -678,7 +659,7 @@ def get_energy(gyroradius, B: float, A: int = 2, Z: int = 1):
     Relate the gyroradius with the associated energy (FILDSIM definition)
 
     @param gyroradius: Larmor radius as taken from FILD strike map [in cm]
-    @param B: Magnetc field, [in T]
+    @param B: Magnetic field, [in T]
     @param A: Ion mass number
     @param Z: Ion charge [in e units]
     @return E: the energy [in eV]

@@ -12,7 +12,7 @@ c = 2.99792458e8       # Speed of light in m/s
 #                           FILD PARAMETERS
 # -----------------------------------------------------------------------------
 # All values except for beta, are extracted from the paper:
-# J. Ayllon-Guerola et al 2019 JINST14 C10032
+# J. Ayllon-Guerola et al. 2019 JINST14 C10032
 # betas are taken to be -12.0 for AUG
 # @todo include jet FILD as 'fild6', Jt-60 as 'fild7' as MAST-U as 'fild8'?
 fild1 = {'alpha': 0.0,   # Alpha angle [deg], see paper
@@ -57,7 +57,7 @@ class Camera:
                            'f_analog_digital': 6.5, 'dynamic_range': 12}
         elif model == 'Phantom':
             self.params = {'camera_name': 'Phantom'}
-            print('Most Phantom parameters are writen in the .cin file')
+            print('Most Phantom parameters are written in the .cin file')
             print('Just open the Video object and enjoy')
         elif model == 'QE_Pixelfly':
             self.params = {'camera_name': 'QE Pixelfly', 'nx_pixels': 1392,

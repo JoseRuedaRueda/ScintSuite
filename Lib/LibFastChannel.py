@@ -1,7 +1,7 @@
 """
 Analyse signal from the fast channel
 
-Nowadays only a simple reading of the fast channel and some smothing is
+Nowadays only a simple reading of the fast channel and some smoothing is
 implemented. In the future, things like correlations with other diagnostics
 will be included
 """
@@ -20,7 +20,7 @@ class Fast:
     """To interact with signals from the fast channel"""
 
     def __init__(self, diag, diag_number, channels, shot):
-        """Initialise the class, see get_fast_channel for inputs description"""
+        """Initialize the class, see get_fast_channel for inputs description"""
         ## Experimental data (time and channel signals)
         self.data = ssdat.get_fast_channel(diag, diag_number, channels, shot)
 

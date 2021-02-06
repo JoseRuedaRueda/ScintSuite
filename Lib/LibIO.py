@@ -1,8 +1,8 @@
 """
 Input/output library
 
-Contains a miscelania of routines related with the different diagnostics, for
-example the routine to read the scintillator efficiency files, commond for all
+Contains a miscellany of routines related with the different diagnostics, for
+example the routine to read the scintillator efficiency files, common for all
 """
 
 import numpy as np
@@ -13,7 +13,7 @@ def read_scintillator_efficiency(file, plot: bool = False, verb: bool = True):
     """
     Load the efficiency of a scintillator
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param file: full path to the file to be loaded
     @param plot: is true, a quick plot will be done

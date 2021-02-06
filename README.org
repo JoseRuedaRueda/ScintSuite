@@ -7,6 +7,7 @@ Needed packages:
 Only listed 'non-standard' packages
     - roipoly: To select ROIs in the image. The official package can be found here <https://github.com/jdoepfert/roipoly.py> but it does not work with SPYDER. Please use this fork instead (https://github.com/georgedeath/roipoly.py)
     - cv2 (OpenCv): To load frames from .mp4 files
+    - lmfit: To perform the fits needed for the resolution calculation
 
 ** Note for developers
     - Indentation must be done via 4 spaces!
@@ -39,7 +40,7 @@ All devices are identified by three letters:
 - INPASIM code: <https://gitlab.mpcdf.mpg.de/ruejo/inpasim.git>
 - i-HIBPSIM code: <https://gitlab.mpcdf.mpg.de/poyo/fosd.git>
 
-** Complete docmentation
+** Complete documentation
 - The routines in the Example folder are intended to ilustrate the use of the different tools in the suite
 - For a Doxygen generated documentation, see: <https://hdvirtual.us.es/discovirt/index.php/s/FBjZ9FPfjjwMDS2> download the content and open the index.html file, inside the html folder
 
