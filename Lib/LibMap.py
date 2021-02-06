@@ -1,7 +1,8 @@
 """Module to remap the scintillator
 
-It contains the routines to load and aling the strike maps, as well as
-perform the remapping
+It contains the routines to load and align the strike maps, as well as
+perform the remapping. Contain the classes: Scintillator(), StrikeMap(),
+CalibrationDataBase(), Calibration()
 """
 # import time
 import math
@@ -20,7 +21,6 @@ pa = p.Path(machine)
 del p
 if machine == 'AUG':
     import LibDataAUG as ssdat
-
 try:
     import lmfit
 except ModuleNotFoundError:
@@ -31,7 +31,7 @@ def transform_to_pixel(x, y, grid_param):
     """
     Transform from X,Y coordinates (scintillator) to pixels in the camera
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
     @param x: Array of positions to be transformed, x coordinate
     @param y: Array of positions to be transformed, y coordinate
@@ -57,7 +57,7 @@ def get_points(fig, scintillator, plt_flag: bool = True, npoints: int = 3):
     """
     Get the points of the scintillator via ginput method
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param fig: Axis where the scintillator is drawn
     @param scintillator: Scintillator object
@@ -87,7 +87,7 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
     """
     Calculate the transformation factor to align the strike map
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     Calculate the transformation factor to align the strike map with the
     camera sensor. It ask for the user to select some points in the
@@ -142,7 +142,7 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
         sign = 1.0
     # With this sign in mind, now we can proceed with the calculation of the
     # ratio and the gyration angle
-    # Initialise the variables
+    # Initialize the variables
     alpha = 0  # Rotation to be applied
     mag = 0  # Magnification
     offset = np.zeros(2)
@@ -160,7 +160,7 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
         # Distance in the sensor
         dummy = np.array(points_frame[i]) - np.array(points_frame[i2])
         d_pix = np.sqrt(dummy[1] ** 2 + dummy[0] ** 2)
-        # Cumulate the magnification factor (we will normalise at the end)
+        # Accumulate the magnification factor (we will normalise at the end)
         mag = mag + d_pix / d_real
         # Calculate the angles
         alpha_r = -  math.atan2(scintillator.coord_real[index[i], 2] -
@@ -211,7 +211,7 @@ def remap(smap, frame, x_min=20.0, x_max=80.0, delta_x=1,
     """
     Remap a frame
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param smap: StrikeMap() object with the strike map
     @param frame: the frame to be remapped
@@ -255,25 +255,16 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
     """
     Cut the FILD signal to get a profile along gyroradius
 
-    @author:  Jose Rueda: jose.rueda@ipp.mpg.de
+    @author:  Jose Rueda: jrrueda@us.es
 
     @param    remap_frame: np.array with the remapped frame
-    @type:    ndarray
-
     @param    pitch_centers: np array produced by the remap function
-    @type:    ndarray
-
     @param    min_pitch: minimum pitch to include
-    @type:    float
-
     @param    max_pitch: Maximum pitch to include
-    @type:    float
-
     @param    verbose: if true, the actual pitch interval will be printed
-    @type:    bool
-
+    @param    name: if given, the profile will be exported in ASCII format
+    @param    gyr: the gyroradius values, to export
     @return   profile:  the profile in gyroradius
-
     @raises   ExceptionName: exception if the desired pitch range is not in the
     frame
     """
@@ -282,7 +273,7 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
     if np.sum(flags) == 0:
         raise Exception('No single cell satisfy the condition!')
     # The pitch centers is the centroid of the cell, but a cell include counts
-    # which pitchs are in [p0-dp, p0+dp], therefore, let give to the user these
+    # which pitches are in [p0-dp,p0+dp], therefore, let give to the user these
     # to values
     used_pitches = pitch_centers[flags]
     delta = pitch_centers[1] - pitch_centers[0]
@@ -310,7 +301,7 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
                        profile.reshape(length, 1))),
                        delimiter='   ,   ', header=line)
         else:
-            raise Exception('You want to export but no pitch was given')
+            raise Exception('You want to export but no gyr axis was given')
     return profile
 
 
@@ -320,7 +311,7 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
     """
     Cut the FILD signal to get a profile along pitch
 
-    @author:  Jose Rueda: jose.rueda@ipp.mpg.de
+    @author:  Jose Rueda: jrrueda@us.es
 
     @param    remap_frame: np.array with the remapped frame
     @type:    ndarray
@@ -352,8 +343,8 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
     flags = (gyr_centers < max_gyr) * (gyr_centers > min_gyr)
     if np.sum(flags) == 0:
         raise Exception('No single cell satisfy the condition!')
-    # The pitch centers is the centroid of the cell, but a cell include counts
-    # which pitchs are in [p0-dp, p0+dp], therefore, let give to the user these
+    # The r centers is the centroid of the cell, but a cell include counts
+    # which radius are in [r0-dr,r0+dr], therefore, let give to the user these
     # to values
     used_gyr = gyr_centers[flags]
     delta = gyr_centers[1] - gyr_centers[0]
@@ -389,9 +380,9 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
 def estimate_effective_pixel_area(frame_shape, xscale: float, yscale: float,
                                   type: int = 0):
     """
-    Estimate the efective area covered by a pixel
+    Estimate the effective area covered by a pixel
 
-    Jose Rueda Rueda: ruejo@ipp.mpg.de based on a routine of Joaquín Galdón
+    Jose Rueda Rueda: jrrueda@us.es based on a routine of Joaquín Galdón
 
     If there is no distortion:
     Area_covered_by_1_pixel: A_omega=Area_scint/#pixels inside scintillator
@@ -403,7 +394,7 @@ def estimate_effective_pixel_area(frame_shape, xscale: float, yscale: float,
     @params yscale: the scale [#pixel/cm] of the calibration to align the map
     @params xscale: the scale [#pixel/cm] of the calibration to align the map
     @param type: 0, ignore distortion, 1 include distortion
-    @return area: Matrix where each element is the areacavered by that pixel
+    @return area: Matrix where each element is the area covered by that pixel
     @todo Include the model of distortion
     """
     # Initialise the matrix:
@@ -436,7 +427,7 @@ def estimate_effective_pixel_area(frame_shape, xscale: float, yscale: float,
 #         -# Photon flux frame: Photons/(s*m^2)
 #     @todo include docstring of the inputs
 #     """
-#     # Chec frame shapes
+#     # Check frame shapes
 #     # --- Section 0: Check the inputs
 #     s1 = raw_frame.shape
 #     s2 = calibration_frame.shape
@@ -483,29 +474,18 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     """
     Remap all loaded frames from a FILD video
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
     @todo finish documentation of this function
 
     @param    video: Video object (see LibVideoFiles)
     @param    calibration: Calibation object (see Calibration class)
     @param    shot: shot number
     @param    rmin: minimum gyroradius to consider [cm]
-    @type:    float
     @param    rmax: maximum gyroradius to consider [cm]
-    @type:    float
-
-    @param    dr: Description of parameter `dr`. Defaults to 0.1.
-    @type:    float
-
-    @param    pmin: Description of parameter `pmin`. Defaults to 15.0.
-    @type:    float
-
-    @param    pmax: Description of parameter `pmax`. Defaults to 90.0.
-    @type:    float
-
-    @param    dp: Description of parameter `dp`. Defaults to 1.0.
-    @type:    float
-
+    @param    dr: bin width in the radial direction
+    @param    pmin: Minimum pitch to consider [º]
+    @param    pmax: Maximum pitch to consider [º]
+    @param    dp: bin width in pitch [º]
     @param    rprofmin: Description of parameter `rprofmin`. Defaults to 1.0.
     @type:    float
 
@@ -530,7 +510,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     @param    beta: Description of parameter `beta`. Defaults to -12.0.
     @type:    float
 
-    @param    method: ethod to interpolate the strike maps, default 1: linear
+    @param    method: method to interpolate the strike maps, default 1: linear
 
     @return:  Description of returned object.
     @rtype:   type
@@ -545,7 +525,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     # Get the time (to measure elapsed time)
     tic = time.time()
     # Get the magnetic field: In principle we should be able to do this in an
-    # efficient way, but the AUG library to acces magnetic field is kind of a
+    # efficient way, but the AUG library to access magnetic field is kind of a
     # shit in python 3, so we need a work around
     if machine == 'AUG':
         import map_equ as meq
@@ -562,7 +542,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
 
     # Initialise the variables:
     # Get the dimension of the gyr and pitch profiles. Depending on the exact
-    # values, the ends can enter or not... To look for the dimession I just
+    # values, the ends can enter or not... To look for the dimension I just
     # create a dummy vector and avoid 'complicated logic'
     dum = np.arange(start=rmin, stop=rmax, step=dr)
     ngyr = len(dum) - 1
@@ -641,7 +621,7 @@ def _fit_to_model_(data, bins=20, model='Gauss'):
     # --- Make the histogram of the data
     hist, edges = np.histogram(data, bins=bins)
     hist = hist.astype(np.float64)
-    hist /= hist.max()  # Normalise to  have de data between 0 and 1
+    hist /= hist.max()  # Normalise to  have the data between 0 and 1
     cent = 0.5 * (edges[1:] + edges[:-1])
     # --- Make the fit
     if model == 'Gauss':
@@ -675,7 +655,7 @@ class CalibrationDatabase:
 
         See database page for a full documentation of each field
 
-        @author Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+        @author Jose Rueda Rueda: jrrueda@us.es
 
         @param filename: Complete path to the file with the calibrations
         @param n_header: Number of header lines
@@ -751,7 +731,7 @@ class CalibrationDatabase:
         the original database.
 
         @param file: name of the file where to write the results
-        @return : a file created inth your information
+        @return : a file created with your information
         """
         if file == '':
             file = self.file[:-4] + '_new.txt'
@@ -800,7 +780,7 @@ class CalibrationDatabase:
             print('No entry find in the database, revise database')
             return
         elif n_true > 1:
-            print('Several entries fulfull the condition')
+            print('Several entries fulfill the condition')
             print('Possible entries:')
             print(self.data['ID'][flags])
         else:
@@ -822,7 +802,7 @@ class StrikeMap:
         """
         Initialise the class
 
-        @param flag: 0  means fild, 1 means INPA, 2 means iHIBP (you can also
+        @param flag: 0  means FILD, 1 means INPA, 2 means iHIBP (you can also
         write directly 'FILD', 'INPA', 'iHIBP')
         @param file: Full path to file with the strike map
         @todo Eliminate flag and extract info from file name??
@@ -835,9 +815,9 @@ class StrikeMap:
         else:
             print('Flag: ', flag)
             raise Exception('Diagnostic not implemented')
-        ## X-position, in pixles, of the strike map (commond)
+        ## X-position, in pixels, of the strike map (common)
         self.xpixel = None
-        ## Y-Position, in pixels, of the strike map (commond)
+        ## Y-Position, in pixels, of the strike map (common)
         self.ypixel = None
 
         if flag == 0 or flag == 'FILD':
@@ -853,11 +833,11 @@ class StrikeMap:
             self.energy = None
             ## Pitch of map points
             self.pitch = dummy[ind, 1]
-            ## x coordinates of map points (commond)
+            ## x coordinates of map points (common)
             self.x = dummy[ind, 2]
-            ## y coordinates of map points (commond)
+            ## y coordinates of map points (common)
             self.y = dummy[ind, 3]
-            ## z coordinates of map points (commond)
+            ## z coordinates of map points (common)
             self.z = dummy[ind, 4]
             ## Average initial gyrophase of map markers
             self.avg_ini_gyrophase = dummy[ind, 5]
@@ -883,7 +863,7 @@ class StrikeMap:
         """
         Plot the strike map (x,y = dimensions in the scintillator)
 
-        Jose Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda: jrrueda@us.es
 
         @param ax: Axes where to plot
         @param plt_param: Parameters for plot beauty, example: markersize=6
@@ -944,7 +924,7 @@ class StrikeMap:
         """
         Plot the strike map (x,y = pixels on the camera)
 
-        Jose Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda: jrrueda@us.es
 
         @param ax: Axes where to plot
         @param plt_param: Parameters for plot beauty, example: markersize=6
@@ -1004,7 +984,7 @@ class StrikeMap:
         """
         Transform the real coordinates of the map into pixels
 
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda Rueda: jrrueda@us.es
 
         @param calib: a CalParams() object with the calibration info
         """
@@ -1014,14 +994,10 @@ class StrikeMap:
         """
         Interpolate grid values on the frames
 
-        Error codes:
-            - 0: Scintillator map pixel position not calculated before
-            - 1: Interpolating method not recognised
-
         @param smap: StrikeMap() object
         @param frame_shape: Size of the frame used for the calibration (in px)
         @param method: method to calculate the interpolation:
-            - 0: griddata nearest (not recomended)
+            - 0: griddata nearest (not recommended)
             - 1: griddata linear
             - 2: griddata cubic
         """
@@ -1039,7 +1015,7 @@ class StrikeMap:
         elif method == 2:
             met = 'cubic'
         else:
-            raise Exception('Not recognised interpolation method')
+            raise Exception('Not recognized interpolation method')
         if self.diag == 'FILD':
             self.gyr_interp = scipy_interp.griddata(dummy,
                                                     self.gyroradius,
@@ -1093,7 +1069,7 @@ class StrikeMap:
     def get_energy(self, B0: float, Z: int = 1, A: int = 2):
         """Get the energy associated with each gyroradius
 
-        Jose Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda: jrrueda@us.es
 
         @param self:
         @param B0: Magnetic field [in T]
@@ -1110,7 +1086,7 @@ class StrikeMap:
 
         Jose Rueda: ruejo@ipp.mpg.de
 
-        @param file: File to be loaded. It should contai the strike points in
+        @param file: File to be loaded. It should contain the strike points in
         FILDSIM format (if we are loading FILD)
         """
         if verbose:
@@ -1173,7 +1149,7 @@ class StrikeMap:
         """
         Calculate the resolution associated with each point of the map
 
-        Jose Rueda Rueda
+        Jose Rueda Rueda: jrrueda@us.es
 
         @param diag_options: Dictionary with the diagnostic specific parameters
         like for example the method used to fit the pitch
@@ -1181,7 +1157,7 @@ class StrikeMap:
         the fit (if we have less markers, this point will be ignored)
         @param min_n_bins: Minimum number of bins for the fitting, if the
         selected bin_width is such that the are less bins, the bin width will
-        automatically ajusted
+        automatically adjusted
         """
         if self.strike_points is None:
             raise Exception('You should load the strike points first!!')
@@ -1301,7 +1277,7 @@ class StrikeMap:
         """
         Plot the resolutions
 
-        Jose Rueda: ruejo@ipp.mpg.de
+        Jose Rueda: jrrueda@us.es
 
         @todo: Implement label size in colorbar
 
@@ -1352,7 +1328,7 @@ class CalParams:
     Information to relate points in the camera sensor the scintillator
 
     In a future, it will contains the correction of the optical distortion and
-    all the methods necesary to correct it.
+    all the methods necessary to correct it.
     """
 
     def __init__(self):
@@ -1478,7 +1454,7 @@ class Scintillator:
         """
         Transform the real coordinates of the map into pixels
 
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda Rueda: jrrueda@us.es
 
         @param calib: a CalParams() object with the calibration info
         @return: Nothing, just update the plot

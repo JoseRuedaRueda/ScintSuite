@@ -6,13 +6,13 @@ import sys
 
 def paths_of_the_suite(machine='AUG'):
     """
-    Add to the path all the necesary forlders for the suite to run.
+    Add to the path all the necessary folders for the suite to run.
 
     Jose Rueda Rueda: jose.rueda@ipp.mpg.de
 
     @param machine: Machine where we are working
     """
-    # --- Section 0: Name of the auxiliar folders (located at home directory)
+    # --- Section 0: Name of the auxiliary folders (located at home directory)
     ROIPOLY = 'roipoly.py-bugfix-spyder/roipoly'
     HOME_DIR = os.getenv("HOME")
     SUITE_DIR = os.getcwd()

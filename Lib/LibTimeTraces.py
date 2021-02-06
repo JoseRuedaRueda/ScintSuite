@@ -52,11 +52,10 @@ def create_roi(fig, re_display=False):
     """
     Wrap for the RoiPoly features
 
-    Jose Rueda: ruejo@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     Just a wrapper for the roipoly capabilities which allows for the reopening
     of the figures
-    @todo I can't understant why in spyder it does not work the .show....
 
     @param fig: fig object where the image is found
     @return fig: The figure with the roi plotted
@@ -78,7 +77,7 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
     """
     Calculate the time trace from a cin file
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param cin_object: cin file object (see class cin of LibCinFiles.py)
     @param mask: binary mask defining the roi
@@ -159,10 +158,10 @@ class TimeTrace:
         """
         Initialise the TimeTrace
 
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda Rueda: jrrueda@us.es
 
         If no times are given, it will use the frames loaded in the video
-        object, if t1 and t2 are present, it will load the correspoding frames
+        object, if t1 and t2 are present, it will load the corresponding frames
 
         @param video: Video object used for the calculation of the trace
         @param mask: mask to calculate the trace
@@ -214,7 +213,7 @@ class TimeTrace:
         """
         Export time trace to acsii
 
-        Jose Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda: jrrueda@us.es
 
         @param self: the TimeTrace object
         @param filename: file where to write the data
@@ -237,7 +236,7 @@ class TimeTrace:
         """
         Calculate the fft of the time trace
 
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda Rueda: jrrueda@us.es
 
         Only the fft of the sum of the counts in the roi is calculated, if you
         want others to be calculated, open a request in the GitLab
@@ -257,7 +256,7 @@ class TimeTrace:
         """
         Calculate the spectrogram of the time trace
 
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda Rueda: jrrueda@us.es
 
         Only the spec of the sum of the counts in the roi is calculated, if you
         want others to be calculated, open a request in the GitLab
@@ -280,7 +279,7 @@ class TimeTrace:
         """
         Plot the sum time trace, the average timetrace and the std ones
 
-        Jose Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda: jrrueda@us.es
 
         Plot the sum, std and average of the roi
         @param options: Dictionary containing the options for the axis_beauty
@@ -323,7 +322,7 @@ class TimeTrace:
         """
         Plot the fft of the TimeTrace
 
-        Jose Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda: jrrueda@us.es
 
         @param options: options for the axis_beauty method
         @return fig: figure where the fft is plotted
@@ -349,7 +348,7 @@ class TimeTrace:
         """
         Plot the spectrogram
 
-        Jose Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda: jrrueda@us.es
 
         @param options: options for the axis_beauty method
         @return fig: figure where the fft is plotted

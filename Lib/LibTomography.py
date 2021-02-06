@@ -12,9 +12,109 @@ import LibFILDSIM as ssfildsim
 import LibMap as ssmapping
 from scipy import ndimage        # To denoise the frames
 from tqdm import tqdm            # For waitbars
+from sklearn.linear_model import Ridge
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import r2_score
+
+
 # -----------------------------------------------------------------------------
 # SOLVERS AND REGRESSION ALGORITHMS
 # -----------------------------------------------------------------------------
+def OLS_inversion(X, y):
+    """
+    Perform an OLS inversion using the analytical solution
+
+    Jose Rueda: jrrueda@us.es
+
+    @param X: Design matrix
+    @param y: signal
+    @return beta: best fit coefficients
+    @return MSE: Mean squared error
+    @return r2: R2 score
+    """
+    beta = np.linalg.lstsq(X, y, rcond=None)[0]
+    y_pred = X @ beta
+    MSE = mean_squared_error(y, y_pred)
+    r2 = r2_score(y, y_pred)
+    return beta, MSE, r2
+
+
+def Ridge_inversion(X, y, alpha):
+    """
+    Perform a Ridge (0th Tikhonov) regression
+
+    Jose Rueda: jrrueda@us.es
+
+    @param X: Design matrix
+    @param y: signal
+    @return ridge.coef_: best fit coefficients
+    @return MSE: Mean squared error
+    @return r2: R2 score
+    """
+    ridge = Ridge(alpha)
+    ridge.fit(X, y)
+    y_pred = ridge.predict(X)
+    MSE = mean_squared_error(y, y_pred)
+    r2 = r2_score(y, y_pred)
+    return ridge.coef_, MSE, r2
+
+
+def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
+               log_spaced: bool = True, plot: bool = True,
+               line_param: dict = {'linewidth': 1.5},
+               FS: float = 14):
+    """
+    Scan the slpha parameters to find the best hyper-parameter
+
+    Jose Rueda: jrrueda@us.es
+
+    @param X: Design matrix
+    @param y: signal
+    @param alpha_min: minimum value for the hyper-parameter scan
+    @param alpha_max: maximum value for the hyper-parameter scan
+    @param n_alpha: number of points in the scan
+    @param log_spaced: if true, points will be logspaced
+    @param line_param: dictionary with the line plotting parameters
+    @param FS: FontSize
+    @return beta: array of coefficients [nfeatures, nalphas]
+    @return MSE: arrays of MSEs
+    @return r2: arrays of r2
+    """
+    # --- Initialise the variables
+    npoints, nfeatures = X.shape
+    beta = np.zeros((nfeatures, n_alpha))
+    MSE = np.zeros(n_alpha)
+    r2 = np.zeros(n_alpha)
+
+    if log_spaced:
+        alpha = np.logspace(np.log(alpha_min), np.log(alpha_max), n_alpha)
+    else:
+        alpha = np.linspace(alpha_min, alpha_max, n_alpha)
+    # --- Perform the scan
+    for i in tqdm(range(n_alpha)):
+        beta[:, i], MSE[i], r2[i] = Ridge_inversion(X, y, alpha[i])
+
+    # --- Plot if needed:
+    if plot:
+        fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
+        # Plot the r2:
+        ax1.plot(alpha, r2, **line_param)
+        ax1.grid(True, which='minor', linestyle=':')
+        ax1.minorticks_on()
+        ax1.grid(True, which='major')
+        ax1.set_ylabel('$r^2$', fontsize=FS)
+
+        # Plot the MSE
+        ax2.plot(alpha, MSE, **line_param)
+        ax2.grid(True, which='minor', linestyle=':')
+        ax2.minorticks_on()
+        ax2.grid(True, which='major')
+        ax2.set_ylabel('MSE', fontsize=FS)
+        plt.xlabel('$\\alpha$')
+
+        if log_spaced:
+            plt.xscale('log')
+    return beta, MSE, r2
 
 
 # -----------------------------------------------------------------------------
@@ -36,12 +136,12 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     @param    s_opt: Parameters for the scintillator grid
     @param    p_opt: Parameters for the pinhole grid
     @param    verbose: Print some notes on the console
-    @param    plt_frame: Plot the frame and noise suppresed frame (todo)
+    @param    plt_frame: Plot the frame and noise suppressed frame (todo)
     @param    LIMIT_REGION_FCOL: Limit the pinhole grid to points with fcol>0
     @param    denoise: apply median filter to the frame
-    @param    efficiency: efficiecy dictionary
+    @param    efficiency: efficiency dictionary
     @return   signal1D:  Signal filtered and reduced in 1D array
-    @return   W2D: Weight function compresed as 2D
+    @return   W2D: Weight function compressed as 2D
     """
     print('.--. ... ..-. -')
     print('Preparing W and the measurement')

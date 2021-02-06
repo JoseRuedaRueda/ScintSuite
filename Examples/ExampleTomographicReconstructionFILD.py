@@ -15,7 +15,7 @@ import time
 # Paths:
 calibration_database = './Data/Calibrations/FILD/calibration_database2.dat'
 # As the strike points are needed and they are not included in the database,
-# for the tomography one should manually selec (for now) the strike map)
+# for the tomography one should manually select (for now) the strike map)
 smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/tomography_strike_map.dat'
 smap_points = \
     '/afs/ipp/home/r/ruejo/FILDSIM/results/tomography_strike_points.dat'
@@ -32,7 +32,7 @@ shot = 32312
 limitation = False  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 # Noise substraction parameters:
-sub_noise = True   # Just a flag to see if we substract noise or not
+sub_noise = True   # Just a flag to see if we subtract noise or not
 tn1 = 0.185     # Initial time to average the noise
 tn2 = 0.198    # Initial time to average the noise
 # remapping parameters
@@ -77,19 +77,19 @@ FS = 16     # Font size
 # -----------------------------------------------------------------------------
 # --- Section 1: Load calibration
 # -----------------------------------------------------------------------------
-# Innitialise the calibration database object
+# Initialize the calibration database object
 database = ss.mapping.CalibrationDatabase(calibration_database)
 # Get the calibration for our shot
 cal = database.get_calibration(shot, camera, cal_type, diag_ID)
 # -----------------------------------------------------------------------------
-# --- Section 2: Load video file and the necesary frames
+# --- Section 2: Load video file and the necessary frames
 # -----------------------------------------------------------------------------
-# Prepare the name of the cin file to be loaded
+# Prepare the name of the .cin file to be loaded
 dummy = str(shot)
 file = ss.paths.CinFiles + dummy[0:2] + '/' + dummy + '_v710.cin'
 # initialise the video object:
 cin = ss.vid.Video(file)
-# Load the frames we need, necesary to load some of them to substract the noise
+# Load the frames we need, necesary to load some of them to subtract the noise
 cin.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
 # Subtract the noise
 if sub_noise:

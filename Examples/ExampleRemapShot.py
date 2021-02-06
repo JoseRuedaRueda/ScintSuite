@@ -1,12 +1,12 @@
 """
-Load a video and perform the remaping for each frame
+Load a video and perform the remapping for each frame
 
 Created as an example to use the routines without the graphical user interface
 
 DISCLAIMER: This was created on the 11/11/2020. Since them several
 improvements may have been done, it is possible that some function has been
 changed and the script does not work at all now. If this happens, contact
-jose rueda (jose.rueda@ipp.mpg.de) by email
+jose rueda (jrrueda@us.es) by email
 
 You should run paths.py before!!!
 
@@ -72,8 +72,8 @@ database = ssmap.CalibrationDatabase(calibration_database)
 cal = database.get_calibration(shot, camera, cal_type, diag_ID)
 # -----------------------------------------------------------------------------
 
-# %% Section 2: Load video file and the necesary frames
-# Prepare the name of the cin file to be loaded
+# %% Section 2: Load video file and the necessary frames
+# Prepare the name of the .cin file to be loaded
 dummy = str(shot)
 file = pa.CinFiles + dummy[0:2] + '/' + dummy + '_v710.cin'
 cin = ssvid.Video(file)
@@ -85,12 +85,12 @@ frames = cin.read_frame(np.arange(start=it1, stop=it2+1, step=1))
 frame_shape = frames[:, :, 1].shape
 nframes = frames.shape[2]
 # If the last line fails because you tried to load just one time point... you
-# are using the wrong Example file... plase read the name
+# are using the wrong Example file... please read the name
 # ------------------------------------------------------------------------------
 
 # %% Section 3: remap the shot
 
-# Initialise the matix to save the results. I allways get confused with the
+# Initialize the matrix to save the results. I always get confused with the
 # fact that an array ini:end:delta x has end-ini/delta or end-ini/delta+1
 # elements... It is late and I am hungry, this is just and example so YOLO, I
 # will create the arrays and take: length
@@ -167,7 +167,7 @@ trace23 = np.sum(signal_in_gyr[flags23, :], axis=0)
 # %% Section 5: Plotting the results
 # Interactive figure with slider to see the evolution of the shot
 if p1:
-    # Open the figure and initialise the colormap
+    # Open the figure and initialize the colormap
     fig, ax = plt.subplots(2, 2)
     plt.subplots_adjust(left=0.25, bottom=0.25)
     cmap = ssplt.Gamma_II()
@@ -176,7 +176,7 @@ if p1:
     min_rep = np.min(remap)
     max_fra = np.max(frames)
     min_fra = np.min(frames)
-    # --- Initialise the four plots
+    # --- Initialize the four plots
     # - Camera
     plot_frame = ax[0, 0].imshow(frames[:, :, -1], origin='lower', cmap=cmap)
     plt_param = {'marker': 'None'}
@@ -302,7 +302,7 @@ if p2:
     signal_gyr_norm = signal_in_gyr / np.max(signal_in_gyr)
     contourf = ax_gyr.contourf(time, gyr, signal_gyr_norm, cmap=cmap)
     # Set a nice axes
-    options = {'fontsize': FS, 'ylabel': '$r_\perp$', 'xlabel': 'Time [s]'}
+    options = {'fontsize': FS, 'ylabel': '$r_\\perp$', 'xlabel': 'Time [s]'}
     ax_gyr = ssplt.axis_beauty(ax_gyr, options)
     ax_gyr.set_xticks(ax_gyr.get_xticks()[::2])
     plt.xlim(time[0], time[-1])

@@ -18,8 +18,8 @@ Format and fields of the calibration database
     -# Lines with comments. In principle the default number is 5, but this
     number can be changes when we read the database, ie, any number can be
     valid as far as this number is passed as input when the database object is
-    initialised
-    -# Database, organised in rows, each row containing all data from one
+    initialized
+    -# Database, organized in rows, each row containing all data from one
     calibration, starting from a calibration ID and followed by all the
     fields in the order indicated above. See any example for more information
 """

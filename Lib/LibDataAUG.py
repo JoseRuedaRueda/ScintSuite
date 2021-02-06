@@ -1,15 +1,9 @@
 """Routines to interact with the AUG database"""
 
-# Module to load shotfiles
-import dd
-# Module to load vessel components
-import get_gc
-# Other libraries
+import dd                # Module to load shotfiles
+import get_gc            # Module to load vessel components
 import numpy as np
-# import matplotlib.pyplot as plt
-# Module to map the equilibrium
-import map_equ as meq
-# ---
+import map_equ as meq    # Module to map the equilibrium
 import os
 from LibPaths import Path
 pa = Path()
@@ -36,7 +30,7 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     """
     Wrapp to get AUG magnetic field
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param shot: Shot number
     @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
@@ -72,7 +66,7 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     """
     Wrapp to get AUG magnetic field
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param shot: Shot number
     @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
@@ -107,7 +101,7 @@ def poloidal_vessel(shot: int = 30585, simplified: bool = False):
     """
     Get coordinate of the poloidal projection of the vessel
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param shot: shot number to be used
     @param simplified: if true, a 'basic' shape of the poloidal vessel will be
@@ -132,7 +126,7 @@ def poloidal_vessel(shot: int = 30585, simplified: bool = False):
 
 def toroidal_vessel(rot: float = -np.pi/8.0*3.0):
     """
-    Return the coordiates of the AUG vessel
+    Return the coordinates of the AUG vessel
 
     Jose Rueda Rueda: ruejo@ipp.mpg.de
 
@@ -145,7 +139,6 @@ def toroidal_vessel(rot: float = -np.pi/8.0*3.0):
     # The files are a series of 'blocks' representing each piece of the vessel,
     # each block is separated by an empty line. I will scan the file line by
     # line looking for the position of those empty lines:
-    ## todo_ include rotation!! default -pi/8
     file = os.path.join(pa.ScintSuite, 'Data', 'Vessel', 'AUG_tor.txt')
     cc = 0
     nmax = 2000
@@ -181,7 +174,7 @@ def _NBI_diaggeom_coordinates(nnbi):
     Just the coordinates manually extracted for shot 32312
 
     @param nnbi: the NBI number
-    @return coords: dictionary containing the coordiates of the initial and
+    @return coords: dictionary containing the coordinates of the initial and
     final points. '0' are near the source, '1' are near the central column
     """
     r0 = np.array([2.6, 2.6, 2.6, 2.6, 2.6, 2.6, 2.6, 2.6])
@@ -277,11 +270,7 @@ class NBI:
         independent??
 
         @param    nnbi: number of the NBI
-        @type:    int
-
         @param    shot: shot number
-        @type:    int
-
         @param    diaggeom: If true, values extracted manually from diaggeom
         """
         ## Coordinates of the NBI
@@ -300,13 +289,13 @@ class NBI:
         Calculate the pitch profile of the NBI along the injection line
 
         If the 'pitch_profile' field of the NBI object is not created, it
-        initialise it, else, it just append the new time point (it will insert
+        initialize it, else, it just append the new time point (it will insert
         the time point at the end, if first you call the function for t=1.0,
         then for 0.5 and then for 2.5 you will create a bit of a mesh, please
         use this function with a bit of logic)
 
-        DISCLAIMER: We will not check if the radial position concides with the
-        previous data in the pitch profile structure, it is your responsability
+        DISCLAIMER: We will not check if the radial position coincides with the
+        previous data in the pitch profile structure, it is your responsibility
         to use consistent input when calling this function
 
         @todo implement using insert the insertion of the data on the right

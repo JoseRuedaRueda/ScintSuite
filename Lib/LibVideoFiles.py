@@ -106,7 +106,7 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     """
     Read the settings from a .cin file
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param filename: name of the file to read (full path)
     @param bit_pos: Position of the file where the setting structure starts
@@ -755,12 +755,12 @@ def read_image_header(filename: str, bit_pos: int, verbose: bool = False):
     """
     Read the image header of a .cin file
 
-    Josse Rueda: jose.rueda@ipp.mpg.de
+    Josse Rueda: jrrueda@us.es
 
     @param filename: name of the .cin file (full path to the file)
-    @param bit_pos: position of the file wuere the image header starts
+    @param bit_pos: position of the file where the image header starts
     @param verbose: flag to display content of the header
-    @return cin_image_header: Image header (dictionary), see inlien comments
+    @return cin_image_header: Image header (dictionary), see in-line comments
     for a full description of each dictionary field
     """
     # --- Open file and go to the position of the image header
@@ -806,7 +806,7 @@ def read_time_base(filename: str, header: dict, settings: dict):
     """
     Read the time base of the .cin video (relative to the trigger)
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param filename: name of the file to open (full path)
     @param header: header created by the function read_header
@@ -847,7 +847,7 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
     """
     Read frames from a .cin file
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
     @param cin_object: Video Object with the file information
     @param frames_number: np array with the frame numbers to load
@@ -902,8 +902,8 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
         BPP = 16  # Bits per pixel
         data_type = 'uint16'
 
-    # Preallocate output array
-    # To be in line with olf FILD GUI and be able to use old FILD callibration
+    # Pre-allocate output array
+    # To be in line with old FILDGUI and be able to use old FILD calibration
     # the matrix will be [height,width]
     M = np.zeros((int(cin_object.imageheader['biHeight']),
                   int(cin_object.imageheader['biWidth']), nframe),
@@ -945,9 +945,9 @@ def read_data_png(path):
     """
     Read info for a case where the measurements are stored as png
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
-    Return a series of dictionaries similars to the case of a cin file,
+    Return a series of dictionaries similar to the case of a cin file,
     with all the info we can extract from the png
 
     @param path: path to the folder where the pngs are located
@@ -955,7 +955,7 @@ def read_data_png(path):
     @return image_header: dictionary containing the info about the image size,
     and shape
     @return header: Header 'similar' to the case of a cin file
-    @return settingf: dictionary similar to the case of the cin file (it only
+    @return settings: dictionary similar to the case of the cin file (it only
     contain the exposition time)
     """
     # Look for a png to extract the file and a .txt for the time information
@@ -1032,7 +1032,7 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
     """
     Read .png files
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param video_object: Video class with the info of the video
     @param frames_number: array with the number of the frames to be loaded,
@@ -1145,8 +1145,8 @@ class Video:
 
         @param file: For the initialization, file (full path) to be loaded),
         if the path point to a .cin file, the .cin file will be loaded. If
-        the path points to a folder, the prgram will look for png files or
-        tiff files inside (tiff comming soon)
+        the path points to a folder, the program will look for png files or
+        tiff files inside (tiff coming soon)
         @param shot: Shot number, if is not given, the program will look for it
         in the name of the loaded file
         """
@@ -1157,7 +1157,7 @@ class Video:
         self.exp_dat = {'frames': None,   # Loaded frames
                         'tframes': None,  # Timebase of the loaded frames
                         'nframes': None}  # Frame numbers of the loaded frames
-        ## Remaped data
+        ## Remapped data
         self.remap_dat = None
         ## Time traces: space reservation for the future
         self.time_trace = None
@@ -1239,9 +1239,9 @@ class Video:
         """
         Guess the shot number from the name of the file
 
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
-        @param file: Name of the file or folder containg the data. In that name
-        it is assumed to be the shot number in the proper format
+        Jose Rueda Rueda: jrrueda@us.es
+        @param file: Name of the file or folder containing the data. In that
+        name it is assumed to be the shot number in the proper format
         @param shot_number_length: Number of characters expected from the shot
         number in the file name (defined in the modulus of each machine)
         """
@@ -1254,24 +1254,22 @@ class Video:
                 flags[i] = True
         ntrues = np.sum(flags)
         if ntrues == 1:
-            # print(flags)
-            # print(list[flags])
             self.shot = int(list[flags])
         elif ntrues == 2:
             # Maybe just the file is saved in a folder named as the shot, so we
-            # can have a second possitive here
+            # can have a second positive here
             options = list[flags]
             if options[0] == options[1]:
                 self.shot = int(options[0])
         elif ntrues == 0:
             er = 'No shot number found in the name of the file'
             er2 = 'Give the shot number as input when loading the file'
-            raise Eception(er + er2)
+            raise Exception(er + er2)
         else:
             er = 'Several possibles shot number were found'
             er2 = 'Give the shot number as input when loading the file'
             print('Possible shot numbers ', list[flags])
-            raise Eception(er + er2)
+            raise Exception(er + er2)
 
     def read_frame(self, frames_number=None, limitation: bool = True,
                    limit: int = 2048, internal: bool = True, t1: float = None,
@@ -1339,12 +1337,12 @@ class Video:
         """
         Subtract noise from camera frames
 
-        Jose Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda: jrrueda@us.es
 
         This function subtract the noise from the experimental camera frames.
         Two main ways exist: if t1 and t2 are provided, the noise will be
         be considered as the average in this range. If 'frame' is given,
-        the noise to be substracted will be considered to be directly 'frame'
+        the noise to be subtracted will be considered to be directly 'frame'
 
         A new variable: 'original frames' will be created, where the original
         frames will be loaded, in case one wants to revert the noise
@@ -1352,7 +1350,7 @@ class Video:
 
         @param t1: Minimum time to average the noise
         @param t2: Maximum time to average the noise
-        @param frame: Optinal, frame containing the noise to be subtracted
+        @param frame: Optional, frame containing the noise to be subtracted
         """
         print('.--. ... ..-. -')
         print('Substracting noise')
@@ -1377,7 +1375,7 @@ class Video:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
         else:
             print('original frames already present, not making new copy')
-        # Substract the noise
+        # Subtract the noise
         for i in range(nt):
             # Perform the subtraction in float to avoid negative values in uint
             dummy = \
@@ -1428,10 +1426,6 @@ class Video:
             -# ylabel: name of the yaxis of he remaped frame (r for FILD)
             -# sprofx: signal integrated over the y range given by options
             -# sprofy: signal integrated over the x range given by options
-
-        @rtype:   type
-
-        @raises   ExceptionName: Why the exception is raised.
         """
 
         if self.diag == 'FILD':
@@ -1465,7 +1459,7 @@ class Video:
         if (frame_number is None) and (t is None):
             raise Exception("Didn't you want to plot something?")
         # --- Load the frames
-        # If we use the frame number explicitely
+        # If we use the frame number explicitly
         if frame_number is not None:
             if len(self.exp_dat['nframes']) == 1:
                 if self.exp_dat['nframes'] == frame_number:
@@ -1502,9 +1496,9 @@ class Video:
 
     def plot_remaped_slider(self, ccmap=None):
         """
-        Creates a plot with some sliders to see the remaped data
+        Creates a plot with some sliders to see the remapped data
 
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda Rueda: jrrueda@us.es
 
         @param ccmap: colormap to be used, if none, Gamma_II will be used
         """
@@ -1658,7 +1652,7 @@ class Video:
         """
         Creates a plot with the evolution of the profiles
 
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda Rueda: jrrueda@us.es
 
         @param ccmap: colormap to be used, if none, Gamma_II will be used
         @param plt_params: params for the function axis beauty plt
@@ -1724,7 +1718,7 @@ class Video:
             level = self.remap_dat['xaxis'][-1] -\
                 0.1*(self.remap_dat['xaxis'][-1] -
                      self.remap_dat['xaxis'][0])  # Jut a nice position
-            if self.diag == 'FILD':  # Add a labal with the integation range
+            if self.diag == 'FILD':  # Add a labal with the integration range
                 plt.text(tpos1, level, '#' + str(self.shot),
                          horizontalalignment='left', fontsize=0.9*FS,
                          color='w', verticalalignment='bottom')
@@ -1777,9 +1771,9 @@ class Video:
 
     def export_remap(self):
         """
-        Export the dictionary containing the remaped data
+        Export the dictionary containing the remapped data
 
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda Rueda: jrrueda@us.es
         """
 
         # Test if the folder
@@ -1846,7 +1840,7 @@ class Video:
 
             # Save the specific FILD variables
             if self.diag == 'FILD':
-                # Detector orienttion
+                # Detector orientation
                 theta = f.createVariable('theta', 'float64', ('tframes', ))
                 theta[:] = self.remap_dat['theta']
                 theta.units = '{}^o'
