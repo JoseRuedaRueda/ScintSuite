@@ -357,17 +357,6 @@ def load_orbits(filename: str, counter: int = 1, full_info: bool = True):
         -# 'time': time of each point
         -# 'ID': ID of the markers
     """
-    # Load the whole file:
-    # Future message for Pablo, this is a bit too much if the output file has
-    # a couple of Gb, maybe we could save things in the file as:
-    #       id
-    #       number of saved points
-    #       points
-    # In this way we do not repeat the mass or the id so we saved space and we
-    # just need to have in memory one orbit, and we can use fseek...
-    # In any case, the charge can  change because your code include CX
-    # reactions, but not the mass or the ID so I will save in the output just
-    # one mass and one ID
     # --- Open the file and load the data
     with open(filename, 'r') as f:
         A = np.fromfile(f, np.float64)
