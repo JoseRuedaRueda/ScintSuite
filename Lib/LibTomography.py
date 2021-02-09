@@ -15,10 +15,12 @@ from tqdm import tqdm            # For waitbars
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
+from scipy.optimize import nnls     # Non negative least squares
+from sklearn.linear_model import ElasticNet  # ElaticNet
 
 
 # -----------------------------------------------------------------------------
-# SOLVERS AND REGRESSION ALGORITHMS
+# --- SOLVERS AND REGRESSION ALGORITHMS
 # -----------------------------------------------------------------------------
 def OLS_inversion(X, y):
     """
@@ -39,6 +41,26 @@ def OLS_inversion(X, y):
     return beta, MSE, r2
 
 
+def nnls_inversion(X, y, param: dict = {}):
+    """
+    Perform a non-negative least squares inversion using scipy
+
+    Jose Rueda: jrrueda@us.es
+
+    @param X: Design matrix
+    @param y: signal
+    @param param: dictionary with options for the nnls solver (see scipy)
+    @return beta: best fit coefficients
+    @return MSE: Mean squared error
+    @return r2: R2 score
+    """
+    beta, dummy = nnls(X, y, **param)
+    y_pred = X @ beta
+    MSE = mean_squared_error(y, y_pred)
+    r2 = r2_score(y, y_pred)
+    return beta, MSE, r2
+
+
 def Ridge_inversion(X, y, alpha):
     """
     Perform a Ridge (0th Tikhonov) regression
@@ -47,6 +69,7 @@ def Ridge_inversion(X, y, alpha):
 
     @param X: Design matrix
     @param y: signal
+    @param alpha: hyperparameter
     @return ridge.coef_: best fit coefficients
     @return MSE: Mean squared error
     @return r2: R2 score
@@ -87,7 +110,7 @@ def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
     r2 = np.zeros(n_alpha)
 
     if log_spaced:
-        alpha = np.logspace(np.log(alpha_min), np.log(alpha_max), n_alpha)
+        alpha = np.logspace(np.log10(alpha_min), np.log10(alpha_max), n_alpha)
     else:
         alpha = np.linspace(alpha_min, alpha_max, n_alpha)
     # --- Perform the scan
@@ -110,15 +133,142 @@ def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
         ax2.minorticks_on()
         ax2.grid(True, which='major')
         ax2.set_ylabel('MSE', fontsize=FS)
-        plt.xlabel('$\\alpha$')
+        ax2.set_xlabel('$\\alpha$')
 
+        # Plot the modulus versus the MSE
+        fig2, ax = plt.subplots()
+        y = np.sum(np.sqrt(beta**2), axis=0)
+        ax.plot(MSE, y, **line_param)
+        ax.grid(True, which='minor', linestyle=':')
+        ax.minorticks_on()
+        ax.grid(True, which='major')
+        ax.set_ylabel('$|F| [a.u.]$', fontsize=FS)
+        ax.set_xlabel('MSE')
         if log_spaced:
-            plt.xscale('log')
-    return beta, MSE, r2
+            ax2.set_xscale('log')
+    return beta, MSE, r2, alpha
+
+
+def Elastic_Net(X, y, alpha, l1_ratio=0.05, positive=True):
+    """
+    Wrap for the elastic net function
+
+    Jose Rueda: jrrueda@us.es
+
+    @param X: Design matrix
+    @param y: signal
+    @param alpha: hyperparameter
+    @param l1_ratio: hyperparameter of the ElasticNet
+    @param positive: flag to force positive coefficients
+    @return reg.coef_: best fit coefficients
+    @return MSE: Mean squared error
+    @return r2: R2 score
+    """
+    # --- Initialise the regresor
+    reg = ElasticNet(alpha=alpha, positive=positive, l1_ratio=l1_ratio)
+    reg.fit(X, y)
+    y_pred = reg.predict(X)
+    MSE = mean_squared_error(y, y_pred)
+    r2 = r2_score(y, y_pred)
+    return reg.coef_, MSE, r2
+
+
+def Elastic_net_scan(X, y, alpha_min: float, alpha_max: float,
+                     n_alpha: int = 20, log_spaced: bool = True,
+                     plot: bool = True, line_param: dict = {'linewidth': 1.5},
+                     FS: float = 14, l1_ratio: float = 0.05,
+                     positive: bool = True):
+    """
+    Scan the slpha parameters to find the best hyper-parameter
+
+    Jose Rueda: jrrueda@us.es
+
+    @param X: Design matrix
+    @param y: signal
+    @param alpha_min: minimum value for the hyper-parameter scan
+    @param alpha_max: maximum value for the hyper-parameter scan
+    @param n_alpha: number of points in the scan
+    @param log_spaced: if true, points will be logspaced
+    @param line_param: dictionary with the line plotting parameters
+    @param FS: FontSize
+    @return beta: array of coefficients [nfeatures, nalphas]
+    @return MSE: arrays of MSEs
+    @return r2: arrays of r2
+    """
+    # --- Initialise the variables
+    npoints, nfeatures = X.shape
+    beta = np.zeros((nfeatures, n_alpha))
+    MSE = np.zeros(n_alpha)
+    r2 = np.zeros(n_alpha)
+
+    if log_spaced:
+        alpha = np.logspace(np.log10(alpha_min), np.log10(alpha_max), n_alpha)
+    else:
+        alpha = np.linspace(alpha_min, alpha_max, n_alpha)
+    # --- Perform the scan
+    for i in tqdm(range(n_alpha)):
+        beta[:, i], MSE[i], r2[i] = Elastic_Net(X, y, alpha[i],
+                                                l1_ratio=l1_ratio,
+                                                positive=positive)
+
+    # --- Plot if needed:
+    if plot:
+        fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
+        # Plot the r2:
+        ax1.plot(alpha, r2, **line_param)
+        ax1.grid(True, which='minor', linestyle=':')
+        ax1.minorticks_on()
+        ax1.grid(True, which='major')
+        ax1.set_ylabel('$r^2$', fontsize=FS)
+
+        # Plot the MSE
+        ax2.plot(alpha, MSE, **line_param)
+        ax2.grid(True, which='minor', linestyle=':')
+        ax2.minorticks_on()
+        ax2.grid(True, which='major')
+        ax2.set_ylabel('MSE', fontsize=FS)
+        ax2.set_xlabel('$\\alpha$')
+
+        # Plot the modulus versus the MSE
+        fig2, ax = plt.subplots()
+        y = np.sum(np.sqrt(beta**2), axis=0)
+        ax.plot(MSE, y, **line_param)
+        ax.grid(True, which='minor', linestyle=':')
+        ax.minorticks_on()
+        ax.grid(True, which='major')
+        ax.set_ylabel('$|F| [a.u.]$', fontsize=FS)
+        ax.set_xlabel('MSE')
+        if log_spaced:
+            ax2.set_xscale('log')
+    return beta, MSE, r2, alpha
 
 
 # -----------------------------------------------------------------------------
-# FILD TOMOGRAPHY
+# --- L-Curve
+# -----------------------------------------------------------------------------
+def L_curve(beta, MSE):
+    """
+    Calculate the L curve and its derivative
+
+    Jose Rueda: jrrueda@us.es
+
+    @param beta: matrix with the coefficient generated by any of the regressors
+    @param MSE: MSE calculated by any of the avobe functions
+    """
+    # --- Norm of the distribution
+    y = np.sqrt(np.sum(beta, axis=0))
+
+    # --- First derivative
+    y1 = np.gradient(y, MSE)
+
+    # --- second derivative
+    y2 = np.gradient(y, MSE)
+
+    return y1, y2
+
+
+# -----------------------------------------------------------------------------
+# --- FILD TOMOGRAPHY
 # -----------------------------------------------------------------------------
 def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
                      verbose: bool = True, plt_frame: bool = False,
