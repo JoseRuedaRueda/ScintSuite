@@ -149,7 +149,7 @@ def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
     return beta, MSE, r2, alpha
 
 
-def Elastic_Net(X, y, alpha, l1_ratio=0.05, positive=True):
+def Elastic_Net(X, y, alpha, l1_ratio=0.05, positive=True, max_iter=1000):
     """
     Wrap for the elastic net function
 
@@ -165,7 +165,8 @@ def Elastic_Net(X, y, alpha, l1_ratio=0.05, positive=True):
     @return r2: R2 score
     """
     # --- Initialise the regresor
-    reg = ElasticNet(alpha=alpha, positive=positive, l1_ratio=l1_ratio)
+    reg = ElasticNet(alpha=alpha, positive=positive, l1_ratio=l1_ratio,
+                     max_iter=max_iter)
     reg.fit(X, y)
     y_pred = reg.predict(X)
     MSE = mean_squared_error(y, y_pred)
@@ -177,7 +178,7 @@ def Elastic_net_scan(X, y, alpha_min: float, alpha_max: float,
                      n_alpha: int = 20, log_spaced: bool = True,
                      plot: bool = True, line_param: dict = {'linewidth': 1.5},
                      FS: float = 14, l1_ratio: float = 0.05,
-                     positive: bool = True):
+                     positive: bool = True, max_iter=2000):
     """
     Scan the slpha parameters to find the best hyper-parameter
 
@@ -209,7 +210,8 @@ def Elastic_net_scan(X, y, alpha_min: float, alpha_max: float,
     for i in tqdm(range(n_alpha)):
         beta[:, i], MSE[i], r2[i] = Elastic_Net(X, y, alpha[i],
                                                 l1_ratio=l1_ratio,
-                                                positive=positive)
+                                                positive=positive,
+                                                max_iter=max_iter)
 
     # --- Plot if needed:
     if plot:
