@@ -1803,8 +1803,8 @@ class Video:
         """
 
         # Test if the folder
-        name = os.path.join(pa.ScintSuite, 'Results', str(self.shot) + '_' +
-                            self.diag + '_remap.nc')
+        name = os.path.join(pa.ScintSuite, 'Results', str(self.shot) + '_'
+                            + self.diag + '_remap.nc')
         print('Saving results in: ', name)
         # Write the data:
         with netcdf.netcdf_file(name, 'w') as f:
