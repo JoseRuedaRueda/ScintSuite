@@ -64,7 +64,7 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
             ed: int = 0, time: float = None, equ=None,
             coord_out: str = 'rho_pol'):
     """
-    Wrapp to get AUG magnetic field
+    Wrapper to get AUG magnetic field
 
     Jose Rueda: jrrueda@us.es
 
@@ -93,6 +93,44 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
         equ.Close()
     return rho
 
+def get_psipol(shot: int, Rin, zin, diag = 'EQH', exp: str = 'AUGD', \
+               ed: int = 0, time: float = None, equ = None):
+    
+    """
+    Wrapper to get AUG poloidal flux field
+
+    Jose Rueda: jrrueda@us.es
+    ft. 
+    Pablo Oyola: pablo.oyola@ipp.mpg.de
+
+    @param shot: Shot number
+    @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
+    @param zin: Array of z positions where to evaluate (in pairs with Rin) [m]
+    @param diag: Diag for AUG database, default EQH
+    @param exp: experiment, default AUGD
+    @param ed: edition, default 0 (last)
+    @param time: Array of times where we want to calculate the field (the
+    field would be calculated in a time as close as possible to this
+    @param equ: equilibrium object from the library map_equ
+    @return psipol: Poloidal flux evaluated in the input grid.
+    """
+
+    # If the equilibrium object is not an input, let create it
+    created = False
+    if equ is None:
+        equ = meq.equ_map(shot, diag=diag, exp=exp, ed=ed)
+        created = True    
+
+    equ.read_pfm()
+    i = np.argmin(np.abs(equ.t_eq - time))
+    PFM = equ.pfm[:, :, i].squeeze()
+    psipol = intp(equ.Rmesh, equ.Zmesh, PFM, kx=order, ky=order)
+
+    # If we opened the equilibrium object, let's close it
+    if created:
+        equ.Close()
+
+    return psipol
 
 # -----------------------------------------------------------------------------
 # --- Vessel coordinates
