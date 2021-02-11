@@ -16,7 +16,7 @@ if machine == 'AUG':
 # -----------------------------------------------------------------------------
 # --- Classes
 # -----------------------------------------------------------------------------
-class Fast:
+class FastChannel:
     """To interact with signals from the fast channel"""
 
     def __init__(self, diag, diag_number, channels, shot):
