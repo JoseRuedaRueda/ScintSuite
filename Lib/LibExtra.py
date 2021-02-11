@@ -8,6 +8,9 @@ which will have at the FILD position
 """
 
 import numpy as np
+from LibMachine import machine
+if machine == 'AUG':
+    import LibDataAUG as ssdat
 
 
 def pitch_at_other_place(R0, P0, R):
@@ -29,3 +32,38 @@ def pitch_at_other_place(R0, P0, R):
     @return P: The pitch evaluated at that position
     """
     return np.sqrt(1 - R0 / R * (1 - P0 ** 2))
+
+
+def TP_boundary(shot, z0, t, Rmin=1.5, Rmax=2.1, zmin=-0.9, zmax=0.9):
+    """
+    Approximate the TP TP_boundary
+
+    jose rueda: jrrueda@us.es
+
+    |pitch_TP|= sqrt(Rmin/R) where R min is the minimum R of the flux
+    surface which pases by R
+
+    @param shot: shot number
+    @param z: height where to calculate the boundary
+    """
+    # --- Creatin of the grid
+    r = np.linspace(Rmin, Rmax, int((Rmax - Rmin) * 100))
+    z = np.linspace(zmin, zmax, int((zmax - zmin) * 100))
+
+    R, Z = np.meshgrid(r, z)
+
+    # --- Get rho
+    rho = ssdat.get_rho(shot, R.flatten(), Z.flatten(), time=t)
+    rho = np.reshape(rho, (z.size, r.size))
+    # --- Do the gross approximation
+    tp = np.zeros(r.size)
+    iz = np.argmin(abs(z - z0))
+    for i in range(r.size):
+        # - Get the rho there
+        rho1 = rho[iz, i]
+        mask = abs(rho - rho1) < 0.01
+        rr = R[mask]
+        r0 = rr.min()
+        print(r[i], r0)
+        tp[i] = np.sqrt(1 - r0 / r[i])
+    return r, tp
