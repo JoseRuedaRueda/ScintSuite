@@ -8,7 +8,6 @@ PNG files as the old FILD_GUI and will be able to work with tiff files
 
 import os
 import re
-import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import LibPlotting as ssplt
@@ -379,7 +378,6 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     if verbose:
         for y in cin_settings:
             print(y, ':', cin_settings[y])
-    return cin_settings
     #  uint16_t FrameRate16;     // Frame rate fps---UPDF replaced by FrameRate
     #  uint16_t PostTrigger16;   // ---UPDF replaced by PostTrigger
     #  uint16_t FrameDelay16;    // ---UPDF replaced by FrameDelayNs
@@ -749,6 +747,7 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     #                            // VIRGO V2640
     #                      //it is undefined for all other camera (should be 0)
     #                        // End of SETUP in software version 771 (Dec 2017)
+    return cin_settings
 
 
 def read_image_header(filename: str, bit_pos: int, verbose: bool = False):
@@ -887,7 +886,7 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
     else:
         position_array = np.fromfile(fid, 'int64',
                                      int(cin_object.header['ImageCount']))
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # ---  Section 2: Read the images
 
     # Image size from header information
