@@ -13,6 +13,59 @@ if machine == 'AUG':
     import LibDataAUG as ssdat
 
 
+# -----------------------------------------------------------------------------
+# --- Pitch definitions:
+# -----------------------------------------------------------------------------
+def pitch2pitch(P0, def_in: int = 0, def_out: int = 2):
+    """
+    Transform between the different pitch definitions
+
+    Jose Rueda: jrrueda@us.es
+
+    id list:
+        -# 0: Pitch in degrees, co-current
+        -# 1: Pitch in degrees, counter-current
+        -# 2: Pitch as v_par / v. co-current
+        -# 3: Pitch as v_par / v. cunter-current
+    @param P0: The arrays containing the pitches we want to transform
+    @param def_in: The id of the inputs pitches
+    @param def_out: the id of the ouput pitches
+    @return P1: Pitch in the other definition
+    """
+    if def_in == def_out:
+        P1 = P0
+
+    if def_in == 0:    # Input as co-current degrees
+        if def_out == 1:
+            P1 = P0 + 180.0
+        elif def_out == 2:
+            P1 = np.cos(P0)
+        elif def_out == 3:
+            P1 = -np.cos(P0)
+    elif def_in == 1:  # Input as counter-current degrees
+        if def_out == 0:
+            P1 = P0 - 180.0
+        elif def_out == 2:
+            P1 = -np.cos(P0)
+        elif def_out == 3:
+            P1 = np.cos(P0)
+    elif def_in == 2:  # Input as co-current
+        if def_out == 0:
+            P1 = np.arccos(P0) * 180. / np.pi
+        elif def_out == 1:
+            P1 = np.arccos(P0) * 180. / np.pi + 180.
+        elif def_out == 3:
+            P1 = -P0
+    elif def_in == 3:  # Input as co-current
+        if def_out == 0:
+            P1 = np.arccos(P0) * 180. / np.pi - 180.
+        elif def_out == 1:
+            P1 = np.arccos(P0) * 180. / np.pi
+        elif def_out == 2:
+            P1 = -P0
+    return P1
+
+
 def pitch_at_other_place(R0, P0, R):
     """
     Given the pitch a a place R0, calculate the pitch at a location R
