@@ -14,16 +14,6 @@ Main changes respect to FILD GUI
     calibration, starting from a calibration ID and followed by all the
     fields in the order indicated above. See any example for more information
 
-@section png_files Normalization of the imported PNGs
-    -# By default, idl read the pixel value of the file but python read it
-    normalize to the maximum of the format; ie, imagine a pixel with 1200
-    counts in a png writen in 16 bits format: python will load it as
-    p=1200/2**16, while idl as p=1200. This only affect to the absolute value
-    and have zero influence in the value from frame to frame so things should
-    be fine. But if you want to match a time trace calculate with this suite
-    with one calculated with the old one, just multiply by 2**12 (or the bit
-    size of your png files!!)
-
 @section resolutions FILD resolution calculation
     -# By default, an adaptive bin width is used such that there are 4 bins
     in a standard deviation of the probability distribution. In this way
