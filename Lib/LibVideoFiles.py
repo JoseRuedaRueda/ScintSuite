@@ -17,6 +17,7 @@ from matplotlib.widgets import Slider
 from LibMachine import machine
 from version_suite import version
 from scipy.io import netcdf
+from skimage import io
 pa = p.Path(machine)
 del p
 if machine == 'AUG':
@@ -964,7 +965,7 @@ def read_data_png(path):
         if file.endswith('.txt'):
             f.append(os.path.join(path, file))
         if file.endswith('.png') and look_for_png:
-            dummy = plt.imread(os.path.join(path, file))
+            dummy = io.imread(os.path.join(path, file))
             si = dummy.shape
             imageheader = {'biWidth': si[0],
                            'biHeight': si[1]}
@@ -1019,7 +1020,7 @@ def load_png_files(filename: str):
     @param filename: full path pointing to the png
     """
 
-    dummy = plt.imread(filename)
+    dummy = io.imread(filename)
     if len(dummy.shape) > 2:     # We have an rgb png, transform it to gray
         dummy = rgb2gray(dummy)
 
@@ -1077,9 +1078,9 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
             if file.endswith('.png'):
                 current_frame = current_frame + 1
                 if current_frame in frames_number:
-                    M[:, :, counter] = plt.imread(
-                        os.path.join(video_object.path, file)).astype(
-                            np.float32)
+                    pngname = os.path.join(video_object.path, file)
+                    dummy = load_png_files(pngname)
+                    M[:, :, counter] = dummy.astype(np.float32)
                     counter = counter + 1
         print('Number of loaded frames: ', counter)
     return M
