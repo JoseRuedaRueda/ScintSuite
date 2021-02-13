@@ -16,8 +16,11 @@ import LibPaths as p
 from matplotlib.widgets import Slider
 from LibMachine import machine
 from version_suite import version
-from scipy.io import netcdf
-from skimage import io
+from scipy.io import netcdf                # To export remap data
+from skimage import io                     # To load png images
+import tkinter as tk                       # To open UI windows
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 pa = p.Path(machine)
 del p
 if machine == 'AUG':
@@ -1001,7 +1004,7 @@ def read_data_png(path):
     # extract the shot number from the path
     header['shot'] = int(path[-5:])
 
-    return header, imageheader, settings, time_base.squeeze()
+    return header, imageheader, settings, time_base[:].flatten()
 
 
 def rgb2gray(rgb):
@@ -1138,7 +1141,7 @@ class Video:
     the frames itself not, we can not work with 100Gb of data in memory!!!
     """
 
-    def __init__(self, file: str, diag: str = 'FILD', shot=None,
+    def __init__(self, file: str = None, diag: str = 'FILD', shot=None,
                  diag_ID: int = 1):
         """
         Initialise the class
@@ -1146,10 +1149,23 @@ class Video:
         @param file: For the initialization, file (full path) to be loaded),
         if the path point to a .cin file, the .cin file will be loaded. If
         the path points to a folder, the program will look for png files or
-        tiff files inside (tiff coming soon)
+        tiff files inside (tiff coming soon). If none, a window will be open to
+        select a file
         @param shot: Shot number, if is not given, the program will look for it
         in the name of the loaded file
         """
+        # If no file was given, open a graphical user interface to select it.
+        if file is None:
+            root = tk.Tk()    # To close the window after the selection
+            root.withdraw()
+            filename = tk.filedialog.askopenfilename()
+            if filename == '':
+                raise Exception('You must select a file!!!')
+            # If we select a png or tif, we need the folder, not the file
+            if filename.endswith('.png') or filename.endswith('.tif'):
+                file, name_png = os.path.split(filename)
+            else:
+                file = filename
         # Initialise some variables
         ## Type of video
         self.type_of_file = None
@@ -1262,11 +1278,11 @@ class Video:
             if options[0] == options[1]:
                 self.shot = int(options[0])
         elif ntrues == 0:
-            er = 'No shot number found in the name of the file'
+            er = 'No shot number found in the name of the file\n'
             er2 = 'Give the shot number as input when loading the file'
             raise Exception(er + er2)
         else:
-            er = 'Several possibles shot number were found'
+            er = 'Several possibles shot number were found\n'
             er2 = 'Give the shot number as input when loading the file'
             print('Possible shot numbers ', list[flags])
             raise Exception(er + er2)
@@ -1323,7 +1339,8 @@ class Video:
                 self.exp_dat['frames'] = \
                     read_frame_png(self, frames_number, limitation=limitation,
                                    limit=limit)
-                self.exp_dat['tframes'] = self.timebase[frames_number]
+                self.exp_dat['tframes'] = \
+                    self.timebase[frames_number].flatten()
                 self.exp_dat['nframes'] = frames_number
             else:
                 M = read_frame_png(self, frames_number, limitation=limitation,
@@ -1493,6 +1510,13 @@ class Video:
             strike_map.plot_pix(ax=ax)
 
         return fig, ax
+
+    def plot_frames_slider(self):
+        "Plot the frames with a slider which allows to select the desired time"
+        root = tk.Tk()
+        ApplicationShowVid(root, self.exp_dat)
+        root.mainloop()
+        root.destroy()
 
     def plot_remaped_slider(self, ccmap=None):
         """
@@ -1683,8 +1707,8 @@ class Video:
             cbar.ax.tick_params(labelsize=plt_params['fontsize'] * .8)
             # Write the shot number and detector id
             gyr_level = self.remap_dat['yaxis'][-1] -\
-                0.1*(self.remap_dat['yaxis'][-1] -
-                     self.remap_dat['yaxis'][0])  # Jut a nice position
+                0.1*(self.remap_dat['yaxis'][-1]
+                     - self.remap_dat['yaxis'][0])  # Jut a nice position
             tpos1 = self.remap_dat['tframes'][0] + 0.05 * \
                 (self.remap_dat['tframes'][-1] - self.remap_dat['tframes'][0])
             tpos2 = self.remap_dat['tframes'][0] + 0.95 * \
@@ -1695,8 +1719,8 @@ class Video:
                          horizontalalignment='left', fontsize=0.9*FS,
                          color='w', verticalalignment='bottom')
                 plt.text(tpos1, gyr_level,
-                         str(self.remap_dat['options']['pprofmin']) + 'º to ' +
-                         str(self.remap_dat['options']['pprofmax']) + 'º',
+                         str(self.remap_dat['options']['pprofmin']) + 'º to '
+                         + str(self.remap_dat['options']['pprofmax']) + 'º',
                          horizontalalignment='left', fontsize=0.9*FS,
                          color='w', verticalalignment='top')
                 plt.text(tpos2, gyr_level, self.diag + str(self.diag_ID),
@@ -1717,8 +1741,8 @@ class Video:
             cbar.ax.tick_params(labelsize=plt_params['fontsize'] * .8)
             # Write the shot number and detector id
             level = self.remap_dat['xaxis'][-1] -\
-                0.1*(self.remap_dat['xaxis'][-1] -
-                     self.remap_dat['xaxis'][0])  # Jut a nice position
+                0.1*(self.remap_dat['xaxis'][-1]
+                     - self.remap_dat['xaxis'][0])  # Jut a nice position
             if self.diag == 'FILD':  # Add a labal with the integration range
                 plt.text(tpos1, level, '#' + str(self.shot),
                          horizontalalignment='left', fontsize=0.9*FS,
@@ -1894,9 +1918,9 @@ class Video:
                 dr.long_name = 'dr_l for the remap'
 
                 dp = f.createVariable('dp', 'float64', ('number', ))
-                dr[:] = self.remap_dat['options']['dp']
-                dr.units = '{}^o'
-                dr.long_name = 'dp for the remap'
+                dp[:] = self.remap_dat['options']['dp']
+                dp.units = '{}^o'
+                dp.long_name = 'dp for the remap'
 
                 pmin = f.createVariable('pmin', 'float64', ('number', ))
                 pmin[:] = self.remap_dat['options']['pmin']
@@ -1947,3 +1971,47 @@ class Video:
                 beta[:] = self.remap_dat['options']['beta']
                 beta.units = '{}^o'
                 beta.long_name = 'beta orientation'
+
+
+class ApplicationShowVid:
+    """Class to show the frames"""
+
+    def __init__(self, master, data):
+        """
+        Create the window with the sliders
+
+        @param master: Tk() opened
+        @param data: the dictionary of experimental frames or remapped ones
+        """
+        # Save here the data
+        self.data = data
+        # Create a container
+        frame = tk.Frame(master)
+        # Create the time slider
+        t = data['tframes']
+        print(t.shape)
+        print(t.size)
+        dt = t[1] - t[0]
+        self.tSlider = tk.Scale(master, from_=t[0], to=t[-1], resolution=dt,
+                                command=self.plot_frame)
+        self.tSlider.pack(side='right')
+        # create the quit button
+        self.qButton = tk.Button(master, text="Quit", command=master.quit)
+        self.qButton.pack(side='bottom')
+
+        fig = Figure()
+        ax = fig.add_subplot(111)
+        self.image = ax.imshow(data['frames'][:, :, 0].squeeze(),
+                               origin='lower')
+        self.canvas = FigureCanvasTkAgg(fig, master=master)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(side='top', fill='both', expand=1)
+        frame.pack()
+
+    def plot_frame(self, t):
+        """Get a plot the frame"""
+        t0 = np.float64(t)
+        it = np.argmin(abs(self.data['tframes'] - t0))
+        dummy = self.data['frames'][:, :, it].squeeze()
+        self.image.set_data(dummy)
+        self.canvas.draw()
