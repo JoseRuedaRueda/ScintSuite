@@ -6,6 +6,7 @@ import numpy as np
 import map_equ as meq    # Module to map the equilibrium
 import os
 from LibPaths import Path
+from scipy.interpolate import interpn
 pa = Path()
 
 
@@ -93,6 +94,7 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
         equ.Close()
     return rho
 
+
 def get_psipol(shot: int, Rin, zin, diag = 'EQH', exp: str = 'AUGD', \
                ed: int = 0, time: float = None, equ = None):
     
@@ -124,13 +126,122 @@ def get_psipol(shot: int, Rin, zin, diag = 'EQH', exp: str = 'AUGD', \
     equ.read_pfm()
     i = np.argmin(np.abs(equ.t_eq - time))
     PFM = equ.pfm[:, :, i].squeeze()
-    psipol = intp(equ.Rmesh, equ.Zmesh, PFM, kx=order, ky=order)
+    psipol = interpn((equ.Rmesh, equ.Zmesh), PFM, (Rin, zin))
 
     # If we opened the equilibrium object, let's close it
     if created:
         equ.Close()
 
     return psipol
+
+# -----------------------------------------------------------------------------
+# --- Electron density and temperature profiles.
+# -----------------------------------------------------------------------------
+def get_ne(shotnumber: int, time: float, exp: str = 'AUGD', diag: str = 'IDA',
+           edition: int = 0):
+    """
+    Wrapper to get AUG electron density.
+
+    Pablo Oyola: pablo.oyola@ipp.mpg.de
+
+    @param shot: Shot number
+    @param time: Time point to read the profile.
+    @param exp: Experiment name.
+    @param diag: diagnostic from which 'ne' will extracted.
+    @param edition: edition of the shotfile to be read.
+    
+    @return output: a dictionary containing the electron density evaluated
+    in the input times and the corresponding rhopol base.
+    """
+    
+    # --- Opening the shotfile.
+    try:
+        sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber, 
+                         experiment=exp, edition=edition)
+    except:
+        raise NameError('The shotnumber %d is not in the database'%shotnumber)
+        
+    
+    # --- Reading from the database
+    ne = sf(name='ne')
+    
+    # The area base is usually constant.
+    rhop = ne.area.data[0, :] 
+    
+    # Getting the time base since for the IDA shotfile, the whole data
+    # is extracted at the time.
+    timebase = sf(name='time')
+    
+    # Making the grid.
+    TT, RR = np.meshgrid(time, rhop)
+    
+    # Interpolating in time to get the input times.
+    ne_out = interpn((timebase, rhop), ne.data, \
+                     (TT.flatten(), RR.flatten()))
+        
+    ne_out = ne_out.reshape(RR.shape)
+        
+    # Output dictionary:
+    output ={ 'data': ne_out,
+              'rhop': rhop
+             }
+    
+    # --- Closing the shotfile.
+    sf.close()
+    
+    return output
+
+def get_Te(shotnumber: int, time: float, exp: str = 'AUGD', diag: str = 'CEZ',
+           edition: int = 0):
+    """
+    Wrapper to get AUG ion temperature.
+
+    Pablo Oyola: pablo.oyola@ipp.mpg.de
+
+    @param shot: Shot number
+    @param time: Time point to read the profile.
+    @param exp: Experiment name.
+    @param diag: diagnostic from which 'Te' will extracted.
+    @param edition: edition of the shotfile to be read.
+    
+    @return output: a dictionary containing the electron temp. evaluated
+    in the input times and the corresponding rhopol base.
+    """
+    
+    # --- Opening the shotfile.
+    try:
+        sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber, 
+                         experiment=exp, edition=edition)
+    except:
+        raise NameError('The shotnumber %d is not in the database'%shotnumber)
+        
+    
+    # --- Reading from the database
+    te = sf(name='Te')
+    
+    # The area base is usually constant.
+    rhop = te.area.data[0, :] 
+    
+    # Getting the time base since for the IDA shotfile, the whole data
+    # is extracted at the time.
+    timebase = sf(name='time')
+    
+    # Making the grid.
+    TT, RR = np.meshgrid(time, rhop)
+    
+    # Interpolating in time to get the input times.
+    te_out = interpn((timebase, rhop), te.data, \
+                     (TT.flatten(), RR.flatten()))
+        
+    te_out = te_out.reshape(RR.shape)
+    # Output dictionary:
+    output ={ 'data': te_out,
+              'rhop': rhop
+             }
+    
+    sf.close()
+    
+    return output
 
 # -----------------------------------------------------------------------------
 # --- Vessel coordinates

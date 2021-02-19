@@ -626,7 +626,7 @@ def plot_orbit(orbit, view: str = '2D', ax_options: dict = {}, ax=None,
     """
     # --- Initialise the plotting parameters
     ax_options['ratio'] = 'equal'
-    # The ratio must be always equal, otherwise is terrorism
+    # The ratio must be always equal
     if 'fontsize' not in ax_options:
         ax_options['fontsize'] = 16
     if 'grid' not in ax_options:
