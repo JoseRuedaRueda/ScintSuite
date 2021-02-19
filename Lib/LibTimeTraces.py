@@ -14,6 +14,7 @@ from scipy.fft import rfft, rfftfreq
 from scipy import signal
 import matplotlib.pyplot as plt
 import LibPlotting as ssplt
+from tqdm import tqdm
 try:
     from roipoly import RoiPoly
 except ModuleNotFoundError:
@@ -40,7 +41,8 @@ def trace(frames, mask):
     std_of_roi = np.zeros(n)
     mean_of_roi = np.zeros(n)
     # calculate the trace
-    for iframe in range(n):
+    print('Calculating the timetrace: ')
+    for iframe in tqdm(range(n)):
         dummy = frames[:, :, iframe].squeeze()
         sum_of_roi[iframe] = np.sum(dummy[mask])
         mean_of_roi[iframe] = np.mean(dummy[mask])
@@ -274,6 +276,66 @@ class TimeTrace:
         self.spec['taxis'] = t + self.time_base[0]
         self.spec['data'] = Sxx
         return
+
+    def plot_single(self, data: str = 'sum', ax_par: dict = {},
+                    line_par: dict = {}, normalised: bool = False, ax=None):
+        """
+        Plot the total number of counts in the ROI
+
+        Jose Rueda: jrrueda@us.es
+
+        @param data: select which timetrace to plot: sum is the total number of
+        counts in the ROI, std its standard deviation and mean, the mean
+        @param ax_par: Dictionary containing the options for the axis_beauty
+        function.
+        @param line_par: Dictionary containing the line parameters
+        @param normalised: if normalised, plot will be normalised to one.
+        @param, ax: axes where to draw the figure, if none, new figure will be
+        created
+        """
+        if 'fontsize' not in ax_par:
+            ax_par['fontsize'] = 16.0
+        if 'grid' not in ax_par:
+            ax_par['grid'] = 'both'
+        if 'xlabel' not in ax_par:
+            ax_par['xlabel'] = 't [s]'
+        if 'linewidth' not in line_par:
+            line_par['linewidth'] = 2.0
+        if 'color' not in line_par:
+            line_par['color'] = 'k'
+
+        # --- Select the proper data:
+        if data == 'sum':
+            y = self.sum_of_roi
+            if 'ylabel' not in ax_par:
+                if normalised:
+                    ax_par['ylabel'] = 'Counts [a.u.]'
+                else:
+                    ax_par['ylabel'] = 'Counts'
+        elif data == 'std':
+            y = self.std_of_roi
+            if 'ylabel' not in ax_par:
+                if normalised:
+                    ax_par['ylabel'] = '$\\sigma [a.u.]$'
+                else:
+                    ax_par['ylabel'] = '$\\sigma$'
+        else:
+            y = self.mean_of_roi
+            if 'ylabel' not in ax_par:
+                if normalised:
+                    ax_par['ylabel'] = 'Mean [a.u.]'
+                else:
+                    ax_par['ylabel'] = 'Mean'
+        # --- Normalise the data:
+        if normalised:
+            y /= y.max()
+
+        # create and plot the figure
+        if ax is None:
+            fig, ax = plt.subplots()
+        ax.plot(self.time_base, y, **line_par)
+        ax = ssplt.axis_beauty(ax, ax_par)
+        plt.tight_layout()
 
     def plot_all(self, options: dict = {}):
         """

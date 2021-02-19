@@ -14,7 +14,7 @@ if machine == 'AUG':
 
 
 # -----------------------------------------------------------------------------
-# --- Pitch definitions:
+# --- Pitch methods:
 # -----------------------------------------------------------------------------
 def pitch2pitch(P0, def_in: int = 0, def_out: int = 2):
     """
@@ -85,6 +85,32 @@ def pitch_at_other_place(R0, P0, R):
     @return P: The pitch evaluated at that position
     """
     return np.sqrt(1 - R0 / R * (1 - P0 ** 2))
+
+
+# -----------------------------------------------------------------------------
+# --- Matrix filters
+# -----------------------------------------------------------------------------
+def neutron_filter(M):
+    """
+    Remove pixels affected by neutrons
+
+    Jose Rueda: jrrueda@us.es
+
+    @param M: Matrix with the counts to be filtered (np.array)
+    @return Mo: Matrix filtered
+    """
+    Mo = M.copy()
+    sx, sy = M.shape
+    for ix in range(1, sx-1):
+        for iy in range(1, sy-1):
+            dummy = M[(ix-1):(ix+1), (iy-1):(iy+1)].copy()
+            dummy[1, 1] = 0
+            mean = np.mean(dummy)
+            std = np.std(dummy)
+            if Mo[ix, iy] > mean + 3 * std:
+                Mo[ix, iy] = mean
+
+    return Mo
 
 
 def TP_boundary(shot, z0, t, Rmin=1.5, Rmax=2.1, zmin=-0.9, zmax=0.9):
