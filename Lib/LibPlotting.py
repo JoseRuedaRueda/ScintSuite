@@ -16,7 +16,7 @@ def p1D(ax, x, y, param_dict: dict = None):
     """
     Create basic 1D plot
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param ax: Axes. The axes to draw to
     @param x: The x data
@@ -30,11 +30,11 @@ def p1D(ax, x, y, param_dict: dict = None):
     return ax
 
 
-def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=-10001):
+def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=None):
     """
     Plot confidence intervals
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     Basic shaded region between y + u_up and y - u_down. If no u_down is
     provided, u_down is taken as u_up
@@ -49,7 +49,7 @@ def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=-10001):
     1 opacity)
     @return ax with the applied settings
     """
-    if u_down == -10001:
+    if u_down is None:
         u_down = u_up
 
     ax.fill_between(x, (y - u_down), (y + u_up), color=color, alpha=alpha)
@@ -57,13 +57,13 @@ def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=-10001):
 
 
 # -----------------------------------------------------------------------------
-# --- Axis tunning and colormap
+# --- Axis tuning and colormap
 # -----------------------------------------------------------------------------
 def axis_beauty(ax, param_dict: dict):
     """
     Modify axis labels, title, ....
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param ax: Axes. The axes to be modify
     @param param_dict: Dictionary with all the fields
@@ -146,7 +146,7 @@ def plot_3D_revolution(r, z, phi_min: float = 0.0, phi_max: float = 1.57,
     @param ax: 3D axes where to plot, if none, a new window will be opened
     @return ax: axes where the surface was drawn
     """
-    # --- Section 0: Create the coordiates to plot
+    # --- Section 0: Create the coordinates to plot
     phi_array = np.linspace(phi_min, phi_max, num=nphi)
     # Create matrices
     X = np.tensordot(r, np.cos(phi_array), axes=0)
@@ -167,16 +167,16 @@ def plot_3D_revolution(r, z, phi_min: float = 0.0, phi_max: float = 1.57,
 # -----------------------------------------------------------------------------
 def plot_vessel(projection: str = 'pol', units: str = 'm', h: float = None,
                 color='k', linewidth=0.5, ax=None, shot: int = 30585,
-                shaded3d: bool = 'False', params3d: dict = {},
+                params3d: dict = {},
                 tor_rot: float = -np.pi/8.0*3.0):
     """
     Plot the tokamak vessel
 
     Jose Rueda: jrrueda@us.es
 
-    @param projection: 'tor' or 'toroidal', else, poloidal view
+    @param projection: 'tor' or 'toroidal', else, poloidal view, '3D'
     @param units: 'm' or 'cm' accepted
-    @param h: z axis coorditate where to plot (in the case of 3d axes), if none
+    @param h: z axis coordinate where to plot (in the case of 3d axes), if none
     a 2d plot will be used
     @param color: color to plot the vessel
     @param linewidth: linewidth to be used
@@ -200,26 +200,26 @@ def plot_vessel(projection: str = 'pol', units: str = 'm', h: float = None,
         # get the data
         vessel = ssdat.toroidal_vessel() * fact
     else:
-        if shaded3d is not True:
+        if projection is not '3D':
             vessel = ssdat.poloidal_vessel(shot=shot) * fact
         else:
             vessel = ssdat.poloidal_vessel(simplified=True) * fact
     # --- Section 1: Plot the vessel
     # open the figure if needed:
     if ax is None:
-        if (h is None) and (shaded3d is not True):
+        if (h is None) and (projection is not '3D'):
             fig, ax = plt.subplots()
         else:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
     # Plot the vessel:
-    if (h is None) and (shaded3d is not True):
+    if (h is None) and (projection is not '3D'):
         ax.plot(vessel[:, 0], vessel[:, 1], color=color, linewidth=linewidth)
     elif h is not None:
         height = h * np.ones(len(vessel[:, 1]))
         ax.plot(vessel[:, 0], vessel[:, 1], height, color=color,
                 linewidth=linewidth)
-    elif shaded3d:
+    else:
         ax = plot_3D_revolution(vessel[:, 0], vessel[:, 1], ax=ax, **params3d)
 
     return ax

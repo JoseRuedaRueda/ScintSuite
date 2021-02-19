@@ -6,7 +6,7 @@ Created as an example to use the routines without the graphical user interface
 DISCLAIMER: This was created on the 21/11/2020. Since them several
 improvements may have been done, it is possible that some function has been
 changed and the script does not work at all now. If this happens, contact
-jose rueda (jose.rueda@ipp.mpg.de) by email
+jose rueda (jrrueda@us.es) by email
 
 DISCLAIMER 2: The script is quite slow because of the AUG routine which reads
 the magnetic field... is not fault of the suite!
@@ -57,7 +57,7 @@ smap.interp_grid(ref_frame.shape, plot=False, method=2)
 smap.plot_pix(ax_ref)
 # -----------------------------------------------------------------------------
 # %% Section 3: Remapping
-# Perform the remaping with the default options
+# Perform the remapping with the default options
 remaped, pitch, gyr = ssmap.remap(smap, ref_frame, delta_y=0.1)
 # Plot the remapped frame
 fig_remap, ax_remap = plt.subplots()

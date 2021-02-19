@@ -19,7 +19,7 @@ def prepare_B_field(shot: int, time: float, diag: str = 'EQH',
     """
     Load the magnetic field to launch an iHIBPsim simulation
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param    shot: Shot number
     @param    time: time [s]
@@ -89,9 +89,9 @@ def prepare_B_field(shot: int, time: float, diag: str = 'EQH',
 
 def write_field(filename: str, field: dict):
     """
-    Write field (electric or magnetics)
+    Write field (electric or magnetic)
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param filename: name of the file where to write
     @param field: dictionary created by the load_field routine of this library
@@ -126,7 +126,7 @@ def load_field(filename, dimensions: int = 2, verbose: bool = True):
     """
     Load the field used in the tracker
 
-    Jose Rueda: ruejo@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     Note: Only 2D is supported right now
 
@@ -134,7 +134,7 @@ def load_field(filename, dimensions: int = 2, verbose: bool = True):
 
     @param filename: full path to the file with the field
     @param dimensions: if 2, field will be interpreted just as B[nr,nz],
-    if 3, include phi dimenssion and if 4, includes time.
+    if 3, include phi dimension and if 4, includes time.
     """
     field = {'nR': None, 'nz': None, 'nphi': None, 'nt': None, 'Rmin': None,
              'Rmax': None, 'zmin': None, 'zmax': None, 'phimin': None,
@@ -229,9 +229,9 @@ def write_tracker_namelist(name_of_namelist_file: str,
     """
     Write the namelist for the particle traker
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
-    To see the meaning of all parameters, look at the nicelly written iHIBPsim
+    To see the meaning of all parameters, look at the nicely written iHIBPsim
     documentation
     """
     with open(name_of_namelist_file, 'w') as f:
@@ -315,7 +315,7 @@ def write_markers(filename: str, markers: dict):
     """
     Write the information of the markers to be followed by the tracker
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
     @para filename: name of the file to be written
     @param markers: dictionary containing all the info of the markers
@@ -343,7 +343,7 @@ def load_orbits(filename: str, counter: int = 1, full_info: bool = True):
     """
     Load the orbit files created by the iHIBPsim tracker
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
     @param filename: Name of the orbit file
     @param counter: number of orbits to load
@@ -357,17 +357,6 @@ def load_orbits(filename: str, counter: int = 1, full_info: bool = True):
         -# 'time': time of each point
         -# 'ID': ID of the markers
     """
-    # Load the whole file:
-    # Future message for pablo, this is a bit too match if the output file has
-    # a couple of Gb, maybe we could save things in the file as:
-    #       id
-    #       number of saved points
-    #       points
-    # In this way we do not repeat the mass or the id so we saved space and we
-    # just need to have in memory one orbit, and we can use fseek...
-    # In any case, the charge can  change because your code include CX
-    # reactions, but not the mass or the ID so I will save in the output just
-    # one mass and one ID
     # --- Open the file and load the data
     with open(filename, 'r') as f:
         A = np.fromfile(f, np.float64)
@@ -411,7 +400,7 @@ def orbit_energy(orbit):
     """
     Get the energy of the marker in each point
 
-    Jose Rueda: ruejo@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @todo: mission for Pablo, this should be just a method in the future
     'orbit' method
@@ -443,7 +432,7 @@ def orbit_pitch(orbit, file: str = None, shot: int = None, IpBt: int = -1,
     Note: In principle you can execute this just giving the path to the file
     with the magnetic field used in the simulation or, giving the shot. In this
     second case, the field from the database will be loaded. This option is
-    still not implemente but is leaved here as a future option, I still do not
+    still not implementes but is leaved here as a future option, I still do not
     have clear how this will be implemented in the GUI. Maybe the easier thing
     will be to leaver the B file created and include a button saying: clean B
     files...
@@ -511,7 +500,7 @@ def orbit_mu(orbit, file: str = None, shot: int = None, IpBt: int = -1,
     Note: In principle you can execute this just giving the path to the file
     with the magnetic field used in the simulation or, giving the shot. In this
     second case, the field from the database will be loaded. This option is
-    still not implemente but is leaved here as a future option, I still do not
+    still not implemented but is leaved here as a future option, I still do not
     have clear how this will be implemented in the GUI. Maybe the easier thing
     will be to leaver the B file created and include a button saying: clean B
     files...
@@ -572,7 +561,7 @@ def orbit_p_phi(orbit, file: str = None, shot: int = None, order: int = 1,
     Note: In principle you can execute this just giving the path to the file
     with the magnetic field used in the simulation or, giving the shot. In this
     second case, the field from the database will be loaded. This option is
-    still not implemente but is leaved here as a future option, I still do not
+    still not implemented but is leaved here as a future option, I still do not
     have clear how this will be implemented in the GUI. Maybe the easier thing
     will be to leaver the B file created and include a button saying: clean B
     files...
@@ -622,13 +611,13 @@ def plot_orbit(orbit, view: str = '2D', ax_options: dict = {}, ax=None,
     """
     Plot the orbit
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param orbit: Orbit dictionary created by 'load_orbits', not the full list,
     just the one you want to plot
     @param view: '2D' to plot, (R,z), (x,y). '3D' to plot the 3D orbit
     @param ax_options: options for the function axis_beauty
-    @param line_options: options fot the line plot (markers, colors and so on)
+    @param line_options: options for the line plot (markers, colors and so on)
     @param ax: axes where to plot, if none, new ones will be created. Note,
     if the '2D' mode is used, ax should be a list of axes, the first one for
     the Rz projection
@@ -637,7 +626,7 @@ def plot_orbit(orbit, view: str = '2D', ax_options: dict = {}, ax=None,
     """
     # --- Initialise the plotting parameters
     ax_options['ratio'] = 'equal'
-    # The ratio must be always equal, otherwise is terrorism
+    # The ratio must be always equal
     if 'fontsize' not in ax_options:
         ax_options['fontsize'] = 16
     if 'grid' not in ax_options:
@@ -682,7 +671,7 @@ def plot_orbit(orbit, view: str = '2D', ax_options: dict = {}, ax=None,
         # Plot the orbit
         ax.plot(x[imin:imax], y[imin:imax],
                 orbit['z'][imin:imax], **line_options)
-        ssplt.plot_vessel(ax=ax, shaded3d=True, params3d=shaded3d_options)
+        ssplt.plot_vessel(ax=ax, projection='3D', params3d=shaded3d_options)
         ax_options['xlabel'] = 'x [m]'
         ax_options['ylabel'] = 'y [m]'
         ax_options['zlabel'] = 'z [m]'
@@ -693,7 +682,7 @@ def plot_orbit(orbit, view: str = '2D', ax_options: dict = {}, ax=None,
 def plot_orbit_time_evolution(orbit, id_to_plot=[0], LN: float = 1.0,
                               grid: bool = True, FS: float = 14.0):
     """
-    Plot the orbit parameters (eergy, pitch, mu, Pphi)
+    Plot the orbit parameters (energy, pitch, mu, Pphi)
 
     Jose Rueda Rueda: Jose Rueda Rueda
 
@@ -750,7 +739,7 @@ def plot_orbit_time_evolution(orbit, id_to_plot=[0], LN: float = 1.0,
 
 def cart2pol(r, v=None):
     """
-    Transfor from cartesian coordinates to cylindrical (polar)
+    Transform from Cartesian coordinates to cylindrical (polar)
 
     @param r: position vector [x, y, z]
     @param v: If present the output will be the velocity
