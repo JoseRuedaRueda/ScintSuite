@@ -4,7 +4,7 @@ import LibMap as mapping
 import LibPlotting as plt
 import LibTimeTraces as tt
 import LibVideoFiles as vid
-import LibExtra as extra
+import LibUtilities as utilities
 import LibPaths as p
 import LibMachine as m
 import LibTracker as tracker
