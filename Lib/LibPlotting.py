@@ -30,7 +30,7 @@ def p1D(ax, x, y, param_dict: dict = None):
     return ax
 
 
-def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=-10001):
+def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=None):
     """
     Plot confidence intervals
 
@@ -49,7 +49,7 @@ def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=-10001):
     1 opacity)
     @return ax with the applied settings
     """
-    if u_down == -10001:
+    if u_down is None:
         u_down = u_up
 
     ax.fill_between(x, (y - u_down), (y + u_up), color=color, alpha=alpha)

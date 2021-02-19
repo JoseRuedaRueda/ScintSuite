@@ -5,6 +5,8 @@ import get_gc            # Module to load vessel components
 import numpy as np
 import map_equ as meq    # Module to map the equilibrium
 import os
+import matplotlib.pyplot as plt
+import LibPlotting as ssplt
 from LibPaths import Path
 from scipy.interpolate import interpn
 pa = Path()
@@ -422,6 +424,8 @@ class NBI:
         @param    shot: shot number
         @param    diaggeom: If true, values extracted manually from diaggeom
         """
+        ## NBI number:
+        self.number = nnbi
         ## Coordinates of the NBI
         self.coords = None
         ## Pitch information (injection pitch in each radial position)
@@ -524,3 +528,32 @@ class NBI:
                 np.vstack((self.pitch_profile['R'], R))
             self.pitch_profile['pitch'] = \
                 np.vstack((self.pitch_profile['pitch'], pitch))
+
+    def plot_pitch_profile(self, line_param: dict = {'linewidth': 2},
+                           ax_param={'grid': 'both', 'xlabel': 'R [cm]',
+                                     'ylabel': '$\\lambda$', 'fontsize': 14},
+                           ax=None):
+        """
+        Plot the NBI pitch profile
+
+        Jose Rueda: jrrueda@us.es
+
+        @param line_param: Dictionary with the line params
+        @param ax_param: Dictionary with the param fr ax_beauty
+        @param ax: axis where to plot, if none, open new figure
+        @return : Nothing
+        """
+        if self.pitch_profile is None:
+            raise Exception('You must calculate first the pitch profile')
+        if ax is None:
+            fig, ax = plt.subplots()
+            ax_created = True
+        ax.plot(self.pitch_profile['R'], self.pitch_profile['pitch'],
+                **line_param, label='NBI#'+str(self.number))
+
+        if ax_created:
+            ax = ssplt.axis_beauty(ax, ax_param)
+        try:
+            plt.legend(fontsize=ax_param['fontsize'])
+        except KeyError:
+            print('You did not set the fontsize in the input params...')

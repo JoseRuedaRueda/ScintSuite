@@ -8,6 +8,62 @@ which will have at the FILD position
 """
 
 import numpy as np
+from LibMachine import machine
+if machine == 'AUG':
+    import LibDataAUG as ssdat
+
+
+# -----------------------------------------------------------------------------
+# --- Pitch definitions:
+# -----------------------------------------------------------------------------
+def pitch2pitch(P0, def_in: int = 0, def_out: int = 2):
+    """
+    Transform between the different pitch definitions
+
+    Jose Rueda: jrrueda@us.es
+
+    id list:
+        -# 0: Pitch in degrees, co-current
+        -# 1: Pitch in degrees, counter-current
+        -# 2: Pitch as v_par / v. co-current
+        -# 3: Pitch as v_par / v. cunter-current
+    @param P0: The arrays containing the pitches we want to transform
+    @param def_in: The id of the inputs pitches
+    @param def_out: the id of the ouput pitches
+    @return P1: Pitch in the other definition
+    """
+    if def_in == def_out:
+        P1 = P0
+
+    if def_in == 0:    # Input as co-current degrees
+        if def_out == 1:
+            P1 = P0 + 180.0
+        elif def_out == 2:
+            P1 = np.cos(P0)
+        elif def_out == 3:
+            P1 = -np.cos(P0)
+    elif def_in == 1:  # Input as counter-current degrees
+        if def_out == 0:
+            P1 = P0 - 180.0
+        elif def_out == 2:
+            P1 = -np.cos(P0)
+        elif def_out == 3:
+            P1 = np.cos(P0)
+    elif def_in == 2:  # Input as co-current
+        if def_out == 0:
+            P1 = np.arccos(P0) * 180. / np.pi
+        elif def_out == 1:
+            P1 = np.arccos(P0) * 180. / np.pi + 180.
+        elif def_out == 3:
+            P1 = -P0
+    elif def_in == 3:  # Input as co-current
+        if def_out == 0:
+            P1 = np.arccos(P0) * 180. / np.pi - 180.
+        elif def_out == 1:
+            P1 = np.arccos(P0) * 180. / np.pi
+        elif def_out == 2:
+            P1 = -P0
+    return P1
 
 
 def pitch_at_other_place(R0, P0, R):
@@ -29,3 +85,38 @@ def pitch_at_other_place(R0, P0, R):
     @return P: The pitch evaluated at that position
     """
     return np.sqrt(1 - R0 / R * (1 - P0 ** 2))
+
+
+def TP_boundary(shot, z0, t, Rmin=1.5, Rmax=2.1, zmin=-0.9, zmax=0.9):
+    """
+    Approximate the TP TP_boundary
+
+    jose rueda: jrrueda@us.es
+
+    |pitch_TP|= sqrt(Rmin/R) where R min is the minimum R of the flux
+    surface which pases by R
+
+    @param shot: shot number
+    @param z: height where to calculate the boundary
+    """
+    # --- Creatin of the grid
+    r = np.linspace(Rmin, Rmax, int((Rmax - Rmin) * 100))
+    z = np.linspace(zmin, zmax, int((zmax - zmin) * 100))
+
+    R, Z = np.meshgrid(r, z)
+
+    # --- Get rho
+    rho = ssdat.get_rho(shot, R.flatten(), Z.flatten(), time=t)
+    rho = np.reshape(rho, (z.size, r.size))
+    # --- Do the gross approximation
+    tp = np.zeros(r.size)
+    iz = np.argmin(abs(z - z0))
+    for i in range(r.size):
+        # - Get the rho there
+        rho1 = rho[iz, i]
+        mask = abs(rho - rho1) < 0.01
+        rr = R[mask]
+        r0 = rr.min()
+        print(r[i], r0)
+        tp[i] = np.sqrt(1 - r0 / r[i])
+    return r, tp
