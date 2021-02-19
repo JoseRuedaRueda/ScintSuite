@@ -16,6 +16,37 @@ import os
 paths = Path()
 
 
+# -----------------------------------------------------------------------------
+# --- General reading
+# -----------------------------------------------------------------------------
+def read_variable_ncdf(file, varNames):
+    """
+    Read a variable from a TRANSP cdf file
+
+    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+
+    @param file: path to the .CDF file to be opened
+    @param varNames: list with the variable names
+    @return data: values of the variable
+    @return units: physical units
+    @return long_name: name of the variable
+    """
+    # see if the inputs is a list/tupple or not
+    try:
+        varNames.append_to_database
+        listNames = varNames.copy()
+    except AttributeError:
+        listNames = []
+        listNames.append(varNames)
+    out = []
+    varfile = netcdf.netcdf_file(file, 'r', mmap=False).variables
+    for ivar in range(len(listNames)):
+        dummy = varfile[listNames[ivar]]
+        out.append(dummy)
+        del dummy
+    return out
+
+
 def read_scintillator_efficiency(file, plot: bool = False, verb: bool = True):
     """
     Load the efficiency of a scintillator
@@ -52,6 +83,65 @@ def read_scintillator_efficiency(file, plot: bool = False, verb: bool = True):
         ax.set_ylabel('Yield [photons / ion]')
         plt.tight_layout()
     return out
+
+
+# -----------------------------------------------------------------------------
+# --- ROIs
+# -----------------------------------------------------------------------------
+def save_mask(mask, filename=None, nframe=None, shot=None, frame=None):
+    """
+    Save the mask used in timetraces and remap calculations
+
+
+    @param mask: Bynary mask to be saved
+    @param filename: Name of the file
+    @param nframe: the frame number used to define the roi (optional)
+    @param shot: Shot number of the video used to define the roi (optional)
+    @param frame: Frame used to define the roi
+    """
+    if filename is None:
+        name = 'mask.nc'
+        filename = os.path.join(paths.Results, name)
+    nnx, nny = mask.shape
+    print('Saving results in: ', filename)
+    with netcdf.netcdf_file(filename, 'w') as f:
+        f.history = 'Done with version ' + version
+
+        f.createDimension('number', 1)
+        f.createDimension('nx', nnx)
+        f.createDimension('ny', nny)
+        nx = f.createVariable('nx', 'i', ('number', ))
+        nx[:] = nnx
+        nx.units = ' '
+        nx.long_name = 'Number of pixels in the first dimenssion'
+
+        ny = f.createVariable('ny', 'i', ('number', ))
+        ny[:] = nny
+        ny.units = ' '
+        ny.long_name = 'Number of pixels in the second dimenssion'
+
+        if shot is not None:
+            shott = f.createVariable('shot', 'i', ('number', ))
+            shott[:] = int(shot)
+            shott.units = ' '
+            shott.long_name = 'shot number'
+
+        if nframe is not None:
+            nnframe = f.createVariable('nframe', 'i', ('number', ))
+            nnframe[:] = nframe
+            nnframe.units = ' '
+            nnframe.long_name = 'Frame number used to define the mask'
+
+        if frame is not None:
+            frames = f.createVariable('frame', 'i', ('nx', 'ny'))
+            frames[:] = frame.squeeze()
+            frames.units = ' '
+            frames.long_name = 'Counts'
+
+        m = f.createVariable('mask', 'i', ('nx', 'ny'))
+        m[:] = mask
+        m.units = ' '
+        m.long_name = 'Binary mask'
 
 
 # -----------------------------------------------------------------------------

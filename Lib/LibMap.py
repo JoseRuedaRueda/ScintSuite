@@ -207,7 +207,7 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
 # --- Remap and profiles
 # -----------------------------------------------------------------------------
 def remap(smap, frame, x_min=20.0, x_max=80.0, delta_x=1,
-          y_min=1.5, y_max=10.0, delta_y=0.2):
+          y_min=1.5, y_max=10.0, delta_y=0.2, mask=None):
     """
     Remap a frame
 
@@ -232,11 +232,18 @@ def remap(smap, frame, x_min=20.0, x_max=80.0, delta_x=1,
 
     # --- 2: Information of the calibration
     if smap.diag == 'FILD':
-        x = smap.pit_interp.flatten()   # pitch associated to each pixel
-        y = smap.gyr_interp.flatten()   # gyroradius associated to each pixel
+        if mask is None:
+            x = smap.pit_interp.flatten()   # pitch associated to each pixel
+            y = smap.gyr_interp.flatten()   # gyroradius of each pixel
+        else:
+            x = smap.pit_interp[mask].flatten()   # pitch of each pixel
+            y = smap.gyr_interp[mask].flatten()   # gyroradius of each pixel
 
     # --- 3: Remap (via histogram)
-    z = frame.flatten()
+    if mask is None:
+        z = frame.flatten()
+    else:
+        z = frame[mask].flatten()
     H, xedges, yedges = np.histogram2d(x, y, bins=[x_edges, y_edges],
                                        weights=z)
     # Normalise H to counts per unit of each axis
@@ -470,7 +477,8 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
                                  beta: float = -12.0,
                                  fildsim_options: dict = {},
                                  method: int = 1,
-                                 verbose: bool = False):
+                                 verbose: bool = False, mask=None,
+                                 machine: str = 'AUG'):
     """
     Remap all loaded frames from a FILD video
 
@@ -555,21 +563,47 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     theta = np.zeros(nframes)
     phi = np.zeros(nframes)
     name_old = ' '
-    print('Remapping frames')
+    print('Calculating theta and phi')
+    exist = np.zeros(nframes, np.bool)
     for iframe in tqdm(range(nframes)):
         if machine == 'AUG':
             tframe = video.exp_dat['tframes'][iframe]
             br[iframe], bz[iframe], bt[iframe], bp =\
                 ssdat.get_mag_field(shot, rfild, zfild, time=tframe, equ=equ)
-            b_field[iframe] = np.sqrt(br[iframe]**2 + bz[iframe]**2 +
-                                      bt[iframe]**2)
+            b_field[iframe] = np.sqrt(br[iframe]**2 + bz[iframe]**2
+                                      + bt[iframe]**2)
         phi[iframe], theta[iframe] = \
             ssFILDSIM.calculate_fild_orientation(br[iframe], bz[iframe],
                                                  bt[iframe], alpha, beta)
-        name = ssFILDSIM.find_strike_map(rfild, zfild, phi[iframe],
-                                         theta[iframe], pa.StrikeMaps,
-                                         pa.FILDSIM,
-                                         FILDSIM_options=fildsim_options)
+        name = ssFILDSIM.guess_strike_map_name_FILD(phi[iframe], theta[iframe],
+                                                    machine=machine)
+        # See if the strike map exist
+        if os.path.isfile(os.path.join(pa.StrikeMaps, name)):
+            exist[iframe] = True
+
+    # See howmany strike maps we need to calculate:
+    nnSmap = np.sum(~exist)
+    x = 1
+    if nnSmap == nframes:
+        print('Non a single strike map, full calculation needed')
+    elif nnSmap == 0:
+        print('Ideal situation, not a single map needed to be calcuated')
+    elif nnSmap != 0:
+        print('We need to calculate:', nnSmap, 'StrikeMaps')
+        print('Write 1 to proceed, 0 just to take the fist existing strikemap')
+        x = input('Enter answer:')
+
+    if x == 0:
+        t = theta[exist][0]
+        p = phi[exist][0]
+        name = ssFILDSIM.guess_strike_map_name_FILD(p, t, machine=machine)
+    print('Remapping frames')
+    for iframe in tqdm(range(nframes)):
+        if x == 1:
+            name = ssFILDSIM.find_strike_map(rfild, zfild, phi[iframe],
+                                             theta[iframe], pa.StrikeMaps,
+                                             pa.FILDSIM, machine=machine,
+                                             FILDSIM_options=fildsim_options)
         # Only reload the strike map if it is needed
         if name != name_old:
             map = StrikeMap(0, os.path.join(pa.StrikeMaps, name))
@@ -579,7 +613,8 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
         name_old = name
         remaped_frames[:, :, iframe], pitch, gyr = \
             remap(map, video.exp_dat['frames'][:, :, iframe], x_min=pmin,
-                  x_max=pmax, delta_x=dp, y_min=rmin, y_max=rmax, delta_y=dr)
+                  x_max=pmax, delta_x=dp, y_min=rmin, y_max=rmax, delta_y=dr,
+                  mask=mask)
         # Calculate the gyroradius and pitch profiles
         dummy = remaped_frames[:, :, iframe].squeeze()
         signal_in_gyr[:, iframe] = gyr_profile(dummy, pitch, pprofmin,
