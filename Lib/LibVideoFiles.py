@@ -8,7 +8,6 @@ PNG files as the old FILD_GUI and will be able to work with tiff files
 
 import os
 import re
-import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import LibPlotting as ssplt
@@ -379,7 +378,6 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     if verbose:
         for y in cin_settings:
             print(y, ':', cin_settings[y])
-    return cin_settings
     #  uint16_t FrameRate16;     // Frame rate fps---UPDF replaced by FrameRate
     #  uint16_t PostTrigger16;   // ---UPDF replaced by PostTrigger
     #  uint16_t FrameDelay16;    // ---UPDF replaced by FrameDelayNs
@@ -749,6 +747,7 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     #                            // VIRGO V2640
     #                      //it is undefined for all other camera (should be 0)
     #                        // End of SETUP in software version 771 (Dec 2017)
+    return cin_settings
 
 
 def read_image_header(filename: str, bit_pos: int, verbose: bool = False):
@@ -887,7 +886,7 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
     else:
         position_array = np.fromfile(fid, 'int64',
                                      int(cin_object.header['ImageCount']))
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # ---  Section 2: Read the images
 
     # Image size from header information
@@ -1648,7 +1647,8 @@ class Video:
         return fig, ax
 
     def plot_profiles_in_time(self, ccmap=None, plt_params: dict = {}, t=None,
-                              nlev: int = 50, cbar_tick_format: str = '%.1E'):
+                              nlev: int = 50, cbar_tick_format: str = '%.1E',
+                              normalise=False):
         """
         Creates a plot with the evolution of the profiles
 
@@ -1739,12 +1739,38 @@ class Video:
             # Set the grid option for plotting
             if 'grid' not in plt_params:
                 plt_params['grid'] = 'both'
-            # find the frame we want to plot
-            it = np.argmin(abs(self.remap_dat['tframes'] - t))
+            # see if the input time is an array:
+            try:
+                t.size
+            except AttributeError:
+                try:
+                    len(t)
+                    t = np.array(t)
+                except TypeError:
+                    t = np.array([t])
             # Open the figure
             fig, (ax1, ax2) = plt.subplots(1, 2)
-            # Plot the gyroradius profile:
-            ax1.plot(self.remap_dat['yaxis'], self.remap_dat['sprofy'][:, it])
+            for tf in t:
+                # find the frame we want to plot
+                it = np.argmin(abs(self.remap_dat['tframes'] - tf))
+                # Plot the gyroradius profile:
+                if normalise:
+                    y = self.remap_dat['sprofy'][:, it]
+                    y /= y.max()
+                else:
+                    y = self.remap_dat['sprofy'][:, it]
+                ax1.plot(self.remap_dat['yaxis'], y,
+                         label='t = {0:.3f}s'.format(
+                            self.remap_dat['tframes'][it]))
+                # Plot the pitch profile
+                if normalise:
+                    y = self.remap_dat['sprofx'][:, it]
+                    y /= y.max()
+                else:
+                    y = self.remap_dat['sprofx'][:, it]
+                ax2.plot(self.remap_dat['xaxis'], y,
+                         label='t = {0:.3f}s'.format(
+                            self.remap_dat['tframes'][it]))
             if self.diag == 'FILD':
                 title = '#' + str(self.shot) + ' ' +\
                     str(self.remap_dat['options']['pprofmin']) + 'º to ' +\
@@ -1754,9 +1780,7 @@ class Video:
                 plt_params['ylabel'] = 'Counts [a.u.]'
                 ax1.set_title(title, fontsize=plt_params['fontsize'])
             ax1 = ssplt.axis_beauty(ax1, plt_params)
-
-            # Plot the gyroradius profile:
-            ax2.plot(self.remap_dat['xaxis'], self.remap_dat['sprofx'][:, it])
+            ax1.legend()
             if self.diag == 'FILD':
                 title = '#' + str(self.shot) + ' ' +\
                     str(self.remap_dat['options']['rprofmin']) + 'cm to ' +\
@@ -1765,6 +1789,7 @@ class Video:
                     self.remap_dat['xunits'] + ']'
                 plt_params['ylabel'] = 'Counts [a.u.]'
                 ax2.set_title(title, fontsize=plt_params['fontsize'])
+            ax2.legend()
             ax2 = ssplt.axis_beauty(ax2, plt_params)
             plt.tight_layout()
         return
@@ -1777,8 +1802,8 @@ class Video:
         """
 
         # Test if the folder
-        name = os.path.join(pa.ScintSuite, 'Results', str(self.shot) + '_' +
-                            self.diag + '_remap.nc')
+        name = os.path.join(pa.ScintSuite, 'Results', str(self.shot) + '_'
+                            + self.diag + '_remap.nc')
         print('Saving results in: ', name)
         # Write the data:
         with netcdf.netcdf_file(name, 'w') as f:
