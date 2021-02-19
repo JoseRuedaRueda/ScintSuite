@@ -562,38 +562,38 @@ def run_FILDSIM(FILDSIM_path, namelist):
 
 def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
                                decimals: int = 1):
-        """
-        Give the name of the strike-map file
+    """
+    Give the name of the strike-map file
 
-        Jose Rueda Rueda: jrrueda@us.es
+    Jose Rueda Rueda: jrrueda@us.es
 
-        Files are supposed to be named as given in the NamingSM_FILD.py file.
-        The data base is composed by strike maps calculated each 0.1 degree
+    Files are supposed to be named as given in the NamingSM_FILD.py file.
+    The data base is composed by strike maps calculated each 0.1 degree
 
-        @param phi: phi angle as defined in FILDSIM
-        @param theta: theta angle as defined in FILDSIM
-        @param machine: 3 characters identifying the machine
-        @param decimals: number of decimal numbers to round the angles
-        @return name: the name of the strike map file
-        """
-        # Taken from one of Juanfran files :-)
-        p = round(phi, ndigits=decimals)
-        t = round(theta, ndigits=decimals)
-        if phi < 0:
-            if theta < 0:
-                name = machine +\
-                    "_map_{0:010.5f}_{1:010.5f}_strike_map.dat".format(p, t)
-            else:
-                name = machine +\
-                    "_map_{0:010.5f}_{1:09.5f}_strike_map.dat".format(p, t)
+    @param phi: phi angle as defined in FILDSIM
+    @param theta: theta angle as defined in FILDSIM
+    @param machine: 3 characters identifying the machine
+    @param decimals: number of decimal numbers to round the angles
+    @return name: the name of the strike map file
+    """
+    # Taken from one of Juanfran files :-)
+    p = round(phi, ndigits=decimals)
+    t = round(theta, ndigits=decimals)
+    if phi < 0:
+        if theta < 0:
+            name = machine +\
+                "_map_{0:010.5f}_{1:010.5f}_strike_map.dat".format(p, t)
         else:
-            if theta < 0:
-                name = machine +\
-                    "_map_{0:09.5f}_{1:010.5f}_strike_map.dat".format(p, t)
-            else:
-                name = machine +\
-                    "_map_{0:09.5f}_{1:09.5f}_strike_map.dat".format(p, t)
-        return name
+            name = machine +\
+                "_map_{0:010.5f}_{1:09.5f}_strike_map.dat".format(p, t)
+    else:
+        if theta < 0:
+            name = machine +\
+                "_map_{0:09.5f}_{1:010.5f}_strike_map.dat".format(p, t)
+        else:
+            name = machine +\
+                "_map_{0:09.5f}_{1:09.5f}_strike_map.dat".format(p, t)
+    return name
 
 
 def find_strike_map(rfild: float, zfild: float,
