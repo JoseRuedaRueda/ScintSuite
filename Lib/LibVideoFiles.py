@@ -8,24 +8,33 @@ PNG files as the old FILD_GUI and will be able to work with tiff files
 
 import os
 import re
-import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import LibPlotting as ssplt
 import LibMap as ssmap
 import LibPaths as p
+import LibUtilities as ssutilities
 from matplotlib.widgets import Slider
 from LibMachine import machine
 from version_suite import version
-from scipy.io import netcdf
+from scipy.io import netcdf                # To export remap data
+from skimage import io                     # To load png images
+import tkinter as tk                       # To open UI windows
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+from tqdm import tqdm                      # For waitbars
 pa = p.Path(machine)
 del p
 if machine == 'AUG':
     import LibDataAUG as ssdat
+try:
+    import cv2
+except ModuleNotFoundError:
+    print('There would be no support for the mp4 videos, open cv not found')
 
 
 # -----------------------------------------------------------------------------
-# Methods for the .cin files
+# --- Methods for the .cin files
 # -----------------------------------------------------------------------------
 def read_header(filename: str, verbose: bool = False):
     """
@@ -102,7 +111,7 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     """
     Read the settings from a .cin file
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param filename: name of the file to read (full path)
     @param bit_pos: Position of the file where the setting structure starts
@@ -375,7 +384,6 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     if verbose:
         for y in cin_settings:
             print(y, ':', cin_settings[y])
-    return cin_settings
     #  uint16_t FrameRate16;     // Frame rate fps---UPDF replaced by FrameRate
     #  uint16_t PostTrigger16;   // ---UPDF replaced by PostTrigger
     #  uint16_t FrameDelay16;    // ---UPDF replaced by FrameDelayNs
@@ -745,18 +753,19 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     #                            // VIRGO V2640
     #                      //it is undefined for all other camera (should be 0)
     #                        // End of SETUP in software version 771 (Dec 2017)
+    return cin_settings
 
 
 def read_image_header(filename: str, bit_pos: int, verbose: bool = False):
     """
     Read the image header of a .cin file
 
-    Josse Rueda: jose.rueda@ipp.mpg.de
+    Josse Rueda: jrrueda@us.es
 
     @param filename: name of the .cin file (full path to the file)
-    @param bit_pos: position of the file wuere the image header starts
+    @param bit_pos: position of the file where the image header starts
     @param verbose: flag to display content of the header
-    @return cin_image_header: Image header (dictionary), see inlien comments
+    @return cin_image_header: Image header (dictionary), see in-line comments
     for a full description of each dictionary field
     """
     # --- Open file and go to the position of the image header
@@ -802,7 +811,7 @@ def read_time_base(filename: str, header: dict, settings: dict):
     """
     Read the time base of the .cin video (relative to the trigger)
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param filename: name of the file to open (full path)
     @param header: header created by the function read_header
@@ -843,7 +852,7 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
     """
     Read frames from a .cin file
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
     @param cin_object: Video Object with the file information
     @param frames_number: np array with the frame numbers to load
@@ -883,7 +892,7 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
     else:
         position_array = np.fromfile(fid, 'int64',
                                      int(cin_object.header['ImageCount']))
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # ---  Section 2: Read the images
 
     # Image size from header information
@@ -898,8 +907,8 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
         BPP = 16  # Bits per pixel
         data_type = 'uint16'
 
-    # Preallocate output array
-    # To be in line with olf FILD GUI and be able to use old FILD callibration
+    # Pre-allocate output array
+    # To be in line with old FILDGUI and be able to use old FILD calibration
     # the matrix will be [height,width]
     M = np.zeros((int(cin_object.imageheader['biHeight']),
                   int(cin_object.imageheader['biWidth']), nframe),
@@ -934,16 +943,16 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
     #                     one frame
 
 
-# ------------------------------------------------------------------------------
-# Methods for the .png files
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# --- Methods for the .png files
+# -----------------------------------------------------------------------------
 def read_data_png(path):
     """
     Read info for a case where the measurements are stored as png
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
-    Return a series of dictionaries similars to the case of a cin file,
+    Return a series of dictionaries similar to the case of a cin file,
     with all the info we can extract from the png
 
     @param path: path to the folder where the pngs are located
@@ -951,7 +960,7 @@ def read_data_png(path):
     @return image_header: dictionary containing the info about the image size,
     and shape
     @return header: Header 'similar' to the case of a cin file
-    @return settingf: dictionary similar to the case of the cin file (it only
+    @return settings: dictionary similar to the case of the cin file (it only
     contain the exposition time)
     """
     # Look for a png to extract the file and a .txt for the time information
@@ -961,7 +970,7 @@ def read_data_png(path):
         if file.endswith('.txt'):
             f.append(os.path.join(path, file))
         if file.endswith('.png') and look_for_png:
-            dummy = plt.imread(os.path.join(path, file))
+            dummy = io.imread(os.path.join(path, file))
             si = dummy.shape
             imageheader = {'biWidth': si[0],
                            'biHeight': si[1]}
@@ -995,9 +1004,9 @@ def read_data_png(path):
         elif np.mean(time_base) < 0.1:
             raise Exception('The time base was broken!!!')
     # extract the shot number from the path
-    header['shot'] = int(path[-5:])
+    # header['shot'] = int(path[-5:])
 
-    return header, imageheader, settings, time_base.squeeze()
+    return header, imageheader, settings, time_base[:].flatten()
 
 
 def rgb2gray(rgb):
@@ -1016,7 +1025,7 @@ def load_png_files(filename: str):
     @param filename: full path pointing to the png
     """
 
-    dummy = plt.imread(filename)
+    dummy = io.imread(filename)
     if len(dummy.shape) > 2:     # We have an rgb png, transform it to gray
         dummy = rgb2gray(dummy)
 
@@ -1028,7 +1037,7 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
     """
     Read .png files
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param video_object: Video class with the info of the video
     @param frames_number: array with the number of the frames to be loaded,
@@ -1074,17 +1083,58 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
             if file.endswith('.png'):
                 current_frame = current_frame + 1
                 if current_frame in frames_number:
-                    M[:, :, counter] = plt.imread(
-                        os.path.join(video_object.path, file)).astype(
-                            np.float32)
+                    pngname = os.path.join(video_object.path, file)
+                    dummy = load_png_files(pngname)
+                    M[:, :, counter] = dummy.astype(np.float32)
                     counter = counter + 1
         print('Number of loaded frames: ', counter)
     return M
 
 
-# ------------------------------------------------------------------------------
-#  Classes
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# --- mp4 files
+# -----------------------------------------------------------------------------
+def read_mp4_file(file, verbose: bool = True):
+    """
+    Read frames and time base from an mp4 file
+
+    Jose Rueda: jrrueda@us.es
+
+    @param file: full path to the file
+    """
+    # --- Open the video file
+    vid = cv2.VideoCapture(file)
+
+    # --- Get the number of frames in the video
+    nf = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
+    # --- Get the frame rate
+    fr = vid.get(cv2.CAP_PROP_FPS)
+    if verbose:
+        print('We will load: ', nf, ' frames')
+        print('Frame rate: ', fr)
+    # --- Read the frames
+    nx = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    ny = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
+
+    time = np.zeros(nf)
+    frames = np.zeros((nx, ny, nf))
+    counter = 0
+    success = True
+    while success:
+        success, image = vid.read()
+        if success:
+            time[counter] = vid.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+            # if frame is in rgb, transform to gray
+            if len(image.shape) > 1:
+                image = rgb2gray(image)
+            frames[:, :, counter] = image
+            counter += 1
+    return {'nf': nf, 'nx': nx, 'ny': ny, 'frames': frames, 'tframes': time}
+
+
+# -----------------------------------------------------------------------------
+# --- Classes
+# -----------------------------------------------------------------------------
 class Video:
     """
     Class with the information of the recorded video
@@ -1093,18 +1143,31 @@ class Video:
     the frames itself not, we can not work with 100Gb of data in memory!!!
     """
 
-    def __init__(self, file: str, diag: str = 'FILD', shot=None,
+    def __init__(self, file: str = None, diag: str = 'FILD', shot=None,
                  diag_ID: int = 1):
         """
         Initialise the class
 
         @param file: For the initialization, file (full path) to be loaded),
         if the path point to a .cin file, the .cin file will be loaded. If
-        the path points to a folder, the prgram will look for png files or
-        tiff files inside (tiff comming soon)
+        the path points to a folder, the program will look for png files or
+        tiff files inside (tiff coming soon). If none, a window will be open to
+        select a file
         @param shot: Shot number, if is not given, the program will look for it
         in the name of the loaded file
         """
+        # If no file was given, open a graphical user interface to select it.
+        if file is None:
+            root = tk.Tk()    # To close the window after the selection
+            root.withdraw()
+            filename = tk.filedialog.askopenfilename()
+            if filename == '':
+                raise Exception('You must select a file!!!')
+            # If we select a png or tif, we need the folder, not the file
+            if filename.endswith('.png') or filename.endswith('.tif'):
+                file, name_png = os.path.split(filename)
+            else:
+                file = filename
         # Initialise some variables
         ## Type of video
         self.type_of_file = None
@@ -1112,7 +1175,7 @@ class Video:
         self.exp_dat = {'frames': None,   # Loaded frames
                         'tframes': None,  # Timebase of the loaded frames
                         'nframes': None}  # Frame numbers of the loaded frames
-        ## Remaped data
+        ## Remapped data
         self.remap_dat = None
         ## Time traces: space reservation for the future
         self.time_trace = None
@@ -1147,6 +1210,17 @@ class Video:
                 self.type_of_file = '.cin'
             elif file[-4:] == '.png' or file[-4:] == '.tif':
                 raise Exception('To load png or tif, just give the folder')
+            elif file[-4:] == '.mp4':
+                dummy = read_mp4_file(file, verbose=False)
+                # mp4 files are handle different as they are suppose to be just
+                # a dummy temporal format, not the one to save our real exp
+                # data, so the video will be loaded all from here and not
+                # reading specific frame will be used
+                self.timebase = dummy['tframes']
+                self.exp_dat['frames'] = dummy['frames']
+                self.exp_dat['tframes'] = dummy['tframes']
+                self.exp_dat['nframes'] = np.arange(dummy['nf'])
+                self.type_of_file = '.mp4'
             else:
                 raise Exception('Not recognised file extension')
         elif os.path.isdir(file):
@@ -1183,9 +1257,9 @@ class Video:
         """
         Guess the shot number from the name of the file
 
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
-        @param file: Name of the file or folder containg the data. In that name
-        it is assumed to be the shot number in the proper format
+        Jose Rueda Rueda: jrrueda@us.es
+        @param file: Name of the file or folder containing the data. In that
+        name it is assumed to be the shot number in the proper format
         @param shot_number_length: Number of characters expected from the shot
         number in the file name (defined in the modulus of each machine)
         """
@@ -1198,21 +1272,26 @@ class Video:
                 flags[i] = True
         ntrues = np.sum(flags)
         if ntrues == 1:
-            # print(flags)
-            # print(list[flags])
             self.shot = int(list[flags])
+        elif ntrues == 2:
+            # Maybe just the file is saved in a folder named as the shot, so we
+            # can have a second positive here
+            options = list[flags]
+            if options[0] == options[1]:
+                self.shot = int(options[0])
         elif ntrues == 0:
-            er = 'No shot number found in the name of the file'
+            er = 'No shot number found in the name of the file\n'
             er2 = 'Give the shot number as input when loading the file'
-            raise Eception(er + er2)
+            raise Exception(er + er2)
         else:
-            er = 'Several possibles shot number were found'
+            er = 'Several possibles shot number were found\n'
             er2 = 'Give the shot number as input when loading the file'
             print('Possible shot numbers ', list[flags])
-            raise Eception(er + er2)
+            raise Exception(er + er2)
 
     def read_frame(self, frames_number=None, limitation: bool = True,
-                   limit: int = 2048, internal: bool = True):
+                   limit: int = 2048, internal: bool = True, t1: float = None,
+                   t2: float = None):
         """
         Call the read_frame function
 
@@ -1229,8 +1308,23 @@ class Video:
         variable of the video object. Else, it will be returned just as output
         (usefull if you need to load another frame and you do not want to
         overwrite your frames already loaded)
+        @param t1: Initial time to load frames (alternative to frames number)
+        @param t2: Final time to load frames (alternative to frames number), if
+        just t1 is given , only one frame will be loaded
         @return M: 3D numpy array with the frames M[px,py,nframes]
         """
+        # --- Select frames to load
+        if (frames_number is not None) and (t1 is not None):
+            raise Exception('You cannot give frames number and time')
+        elif (t1 is not None) and (t2 is None):
+            frames_number = np.array([np.argmin(abs(self.timebase-t1))])
+        elif (t1 is not None) and (t2 is not None):
+            it1 = np.argmin(abs(self.timebase-t1))
+            it2 = np.argmin(abs(self.timebase-t2))
+            frames_number = np.arange(start=it1, stop=it2+1, step=1)
+        # else:
+        #     raise Exception('Something went wrong, check inputs')
+
         if self.type_of_file == '.cin':
             if internal:
                 self.exp_dat['frames'] = \
@@ -1247,7 +1341,8 @@ class Video:
                 self.exp_dat['frames'] = \
                     read_frame_png(self, frames_number, limitation=limitation,
                                    limit=limit)
-                self.exp_dat['tframes'] = self.timebase[frames_number]
+                self.exp_dat['tframes'] = \
+                    self.timebase[frames_number].flatten()
                 self.exp_dat['nframes'] = frames_number
             else:
                 M = read_frame_png(self, frames_number, limitation=limitation,
@@ -1261,12 +1356,12 @@ class Video:
         """
         Subtract noise from camera frames
 
-        Jose Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda: jrrueda@us.es
 
         This function subtract the noise from the experimental camera frames.
         Two main ways exist: if t1 and t2 are provided, the noise will be
         be considered as the average in this range. If 'frame' is given,
-        the noise to be substracted will be considered to be directly 'frame'
+        the noise to be subtracted will be considered to be directly 'frame'
 
         A new variable: 'original frames' will be created, where the original
         frames will be loaded, in case one wants to revert the noise
@@ -1274,7 +1369,7 @@ class Video:
 
         @param t1: Minimum time to average the noise
         @param t2: Maximum time to average the noise
-        @param frame: Optinal, frame containing the noise to be subtracted
+        @param frame: Optional, frame containing the noise to be subtracted
         """
         print('.--. ... ..-. -')
         print('Substracting noise')
@@ -1299,7 +1394,7 @@ class Video:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
         else:
             print('original frames already present, not making new copy')
-        # Substract the noise
+        # Subtract the noise
         for i in range(nt):
             # Perform the subtraction in float to avoid negative values in uint
             dummy = \
@@ -1325,7 +1420,8 @@ class Video:
             self.exp_dat['frames'] = self.exp_dat['original_frames'].copy()
         return
 
-    def remap_loaded_frames(self, calibration, shot, options: dict = {}):
+    def remap_loaded_frames(self, calibration, shot, options: dict = {},
+                            mask=None,):
         """
         Remap all loaded frames in the video object
 
@@ -1333,8 +1429,8 @@ class Video:
         @type:    type
 
         @param    shot: Shot number
-        @type:    type
-
+        @param    mask: binary mask (as for the TimeTraces), to just select a
+        region of the scintillator to be remapped
         @param    options: Options for the remapping routine. See
         remap_all_loaded_frames_XXXX in the LibMap package for a full
         description
@@ -1350,17 +1446,32 @@ class Video:
             -# ylabel: name of the yaxis of he remaped frame (r for FILD)
             -# sprofx: signal integrated over the y range given by options
             -# sprofy: signal integrated over the x range given by options
-
-        @rtype:   type
-
-        @raises   ExceptionName: Why the exception is raised.
         """
 
         if self.diag == 'FILD':
             self.remap_dat, opt = \
                 ssmap.remap_all_loaded_frames_FILD(self, calibration, shot,
-                                                   **options)
+                                                   mask=mask, **options)
             self.remap_dat['options'] = opt
+
+    def filter_frames(self, method='jrr'):
+        """
+        Filter the camera frames
+
+        @param method: method to be used:
+            -# jrr: neutron method of the extra package
+        """
+        print('Removing pixels affected by neutrons')
+        if 'original_frames' not in self.exp_dat:
+            self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
+        else:
+            print('original frames already present, not making new copy')
+        # Eliminate neutrons
+        nx, ny, nt = self.exp_dat['frames'].shape
+        for i in tqdm(range(nt)):
+            self.exp_dat['frames'][:, :, i] = \
+                ssutilities.neutron_filter(self.exp_dat['frames'][:, :, i])
+        return
 
     def plot_frame(self, frame_number=None, ax=None, fig=None, ccmap=None,
                    strike_map=None, t: float = None):
@@ -1387,12 +1498,12 @@ class Video:
         if (frame_number is None) and (t is None):
             raise Exception("Didn't you want to plot something?")
         # --- Load the frames
-        # If we use the frame number explicitely
+        # If we use the frame number explicitly
         if frame_number is not None:
             if len(self.exp_dat['nframes']) == 1:
                 if self.exp_dat['nframes'] == frame_number:
                     dummy = self.exp_dat['frames'].squeeze()
-                    tf = self.exp_dat['tframes']
+                    tf = float(self.exp_dat['tframes'])
                 else:
                     raise Exception('Frame not loaded')
             else:
@@ -1400,7 +1511,7 @@ class Video:
                 if np.sum(frame_index) == 0:
                     raise Exception('Frame not loaded')
                 dummy = self.exp_dat['frames'][:, :, frame_index].squeeze()
-                tf = self.exp_dat['tframes'][frame_index]
+                tf = float(self.exp_dat['tframes'][frame_index])
         # If we give the time:
         if t is not None:
             it = np.argmin(abs(self.exp_dat['tframes'] - t))
@@ -1422,165 +1533,20 @@ class Video:
 
         return fig, ax
 
-    def plot_remaped_slider(self, ccmap=None):
-        """
-        Creates a plot with some sliders to see the remaped data
-
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
-
-        @param ccmap: colormap to be used, if none, Gamma_II will be used
-        """
-        # @todo solve this in a more elegant way
-        global exp_dat
-        global remap_dat
-        global ax
-        global cmap
-        global cbar_frame
-        global cbar_remap
-        global gyr
-        global pitch
-        # global rfild
-        # global zfild
-        global pa
-        global phi
-        global theta
-        global pEner
-        global plt_param
-        global options_plt_pitch
-        global options_plt_remap
-        global options_plt_gyr
-        fig, ax = plt.subplots(2, 2)
-        plt.subplots_adjust(left=0.25, bottom=0.25)
-        if ccmap is None:
-            cmap = ssplt.Gamma_II()
-        else:
-            cmap = ccmap
-        # Get the extreme of the counts, for the scale
-        max_rep = np.max(self.remap_dat['frames'])
-        min_rep = np.min(self.remap_dat['frames'])
-        max_fra = np.max(self.exp_dat['frames'])
-        min_fra = np.min(self.exp_dat['frames'])
-        # --- Initialise the four plots
-        # - Camera
-        plot_frame = ax[0, 0].imshow(self.exp_dat['frames'][:, :, 0],
-                                     origin='lower', cmap=cmap)
-        # plt_param = {'marker': 'None'}
-        cbar_frame = fig.colorbar(plot_frame, ax=ax[0, 0])
-        # - Remaped info
-        # @todo: think in giving as output this transposed
-        dummy = self.remap_dat['frames'][:, :, 0].squeeze().T
-        plot_remap = ax[0, 1].contourf(self.remap_dat['xaxis'],
-                                       self.remap_dat['yaxis'],
-                                       dummy, levels=20, cmap=cmap)
-        options_plt_remap = {'xlabel': self.remap_dat['xlabel'],
-                             'ylabel': self.remap_dat['ylabel']}
-        dum = ssplt.axis_beauty(ax[0, 1], options_plt_remap)
-        cbar_remap = fig.colorbar(plot_remap, ax=ax[0, 1])
-        # - pitch profile
-        plot_pitch = ax[1, 0].plot(self.remap_dat['xaxis'],
-                                   self.remap_dat['sprofx'][:, 0])
-        options_plt_pitch = {'ylabel': 'Counts',
-                             'xlabel': self.remap_dat['xlabel'] + ' [' +
-                             self.remap_dat['xunits'] + ']',
-                             'grid': 'both'}
-        dum = ssplt.axis_beauty(ax[1, 0], options_plt_pitch)
-        # - gir profile
-        plot_gyr = ax[1, 1].plot(self.remap_dat['yaxis'],
-                                 self.remap_dat['sprofy'][:, 1])
-        options_plt_gyr = {'ylabel': 'Counts',
-                           'xlabel': self.remap_dat['ylabel'] + ' [' +
-                           self.remap_dat['yunits'] + ']',
-                           'grid': 'both'}
-        dum = ssplt.axis_beauty(ax[1, 1], options_plt_gyr)
-        # --- Set the sliders
-        # - Time slider
-        axcolor = 'k'
-        dt = self.exp_dat['tframes'][1] - self.exp_dat['tframes'][0]
-        axtime = plt.axes([0.15, 0.97, 0.75, 0.02], facecolor=axcolor)
-        stime = Slider(axtime, 'Time [s]: ', self.exp_dat['tframes'][0],
-                       self.exp_dat['tframes'][-1], valfmt='%.3f',
-                       valinit=self.exp_dat['tframes'][0], valstep=dt)
-        # - Colormap for the frame
-        axmax_frame = plt.axes([0.15, 0.94, 0.30, 0.02], facecolor=axcolor)
-        axmin_frame = plt.axes([0.15, 0.91, 0.30, 0.02], facecolor=axcolor)
-        smin_frame = Slider(axmax_frame, 'Min [#]: ', 0.75 * min_fra,
-                            1.25 * max_fra, valinit=min_fra)
-        smax_frame = Slider(axmin_frame, 'Max [#]: ',  0.75 * min_fra,
-                            1.25 * max_fra, valinit=max_fra)
-        # - Colormap for the remap
-        axmax_rep = plt.axes([0.60, 0.94, 0.30, 0.02], facecolor=axcolor)
-        axmin_rep = plt.axes([0.60, 0.91, 0.30, 0.02], facecolor=axcolor)
-        smin_rep = Slider(axmax_rep, 'Min [#]: ', 0.75 * min_rep,
-                          1.25 * max_rep, valinit=min_rep)
-        smax_rep = Slider(axmin_rep, 'Max [#]: ',  0.75 * min_rep,
-                          1.25 * max_rep, valinit=max_rep)
-
-        exp_dat = self.exp_dat
-        remap_dat = self.remap_dat
-
-        # function to update the plots:
-        def update(val):
-            """Update the sliders"""
-
-            ####
-            # Get the time
-            t = stime.val
-            it = np.argmin(abs(exp_dat['tframes']-t))
-            # Get the limit of the colorbars
-            frame_min = smin_frame.val
-            frame_max = smax_frame.val
-            rep_min = smin_rep.val
-            rep_max = smax_rep.val
-            # - Plot the frame
-            ax[0, 0].clear()
-            dummy = exp_dat['frames'][:, :, it].squeeze()
-            plot_frame = ax[0, 0].imshow(dummy, origin='lower', cmap=cmap,
-                                         vmin=frame_min, vmax=frame_max)
-            cbar_frame.update_normal(plot_frame)
-            # Get and plot the strike map
-            # name = ssFILDSIM.find_strike_map(rfild, zfild, phi[it],
-            #                                  theta[it], pa.StrikeMaps,
-            #                                  pa.FILDSIM)
-            # map = ssmap.StrikeMap(0, os.path.join(pa.StrikeMaps, name))
-            # map.calculate_pixel_coordinates(cal)
-            # map.plot_pix(ax[0, 0], plt_param=plt_param)
-
-            # - Plot the remap
-            ax[0, 1].clear()
-            dummy = remap_dat['frames'][:, :, it].squeeze()
-            plot_remap = ax[0, 1].contourf(remap_dat['xaxis'],
-                                           remap_dat['yaxis'],
-                                           dummy.T, levels=20,
-                                           cmap=cmap, vmin=rep_min,
-                                           vmax=rep_max)
-            dum = ssplt.axis_beauty(ax[0, 1], options_plt_remap)
-            cbar_remap.update_normal(plot_remap)
-            # - Update the profiles
-            # Plot the profiles
-            ax[1, 0].clear()
-            ax[1, 0].plot(remap_dat['xaxis'],
-                          remap_dat['sprofx'][:, it])
-            dum = ssplt.axis_beauty(ax[1, 0], options_plt_pitch)
-            ax[1, 1].clear()
-            ax[1, 1].plot(remap_dat['yaxis'],
-                          remap_dat['sprofy'][:, it])
-            dum = ssplt.axis_beauty(ax[1, 1], options_plt_gyr)
-
-            fig.canvas.draw_idle()
-        stime.on_changed(update)
-        smin_frame.on_changed(update)
-        smax_frame.on_changed(update)
-        smin_rep.on_changed(update)
-        smax_rep.on_changed(update)
-        plt.show()
-        return fig, ax
+    def plot_frames_slider(self):
+        "Plot the frames with a slider which allows to select the desired time"
+        root = tk.Tk()
+        ApplicationShowVid(root, self.exp_dat)
+        root.mainloop()
+        root.destroy()
 
     def plot_profiles_in_time(self, ccmap=None, plt_params: dict = {}, t=None,
-                              nlev: int = 50, cbar_tick_format: str = '%.1E'):
+                              nlev: int = 50, cbar_tick_format: str = '%.1E',
+                              normalise=False):
         """
         Creates a plot with the evolution of the profiles
 
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda Rueda: jrrueda@us.es
 
         @param ccmap: colormap to be used, if none, Gamma_II will be used
         @param plt_params: params for the function axis beauty plt
@@ -1610,8 +1576,8 @@ class Video:
             cbar.ax.tick_params(labelsize=plt_params['fontsize'] * .8)
             # Write the shot number and detector id
             gyr_level = self.remap_dat['yaxis'][-1] -\
-                0.1*(self.remap_dat['yaxis'][-1] -
-                     self.remap_dat['yaxis'][0])  # Jut a nice position
+                0.1*(self.remap_dat['yaxis'][-1]
+                     - self.remap_dat['yaxis'][0])  # Jut a nice position
             tpos1 = self.remap_dat['tframes'][0] + 0.05 * \
                 (self.remap_dat['tframes'][-1] - self.remap_dat['tframes'][0])
             tpos2 = self.remap_dat['tframes'][0] + 0.95 * \
@@ -1622,8 +1588,8 @@ class Video:
                          horizontalalignment='left', fontsize=0.9*FS,
                          color='w', verticalalignment='bottom')
                 plt.text(tpos1, gyr_level,
-                         str(self.remap_dat['options']['pprofmin']) + 'º to ' +
-                         str(self.remap_dat['options']['pprofmax']) + 'º',
+                         str(self.remap_dat['options']['pprofmin']) + 'º to '
+                         + str(self.remap_dat['options']['pprofmax']) + 'º',
                          horizontalalignment='left', fontsize=0.9*FS,
                          color='w', verticalalignment='top')
                 plt.text(tpos2, gyr_level, self.diag + str(self.diag_ID),
@@ -1644,9 +1610,9 @@ class Video:
             cbar.ax.tick_params(labelsize=plt_params['fontsize'] * .8)
             # Write the shot number and detector id
             level = self.remap_dat['xaxis'][-1] -\
-                0.1*(self.remap_dat['xaxis'][-1] -
-                     self.remap_dat['xaxis'][0])  # Jut a nice position
-            if self.diag == 'FILD':  # Add a labal with the integation range
+                0.1*(self.remap_dat['xaxis'][-1]
+                     - self.remap_dat['xaxis'][0])  # Jut a nice position
+            if self.diag == 'FILD':  # Add a labal with the integration range
                 plt.text(tpos1, level, '#' + str(self.shot),
                          horizontalalignment='left', fontsize=0.9*FS,
                          color='w', verticalalignment='bottom')
@@ -1667,12 +1633,38 @@ class Video:
             # Set the grid option for plotting
             if 'grid' not in plt_params:
                 plt_params['grid'] = 'both'
-            # find the frame we want to plot
-            it = np.argmin(abs(self.remap_dat['tframes'] - t))
+            # see if the input time is an array:
+            try:
+                t.size
+            except AttributeError:
+                try:
+                    len(t)
+                    t = np.array(t)
+                except TypeError:
+                    t = np.array([t])
             # Open the figure
             fig, (ax1, ax2) = plt.subplots(1, 2)
-            # Plot the gyroradius profile:
-            ax1.plot(self.remap_dat['yaxis'], self.remap_dat['sprofy'][:, it])
+            for tf in t:
+                # find the frame we want to plot
+                it = np.argmin(abs(self.remap_dat['tframes'] - tf))
+                # Plot the gyroradius profile:
+                if normalise:
+                    y = self.remap_dat['sprofy'][:, it]
+                    y /= y.max()
+                else:
+                    y = self.remap_dat['sprofy'][:, it]
+                ax1.plot(self.remap_dat['yaxis'], y,
+                         label='t = {0:.3f}s'.format(
+                            self.remap_dat['tframes'][it]))
+                # Plot the pitch profile
+                if normalise:
+                    y = self.remap_dat['sprofx'][:, it]
+                    y /= y.max()
+                else:
+                    y = self.remap_dat['sprofx'][:, it]
+                ax2.plot(self.remap_dat['xaxis'], y,
+                         label='t = {0:.3f}s'.format(
+                            self.remap_dat['tframes'][it]))
             if self.diag == 'FILD':
                 title = '#' + str(self.shot) + ' ' +\
                     str(self.remap_dat['options']['pprofmin']) + 'º to ' +\
@@ -1682,9 +1674,7 @@ class Video:
                 plt_params['ylabel'] = 'Counts [a.u.]'
                 ax1.set_title(title, fontsize=plt_params['fontsize'])
             ax1 = ssplt.axis_beauty(ax1, plt_params)
-
-            # Plot the gyroradius profile:
-            ax2.plot(self.remap_dat['xaxis'], self.remap_dat['sprofx'][:, it])
+            ax1.legend()
             if self.diag == 'FILD':
                 title = '#' + str(self.shot) + ' ' +\
                     str(self.remap_dat['options']['rprofmin']) + 'cm to ' +\
@@ -1693,20 +1683,23 @@ class Video:
                     self.remap_dat['xunits'] + ']'
                 plt_params['ylabel'] = 'Counts [a.u.]'
                 ax2.set_title(title, fontsize=plt_params['fontsize'])
+            ax2.legend()
             ax2 = ssplt.axis_beauty(ax2, plt_params)
             plt.tight_layout()
+        plt.show()
         return
 
-    def export_remap(self):
+    def export_remap(self, name=None):
         """
-        Export the dictionary containing the remaped data
+        Export the dictionary containing the remapped data
 
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+        Jose Rueda Rueda: jrrueda@us.es
         """
 
-        # Test if the folder
-        name = os.path.join(pa.ScintSuite, 'Results', str(self.shot) + '_' +
-                            self.diag + '_remap.nc')
+        # Test if the file exist:
+        if name is None:
+            name = os.path.join(pa.ScintSuite, 'Results', str(self.shot) + '_'
+                                + self.diag + '_remap.nc')
         print('Saving results in: ', name)
         # Write the data:
         with netcdf.netcdf_file(name, 'w') as f:
@@ -1768,7 +1761,7 @@ class Video:
 
             # Save the specific FILD variables
             if self.diag == 'FILD':
-                # Detector orienttion
+                # Detector orientation
                 theta = f.createVariable('theta', 'float64', ('tframes', ))
                 theta[:] = self.remap_dat['theta']
                 theta.units = '{}^o'
@@ -1796,9 +1789,9 @@ class Video:
                 dr.long_name = 'dr_l for the remap'
 
                 dp = f.createVariable('dp', 'float64', ('number', ))
-                dr[:] = self.remap_dat['options']['dp']
-                dr.units = '{}^o'
-                dr.long_name = 'dp for the remap'
+                dp[:] = self.remap_dat['options']['dp']
+                dp.units = '{}^o'
+                dp.long_name = 'dp for the remap'
 
                 pmin = f.createVariable('pmin', 'float64', ('number', ))
                 pmin[:] = self.remap_dat['options']['pmin']
@@ -1849,3 +1842,47 @@ class Video:
                 beta[:] = self.remap_dat['options']['beta']
                 beta.units = '{}^o'
                 beta.long_name = 'beta orientation'
+
+
+class ApplicationShowVid:
+    """Class to show the frames"""
+
+    def __init__(self, master, data):
+        """
+        Create the window with the sliders
+
+        @param master: Tk() opened
+        @param data: the dictionary of experimental frames or remapped ones
+        """
+        # Save here the data
+        self.data = data
+        # Create a container
+        frame = tk.Frame(master)
+        # Create the time slider
+        t = data['tframes']
+        print(t.shape)
+        print(t.size)
+        dt = t[1] - t[0]
+        self.tSlider = tk.Scale(master, from_=t[0], to=t[-1], resolution=dt,
+                                command=self.plot_frame)
+        self.tSlider.pack(side='right')
+        # create the quit button
+        self.qButton = tk.Button(master, text="Quit", command=master.quit)
+        self.qButton.pack(side='bottom')
+
+        fig = Figure()
+        ax = fig.add_subplot(111)
+        self.image = ax.imshow(data['frames'][:, :, 0].squeeze(),
+                               origin='lower')
+        self.canvas = FigureCanvasTkAgg(fig, master=master)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(side='top', fill='both', expand=1)
+        frame.pack()
+
+    def plot_frame(self, t):
+        """Get a plot the frame"""
+        t0 = np.float64(t)
+        it = np.argmin(abs(self.data['tframes'] - t0))
+        dummy = self.data['frames'][:, :, it].squeeze()
+        self.image.set_data(dummy)
+        self.canvas.draw()

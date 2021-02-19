@@ -3,8 +3,11 @@ import os
 import numpy as np
 import math as ma
 import LibParameters as ssp
+import LibPlotting as ssplt
+import matplotlib.pyplot as plt
 from scipy import interpolate
-from scipy.special import erf
+from scipy.special import erf       # error function
+from tqdm import tqdm               # For waitbars
 
 
 # -----------------------------------------------------------------------------
@@ -12,10 +15,10 @@ from scipy.special import erf
 # -----------------------------------------------------------------------------
 def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
     """
-    Routine to calculate the magnetic field orientation with tespect to FILD
+    Routine to calculate the magnetic field orientation with respect to FILD
 
-    Important note, the original routine writen by joaquin in IDL received as
-    input bt, br, bz... notice the diferent order or the inputs,
+    Important note, the original routine written by Joaquin in IDL received as
+    input bt, br, bz... notice the different order or the inputs,
     to be consistent with the rest of this suite
 
     @param br: Magnetic field in the r direction
@@ -41,7 +44,7 @@ def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
     alpha = alpha * np.pi / 180.0
     beta = beta * np.pi / 180.0
 
-    # Refer the orientation of the BField wo the orientation of FILD
+    # Refer the orientation of the BField to the orientation of FILD
     # Alpha measured from R (positive getting away from axis) to Z (positive)
     bt1 = bt
     br1 = br * np.cos(alpha) - bz * np.sin(alpha)
@@ -87,7 +90,7 @@ def calculate_photon_flux(raw_frame, calibration_frame_in, exposure_time,
     """
     Convert counts int photons/s in a FILD frame
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     Note: Based in an IDL routine of Joaquin Galdón.
 
@@ -140,7 +143,7 @@ def calculate_photon_flux(raw_frame, calibration_frame_in, exposure_time,
         photon_flux_frame = dummy
         photon_flux = photon_flux_frame.sum()
 
-    # Create the ouput dictionary
+    # Create the output dictionary
     output = {
         'photon_flux_frame': photon_flux_frame,
         'photon_flux': photon_flux,
@@ -156,7 +159,7 @@ def calculate_absolute_calibration_frame(cal_frame, exposure_time,
     """
     Calculate absolute photon flux
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
     About the units:
         -# Int_photon_flux --> Photons/(s*m^2)
@@ -195,12 +198,12 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
     Routine to estimate absolute flux of losses
 
     @todo this is half done
-    Based on the IDL routine writen by J. Galdón (jgaldon@us.es)
+    Based on the IDL routine written by J. Galdón (jgaldon@us.es)
 
     @param raw_frame: as 2D numpy array
     @param calibration_frame: as 2D numpy array
     @param efficiency_energy: [Energy given in eV]
-    @param efficiency_yield:  [Gieven in photons /ion]
+    @param efficiency_yield:  [Given in photons /ion]
     @param b_field: [T]
     @param band_pass_filter:
     @param interpolated_gyro: [cm]
@@ -226,7 +229,7 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
         print('Ignoring collimator factor',
               '--> Calculating Ion Flux at the scintillator not the pinhole!')
     else:
-        # FILDSIM gives data in %, let's normalise it to unity to work
+        # FILDSIM gives data in %, let's normalize it to unity to work
         interpolated_fcol = interpolated_fcol / 100.0
         # Remove values which are to low, just to avoid numerical problems,
         # as the collimator factors goes in the denominator of the final
@@ -237,8 +240,8 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
     # Check frames sizes and resize if necessary
     if raw_frame.shape != raw_frame.shape:
         print('Size of the data frame and calibration frame not matching!!')
-        print('Artifitially resizing the calibration frame!!')
-        ## todo implement the rebining of the calibration frame
+        print('Artificially resizing the calibration frame!!')
+        ## todo implement the re-binning of the calibration frame
 
     # Check if the remap was done before calling this function
     if np.max(interpolated_gyro) <= 0:
@@ -248,7 +251,7 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
     # Transform gyroradius to energy
     interpolated_energy = 0.5 * (interpolated_gyro / 100.0)**2 * b_field **\
         2 * Z ** 2 / ssp.mp * ssp.c ** 2 / A
-    ## todo ask joaquin about this stuff of imposing efficiency larger than 1
+    ## todo ask Joaquin about this stuff of imposing efficiency larger than 1
     efficiency_frame = np.interp(interpolated_energy, efficiency_energy,
                                  efficiency_yield)
     efficiency_frame[efficiency_energy < 1.0] = 1.0
@@ -279,49 +282,78 @@ def build_weight_matrix(SMap, rscint, pscint, rpin, ppin,
     # Build the collimator factor matrix, in the old IDL implementation,
     # matrices for the sigmas and skew where also build, but in this python
     # code these matrices where constructed by the fitting routine
-    ngyr = len(SMap.resolution['gyroradius'])
-    npitch = len(SMap.resolution['pitch'])
-    fcol_aux = np.zeros(ngyr, npitch)
+    ngyr = len(SMap.strike_points['gyroradius'])
+    npitch = len(SMap.strike_points['pitch'])
+    fcol_aux = np.zeros((ngyr, npitch))
     for ir in range(ngyr):
         for ip in range(npitch):
-            flags = (SMap.gyroradius == SMap.resolution['gyroradius'][ir]) * \
-                (SMap.pitch == SMap.resolution['pitch'])
+            flags = (SMap.gyroradius == SMap.strike_points['gyroradius'][ir]) \
+                * (SMap.pitch == SMap.strike_points['pitch'][ip])
             if np.sum(flags) > 0:
                 fcol_aux[ir, ip] = SMap.collimator_factor[flags]
 
     # Interpolate the resolution and collimator factor matrices
     # - Create grid for interpolation:
-    xx, yy = np.meshgrid(SMap.resolution['gyroradius'],
-                         SMap.resolution['pitch'])
+    xx, yy = np.meshgrid(SMap.strike_points['gyroradius'],
+                         SMap.strike_points['pitch'])
+    xxx = xx.flatten()
+    yyy = yy.flatten()
     # - Create grid to evaluate the interpolation
-    xx_pin, yy_pin = np.meshgrid(rpin, ppin)
+    xxx_pin, yyy_pin = np.meshgrid(rpin, ppin)
     # - sigmas:
-    Sigmar = \
-        interpolate.interp2(xx, yy, SMap.resolution['Gyroradius']['sigma'].T)
-    sigmar = Sigmar(xx_pin, yy_pin).T
+    dummy = SMap.resolution['Gyroradius']['sigma'].T
+    dummy = dummy.flatten()
+    flags = np.isnan(dummy)
+    x1 = xxx[~flags]
+    y1 = yyy[~flags]
+    z1 = dummy[~flags]
+    sigmar = interpolate.griddata((x1, y1), z1, (xxx_pin, yyy_pin))
+    sigmar = sigmar.T
 
-    Sigmap = interpolate.interp2(xx, yy, SMap.resolution['Pitch']['sigma'].T)
-    sigmap = Sigmap(xx_pin, yy_pin).T
-
+    dummy = SMap.resolution['Pitch']['sigma'].T
+    dummy = dummy.flatten()
+    flags = np.isnan(dummy)
+    x1 = xxx[~flags]
+    y1 = yyy[~flags]
+    z1 = dummy[~flags]
+    sigmap = interpolate.griddata((x1, y1), z1, (xxx_pin, yyy_pin))
+    sigmap = sigmap.T
     # - Collimator factor
-    Fcol = interpolate.interp2(xx, yy, fcol_aux.T)
-    fcol = Fcol(xx_pin, yy_pin).T
-
+    dummy = fcol_aux.T
+    dummy = dummy.flatten()
+    x1 = xxx[~flags]
+    y1 = yyy[~flags]
+    z1 = dummy[~flags]
+    fcol = interpolate.griddata((x1, y1), z1, (xxx_pin, yyy_pin))
+    fcol = fcol.T
     # - Centroids:
-    Centroidr = \
-        interpolate.interp2(xx, yy, SMap.resolution['Gyroradius']['center'].T)
-    centroidr = Centroidr(xx_pin, yy_pin).T
+    dummy = SMap.resolution['Gyroradius']['center'].T
+    dummy = dummy.flatten()
+    flags = np.isnan(dummy)
+    x1 = xxx[~flags]
+    y1 = yyy[~flags]
+    z1 = dummy[~flags]
+    centroidr = interpolate.griddata((x1, y1), z1, (xxx_pin, yyy_pin))
+    centroidr = centroidr.T
 
-    Centroidp = \
-        interpolate.interp2(xx, yy, SMap.resolution['Pitch']['center'].T)
-    centroidp = Centroidp(xx_pin, yy_pin).T
-
+    dummy = SMap.resolution['Pitch']['center'].T
+    dummy = dummy.flatten()
+    flags = np.isnan(dummy)
+    x1 = xxx[~flags]
+    y1 = yyy[~flags]
+    z1 = dummy[~flags]
+    centroidp = interpolate.griddata((x1, y1), z1, (xxx_pin, yyy_pin))
+    centroidp = centroidp.T
     # - Screw
     try:
-        Gammar = \
-            interpolate.interp2(xx, yy,
-                                SMap.resolution['Gyroradius']['gamma'].T)
-        gamma = Gammar(xx_pin, yy_pin).T
+        dummy = SMap.resolution['Gyroradius']['gamma'].T
+        dummy = dummy.flatten()
+        flags = np.isnan(dummy)
+        x1 = xxx[~flags]
+        y1 = yyy[~flags]
+        z1 = dummy[~flags]
+        gamma = interpolate.griddata((x1, y1), z1, (xxx_pin, yyy_pin))
+        gamma = gamma.T
         print('Using Screw Gaussian model!')
         screw_model = True
     except KeyError:
@@ -330,7 +362,7 @@ def build_weight_matrix(SMap, rscint, pscint, rpin, ppin,
 
     # Get the efficiency, if needed:
     if not bool(efficiency):
-        print('No efficiency data given, skyping efficiency')
+        print('No efficiency data given, skipping efficiency')
         eff = np.ones(nr_pin)
     else:
         eff = np.ones(nr_pin)
@@ -339,8 +371,8 @@ def build_weight_matrix(SMap, rscint, pscint, rpin, ppin,
     # efficient way, bot for the moment, I will leave exactly as in the
     # original IDL routine
     res_matrix = np.zeros((nr_scint, np_scint, nr_pin, np_pin))
-
-    for ii in range(nr_scint):
+    print('Creating matrix')
+    for ii in tqdm(range(nr_scint)):
         for jj in range(np_scint):
             for kk in range(nr_pin):
                 for ll in range(np_pin):
@@ -370,6 +402,47 @@ def build_weight_matrix(SMap, rscint, pscint, rpin, ppin,
     return res_matrix
 
 
+def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
+           cmap=None, nlev=20):
+    """
+    Plot the weight function
+
+    Jose Rueda Rueda: jrrueda@us.es
+
+    @todo: add titles and print the used point
+
+    @param W4D: 4-D weight function
+    @param pr: array of gyroradius at the pinhole used to calculate W
+    @param pp: array of pitches at the pinhole used to calculate W
+    @param sr: array of gyroradius at the scintillator used to calculate W
+    @param sp: array of pitches at the scintillator used to calculate W
+    @param pp0: precise radius wanted at the pinhole to plot the scintillator W
+    @param pr0: precise pitch wanted at the pinhole to plot the scintillator W
+    @param sp0: precise radius wanted at the pinhole to plot the scintillator W
+    @param sr0: precise pitch wanted at the pinhole to plot the scintillator W
+    """
+    # --- Color map
+    if cmap is None:
+        ccmap = ssplt.Gamma_II()
+    # --- Potting of the scintillator weight
+    # We will select a point of the pinhole and see how it seen in the
+    # scintillator
+    if (pp0 is not None) and (pr0 is not None):
+        ip = np.argmin(abs(pp - pp0))
+        ir = np.argmin(abs(pr - pr0))
+        W = W4D[:, :, ir, ip]
+        fig, ax = plt.subplots()
+        a = ax.contourf(sp, sr, W, nlev, cmap=ccmap)
+        plt.colorbar(a, ax=ax)
+    if (sp0 is not None) and (sr0 is not None):
+        ip = np.argmin(abs(pp - sp0))
+        ir = np.argmin(abs(pr - sr0))
+        W = W4D[ir, ip, :, :]
+        fig, ax = plt.subplots()
+        a = ax.contourf(pp, pr, W, nlev, cmap=ccmap)
+        plt.colorbar(a, ax=ax)
+
+
 # -----------------------------------------------------------------------------
 # --- RUN FILDSIM
 # -----------------------------------------------------------------------------
@@ -394,7 +467,7 @@ def write_namelist(p: str, runID: str = 'test', result_dir: str = './results/',
                                'aug_fild1_slit_lateral_1_v2.pl',
                                'aug_fild1_slit_lateral_2_v2.pl']):
     """
-    Write the namellist for a FILDSIM simulation
+    Write the namelist for a FILDSIM simulation
 
     All parameters of the namelist have the meaning given in FILDSIM. See
     FILDSIM documentation for a full description
@@ -489,38 +562,38 @@ def run_FILDSIM(FILDSIM_path, namelist):
 
 def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
                                decimals: int = 1):
-        """
-        Give the name of the strike-map file
+    """
+    Give the name of the strike-map file
 
-        Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
-        Files are supposed to be named as given in the NamingSM_FILD.py file.
-        The data base is composed by strike maps calculated each 0.1 degree
+    Files are supposed to be named as given in the NamingSM_FILD.py file.
+    The data base is composed by strike maps calculated each 0.1 degree
 
-        @param phi: phi angle as defined in FILDSIM
-        @param theta: theta angle as defined in FILDSIM
-        @param machine: 3 characters identifying the machine
-        @param decimals: number of decimal numbers to round the angles
-        @return name: the name of the strike map file
-        """
-        # Taken from one of Juanfran files :-)
-        p = round(phi, ndigits=decimals)
-        t = round(theta, ndigits=decimals)
-        if phi < 0:
-            if theta < 0:
-                name = machine +\
-                    "_map_{0:010.5f}_{1:010.5f}_strike_map.dat".format(p, t)
-            else:
-                name = machine +\
-                    "_map_{0:010.5f}_{1:09.5f}_strike_map.dat".format(p, t)
+    @param phi: phi angle as defined in FILDSIM
+    @param theta: theta angle as defined in FILDSIM
+    @param machine: 3 characters identifying the machine
+    @param decimals: number of decimal numbers to round the angles
+    @return name: the name of the strike map file
+    """
+    # Taken from one of Juanfran files :-)
+    p = round(phi, ndigits=decimals)
+    t = round(theta, ndigits=decimals)
+    if phi < 0:
+        if theta < 0:
+            name = machine +\
+                "_map_{0:010.5f}_{1:010.5f}_strike_map.dat".format(p, t)
         else:
-            if theta < 0:
-                name = machine +\
-                    "_map_{0:09.5f}_{1:010.5f}_strike_map.dat".format(p, t)
-            else:
-                name = machine +\
-                    "_map_{0:09.5f}_{1:09.5f}_strike_map.dat".format(p, t)
-        return name
+            name = machine +\
+                "_map_{0:010.5f}_{1:09.5f}_strike_map.dat".format(p, t)
+    else:
+        if theta < 0:
+            name = machine +\
+                "_map_{0:09.5f}_{1:010.5f}_strike_map.dat".format(p, t)
+        else:
+            name = machine +\
+                "_map_{0:09.5f}_{1:09.5f}_strike_map.dat".format(p, t)
+    return name
 
 
 def find_strike_map(rfild: float, zfild: float,
@@ -530,39 +603,19 @@ def find_strike_map(rfild: float, zfild: float,
     """
     Find the proper strike map. If not there, create it
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
     @param    rfild: radial position of FILD (in m)
-    @type:    float
-
     @param    zfild: Z position of FILD (in m)
-    @type:    float
-
     @param    phi: phi angle as defined in FILDSIM
-    @type:    float
-
     @param    theta: beta angle as defined in FILDSIM
-    @type:    float
-
     @param    strike_path: path of the folder with the strike maps
-    @type:    str
-
     @param    FILDSIM_path: path of the folder with FILDSIM
-    @type:    str
-
     @param    machine: string identifying the machine. Defaults to 'AUG'.
-    @type:    str
-
     @param    FILDSIM_options: FILDSIM namelist options
-    @type:    type
-
     @param    clean: True: eliminate the strike_points.dat when calling FILDSIM
-    @type:    bool
-
     @return   name:  name of the strikemap to load
-    @rtype:   str
-
-    @raises   ExceptionName: If FILDSIM is call but the file is not created.
+    @raises   Exception: If FILDSIM is call but the file is not created.
     """
     # Find the name of the strike map
     name = guess_strike_map_name_FILD(phi, theta, machine=machine)
@@ -593,7 +646,7 @@ def find_strike_map(rfild: float, zfild: float,
 
     if os.path.isfile(os.path.join(strike_path, name)):
         return name
-    # If we reach this point, somethin went wrong
+    # If we reach this point, something went wrong
     a = 'FILDSIM simulation has been done but the strike map can be found'
     raise Exception(a)
 
@@ -606,7 +659,7 @@ def get_energy(gyroradius, B: float, A: int = 2, Z: int = 1):
     Relate the gyroradius with the associated energy (FILDSIM definition)
 
     @param gyroradius: Larmor radius as taken from FILD strike map [in cm]
-    @param B: Magnetc field, [in T]
+    @param B: Magnetic field, [in T]
     @param A: Ion mass number
     @param Z: Ion charge [in e units]
     @return E: the energy [in eV]

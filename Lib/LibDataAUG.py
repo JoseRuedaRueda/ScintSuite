@@ -1,17 +1,14 @@
 """Routines to interact with the AUG database"""
 
-# Module to load shotfiles
-import dd
-# Module to load vessel components
-import get_gc
-# Other libraries
+import dd                # Module to load shotfiles
+import get_gc            # Module to load vessel components
 import numpy as np
-# import matplotlib.pyplot as plt
-# Module to map the equilibrium
-import map_equ as meq
-# ---
+import map_equ as meq    # Module to map the equilibrium
 import os
+import matplotlib.pyplot as plt
+import LibPlotting as ssplt
 from LibPaths import Path
+from scipy.interpolate import interpn
 pa = Path()
 
 
@@ -36,7 +33,7 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     """
     Wrapp to get AUG magnetic field
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param shot: Shot number
     @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
@@ -70,9 +67,9 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
             ed: int = 0, time: float = None, equ=None,
             coord_out: str = 'rho_pol'):
     """
-    Wrapp to get AUG magnetic field
+    Wrapper to get AUG magnetic field
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param shot: Shot number
     @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
@@ -100,6 +97,154 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     return rho
 
 
+def get_psipol(shot: int, Rin, zin, diag = 'EQH', exp: str = 'AUGD', \
+               ed: int = 0, time: float = None, equ = None):
+    
+    """
+    Wrapper to get AUG poloidal flux field
+
+    Jose Rueda: jrrueda@us.es
+    ft. 
+    Pablo Oyola: pablo.oyola@ipp.mpg.de
+
+    @param shot: Shot number
+    @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
+    @param zin: Array of z positions where to evaluate (in pairs with Rin) [m]
+    @param diag: Diag for AUG database, default EQH
+    @param exp: experiment, default AUGD
+    @param ed: edition, default 0 (last)
+    @param time: Array of times where we want to calculate the field (the
+    field would be calculated in a time as close as possible to this
+    @param equ: equilibrium object from the library map_equ
+    @return psipol: Poloidal flux evaluated in the input grid.
+    """
+
+    # If the equilibrium object is not an input, let create it
+    created = False
+    if equ is None:
+        equ = meq.equ_map(shot, diag=diag, exp=exp, ed=ed)
+        created = True    
+
+    equ.read_pfm()
+    i = np.argmin(np.abs(equ.t_eq - time))
+    PFM = equ.pfm[:, :, i].squeeze()
+    psipol = interpn((equ.Rmesh, equ.Zmesh), PFM, (Rin, zin))
+
+    # If we opened the equilibrium object, let's close it
+    if created:
+        equ.Close()
+
+    return psipol
+
+# -----------------------------------------------------------------------------
+# --- Electron density and temperature profiles.
+# -----------------------------------------------------------------------------
+def get_ne(shotnumber: int, time: float, exp: str = 'AUGD', diag: str = 'IDA',
+           edition: int = 0):
+    """
+    Wrapper to get AUG electron density.
+
+    Pablo Oyola: pablo.oyola@ipp.mpg.de
+
+    @param shot: Shot number
+    @param time: Time point to read the profile.
+    @param exp: Experiment name.
+    @param diag: diagnostic from which 'ne' will extracted.
+    @param edition: edition of the shotfile to be read.
+    
+    @return output: a dictionary containing the electron density evaluated
+    in the input times and the corresponding rhopol base.
+    """
+    
+    # --- Opening the shotfile.
+    try:
+        sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber, 
+                         experiment=exp, edition=edition)
+    except:
+        raise NameError('The shotnumber %d is not in the database'%shotnumber)
+        
+    
+    # --- Reading from the database
+    ne = sf(name='ne')
+    
+    # The area base is usually constant.
+    rhop = ne.area.data[0, :] 
+    
+    # Getting the time base since for the IDA shotfile, the whole data
+    # is extracted at the time.
+    timebase = sf(name='time')
+    
+    # Making the grid.
+    TT, RR = np.meshgrid(time, rhop)
+    
+    # Interpolating in time to get the input times.
+    ne_out = interpn((timebase, rhop), ne.data, \
+                     (TT.flatten(), RR.flatten()))
+        
+    ne_out = ne_out.reshape(RR.shape)
+        
+    # Output dictionary:
+    output ={ 'data': ne_out,
+              'rhop': rhop
+             }
+    
+    # --- Closing the shotfile.
+    sf.close()
+    
+    return output
+
+def get_Te(shotnumber: int, time: float, exp: str = 'AUGD', diag: str = 'CEZ',
+           edition: int = 0):
+    """
+    Wrapper to get AUG ion temperature.
+
+    Pablo Oyola: pablo.oyola@ipp.mpg.de
+
+    @param shot: Shot number
+    @param time: Time point to read the profile.
+    @param exp: Experiment name.
+    @param diag: diagnostic from which 'Te' will extracted.
+    @param edition: edition of the shotfile to be read.
+    
+    @return output: a dictionary containing the electron temp. evaluated
+    in the input times and the corresponding rhopol base.
+    """
+    
+    # --- Opening the shotfile.
+    try:
+        sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber, 
+                         experiment=exp, edition=edition)
+    except:
+        raise NameError('The shotnumber %d is not in the database'%shotnumber)
+        
+    
+    # --- Reading from the database
+    te = sf(name='Te')
+    
+    # The area base is usually constant.
+    rhop = te.area.data[0, :] 
+    
+    # Getting the time base since for the IDA shotfile, the whole data
+    # is extracted at the time.
+    timebase = sf(name='time')
+    
+    # Making the grid.
+    TT, RR = np.meshgrid(time, rhop)
+    
+    # Interpolating in time to get the input times.
+    te_out = interpn((timebase, rhop), te.data, \
+                     (TT.flatten(), RR.flatten()))
+        
+    te_out = te_out.reshape(RR.shape)
+    # Output dictionary:
+    output ={ 'data': te_out,
+              'rhop': rhop
+             }
+    
+    sf.close()
+    
+    return output
+
 # -----------------------------------------------------------------------------
 # --- Vessel coordinates
 # -----------------------------------------------------------------------------
@@ -107,7 +252,7 @@ def poloidal_vessel(shot: int = 30585, simplified: bool = False):
     """
     Get coordinate of the poloidal projection of the vessel
 
-    Jose Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda: jrrueda@us.es
 
     @param shot: shot number to be used
     @param simplified: if true, a 'basic' shape of the poloidal vessel will be
@@ -132,7 +277,7 @@ def poloidal_vessel(shot: int = 30585, simplified: bool = False):
 
 def toroidal_vessel(rot: float = -np.pi/8.0*3.0):
     """
-    Return the coordiates of the AUG vessel
+    Return the coordinates of the AUG vessel
 
     Jose Rueda Rueda: ruejo@ipp.mpg.de
 
@@ -145,7 +290,6 @@ def toroidal_vessel(rot: float = -np.pi/8.0*3.0):
     # The files are a series of 'blocks' representing each piece of the vessel,
     # each block is separated by an empty line. I will scan the file line by
     # line looking for the position of those empty lines:
-    ## todo_ include rotation!! default -pi/8
     file = os.path.join(pa.ScintSuite, 'Data', 'Vessel', 'AUG_tor.txt')
     cc = 0
     nmax = 2000
@@ -181,7 +325,7 @@ def _NBI_diaggeom_coordinates(nnbi):
     Just the coordinates manually extracted for shot 32312
 
     @param nnbi: the NBI number
-    @return coords: dictionary containing the coordiates of the initial and
+    @return coords: dictionary containing the coordinates of the initial and
     final points. '0' are near the source, '1' are near the central column
     """
     r0 = np.array([2.6, 2.6, 2.6, 2.6, 2.6, 2.6, 2.6, 2.6])
@@ -277,13 +421,11 @@ class NBI:
         independent??
 
         @param    nnbi: number of the NBI
-        @type:    int
-
         @param    shot: shot number
-        @type:    int
-
         @param    diaggeom: If true, values extracted manually from diaggeom
         """
+        ## NBI number:
+        self.number = nnbi
         ## Coordinates of the NBI
         self.coords = None
         ## Pitch information (injection pitch in each radial position)
@@ -300,13 +442,13 @@ class NBI:
         Calculate the pitch profile of the NBI along the injection line
 
         If the 'pitch_profile' field of the NBI object is not created, it
-        initialise it, else, it just append the new time point (it will insert
+        initialize it, else, it just append the new time point (it will insert
         the time point at the end, if first you call the function for t=1.0,
         then for 0.5 and then for 2.5 you will create a bit of a mesh, please
         use this function with a bit of logic)
 
-        DISCLAIMER: We will not check if the radial position concides with the
-        previous data in the pitch profile structure, it is your responsability
+        DISCLAIMER: We will not check if the radial position coincides with the
+        previous data in the pitch profile structure, it is your responsibility
         to use consistent input when calling this function
 
         @todo implement using insert the insertion of the data on the right
@@ -386,3 +528,32 @@ class NBI:
                 np.vstack((self.pitch_profile['R'], R))
             self.pitch_profile['pitch'] = \
                 np.vstack((self.pitch_profile['pitch'], pitch))
+
+    def plot_pitch_profile(self, line_param: dict = {'linewidth': 2},
+                           ax_param={'grid': 'both', 'xlabel': 'R [cm]',
+                                     'ylabel': '$\\lambda$', 'fontsize': 14},
+                           ax=None):
+        """
+        Plot the NBI pitch profile
+
+        Jose Rueda: jrrueda@us.es
+
+        @param line_param: Dictionary with the line params
+        @param ax_param: Dictionary with the param fr ax_beauty
+        @param ax: axis where to plot, if none, open new figure
+        @return : Nothing
+        """
+        if self.pitch_profile is None:
+            raise Exception('You must calculate first the pitch profile')
+        if ax is None:
+            fig, ax = plt.subplots()
+            ax_created = True
+        ax.plot(self.pitch_profile['R'], self.pitch_profile['pitch'],
+                **line_param, label='NBI#'+str(self.number))
+
+        if ax_created:
+            ax = ssplt.axis_beauty(ax, ax_param)
+        try:
+            plt.legend(fontsize=ax_param['fontsize'])
+        except KeyError:
+            print('You did not set the fontsize in the input params...')

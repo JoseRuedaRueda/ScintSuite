@@ -8,7 +8,7 @@ DISCLAIMER: This was created on the 15/01/2020. Since them several
 improvement may have been done, it is possible that some function has been
 changed and the script does not work at all now. (or we have a more fancy and
 quick way to do this stuff). If this happens, contact
-jose rueda (jose.rueda@ipp.mpg.de) by email and he will update this 'tutorial'
+jose rueda (jrrueda@us.es) by email and he will update this 'tutorial'
 
 You must execute first the function paths.py!
 """
@@ -25,12 +25,12 @@ namelist_path = ss.paths.FILDSIM   # Paths to save namelist
 # -----------------------------------------------------------------------------
 # Note, in the function LibMap.remap_all_loaded_frames_FILD, you have the
 # example of how to calculate the phi and theta angles which correspond to a
-# given shot and time point (it is already automatised)
+# given shot and time point (it is already automatized)
 # Here we will just manually select the theta and phi.
 # Also the suite include default paths to save FILDSIM namelist and results,
 # but here we will manually choose them
 
-# All default values could be ommited, I just write them to show all one can
+# All default values could be omitted, I just write them to show all one can
 # set
 FILDSIM_namelist = {
     'runID': 'test_runID',
@@ -79,8 +79,8 @@ Smap = ss.mapping.StrikeMap('FILD', strike_map_file)
 # Load the strike points used to calculate the map
 Smap.load_strike_points(strike_points_file)
 # Calculate the resolution: Default is 1 degree of bin width for the pitch
-# hisograms, 0.1 for gyroadius, gaussians for pitch and skewGaussian for
-# gyroradius.
+# histograms, 0.1 for gyro-radius, Gaussians for pitch and skew Gaussian for
+# gyro-radius.
 Smap.calculate_resolutions()  # Default call,
 # Example changing the binning and settings skewGaussian for boths
 # Smap.calculate_resolutions(dpitch=2.0, dgyr=0.25, p_method='sGauss',
@@ -90,9 +90,9 @@ Smap.calculate_resolutions()  # Default call,
 # Smap.calculate_resolutions(dpitch=2.0, dgyr=0.25, p_method'Gauss',
 #                            g_method='sGauss', min_statistics=50)
 
-# The calculation of the resolution is done internally, the objetive of the
+# The calculation of the resolution is done internally, the objective of the
 # suite is calculated them as hey are needed for tomography, but not to be a
-# full interface to FILDSIM (at this stage, the corresponging request can be
+# full interface to FILDSIM (at this stage, the corresponding request can be
 # opened in gitlab). Therefore a nice automatic plotting of the fitted curves
 # is not implemented. But, as this is an example, I will write here the
 # fitting in a pedestrian way, in order to show what the routine does, and in

@@ -7,7 +7,7 @@ In this case we will calculate the timetrace of a whole shot
 DISCLAIMER: This was created on the 10/12/2020. Since them several
 improvement may have been done, it is possible that some function has been
 changed and the script does not work at all now. If this happens, contact
-jose rueda (jose.rueda@ipp.mpg.de) by email and he will update this 'tutorial'
+jose rueda (jrrueda@us.es) by email and he will update this 'tutorial'
 
 @section tt0 0: Settings
 @section tt1 1: Reading video and selecting roi
@@ -61,7 +61,7 @@ time_trace = ss.tt.TimeTrace(video, mask)
 # Plot the time trace
 time_trace.plot_all()
 # -----------------------------------------------------------------------------
-# Section 3: Caculate and display the fft and spectrogram
+# Section 3: Calculate and display the fft and spectrogram
 time_trace.calculate_fft()
 time_trace.plot_fft()
 
