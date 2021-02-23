@@ -14,7 +14,6 @@ import LibPlotting as ssplt
 import LibMap as ssmap
 import LibPaths as p
 import LibUtilities as ssutilities
-from matplotlib.widgets import Slider
 from LibMachine import machine
 from version_suite import version
 from scipy.io import netcdf                # To export remap data
@@ -839,8 +838,8 @@ def read_time_base(filename: str, header: dict, settings: dict):
                                 int(2 * header['ImageCount'][:]))
             cin_time: float = np.float64(dummy[1::2]) - \
                 np.float64(header['TriggerTime']['seconds']) + \
-                (np.float64(dummy[0::2]) -
-                 np.float64(header['TriggerTime']['fractions'])) / 2.0 ** 32
+                (np.float64(dummy[0::2])
+                 - np.float64(header['TriggerTime']['fractions'])) / 2.0 ** 32
             # return
             fid.close()
             return cin_time
@@ -1158,8 +1157,8 @@ class Video:
         """
         # If no file was given, open a graphical user interface to select it.
         if file is None:
-            root = tk.Tk()    # To close the window after the selection
-            root.withdraw()
+            root = tk.Tk()
+            root.withdraw()   # To close the window after the selection
             filename = tk.filedialog.askopenfilename()
             if filename == '':
                 raise Exception('You must select a file!!!')
@@ -1453,6 +1452,52 @@ class Video:
                 ssmap.remap_all_loaded_frames_FILD(self, calibration, shot,
                                                    mask=mask, **options)
             self.remap_dat['options'] = opt
+
+    def integrate_remap(self, xmin=20.0, xmax=90.0, ymin=1.0, ymax=10.0,
+                        mask=None):
+        """
+        Integrate the remaped frames over a given region of the phase space
+
+        Jose Rueda: jrrueda@us.es
+
+        @param xmin: Minimum value of the x axis to integrate (pitch for FILD)
+        @param xmax: Maximum value of the x axis to integrate (pitch for FILD)
+        @param ymin: Minimum value of the y axis to integrate (radius in FILD)
+        @param ymax: Maximum value of the y axis to integrate (radius in FILD)
+        @param mask: bynary mask denoting the desired pixes of the space to
+        integate
+        @return : Output: Dictionary containing the trace and the settings used
+        to caclualte it
+        """
+        if self.remap_dat is None:
+            raise Exception('Please remap before call this function!!!')
+        # First calculate the dif x and y to integrate
+        dx = self.remap_dat['xaxis'][1] - self.remap_dat['xaxis'][0]
+        dy = self.remap_dat['yaxis'][1] - self.remap_dat['yaxis'][0]
+        # Find the flags:
+        mask_was_none = False
+        if mask is None:
+            flagsx = (xmin < self.remap_dat['xaxis']) *\
+                (self.remap_dat['xaxis'] < xmax)
+            flagsy = (ymin < self.remap_dat['yaxis']) *\
+                (self.remap_dat['yaxis'] < ymax)
+            mask_was_none = True
+        # Perform the integration:
+        nx, ny, nt = self.remap_dat['frames'].shape
+        trace = np.zeros(nt)
+        for iframe in tqdm(range(nt)):
+            dummy = self.remap_dat['frames'][:, :, iframe].copy()
+            dummy = dummy.squeeze()
+            if mask_was_none:
+                trace[iframe] = np.sum(dummy[flagsx, :][:, flagsy]) * dx * dy
+            else:
+                trace[iframe] = np.sum(dummy[mask]) * dx * dy
+        if mask_was_none:
+            output = {'xmin': xmin, 'xmax': xmax, 'ymin': ymin, 'ymax': ymax}
+        else:
+            output = {'mask': mask}
+        output['trace'] = trace
+        return output
 
     def filter_frames(self, method='jrr'):
         """

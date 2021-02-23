@@ -587,7 +587,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     if nnSmap == nframes:
         print('Non a single strike map, full calculation needed')
     elif nnSmap == 0:
-        print('Ideal situation, not a single map needed to be calcuated')
+        print('Ideal situation, not a single map needs to be calcuated')
     elif nnSmap != 0:
         print('We need to calculate:', nnSmap, 'StrikeMaps')
         print('Write 1 to proceed, 0 just to take the fist existing strikemap')
