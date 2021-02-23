@@ -10,15 +10,18 @@ which is compatible with Spyder.
 import numpy as np
 import datetime
 import time
+import warnings
 from scipy.fft import rfft, rfftfreq
 from scipy import signal
 import matplotlib.pyplot as plt
 import LibPlotting as ssplt
+import LibIO as ssio
 from tqdm import tqdm
 try:
     from roipoly import RoiPoly
 except ModuleNotFoundError:
-    print('You cannot calculate time traces, roipoly not found')
+    warnings.warn('You cannot calculate time traces, roipoly not found',
+                  category=UserWarning)
 
 
 def trace(frames, mask):
@@ -156,7 +159,8 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
 class TimeTrace:
     """Class with information of the time trace"""
 
-    def __init__(self, video, mask, t1: float = None, t2: float = None):
+    def __init__(self, video=None, mask=None, t1: float = None,
+                 t2: float = None):
         """
         Initialise the TimeTrace
 
@@ -164,6 +168,8 @@ class TimeTrace:
 
         If no times are given, it will use the frames loaded in the video
         object, if t1 and t2 are present, it will load the corresponding frames
+        If no argument are giving, and empty timetrace object will be created,
+        to be filled by the reading routiness
 
         @param video: Video object used for the calculation of the trace
         @param mask: mask to calculate the trace
@@ -173,14 +179,15 @@ class TimeTrace:
         used
         """
         # Initialise the times to look for the time trace
-        if t1 is None and t2 is None:
-            if video.exp_dat['tframes'] is None:
-                aa = 'Frames are not loaded in the video object, use t1 and t2'
-                raise Exception(aa)
-        elif t1 is None and t2 is not None:
-            raise Exception('Only one time was given!')
-        elif t1 is not None and t2 is None:
-            raise Exception('Only one time was given!')
+        if video is not None:
+            if t1 is None and t2 is None:
+                if video.exp_dat['tframes'] is None:
+                    aa = 'Frames are not loaded, use t1 and t2'
+                    raise Exception(aa)
+            elif t1 is None and t2 is not None:
+                raise Exception('Only one time was given!')
+            elif t1 is not None and t2 is None:
+                raise Exception('Only one time was given!')
         # Initialise the different arrays
         ## Numpy array with the time base
         self.time_base = None
@@ -198,18 +205,19 @@ class TimeTrace:
         self.spec = {'taxis': None, 'faxis': None, 'data': None}
         ## fft data
         self.fft = {'faxis': None, 'data': None}
-
+        ##todo: this eems weird!!! no t1 is passed to the trace routine??
         # Calculate the time trace
-        if t1 is None:
-            self.time_base = video.exp_dat['tframes'].squeeze()
-            self.sum_of_roi, self.mean_of_roi, self.std_of_roi\
-                = trace(video.exp_dat['frames'], mask)
-        else:
-            if video.type_of_file == '.cin':
-                self.time_base, self.sum_of_roi, self.mean_of_roi,\
-                    self.std_of_roi = time_trace_cine(video, mask, t1, t2)
+        if video is not None:
+            if t1 is None:
+                self.time_base = video.exp_dat['tframes'].squeeze()
+                self.sum_of_roi, self.mean_of_roi, self.std_of_roi\
+                    = trace(video.exp_dat['frames'], mask)
             else:
-                raise Exception('Still not implemented, contact ruejo')
+                if video.type_of_file == '.cin':
+                    self.time_base, self.sum_of_roi, self.mean_of_roi,\
+                        self.std_of_roi = time_trace_cine(video, mask, t1, t2)
+                else:
+                    raise Exception('Still not implemented, contact ruejo')
 
     def export_to_ascii(self, filename: str):
         """
@@ -221,13 +229,16 @@ class TimeTrace:
         @param filename: file where to write the data
         @return None. A file is created with the information
         """
+        # --- check if file exist
+        filename = ssio.check_save_file(filename)
+        # --- Prepare the header
         date = datetime.datetime.now()
         line = '# Time trace: ' + date.strftime("%d-%b-%Y (%H:%M:%S.%f)") \
                + '\n' + 'Time [s]                     ' + \
                'Counts in Roi                     ' + \
                'Mean in Roi                     Std Roi'
         length = self.time_base.size
-
+        # Save the data
         np.savetxt(filename, np.hstack((self.time_base.reshape(length, 1),
                                         self.sum_of_roi.reshape(length, 1),
                                         self.mean_of_roi.reshape(length, 1),
@@ -301,8 +312,8 @@ class TimeTrace:
             ax_par['xlabel'] = 't [s]'
         if 'linewidth' not in line_par:
             line_par['linewidth'] = 2.0
-        if 'color' not in line_par:
-            line_par['color'] = 'k'
+        # if 'color' not in line_par:
+        #     line_par['color'] = 'k'
 
         # --- Select the proper data:
         if data == 'sum':
@@ -336,6 +347,7 @@ class TimeTrace:
         ax.plot(self.time_base, y, **line_par)
         ax = ssplt.axis_beauty(ax, ax_par)
         plt.tight_layout()
+        return ax
 
     def plot_all(self, options: dict = {}):
         """

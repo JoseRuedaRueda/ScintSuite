@@ -1,13 +1,15 @@
 ** 0.1.4: What is new?
 - iHIBP routines to interact with the tracker and iHIBPsim, first round
 ** 0.1.5: What's new?
-- Now the remap_all_loaded_frames_FILD first calculate all theta and phi and
-see how many strike maps must be calculated. The user can decide wheter if
-perform the FILDSIM calculation or just take a single strike map
+- Now the remap_all_loaded_frames_FILD first calculate all theta and phi and see how many strike maps must be calculated. The user can decide wheter if perform the FILDSIM calculation or just take a single strike map
 - Added the possibility of remaping with a ROI. Also export the ROI
 ** 0.1.6: What's new?
 - Added possibility of loadind the used ROIs
 - Added the posibility of plotting each individual time trace
 - Added general routine to load the created ncdf files
-- Suppresed remapped slider plotting in the video object, it was too buggy, new
-one will come with tkinter
+- Suppresed remapped slider plotting in the video object, it was too buggy, new one will come with tkinter
+** 0.1.7: What's new?
+- Solved the issue in the init due to new iHIBPsim libraries
+- Included a check to not overwrite files, now if one of the saving routines try to save a file which exist, it will open a window to give to the user the chance to change the name
+- Added also a similar function to open files in case it does not find the name, it will pop-up a window
+- Improved the checking to test we are in AUG
