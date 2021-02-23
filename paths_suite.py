@@ -17,12 +17,14 @@ def paths_of_the_suite(machine='AUG'):
     HOME_DIR = os.getenv("HOME")
     SUITE_DIR = os.getcwd()
     LIB_DIR = 'Lib'
+    LIB_iHIBP = 'Lib/iHIBP'
     EXAMPLE_DIR = 'Examples'
     # -- AUG folders:
     AUG_Python = '/afs/ipp/aug/ads-diags/common/python/lib'
 
     # --- Section 1: Add folders to path
     sys.path.extend([os.path.join(HOME_DIR, ROIPOLY),
+                     os.path.join(SUITE_DIR, LIB_iHIBP),
                      os.path.join(SUITE_DIR, LIB_DIR),
                      os.path.join(SUITE_DIR, EXAMPLE_DIR)])
 
