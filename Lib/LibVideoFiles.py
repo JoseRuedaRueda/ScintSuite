@@ -14,6 +14,7 @@ import LibPlotting as ssplt
 import LibMap as ssmap
 import LibPaths as p
 import LibUtilities as ssutilities
+import LibIO as ssio
 from LibMachine import machine
 from version_suite import version
 from scipy.io import netcdf                # To export remap data
@@ -1132,6 +1133,29 @@ def read_mp4_file(file, verbose: bool = True):
 
 
 # -----------------------------------------------------------------------------
+# --- Miscelanea
+# -----------------------------------------------------------------------------
+def guess_filename(shot: int, base_dir: str, extension: str = ''):
+    """
+    Guess the filename of a video
+
+    Jose Rueda Rueda: jrrueda@us.es
+
+    Note AUG criteria of organising files is assumed: .../38/38760/...
+
+    @param shot: shot number
+    @param base_dir: base directory (before 38/)
+    @param extension: extension of the file
+
+    @return file; the name of the file/folder
+    """
+    shot_str = str(shot)
+    name = shot_str + extension
+    file = os.path.join(base_dir, shot_str[0:2], name)
+    return file
+
+
+# -----------------------------------------------------------------------------
 # --- Classes
 # -----------------------------------------------------------------------------
 class Video:
@@ -1744,7 +1768,8 @@ class Video:
         # Test if the file exist:
         if name is None:
             name = os.path.join(pa.ScintSuite, 'Results', str(self.shot) + '_'
-                                + self.diag + '_remap.nc')
+                                + self.diag + str(self.diag_ID) + '_remap.nc')
+            name = ssio.check_save_file(name)
         print('Saving results in: ', name)
         # Write the data:
         with netcdf.netcdf_file(name, 'w') as f:
@@ -1887,6 +1912,17 @@ class Video:
                 beta[:] = self.remap_dat['options']['beta']
                 beta.units = '{}^o'
                 beta.long_name = 'beta orientation'
+
+            # if present, save the bit depth used to save the video
+            try:
+                a = self.settings['RealBPP']
+                bits = f.createVariable('RealBPP', 'i', ('number',))
+                bits[:] = a
+                bits.units = ' '
+                bits.long_name = 'Bits used in the camera'
+            except KeyError:
+                print('Bits info not present in the video object')
+        return
 
 
 class ApplicationShowVid:
