@@ -1133,6 +1133,29 @@ def read_mp4_file(file, verbose: bool = True):
 
 
 # -----------------------------------------------------------------------------
+# --- Miscelanea
+# -----------------------------------------------------------------------------
+def guess_filename(shot: int, base_dir: str, extension: str = ''):
+    """
+    Guess the filename of a video
+
+    Jose Rueda Rueda: jrrueda@us.es
+
+    Note AUG criteria of organising files is assumed: .../38/38760/...
+
+    @param shot: shot number
+    @param base_dir: base directory (before 38/)
+    @param extension: extension of the file
+
+    @return file; the name of the file/folder
+    """
+    shot_str = str(shot)
+    name = shot_str + extension
+    file = os.path.join(base_dir, shot_str[0:2], name)
+    return file
+
+
+# -----------------------------------------------------------------------------
 # --- Classes
 # -----------------------------------------------------------------------------
 class Video:

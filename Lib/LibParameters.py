@@ -8,34 +8,6 @@ mp = 938.272e6  # Mass of the proton, in eV/c^2
 mp_kg = 1.67262192369e-27  # Mass of the proton in kg
 c = 2.99792458e8       # Speed of light in m/s
 
-# -----------------------------------------------------------------------------
-#                           FILD PARAMETERS
-# -----------------------------------------------------------------------------
-# All values except for beta, are extracted from the paper:
-# J. Ayllon-Guerola et al. 2019 JINST14 C10032
-# betas are taken to be -12.0 for AUG
-# @todo include jet FILD as 'fild6', Jt-60 as 'fild7' as MAST-U as 'fild8'?
-fild1 = {'alpha': 0.0,   # Alpha angle [deg], see paper
-         'beta': -12.0,  # beta angle [deg], see FILDSIM doc
-         'sector': 8,    # The sector where FILD is located
-         'r': 2.180,     # Radial position [m]
-         'z': 0.3,       # Z position [m]
-         'phi_tor': 169.75}  # Toroidal position, [deg]
-
-fild2 = {'alpha': 0.0, 'beta': -12.0, 'sector': 3, 'r': 2.180,
-         'z': 0.3, 'phi_tor': 57.25}
-
-fild3 = {'alpha': 72.0, 'beta': -12.0, 'sector': 13, 'r': 1.975,
-         'z': 0.765, 'phi_tor': 282.25}
-
-fild4 = {'alpha': 0.0, 'beta': -12.0, 'sector': 8, 'r': 2.035,
-         'z': -0.462, 'phi_tor': 169.75}
-
-fild5 = {'alpha': -45.0, 'beta': -12.0, 'sector': 7, 'r': 1.772,
-         'z': -0.798, 'phi_tor': 147.25}
-
-FILD = (fild1, fild2, fild3, fild4, fild5)
-
 iHIBP = {'port_center': [0.687, -3.454, 0.03], 'sector': 13,
          'beta_std': 4.0, 'theta_std': 0.0, 'source_radius': 7.0e-3}
 

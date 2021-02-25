@@ -68,7 +68,7 @@ def create_roi(fig, re_display=False):
     """
     # Define the roi
     print('Please select the vertex of the roi in the figure')
-    print('Select each vertex with right click')
+    print('Select each vertex with left click')
     print('Once you finished, right click')
     roi = RoiPoly(color='r', fig=fig)
     # Show again the image with the roi
@@ -219,7 +219,7 @@ class TimeTrace:
                 else:
                     raise Exception('Still not implemented, contact ruejo')
 
-    def export_to_ascii(self, filename: str):
+    def export_to_ascii(self, filename: str = None):
         """
         Export time trace to acsii
 
@@ -230,7 +230,10 @@ class TimeTrace:
         @return None. A file is created with the information
         """
         # --- check if file exist
-        filename = ssio.check_save_file(filename)
+        if filename is None:
+            filename = ssio.ask_to_save(ext='*.txt')
+        else:
+            filename = ssio.check_save_file(filename)
         # --- Prepare the header
         date = datetime.datetime.now()
         line = '# Time trace: ' + date.strftime("%d-%b-%Y (%H:%M:%S.%f)") \
