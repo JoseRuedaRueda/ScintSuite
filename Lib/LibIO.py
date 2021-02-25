@@ -38,9 +38,8 @@ def check_save_file(file):
         warnings.warn('The file exist!!! you can choose the new name',
                       category=UserWarning)
         dir, name = os.path.split(file)
-        root = tk.Tk()
-        root.withdraw()   # To close the window after the selection
-        out = tk.filedialog.asksaveasfilename(initialdir=dir)
+        dummy, ext = os.path.splitext(name)
+        out = ask_to_save(dir, ext)
     return out
 
 
@@ -62,6 +61,26 @@ def check_open_file(file):
         dir, name = os.path.split(file)
         dummy, ext = os.path.splitext(name)
         out = ask_to_open(dir, ext)
+    return out
+
+
+def ask_to_save(dir=None, ext=None):
+    """
+    Open a dialogue to choose the file to be saved
+
+    Jose Rueda: jrrueda@us.es
+
+    @param dir: Initial directory to direct the GUI to open the file, if none,
+    just the current directory will be opened
+    @param ext: extension for filter the possible options, if none, no filter
+    will be applied
+
+    @return out: the filename selected by the user
+    """
+    root = tk.Tk()
+    root.withdraw()   # To close the window after the selection
+    out = tk.filedialog.asksaveasfilename(initialdir=dir, defaultextension=ext,
+                                          filetypes=sspar.filetypes)
     return out
 
 
@@ -177,9 +196,10 @@ def save_mask(mask, filename=None, nframe=None, shot=None, frame=None):
     """
     # --- Check if the file exist
     if filename is None:    # If no fileis given, just take the 'standard'
-        name = 'mask.nc'
-        filename = os.path.join(paths.Results, name)
-    else:  # Chect if the file is there, to avoid overwriting
+        # name = 'mask.nc'
+        # filename = os.path.join(paths.Results, name)
+        filename = ask_to_save()
+    else:  # Check if the file is there, to avoid overwriting
         filename = check_save_file(filename)
 
     nnx, nny = mask.shape

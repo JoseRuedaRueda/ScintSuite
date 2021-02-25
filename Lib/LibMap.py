@@ -116,14 +116,14 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
           'before')
     points_frame = fig.ginput(npoints)
     # Define the vectors which will give us the reference
-    v21_real = np.array((scintillator.coord_real[index[0], 1] -
-                         scintillator.coord_real[index[1], 1],
-                         scintillator.coord_real[index[0], 2] -
-                         scintillator.coord_real[index[1], 2], 0))
-    v23_real = np.array((scintillator.coord_real[index[2], 1] -
-                         scintillator.coord_real[index[1], 1],
-                         scintillator.coord_real[index[2], 2] -
-                         scintillator.coord_real[index[1], 2], 0))
+    v21_real = np.array((scintillator.coord_real[index[0], 1]
+                         - scintillator.coord_real[index[1], 1],
+                         scintillator.coord_real[index[0], 2]
+                         - scintillator.coord_real[index[1], 2], 0))
+    v23_real = np.array((scintillator.coord_real[index[2], 1]
+                         - scintillator.coord_real[index[1], 1],
+                         scintillator.coord_real[index[2], 2]
+                         - scintillator.coord_real[index[1], 2], 0))
 
     v21_pix = np.array([points_frame[0][0], points_frame[0][1], 0]) - \
         np.array([points_frame[1][0], points_frame[1][1], 0])
@@ -153,20 +153,20 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
         if i2 == npoints:
             i2 = 0
         # Distance in the real scintillator
-        d_real = np.sqrt((scintillator.coord_real[index[i], 2] -
-                          scintillator.coord_real[index[i2], 2]) ** 2 +
-                         (scintillator.coord_real[index[i], 1] -
-                          scintillator.coord_real[index[i2], 1]) ** 2)
+        d_real = np.sqrt((scintillator.coord_real[index[i], 2]
+                          - scintillator.coord_real[index[i2], 2]) ** 2
+                         + (scintillator.coord_real[index[i], 1]
+                            - scintillator.coord_real[index[i2], 1]) ** 2)
         # Distance in the sensor
         dummy = np.array(points_frame[i]) - np.array(points_frame[i2])
         d_pix = np.sqrt(dummy[1] ** 2 + dummy[0] ** 2)
         # Accumulate the magnification factor (we will normalise at the end)
         mag = mag + d_pix / d_real
         # Calculate the angles
-        alpha_r = -  math.atan2(scintillator.coord_real[index[i], 2] -
-                                scintillator.coord_real[index[i2], 2],
-                                sign * scintillator.coord_real[index[i], 1] -
-                                sign * scintillator.coord_real[index[i2], 1])
+        alpha_r = -  math.atan2(scintillator.coord_real[index[i], 2]
+                                - scintillator.coord_real[index[i2], 2],
+                                sign * scintillator.coord_real[index[i], 1]
+                                - sign * scintillator.coord_real[index[i2], 1])
         # If alpha == 180, it can be also -180, atan2 fails here, check which
         # one is the case
         if int(alpha_r * 180 / np.pi) == 180:
@@ -178,14 +178,14 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
         alpha_px = - math.atan2(dummy[1], dummy[0])
         alpha = alpha + (alpha_px - alpha_r)
         # Transform the coordinate to estimate the offset
-        x_new = (scintillator.coord_real[index[i], 1] *
-                 math.cos(alpha_px - alpha_r) -
-                 scintillator.coord_real[index[i], 2] *
-                 math.sin(alpha_px - alpha_r)) * d_pix / d_real * sign
-        y_new = (scintillator.coord_real[index[i], 1] *
-                 math.sin(alpha_px - alpha_r) +
-                 scintillator.coord_real[index[i], 2] *
-                 math.cos(alpha_px - alpha_r)) * d_pix / d_real
+        x_new = (scintillator.coord_real[index[i], 1]
+                 * math.cos(alpha_px - alpha_r)
+                 - scintillator.coord_real[index[i], 2]
+                 * math.sin(alpha_px - alpha_r)) * d_pix / d_real * sign
+        y_new = (scintillator.coord_real[index[i], 1]
+                 * math.sin(alpha_px - alpha_r)
+                 + scintillator.coord_real[index[i], 2]
+                 * math.cos(alpha_px - alpha_r)) * d_pix / d_real
         offset = offset + np.array(points_frame[i]) - np.array((x_new, y_new))
         # print(alpha_px*180/np.pi, alpha_real*180/np.pi)
         # print((alpha_px-alpha_real)*180/np.pi)
@@ -478,7 +478,9 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
                                  fildsim_options: dict = {},
                                  method: int = 1,
                                  verbose: bool = False, mask=None,
-                                 machine: str = 'AUG'):
+                                 machine: str = 'AUG',
+                                 decimals: int = 1,
+                                 smap_folder: str = None):
     """
     Remap all loaded frames from a FILD video
 
@@ -519,14 +521,17 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     @type:    float
 
     @param    method: method to interpolate the strike maps, default 1: linear
+    @param decimals: skdhfsoakf
 
     @return:  Description of returned object.
     @rtype:   type
 
     @raises   ExceptionName: Why the exception is raised.
     """
+    if smap_folder is None:
+        smap_folder = pa.StrikeMaps
     # Print just some info:
-    print('Looking for strikemaps in: ', pa.StrikeMaps)
+    print('Looking for strikemaps in: ', smap_folder)
     # Get frame shape:
     nframes = len(video.exp_dat['nframes'])
     frame_shape = video.exp_dat['frames'].shape[0:2]
@@ -576,9 +581,10 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
             ssFILDSIM.calculate_fild_orientation(br[iframe], bz[iframe],
                                                  bt[iframe], alpha, beta)
         name = ssFILDSIM.guess_strike_map_name_FILD(phi[iframe], theta[iframe],
-                                                    machine=machine)
+                                                    machine=machine,
+                                                    decimals=decimals)
         # See if the strike map exist
-        if os.path.isfile(os.path.join(pa.StrikeMaps, name)):
+        if os.path.isfile(os.path.join(smap_folder, name)):
             exist[iframe] = True
 
     # See howmany strike maps we need to calculate:
@@ -589,24 +595,30 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     elif nnSmap == 0:
         print('Ideal situation, not a single map needs to be calcuated')
     elif nnSmap != 0:
-        print('We need to calculate:', nnSmap, 'StrikeMaps')
+        print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
         print('Write 1 to proceed, 0 just to take the fist existing strikemap')
-        x = input('Enter answer:')
+        x = int(input('Enter answer:'))
+        if x == 0:
+            print('We will not calculate new strike maps')
+        if x == 1:
+            print('We will calculate new strike maps')
 
     if x == 0:
         t = theta[exist][0]
         p = phi[exist][0]
-        name = ssFILDSIM.guess_strike_map_name_FILD(p, t, machine=machine)
+        name = ssFILDSIM.guess_strike_map_name_FILD(p, t, machine=machine,
+                                                    decimals=decimals)
     print('Remapping frames')
     for iframe in tqdm(range(nframes)):
         if x == 1:
             name = ssFILDSIM.find_strike_map(rfild, zfild, phi[iframe],
-                                             theta[iframe], pa.StrikeMaps,
+                                             theta[iframe], smap_folder,
                                              pa.FILDSIM, machine=machine,
-                                             FILDSIM_options=fildsim_options)
+                                             FILDSIM_options=fildsim_options,
+                                             decimals=decimals)
         # Only reload the strike map if it is needed
         if name != name_old:
-            map = StrikeMap(0, os.path.join(pa.StrikeMaps, name))
+            map = StrikeMap(0, os.path.join(smap_folder, name))
             map.calculate_pixel_coordinates(calibration)
             # print('Interpolating grid')
             map.interp_grid(frame_shape, plot=False, method=method)
@@ -812,12 +824,12 @@ class CalibrationDatabase:
         n_true = sum(flags)
 
         if n_true == 0:
-            print('No entry find in the database, revise database')
-            return
+            raise Exception('No entry find in the database, revise database')
         elif n_true > 1:
             print('Several entries fulfill the condition')
             print('Possible entries:')
             print(self.data['ID'][flags])
+            raise Exception()
         else:
             dummy = np.argmax(np.array(flags))
             cal = CalParams()
@@ -827,7 +839,7 @@ class CalibrationDatabase:
             cal.yshift = self.data['yshift'][dummy]
             cal.deg = self.data['deg'][dummy]
 
-            return cal
+        return cal
 
 
 class StrikeMap:
@@ -1149,8 +1161,8 @@ class StrikeMap:
                  '7: Remapped pitch',
                  '8: Incidence angle']
             if not old:
-                self.strike_points['help'].append('9-11: Xi (cm)  Yi (cm)' +
-                                                  '  Zi (cm)')
+                self.strike_points['help'].append('9-11: Xi (cm)  Yi (cm)'
+                                                  + '  Zi (cm)')
             # Get the 'pinhole' gyr and pitch values:
             self.strike_points['pitch'] = \
                 np.unique(self.strike_points['Data'][:, 1])
