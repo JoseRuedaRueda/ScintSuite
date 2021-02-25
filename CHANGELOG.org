@@ -1,8 +1,14 @@
+** 0.1.8: Reverse FILD
+- IB sign were included to include the proper pitch definition in FILDSIM even with the reverse field
+- *BUG_SOLVED*: Solve a bug which forced the remap to ignore theta and phi if just one of the strike maps was not found
+- Included the RealBPP in the exported remap data
+
 ** 0.1.7: Improve reading/writting
 - Solved the issue in the init due to new iHIBPsim libraries
 - Included a check to not overwrite files, now if one of the saving routines try to save a file which exist, it will open a window to give to the user the chance to change the name
 - Added also a similar function to open files in case it does not find the name, it will pop-up a window
 - Improved the checking to test we are in AUG
+- Add a method to integrate the remapped frames in the desired range radius-pitch (arbitrary shapes allowed via roi)
 
 ** 0.1.6: What's new?
 - Added possibility of loadind the used ROIs

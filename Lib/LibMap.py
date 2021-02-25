@@ -478,7 +478,8 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
                                  fildsim_options: dict = {},
                                  method: int = 1,
                                  verbose: bool = False, mask=None,
-                                 machine: str = 'AUG'):
+                                 machine: str = 'AUG',
+                                 decimals: int = 1):
     """
     Remap all loaded frames from a FILD video
 
@@ -519,6 +520,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     @type:    float
 
     @param    method: method to interpolate the strike maps, default 1: linear
+    @param decimals: skdhfsoakf
 
     @return:  Description of returned object.
     @rtype:   type
@@ -589,21 +591,27 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     elif nnSmap == 0:
         print('Ideal situation, not a single map needs to be calcuated')
     elif nnSmap != 0:
-        print('We need to calculate:', nnSmap, 'StrikeMaps')
+        print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
         print('Write 1 to proceed, 0 just to take the fist existing strikemap')
-        x = input('Enter answer:')
+        x = int(input('Enter answer:'))
+        if x == 0:
+            print('We will not calculate new strike maps')
+        if x == 1:
+            print('We will calculate new strike maps')
 
     if x == 0:
         t = theta[exist][0]
         p = phi[exist][0]
-        name = ssFILDSIM.guess_strike_map_name_FILD(p, t, machine=machine)
+        name = ssFILDSIM.guess_strike_map_name_FILD(p, t, machine=machine,
+                                                    decimals=decimals)
     print('Remapping frames')
     for iframe in tqdm(range(nframes)):
         if x == 1:
             name = ssFILDSIM.find_strike_map(rfild, zfild, phi[iframe],
                                              theta[iframe], pa.StrikeMaps,
                                              pa.FILDSIM, machine=machine,
-                                             FILDSIM_options=fildsim_options)
+                                             FILDSIM_options=fildsim_options,
+                                             decimals=decimals)
         # Only reload the strike map if it is needed
         if name != name_old:
             map = StrikeMap(0, os.path.join(pa.StrikeMaps, name))

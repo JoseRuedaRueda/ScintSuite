@@ -205,7 +205,7 @@ class TimeTrace:
         self.spec = {'taxis': None, 'faxis': None, 'data': None}
         ## fft data
         self.fft = {'faxis': None, 'data': None}
-        ##todo: this eems weird!!! no t1 is passed to the trace routine??
+        ## @todo: this eems weird!!! no t1 is passed to the trace routine??
         # Calculate the time trace
         if video is not None:
             if t1 is None:
