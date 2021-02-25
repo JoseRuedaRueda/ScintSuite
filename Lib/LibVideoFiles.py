@@ -14,6 +14,7 @@ import LibPlotting as ssplt
 import LibMap as ssmap
 import LibPaths as p
 import LibUtilities as ssutilities
+import LibIO as ssio
 from LibMachine import machine
 from version_suite import version
 from scipy.io import netcdf                # To export remap data
@@ -1744,7 +1745,8 @@ class Video:
         # Test if the file exist:
         if name is None:
             name = os.path.join(pa.ScintSuite, 'Results', str(self.shot) + '_'
-                                + self.diag + '_remap.nc')
+                                + self.diag + str(self.diag_ID) + '_remap.nc')
+            name = ssio.check_save_file(name)
         print('Saving results in: ', name)
         # Write the data:
         with netcdf.netcdf_file(name, 'w') as f:
@@ -1887,6 +1889,17 @@ class Video:
                 beta[:] = self.remap_dat['options']['beta']
                 beta.units = '{}^o'
                 beta.long_name = 'beta orientation'
+
+            # if present, save the bit depth used to save the video
+            try:
+                a = self.settings['RealBPP']
+                bits = f.createVariable('RealBPP', 'i', ('number',))
+                bits[:] = a
+                bits.units = ' '
+                bits.long_name = 'Bits used in the camera'
+            except KeyError:
+                print('Bits info not present in the video object')
+        return
 
 
 class ApplicationShowVid:
