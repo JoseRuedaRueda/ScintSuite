@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 from scipy import interpolate
 from scipy.special import erf       # error function
 from tqdm import tqdm               # For waitbars
+from LibMachine import machine
+if machine == 'AUG':
+    import LibDataAUG as ssdat
 
 
 # -----------------------------------------------------------------------------
@@ -31,14 +34,9 @@ def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
     """
     # In AUG the magnetic field orientation is counter current.
     # FILDSIM.f90 works with the co-current reference
-    if Bt < 0:
-        bt = -Bt
-        br = -Br
-        bz = -Bz
-    else:
-        bt = Bt
-        br = Br
-        bz = Bz
+    bt = ssdat.IB_sign * Bt
+    br = ssdat.IB_sign * Br
+    bz = ssdat.IB_sign * Bz
 
     # Transform to radians
     alpha = alpha * np.pi / 180.0
@@ -599,7 +597,8 @@ def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
 def find_strike_map(rfild: float, zfild: float,
                     phi: float, theta: float, strike_path: str,
                     FILDSIM_path: str, machine: str = 'AUG',
-                    FILDSIM_options={}, clean: bool = True):
+                    FILDSIM_options={}, clean: bool = True,
+                    decimals: int = 1):
     """
     Find the proper strike map. If not there, create it
 
@@ -614,11 +613,13 @@ def find_strike_map(rfild: float, zfild: float,
     @param    machine: string identifying the machine. Defaults to 'AUG'.
     @param    FILDSIM_options: FILDSIM namelist options
     @param    clean: True: eliminate the strike_points.dat when calling FILDSIM
+    @param    decimals: Number of decimals for theta and phi angles
     @return   name:  name of the strikemap to load
     @raises   Exception: If FILDSIM is call but the file is not created.
     """
     # Find the name of the strike map
-    name = guess_strike_map_name_FILD(phi, theta, machine=machine)
+    name = guess_strike_map_name_FILD(phi, theta, machine=machine,
+                                      decimals=decimals)
     # See if the strike map exist
     if os.path.isfile(os.path.join(strike_path, name)):
         return name
