@@ -35,11 +35,12 @@ plt_TT = True  # Plot the TT
 # - FILDSIM options: If a SS is not found, a FILDSIM calculation will be
 # launched, default settings are great for FILD, but for DLIF, some details
 # must be changed:
+# NOTE: Number of markers is too low to be precise
 FILDSIM_namelist = {
     'N_gyroradius': 11,                           # Default
     'N_pitch': 9,
     'verbose': '.false.',
-    'N_ions': 4000,
+    'N_ions': 1000,
     'gyroradius': [1.5, 1.75, 2., 3., 4., 5., 6., 7., 8., 9., 10.],   # Default
     'pitch': [90., 85., 80., 70., 60., 50., 40., 30., 20.],
     'geometry_dir': ss.paths.FILDSIM + './geometry/',
@@ -74,7 +75,7 @@ par = {
     'method': 2,  # 2 Spline, 1 Linear
     'decimals': 0,  # Precision for the strike map (1 is more than enough)
     'fildsim_options': FILDSIM_namelist,
-    'smap_folder': '/afs/ipp/home/r/ruejo/rFILD_Strike_Maps'}
+    'smap_folder': '/afs/ipp/home/r/ruejo/rFILD_Strike_Maps/'}
 # - Plotting options:
 FS = 16        # FontSize for plotting
 plot_profiles_in_time = True   # Plot the time evolution of pitch and r
