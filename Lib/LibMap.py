@@ -824,12 +824,12 @@ class CalibrationDatabase:
         n_true = sum(flags)
 
         if n_true == 0:
-            print('No entry find in the database, revise database')
-            return
+            raise Exception('No entry find in the database, revise database')
         elif n_true > 1:
             print('Several entries fulfill the condition')
             print('Possible entries:')
             print(self.data['ID'][flags])
+            raise Exception()
         else:
             dummy = np.argmax(np.array(flags))
             cal = CalParams()
@@ -839,7 +839,7 @@ class CalibrationDatabase:
             cal.yshift = self.data['yshift'][dummy]
             cal.deg = self.data['deg'][dummy]
 
-            return cal
+        return cal
 
 
 class StrikeMap:
