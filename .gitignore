@@ -18,5 +18,4 @@ __pycache__/*
 temp_data/*
 FILD_calibration
 Results
-Lib/__init__.py
 doc/

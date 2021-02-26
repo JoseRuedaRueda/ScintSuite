@@ -4,14 +4,14 @@ import LibMap as mapping
 import LibPlotting as plt
 import LibTimeTraces as tt
 import LibVideoFiles as vid
-import LibUtilities as utilities
+import LibExtra as extra
+import LibFrequencyanalysis as ftt
 import LibPaths as p
 import LibMachine as m
 import LibTracker as tracker
 import LibIO as io
 import LibFastChannel as fc
 import LibTomography as tomo
-
 import iHIBP as ihibp
 from version_suite import version
 if m.machine == 'AUG':
