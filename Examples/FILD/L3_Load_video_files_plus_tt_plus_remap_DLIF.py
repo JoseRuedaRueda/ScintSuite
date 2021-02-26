@@ -14,10 +14,10 @@ import Lib as ss
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 38670
+shot = 38673
 diag_ID = 6  # 6 for rFILD (DLIF)
 t1 = 0.9     # Initial time to be loaded, [s]
-t2 = 1.2     # Final time to be loaded [s]
+t2 = 8.0     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
@@ -68,9 +68,9 @@ par = {
     'pprofmax': 90.0,    # Maximum pitch for the gyroradius profile calculation
     # Position of the FILD
     'rfild': 2.190,   # 2.196 for shot 32326, 2.186 for shot 32312
-    'zfild': 0.32,
-    'alpha': 0.0,
-    'beta': -12.0,
+    'zfild': ss.dat.FILD[diag_ID-1]['z'],
+    'alpha': ss.dat.FILD[diag_ID-1]['alpha'],
+    'beta': ss.dat.FILD[diag_ID-1]['beta'],
     # method for the interpolation
     'method': 2,  # 2 Spline, 1 Linear
     'decimals': 0,  # Precision for the strike map (1 is more than enough)
