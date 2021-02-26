@@ -5,7 +5,7 @@ import LibPlotting as plt
 import LibTimeTraces as tt
 import LibVideoFiles as vid
 import LibUtilities as extra
-import LibFrequencyanalysis as ftt
+import LibFrequencyAnalysis as ftt
 import LibPaths as p
 import LibMachine as m
 import LibTracker as tracker
