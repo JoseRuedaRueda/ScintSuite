@@ -480,7 +480,8 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
                                  verbose: bool = False, mask=None,
                                  machine: str = 'AUG',
                                  decimals: int = 1,
-                                 smap_folder: str = None):
+                                 smap_folder: str = None,
+                                 map=None):
     """
     Remap all loaded frames from a FILD video
 
@@ -523,15 +524,25 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     @param    method: method to interpolate the strike maps, default 1: linear
     @param decimals: skdhfsoakf
 
+    @param    map: Strike map to be used, if none, we will look in the folder
+    for the right strike map
+
     @return:  Description of returned object.
     @rtype:   type
 
     @raises   ExceptionName: Why the exception is raised.
     """
+    # --- Check input strike map
+    if map is None:
+        got_smap = False
+    else:
+        got_smap = True
+
     if smap_folder is None:
         smap_folder = pa.StrikeMaps
     # Print just some info:
-    print('Looking for strikemaps in: ', smap_folder)
+    if not got_smap:
+        print('Looking for strikemaps in: ', smap_folder)
     # Get frame shape:
     nframes = len(video.exp_dat['nframes'])
     frame_shape = video.exp_dat['frames'].shape[0:2]
@@ -540,12 +551,13 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     # Get the magnetic field: In principle we should be able to do this in an
     # efficient way, but the AUG library to access magnetic field is kind of a
     # shit in python 3, so we need a work around
-    if machine == 'AUG':
-        import map_equ as meq
-        equ = meq.equ_map(shot, diag='EQH')
-    br = np.zeros(nframes)
-    bz = np.zeros(nframes)
-    bt = np.zeros(nframes)
+    if not got_smap:
+        if machine == 'AUG':
+            import map_equ as meq
+            equ = meq.equ_map(shot, diag='EQH')
+        br = np.zeros(nframes)
+        bz = np.zeros(nframes)
+        bt = np.zeros(nframes)
     b_field = np.zeros(nframes)
     # br, bz, bt, bp =\
     #     ssdat.get_mag_field(shot, rfild, zfild,
@@ -564,37 +576,43 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     remaped_frames = np.zeros((npit, ngyr, nframes))
     signal_in_gyr = np.zeros((ngyr, nframes))
     signal_in_pit = np.zeros((npit, nframes))
-    # b_field = np.zeros(nframes)
     theta = np.zeros(nframes)
     phi = np.zeros(nframes)
     name_old = ' '
-    print('Calculating theta and phi')
+    name = ' '
     exist = np.zeros(nframes, np.bool)
-    for iframe in tqdm(range(nframes)):
-        if machine == 'AUG':
-            tframe = video.exp_dat['tframes'][iframe]
-            br[iframe], bz[iframe], bt[iframe], bp =\
-                ssdat.get_mag_field(shot, rfild, zfild, time=tframe, equ=equ)
-            b_field[iframe] = np.sqrt(br[iframe]**2 + bz[iframe]**2
-                                      + bt[iframe]**2)
-        phi[iframe], theta[iframe] = \
-            ssFILDSIM.calculate_fild_orientation(br[iframe], bz[iframe],
-                                                 bt[iframe], alpha, beta)
-        name = ssFILDSIM.guess_strike_map_name_FILD(phi[iframe], theta[iframe],
-                                                    machine=machine,
-                                                    decimals=decimals)
-        # See if the strike map exist
-        if os.path.isfile(os.path.join(smap_folder, name)):
-            exist[iframe] = True
-
-    # See howmany strike maps we need to calculate:
+    # --- Calculate the theta and phi angles
+    if not got_smap:  # if no smap was given calculate the theta and phi
+        print('Calculating theta and phi')
+        for iframe in tqdm(range(nframes)):
+            if machine == 'AUG':
+                tframe = video.exp_dat['tframes'][iframe]
+                br[iframe], bz[iframe], bt[iframe], bp =\
+                    ssdat.get_mag_field(shot, rfild, zfild, time=tframe,
+                                        equ=equ)
+                b_field[iframe] = np.sqrt(br[iframe]**2 + bz[iframe]**2
+                                          + bt[iframe]**2)
+            phi[iframe], theta[iframe] = \
+                ssFILDSIM.calculate_fild_orientation(br[iframe], bz[iframe],
+                                                     bt[iframe], alpha, beta)
+            name = ssFILDSIM.guess_strike_map_name_FILD(phi[iframe],
+                                                        theta[iframe],
+                                                        machine=machine,
+                                                        decimals=decimals)
+            # See if the strike map exist
+            if os.path.isfile(os.path.join(smap_folder, name)):
+                exist[iframe] = True
+    else:
+        exist = np.ones(nframes, np.bool)
+    # See how many strike maps we need to calculate:
     nnSmap = np.sum(~exist)
-    x = 1
+    x = 0
     if nnSmap == nframes:
         print('Non a single strike map, full calculation needed')
-    elif nnSmap == 0:
+    elif nnSmap == 0 and not got_smap:
         print('Ideal situation, not a single map needs to be calcuated')
-    elif nnSmap != 0:
+        x = 1
+    elif nnSmap != 0 and not got_smap:
         print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
         print('Write 1 to proceed, 0 just to take the fist existing strikemap')
         x = int(input('Enter answer:'))
@@ -603,7 +621,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
         if x == 1:
             print('We will calculate new strike maps')
 
-    if x == 0:
+    if x == 0 and not got_smap:
         t = theta[exist][0]
         p = phi[exist][0]
         name = ssFILDSIM.guess_strike_map_name_FILD(p, t, machine=machine,
