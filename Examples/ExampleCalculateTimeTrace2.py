@@ -25,8 +25,8 @@ import Lib as ss
 # -----------------------------------------------------------------------------
 # Section 0: Settings
 # -----------------------------------------------------------------------------
-shot = 35953     # shot number
-t0 = 1.25        # Reference time (to select the ROI) in s
+shot = 38603     # shot number
+t0 = 0.35        # Reference time (to select the ROI) in s
 fild_number = 4  # FILD number
 # -----------------------------------------------------------------------------
 # Section 1: Read the video file and create the roi

@@ -6,6 +6,6 @@ These routines should serve as an example of the main FILD data analysis you can
 run always paths_suite.py before runing these examples
 
 ** Examples
-  -# L1: Load a video from FILD
-  -# L2: Load a video and calculate the time trace, this is not the recommended method if you want to calculate a TT of a .cin video, as it load all the video before calculating the timetrace. For Cin videos, please see a follow up example
-  -# L3: Remap a whole video. The focus is put on rFILD (which need different FILDSIM options and strike maps)
+  - L1: Load a video from FILD
+  - L2: Load a video and calculate the time trace, this is not the recommended method if you want to calculate a TT of a .cin video, as it load all the video before calculating the timetrace. For Cin videos, please see a follow up example
+  - L3: Remap a whole video. The focus is put on rFILD (which need different FILDSIM options and strike maps)
