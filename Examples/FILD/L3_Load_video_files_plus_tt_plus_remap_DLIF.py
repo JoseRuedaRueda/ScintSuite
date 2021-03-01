@@ -10,19 +10,20 @@ Note; Written for version 0.1.8. Before running this script, please do:
 plt.show(), if not, bug due to spyder 4.0 may arise
 """
 import Lib as ss
+from time import time
 # -----------------------------------------------------------------------------
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 38673
+shot = 38663
 diag_ID = 6  # 6 for rFILD (DLIF)
-t1 = 0.9     # Initial time to be loaded, [s]
-t2 = 8.0     # Final time to be loaded [s]
+t1 = 2.95     # Initial time to be loaded, [s]
+t2 = 3.2     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
 # - Noise substraction settings:
-subtract_noise = True   # Flag to apply noise subtraction
+subtract_noise = False   # Flag to apply noise subtraction
 tn1 = 0.9     # Initial time to average the frames for noise subtraction [s]
 tn2 = 1.0     # Final time to average the frames for noise subtraction [s]
 
@@ -58,7 +59,7 @@ par = {
     'rmin': 1.2,      # Minimum gyroradius [in cm]
     'rmax': 10.5,     # Maximum gyroradius [in cm]
     'dr': 0.05,        # Interval of the gyroradius [in cm]
-    'pmin': 20.0,     # Minimum pitch angle [in degrees]
+    'pmin': 60.0,     # Minimum pitch angle [in degrees]
     'pmax': 90.0,     # Maximum pitch angle [in degrees]
     'dp': 1.0,    # Pitch angle interval
     # Parameters for the pitch-gryroradius profiles
@@ -89,13 +90,15 @@ filename = ss.vid.guess_filename(shot, ss.dat.FILD[diag_ID-1]['path'],
 # - open the video file:
 vid = ss.vid.Video(filename, diag_ID=diag_ID)
 # - read the frames:
-print('Reading camera frames: ')
+tdummy = time()
+print('Reading camera frames: ', shot, '...')
 vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
-
+print('Elapsed time [s]: ', time() - tdummy)
 # -----------------------------------------------------------------------------
 # --- Section 2: Substract the noise
 # -----------------------------------------------------------------------------
-vid.subtract_noise(t1=tn1, t2=tn2)
+if subtract_noise:
+    vid.subtract_noise(t1=tn1, t2=tn2)
 
 # -----------------------------------------------------------------------------
 # --- Section 3: Calculate the TT

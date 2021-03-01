@@ -25,8 +25,8 @@ import Lib as ss
 # -----------------------------------------------------------------------------
 # Section 0: Settings
 # -----------------------------------------------------------------------------
-shot = 32312     # shot number
-t0 = 0.35        # Reference time (to select the ROI) in s
+shot = 38626     # shot number
+t0 = 3.0        # Reference time (to select the ROI) in s
 fild_number = 1  # FILD number
 # -----------------------------------------------------------------------------
 # Section 1: Read the video file and create the roi
@@ -36,8 +36,8 @@ dummy = str(shot)
 if fild_number == 1:
     file = ss.paths.CinFiles + dummy[0:2] + '/' + dummy + '_v710.cin'
 else:
-    file = ss.paths.PngFiles + 'FILD' + str(fild_number) + dummy[0:2] + '/' +\
-        dummy + '/'
+    file = ss.paths.PngFiles + 'FILD' + str(fild_number) + '/' + dummy[0:2] +\
+        '/' + dummy + '/'
 
 video = ss.vid.Video(file)
 # --- Plot a frame to select the roi on it
