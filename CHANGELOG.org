@@ -1,3 +1,7 @@
+** 0.1.9: Spectrograms
+- First spectrogram function added, first step towards the fast channel analysis
+- Better examples included
+- Better checking of wether we are in AUG or not
 ** 0.1.8: Reverse FILD
 - IB sign were included to include the proper pitch definition in FILDSIM even with the reverse field
 - *BUG_SOLVED*: Solve a bug which forced the remap to ignore theta and phi if just one of the strike maps was not found

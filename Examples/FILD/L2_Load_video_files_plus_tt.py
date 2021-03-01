@@ -14,20 +14,20 @@ import Lib as ss
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 38670
+shot = 38663
 diag_ID = 6  # 6 for rFILD (DLIF)
-t1 = 0.9     # Initial time to be loaded, [s]
-t2 = 8.0     # Final time to be loaded [s]
+t1 = 0.5     # Initial time to be loaded, [s]
+t2 = 3.5     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
 # - Noise substraction settings:
 subtract_noise = True   # Flag to apply noise subtraction
-tn1 = 0.9     # Initial time to average the frames for noise subtraction [s]
-tn2 = 1.0     # Final time to average the frames for noise subtraction [s]
+tn1 = 0.5     # Initial time to average the frames for noise subtraction [s]
+tn2 = 0.65     # Final time to average the frames for noise subtraction [s]
 
 # - TimeTrace options:
-t0 = 2.5         # time points to define the ROI
+t0 = 3.0         # time points to define the ROI
 save_TT = True   # Export the TT and the ROI used
 
 # - Plotting options:
@@ -49,7 +49,8 @@ vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
 # -----------------------------------------------------------------------------
 # --- Section 2: Substract the noise
 # -----------------------------------------------------------------------------
-vid.subtract_noise(t1=tn1, t2=tn2)
+if subtract_noise:
+    vid.subtract_noise(t1=tn1, t2=tn2)
 
 # -----------------------------------------------------------------------------
 # --- Section 3: Calculate the TT

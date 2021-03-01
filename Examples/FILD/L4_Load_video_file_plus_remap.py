@@ -1,8 +1,8 @@
 """
 Remap video from FILD cameras
 
-Lesson 2 from the FILD experimental analysis. Video files will be loaded,
-possibility to substract noise and timetraces will be calculated
+Lesson 4 from the FILD experimental analysis. Video files will be loaded,
+possibility to substract noise and timetraces remap of the whole video
 
 jose Rueda: jrrueda@us.es
 
@@ -15,9 +15,9 @@ from time import time
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 38663
-diag_ID = 6  # 6 for rFILD (DLIF)
-t1 = 2.95     # Initial time to be loaded, [s]
+shot = 32312
+diag_ID = 1  # 6 for rFILD (DLIF)
+t1 = 1.0     # Initial time to be loaded, [s]
 t2 = 3.2     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
@@ -43,23 +43,16 @@ FILDSIM_namelist = {
     'verbose': '.false.',
     'N_ions': 1000,
     'gyroradius': [1.5, 1.75, 2., 3., 4., 5., 6., 7., 8., 9., 10.],   # Default
-    'pitch': [90., 85., 80., 70., 60., 50., 40., 30., 20.],
-    'geometry_dir': ss.paths.FILDSIM + './geometry/',
-    'scintillator_files': ['aug_fild1_scint.pl'],
-    'slit_files': ['aug_rfildb_pinhole1.pl',
-                   'aug_rfildb_pinhole_2.pl',
-                   'aug_rfildb_slit_1.pl',
-                   'aug_rfildb_slit_back.pl',
-                   'aug_rfildb_slit_lateral_1.pl',
-                   'aug_rfildb_slit_lateral_2.pl']}
+    'pitch': [90., 85., 80., 70., 60., 50., 40., 30., 20.]}
 # - Remapping options:
 calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
 camera = 'PHANTOM'      # CCD for other FILDs
+save_remap = True
 par = {
     'rmin': 1.2,      # Minimum gyroradius [in cm]
     'rmax': 10.5,     # Maximum gyroradius [in cm]
     'dr': 0.05,        # Interval of the gyroradius [in cm]
-    'pmin': 60.0,     # Minimum pitch angle [in degrees]
+    'pmin': 20.0,     # Minimum pitch angle [in degrees]
     'pmax': 90.0,     # Maximum pitch angle [in degrees]
     'dp': 1.0,    # Pitch angle interval
     # Parameters for the pitch-gryroradius profiles
@@ -74,11 +67,12 @@ par = {
     'beta': ss.dat.FILD[diag_ID-1]['beta'],
     # method for the interpolation
     'method': 2,  # 2 Spline, 1 Linear
-    'decimals': 0,  # Precision for the strike map (1 is more than enough)
+    'decimals': 1,  # Precision for the strike map (1 is more than enough)
     'fildsim_options': FILDSIM_namelist,
-    'smap_folder': '/afs/ipp/home/r/ruejo/rFILD_Strike_Maps/'}
+    'smap_folder': '/afs/ipp/home/r/ruejo/FILD_Strike_maps2/'}
+# Note, if the smap_folder variable is not present, the program will look for
+# the strike maps in the path given by ss.paths.StrikeMaps
 # - Plotting options:
-FS = 16        # FontSize for plotting
 plot_profiles_in_time = True   # Plot the time evolution of pitch and r
 # -----------------------------------------------------------------------------
 # --- Section 1: Load video
@@ -136,3 +130,6 @@ vid.remap_loaded_frames(cal, shot, par)
 # - Plot:
 if plot_profiles_in_time:
     vid.plot_profiles_in_time()
+# - Export remapped data
+if save_remap:
+    vid.export_remap()
