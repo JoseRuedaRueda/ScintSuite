@@ -117,7 +117,7 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
             ed: int = 0, time: float = None, equ=None,
             coord_out: str = 'rho_pol'):
     """
-    Wrapper to get AUG magnetic field
+    Wrap to get AUG magnetic field
 
     Jose Rueda: jrrueda@us.es
 
@@ -147,11 +147,10 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     return rho
 
 
-def get_psipol(shot: int, Rin, zin, diag = 'EQH', exp: str = 'AUGD', \
-               ed: int = 0, time: float = None, equ = None):
-
+def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
+               ed: int = 0, time: float = None, equ=None):
     """
-    Wrapper to get AUG poloidal flux field
+    Wrap to get AUG poloidal flux field
 
     Jose Rueda: jrrueda@us.es
     ft.
@@ -168,7 +167,6 @@ def get_psipol(shot: int, Rin, zin, diag = 'EQH', exp: str = 'AUGD', \
     @param equ: equilibrium object from the library map_equ
     @return psipol: Poloidal flux evaluated in the input grid.
     """
-
     # If the equilibrium object is not an input, let create it
     created = False
     if equ is None:
@@ -186,13 +184,14 @@ def get_psipol(shot: int, Rin, zin, diag = 'EQH', exp: str = 'AUGD', \
 
     return psipol
 
+
 # -----------------------------------------------------------------------------
 # --- Electron density and temperature profiles.
 # -----------------------------------------------------------------------------
 def get_ne(shotnumber: int, time: float, exp: str = 'AUGD', diag: str = 'IDA',
            edition: int = 0):
     """
-    Wrapper to get AUG electron density.
+    Wrap to get AUG electron density.
 
     Pablo Oyola: pablo.oyola@ipp.mpg.de
 
@@ -205,14 +204,12 @@ def get_ne(shotnumber: int, time: float, exp: str = 'AUGD', diag: str = 'IDA',
     @return output: a dictionary containing the electron density evaluated
     in the input times and the corresponding rhopol base.
     """
-
     # --- Opening the shotfile.
     try:
         sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber,
                          experiment=exp, edition=edition)
     except:
         raise NameError('The shotnumber %d is not in the database'%shotnumber)
-
 
     # --- Reading from the database
     ne = sf(name='ne')
@@ -228,25 +225,23 @@ def get_ne(shotnumber: int, time: float, exp: str = 'AUGD', diag: str = 'IDA',
     TT, RR = np.meshgrid(time, rhop)
 
     # Interpolating in time to get the input times.
-    ne_out = interpn((timebase, rhop), ne.data, \
-                     (TT.flatten(), RR.flatten()))
+    ne_out = interpn((timebase, rhop), ne.data, (TT.flatten(), RR.flatten()))
 
     ne_out = ne_out.reshape(RR.shape)
 
     # Output dictionary:
-    output ={ 'data': ne_out,
-              'rhop': rhop
-             }
+    output = {'data': ne_out, 'rhop': rhop}
 
     # --- Closing the shotfile.
     sf.close()
 
     return output
 
+
 def get_Te(shotnumber: int, time: float, exp: str = 'AUGD', diag: str = 'CEZ',
            edition: int = 0):
     """
-    Wrapper to get AUG ion temperature.
+    Wrap to get AUG ion temperature.
 
     Pablo Oyola: pablo.oyola@ipp.mpg.de
 
@@ -259,14 +254,12 @@ def get_Te(shotnumber: int, time: float, exp: str = 'AUGD', diag: str = 'CEZ',
     @return output: a dictionary containing the electron temp. evaluated
     in the input times and the corresponding rhopol base.
     """
-
     # --- Opening the shotfile.
     try:
         sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber,
                          experiment=exp, edition=edition)
     except:
         raise NameError('The shotnumber %d is not in the database'%shotnumber)
-
 
     # --- Reading from the database
     te = sf(name='Te')
@@ -282,18 +275,17 @@ def get_Te(shotnumber: int, time: float, exp: str = 'AUGD', diag: str = 'CEZ',
     TT, RR = np.meshgrid(time, rhop)
 
     # Interpolating in time to get the input times.
-    te_out = interpn((timebase, rhop), te.data, \
+    te_out = interpn((timebase, rhop), te.data,
                      (TT.flatten(), RR.flatten()))
 
     te_out = te_out.reshape(RR.shape)
     # Output dictionary:
-    output ={ 'data': te_out,
-              'rhop': rhop
-             }
+    output = {'data': te_out, 'rhop': rhop}
 
     sf.close()
 
     return output
+
 
 # -----------------------------------------------------------------------------
 # --- Vessel coordinates
