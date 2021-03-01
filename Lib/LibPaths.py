@@ -16,6 +16,4 @@ class Path:
         self.ScintSuite = os.path.join(home, 'ScintSuite/')
         self.tracker = os.path.join(home, 'iHIBPsim', 'bin/')
         if machine == 'AUG':
-            self.CinFiles = '/p/IPP/AUG/rawfiles/FIT/'
-            self.PngFiles = '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/'
             self.iHIBP_videos = '/afs/ipp/home/a/augd/rawfiles/VRT/'

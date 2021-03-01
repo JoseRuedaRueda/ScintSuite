@@ -13,7 +13,7 @@ import Lib as ss
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 38670
+shot = 38686
 diag_ID = 6  # 6 for rFILD (DLIF)
 t1 = 0.9     # Initial time to be loaded, [s]
 t2 = 8.0     # Final time to be loaded [s]
@@ -41,7 +41,8 @@ vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
 # -----------------------------------------------------------------------------
 # --- Section 2: Substract the noise
 # -----------------------------------------------------------------------------
-vid.subtract_noise(t1=tn1, t2=tn2)
+if subtract_noise:
+    vid.subtract_noise(t1=tn1, t2=tn2)
 
 # -----------------------------------------------------------------------------
 # --- Extra

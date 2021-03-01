@@ -149,12 +149,12 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
 
 def get_psipol(shot: int, Rin, zin, diag = 'EQH', exp: str = 'AUGD', \
                ed: int = 0, time: float = None, equ = None):
-    
+
     """
     Wrapper to get AUG poloidal flux field
 
     Jose Rueda: jrrueda@us.es
-    ft. 
+    ft.
     Pablo Oyola: pablo.oyola@ipp.mpg.de
 
     @param shot: Shot number
@@ -173,7 +173,7 @@ def get_psipol(shot: int, Rin, zin, diag = 'EQH', exp: str = 'AUGD', \
     created = False
     if equ is None:
         equ = meq.equ_map(shot, diag=diag, exp=exp, ed=ed)
-        created = True    
+        created = True
 
     equ.read_pfm()
     i = np.argmin(np.abs(equ.t_eq - time))
@@ -201,46 +201,46 @@ def get_ne(shotnumber: int, time: float, exp: str = 'AUGD', diag: str = 'IDA',
     @param exp: Experiment name.
     @param diag: diagnostic from which 'ne' will extracted.
     @param edition: edition of the shotfile to be read.
-    
+
     @return output: a dictionary containing the electron density evaluated
     in the input times and the corresponding rhopol base.
     """
-    
+
     # --- Opening the shotfile.
     try:
-        sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber, 
+        sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber,
                          experiment=exp, edition=edition)
     except:
         raise NameError('The shotnumber %d is not in the database'%shotnumber)
-        
-    
+
+
     # --- Reading from the database
     ne = sf(name='ne')
-    
+
     # The area base is usually constant.
-    rhop = ne.area.data[0, :] 
-    
+    rhop = ne.area.data[0, :]
+
     # Getting the time base since for the IDA shotfile, the whole data
     # is extracted at the time.
     timebase = sf(name='time')
-    
+
     # Making the grid.
     TT, RR = np.meshgrid(time, rhop)
-    
+
     # Interpolating in time to get the input times.
     ne_out = interpn((timebase, rhop), ne.data, \
                      (TT.flatten(), RR.flatten()))
-        
+
     ne_out = ne_out.reshape(RR.shape)
-        
+
     # Output dictionary:
     output ={ 'data': ne_out,
               'rhop': rhop
              }
-    
+
     # --- Closing the shotfile.
     sf.close()
-    
+
     return output
 
 def get_Te(shotnumber: int, time: float, exp: str = 'AUGD', diag: str = 'CEZ',
@@ -255,44 +255,44 @@ def get_Te(shotnumber: int, time: float, exp: str = 'AUGD', diag: str = 'CEZ',
     @param exp: Experiment name.
     @param diag: diagnostic from which 'Te' will extracted.
     @param edition: edition of the shotfile to be read.
-    
+
     @return output: a dictionary containing the electron temp. evaluated
     in the input times and the corresponding rhopol base.
     """
-    
+
     # --- Opening the shotfile.
     try:
-        sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber, 
+        sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber,
                          experiment=exp, edition=edition)
     except:
         raise NameError('The shotnumber %d is not in the database'%shotnumber)
-        
-    
+
+
     # --- Reading from the database
     te = sf(name='Te')
-    
+
     # The area base is usually constant.
-    rhop = te.area.data[0, :] 
-    
+    rhop = te.area.data[0, :]
+
     # Getting the time base since for the IDA shotfile, the whole data
     # is extracted at the time.
     timebase = sf(name='time')
-    
+
     # Making the grid.
     TT, RR = np.meshgrid(time, rhop)
-    
+
     # Interpolating in time to get the input times.
     te_out = interpn((timebase, rhop), te.data, \
                      (TT.flatten(), RR.flatten()))
-        
+
     te_out = te_out.reshape(RR.shape)
     # Output dictionary:
     output ={ 'data': te_out,
               'rhop': rhop
              }
-    
+
     sf.close()
-    
+
     return output
 
 # -----------------------------------------------------------------------------
