@@ -33,17 +33,6 @@ t0 = 2.5         # time points to define the ROI
 save_TT = True   # Export the TT and the ROI used
 plt_TT = True  # Plot the TT
 
-# - FILDSIM options: If a SS is not found, a FILDSIM calculation will be
-# launched, default settings are great for FILD, but for DLIF, some details
-# must be changed:
-# NOTE: Number of markers is too low to be precise
-FILDSIM_namelist = {
-    'N_gyroradius': 11,                           # Default
-    'N_pitch': 9,
-    'verbose': '.false.',
-    'N_ions': 1000,
-    'gyroradius': [1.5, 1.75, 2., 3., 4., 5., 6., 7., 8., 9., 10.],   # Default
-    'pitch': [90., 85., 80., 70., 60., 50., 40., 30., 20.]}
 # - Remapping options:
 calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
 camera = 'PHANTOM'      # CCD for other FILDs
@@ -67,9 +56,8 @@ par = {
     'beta': ss.dat.FILD[diag_ID-1]['beta'],
     # method for the interpolation
     'method': 2,  # 2 Spline, 1 Linear
-    'decimals': 1,  # Precision for the strike map (1 is more than enough)
-    'fildsim_options': FILDSIM_namelist,
-    'smap_folder': '/afs/ipp/home/r/ruejo/FILD_Strike_maps2/'}
+    'decimals': 1}  # Precision for the strike map (1 is more than enough)
+
 # Note, if the smap_folder variable is not present, the program will look for
 # the strike maps in the path given by ss.paths.StrikeMaps
 use_roi = True      # Flag to decide if we must use a ROI

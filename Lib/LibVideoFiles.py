@@ -29,7 +29,7 @@ if machine == 'AUG':
     import LibDataAUG as ssdat
 try:
     import cv2
-except ModuleNotFoundError:
+except ImportError:
     print('There would be no support for the mp4 videos, open cv not found')
 
 
@@ -1767,7 +1767,7 @@ class Video:
 
         # Test if the file exist:
         if name is None:
-            name = os.path.join(pa.ScintSuite, 'Results', str(self.shot) + '_'
+            name = os.path.join(pa.Results, str(self.shot) + '_'
                                 + self.diag + str(self.diag_ID) + '_remap.nc')
             name = ssio.check_save_file(name)
         print('Saving results in: ', name)

@@ -9,6 +9,7 @@ import math
 import datetime
 import time
 import os
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
@@ -23,8 +24,12 @@ if machine == 'AUG':
     import LibDataAUG as ssdat
 try:
     import lmfit
-except ModuleNotFoundError:
-    print('lmfit not found, you cannot calculate resolutions')
+except ImportError:
+    warnings.warn('lmfit not found, you cannot calculate resolutions')
+try:
+    import f90nml
+except ImportError:
+    warnings.warn('You cannot remap', category=UserWarning)
 
 
 def transform_to_pixel(x, y, grid_param):
@@ -539,7 +544,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
         got_smap = True
 
     if smap_folder is None:
-        smap_folder = pa.StrikeMaps
+        smap_folder = pa.FILDStrikeMapsRemap
     # Print just some info:
     if not got_smap:
         print('Looking for strikemaps in: ', smap_folder)
@@ -607,8 +612,9 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     # See how many strike maps we need to calculate:
     nnSmap = np.sum(~exist)
     x = 0
-    if nnSmap == nframes:
+    if nnSmap == nframes and not got_smap:
         print('Non a single strike map, full calculation needed')
+        x = 1
     elif nnSmap == 0 and not got_smap:
         print('Ideal situation, not a single map needs to be calcuated')
         x = 1
@@ -618,20 +624,18 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
         x = int(input('Enter answer:'))
         if x == 0:
             print('We will not calculate new strike maps')
+            t = theta[exist][0]
+            p = phi[exist][0]
+            name = ssFILDSIM.guess_strike_map_name_FILD(p, t, machine=machine,
+                                                        decimals=decimals)
         if x == 1:
             print('We will calculate new strike maps')
-
-    if x == 0 and not got_smap:
-        t = theta[exist][0]
-        p = phi[exist][0]
-        name = ssFILDSIM.guess_strike_map_name_FILD(p, t, machine=machine,
-                                                    decimals=decimals)
     print('Remapping frames')
     for iframe in tqdm(range(nframes)):
         if x == 1:
             name = ssFILDSIM.find_strike_map(rfild, zfild, phi[iframe],
                                              theta[iframe], smap_folder,
-                                             pa.FILDSIM, machine=machine,
+                                             machine=machine,
                                              FILDSIM_options=fildsim_options,
                                              decimals=decimals)
         # Only reload the strike map if it is needed
@@ -1220,9 +1224,9 @@ class StrikeMap:
         like for example the method used to fit the pitch
         @param min_statistics: Minimum number of points for a given r p to make
         the fit (if we have less markers, this point will be ignored)
-        @param min_n_bins: Minimum number of bins for the fitting, if the
-        selected bin_width is such that the are less bins, the bin width will
-        automatically adjusted
+        @param min_statistics: Minimum number of counts to perform the fit
+        @param adaptative: If true, the bin width will be adapted such that the
+        number of bins in a sigma of the distribution is 4
         """
         if self.strike_points is None:
             raise Exception('You should load the strike points first!!')

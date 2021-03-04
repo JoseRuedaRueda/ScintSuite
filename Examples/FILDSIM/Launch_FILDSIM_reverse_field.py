@@ -41,7 +41,7 @@ FILDSIM_namelist = {
     'N_pitch': 10,                                # Default
     'save_orbits': 0,                             # Default
     'verbose': '.true.',                         # Default
-    'N_ions': 4000,                              # Default
+    'N_ions': 4000,
     'step': 0.01,                                 # Default
     'helix_length': 10.0,                         # Default
     'gyroradius': [1.5, 1.75, 2., 3., 4., 5., 6., 7., 8., 9., 10.],   # Default

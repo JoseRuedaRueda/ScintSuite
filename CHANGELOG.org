@@ -1,3 +1,9 @@
+** 0.2.0: Strike Maps reordering
+- p1D_shaded_error updated with the possibility of plotting the central line
+- Updated gitignore to ignore a folder call 'MyRoutines' for the user to have its own routines
+- Updated the paths to strike maps, now two libraries will be used: Remap 'low' number of markers, 'Tomography' high number of markers
+- Updated namelist format, now the suite follows the criteria given in the f90nml module
+
 ** 0.1.9: Spectrograms
 - First spectrogram function added, first step towards the fast channel analysis
 - Better examples included
