@@ -19,7 +19,7 @@ import LibIO as ssio
 from tqdm import tqdm
 try:
     from roipoly import RoiPoly
-except ModuleNotFoundError:
+except ImportError:
     warnings.warn('You cannot calculate time traces, roipoly not found',
                   category=UserWarning)
 

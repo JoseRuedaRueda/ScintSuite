@@ -30,7 +30,8 @@ def p1D(ax, x, y, param_dict: dict = None):
     return ax
 
 
-def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=None):
+def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=None,
+                     line_param={}, line=True):
     """
     Plot confidence intervals
 
@@ -47,12 +48,16 @@ def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=None):
     @param color: (Optional) Color of the shaded region
     @param alpha: (Optional) Transparency parameter (0: full transparency,
     1 opacity)
+    @param line: If true, the line x,y will be also plotted
+    @param line_param: (optional) Line parameters to plot the central line
     @return ax with the applied settings
     """
     if u_down is None:
         u_down = u_up
 
     ax.fill_between(x, (y - u_down), (y + u_up), color=color, alpha=alpha)
+    if line:
+        ax.plot(x, y, **line_param)
     return ax
 
 
