@@ -12,11 +12,12 @@ class Path:
         self.FILDSIM = os.path.join(home, 'FILDSIM/')
         self.INPASIM = os.path.join(home, 'INPASIM/')
         self.Results = os.path.join(home, 'ScintSuite/Results')
-        self.FILDStrikeMapsRemap = \
-            os.path.join(home, 'Data', 'StrikeMaps', 'FILD', 'Remap')
-        self.FILDStrikeMapsTomography = \
-            os.path.join(home, 'Data', 'StrikeMaps', 'FILD', 'Tomography')
         self.ScintSuite = os.path.join(home, 'ScintSuite/')
+        self.FILDStrikeMapsRemap = os.path.join(self.ScintSuite, 'Data',
+                                                'StrikeMaps', 'FILD', 'Remap')
+        self.FILDStrikeMapsTomography = \
+            os.path.join(self.ScintSuite, 'Data',
+                         'StrikeMaps', 'FILD', 'Tomography')
         self.tracker = os.path.join(home, 'iHIBPsim', 'bin/')
         if machine == 'AUG':
             self.iHIBP_videos = '/afs/ipp/home/a/augd/rawfiles/VRT/'

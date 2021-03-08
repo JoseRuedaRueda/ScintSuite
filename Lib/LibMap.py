@@ -232,8 +232,8 @@ def remap(smap, frame, x_min=20.0, x_max=80.0, delta_x=1,
         raise Exception('Interpolate strike map before!!!')
 
     # --- 1: Edges of the histogram
-    x_edges = np.arange(start=x_min, stop=x_max, step=delta_x)
-    y_edges = np.arange(start=y_min, stop=y_max, step=delta_y)
+    x_edges = np.arange(start=x_min, stop=x_max + delta_x, step=delta_x)
+    y_edges = np.arange(start=y_min, stop=y_max + delta_y, step=delta_y)
 
     # --- 2: Information of the calibration
     if smap.diag == 'FILD':
@@ -574,9 +574,9 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     # Get the dimension of the gyr and pitch profiles. Depending on the exact
     # values, the ends can enter or not... To look for the dimension I just
     # create a dummy vector and avoid 'complicated logic'
-    dum = np.arange(start=rmin, stop=rmax, step=dr)
+    dum = np.arange(start=rmin, stop=rmax + dr, step=dr)
     ngyr = len(dum) - 1
-    dum = np.arange(start=pmin, stop=pmax, step=dp)
+    dum = np.arange(start=pmin, stop=pmax + dp, step=dp)
     npit = len(dum) - 1
     remaped_frames = np.zeros((npit, ngyr, nframes))
     signal_in_gyr = np.zeros((ngyr, nframes))
@@ -616,6 +616,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
         print('Non a single strike map, full calculation needed')
         x = 1
     elif nnSmap == 0 and not got_smap:
+        print('--. .-. . .- -')
         print('Ideal situation, not a single map needs to be calcuated')
         x = 1
     elif nnSmap != 0 and not got_smap:
@@ -671,7 +672,8 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     opt = {'rmin': rmin, 'rmax': rmax, 'dr': dr, 'pmin': pmin, 'pmax': pmax,
            'dp': dp, 'rprofmin': rprofmin, 'rprofmax': rprofmax,
            'pprofmin': pprofmin, 'pprofmax': pprofmax, 'rfild': rfild,
-           'zfild': zfild, 'alpha': alpha, 'beta': beta}
+           'zfild': zfild, 'alpha': alpha, 'beta': beta,
+           'calibration': calibration}
     return output, opt
 
 
@@ -1396,12 +1398,12 @@ class CalParams:
     """
     Information to relate points in the camera sensor the scintillator
 
-    In a future, it will contains the correction of the optical distortion and
+    In a future, it will contain the correction of the optical distortion and
     all the methods necessary to correct it.
     """
 
     def __init__(self):
-        """Initialize of the class"""
+        """Initialize the class"""
         # To transform the from real coordinates to pixel (see
         # transform_to_pixel())
         ## pixel/cm in the x direction
@@ -1417,8 +1419,8 @@ class CalParams:
 
     def print(self):
         """Print calibration"""
-        print('xcale: ', self.xscale)
-        print('ycale: ', self.yscale)
+        print('xscale: ', self.xscale)
+        print('yscale: ', self.yscale)
         print('xshift: ', self.xshift)
         print('yshift: ', self.yshift)
         print('deg: ', self.deg)

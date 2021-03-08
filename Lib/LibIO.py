@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import time
 import LibTimeTraces as sstt
 import LibParameters as sspar
+import LibMap as ssmapping
 from scipy.io import netcdf
 from version_suite import version
 from LibPaths import Path
@@ -109,9 +110,9 @@ def ask_to_open(dir=None, ext=None):
 # -----------------------------------------------------------------------------
 def read_variable_ncdf(file, varNames, human=True):
     """
-    Read a variable from a TRANSP cdf file
+    Read a variable from a  netCDF file
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
     @param file: path to the .CDF file to be opened
     @param varNames: list with the variable names
@@ -128,7 +129,7 @@ def read_variable_ncdf(file, varNames, human=True):
         file = check_open_file(file)
     # see if the inputs is a list/tupple or not
     try:
-        varNames.append_to_database
+        varNames.append
         listNames = varNames.copy()
     except AttributeError:
         listNames = []
@@ -140,6 +141,20 @@ def read_variable_ncdf(file, varNames, human=True):
         out.append(dummy)
         del dummy
     return out
+
+
+def print_netCDF_content(file):
+    """
+    Print the list of variables in a netcdf file
+
+    Jose Rueda Rueda: jrrueda@us.es
+
+    @param file: full path to the netCDF file
+    """
+    varfile = netcdf.netcdf_file(file, 'r', mmap=False).variables
+    print('%20s' % ('Var name'),  '|  Description  | Dimensions')
+    for key in sorted(varfile.keys()):
+        print('%20s' % (key), varfile[key].long_name, varfile[key].dimensions)
 
 
 def read_scintillator_efficiency(file, plot: bool = False, verb: bool = True):
@@ -257,6 +272,8 @@ def read_timetrace(file=None):
     as the mask and extra info are not saved in the txt. netcdf files are
     prefered
 
+    @todo: implement netcdf part
+
     @param filename: full path to the file to load, if none, a window will
     pop-up to do this selection
     """
@@ -269,6 +286,35 @@ def read_timetrace(file=None):
     TT.time_base, TT.sum_of_roi, TT.mean_of_roi, TT.std_of_roi =\
         np.loadtxt(file, skiprows=2, unpack=True, delimiter='   ,   ')
     return TT
+
+
+# -----------------------------------------------------------------------------
+# --- Calibration
+# -----------------------------------------------------------------------------
+def read_calibration(file=None):
+    """
+    Read a the used calibration from a remap netCDF file
+
+    Jose Rueda: jrrueda@us.es
+
+    @param filename: full path to the file to load, if none, a window will
+    pop-up to do this selection
+    """
+    if file is None:
+        file = ' '
+        file = check_open_file(file)
+        if file == '':
+            raise Exception('You must select a file!!!')
+    print('-.-. .- .-.. .. -... .-. .- - .. --- -.')
+    cal = ssmapping.CalParams()
+    list = ['xshift', 'yshift', 'xscale', 'yscale', 'deg']
+    var = read_variable_ncdf(file, list, human=False)
+    cal.xshift = var[0].data[:]
+    cal.yshift = var[1].data[:]
+    cal.xscale = var[2].data[:]
+    cal.yscale = var[3].data[:]
+    cal.deg = var[4].data[:]
+    return cal
 
 
 # -----------------------------------------------------------------------------
