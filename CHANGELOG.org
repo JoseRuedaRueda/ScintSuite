@@ -1,8 +1,16 @@
+** 0.2.1: FIDASIM implementation
+- First routines to read FIDASIM output added, (thanks Pilar :-)) Although some work still needed in that module this is not completelly checked
+- Updated Readme following nice example of iHIBP
+- Calibration used in the remapping is saved in the remapping options, such that future comparisons of remapped data is easier
+- plot_profiles_in_time of the video object allows now to pass the min and max of the scale as inputs
+- Solves issue #45
+
 ** 0.2.0: Strike Maps reordering
 - p1D_shaded_error updated with the possibility of plotting the central line
 - Updated gitignore to ignore a folder call 'MyRoutines' for the user to have its own routines
 - Updated the paths to strike maps, now two libraries will be used: Remap 'low' number of markers, 'Tomography' high number of markers
 - Updated namelist format, now the suite follows the criteria given in the f90nml module
+- Added GNU license
 
 ** 0.1.9: Spectrograms
 - First spectrogram function added, first step towards the fast channel analysis
