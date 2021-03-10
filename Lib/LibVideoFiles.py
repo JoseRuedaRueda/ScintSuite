@@ -8,6 +8,7 @@ PNG files as the old FILD_GUI and will be able to work with tiff files
 
 import os
 import re
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import LibPlotting as ssplt
@@ -1396,11 +1397,33 @@ class Video:
         """
         print('.--. ... ..-. -')
         print('Substracting noise')
+        if t1 > t2:
+            print('t1: ', t1)
+            print('t2: ', t2)
+            raise Exception('t1 is larger than t2!!!')
         # Get shape and data type of the experimental data
         nx, ny, nt = self.exp_dat['frames'].shape
         original_dtype = self.exp_dat['frames'].dtype
+        # Get the initial and final time loaded in the video:
+        t1_vid = self.exp_dat['tframes'][0]
+        t2_vid = self.exp_dat['tframes'][-1]
         # Calculate the noise frame, if needed:
         if (t1 is not None) and (t2 is not None):
+            if (t1 < t1_vid and t2 < t1_vid) or (t1 > t2_vid and t2 > t2_vid):
+                raise Exception('Requested interval does not overlap with'
+                                + ' the loaded time interval')
+            if t1 < t1_vid:
+                print('Initial time loaded: ', t1_vid)
+                print('Initial time requested for noise substraction: ', t1)
+                t1 = t1_vid
+                warnings.warn('Taking ' + str(t1_vid) + 'as initial point',
+                              category=UserWarning)
+            if t2 > t2_vid:
+                print('Final time loaded: ', t2_vid)
+                print('Final time requested for noise substraction: ', t2)
+                t2 = t2_vid
+                warnings.warn('Taking ' + str(t2_vid) + 'as final point',
+                              category=UserWarning)
             it1 = np.argmin(abs(self.exp_dat['tframes'] - t1))
             it2 = np.argmin(abs(self.exp_dat['tframes'] - t2))
             self.exp_dat['t1_noise'] = t1
@@ -1781,6 +1804,9 @@ class Video:
             name = os.path.join(pa.Results, str(self.shot) + '_'
                                 + self.diag + str(self.diag_ID) + '_remap.nc')
             name = ssio.check_save_file(name)
+            if name == '':
+                print('You canceled the export')
+                return
         print('Saving results in: ', name)
         # Write the data:
         with netcdf.netcdf_file(name, 'w') as f:
