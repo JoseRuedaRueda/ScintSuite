@@ -25,7 +25,7 @@ class FastChannel:
         self.data = ssdat.get_fast_channel(diag, diag_number, channels, shot)
 
     def plot_channels(self, ch_number, line_params: dict = {},
-                      ax_param: dict = {}, ax=None):
+                      ax_params: dict = {}, ax=None):
         """
         Plot the fast channel signals
 
@@ -38,15 +38,16 @@ class FastChannel:
         @preturn ax: axes with the time traces plotted
         """
         # Initialise the plotting options:
-        if 'linewidth' not in line_params:
-            line_params['linewidth'] = 1.5
-        if 'fontsize' not in ax_param:
-            ax_param['fontsize'] = 14
-        if 'xlabel' not in ax_param:
-            ax_param['xlabel'] = 'Time [s]'
-        if 'ylabel' not in ax_param:
-            ax_param['ylabel'] = 'Signal [a.u.]'
-
+        line_settings = {
+            'linewidth': 1.5,
+        }
+        ax_settings = {
+            'fontsize': 14,
+            'xlabel': 'Time [s]',
+            'ylabel': 'Signal [a.u.]'
+        }
+        line_settings.update(line_params)
+        ax_settings.update(ax_params)
         # See if the desired number of channels is an array:
         try:    # If we received a numpy array, all is fine
             ch_number.size
@@ -62,9 +63,9 @@ class FastChannel:
         for ic in ch:
             if self.data['signal'][ic - 1] is not None:
                 ax.plot(self.data['time'], self.data['signal'][ic - 1],
-                        label='Ch{0:02}'.format(ic), **line_params)
+                        label='Ch{0:02}'.format(ic), **line_settings)
             else:
                 print('Channel ', ic, 'requested but not loaded, skipping!')
-        ax = ssplt.axis_beauty(ax, ax_param)
+        ax = ssplt.axis_beauty(ax, ax_settings)
         plt.legend()
         plt.tight_layout()

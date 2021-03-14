@@ -8,6 +8,7 @@ PNG files as the old FILD_GUI and will be able to work with tiff files
 
 import os
 import re
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import LibPlotting as ssplt
@@ -18,6 +19,7 @@ import LibIO as ssio
 from LibMachine import machine
 from version_suite import version
 from scipy.io import netcdf                # To export remap data
+from scipy import ndimage                  # To filter the images
 from skimage import io                     # To load png images
 import tkinter as tk                       # To open UI windows
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -29,7 +31,7 @@ if machine == 'AUG':
     import LibDataAUG as ssdat
 try:
     import cv2
-except ModuleNotFoundError:
+except ImportError:
     print('There would be no support for the mp4 videos, open cv not found')
 
 
@@ -1144,10 +1146,10 @@ def guess_filename(shot: int, base_dir: str, extension: str = ''):
     Note AUG criteria of organising files is assumed: .../38/38760/...
 
     @param shot: shot number
-    @param base_dir: base directory (before 38/)
+    @param base_dir: base directory (before /38/)
     @param extension: extension of the file
 
-    @return file; the name of the file/folder
+    @return file: the name of the file/folder
     """
     shot_str = str(shot)
     name = shot_str + extension
@@ -1262,6 +1264,9 @@ class Video:
                     break
                 elif f[i][-4:] == '.tif':
                     self.type_of_file = '.tif'
+                    print('Found tif files!')
+                    print('Tif support still not implemented, sorry')
+                    break
             # if we do not have .png or tiff, give an error
             if self.type_of_file != '.png' and self.type_of_file != '.tiff':
                 print('No .pgn or .tiff files found')
@@ -1396,22 +1401,48 @@ class Video:
         """
         print('.--. ... ..-. -')
         print('Substracting noise')
+        if t1 > t2:
+            print('t1: ', t1)
+            print('t2: ', t2)
+            raise Exception('t1 is larger than t2!!!')
         # Get shape and data type of the experimental data
         nx, ny, nt = self.exp_dat['frames'].shape
         original_dtype = self.exp_dat['frames'].dtype
+        # Get the initial and final time loaded in the video:
+        t1_vid = self.exp_dat['tframes'][0]
+        t2_vid = self.exp_dat['tframes'][-1]
         # Calculate the noise frame, if needed:
         if (t1 is not None) and (t2 is not None):
+            if (t1 < t1_vid and t2 < t1_vid) or (t1 > t2_vid and t2 > t2_vid):
+                raise Exception('Requested interval does not overlap with'
+                                + ' the loaded time interval')
+            if t1 < t1_vid:
+                print('Initial time loaded: ', t1_vid)
+                print('Initial time requested for noise substraction: ', t1)
+                t1 = t1_vid
+                warnings.warn('Taking ' + str(t1_vid) + 'as initial point',
+                              category=UserWarning)
+            if t2 > t2_vid:
+                print('Final time loaded: ', t2_vid)
+                print('Final time requested for noise substraction: ', t2)
+                t2 = t2_vid
+                warnings.warn('Taking ' + str(t2_vid) + 'as final point',
+                              category=UserWarning)
             it1 = np.argmin(abs(self.exp_dat['tframes'] - t1))
             it2 = np.argmin(abs(self.exp_dat['tframes'] - t2))
+            self.exp_dat['t1_noise'] = t1
+            self.exp_dat['t2_noise'] = t2
             print('Using frames from the video')
             print(str(it2 - it1 + 1), ' frames will be used to average noise')
             frame = np.mean(self.exp_dat['frames'][:, :, it1:(it2 + 1)],
                             dtype=original_dtype, axis=2)
+            self.exp_dat['frame_noise'] = frame
         else:
             print('Using noise frame provider by the user')
             nxf, nyf = frame.shape
             if (nxf != nx) or (nyf != ny):
                 raise Exception('The noise frame has not the correct shape')
+            self.exp_dat['frame_noise'] = frame
         # Create the original frame array:
         if 'original_frames' not in self.exp_dat:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
@@ -1426,6 +1457,7 @@ class Video:
             # Set negative counts to zero:
             dummy[dummy < 0] = 0.
             self.exp_dat['frames'][:, :, i] = dummy.astype(original_dtype)
+        print('-... -.-- . / -... -.-- .')
         return
 
     def return_to_original_frames(self):
@@ -1523,23 +1555,63 @@ class Video:
         output['trace'] = trace
         return output
 
-    def filter_frames(self, method='jrr'):
+    def filter_frames(self, method='median', options={}):
         """
         Filter the camera frames
 
         @param method: method to be used:
             -# jrr: neutron method of the extra package
+            -# median: median filter from the scipy.ndimage package
+            -# gaussian: gaussian filter from the scipy.ndimage package
+        @param options: options for the desired filter (dictionary), defaults:
+            -# jrr:
+                nsigma: 3 Number of sigmas to consider a pixel as neutron
+            -# median:
+                size: 4, number of pixels considered
         """
-        print('Removing pixels affected by neutrons')
+        # default options:
+        jrr_options = {
+            'nsigma': 3
+        }
+        median_options = {
+            'size': 2
+        }
+        gaussian_options = {
+            'sigma': 1
+        }
         if 'original_frames' not in self.exp_dat:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
         else:
             print('original frames already present, not making new copy')
-        # Eliminate neutrons
+        # Filter frames
         nx, ny, nt = self.exp_dat['frames'].shape
-        for i in tqdm(range(nt)):
-            self.exp_dat['frames'][:, :, i] = \
-                ssutilities.neutron_filter(self.exp_dat['frames'][:, :, i])
+        if method == 'jrr':
+            print('Removing pixels affected by neutrons')
+            for i in tqdm(range(nt)):
+                self.exp_dat['frames'][:, :, i] = \
+                    ssutilities.neutron_filter(self.exp_dat['frames'][:, :, i],
+                                               **jrr_options)
+        elif method == 'median':
+            print('Median filter selected!')
+            # if footprint is present in the options given by user, delete size
+            # from the default options, to avoid issues in the median filter
+            if 'footprint' in options:
+                median_options['size'] = None
+            # Now update the options
+            median_options.update(options)
+            for i in tqdm(range(nt)):
+                self.exp_dat['frames'][:, :, i] = \
+                    ndimage.median_filter(self.exp_dat['frames'][:, :, i],
+                                          **median_options)
+        elif method == 'gaussian':
+            print('Gaussian filter selected!')
+            gaussian_options.update(options)
+            for i in tqdm(range(nt)):
+                self.exp_dat['frames'][:, :, i] = \
+                    ndimage.gaussian_filter(self.exp_dat['frames'][:, :, i],
+                                            **gaussian_options)
+
+        print('-... -.-- . / -... -.-- .')
         return
 
     def plot_frame(self, frame_number=None, ax=None, fig=None, ccmap=None,
@@ -1611,7 +1683,8 @@ class Video:
 
     def plot_profiles_in_time(self, ccmap=None, plt_params: dict = {}, t=None,
                               nlev: int = 50, cbar_tick_format: str = '%.1E',
-                              normalise=False):
+                              normalise=False, max_gyr=None, min_gyr=None,
+                              max_pitch=None, min_pitch=None):
         """
         Creates a plot with the evolution of the profiles
 
@@ -1623,6 +1696,10 @@ class Video:
         time will be used
         @param nlev: Number of levels for the contourf plots
         @param cbar_tick_format: format for the colorbar ticks
+        @param max_gyr: maximum value for colorbar plot in gyroradius
+        @param min_gyr: minimum value for colorbar plot in gyroradius
+        @param max_pitch: maximum value for colorbar plot in pitch
+        @param min_pitch: minimum value for colorbar plot in pitch
         @todo: substitute pprofmin and max, also with rl or we will have a
         future bug
         """
@@ -1639,7 +1716,8 @@ class Video:
             fig1, ax1 = plt.subplots()
             cont = ax1.contourf(self.remap_dat['tframes'],
                                 self.remap_dat['yaxis'],
-                                self.remap_dat['sprofy'], nlev, cmap=cmap)
+                                self.remap_dat['sprofy'], nlev, cmap=cmap,
+                                vmin=min_gyr, vmax=max_gyr)
             cbar = plt.colorbar(cont, format=cbar_tick_format)
             cbar.set_label('Counts [a.u.]', fontsize=plt_params['fontsize'])
             cbar.ax.tick_params(labelsize=plt_params['fontsize'] * .8)
@@ -1673,7 +1751,8 @@ class Video:
             fig2, ax2 = plt.subplots()
             cont = ax2.contourf(self.remap_dat['tframes'],
                                 self.remap_dat['xaxis'],
-                                self.remap_dat['sprofx'], nlev, cmap=cmap)
+                                self.remap_dat['sprofx'], nlev, cmap=cmap,
+                                vmin=min_gyr, vmax=max_gyr)
             cbar = plt.colorbar(cont, format=cbar_tick_format)
             cbar.set_label('Counts [a.u.]', fontsize=plt_params['fontsize'])
             cbar.ax.tick_params(labelsize=plt_params['fontsize'] * .8)
@@ -1767,9 +1846,12 @@ class Video:
 
         # Test if the file exist:
         if name is None:
-            name = os.path.join(pa.ScintSuite, 'Results', str(self.shot) + '_'
+            name = os.path.join(pa.Results, str(self.shot) + '_'
                                 + self.diag + str(self.diag_ID) + '_remap.nc')
             name = ssio.check_save_file(name)
+            if name == '':
+                print('You canceled the export')
+                return
         print('Saving results in: ', name)
         # Write the data:
         with netcdf.netcdf_file(name, 'w') as f:
@@ -1828,6 +1910,54 @@ class Video:
             sprofy[:, :] = self.remap_dat['sprofy']
             sprofy.units = 'a.u.'
             sprofy.long_name = self.remap_dat['sprofylabel']
+
+            # Save the calibration
+            xscale = f.createVariable('xscale', 'float64', ('number', ))
+            xscale[:] = self.remap_dat['options']['calibration'].xscale
+            xscale.units = 'px / cm'
+            xscale.long_name = 'x scale of the used calibration'
+
+            yscale = f.createVariable('yscale', 'float64', ('number', ))
+            yscale[:] = self.remap_dat['options']['calibration'].yscale
+            yscale.units = 'px / cm'
+            yscale.long_name = 'y scale of the used calibration'
+
+            xshift = f.createVariable('xshift', 'float64', ('number', ))
+            xshift[:] = self.remap_dat['options']['calibration'].xshift
+            xshift.units = 'px / cm'
+            xshift.long_name = 'x shift of the used calibration'
+
+            yshift = f.createVariable('yshift', 'float64', ('number', ))
+            yshift[:] = self.remap_dat['options']['calibration'].yshift
+            yshift.units = 'px / cm'
+            yshift.long_name = 'y shift of the used calibration'
+
+            deg = f.createVariable('deg', 'float64', ('number', ))
+            deg[:] = self.remap_dat['options']['calibration'].deg
+            deg.units = 'degrees'
+            deg.long_name = 'alpha angle the used calibration'
+
+            # Noise subtraction
+            if 't1_noise' in self.exp_dat.keys():
+                t1_noise = f.createVariable('t1_noise', 'float64', ('number',))
+                t1_noise[:] = self.exp_dat['t1_noise']
+                t1_noise.units = 's'
+                t1_noise.long_name = 't1 for noise subtraction'
+
+                t2_noise = f.createVariable('t2_noise', 'float64', ('number',))
+                t2_noise[:] = self.exp_dat['t2_noise']
+                t2_noise.units = 's'
+                t2_noise.long_name = 't2 for noise subtraction'
+
+            if 'frame_noise' in self.exp_dat.keys():
+                nframex, nframey = self.exp_dat['frame_noise'].shape
+                f.createDimension('nx', nframex)
+                f.createDimension('ny', nframey)
+                frame_noise = f.createVariable('frame_noise', 'float64',
+                                               ('nx', 'ny',))
+                frame_noise[:] = self.exp_dat['frame_noise']
+                frame_noise.units = 'counts'
+                frame_noise.long_name = 'frame used for noise subtraction'
 
             # Save the specific FILD variables
             if self.diag == 'FILD':

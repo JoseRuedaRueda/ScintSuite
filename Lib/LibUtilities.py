@@ -90,7 +90,7 @@ def pitch_at_other_place(R0, P0, R):
 # -----------------------------------------------------------------------------
 # --- Matrix filters
 # -----------------------------------------------------------------------------
-def neutron_filter(M):
+def neutron_filter(M, nsigma: int = 3):
     """
     Remove pixels affected by neutrons
 
@@ -107,7 +107,7 @@ def neutron_filter(M):
             dummy[1, 1] = 0
             mean = np.mean(dummy)
             std = np.std(dummy)
-            if Mo[ix, iy] > mean + 3 * std:
+            if Mo[ix, iy] > mean + nsigma * std:
                 Mo[ix, iy] = mean
 
     return Mo
