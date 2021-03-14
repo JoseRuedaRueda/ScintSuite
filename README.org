@@ -61,6 +61,7 @@ If a new implementation is required, open the appropriate issue in the GIT and l
 - Bug: minor error found in the code. To be corrected at the earliest convenience.
 - Major error: an important error has to be solved in the code as soon as possible.
 - Minor priority: Label for maintainer, indicates that the request has low priority in the ToDo list
+
 ** Machine names
 All devices are identified by three letters:
 - 'AUG': ASDEX Upgrade

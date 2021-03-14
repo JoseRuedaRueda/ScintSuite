@@ -3,7 +3,7 @@ Contains the routines to perform the tomographic inversion
 
 NOTICE: I consider the creatation of the transfer matrix as an issue of the
 synthetic codes (INPASIM, FILDSIM, i/HIBPSIM) therefore the routines which
-create these matrix are placed are their corresponding libraries
+create these matries are placed are their corresponding libraries
 """
 
 import numpy as np

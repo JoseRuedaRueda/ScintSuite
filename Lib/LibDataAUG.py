@@ -40,32 +40,41 @@ fild1 = {'alpha': 0.0,   # Alpha angle [deg], see paper
          'z': 0.3,       # Z position [m]
          'phi_tor': 169.75,  # Toroidal position, [deg]
          'path': '/p/IPP/AUG/rawfiles/FIT/',  # Path for the video files
-         'extension': '_v710.cin'}  # Extension of the video file, none for png
+         'extension': '_v710.cin',  # Extension of the video file, none for png
+         'label': 'FILD1',  # Label for the diagnostic, for FILD6 (rFILD)
+         'diag': 'FHC',  # name of the diagnostic for the fast channel
+         'channel': 'FILD3_',  # prefix of the name of each channel (shotfile)
+         'nch': 20}  # Number of fast channels
 
 fild2 = {'alpha': 0.0, 'beta': -12.0, 'sector': 3, 'r': 2.180,
          'z': 0.3, 'phi_tor': 57.25,
          'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD2/',
-         'extension': ''}
+         'extension': '', 'label': 'FILD2', 'diag': 'FHA', 'channel': 'FIPM_',
+         'nch': 20}
 
 fild3 = {'alpha': 72.0, 'beta': -12.0, 'sector': 13, 'r': 1.975,
          'z': 0.765, 'phi_tor': 282.25,
          'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD3/',
-         'extension': ''}
+         'extension': '', 'label': 'FILD3', 'diag': 'xxx', 'channel': 'xxxxx',
+         'nch': 99}
 
 fild4 = {'alpha': 0.0, 'beta': -12.0, 'sector': 8, 'r': 2.035,
          'z': -0.462, 'phi_tor': 169.75,
          'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD4/',
-         'extension': ''}
+         'extension': '', 'label': 'FILD4', 'diag': 'FHD', 'channel': 'Chan-',
+         'nch': 32}
 
-fild5 = {'alpha': -45.0, 'beta': -12.0, 'sector': 7, 'r': 1.772,
+fild5 = {'alpha': -48.3, 'beta': -12.0, 'sector': 7, 'r': 1.772,
          'z': -0.798, 'phi_tor': 147.25,
          'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD5/',
-         'extension': ''}
+         'extension': '', 'label': 'FILD5', 'diag': 'FHE', 'channel': 'Chan-',
+         'nch': 64}
 
 fild6 = {'alpha': 0.0, 'beta': -12.0, 'sector': 8, 'r': 2.180,
          'z': 0.3, 'phi_tor': 169.75,
          'path': '/p/IPP/AUG/rawfiles/FIT/',
-         'extension': '_v710.cin'}  # This is rFILD (DLIF)
+         'extension': '_v710.cin', 'label': 'RFILD',
+         'diag': 'FHC', 'channel': 'FILD3_', 'nch': 20}
 
 FILD = (fild1, fild2, fild3, fild4, fild5, fild6)
 ## FILD diag names:

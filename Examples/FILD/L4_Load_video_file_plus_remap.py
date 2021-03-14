@@ -6,7 +6,7 @@ possibility to substract noise and timetraces remap of the whole video
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.1.8. Before running this script, please do:
+Note; Written for version 0.2.3. Before running this script, please do:
 plt.show(), if not, bug due to spyder 4.0 may arise
 """
 import Lib as ss
@@ -27,6 +27,17 @@ subtract_noise = False   # Flag to apply noise subtraction
 tn1 = 0.9     # Initial time to average the frames for noise subtraction [s]
 tn2 = 1.0     # Final time to average the frames for noise subtraction [s]
 
+# - Filter options:
+apply_filter = True  # Flag to apply filter to the frames
+kind_of_filter = 'median'
+options_filter = {
+    'size': 2        # Size of the window to apply the filter
+}
+# If you want a gaussian one
+# kind_of_filter = 'gaussian'
+# options_filter = {
+#     'sigma': 1        # sigma of the gaussian for the convolution (in pixels)
+# }
 # - TimeTrace options:
 calculate_TT = False  # Wheter to calculate or not the TT
 t0 = 2.5         # time points to define the ROI
@@ -76,11 +87,13 @@ print('Reading camera frames: ', shot, '...')
 vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
 print('Elapsed time [s]: ', time() - tdummy)
 # -----------------------------------------------------------------------------
-# --- Section 2: Substract the noise
+# --- Section 2: Substract the noise and filter frames
 # -----------------------------------------------------------------------------
 if subtract_noise:
     vid.subtract_noise(t1=tn1, t2=tn2)
 
+if apply_filter:
+    vid.filter_frames(kind_of_filter, options_filter)
 # -----------------------------------------------------------------------------
 # --- Section 3: Calculate the TT
 # -----------------------------------------------------------------------------
