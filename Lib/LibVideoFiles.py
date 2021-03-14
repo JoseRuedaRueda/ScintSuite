@@ -19,6 +19,7 @@ import LibIO as ssio
 from LibMachine import machine
 from version_suite import version
 from scipy.io import netcdf                # To export remap data
+from scipy import ndimage                  # To filter the images
 from skimage import io                     # To load png images
 import tkinter as tk                       # To open UI windows
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -1145,10 +1146,10 @@ def guess_filename(shot: int, base_dir: str, extension: str = ''):
     Note AUG criteria of organising files is assumed: .../38/38760/...
 
     @param shot: shot number
-    @param base_dir: base directory (before 38/)
+    @param base_dir: base directory (before /38/)
     @param extension: extension of the file
 
-    @return file; the name of the file/folder
+    @return file: the name of the file/folder
     """
     shot_str = str(shot)
     name = shot_str + extension
@@ -1263,6 +1264,9 @@ class Video:
                     break
                 elif f[i][-4:] == '.tif':
                     self.type_of_file = '.tif'
+                    print('Found tif files!')
+                    print('Tif support still not implemented, sorry')
+                    break
             # if we do not have .png or tiff, give an error
             if self.type_of_file != '.png' and self.type_of_file != '.tiff':
                 print('No .pgn or .tiff files found')
@@ -1453,6 +1457,7 @@ class Video:
             # Set negative counts to zero:
             dummy[dummy < 0] = 0.
             self.exp_dat['frames'][:, :, i] = dummy.astype(original_dtype)
+        print('-... -.-- . / -... -.-- .')
         return
 
     def return_to_original_frames(self):
@@ -1550,23 +1555,63 @@ class Video:
         output['trace'] = trace
         return output
 
-    def filter_frames(self, method='jrr'):
+    def filter_frames(self, method='median', options={}):
         """
         Filter the camera frames
 
         @param method: method to be used:
             -# jrr: neutron method of the extra package
+            -# median: median filter from the scipy.ndimage package
+            -# gaussian: gaussian filter from the scipy.ndimage package
+        @param options: options for the desired filter (dictionary), defaults:
+            -# jrr:
+                nsigma: 3 Number of sigmas to consider a pixel as neutron
+            -# median:
+                size: 4, number of pixels considered
         """
-        print('Removing pixels affected by neutrons')
+        # default options:
+        jrr_options = {
+            'nsigma': 3
+        }
+        median_options = {
+            'size': 2
+        }
+        gaussian_options = {
+            'sigma': 1
+        }
         if 'original_frames' not in self.exp_dat:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
         else:
             print('original frames already present, not making new copy')
-        # Eliminate neutrons
+        # Filter frames
         nx, ny, nt = self.exp_dat['frames'].shape
-        for i in tqdm(range(nt)):
-            self.exp_dat['frames'][:, :, i] = \
-                ssutilities.neutron_filter(self.exp_dat['frames'][:, :, i])
+        if method == 'jrr':
+            print('Removing pixels affected by neutrons')
+            for i in tqdm(range(nt)):
+                self.exp_dat['frames'][:, :, i] = \
+                    ssutilities.neutron_filter(self.exp_dat['frames'][:, :, i],
+                                               **jrr_options)
+        elif method == 'median':
+            print('Median filter selected!')
+            # if footprint is present in the options given by user, delete size
+            # from the default options, to avoid issues in the median filter
+            if 'footprint' in options:
+                median_options['size'] = None
+            # Now update the options
+            median_options.update(options)
+            for i in tqdm(range(nt)):
+                self.exp_dat['frames'][:, :, i] = \
+                    ndimage.median_filter(self.exp_dat['frames'][:, :, i],
+                                          **median_options)
+        elif method == 'gaussian':
+            print('Gaussian filter selected!')
+            gaussian_options.update(options)
+            for i in tqdm(range(nt)):
+                self.exp_dat['frames'][:, :, i] = \
+                    ndimage.gaussian_filter(self.exp_dat['frames'][:, :, i],
+                                            **gaussian_options)
+
+        print('-... -.-- . / -... -.-- .')
         return
 
     def plot_frame(self, frame_number=None, ax=None, fig=None, ccmap=None,

@@ -1,3 +1,12 @@
+** 0.2.3: Filter for video object
+- *Included requested feature*: median filter added to the filter_frames method of the video class (closes #47)
+- *Closes #45* Now the rmin, rmax, pmin, pmax represent the output vector when we want the remap, not the input edges (:-()
+- 'Clean' a bit the method 'find_strike_map' from the FILDSIM library, now a loop is used to run over FILDSIM namelist
+- Included Gaussian filter for the video frames
+- Reordered examples
+- Simplified plotting options in TimeTrace.plot_single()
+- Improved TimeTrace.plot_all(), now they share x axis so zoom is better
+
 ** 0.2.2: Debugging
 - *BUG_SOLVED* in the plot_vessel function, the factor from m to cm was 10 instead of 100!
 - *BUG_SOLVED* rotation of the vessel was not passed from the plot_vessel routine to the method which calculate the vessel coordinates
@@ -8,7 +17,7 @@
 - Updated Readme following nice example of iHIBP
 - Calibration used in the remapping is saved in the remapping options, such that future comparisons of remapped data is easier
 - plot_profiles_in_time of the video object allows now to pass the min and max of the scale as inputs
-- First implementation of issue #45
+- *Included requested feature* First implementation of issue #41
 
 ** 0.2.0: Strike Maps reordering
 - p1D_shaded_error updated with the possibility of plotting the central line

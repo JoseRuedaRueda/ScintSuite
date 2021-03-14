@@ -24,7 +24,7 @@ import LibDataAUG as ssdat
 # ------------------------------------------------------------------------------
 # Section 0: Settings
 cin_file_name = '/p/IPP/AUG/rawfiles/FIT/32/32312_v710.cin'
-calibration_database = './Data/Calibrations/FILD/calibration_database2.dat'
+calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
 
 strike_map = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILD_Strike_maps/' + \
     'AUG_map_-000.80000_008.10000_strike_map.dat'
@@ -37,7 +37,6 @@ rfild = 2.186
 zfild = 0.32
 t0 = 0.27
 # ------------------------------------------------------------------------------
-
 # %% Section 1: Load calibration
 database = ssmap.CalibrationDatabase(calibration_database)
 cal = database.get_calibration(shot, camera, cal_type, diag_ID)
@@ -68,10 +67,6 @@ fig_remap.colorbar(a1, ax=ax_remap)
 
 # -----------------------------------------------------------------------------
 # %% Section 4: Calculation of the profiles
-# Obtain the magnetic field
-br, bz, bt, bp = ssdat.get_mag_field(shot, rfild, zfild, time=t0)
-b = np.hypot(bp, bt)
-
 # Obtain a gyroradius profile
 profile = ssmap.gyr_profile(remaped, pitch, 20.0, 90.0, verbose=True)
 
@@ -81,28 +76,7 @@ profile_pitch = ssmap.pitch_profile(remaped, gyr, 2.0, 8.0, verbose=True)
 # Plot (adapted from
 # https://stackoverflow.com/questions/10514315/
 # how-to-add-a-second-x-axis-in-matplotlib)
-fig = plt.figure()
-ax1 = fig.add_subplot(111)
-ax2 = ax1.twiny()
-ax1.plot(gyr, profile)
-ax1.set_xlabel(r"Gyroradius [cm]")
-new_tick_locations = np.array(ax1.get_xticks())
-ax1.set_xticks(new_tick_locations)
-
-
-def tick_function(X):
-    """Auxiliar function for plotting"""
-    V = ssmap.get_energy_FILD(X, b) / 1000
-    V = V.squeeze()
-    return ["%.1f" % z for z in V]
-
-
-ax2.set_xlim(ax1.get_xlim())
-ax2.set_xticks(new_tick_locations)
-ax2.set_xticklabels(tick_function(new_tick_locations))
-ax2.set_xlabel(r"Energy [keV]")
-plt.show()
-
-fig_profiles, ax_profiles = plt.subplots()
-ax_profiles.plot(pitch, profile_pitch)
+fig, ax = plt.subplots(2)
+ax[0].plot(gyr, profile)
+ax[1].plot(pitch, profile_pitch)
 plt.show()

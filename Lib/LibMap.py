@@ -232,8 +232,10 @@ def remap(smap, frame, x_min=20.0, x_max=80.0, delta_x=1,
         raise Exception('Interpolate strike map before!!!')
 
     # --- 1: Edges of the histogram
-    x_edges = np.arange(start=x_min, stop=x_max + delta_x, step=delta_x)
-    y_edges = np.arange(start=y_min, stop=y_max + delta_y, step=delta_y)
+    nx = int((x_max-x_min)/delta_x)
+    ny = int((y_max-y_min)/delta_y)
+    x_edges = x_min - delta_x/2 + np.arange(nx+2) * delta_x
+    y_edges = y_min - delta_y/2 + np.arange(ny+2) * delta_y
 
     # --- 2: Information of the calibration
     if smap.diag == 'FILD':
@@ -281,7 +283,7 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
     frame
     """
     # See which cells do we need
-    flags = (pitch_centers < max_pitch) * (pitch_centers > min_pitch)
+    flags = (pitch_centers <= max_pitch) * (pitch_centers >= min_pitch)
     if np.sum(flags) == 0:
         raise Exception('No single cell satisfy the condition!')
     # The pitch centers is the centroid of the cell, but a cell include counts
@@ -295,7 +297,7 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
     profile = np.sum(dummy, axis=0)
     if verbose:
         print('The minimum pitch used is: ', min_used_pitch)
-        print('The Maximum pitch used is: ', max_used_pitch)
+        print('The maximum pitch used is: ', max_used_pitch)
     if name is not None:
         if gyr is not None:
             date = datetime.datetime.now()
@@ -352,7 +354,7 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
     in the frame
     """
     # See which cells do we need
-    flags = (gyr_centers < max_gyr) * (gyr_centers > min_gyr)
+    flags = (gyr_centers <= max_gyr) * (gyr_centers >= min_gyr)
     if np.sum(flags) == 0:
         raise Exception('No single cell satisfy the condition!')
     # The r centers is the centroid of the cell, but a cell include counts
@@ -366,7 +368,7 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
     profile = np.sum(dummy, axis=1)
     if verbose:
         print('The minimum gyroradius used is: ', min_used_gyr)
-        print('The Maximum gyroradius used is: ', max_used_gyr)
+        print('The maximum gyroradius used is: ', max_used_gyr)
 
     if name is not None:
         if pitch is not None:
@@ -571,13 +573,8 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     # b_field = np.sqrt(br**2 + bz**2 + bt**2)
 
     # Initialise the variables:
-    # Get the dimension of the gyr and pitch profiles. Depending on the exact
-    # values, the ends can enter or not... To look for the dimension I just
-    # create a dummy vector and avoid 'complicated logic'
-    dum = np.arange(start=rmin, stop=rmax + dr, step=dr)
-    ngyr = len(dum) - 1
-    dum = np.arange(start=pmin, stop=pmax + dp, step=dp)
-    npit = len(dum) - 1
+    ngyr = int((rmax-rmin)/dr) + 1
+    npit = int((pmax-pmin)/dp) + 1
     remaped_frames = np.zeros((npit, ngyr, nframes))
     signal_in_gyr = np.zeros((ngyr, nframes))
     signal_in_pit = np.zeros((npit, nframes))

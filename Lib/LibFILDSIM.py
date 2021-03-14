@@ -571,20 +571,18 @@ def find_strike_map(rfild: float, zfild: float,
     # desired by the user:
 
     if FILDSIM_options is not None:
-        if 'config' in FILDSIM_options:
-            nml['config'].update(FILDSIM_options['config'])
-        if 'input_parameters' in FILDSIM_options:
-            nml['input_parameters'].update(FILDSIM_options['input_parameters'])
+        # Set the geometry directory
         if 'plate_setup_cfg' in FILDSIM_options:
             if 'geometry_dir' not in FILDSIM_options['plate_setup_cfg']:
                 FILDSIM_options['plate_setup_cfg']['geometry_dir'] = \
                     os.path.join(paths.FILDSIM, 'geometry/')
-            nml['plate_setup_cfg'].update(FILDSIM_options['plate_setup_cfg'])
         else:
             nml['plate_setup_cfg']['geometry_dir'] = \
                 os.path.join(paths.FILDSIM, 'geometry/')
-        if 'plate_files' in FILDSIM_options:
-            nml['plate_files'].update(FILDSIM_options['plate_files'])
+        # set the rest of user defined options
+        for block in FILDSIM_options.keys():
+            nml[block].update(FILDSIM_options['config'])
+
     # set namelist name, theta and phi
     nml['config']['runid'] = name[:-15]
     nml['config']['result_dir'] = strike_path

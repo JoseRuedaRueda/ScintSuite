@@ -307,17 +307,16 @@ class TimeTrace:
         @param, ax: axes where to draw the figure, if none, new figure will be
         created
         """
-        if 'fontsize' not in ax_par:
-            ax_par['fontsize'] = 16.0
-        if 'grid' not in ax_par:
-            ax_par['grid'] = 'both'
-        if 'xlabel' not in ax_par:
-            ax_par['xlabel'] = 't [s]'
-        if 'linewidth' not in line_par:
-            line_par['linewidth'] = 2.0
-        # if 'color' not in line_par:
-        #     line_par['color'] = 'k'
-
+        # default plotting options
+        ax_options = {
+            'fontsize': 16.0,
+            'grid': 'both',
+            'xlabel': 't [s]'
+        }
+        line_options = {
+            'linewidth': 1.5,
+            'color': 'r'
+        }
         # --- Select the proper data:
         if data == 'sum':
             y = self.sum_of_roi
@@ -347,12 +346,14 @@ class TimeTrace:
         # create and plot the figure
         if ax is None:
             fig, ax = plt.subplots()
-        ax.plot(self.time_base, y, **line_par)
-        ax = ssplt.axis_beauty(ax, ax_par)
+        line_options.update(line_par)
+        ax.plot(self.time_base, y, **line_options)
+        ax_options.update(ax_par)
+        ax = ssplt.axis_beauty(ax, ax_options)
         plt.tight_layout()
         return ax
 
-    def plot_all(self, options: dict = {}):
+    def plot_all(self, ax_par: dict = {}, line_par: dict = {}):
         """
         Plot the sum time trace, the average timetrace and the std ones
 
@@ -366,30 +367,33 @@ class TimeTrace:
         @return axes: list of axes where the lines have been plotted
         """
         # Initialise the options for the plotting
-        if 'fontsize' not in options:
-            options['fontsize'] = 16.0
-        if 'grid' not in options:
-            options['grid'] = 'both'
-        line_options = {'linewidth': 2, 'color': 'r'}
-
-        fig_tt, [ax_tt1, ax_tt2, ax_tt3] = plt.subplots(1, 3)
+        ax_options = {
+            'fontsize': 16.0,
+            'grid': 'both'
+        }
+        ax_options.update(ax_par)
+        line_options = {
+            'linewidth': 2.0,
+            'color': 'r'
+        }
+        line_options.update(line_par)
+        # Open the figure
+        fig_tt, [ax_tt1, ax_tt2, ax_tt3] = plt.subplots(3, sharex=True)
         # Plot the sum of the counts in the roi
         ax_tt1.plot(self.time_base, self.sum_of_roi, **line_options)
-        options['xlabel'] = 't [s]'
-        options['ylabel'] = 'Counts'
-        ax_tt1 = ssplt.axis_beauty(ax_tt1, options)
+        ax_options['ylabel'] = 'Counts'
+        ax_tt1 = ssplt.axis_beauty(ax_tt1, ax_options)
 
         # plot the mean of the counts in the roi
         ax_tt2.plot(self.time_base, self.mean_of_roi, **line_options)
-        options['xlabel'] = 't [s]'
-        options['ylabel'] = 'Mean'
-        ax_tt2 = ssplt.axis_beauty(ax_tt2, options)
+        ax_options['ylabel'] = 'Mean'
+        ax_tt2 = ssplt.axis_beauty(ax_tt2, ax_options)
 
         # plot the std of the counts in the roi
         ax_tt3.plot(self.time_base, self.std_of_roi, **line_options)
-        options['xlabel'] = 't [s]'
-        options['ylabel'] = '$\\sigma$'
-        ax_tt3 = ssplt.axis_beauty(ax_tt3, options)
+        ax_options['xlabel'] = 't [s]'
+        ax_options['ylabel'] = '$\\sigma$'
+        ax_tt3 = ssplt.axis_beauty(ax_tt3, ax_options)
         plt.tight_layout()
         plt.show()
 
