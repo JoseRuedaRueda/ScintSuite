@@ -9,6 +9,7 @@ import math
 import datetime
 import time
 import os
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
@@ -23,8 +24,12 @@ if machine == 'AUG':
     import LibDataAUG as ssdat
 try:
     import lmfit
-except ModuleNotFoundError:
-    print('lmfit not found, you cannot calculate resolutions')
+except ImportError:
+    warnings.warn('lmfit not found, you cannot calculate resolutions')
+try:
+    import f90nml
+except ImportError:
+    warnings.warn('You cannot remap', category=UserWarning)
 
 
 def transform_to_pixel(x, y, grid_param):
@@ -227,8 +232,10 @@ def remap(smap, frame, x_min=20.0, x_max=80.0, delta_x=1,
         raise Exception('Interpolate strike map before!!!')
 
     # --- 1: Edges of the histogram
-    x_edges = np.arange(start=x_min, stop=x_max, step=delta_x)
-    y_edges = np.arange(start=y_min, stop=y_max, step=delta_y)
+    nx = int((x_max-x_min)/delta_x)
+    ny = int((y_max-y_min)/delta_y)
+    x_edges = x_min - delta_x/2 + np.arange(nx+2) * delta_x
+    y_edges = y_min - delta_y/2 + np.arange(ny+2) * delta_y
 
     # --- 2: Information of the calibration
     if smap.diag == 'FILD':
@@ -276,7 +283,7 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
     frame
     """
     # See which cells do we need
-    flags = (pitch_centers < max_pitch) * (pitch_centers > min_pitch)
+    flags = (pitch_centers <= max_pitch) * (pitch_centers >= min_pitch)
     if np.sum(flags) == 0:
         raise Exception('No single cell satisfy the condition!')
     # The pitch centers is the centroid of the cell, but a cell include counts
@@ -290,7 +297,7 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
     profile = np.sum(dummy, axis=0)
     if verbose:
         print('The minimum pitch used is: ', min_used_pitch)
-        print('The Maximum pitch used is: ', max_used_pitch)
+        print('The maximum pitch used is: ', max_used_pitch)
     if name is not None:
         if gyr is not None:
             date = datetime.datetime.now()
@@ -347,7 +354,7 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
     in the frame
     """
     # See which cells do we need
-    flags = (gyr_centers < max_gyr) * (gyr_centers > min_gyr)
+    flags = (gyr_centers <= max_gyr) * (gyr_centers >= min_gyr)
     if np.sum(flags) == 0:
         raise Exception('No single cell satisfy the condition!')
     # The r centers is the centroid of the cell, but a cell include counts
@@ -361,7 +368,7 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
     profile = np.sum(dummy, axis=1)
     if verbose:
         print('The minimum gyroradius used is: ', min_used_gyr)
-        print('The Maximum gyroradius used is: ', max_used_gyr)
+        print('The maximum gyroradius used is: ', max_used_gyr)
 
     if name is not None:
         if pitch is not None:
@@ -539,7 +546,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
         got_smap = True
 
     if smap_folder is None:
-        smap_folder = pa.StrikeMaps
+        smap_folder = pa.FILDStrikeMapsRemap
     # Print just some info:
     if not got_smap:
         print('Looking for strikemaps in: ', smap_folder)
@@ -566,13 +573,8 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     # b_field = np.sqrt(br**2 + bz**2 + bt**2)
 
     # Initialise the variables:
-    # Get the dimension of the gyr and pitch profiles. Depending on the exact
-    # values, the ends can enter or not... To look for the dimension I just
-    # create a dummy vector and avoid 'complicated logic'
-    dum = np.arange(start=rmin, stop=rmax, step=dr)
-    ngyr = len(dum) - 1
-    dum = np.arange(start=pmin, stop=pmax, step=dp)
-    npit = len(dum) - 1
+    ngyr = int((rmax-rmin)/dr) + 1
+    npit = int((pmax-pmin)/dp) + 1
     remaped_frames = np.zeros((npit, ngyr, nframes))
     signal_in_gyr = np.zeros((ngyr, nframes))
     signal_in_pit = np.zeros((npit, nframes))
@@ -607,9 +609,11 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     # See how many strike maps we need to calculate:
     nnSmap = np.sum(~exist)
     x = 0
-    if nnSmap == nframes:
+    if nnSmap == nframes and not got_smap:
         print('Non a single strike map, full calculation needed')
+        x = 1
     elif nnSmap == 0 and not got_smap:
+        print('--. .-. . .- -')
         print('Ideal situation, not a single map needs to be calcuated')
         x = 1
     elif nnSmap != 0 and not got_smap:
@@ -618,20 +622,18 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
         x = int(input('Enter answer:'))
         if x == 0:
             print('We will not calculate new strike maps')
+            t = theta[exist][0]
+            p = phi[exist][0]
+            name = ssFILDSIM.guess_strike_map_name_FILD(p, t, machine=machine,
+                                                        decimals=decimals)
         if x == 1:
             print('We will calculate new strike maps')
-
-    if x == 0 and not got_smap:
-        t = theta[exist][0]
-        p = phi[exist][0]
-        name = ssFILDSIM.guess_strike_map_name_FILD(p, t, machine=machine,
-                                                    decimals=decimals)
     print('Remapping frames')
     for iframe in tqdm(range(nframes)):
         if x == 1:
             name = ssFILDSIM.find_strike_map(rfild, zfild, phi[iframe],
                                              theta[iframe], smap_folder,
-                                             pa.FILDSIM, machine=machine,
+                                             machine=machine,
                                              FILDSIM_options=fildsim_options,
                                              decimals=decimals)
         # Only reload the strike map if it is needed
@@ -667,7 +669,8 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     opt = {'rmin': rmin, 'rmax': rmax, 'dr': dr, 'pmin': pmin, 'pmax': pmax,
            'dp': dp, 'rprofmin': rprofmin, 'rprofmax': rprofmax,
            'pprofmin': pprofmin, 'pprofmax': pprofmax, 'rfild': rfild,
-           'zfild': zfild, 'alpha': alpha, 'beta': beta}
+           'zfild': zfild, 'alpha': alpha, 'beta': beta,
+           'calibration': calibration}
     return output, opt
 
 
@@ -1220,9 +1223,9 @@ class StrikeMap:
         like for example the method used to fit the pitch
         @param min_statistics: Minimum number of points for a given r p to make
         the fit (if we have less markers, this point will be ignored)
-        @param min_n_bins: Minimum number of bins for the fitting, if the
-        selected bin_width is such that the are less bins, the bin width will
-        automatically adjusted
+        @param min_statistics: Minimum number of counts to perform the fit
+        @param adaptative: If true, the bin width will be adapted such that the
+        number of bins in a sigma of the distribution is 4
         """
         if self.strike_points is None:
             raise Exception('You should load the strike points first!!')
@@ -1392,12 +1395,12 @@ class CalParams:
     """
     Information to relate points in the camera sensor the scintillator
 
-    In a future, it will contains the correction of the optical distortion and
+    In a future, it will contain the correction of the optical distortion and
     all the methods necessary to correct it.
     """
 
     def __init__(self):
-        """Initialize of the class"""
+        """Initialize the class"""
         # To transform the from real coordinates to pixel (see
         # transform_to_pixel())
         ## pixel/cm in the x direction
@@ -1413,8 +1416,8 @@ class CalParams:
 
     def print(self):
         """Print calibration"""
-        print('xcale: ', self.xscale)
-        print('ycale: ', self.yscale)
+        print('xscale: ', self.xscale)
+        print('yscale: ', self.yscale)
         print('xshift: ', self.xshift)
         print('yshift: ', self.yshift)
         print('deg: ', self.deg)

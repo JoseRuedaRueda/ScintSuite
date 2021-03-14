@@ -33,15 +33,14 @@ namelist_path = ss.paths.FILDSIM   # Paths to save namelist
 
 # All default values could be omitted, I just write them to show all one can
 # set
+nmarkers = [1000, 5000, 11000, 50000, 100000]
 FILDSIM_namelist = {
-    'runID': 'test_runID',
     'result_dir': ss.paths.FILDSIM + '/results/',
     'backtrace': '.false.',                       # Default, you can omit this
     'N_gyroradius': 11,                           # Default
     'N_pitch': 10,                                # Default
     'save_orbits': 0,                             # Default
     'verbose': '.true.',                         # Default
-    'N_ions': 4000,
     'step': 0.01,                                 # Default
     'helix_length': 10.0,                         # Default
     'gyroradius': [1.5, 1.75, 2., 3., 4., 5., 6., 7., 8., 9., 10.],   # Default
@@ -52,41 +51,39 @@ FILDSIM_namelist = {
     'start_y': [-0.1, 0.1],                                           # Default
     'start_z': [0.0, 0.0],                                            # Default
     'theta': 0.0,                                                     # Default
-    'phi': 0.0,                                                       # Default
-    'geometry_dir': ss.paths.FILDSIM + './geometry/',
-    'N_scintillator': 1,                                              # Default
-    'N_slits': 6,                                                     # Default
-    'scintillator_files': ['aug_fild1_scint.pl'],                     # Default
-    'slit_files': ['aug_rfildb_pinhole1.pl',                       # Default
-                   'aug_rfildb_pinhole_2.pl',                       # Default
-                   'aug_rfildb_slit_1.pl',                          # Default
-                   'aug_rfildb_slit_back.pl',                       # Default
-                   'aug_rfildb_slit_lateral_1.pl',                  # Default
-                   'aug_rfildb_slit_lateral_2.pl']}                 # Default
+    'phi': 0.0,
+    'geometry_dir': ss.paths.FILDSIM + './geometry/'}
 
-# Write namelist
-ss.fildsim.write_namelist(namelist_path, **FILDSIM_namelist)
-namelist_name = os.path.join(namelist_path,
-                             FILDSIM_namelist['runID'] + '.cfg')
-# Run FILDSIM
-ss.fildsim.run_FILDSIM(ss.paths.FILDSIM, namelist_name)
+# -----------------------------------------------------------------------------
+# --- Section 1: Run FILDSIM
+# -----------------------------------------------------------------------------
+for i in range(len(nmarkers)):
+    FILDSIM_namelist['N_ions'] = nmarkers[i]
+    FILDSIM_namelist['runID'] = str(nmarkers[i])
+    # Write namelist
+    ss.fildsim.write_namelist(namelist_path, **FILDSIM_namelist)
+    namelist_name = os.path.join(namelist_path,
+                                 FILDSIM_namelist['runID'] + '.cfg')
+    # Run FILDSIM
+    ss.fildsim.run_FILDSIM(ss.paths.FILDSIM, namelist_name)
 
-# Load the result of the simulation
-base_name = FILDSIM_namelist['result_dir'] + FILDSIM_namelist['runID']
-strike_map_file = base_name + '_strike_map.dat'
-strike_points_file = base_name + '_strike_points.dat'
-# Load the strike map
-Smap = ss.mapping.StrikeMap('FILD', strike_map_file)
-# Load the strike points used to calculate the map
-Smap.load_strike_points(strike_points_file)
-# Calculate the resolution: Default is 1 degree of bin width for the pitch
-# histograms, 0.1 for gyro-radius, Gaussians for pitch and skew Gaussian for
-# gyro-radius.
-Smap.calculate_resolutions()  # Default call,
-# Example changing the binning and settings skewGaussian for boths
-# Smap.calculate_resolutions(dpitch=2.0, dgyr=0.25, p_method='sGauss',
-#                            g_method='sGauss')
-# Example changing the minimum of markers needed to consider making the fit,
-# default is 20
-# Smap.calculate_resolutions(dpitch=2.0, dgyr=0.25, p_method'Gauss',
-#                            g_method='sGauss', min_statistics=50)
+# -----------------------------------------------------------------------------
+# --- Section 2: Analyse the results
+# -----------------------------------------------------------------------------
+SMAPS = []
+
+for i in range(len(nmarkers)):
+    # Load the result of the simulation
+    FILDSIM_namelist['runID'] = str(nmarkers[i])
+    base_name = FILDSIM_namelist['result_dir'] + FILDSIM_namelist['runID']
+    strike_map_file = base_name + '_strike_map.dat'
+    strike_points_file = base_name + '_strike_points.dat'
+    # Load the strike map
+    Smap = ss.mapping.StrikeMap('FILD', strike_map_file)
+    # Load the strike points used to calculate the map
+    Smap.load_strike_points(strike_points_file)
+    # Calculate the resolutions
+    Smap.calculate_resolutions()  # Default call,
+    # Save the result in the SMAP list
+    SMAPS.append(Smap)
+    del Smap

@@ -17,15 +17,15 @@ from time import time
 # - General settings
 shot = 38663
 diag_ID = 6  # 6 for rFILD (DLIF)
-t1 = 2.95     # Initial time to be loaded, [s]
-t2 = 3.2     # Final time to be loaded [s]
+t1 = 1.99     # Initial time to be loaded, [s]
+t2 = 3.0     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
 # - Noise substraction settings:
 subtract_noise = False   # Flag to apply noise subtraction
-tn1 = 0.9     # Initial time to average the frames for noise subtraction [s]
-tn2 = 1.0     # Final time to average the frames for noise subtraction [s]
+tn1 = 2.0     # Initial time to average the frames for noise subtraction [s]
+tn2 = 2.05     # Final time to average the frames for noise subtraction [s]
 
 # - TimeTrace options:
 calculate_TT = False  # Wheter to calculate or not the TT
@@ -36,22 +36,23 @@ plt_TT = True  # Plot the TT
 # - FILDSIM options: If a SS is not found, a FILDSIM calculation will be
 # launched, default settings are great for FILD, but for DLIF, some details
 # must be changed:
-# NOTE: Number of markers is too low to be precise
+
 FILDSIM_namelist = {
-    'N_gyroradius': 11,                           # Default
-    'N_pitch': 9,
-    'verbose': '.false.',
-    'N_ions': 1000,
-    'gyroradius': [1.5, 1.75, 2., 3., 4., 5., 6., 7., 8., 9., 10.],   # Default
-    'pitch': [90., 85., 80., 70., 60., 50., 40., 30., 20.],
-    'geometry_dir': ss.paths.FILDSIM + './geometry/',
-    'scintillator_files': ['aug_fild1_scint.pl'],
-    'slit_files': ['aug_rfildb_pinhole1.pl',
-                   'aug_rfildb_pinhole_2.pl',
-                   'aug_rfildb_slit_1.pl',
-                   'aug_rfildb_slit_back.pl',
-                   'aug_rfildb_slit_lateral_1.pl',
-                   'aug_rfildb_slit_lateral_2.pl']}
+    'config': {
+        'n_gyroradius': 11,                           # Default
+        'n_pitch': 9},
+    'input_parameters': {
+        'n_ions': 11000,
+        'gyroradius': [1.5, 1.75, 2., 3., 4., 5., 6., 7., 8., 9., 10.],
+        'pitch_angle': [90., 85., 80., 70., 60., 50., 40., 30., 20.]},
+    'plate_files': {
+        'scintillator_files': ['aug_fild1_scint.pl'],
+        'slit_files': ['aug_rfildb_pinhole1.pl',
+                       'aug_rfildb_pinhole_2.pl',
+                       'aug_rfildb_slit_1.pl',
+                       'aug_rfildb_slit_back.pl',
+                       'aug_rfildb_slit_lateral_1.pl',
+                       'aug_rfildb_slit_lateral_2.pl']}}
 # - Remapping options:
 calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
 camera = 'PHANTOM'      # CCD for other FILDs
