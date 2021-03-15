@@ -1,3 +1,7 @@
+** 0.2.4: HotFix
+- Solved bugs in the LibFILDSIM.find_strike_map routine, the fildsim options were not updated properly
+- Updated FILDSIM example following new f90nml requirements
+
 ** 0.2.3: Filter for video object
 - *Included requested feature*: median filter added to the filter_frames method of the video class (closes #47)
 - *Closes #45* Now the rmin, rmax, pmin, pmax represent the output vector when we want the remap, not the input edges (:-()
