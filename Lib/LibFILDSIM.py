@@ -581,7 +581,7 @@ def find_strike_map(rfild: float, zfild: float,
                 os.path.join(paths.FILDSIM, 'geometry/')
         # set the rest of user defined options
         for block in FILDSIM_options.keys():
-            nml[block].update(FILDSIM_options['config'])
+            nml[block].update(FILDSIM_options[block])
 
     # set namelist name, theta and phi
     nml['config']['runid'] = name[:-15]

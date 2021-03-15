@@ -699,7 +699,7 @@ def _fit_to_model_(data, bins=20, model='Gauss'):
         par = {'amplitude': result.params['amplitude'].value,
                'center': result.params['center'].value,
                'sigma': result.params['sigma'].value}
-    if model == 'sGauss':
+    elif model == 'sGauss':
         model = lmfit.models.SkewedGaussianModel()
         params = model.guess(hist, x=cent)
         result = model.fit(hist, params, x=cent)

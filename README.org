@@ -72,11 +72,6 @@ All devices are identified by three letters:
 - i-HIBPSIM code: <https://gitlab.mpcdf.mpg.de/poyo/ihibpsim>
 - SMap library: <https://datashare.mpcdf.mpg.de/s/yyLR7hCKNBqK34W>
 
-
-** Note for developers
-    - Indentation must be done via 4 spaces!
-    - PEP 8 guide should be followed without exception autorished by all developers via the gitlab 'issues' page
-
 ** Implementation of other machines
 The suite is thought to be machine independent, but some work must be done:
 - Create a module equivalent to LibDataAUG with the database methods of your machine
