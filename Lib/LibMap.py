@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
 import LibPlotting as ssplt
 import LibFILDSIM as ssFILDSIM
+import LibUtilities as ssextra
 from LibMachine import machine
 import LibPaths as p
 from tqdm import tqdm   # For waitbars
@@ -539,22 +540,28 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
 
     @raises   ExceptionName: Why the exception is raised.
     """
-    # --- Check input strike map
+    # Check inputs strike map
+    print('.-. . -- .- .--. .--. .. -. --.')
     if map is None:
         got_smap = False
     else:
         got_smap = True
+        print('A StrikeMap was given, we will remap all frames with it')
 
     if smap_folder is None:
         smap_folder = pa.FILDStrikeMapsRemap
-    # Print just some info:
+
+    # Print  some info:
     if not got_smap:
         print('Looking for strikemaps in: ', smap_folder)
+
     # Get frame shape:
     nframes = len(video.exp_dat['nframes'])
     frame_shape = video.exp_dat['frames'].shape[0:2]
+
     # Get the time (to measure elapsed time)
     tic = time.time()
+
     # Get the magnetic field: In principle we should be able to do this in an
     # efficient way, but the AUG library to access magnetic field is kind of a
     # shit in python 3, so we need a work around
@@ -607,32 +614,37 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     else:
         exist = np.ones(nframes, np.bool)
     # See how many strike maps we need to calculate:
-    nnSmap = np.sum(~exist)
-    x = 0
-    if nnSmap == nframes and not got_smap:
-        print('Non a single strike map, full calculation needed')
-        x = 1
-    elif nnSmap == 0 and not got_smap:
-        print('--. .-. . .- -')
-        print('Ideal situation, not a single map needs to be calcuated')
-        x = 1
-    elif nnSmap != 0 and not got_smap:
-        print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
-        print('Write 1 to proceed, 0 just to take the fist existing strikemap')
-        x = int(input('Enter answer:'))
-        if x == 0:
-            print('We will not calculate new strike maps')
-            t = theta[exist][0]
-            p = phi[exist][0]
-            name = ssFILDSIM.guess_strike_map_name_FILD(p, t, machine=machine,
-                                                        decimals=decimals)
-        if x == 1:
-            print('We will calculate new strike maps')
+    if not got_smap:
+        nnSmap = np.sum(~exist)  # Number of Smaps missing
+        dummy = np.arange(nframes)     #
+        existing_index = dummy[exist]  # Index of the maps we have
+        non_existing_index = dummy[~exist]
+        theta_used = np.round(theta, decimals=decimals)
+        phi_used = np.round(phi, decimals=decimals)
+
+        if nnSmap == 0:
+            print('--. .-. . .- -')
+            print('Ideal situation, not a single map needs to be calcuated')
+        elif nnSmap == nframes:
+            print('Non a single strike map, full calculation needed')
+        elif nnSmap != 0:
+            print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
+            print('Write 1 to proceed, 0 to take the closer'
+                  + '(in time) existing strikemap')
+            x = int(input('Enter answer:'))
+            if x == 0:
+                print('We will not calculate new strike maps')
+                print('Looking for the closer ones')
+                for i in tqdm(range(len(non_existing_index))):
+                    ii = non_existing_index[i]
+                    icloser = ssextra.find_nearest_sorted(existing_index, ii)
+                    theta_used[ii] = theta[icloser]
+                    phi_used[ii] = phi[icloser]
     print('Remapping frames')
     for iframe in tqdm(range(nframes)):
-        if x == 1:
-            name = ssFILDSIM.find_strike_map(rfild, zfild, phi[iframe],
-                                             theta[iframe], smap_folder,
+        if not got_smap:
+            name = ssFILDSIM.find_strike_map(rfild, zfild, phi_used[iframe],
+                                             theta_used[iframe], smap_folder,
                                              machine=machine,
                                              FILDSIM_options=fildsim_options,
                                              decimals=decimals)
@@ -665,12 +677,13 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
               'sprofxlabel': 'Signal integrated in r_l',
               'sprofylabel': 'Signal integrated in pitch',
               'bfield': b_field, 'phi': phi, 'theta': theta,
+              'theta_used': theta_used, 'phi_used': phi_used,
               'tframes': video.exp_dat['tframes']}
     opt = {'rmin': rmin, 'rmax': rmax, 'dr': dr, 'pmin': pmin, 'pmax': pmax,
            'dp': dp, 'rprofmin': rprofmin, 'rprofmax': rprofmax,
            'pprofmin': pprofmin, 'pprofmax': pprofmax, 'rfild': rfild,
            'zfild': zfild, 'alpha': alpha, 'beta': beta,
-           'calibration': calibration}
+           'calibration': calibration, 'decimals': decimals}
     return output, opt
 
 
