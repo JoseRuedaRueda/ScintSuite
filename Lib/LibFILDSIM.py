@@ -568,8 +568,7 @@ def find_strike_map(rfild: float, zfild: float,
     # Reference namelist
     nml = f90nml.read(os.path.join(strike_path, 'parameters.cfg'))
     # If a FILDSIM naelist was given, overwrite reference parameters with the
-    # desired by the user:
-
+    # desired by the user, else set at least the proper geometry directory
     if FILDSIM_options is not None:
         # Set the geometry directory
         if 'plate_setup_cfg' in FILDSIM_options:
@@ -582,6 +581,9 @@ def find_strike_map(rfild: float, zfild: float,
         # set the rest of user defined options
         for block in FILDSIM_options.keys():
             nml[block].update(FILDSIM_options[block])
+    else:
+        nml['plate_setup_cfg']['geometry_dir'] = \
+            os.path.join(paths.FILDSIM, 'geometry/')
 
     # set namelist name, theta and phi
     nml['config']['runid'] = name[:-15]
