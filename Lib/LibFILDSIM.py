@@ -453,7 +453,7 @@ def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
 # -----------------------------------------------------------------------------
 # --- RUN FILDSIM
 # -----------------------------------------------------------------------------
-def write_namelist(nml, p=os.path.join(paths.FILDSIM, 'cfg_files_rFILD')):
+def write_namelist(nml, p=os.path.join(paths.FILDSIM, 'cfg_files')):
     """
     Write fortran namelist
 
