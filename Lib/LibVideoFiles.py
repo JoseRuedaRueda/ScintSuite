@@ -1476,7 +1476,7 @@ class Video:
         return
 
     def remap_loaded_frames(self, calibration, shot, options: dict = {},
-                            mask=None,):
+                            mask=None):
         """
         Remap all loaded frames in the video object
 
@@ -1569,6 +1569,7 @@ class Video:
             -# median:
                 size: 4, number of pixels considered
         """
+        print('Filtering frames')
         # default options:
         jrr_options = {
             'nsigma': 3
@@ -1836,6 +1837,43 @@ class Video:
             plt.tight_layout()
         plt.show()
         return
+
+    def plot_orientation(self, ax_params: dict = {}, line_params: dict = {}):
+        """
+        Plot the orientaton angles of the diagnostic in each time point
+
+        Jose Rueda Rueda: jrrueda@us.es
+
+        @param ax_param: axis parameters for the axis beauty routine
+        """
+        # Set plotting options:
+        ax_options = {
+            'fontsize': 14,
+            'grid': 'both'
+        }
+        ax_options.update(ax_params)
+        line_options = {
+            'linewidth': 2
+        }
+        line_options.update(line_params)
+        # Proceed to plot
+        fig, ax = plt.subplots(2, sharex=True)
+        if self.diag == 'FILD':
+            # Plot the theta angle:
+            ax[0].plot(self.remap_dat['tframes'], self.remap_dat['theta'],
+                       **line_options, label='Calculated', color='k')
+            ax[0].plot(self.remap_dat['tframes'], self.remap_dat['theta_used'],
+                       **line_options, label='Used', color='r')
+            ax_options['ylabel'] = '$\\Theta$ [degrees]'
+            ax[0] = ssplt.axis_beauty(ax[0], ax_options)
+            # Plot the phi angle
+            ax[1].plot(self.remap_dat['tframes'], self.remap_dat['phi'],
+                       **line_options, label='Calculated', color='k')
+            ax[1].plot(self.remap_dat['tframes'], self.remap_dat['phi_used'],
+                       **line_options, label='Used', color='r')
+            ax_options['ylabel'] = '$\\phi$ [degrees]'
+            ax_options['xlabel'] = 't [s]'
+            ax[1] = ssplt.axis_beauty(ax[1], ax_options)
 
     def export_remap(self, name=None):
         """
