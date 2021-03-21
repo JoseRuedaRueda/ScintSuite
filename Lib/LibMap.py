@@ -505,40 +505,42 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     @param    pmin: Minimum pitch to consider [º]
     @param    pmax: Maximum pitch to consider [º]
     @param    dp: bin width in pitch [º]
-    @param    rprofmin: Description of parameter `rprofmin`. Defaults to 1.0.
-    @type:    float
-
-    @param    rprofmax: Description of parameter `rprofmax`. Defaults to 4.7.
-    @type:    float
-
-    @param    pprofmin: Description of parameter `pprofmin`. Defaults to 20.0.
-    @type:    float
-
-    @param    pprofmax: Description of parameter `pprofmax`. Defaults to 90.0.
-    @type:    float
-
-    @param    rfild: Description of parameter `rfild`. Defaults to 2.186.
-    @type:    float
-
-    @param    zfild: Description of parameter `zfild`. Defaults to 0.32.
-    @type:    float
-
-    @param    alpha: Description of parameter `alpha`. Defaults to 0.0.
-    @type:    float
-
-    @param    beta: Description of parameter `beta`. Defaults to -12.0.
-    @type:    float
-
+    @param    rprofmin: minimum gyrodarius to calculate pitch profiles [cm]
+    @param    rprofmax: maximum gyroradius to calculate pitch profiles [cm]
+    @param    pprofmin: minimum pitch for gyroradius profiles [º]
+    @param    pprofmax: maximum pitch for gyroradius profiles [º]
+    @param    rfild: Radial position of FILD [m]
+    @param    zfild: height avobe the mid plane of FILD head [m]
+    @param    alpha: Alpha orientation of FILD head [º]
+    @param    beta: beta orientation of FILD head [º]
     @param    method: method to interpolate the strike maps, default 1: linear
-    @param decimals: skdhfsoakf
-
+    @param    decimals: Number of decimals to look for the strike map
+    @param    smap_folder: folder where to look for strike maps, if none, the
+    code will use the indicated by LibPaths
     @param    map: Strike map to be used, if none, we will look in the folder
     for the right strike map
 
-    @return:  Description of returned object.
-    @rtype:   type
-
-    @raises   ExceptionName: Why the exception is raised.
+    @return   output: dictionary containing all the outputs:
+        -# 'frames': remaped_frames [xaxis(pitch), yaxis(r), taxis]
+        -# 'xaxis': pitch,
+        -# 'yaxis': gyr,
+        -# 'xlabel': 'Pitch', label to plot
+        -# 'ylabel': '$r_l$', label to plot
+        -# 'xunits': '{}^o', units of the pitch
+        -# 'yunits': 'cm', units of the gyroradius
+        -# 'sprofx': signal integrated in gyroradius vs time
+        -# 'sprofy': signal_integrated in pitch vs time
+        -# 'sprofxlabel': label for sprofx
+        -# 'sprofylabel': label for sprofy
+        -# 'bfield': Modulus of the field vs time [T]
+        -# 'phi': phi, calculated phi angle, FILDSIM [deg]
+        -# 'theta': theta, calculated theta angle FILDSIM [deg]
+        -# 'theta_used': theta_used for the remap [deg]
+        -# 'phi_used': phi_used for the remap [deg]
+        -# 'tframes': time of the frames
+        -# 'existing_smaps': arry indicateing which smaps where found in the
+        database and which don't
+    @return   opt: dictionary containing all the input parameters
     """
     # Check inputs strike map
     print('.-. . -- .- .--. .--. .. -. --.')
@@ -678,7 +680,8 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
               'sprofylabel': 'Signal integrated in pitch',
               'bfield': b_field, 'phi': phi, 'theta': theta,
               'theta_used': theta_used, 'phi_used': phi_used,
-              'tframes': video.exp_dat['tframes']}
+              'tframes': video.exp_dat['tframes'],
+              'existing_smaps': exist}
     opt = {'rmin': rmin, 'rmax': rmax, 'dr': dr, 'pmin': pmin, 'pmax': pmax,
            'dp': dp, 'rprofmin': rprofmin, 'rprofmax': rprofmax,
            'pprofmin': pprofmin, 'pprofmax': pprofmax, 'rfild': rfild,

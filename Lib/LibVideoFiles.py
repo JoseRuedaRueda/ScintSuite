@@ -1214,6 +1214,7 @@ class Video:
             self.guess_shot(file, ssdat.shot_number_length)
 
         # Fill the object depending if we have a .cin file or not
+        print('Looking for the file')
         if os.path.isfile(file):
             ## Path to the file and filename
             self.path, self.file_name = os.path.split(file)
@@ -1860,20 +1861,44 @@ class Video:
         fig, ax = plt.subplots(2, sharex=True)
         if self.diag == 'FILD':
             # Plot the theta angle:
+            # Plot a shaded area indicating the points where only an
+            # aproximate map was used, taken from the solution given here:
+            # https://stackoverflow.com/questions/43233552/
+            # how-do-i-use-axvfill-with-a-boolean-series
+            ax[0].fill_between(self.remap_dat['tframes'], 0, 1,
+                               where=self.remap_dat['existing_smaps'],
+                               alpha=0.25, color='g',
+                               transform=ax[0].get_xaxis_transform())
+            ax[0].fill_between(self.remap_dat['tframes'], 0, 1,
+                               where=~self.remap_dat['existing_smaps'],
+                               alpha=0.25, color='r',
+                               transform=ax[0].get_xaxis_transform())
+            # Plot the line
             ax[0].plot(self.remap_dat['tframes'], self.remap_dat['theta'],
                        **line_options, label='Calculated', color='k')
             ax[0].plot(self.remap_dat['tframes'], self.remap_dat['theta_used'],
-                       **line_options, label='Used', color='r')
+                       **line_options, label='Used', color='b')
             ax_options['ylabel'] = '$\\Theta$ [degrees]'
+
             ax[0] = ssplt.axis_beauty(ax[0], ax_options)
             # Plot the phi angle
+            ax[1].fill_between(self.remap_dat['tframes'], 0, 1,
+                               where=self.remap_dat['existing_smaps'],
+                               alpha=0.25, color='g',
+                               transform=ax[1].get_xaxis_transform())
+            ax[1].fill_between(self.remap_dat['tframes'], 0, 1,
+                               where=~self.remap_dat['existing_smaps'],
+                               alpha=0.25, color='r',
+                               transform=ax[1].get_xaxis_transform())
             ax[1].plot(self.remap_dat['tframes'], self.remap_dat['phi'],
                        **line_options, label='Calculated', color='k')
             ax[1].plot(self.remap_dat['tframes'], self.remap_dat['phi_used'],
-                       **line_options, label='Used', color='r')
+                       **line_options, label='Used', color='b')
+
             ax_options['ylabel'] = '$\\phi$ [degrees]'
             ax_options['xlabel'] = 't [s]'
             ax[1] = ssplt.axis_beauty(ax[1], ax_options)
+            plt.legend()
 
     def export_remap(self, name=None):
         """
