@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
 import LibPlotting as ssplt
 import LibFILDSIM as ssFILDSIM
+import LibUtilities as ssextra
 from LibMachine import machine
 import LibPaths as p
 from tqdm import tqdm   # For waitbars
@@ -504,57 +505,65 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     @param    pmin: Minimum pitch to consider [º]
     @param    pmax: Maximum pitch to consider [º]
     @param    dp: bin width in pitch [º]
-    @param    rprofmin: Description of parameter `rprofmin`. Defaults to 1.0.
-    @type:    float
-
-    @param    rprofmax: Description of parameter `rprofmax`. Defaults to 4.7.
-    @type:    float
-
-    @param    pprofmin: Description of parameter `pprofmin`. Defaults to 20.0.
-    @type:    float
-
-    @param    pprofmax: Description of parameter `pprofmax`. Defaults to 90.0.
-    @type:    float
-
-    @param    rfild: Description of parameter `rfild`. Defaults to 2.186.
-    @type:    float
-
-    @param    zfild: Description of parameter `zfild`. Defaults to 0.32.
-    @type:    float
-
-    @param    alpha: Description of parameter `alpha`. Defaults to 0.0.
-    @type:    float
-
-    @param    beta: Description of parameter `beta`. Defaults to -12.0.
-    @type:    float
-
+    @param    rprofmin: minimum gyrodarius to calculate pitch profiles [cm]
+    @param    rprofmax: maximum gyroradius to calculate pitch profiles [cm]
+    @param    pprofmin: minimum pitch for gyroradius profiles [º]
+    @param    pprofmax: maximum pitch for gyroradius profiles [º]
+    @param    rfild: Radial position of FILD [m]
+    @param    zfild: height avobe the mid plane of FILD head [m]
+    @param    alpha: Alpha orientation of FILD head [º]
+    @param    beta: beta orientation of FILD head [º]
     @param    method: method to interpolate the strike maps, default 1: linear
-    @param decimals: skdhfsoakf
-
+    @param    decimals: Number of decimals to look for the strike map
+    @param    smap_folder: folder where to look for strike maps, if none, the
+    code will use the indicated by LibPaths
     @param    map: Strike map to be used, if none, we will look in the folder
     for the right strike map
 
-    @return:  Description of returned object.
-    @rtype:   type
-
-    @raises   ExceptionName: Why the exception is raised.
+    @return   output: dictionary containing all the outputs:
+        -# 'frames': remaped_frames [xaxis(pitch), yaxis(r), taxis]
+        -# 'xaxis': pitch,
+        -# 'yaxis': gyr,
+        -# 'xlabel': 'Pitch', label to plot
+        -# 'ylabel': '$r_l$', label to plot
+        -# 'xunits': '{}^o', units of the pitch
+        -# 'yunits': 'cm', units of the gyroradius
+        -# 'sprofx': signal integrated in gyroradius vs time
+        -# 'sprofy': signal_integrated in pitch vs time
+        -# 'sprofxlabel': label for sprofx
+        -# 'sprofylabel': label for sprofy
+        -# 'bfield': Modulus of the field vs time [T]
+        -# 'phi': phi, calculated phi angle, FILDSIM [deg]
+        -# 'theta': theta, calculated theta angle FILDSIM [deg]
+        -# 'theta_used': theta_used for the remap [deg]
+        -# 'phi_used': phi_used for the remap [deg]
+        -# 'tframes': time of the frames
+        -# 'existing_smaps': arry indicateing which smaps where found in the
+        database and which don't
+    @return   opt: dictionary containing all the input parameters
     """
-    # --- Check input strike map
+    # Check inputs strike map
+    print('.-. . -- .- .--. .--. .. -. --.')
     if map is None:
         got_smap = False
     else:
         got_smap = True
+        print('A StrikeMap was given, we will remap all frames with it')
 
     if smap_folder is None:
         smap_folder = pa.FILDStrikeMapsRemap
-    # Print just some info:
+
+    # Print  some info:
     if not got_smap:
         print('Looking for strikemaps in: ', smap_folder)
+
     # Get frame shape:
     nframes = len(video.exp_dat['nframes'])
     frame_shape = video.exp_dat['frames'].shape[0:2]
+
     # Get the time (to measure elapsed time)
     tic = time.time()
+
     # Get the magnetic field: In principle we should be able to do this in an
     # efficient way, but the AUG library to access magnetic field is kind of a
     # shit in python 3, so we need a work around
@@ -607,32 +616,37 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     else:
         exist = np.ones(nframes, np.bool)
     # See how many strike maps we need to calculate:
-    nnSmap = np.sum(~exist)
-    x = 0
-    if nnSmap == nframes and not got_smap:
-        print('Non a single strike map, full calculation needed')
-        x = 1
-    elif nnSmap == 0 and not got_smap:
-        print('--. .-. . .- -')
-        print('Ideal situation, not a single map needs to be calcuated')
-        x = 1
-    elif nnSmap != 0 and not got_smap:
-        print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
-        print('Write 1 to proceed, 0 just to take the fist existing strikemap')
-        x = int(input('Enter answer:'))
-        if x == 0:
-            print('We will not calculate new strike maps')
-            t = theta[exist][0]
-            p = phi[exist][0]
-            name = ssFILDSIM.guess_strike_map_name_FILD(p, t, machine=machine,
-                                                        decimals=decimals)
-        if x == 1:
-            print('We will calculate new strike maps')
+    if not got_smap:
+        nnSmap = np.sum(~exist)  # Number of Smaps missing
+        dummy = np.arange(nframes)     #
+        existing_index = dummy[exist]  # Index of the maps we have
+        non_existing_index = dummy[~exist]
+        theta_used = np.round(theta, decimals=decimals)
+        phi_used = np.round(phi, decimals=decimals)
+
+        if nnSmap == 0:
+            print('--. .-. . .- -')
+            print('Ideal situation, not a single map needs to be calcuated')
+        elif nnSmap == nframes:
+            print('Non a single strike map, full calculation needed')
+        elif nnSmap != 0:
+            print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
+            print('Write 1 to proceed, 0 to take the closer'
+                  + '(in time) existing strikemap')
+            x = int(input('Enter answer:'))
+            if x == 0:
+                print('We will not calculate new strike maps')
+                print('Looking for the closer ones')
+                for i in tqdm(range(len(non_existing_index))):
+                    ii = non_existing_index[i]
+                    icloser = ssextra.find_nearest_sorted(existing_index, ii)
+                    theta_used[ii] = theta[icloser]
+                    phi_used[ii] = phi[icloser]
     print('Remapping frames')
     for iframe in tqdm(range(nframes)):
-        if x == 1:
-            name = ssFILDSIM.find_strike_map(rfild, zfild, phi[iframe],
-                                             theta[iframe], smap_folder,
+        if not got_smap:
+            name = ssFILDSIM.find_strike_map(rfild, zfild, phi_used[iframe],
+                                             theta_used[iframe], smap_folder,
                                              machine=machine,
                                              FILDSIM_options=fildsim_options,
                                              decimals=decimals)
@@ -665,12 +679,14 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
               'sprofxlabel': 'Signal integrated in r_l',
               'sprofylabel': 'Signal integrated in pitch',
               'bfield': b_field, 'phi': phi, 'theta': theta,
-              'tframes': video.exp_dat['tframes']}
+              'theta_used': theta_used, 'phi_used': phi_used,
+              'tframes': video.exp_dat['tframes'],
+              'existing_smaps': exist}
     opt = {'rmin': rmin, 'rmax': rmax, 'dr': dr, 'pmin': pmin, 'pmax': pmax,
            'dp': dp, 'rprofmin': rprofmin, 'rprofmax': rprofmax,
            'pprofmin': pprofmin, 'pprofmax': pprofmax, 'rfild': rfild,
            'zfild': zfild, 'alpha': alpha, 'beta': beta,
-           'calibration': calibration}
+           'calibration': calibration, 'decimals': decimals}
     return output, opt
 
 

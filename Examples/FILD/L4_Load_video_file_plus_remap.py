@@ -17,15 +17,15 @@ from time import time
 # - General settings
 shot = 32312
 diag_ID = 1  # 6 for rFILD (DLIF)
-t1 = 1.0     # Initial time to be loaded, [s]
-t2 = 3.2     # Final time to be loaded [s]
+t1 = 0.1     # Initial time to be loaded, [s]
+t2 = 0.4     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
 # - Noise substraction settings:
 subtract_noise = False   # Flag to apply noise subtraction
-tn1 = 0.9     # Initial time to average the frames for noise subtraction [s]
-tn2 = 1.0     # Final time to average the frames for noise subtraction [s]
+tn1 = 0.1     # Initial time to average the frames for noise subtraction [s]
+tn2 = 0.2     # Final time to average the frames for noise subtraction [s]
 
 # - Filter options:
 apply_filter = True  # Flag to apply filter to the frames
@@ -46,7 +46,7 @@ plt_TT = True  # Plot the TT
 
 # - Remapping options:
 calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
-camera = 'PHANTOM'      # CCD for other FILDs
+camera = ss.dat.FILD[diag_ID-1]['camera']
 save_remap = True
 par = {
     'rmin': 1.2,      # Minimum gyroradius [in cm]
