@@ -2,6 +2,10 @@
 - Now when some Smap is missing, the program will give the option to use the nearest (in time) existing strike map
 - The real value of theta (with all the decimals) as well as the used one are stored to compare the angles used in the remap
 - Added plot_orientation() to the video object, to plot the calculated angles with the orientation (real and used)
+- The method fildsim.write_namelist() now overwrite by default the existing namelist. You can change this behaviour with the flag =overwrite=
+- The method fildsim.guess_strike_map_name_FILD() now do not create extra strike maps like 0 and -0
+- Camera model included as one more data in the FILD dictionary in LibDataAUG.py
+- Some PEP8 correction in iHIBP library
 
 ** 0.2.4: HotFix
 - *BUG_SOLVED* Solved bugs in the LibFILDSIM.find_strike_map routine, the fildsim options were not updated properly

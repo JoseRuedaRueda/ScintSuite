@@ -453,7 +453,8 @@ def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
 # -----------------------------------------------------------------------------
 # --- RUN FILDSIM
 # -----------------------------------------------------------------------------
-def write_namelist(nml, p=os.path.join(paths.FILDSIM, 'cfg_files')):
+def write_namelist(nml, p=os.path.join(paths.FILDSIM, 'cfg_files'),
+                   overwrite=True):
     """
     Write fortran namelist
 
@@ -463,11 +464,12 @@ def write_namelist(nml, p=os.path.join(paths.FILDSIM, 'cfg_files')):
 
     @param p: full path towards the desired file
     @param nml: namelist containing the desired fields.
+    @param overwrite: flag to overwrite the namelist (if exist)
 
     @return file: The path to the written file
     """
     file = os.path.join(p, nml['config']['runid'] + '.cfg')
-    f90nml.write(nml, file)
+    f90nml.write(nml, file, force=overwrite)
     return file
 
 
@@ -517,15 +519,15 @@ def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
     # Taken from one of Juanfran files :-)
     p = round(phi, ndigits=decimals)
     t = round(theta, ndigits=decimals)
-    if phi < 0:
-        if theta < 0:
+    if p < 0:
+        if t < 0:
             name = machine +\
                 "_map_{0:010.5f}_{1:010.5f}_strike_map.dat".format(p, t)
         else:
             name = machine +\
                 "_map_{0:010.5f}_{1:09.5f}_strike_map.dat".format(p, t)
     else:
-        if theta < 0:
+        if t < 0:
             name = machine +\
                 "_map_{0:09.5f}_{1:010.5f}_strike_map.dat".format(p, t)
         else:
