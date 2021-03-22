@@ -974,8 +974,10 @@ def read_data_png(path):
         if file.endswith('.png') and look_for_png:
             dummy = io.imread(os.path.join(path, file))
             si = dummy.shape
-            imageheader = {'biWidth': si[0],
-                           'biHeight': si[1]}
+            imageheader = {
+                'biWidth': si[0],
+                'biHeight': si[1],
+                'framesDtype': dummy.dtype}
             look_for_png = False
     # If no png was found, raise and error
     if look_for_png:
@@ -1062,12 +1064,13 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
 
         M = np.zeros((video_object.imageheader['biWidth'],
                       video_object.imageheader['biHeight'],
-                      video_object.header['ImageCount']), dtype=np.float32)
+                      video_object.header['ImageCount']),
+                     dtype=video_object.imageheader['framesDtype'])
         counter = 0
         for file in os.listdir(video_object.path):
             if file.endswith('.png'):
                 M[:, :, counter] = load_png_files(
-                    os.path.join(video_object.path, file)).astype(np.float32)
+                    os.path.join(video_object.path, file))
                 counter = counter + 1
     else:
         # Load only the selected frames
@@ -1079,7 +1082,8 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
             return 0
         M = np.zeros((video_object.imageheader['biWidth'],
                       video_object.imageheader['biHeight'],
-                      len(frames_number)), dtype=np.float32)
+                      len(frames_number)),
+                     dtype=video_object.imageheader['framesDtype'])
 
         for file in os.listdir(video_object.path):
             if file.endswith('.png'):
@@ -1087,7 +1091,7 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
                 if current_frame in frames_number:
                     pngname = os.path.join(video_object.path, file)
                     dummy = load_png_files(pngname)
-                    M[:, :, counter] = dummy.astype(np.float32)
+                    M[:, :, counter] = dummy
                     counter = counter + 1
         print('Number of loaded frames: ', counter)
     return M
@@ -1320,7 +1324,7 @@ class Video:
 
     def read_frame(self, frames_number=None, limitation: bool = True,
                    limit: int = 2048, internal: bool = True, t1: float = None,
-                   t2: float = None):
+                   t2: float = None, threshold_saturation=0.95):
         """
         Call the read_frame function
 
@@ -1361,6 +1365,7 @@ class Video:
                                    limit=limit)
                 self.exp_dat['tframes'] = self.timebase[frames_number]
                 self.exp_dat['nframes'] = frames_number
+                self.exp_dat['dtype'] = self.exp_dat['frames'][0, 0, 0].dtype
             else:
                 M = read_frame_cin(self, frames_number, limitation=limitation,
                                    limit=limit)
@@ -1373,12 +1378,27 @@ class Video:
                 self.exp_dat['tframes'] = \
                     self.timebase[frames_number].flatten()
                 self.exp_dat['nframes'] = frames_number
+                self.exp_dat['dtype'] = self.exp_dat['frames'][0, 0, 0].dtype
             else:
                 M = read_frame_png(self, frames_number, limitation=limitation,
                                    limit=limit)
                 return M
         else:
             raise Exception('Not initialised file type?')
+        # Count saturated pixels
+        try:  # Default case, they should be integers
+            max_scale_frames = np.iinfo(self.exp_dat['dtype']).max
+        except ValueError:  # if not, they are reals
+            max_scale_frames = np.finfo(self.exp_dat['dtype']).max
+        threshold = threshold_saturation * max_scale_frames
+        print('Counting "saturated" pixels')
+        number_of_frames = len(self.exp_dat['tframes'])
+        n_pixels_saturated = np.zeros(number_of_frames)
+        for i in range(number_of_frames):
+            n_pixels_saturated[i] = \
+                (self.exp_dat['frames'][:, :, i] > threshold).sum()
+        self.exp_dat['n_pixels_saturated'] = n_pixels_saturated.astype('int32')
+        self.exp_dat['threshold_for_counts'] = threshold_saturation
         return
 
     def subtract_noise(self, t1: float = None, t2: float = None, frame=None):
@@ -1900,6 +1920,64 @@ class Video:
             ax[1] = ssplt.axis_beauty(ax[1], ax_options)
             plt.legend()
 
+    def plot_number_saturated_counts(self, ax_params: dict = {},
+                                     line_params: dict = {},
+                                     threshold=None,
+                                     ax=None):
+        """
+        Plot the nuber of camera pixels larger than a given threshold
+
+        Jose Rueda: jrrueda@us.es
+
+        @param ax_params: ax param for the axis_beauty
+        @param line_params: line parameters
+        @param threshold: If none, it will plot the data calculated when
+        reading the camera frames (by the function self.read_frames) if it is
+        a value [0,1] it willrecalculate this number
+        @param ax: axis where to plot, if none, a new figure will pop-up
+        """
+        # Default plot parameters:
+        ax_options = {
+            'fontsize': 14,
+            'grid': 'both',
+            'xlabel': 'T [s]',
+            'ylabel': '# saturated pixels',
+            'yscale': 'log'
+        }
+        ax_options.update(ax_params)
+        line_options = {
+            'linewidth': 2
+        }
+        line_options.update(line_params)
+        # Select x,y data
+        x = self.exp_dat['tframes']
+        if threshold is None:
+            y = self.exp_dat['n_pixels_saturated']
+            print('Threshold was set to: ',
+                  self.exp_dat['threshold_for_counts'] * 100, '%')
+        else:
+            try:  # Default case, they should be integers
+                max_scale_frames = np.iinfo(self.exp_dat['dtype']).max
+            except ValueError:  # if not, they are reals
+                max_scale_frames = np.finfo(self.exp_dat['dtype']).max
+            thres = threshold * max_scale_frames
+            print('Counting "saturated" pixels')
+            number_of_frames = len(self.exp_dat['tframes'])
+            n_pixels_saturated = np.zeros(number_of_frames)
+            for i in range(number_of_frames):
+                n_pixels_saturated[i] = \
+                    (self.exp_dat['frames'][:, :, i] > thres).sum()
+            y = n_pixels_saturated.astype('int32')
+        if ax is None:
+            fig, ax = plt.subplots()
+        ax.plot(x, y, **line_options)  # Plot the data
+        # Plot the maximum posible (the number of pixels)
+        npixels = self.imageheader['biWidth'] * self.imageheader['biHeight']
+        ax.plot([x[0], x[-1]], [npixels, npixels], '--',
+                **line_options)
+        ax = ssplt.axis_beauty(ax, ax_options)
+        return
+
     def export_remap(self, name=None):
         """
         Export the dictionary containing the remapped data
@@ -2022,6 +2100,21 @@ class Video:
                 frame_noise.units = 'counts'
                 frame_noise.long_name = 'frame used for noise subtraction'
 
+            # Save the saturated number of pixels
+            n_pixels_gt_threshold = f.createVariable('n_pixels_gt_threshold',
+                                                     'int32', ('tframes', ))
+            n_pixels_gt_threshold[:] = self.exp_dat['n_pixels_gt_threshold']
+            n_pixels_gt_threshold.units = ''
+            n_pixels_gt_threshold.long_name = \
+                'Number of pixels with more counts than threshold'
+
+            threshold_for_counts = f.createVariable('threshold_for_counts',
+                                                    'float64', ('number', ))
+            threshold_for_counts[:] = \
+                self.exp_dat['threshold_for_counts']
+            threshold_for_counts.units = ''
+            threshold_for_counts.long_name = \
+                'Threshold for n_pixels_gt_threshold'
             # Save the specific FILD variables
             if self.diag == 'FILD':
                 # Detector orientation

@@ -580,7 +580,6 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     #                         time=video.exp_dat['tframes'])
     # Get the modulus of the field
     # b_field = np.sqrt(br**2 + bz**2 + bt**2)
-
     # Initialise the variables:
     ngyr = int((rmax-rmin)/dr) + 1
     npit = int((pmax-pmin)/dp) + 1
@@ -657,6 +656,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
             # print('Interpolating grid')
             map.interp_grid(frame_shape, plot=False, method=method)
         name_old = name
+        # remap the frames
         remaped_frames[:, :, iframe], pitch, gyr = \
             remap(map, video.exp_dat['frames'][:, :, iframe], x_min=pmin,
                   x_max=pmax, delta_x=dp, y_min=rmin, y_max=rmax, delta_y=dr,
