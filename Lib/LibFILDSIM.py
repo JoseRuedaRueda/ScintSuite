@@ -73,8 +73,8 @@ def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
     # PHI --> Euler Angle measured from y(positive) to x(positive)
     # THETA --> Euler Angle measured from x(positive) to z(negative)
 
-    phi = ma.atan(br2 / bt2) * 180.0 / np.pi
-    theta = ma.atan(-bz2 / bt2) * 180.0 / np.pi
+    phi = ma.atan2(br2, bt2) * 180.0 / np.pi
+    theta = ma.atan2(-bz2, bt2) * 180.0 / np.pi
     if verbose:
         print('Bt, Bz, Br and B: ', bt, bz, br, ma.sqrt(bt**2 + bz**2 + br**2))
         print('FILD orientation is (alpha,beta)= ', alpha * 180.0 / np.pi,

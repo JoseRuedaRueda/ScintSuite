@@ -71,7 +71,7 @@ fild5 = {'alpha': -48.3, 'beta': -12.0, 'sector': 7, 'r': 1.772,
          'extension': '', 'label': 'FILD5', 'diag': 'FHE', 'channel': 'Chan-',
          'nch': 64, 'camera': 'CCD'}
 
-fild6 = {'alpha': 0.0, 'beta': 188.7, 'sector': 8, 'r': 2.180,
+fild6 = {'alpha': 0.0, 'beta': 171.3, 'sector': 8, 'r': 2.180,
          'z': 0.3, 'phi_tor': 169.75,
          'path': '/p/IPP/AUG/rawfiles/FIT/',
          'extension': '_v710.cin', 'label': 'RFILD',
