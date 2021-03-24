@@ -73,8 +73,8 @@ def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
     # PHI --> Euler Angle measured from y(positive) to x(positive)
     # THETA --> Euler Angle measured from x(positive) to z(negative)
 
-    phi = ma.atan(br2 / bt2) * 180.0 / np.pi
-    theta = ma.atan(-bz2 / bt2) * 180.0 / np.pi
+    phi = ma.atan2(br2, bt2) * 180.0 / np.pi
+    theta = ma.atan2(-bz2, bt2) * 180.0 / np.pi
     if verbose:
         print('Bt, Bz, Br and B: ', bt, bz, br, ma.sqrt(bt**2 + bz**2 + br**2))
         print('FILD orientation is (alpha,beta)= ', alpha * 180.0 / np.pi,
@@ -453,7 +453,8 @@ def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
 # -----------------------------------------------------------------------------
 # --- RUN FILDSIM
 # -----------------------------------------------------------------------------
-def write_namelist(nml, p=os.path.join(paths.FILDSIM, 'cfg_files')):
+def write_namelist(nml, p=os.path.join(paths.FILDSIM, 'cfg_files'),
+                   overwrite=True):
     """
     Write fortran namelist
 
@@ -463,11 +464,12 @@ def write_namelist(nml, p=os.path.join(paths.FILDSIM, 'cfg_files')):
 
     @param p: full path towards the desired file
     @param nml: namelist containing the desired fields.
+    @param overwrite: flag to overwrite the namelist (if exist)
 
     @return file: The path to the written file
     """
     file = os.path.join(p, nml['config']['runid'] + '.cfg')
-    f90nml.write(nml, file)
+    f90nml.write(nml, file, force=overwrite)
     return file
 
 
@@ -517,15 +519,15 @@ def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
     # Taken from one of Juanfran files :-)
     p = round(phi, ndigits=decimals)
     t = round(theta, ndigits=decimals)
-    if phi < 0:
-        if theta < 0:
+    if p < 0:
+        if t < 0:
             name = machine +\
                 "_map_{0:010.5f}_{1:010.5f}_strike_map.dat".format(p, t)
         else:
             name = machine +\
                 "_map_{0:010.5f}_{1:09.5f}_strike_map.dat".format(p, t)
     else:
-        if theta < 0:
+        if t < 0:
             name = machine +\
                 "_map_{0:09.5f}_{1:010.5f}_strike_map.dat".format(p, t)
         else:
@@ -568,8 +570,7 @@ def find_strike_map(rfild: float, zfild: float,
     # Reference namelist
     nml = f90nml.read(os.path.join(strike_path, 'parameters.cfg'))
     # If a FILDSIM naelist was given, overwrite reference parameters with the
-    # desired by the user:
-
+    # desired by the user, else set at least the proper geometry directory
     if FILDSIM_options is not None:
         # Set the geometry directory
         if 'plate_setup_cfg' in FILDSIM_options:
@@ -582,6 +583,9 @@ def find_strike_map(rfild: float, zfild: float,
         # set the rest of user defined options
         for block in FILDSIM_options.keys():
             nml[block].update(FILDSIM_options[block])
+    else:
+        nml['plate_setup_cfg']['geometry_dir'] = \
+            os.path.join(paths.FILDSIM, 'geometry/')
 
     # set namelist name, theta and phi
     nml['config']['runid'] = name[:-15]
