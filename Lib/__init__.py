@@ -13,6 +13,7 @@ import LibIO as io
 import LibFastChannel as fc
 import LibTomography as tomo
 import iHIBP as ihibp
+import LibVideoGUI as vidGUI
 from version_suite import version
 if m.machine == 'AUG':
     import LibDataAUG as dat
