@@ -1,3 +1,6 @@
+** 0.2.7: Hot fix
+- *BUG_SOLVED* Problem with the name of the number of saturated pixels solved, now it is possible to export the remap again (the bug was introduced in version 0.2.6). Issue #50
+
 ** 0.2.6: Count pixels
 - *Included requested feature*: Issue #50 now the number of pixels over a given threshold is counted by default. User can set this threshold in the read_frame method of the video object
 - Video.plot_number_saturated_counts() added. If executed without arguments, it plot the pixels counted by default when reading the video. The fuction accept also a threshold, in this case the pixels are count again
