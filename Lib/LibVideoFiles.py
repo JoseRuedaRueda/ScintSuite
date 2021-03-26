@@ -994,6 +994,16 @@ def read_data_png(path):
         dummy = np.loadtxt(f[0], skiprows=2, comments='(')
         header = {'ImageCount': int(dummy[-1, 0])}
         settings = {'ShutterNs': dummy[0, 2] / 1000.0}
+        # Possible bytes per pixels for the camera
+        BPP = {'uint8': 8, 'uint16': 16, 'uint32': 32, 'uint64': 64}
+        try:
+            settings['RealBPP'] = BPP[imageheader['framesDtype'].name]
+            text = 'In the PNG there is no info about the real BitesPerPixel'\
+                + ' used in the camera. Assumed that the BPP coincides with'\
+                + ' the byte size of the variable!!!'
+            print(text)
+        except KeyError:
+            raise Exception('Expected uint8,16,32,64 in the frames')
         time_base = dummy[:, 3]
         # Sometimes the camera break and set the says that all the frames
         # where recorded at t = 0... in this case just assume a time base on
@@ -1386,18 +1396,17 @@ class Video:
         else:
             raise Exception('Not initialised file type?')
         # Count saturated pixels
-        try:  # Default case, they should be integers
-            max_scale_frames = np.iinfo(self.exp_dat['dtype']).max
-        except ValueError:  # if not, they are reals
-            max_scale_frames = np.finfo(self.exp_dat['dtype']).max
+        max_scale_frames = 2 ** self.settings['RealBPP'] - 1
         threshold = threshold_saturation * max_scale_frames
         print('Counting "saturated" pixels')
+        print('The threshold is set to: ', threshold, ' counts')
         number_of_frames = len(self.exp_dat['tframes'])
         n_pixels_saturated = np.zeros(number_of_frames)
         for i in range(number_of_frames):
             n_pixels_saturated[i] = \
-                (self.exp_dat['frames'][:, :, i] > threshold).sum()
-        self.exp_dat['n_pixels_saturated'] = n_pixels_saturated.astype('int32')
+                (self.exp_dat['frames'][:, :, i] >= threshold).sum()
+        self.exp_dat['n_pixels_gt_threshold'] = \
+            n_pixels_saturated.astype('int32')
         self.exp_dat['threshold_for_counts'] = threshold_saturation
         return
 
@@ -1952,21 +1961,19 @@ class Video:
         # Select x,y data
         x = self.exp_dat['tframes']
         if threshold is None:
-            y = self.exp_dat['n_pixels_saturated']
+            y = self.exp_dat['n_pixels_gt_threshold']
             print('Threshold was set to: ',
                   self.exp_dat['threshold_for_counts'] * 100, '%')
         else:
-            try:  # Default case, they should be integers
-                max_scale_frames = np.iinfo(self.exp_dat['dtype']).max
-            except ValueError:  # if not, they are reals
-                max_scale_frames = np.finfo(self.exp_dat['dtype']).max
+            max_scale_frames = 2 ** self.settings['RealBPP'] - 1
             thres = threshold * max_scale_frames
             print('Counting "saturated" pixels')
+            print('The threshold is set to: ', thres, ' counts')
             number_of_frames = len(self.exp_dat['tframes'])
             n_pixels_saturated = np.zeros(number_of_frames)
             for i in range(number_of_frames):
                 n_pixels_saturated[i] = \
-                    (self.exp_dat['frames'][:, :, i] > thres).sum()
+                    (self.exp_dat['frames'][:, :, i] >= thres).sum()
             y = n_pixels_saturated.astype('int32')
         if ax is None:
             fig, ax = plt.subplots()
