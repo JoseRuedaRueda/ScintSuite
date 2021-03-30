@@ -9,11 +9,13 @@ import math
 import datetime
 import time
 import os
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
 import LibPlotting as ssplt
 import LibFILDSIM as ssFILDSIM
+import LibUtilities as ssextra
 from LibMachine import machine
 import LibPaths as p
 from tqdm import tqdm   # For waitbars
@@ -23,8 +25,12 @@ if machine == 'AUG':
     import LibDataAUG as ssdat
 try:
     import lmfit
-except ModuleNotFoundError:
-    print('lmfit not found, you cannot calculate resolutions')
+except ImportError:
+    warnings.warn('lmfit not found, you cannot calculate resolutions')
+try:
+    import f90nml
+except ImportError:
+    warnings.warn('You cannot remap', category=UserWarning)
 
 
 def transform_to_pixel(x, y, grid_param):
@@ -116,14 +122,14 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
           'before')
     points_frame = fig.ginput(npoints)
     # Define the vectors which will give us the reference
-    v21_real = np.array((scintillator.coord_real[index[0], 1] -
-                         scintillator.coord_real[index[1], 1],
-                         scintillator.coord_real[index[0], 2] -
-                         scintillator.coord_real[index[1], 2], 0))
-    v23_real = np.array((scintillator.coord_real[index[2], 1] -
-                         scintillator.coord_real[index[1], 1],
-                         scintillator.coord_real[index[2], 2] -
-                         scintillator.coord_real[index[1], 2], 0))
+    v21_real = np.array((scintillator.coord_real[index[0], 1]
+                         - scintillator.coord_real[index[1], 1],
+                         scintillator.coord_real[index[0], 2]
+                         - scintillator.coord_real[index[1], 2], 0))
+    v23_real = np.array((scintillator.coord_real[index[2], 1]
+                         - scintillator.coord_real[index[1], 1],
+                         scintillator.coord_real[index[2], 2]
+                         - scintillator.coord_real[index[1], 2], 0))
 
     v21_pix = np.array([points_frame[0][0], points_frame[0][1], 0]) - \
         np.array([points_frame[1][0], points_frame[1][1], 0])
@@ -153,20 +159,20 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
         if i2 == npoints:
             i2 = 0
         # Distance in the real scintillator
-        d_real = np.sqrt((scintillator.coord_real[index[i], 2] -
-                          scintillator.coord_real[index[i2], 2]) ** 2 +
-                         (scintillator.coord_real[index[i], 1] -
-                          scintillator.coord_real[index[i2], 1]) ** 2)
+        d_real = np.sqrt((scintillator.coord_real[index[i], 2]
+                          - scintillator.coord_real[index[i2], 2]) ** 2
+                         + (scintillator.coord_real[index[i], 1]
+                            - scintillator.coord_real[index[i2], 1]) ** 2)
         # Distance in the sensor
         dummy = np.array(points_frame[i]) - np.array(points_frame[i2])
         d_pix = np.sqrt(dummy[1] ** 2 + dummy[0] ** 2)
         # Accumulate the magnification factor (we will normalise at the end)
         mag = mag + d_pix / d_real
         # Calculate the angles
-        alpha_r = -  math.atan2(scintillator.coord_real[index[i], 2] -
-                                scintillator.coord_real[index[i2], 2],
-                                sign * scintillator.coord_real[index[i], 1] -
-                                sign * scintillator.coord_real[index[i2], 1])
+        alpha_r = -  math.atan2(scintillator.coord_real[index[i], 2]
+                                - scintillator.coord_real[index[i2], 2],
+                                sign * scintillator.coord_real[index[i], 1]
+                                - sign * scintillator.coord_real[index[i2], 1])
         # If alpha == 180, it can be also -180, atan2 fails here, check which
         # one is the case
         if int(alpha_r * 180 / np.pi) == 180:
@@ -178,14 +184,14 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
         alpha_px = - math.atan2(dummy[1], dummy[0])
         alpha = alpha + (alpha_px - alpha_r)
         # Transform the coordinate to estimate the offset
-        x_new = (scintillator.coord_real[index[i], 1] *
-                 math.cos(alpha_px - alpha_r) -
-                 scintillator.coord_real[index[i], 2] *
-                 math.sin(alpha_px - alpha_r)) * d_pix / d_real * sign
-        y_new = (scintillator.coord_real[index[i], 1] *
-                 math.sin(alpha_px - alpha_r) +
-                 scintillator.coord_real[index[i], 2] *
-                 math.cos(alpha_px - alpha_r)) * d_pix / d_real
+        x_new = (scintillator.coord_real[index[i], 1]
+                 * math.cos(alpha_px - alpha_r)
+                 - scintillator.coord_real[index[i], 2]
+                 * math.sin(alpha_px - alpha_r)) * d_pix / d_real * sign
+        y_new = (scintillator.coord_real[index[i], 1]
+                 * math.sin(alpha_px - alpha_r)
+                 + scintillator.coord_real[index[i], 2]
+                 * math.cos(alpha_px - alpha_r)) * d_pix / d_real
         offset = offset + np.array(points_frame[i]) - np.array((x_new, y_new))
         # print(alpha_px*180/np.pi, alpha_real*180/np.pi)
         # print((alpha_px-alpha_real)*180/np.pi)
@@ -227,8 +233,10 @@ def remap(smap, frame, x_min=20.0, x_max=80.0, delta_x=1,
         raise Exception('Interpolate strike map before!!!')
 
     # --- 1: Edges of the histogram
-    x_edges = np.arange(start=x_min, stop=x_max, step=delta_x)
-    y_edges = np.arange(start=y_min, stop=y_max, step=delta_y)
+    nx = int((x_max-x_min)/delta_x)
+    ny = int((y_max-y_min)/delta_y)
+    x_edges = x_min - delta_x/2 + np.arange(nx+2) * delta_x
+    y_edges = y_min - delta_y/2 + np.arange(ny+2) * delta_y
 
     # --- 2: Information of the calibration
     if smap.diag == 'FILD':
@@ -276,7 +284,7 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
     frame
     """
     # See which cells do we need
-    flags = (pitch_centers < max_pitch) * (pitch_centers > min_pitch)
+    flags = (pitch_centers <= max_pitch) * (pitch_centers >= min_pitch)
     if np.sum(flags) == 0:
         raise Exception('No single cell satisfy the condition!')
     # The pitch centers is the centroid of the cell, but a cell include counts
@@ -290,7 +298,7 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
     profile = np.sum(dummy, axis=0)
     if verbose:
         print('The minimum pitch used is: ', min_used_pitch)
-        print('The Maximum pitch used is: ', max_used_pitch)
+        print('The maximum pitch used is: ', max_used_pitch)
     if name is not None:
         if gyr is not None:
             date = datetime.datetime.now()
@@ -347,7 +355,7 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
     in the frame
     """
     # See which cells do we need
-    flags = (gyr_centers < max_gyr) * (gyr_centers > min_gyr)
+    flags = (gyr_centers <= max_gyr) * (gyr_centers >= min_gyr)
     if np.sum(flags) == 0:
         raise Exception('No single cell satisfy the condition!')
     # The r centers is the centroid of the cell, but a cell include counts
@@ -361,7 +369,7 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
     profile = np.sum(dummy, axis=1)
     if verbose:
         print('The minimum gyroradius used is: ', min_used_gyr)
-        print('The Maximum gyroradius used is: ', max_used_gyr)
+        print('The maximum gyroradius used is: ', max_used_gyr)
 
     if name is not None:
         if pitch is not None:
@@ -478,7 +486,10 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
                                  fildsim_options: dict = {},
                                  method: int = 1,
                                  verbose: bool = False, mask=None,
-                                 machine: str = 'AUG'):
+                                 machine: str = 'AUG',
+                                 decimals: int = 1,
+                                 smap_folder: str = None,
+                                 map=None):
     """
     Remap all loaded frames from a FILD video
 
@@ -494,123 +505,158 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     @param    pmin: Minimum pitch to consider [º]
     @param    pmax: Maximum pitch to consider [º]
     @param    dp: bin width in pitch [º]
-    @param    rprofmin: Description of parameter `rprofmin`. Defaults to 1.0.
-    @type:    float
-
-    @param    rprofmax: Description of parameter `rprofmax`. Defaults to 4.7.
-    @type:    float
-
-    @param    pprofmin: Description of parameter `pprofmin`. Defaults to 20.0.
-    @type:    float
-
-    @param    pprofmax: Description of parameter `pprofmax`. Defaults to 90.0.
-    @type:    float
-
-    @param    rfild: Description of parameter `rfild`. Defaults to 2.186.
-    @type:    float
-
-    @param    zfild: Description of parameter `zfild`. Defaults to 0.32.
-    @type:    float
-
-    @param    alpha: Description of parameter `alpha`. Defaults to 0.0.
-    @type:    float
-
-    @param    beta: Description of parameter `beta`. Defaults to -12.0.
-    @type:    float
-
+    @param    rprofmin: minimum gyrodarius to calculate pitch profiles [cm]
+    @param    rprofmax: maximum gyroradius to calculate pitch profiles [cm]
+    @param    pprofmin: minimum pitch for gyroradius profiles [º]
+    @param    pprofmax: maximum pitch for gyroradius profiles [º]
+    @param    rfild: Radial position of FILD [m]
+    @param    zfild: height avobe the mid plane of FILD head [m]
+    @param    alpha: Alpha orientation of FILD head [º]
+    @param    beta: beta orientation of FILD head [º]
     @param    method: method to interpolate the strike maps, default 1: linear
+    @param    decimals: Number of decimals to look for the strike map
+    @param    smap_folder: folder where to look for strike maps, if none, the
+    code will use the indicated by LibPaths
+    @param    map: Strike map to be used, if none, we will look in the folder
+    for the right strike map
 
-    @return:  Description of returned object.
-    @rtype:   type
-
-    @raises   ExceptionName: Why the exception is raised.
+    @return   output: dictionary containing all the outputs:
+        -# 'frames': remaped_frames [xaxis(pitch), yaxis(r), taxis]
+        -# 'xaxis': pitch,
+        -# 'yaxis': gyr,
+        -# 'xlabel': 'Pitch', label to plot
+        -# 'ylabel': '$r_l$', label to plot
+        -# 'xunits': '{}^o', units of the pitch
+        -# 'yunits': 'cm', units of the gyroradius
+        -# 'sprofx': signal integrated in gyroradius vs time
+        -# 'sprofy': signal_integrated in pitch vs time
+        -# 'sprofxlabel': label for sprofx
+        -# 'sprofylabel': label for sprofy
+        -# 'bfield': Modulus of the field vs time [T]
+        -# 'phi': phi, calculated phi angle, FILDSIM [deg]
+        -# 'theta': theta, calculated theta angle FILDSIM [deg]
+        -# 'theta_used': theta_used for the remap [deg]
+        -# 'phi_used': phi_used for the remap [deg]
+        -# 'tframes': time of the frames
+        -# 'existing_smaps': arry indicateing which smaps where found in the
+        database and which don't
+    @return   opt: dictionary containing all the input parameters
     """
-    # Print just some info:
-    print('Looking for strikemaps in: ', pa.StrikeMaps)
+    # Check inputs strike map
+    print('.-. . -- .- .--. .--. .. -. --.')
+    if map is None:
+        got_smap = False
+    else:
+        got_smap = True
+        print('A StrikeMap was given, we will remap all frames with it')
+
+    if smap_folder is None:
+        smap_folder = pa.FILDStrikeMapsRemap
+
+    # Print  some info:
+    if not got_smap:
+        print('Looking for strikemaps in: ', smap_folder)
+
     # Get frame shape:
     nframes = len(video.exp_dat['nframes'])
     frame_shape = video.exp_dat['frames'].shape[0:2]
+
     # Get the time (to measure elapsed time)
     tic = time.time()
+
     # Get the magnetic field: In principle we should be able to do this in an
     # efficient way, but the AUG library to access magnetic field is kind of a
     # shit in python 3, so we need a work around
-    if machine == 'AUG':
-        import map_equ as meq
-        equ = meq.equ_map(shot, diag='EQH')
-    br = np.zeros(nframes)
-    bz = np.zeros(nframes)
-    bt = np.zeros(nframes)
+    if not got_smap:
+        if machine == 'AUG':
+            import map_equ as meq
+            equ = meq.equ_map(shot, diag='EQH')
+        br = np.zeros(nframes)
+        bz = np.zeros(nframes)
+        bt = np.zeros(nframes)
     b_field = np.zeros(nframes)
     # br, bz, bt, bp =\
     #     ssdat.get_mag_field(shot, rfild, zfild,
     #                         time=video.exp_dat['tframes'])
     # Get the modulus of the field
     # b_field = np.sqrt(br**2 + bz**2 + bt**2)
-
     # Initialise the variables:
-    # Get the dimension of the gyr and pitch profiles. Depending on the exact
-    # values, the ends can enter or not... To look for the dimension I just
-    # create a dummy vector and avoid 'complicated logic'
-    dum = np.arange(start=rmin, stop=rmax, step=dr)
-    ngyr = len(dum) - 1
-    dum = np.arange(start=pmin, stop=pmax, step=dp)
-    npit = len(dum) - 1
+    ngyr = int((rmax-rmin)/dr) + 1
+    npit = int((pmax-pmin)/dp) + 1
     remaped_frames = np.zeros((npit, ngyr, nframes))
     signal_in_gyr = np.zeros((ngyr, nframes))
     signal_in_pit = np.zeros((npit, nframes))
-    # b_field = np.zeros(nframes)
     theta = np.zeros(nframes)
     phi = np.zeros(nframes)
     name_old = ' '
-    print('Calculating theta and phi')
+    name = ' '
     exist = np.zeros(nframes, np.bool)
-    for iframe in tqdm(range(nframes)):
-        if machine == 'AUG':
-            tframe = video.exp_dat['tframes'][iframe]
-            br[iframe], bz[iframe], bt[iframe], bp =\
-                ssdat.get_mag_field(shot, rfild, zfild, time=tframe, equ=equ)
-            b_field[iframe] = np.sqrt(br[iframe]**2 + bz[iframe]**2
-                                      + bt[iframe]**2)
-        phi[iframe], theta[iframe] = \
-            ssFILDSIM.calculate_fild_orientation(br[iframe], bz[iframe],
-                                                 bt[iframe], alpha, beta)
-        name = ssFILDSIM.guess_strike_map_name_FILD(phi[iframe], theta[iframe],
-                                                    machine=machine)
-        # See if the strike map exist
-        if os.path.isfile(os.path.join(pa.StrikeMaps, name)):
-            exist[iframe] = True
+    # --- Calculate the theta and phi angles
+    if not got_smap:  # if no smap was given calculate the theta and phi
+        print('Calculating theta and phi')
+        for iframe in tqdm(range(nframes)):
+            if machine == 'AUG':
+                tframe = video.exp_dat['tframes'][iframe]
+                br[iframe], bz[iframe], bt[iframe], bp =\
+                    ssdat.get_mag_field(shot, rfild, zfild, time=tframe,
+                                        equ=equ)
+                b_field[iframe] = np.sqrt(br[iframe]**2 + bz[iframe]**2
+                                          + bt[iframe]**2)
+            phi[iframe], theta[iframe] = \
+                ssFILDSIM.calculate_fild_orientation(br[iframe], bz[iframe],
+                                                     bt[iframe], alpha, beta)
+            name = ssFILDSIM.guess_strike_map_name_FILD(phi[iframe],
+                                                        theta[iframe],
+                                                        machine=machine,
+                                                        decimals=decimals)
+            # See if the strike map exist
+            if os.path.isfile(os.path.join(smap_folder, name)):
+                exist[iframe] = True
+    else:
+        exist = np.ones(nframes, np.bool)
+    # See how many strike maps we need to calculate:
+    if not got_smap:
+        nnSmap = np.sum(~exist)  # Number of Smaps missing
+        dummy = np.arange(nframes)     #
+        existing_index = dummy[exist]  # Index of the maps we have
+        non_existing_index = dummy[~exist]
+        theta_used = np.round(theta, decimals=decimals)
+        phi_used = np.round(phi, decimals=decimals)
 
-    # See howmany strike maps we need to calculate:
-    nnSmap = np.sum(~exist)
-    x = 1
-    if nnSmap == nframes:
-        print('Non a single strike map, full calculation needed')
-    elif nnSmap == 0:
-        print('Ideal situation, not a single map needed to be calcuated')
-    elif nnSmap != 0:
-        print('We need to calculate:', nnSmap, 'StrikeMaps')
-        print('Write 1 to proceed, 0 just to take the fist existing strikemap')
-        x = input('Enter answer:')
-
-    if x == 0:
-        t = theta[exist][0]
-        p = phi[exist][0]
-        name = ssFILDSIM.guess_strike_map_name_FILD(p, t, machine=machine)
+        if nnSmap == 0:
+            print('--. .-. . .- -')
+            print('Ideal situation, not a single map needs to be calcuated')
+        elif nnSmap == nframes:
+            print('Non a single strike map, full calculation needed')
+        elif nnSmap != 0:
+            print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
+            print('Write 1 to proceed, 0 to take the closer'
+                  + '(in time) existing strikemap')
+            x = int(input('Enter answer:'))
+            if x == 0:
+                print('We will not calculate new strike maps')
+                print('Looking for the closer ones')
+                for i in tqdm(range(len(non_existing_index))):
+                    ii = non_existing_index[i]
+                    icloser = ssextra.find_nearest_sorted(existing_index, ii)
+                    theta_used[ii] = theta[icloser]
+                    phi_used[ii] = phi[icloser]
     print('Remapping frames')
     for iframe in tqdm(range(nframes)):
-        if x == 1:
-            name = ssFILDSIM.find_strike_map(rfild, zfild, phi[iframe],
-                                             theta[iframe], pa.StrikeMaps,
-                                             pa.FILDSIM, machine=machine,
-                                             FILDSIM_options=fildsim_options)
+        if not got_smap:
+            name = ssFILDSIM.find_strike_map(rfild, zfild, phi_used[iframe],
+                                             theta_used[iframe], smap_folder,
+                                             machine=machine,
+                                             FILDSIM_options=fildsim_options,
+                                             decimals=decimals)
         # Only reload the strike map if it is needed
         if name != name_old:
-            map = StrikeMap(0, os.path.join(pa.StrikeMaps, name))
+            map = StrikeMap(0, os.path.join(smap_folder, name))
             map.calculate_pixel_coordinates(calibration)
             # print('Interpolating grid')
             map.interp_grid(frame_shape, plot=False, method=method)
         name_old = name
+        # remap the frames
         remaped_frames[:, :, iframe], pitch, gyr = \
             remap(map, video.exp_dat['frames'][:, :, iframe], x_min=pmin,
                   x_max=pmax, delta_x=dp, y_min=rmin, y_max=rmax, delta_y=dr,
@@ -633,11 +679,14 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
               'sprofxlabel': 'Signal integrated in r_l',
               'sprofylabel': 'Signal integrated in pitch',
               'bfield': b_field, 'phi': phi, 'theta': theta,
-              'tframes': video.exp_dat['tframes']}
+              'theta_used': theta_used, 'phi_used': phi_used,
+              'tframes': video.exp_dat['tframes'],
+              'existing_smaps': exist}
     opt = {'rmin': rmin, 'rmax': rmax, 'dr': dr, 'pmin': pmin, 'pmax': pmax,
            'dp': dp, 'rprofmin': rprofmin, 'rprofmax': rprofmax,
            'pprofmin': pprofmin, 'pprofmax': pprofmax, 'rfild': rfild,
-           'zfild': zfild, 'alpha': alpha, 'beta': beta}
+           'zfild': zfild, 'alpha': alpha, 'beta': beta,
+           'calibration': calibration, 'decimals': decimals}
     return output, opt
 
 
@@ -666,7 +715,7 @@ def _fit_to_model_(data, bins=20, model='Gauss'):
         par = {'amplitude': result.params['amplitude'].value,
                'center': result.params['center'].value,
                'sigma': result.params['sigma'].value}
-    if model == 'sGauss':
+    elif model == 'sGauss':
         model = lmfit.models.SkewedGaussianModel()
         params = model.guess(hist, x=cent)
         result = model.fit(hist, params, x=cent)
@@ -812,12 +861,12 @@ class CalibrationDatabase:
         n_true = sum(flags)
 
         if n_true == 0:
-            print('No entry find in the database, revise database')
-            return
+            raise Exception('No entry find in the database, revise database')
         elif n_true > 1:
             print('Several entries fulfill the condition')
             print('Possible entries:')
             print(self.data['ID'][flags])
+            raise Exception()
         else:
             dummy = np.argmax(np.array(flags))
             cal = CalParams()
@@ -827,7 +876,7 @@ class CalibrationDatabase:
             cal.yshift = self.data['yshift'][dummy]
             cal.deg = self.data['deg'][dummy]
 
-            return cal
+        return cal
 
 
 class StrikeMap:
@@ -1149,8 +1198,8 @@ class StrikeMap:
                  '7: Remapped pitch',
                  '8: Incidence angle']
             if not old:
-                self.strike_points['help'].append('9-11: Xi (cm)  Yi (cm)' +
-                                                  '  Zi (cm)')
+                self.strike_points['help'].append('9-11: Xi (cm)  Yi (cm)'
+                                                  + '  Zi (cm)')
             # Get the 'pinhole' gyr and pitch values:
             self.strike_points['pitch'] = \
                 np.unique(self.strike_points['Data'][:, 1])
@@ -1190,9 +1239,9 @@ class StrikeMap:
         like for example the method used to fit the pitch
         @param min_statistics: Minimum number of points for a given r p to make
         the fit (if we have less markers, this point will be ignored)
-        @param min_n_bins: Minimum number of bins for the fitting, if the
-        selected bin_width is such that the are less bins, the bin width will
-        automatically adjusted
+        @param min_statistics: Minimum number of counts to perform the fit
+        @param adaptative: If true, the bin width will be adapted such that the
+        number of bins in a sigma of the distribution is 4
         """
         if self.strike_points is None:
             raise Exception('You should load the strike points first!!')
@@ -1362,12 +1411,12 @@ class CalParams:
     """
     Information to relate points in the camera sensor the scintillator
 
-    In a future, it will contains the correction of the optical distortion and
+    In a future, it will contain the correction of the optical distortion and
     all the methods necessary to correct it.
     """
 
     def __init__(self):
-        """Initialize of the class"""
+        """Initialize the class"""
         # To transform the from real coordinates to pixel (see
         # transform_to_pixel())
         ## pixel/cm in the x direction
@@ -1383,8 +1432,8 @@ class CalParams:
 
     def print(self):
         """Print calibration"""
-        print('xcale: ', self.xscale)
-        print('ycale: ', self.yscale)
+        print('xscale: ', self.xscale)
+        print('yscale: ', self.yscale)
         print('xshift: ', self.xshift)
         print('yshift: ', self.yshift)
         print('deg: ', self.deg)

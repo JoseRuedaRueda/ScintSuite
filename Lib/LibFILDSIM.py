@@ -1,5 +1,6 @@
 """Routines to interact with FILDSIM"""
 import os
+import warnings
 import numpy as np
 import math as ma
 import LibParameters as ssp
@@ -8,6 +9,17 @@ import matplotlib.pyplot as plt
 from scipy import interpolate
 from scipy.special import erf       # error function
 from tqdm import tqdm               # For waitbars
+from LibMachine import machine
+from LibPaths import Path
+if machine == 'AUG':
+    import LibDataAUG as ssdat
+try:
+    import f90nml
+except ImportError:
+    warnings.warn('You cannot read FILDSIM namelist',
+                  category=UserWarning)
+
+paths = Path(machine)
 
 
 # -----------------------------------------------------------------------------
@@ -31,14 +43,9 @@ def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
     """
     # In AUG the magnetic field orientation is counter current.
     # FILDSIM.f90 works with the co-current reference
-    if Bt < 0:
-        bt = -Bt
-        br = -Br
-        bz = -Bz
-    else:
-        bt = Bt
-        br = Br
-        bz = Bz
+    bt = ssdat.IB_sign * Bt
+    br = ssdat.IB_sign * Br
+    bz = ssdat.IB_sign * Bz
 
     # Transform to radians
     alpha = alpha * np.pi / 180.0
@@ -66,14 +73,14 @@ def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
     # PHI --> Euler Angle measured from y(positive) to x(positive)
     # THETA --> Euler Angle measured from x(positive) to z(negative)
 
-    phi = ma.atan(br2 / bt2) * 180.0 / np.pi
-    theta = ma.atan(-bz2 / bt2) * 180.0 / np.pi
+    phi = ma.atan2(br2, bt2) * 180.0 / np.pi
+    theta = ma.atan2(-bz2, bt2) * 180.0 / np.pi
     if verbose:
         print('Bt, Bz, Br and B: ', bt, bz, br, ma.sqrt(bt**2 + bz**2 + br**2))
         print('FILD orientation is (alpha,beta)= ', alpha * 180.0 / np.pi,
               beta * 180.0 / np.pi)
-        print('Alpha rotation: ', bt1, bz1, br1, ma.sqrt(bt1**2 + bz1**2 +
-                                                         br1**2))
+        print('Alpha rotation: ', bt1, bz1, br1, ma.sqrt(bt1**2 + bz1**2
+                                                         + br1**2))
         print('Bx By Bz in FILDSIM are: ', bt2, bz2, br2, ma.sqrt(
             bt2**2 + bz2**2 + br2**2))
         print('Euler angles are (phi,theta): ', phi, theta)
@@ -121,8 +128,8 @@ def calculate_photon_flux(raw_frame, calibration_frame_in, exposure_time,
             print('Use mean calibration frame method!')
             raise Exception('Size not matching')
     else:
-            print('Using mean calibration frame method -->')
-            print('Using single (mean) value instead of 2D array')
+        print('Using mean calibration frame method -->')
+        print('Using single (mean) value instead of 2D array')
 
     # get the calibration frame in Counts*s*m^2/photons
     calibration_frame_out = \
@@ -446,116 +453,49 @@ def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
 # -----------------------------------------------------------------------------
 # --- RUN FILDSIM
 # -----------------------------------------------------------------------------
-def write_namelist(p: str, runID: str = 'test', result_dir: str = './results/',
-                   backtrace: str = '.false.', N_gyroradius: int = 11,
-                   N_pitch: int = 10, save_orbits: int = 0,
-                   verbose: str = '.false.',
-                   N_ions: int = 11000, step: float = 0.01,
-                   helix_length: float = 10.0,
-                   gyroradius=[1.5, 1.75, 2., 3., 4., 5., 6., 7., 8., 9., 10.],
-                   pitch=[85., 80., 70., 60., 50., 40., 30., 20., 10, 0.],
-                   min_gyrophase: float = 1.0,
-                   max_gyrophase: float = 1.8, start_x=[-0.025, 0.025],
-                   start_y=[-0.1, 0.1], start_z=[0.0, 0.0],
-                   theta=0.0, phi=0.0, geometry_dir='./geometry/',
-                   N_scintillator=1, N_slits=6,
-                   scintillator_files=['aug_fild1_scint.pl'],
-                   slit_files=['aug_fild1_pinhole_1_v2.pl',
-                               'aug_fild1_pinhole_2_v2.pl',
-                               'aug_fild1_slit_1_v2.pl',
-                               'aug_fild1_slit_back_v2.pl',
-                               'aug_fild1_slit_lateral_1_v2.pl',
-                               'aug_fild1_slit_lateral_2_v2.pl']):
+def write_namelist(nml, p=os.path.join(paths.FILDSIM, 'cfg_files'),
+                   overwrite=True):
     """
-    Write the namelist for a FILDSIM simulation
+    Write fortran namelist
 
-    All parameters of the namelist have the meaning given in FILDSIM. See
-    FILDSIM documentation for a full description
+    jose rueda: jrrueda@us.es
 
-    @param p: path where to write the file
+    just a wrapper for the f90nml file writter
+
+    @param p: full path towards the desired file
+    @param nml: namelist containing the desired fields.
+    @param overwrite: flag to overwrite the namelist (if exist)
+
+    @return file: The path to the written file
     """
-    # check the input parameters
-    ngyr = len(gyroradius)
-    npitch = len(pitch)
-    nscint = len(scintillator_files)
-    nslit = len(slit_files)
-    if ngyr != N_gyroradius:
-        raise Exception("Number of  Gyroradius do not match N_gyroradius")
-    if npitch != N_pitch:
-        raise Exception("Number of pitches does not match N_pitch")
-    if nscint != N_scintillator:
-        raise Exception("Number of scintillator files does not match")
-    if nslit != N_slits:
-        print(nslit)
-        print(N_slits)
-        raise Exception("Number of slit files does not match")
-
-    name_of_file = os.path.join(p, runID + '.cfg')
-    # Open the aug_fild1_pinhole_2
-    f = open(name_of_file, "w")
-    print("&config", file=f, sep='')
-    print("runID='", runID, "',", file=f, sep='')
-    print("result_dir='", result_dir, "',", file=f, sep='')
-    print("backtrace=", backtrace, ",", file=f, sep='')
-    print("N_gyroradius=", N_gyroradius, ",", file=f, sep='')
-    print("N_pitch=", N_pitch, ",", file=f, sep='')
-    print("save_orbits=", save_orbits, ",", file=f, sep='')
-    print("verbose=", verbose, ",", file=f, sep='')
-    print("/", file=f, sep='')
-
-    print("", file=f, sep='')
-    print("&input_parameters", file=f, sep='')
-    print("N_ions=", N_ions, ",", file=f, sep='')
-    print("step=", step, ",", file=f, sep='')
-    print("helix_length=", helix_length, ",", file=f, sep='')
-    print("gyroradius", end='=', file=f, sep='')
-    for i in range(ngyr-1):
-        print(gyroradius[i], end=',', file=f, sep='')
-    print(gyroradius[ngyr-1], ',', file=f, sep='')
-    print("pitch_angle", end='=', file=f, sep='')
-    for i in range(npitch-1):
-        print(pitch[i], end=',', file=f, sep='')
-    print(pitch[npitch-1], ',', file=f, sep='')
-    print('gyrophase_range=', min_gyrophase, ',', max_gyrophase, ',',
-          file=f, sep='')
-    print('start_x=', start_x[0], ',', start_x[1], ',', file=f, sep='')
-    print('start_y=', start_y[0], ',', start_y[1], ',', file=f, sep='')
-    print('start_z=', start_x[0], ',', start_x[1], ',', file=f, sep='')
-    print('theta=', theta, ',', file=f, sep='')
-    print('phi=', phi, ',', file=f, sep='')
-    print('/', file=f, sep='')
-
-    print("", file=f, sep='')
-    print('&plate_setup_cfg', file=f, sep='')
-    print("geometry_dir='", geometry_dir, "',", file=f, sep='')
-    print("N_scintillator=", N_scintillator, ',', file=f, sep='')
-    print('N_slits=', N_slits, ',', file=f, sep='')
-    print('/', file=f, sep='')
-
-    print("", file=f, sep='')
-    print('&plate_files', file=f, sep='')
-    print("scintillator_files=", end="", file=f, sep='')
-    for i in range(N_scintillator-1):
-        print("'", scintillator_files[i], end="',", file=f, sep='')
-    print("'", scintillator_files[N_scintillator-1], "',", file=f, sep='')
-    print("slit_files=", end="", file=f, sep='')
-    for i in range(N_slits-1):
-        print("'", slit_files[i], end="',", file=f, sep='')
-    print("'", slit_files[N_slits-1], "',", file=f, sep='')
-    print('/', file=f, sep='')
-    f.close()
+    file = os.path.join(p, nml['config']['runid'] + '.cfg')
+    f90nml.write(nml, file, force=overwrite)
+    return file
 
 
-def run_FILDSIM(FILDSIM_path, namelist):
+def read_namelist(filename):
+    """
+    Read a FILDSIM namelist
+
+    Jose Rueda: jrrueda@us.es
+
+    just a wrapper for the f90nml capabilities
+
+    @param filename: full path to the filename to read
+    @return nml: dictionary with all the parameters of the FILDSIM run
+    """
+    return f90nml.read(filename)
+
+
+def run_FILDSIM(namelist):
     """
     Execute a FILDSIM simulation
 
     @todo Include the capability of connecting to a external machine
 
-    @param FILDSIM_path: path to the FILDSIM code (main folder)
     @param namelist: full path to the namelist
     """
-    FILDSIM = os.path.join(FILDSIM_path, 'bin', 'fildsim.exe')
+    FILDSIM = os.path.join(paths.FILDSIM, 'bin', 'fildsim.exe')
     # namelist = ' ' + run_ID + '.cfg'
     os.system(FILDSIM + ' ' + namelist)
 
@@ -579,15 +519,15 @@ def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
     # Taken from one of Juanfran files :-)
     p = round(phi, ndigits=decimals)
     t = round(theta, ndigits=decimals)
-    if phi < 0:
-        if theta < 0:
+    if p < 0:
+        if t < 0:
             name = machine +\
                 "_map_{0:010.5f}_{1:010.5f}_strike_map.dat".format(p, t)
         else:
             name = machine +\
                 "_map_{0:010.5f}_{1:09.5f}_strike_map.dat".format(p, t)
     else:
-        if theta < 0:
+        if t < 0:
             name = machine +\
                 "_map_{0:09.5f}_{1:010.5f}_strike_map.dat".format(p, t)
         else:
@@ -598,8 +538,9 @@ def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
 
 def find_strike_map(rfild: float, zfild: float,
                     phi: float, theta: float, strike_path: str,
-                    FILDSIM_path: str, machine: str = 'AUG',
-                    FILDSIM_options={}, clean: bool = True):
+                    machine: str = 'AUG',
+                    FILDSIM_options={}, clean: bool = True,
+                    decimals: int = 1):
     """
     Find the proper strike map. If not there, create it
 
@@ -614,30 +555,46 @@ def find_strike_map(rfild: float, zfild: float,
     @param    machine: string identifying the machine. Defaults to 'AUG'.
     @param    FILDSIM_options: FILDSIM namelist options
     @param    clean: True: eliminate the strike_points.dat when calling FILDSIM
+    @param    decimals: Number of decimals for theta and phi angles
     @return   name:  name of the strikemap to load
     @raises   Exception: If FILDSIM is call but the file is not created.
     """
     # Find the name of the strike map
-    name = guess_strike_map_name_FILD(phi, theta, machine=machine)
+    name = guess_strike_map_name_FILD(phi, theta, machine=machine,
+                                      decimals=decimals)
     # See if the strike map exist
     if os.path.isfile(os.path.join(strike_path, name)):
         return name
     # If do not exist, create it
-    # set namelist name
-    FILDSIM_options['runID'] = name[:-15]
-    FILDSIM_options['result_dir'] = strike_path
-    ## @todo include here a precision
-    FILDSIM_options['theta'] = round(theta, ndigits=1)
-    FILDSIM_options['phi'] = round(phi, ndigits=1)
-    if 'geometry_dir' not in FILDSIM_options:
-        FILDSIM_options['geometry_dir'] = \
-            os.path.join(FILDSIM_path, 'geometry/')
-    path_conf = os.path.join(FILDSIM_path, 'cfg_files')
-    write_namelist(path_conf, **FILDSIM_options)
+    # load reference namelist
+    # Reference namelist
+    nml = f90nml.read(os.path.join(strike_path, 'parameters.cfg'))
+    # If a FILDSIM naelist was given, overwrite reference parameters with the
+    # desired by the user, else set at least the proper geometry directory
+    if FILDSIM_options is not None:
+        # Set the geometry directory
+        if 'plate_setup_cfg' in FILDSIM_options:
+            if 'geometry_dir' not in FILDSIM_options['plate_setup_cfg']:
+                FILDSIM_options['plate_setup_cfg']['geometry_dir'] = \
+                    os.path.join(paths.FILDSIM, 'geometry/')
+        else:
+            nml['plate_setup_cfg']['geometry_dir'] = \
+                os.path.join(paths.FILDSIM, 'geometry/')
+        # set the rest of user defined options
+        for block in FILDSIM_options.keys():
+            nml[block].update(FILDSIM_options[block])
+    else:
+        nml['plate_setup_cfg']['geometry_dir'] = \
+            os.path.join(paths.FILDSIM, 'geometry/')
+
+    # set namelist name, theta and phi
+    nml['config']['runid'] = name[:-15]
+    nml['config']['result_dir'] = strike_path
+    nml['input_parameters']['theta'] = round(theta, ndigits=decimals)
+    nml['input_parameters']['phi'] = round(phi, ndigits=decimals)
+    conf_file = write_namelist(nml)
     # run the FILDSIM simulation
-    conf_file = os.path.join(FILDSIM_path, 'cfg_files',
-                             FILDSIM_options['runID'] + '.cfg')
-    bin_file = os.path.join(FILDSIM_path, 'bin/fildsim.exe')
+    bin_file = os.path.join(paths.FILDSIM, 'bin', 'fildsim.exe')
     os.system(bin_file + ' ' + conf_file)
 
     if clean:

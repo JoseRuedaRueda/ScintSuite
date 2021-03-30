@@ -8,6 +8,7 @@ which will have at the FILD position
 """
 
 import numpy as np
+import math
 from LibMachine import machine
 if machine == 'AUG':
     import LibDataAUG as ssdat
@@ -90,7 +91,7 @@ def pitch_at_other_place(R0, P0, R):
 # -----------------------------------------------------------------------------
 # --- Matrix filters
 # -----------------------------------------------------------------------------
-def neutron_filter(M):
+def neutron_filter(M, nsigma: int = 3):
     """
     Remove pixels affected by neutrons
 
@@ -107,12 +108,15 @@ def neutron_filter(M):
             dummy[1, 1] = 0
             mean = np.mean(dummy)
             std = np.std(dummy)
-            if Mo[ix, iy] > mean + 3 * std:
+            if Mo[ix, iy] > mean + nsigma * std:
                 Mo[ix, iy] = mean
 
     return Mo
 
 
+# -----------------------------------------------------------------------------
+# --- Trapped passing boundary
+# -----------------------------------------------------------------------------
 def TP_boundary(shot, z0, t, Rmin=1.5, Rmax=2.1, zmin=-0.9, zmax=0.9):
     """
     Approximate the TP TP_boundary
@@ -146,3 +150,22 @@ def TP_boundary(shot, z0, t, Rmin=1.5, Rmax=2.1, zmin=-0.9, zmax=0.9):
         print(r[i], r0)
         tp[i] = np.sqrt(1 - r0 / r[i])
     return r, tp
+
+
+# -----------------------------------------------------------------------------
+# --- Searching algorithms
+# -----------------------------------------------------------------------------
+def find_nearest_sorted(array, value):
+    """
+    Find the nearest element of an sorted array
+
+    Taken from:
+    https://stackoverflow.com/questions/2566412/
+        find-nearest-value-in-numpy-array
+    """
+    idx = np.searchsorted(array, value, side="left")
+    if idx > 0 and (idx == len(array) or math.fabs(value - array[idx-1])
+                    < math.fabs(value - array[idx])):
+        return array[idx-1]
+    else:
+        return array[idx]

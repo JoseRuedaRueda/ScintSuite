@@ -5,11 +5,12 @@ import LibPlotting as ssplt
 import LibParameters as sspar
 import matplotlib.pyplot as plt
 
+
 class orbit:
     def __init__(self, orbitData: dict, identifier: int = None, \
                  mass: np.float64 = None, charge: np.float64 = None):
         self.data = orbitData
-        
+
         if id is not None:
             self.ID = identifier
         else:
@@ -24,9 +25,9 @@ class orbit:
             self.charge = orbitData['q']
         else:
             self.charge = charge
-            
+
         self.getNaturalParameter()
-    
+
     @property
     def size(self):
         return self.data['R'].shape[0]
@@ -37,10 +38,10 @@ class orbit:
         """
         Plot the orbit
 
-        Jose Rueda: jrrueda@us.es 
+        Jose Rueda: jrrueda@us.es
         ft.
         Pablo Oyola: pablo.oyola@ipp.mpg.de
-        
+
         @param view: '2D' to plot, (R,z), (x,y). '3D' to plot the 3D orbit
         @param ax_options: options for the function axis_beauty
         @param line_options: options for the line plot (markers, colors and so on)
@@ -61,7 +62,7 @@ class orbit:
         if 'linewidth' not in line_options:
             line_options['linewidth'] = 2
         # --- Get cartesian coordinates:
-            
+
         x = self.data['x']
         y = self.data['y']
         flag_ax_was_none = False
@@ -75,13 +76,13 @@ class orbit:
                 fig, ax = plt.subplots(1, 2)
                 flag_ax_was_none = True
             # Plot the Rz, projection
-            ax[0].plot(self.data['R'][imin:imax], 
+            ax[0].plot(self.data['R'][imin:imax],
                        self.data['z'][imin:imax],
                        label='ID: ' + str(self.ID),
                        **line_options)
             # Plot the xy projection
             ax[1].plot(x[imin:imax], y[imin:imax],
-                    label='ID: ' + str(self.ID), **line_options)
+                       label='ID: ' + str(self.ID), **line_options)
             # plot the initial and final points in a different color
             ax[1].plot(x[imax], y[imax], 'o', color='r')
             ax[1].plot(x[imin], y[imin], 'o', color='g')
@@ -92,9 +93,9 @@ class orbit:
                 ax = fig.add_subplot(111, projection='3d')
             # Plot the orbit
             ax.plot(x[imin:imax], y[imin:imax],
-                    self.data['z'][imin:imax], 
+                    self.data['z'][imin:imax],
                     **line_options)
-                
+
         if flag_ax_was_none:
             if view == '2D':
                 # Poloidal projection.
@@ -102,7 +103,7 @@ class orbit:
                 ax_options['ylabel'] = 'z [m]'
                 ssplt.plot_vessel(ax=ax[0])
                 ax[0] = ssplt.axis_beauty(ax[0], ax_options)
-                
+
                 # XY projection.
                 ax_options['xlabel'] = 'x [m]'
                 ax_options['ylabel'] = 'y [m]'
@@ -110,15 +111,15 @@ class orbit:
                 ax[1] = ssplt.axis_beauty(ax[1], ax_options)
                 plt.tight_layout()
             else:
-                ssplt.plot_vessel(ax=ax, projection='3D', 
+                ssplt.plot_vessel(ax=ax, projection='3D',
                                   params3d=shaded3d_options)
                 ax_options['xlabel'] = 'x [m]'
                 ax_options['ylabel'] = 'y [m]'
                 ax_options['zlabel'] = 'z [m]'
                 ax = ssplt.axis_beauty(ax, ax_options)
-            
+
         return ax
-    
+
     def plotTimeTraces(self, ax=None, ax_options: dict = {},
                        line_options: dict = {}, grid: bool = True,
                        legend_on: bool = True):
@@ -126,19 +127,18 @@ class orbit:
         This routine plots the time traces of some of the magnetic coordinates.
         As of Feb21, it plots only energy, pitch-angle, toroidal canonical
         momentum and magnetic moment.
-        
+
         Pablo Oyola - pablo.oyola@ipp.mpg.de
         Jose Rueda Rueda - jrrueda@us.es
-        
+
         @param ax: set of axis to plot the timetraces. As of Feb21, it must be
         an array of 4 axis to plot.
         @param ax_options: options to make beautiful plots.
-        @param line_options: set of options to be sent when using plot 
+        @param line_options: set of options to be sent when using plot
         routines.
         @grid: establish if plotting the grids in the axis.
         @legend_on: flag to determine when the legend is plot.
-        """ 
-        
+        """
         # --- Initialise the plotting parameter
         if 'fontsize' not in ax_options:
             ax_options['fontsize'] = 16
@@ -146,103 +146,102 @@ class orbit:
             ax_options['grid'] = 'both'
         if 'linewidth' not in line_options:
             line_options['linewidth'] = 2
-        
-        
+
         # --- Preparing axis array
         if (ax is None) or (ax.shape[0] != 4):
             # Open the figure if not provided.
             fig, ax = plt.subplots(nrows=4, sharex=True)
-            
+
             # --- Setting up the labels.
             ax_options['xlabel'] = 'Time [s]'
             ax_options['ylabel'] = 'E [keV]'
             ax[0] = ssplt.axis_beauty(ax[0], ax_options)
-            
+
             ax_options['ylabel'] = '$\\lambda$ [-]'
             ax[1] = ssplt.axis_beauty(ax[1], ax_options)
-            
+
             ax_options['ylabel'] = '$\\mu$ [J/T]'
             ax[2] = ssplt.axis_beauty(ax[2], ax_options)
-            
+
             ax_options['ylabel'] = '$P_\\phi$ [kg$m^2$/s]'
             ax[3] = ssplt.axis_beauty(ax[3], ax_options)
-        
+
         # --- Making the plot
-        ax[0].plot(self.data['time'], self.data['K']/sspar.ec*1e-3, 
+        ax[0].plot(self.data['time'], self.data['K']/sspar.ec*1e-3,
                    label='ID: ' + str(self.ID), **line_options)
-        ax[1].plot(self.data['time'], self.data['pitch'], 
+        ax[1].plot(self.data['time'], self.data['pitch'],
                    label='ID: ' + str(self.ID), **line_options)
-        ax[2].plot(self.data['time'], self.data['mu'], 
+        ax[2].plot(self.data['time'], self.data['mu'],
                    label='ID: ' + str(self.ID), **line_options)
-        ax[3].plot(self.data['time'], self.data['Pphi'], 
+        ax[3].plot(self.data['time'], self.data['Pphi'],
                    label='ID: ' + str(self.ID), **line_options)
-            
+
         if legend_on:
             plt.legend()
-        
+
         if grid:
             ax[0].grid(True, which='minor', linestyle=':')
             ax[0].minorticks_on()
             ax[0].grid(True, which='major')
-    
+
             ax[1].grid(True, which='minor', linestyle=':')
             ax[1].minorticks_on()
             ax[1].grid(True, which='major')
-    
+
             ax[2].grid(True, which='minor', linestyle=':')
             ax[2].minorticks_on()
             ax[2].grid(True, which='major')
-    
+
             ax[3].grid(True, which='minor', linestyle=':')
             ax[3].minorticks_on()
             ax[3].grid(True, which='major')
-        
+
         return ax
-        
+
     """
-    The following routines handle extra parameters that can be computed 
+    The following routines handle extra parameters that can be computed
     from an input magnetic fields.
     Calculation of pitch-angle, toroidal canonical momentum, magnetic
     dipole momentum, ...
-    
+
     A magnetic field input is here required.
     """
 
-    def setMagnetics(self, magn, calcMomenta = True, magMomentumOrder = 0, 
+    def setMagnetics(self, magn, calcMomenta=True, magMomentumOrder=0,
                      IpBt: float = 1.0):
         """
         Sets the magnetic field to compute magnetic field related variables,
         i.e., pitch-angle, toroidal canonical momentum, magnetic momentum,...
-        
+
         Pablo Oyola - pablo.oyola@ipp.mpg.de
-        
-        @param magn: Magnetic fields containing the magnetic field and the 
+
+        @param magn: Magnetic fields containing the magnetic field and the
         poloidal flux to be able to map the markers info into the variables.
-        @param calcMomenta: Calls the function to make the calculation of the 
+        @param calcMomenta: Calls the function to make the calculation of the
         toroidal canonical momentum, pitch-angle and magnetic momentum.
         @param magMomOrder: Order of the calculation of the magnetic momentum.
         @see{orbit::calculateMagMomentum}
         @param IpBt: sign convention for the pitch-angle definition.
         """
-        
+
         self.magObject = magn
-        
+
         if calcMomenta:
             self.calculatePitchAngle(IpBt)
             self.calculateToroidalCanonicalMomentum()
-            self.calculateMagMoment(order = magMomentumOrder)
-        
+            self.calculateMagMoment(order=magMomentumOrder)
+
     def calculatePitchAngle(self, ipbt):
         """
         For the orbits stored in the class, the routine computes the
         pitch-angle.
-        
+
         Pablo Oyola - pablo.oyola@ipp.mpg.de
-        
+
         @param ipbt: sign convention to define the direction of the pitch
         angle.
         """
-        
+
         # Interpolate the magnetic field in the point.
         br, bz, bphi = self.magObject.getBfield(self.data['R'],
                                                 self.data['z'],
@@ -250,53 +249,51 @@ class orbit:
                                                 self.data['time'])
         # Get the absolute magnetic field and velocities.
         babs = np.sqrt(br**2 + bz**2 + bphi**2)
-        vabs = np.sqrt(self.data['vR']**2 + 
+        vabs = np.sqrt(self.data['vR']**2 +
                        self.data['vt']**2 +
                        self.data['vz']**2)
-                   
-        
+
         self.data['pitch'] = ipbt * ((self.data['vR'] * br +
                                       self.data['vz'] * bz +
                                       self.data['vt'] * bphi) /
                                      (babs*vabs))
-                                            
+
     def calculateToroidalCanonicalMomentum(self):
         """
         For the orbits stored in the class, the routine computes the
         toroidal canonical momentum.
-        
+
         Pablo Oyola - pablo.oyola@ipp.mpg.de
-        
+
         @param ipbt: sign convention to define the direction of the pitch
         angle.
         """
-        
+
         self.data['psipol'] = self.magObject.getPsipol(self.data['R'],
                                                        self.data['z'],
                                                        self.data['phi'],
                                                        self.data['time'])
         self.data['Pphi'] = self.mass * self.data['vt'] *\
-                            self.data['R'] - \
-                            self.charge * self.data['psipol']
-                                   
-    def calculateMagMoment(self, order:int = 0):
+            self.data['R'] - self.charge * self.data['psipol']
+
+    def calculateMagMoment(self, order: int = 0):
         """
         For the orbits stored in the class, the routine computes the
         magnetic dipole momentum. The order parameter establish up to which
         level of approximation the magnetic dipole moment.
-        
+
         Levels of approximation:
             1) 0th order: typical formula -> mu = mass*v_perp/(2*B)
             2) 1st order: Second order correction from the LittleJonh's
             paper:
             R.G. Littlejohn, "Variational principles of guiding centre
             motion", J. Plasma Physics (1983) - Equation (31)
-        
+
         Pablo Oyola - pablo.oyola@ipp.mpg.de
-        
+
         @param order: approximation order of the magnetic moment.
         """
-            
+
         # Interpolate the magnetic field in the point.
         br, bz, bphi = self.magObject.getBfield(self.data['R'],
                                                 self.data['z'],
@@ -304,18 +301,17 @@ class orbit:
                                                 self.data['time'])
         # Get the absolute magnetic field and velocities.
         babs = np.sqrt(br**2 + bz**2 + bphi**2)
-        
-        
+
         if order == 0:
             self.data['mu'] = self.data['K']/babs *\
                              (1.0 - self.data['pitch']**2)
         return
-    
+
     def getNaturalParameter(self):
         """
-        Computes the natural parameter of the orbit, i.e., the path that the 
+        Computes the natural parameter of the orbit, i.e., the path that the
         orbit has covered along the orbit.
-        
+
         Pablo Oyola - pablo.oyola@ipp.mpg.de
         """
         self.data['s'] = np.zeros((self.size))
@@ -326,32 +322,33 @@ class orbit:
             dy = self.data['y'][ii] - self.data['y'][ii - 1]
             dz = self.data['z'][ii] - self.data['z'][ii - 1]
             ds = np.sqrt(dx**2 + dy**2 + dz**2)
-            
+
             self.data['s'][ii] = self.data['s'][ii - 1] + ds
-            
+
         return
-        
+
     """Class methods overload."""
-    
+
     def __getitem__(self, idx):
         """
         Overload of the method to be able to access the data in the orbit data.
         It returns the whole data of a given orbit.
-        
+
         Pablo Oyola: pablo.oyola@ipp.mpg.de
-        
+
         @param idx: orbit number.
         @return self.data[idx]: Orbit dictionary.
         """
         return self.data[idx]
-    
+
+
 def plotOrbits(orbitList, view: str = '2D', ax_options: dict = {}, ax=None,
                line_options: dict = {}, shaded3d_options: dict = {},
                imin: int = 0, imax: int = None):
     """
     Given an input list of orbits, this routine will plot all the orbits into
     the same axis and return an unique axis object after it.
-    
+
     Pablo Oyola - pablo.oyola@ipp.mpg.de
     @param orbitList: list of orbits to plot.
     @param view: '2D' to plot, (R,z), (x,y). '3D' to plot the 3D orbit
@@ -365,19 +362,20 @@ def plotOrbits(orbitList, view: str = '2D', ax_options: dict = {}, ax=None,
     """
     if orbitList is None:
         raise Exception('The input object is empty!')
-        
+
     ax = orbitList[1].plot(view=view, ax_options=ax_options,
-                           line_options=line_options, 
-                           shaded3d_options=shaded3d_options, 
+                           line_options=line_options,
+                           shaded3d_options=shaded3d_options,
                            imin=imin, imax=imax)
-    
+
     for ii in range(2, len(orbitList)):
         ax = orbitList[ii].plot(view=view, ax_options=ax_options, ax=ax,
                                 line_options=line_options,
-                                shaded3d_options=shaded3d_options, 
+                                shaded3d_options=shaded3d_options,
                                 imin=imin, imax=imax)
-    
+
     return ax
+
 
 def plotTimeTraces(orbitList, magn, ax=None, ax_options: dict = {},
                    line_options: dict = {}, grid: bool = True,
@@ -385,35 +383,35 @@ def plotTimeTraces(orbitList, magn, ax=None, ax_options: dict = {},
     """
     Given a list of orbits, this routine will plot all the orbits time-traces
     into a single figure and return the axis array.
-    
+
     Pablo Oyola - pablo.oyola@ipp.mpg.de
     @param ax: set of axis to plot the timetraces. As of Feb21, it must be
     an array of 4 axis to plot.
     @param ax_options: options to make beautiful plots.
-    @param line_options: set of options to be sent when using plot 
+    @param line_options: set of options to be sent when using plot
     routines.
     @grid: establish if plotting the grids in the axis.
     @legend_on: flag to determine when the legend is plot.
     """
     if orbitList is None:
         raise Exception('The input object is empty!')
-    
-    
-    orbitList[1].setMagnetics(magn)    
+
+    orbitList[1].setMagnetics(magn)
     ax = orbitList[1].plotTimeTraces(ax_options=ax_options,
-                                     line_options=line_options, grid=grid, 
+                                     line_options=line_options, grid=grid,
                                      legend_on=legend_on)
-    
+
     for ii in range(2, len(orbitList)):
         orbitList[ii].setMagnetics(magn)
         ax = orbitList[ii].plotTimeTraces(ax=ax, ax_options=ax_options,
-                                          line_options=line_options, grid=grid, 
+                                          line_options=line_options, grid=grid,
                                           legend_on=legend_on)
-    
+
     return ax
-    
+
+
 class orbitFile:
-    """ Class to read and work orbits generated by the i-HIBPsim libraries. """
+    """Class to read and work orbits generated by the i-HIBPsim libraries."""
     def __init__(self, filename: str = None, load_all: bool = True):
         """
         Initialization of the orbit class. Loads the header.
@@ -439,9 +437,9 @@ class orbitFile:
         if filename is not None:
             fid = open(filename, 'rb')
             fid.seek(-2*4, sspar.SEEK_END)
-            self.nOrbits    = np.fromfile(fid, 'uint32', 1)[0]
+            self.nOrbits = np.fromfile(fid, 'uint32', 1)[0]
             self.version_orbits = np.fromfile(fid, 'uint32', 1)[0]
-            self.nCh = 10 # Number of particle characteristics. 
+            self.nCh = 10  # Number of particle characteristics.
 
             hdr_offset = - (2 * 4 + self.nOrbits * 4 * 2)
             fid.seek(hdr_offset, sspar.SEEK_END)
@@ -452,13 +450,13 @@ class orbitFile:
                 self.idList = np.arange(len(self.idList))+1
 
             # Checking the file.
-            if self.nOrbits == 0 :
+            if self.nOrbits == 0:
                 print('No orbits stored in the file!')
                 return
 
             # Data in the file seems valid. Let's prepare the offsets
             # so the data access is quicker and easier.
-            self.offsets = np.cumsum(self.stepsPerOrbit, dtype=np.uint32)*4 
+            self.offsets = np.cumsum(self.stepsPerOrbit, dtype=np.uint32)*4
             self.offsets = np.concatenate(([0], self.offsets))
 
             # Rewind the file to the beginnig.
@@ -467,11 +465,11 @@ class orbitFile:
             self.initialized = True
 
             # Shortcut to access via __getitem__ overload.
-            self.loadAll = True 
-            
+            self.loadAll = True
+
             # Starting the rest of the class data.
             self.nxtOrbit = 0
-            
+
             self.chainLoadFlag = False
         return
 
@@ -486,18 +484,17 @@ class orbitFile:
         WARNING: consider that the reading Fortran -> Python will transp-
         ose the matrix order.
 
-        @param id: Vector of identifiers of the particle orbits to 
+        @param id: Vector of identifiers of the particle orbits to
         load from the file.
 
-        @param full_info: If false, only the trajectory will be loaded, if true,
+        @param full_info: If false, only the trajectory will be loaded, if true
         also the velocity, weight, charge and mass will be loaded.
 
         @return orbOut: class with the orbit information. @see{orbit}.
         """
-        
         if id is None:
             return self.getAllOrbits(full_info=full_info)
-        output = [] 
+        output = []
         if self.initialized and not self.chainLoadFlag:
             # Getting the ID index location:
             id_location = np.argmin(np.abs(self.idList-id))
@@ -507,13 +504,13 @@ class orbitFile:
             self.fid.seek(offset, sspar.SEEK_BOF)
 
             # Reading from the file.
-            orbitData = np.fromfile(self.fid, 'float64', 
-                                    self.stepsPerOrbit[id_location]*
+            orbitData = np.fromfile(self.fid, 'float64',
+                                    self.stepsPerOrbit[id_location] *
                                     self.nCh)
 
             orbitData = orbitData.reshape((self.nCh,
-                                          self.stepsPerOrbit[id_location]),
-                                          order = 'F')
+                                           self.stepsPerOrbit[id_location]),
+                                          order='F')
             # Adding to the dictionary:
             output.append({})
             output['R'] = orbitData[:, 0]
@@ -531,44 +528,43 @@ class orbitFile:
 
                 # Computing the kinetic energy:
                 output['K'] = orbitData[:, 3] ** 2 + \
-                              orbitData[:, 4] ** 2 + \
-                              orbitData[:, 5] ** 2
-                
+                    orbitData[:, 4] ** 2 + orbitData[:, 5] ** 2
+
                 output['K'] *= output['m']*0.5
 
-        orbOutput = orbit(output, identifiers = id)
+        orbOutput = orbit(output, identifiers=id)
         return orbOutput
-    
+
     def loadAllOrbits(self, num_orbits: int = None, full_info: bool = True):
         """
         This routine just loads all the particle orbits into a list of orbit
         class.
-        
+
         Pablo Oyola - pablo.oyola@ipp.mpg.de
-        
-        @param num_orbits: it changes the behaviour. If not none, then it 
+
+        @param num_orbits: it changes the behaviour. If not none, then it
         will only load the first 'num_orbits' of orbits from file.
-        @param full_info: Determine if velocity components are also needed to 
+        @param full_info: Determine if velocity components are also needed to
         be stored.
 
         """
-        
+
         if num_orbits is None:
             num_orbits = self.size
         else:
             num_orbits = np.min((num_orbits, self.size))
-        
+
         output = []
         if self.initialized:
             self.initChainLoad()
-            
+
             for i in range(num_orbits):
                 output.append(self.getNextOrbit())
-            
+
             self.endChainLoad()
-        
+
         return output
-                
+
     def __getitem__(self, ii: int):
         """
         Loads from the file the orbits that are specified from the input.
@@ -585,18 +581,17 @@ class orbitFile:
         @return (orbits, id): dictionary and ID list read from the file.
         @see{orbits::loadOrbit} for more info.
         """
-
-        return self.loadOrbit(ii, full_info = self.loadAll)
+        return self.loadOrbit(ii, full_info=self.loadAll)
 
     def switchLoadAll(self, flag_loadAll: bool = True):
         """
         This routine allows to access the internal variable for loading
-        orbit data. This will change the behaviour of the __index__ 
+        orbit data. This will change the behaviour of the __index__
         overloaded procedure to read only the spatial data or the full
         information, containing velocities and weighting evolution.
 
         @param flag_loadAll: if set to True, all the data will be loaded
-        from the file, containing the spatial part (R, z, phi) as well as 
+        from the file, containing the spatial part (R, z, phi) as well as
         velocities and weighting. Otherwise, only the spatial part will be
         loaded.
         """
@@ -610,11 +605,11 @@ class orbitFile:
         """
         if self.initialized:
             self.chainLoadFlag = True
-            self.nxtOrbit      = 0
+            self.nxtOrbit = 0
 
             # Rewind the file to the origin.
             self.fid.seek(0, sspar.SEEK_BOF)
-    
+
         return
 
     def getNextOrbit(self):
@@ -641,12 +636,12 @@ class orbitFile:
             raise Exception('End of the file orbit reached!')
 
         orbitData = np.fromfile(self.fid, np.float64,
-                                self.stepsPerOrbit[self.nxtOrbit]*
+                                self.stepsPerOrbit[self.nxtOrbit] *
                                 self.nCh)
 
         orbitData = orbitData.reshape((self.nCh,
                                        self.stepsPerOrbit[self.nxtOrbit]),
-                                       order = 'F')
+                                      order='F')
 
         output = {}
         # Adding to the dictionary:
@@ -665,35 +660,32 @@ class orbitFile:
 
             # Computing the kinetic energy:
             output['K'] = orbitData[3, :]**2 + orbitData[4, :]**2 + \
-                          orbitData[5, :]**2
+                orbitData[5, :]**2
             output['K'] *= output['m']*0.50
 
         idPctl = self.idList[self.nxtOrbit]
-        self.nxtOrbit += 1 # Next orbit.
+        self.nxtOrbit += 1  # Next orbit.
 
         return orbit(output, identifier=np.array((idPctl)))
 
     def endChainLoad(self):
-        """
-        This allows to arbitrarily search for orbits along the file.
-        """
+        """This allows to arbitrarily search for orbits along the file."""
         if self.initialized:
             self.chainLoadFlag = False
             self.nxtOrbit = 0
-        
+
         return
 
     def setChainPoint(self, pos: int = 0):
         """
-        In the serial reading mode, this routine will change the position 
+        In the serial reading mode, this routine will change the position
         that will be read in the following iteration.
 
-        @param pos: Position index in the list of orbits to be read next. 
+        @param pos: Position index in the list of orbits to be read next.
         By default, it comes to the beginning.
 
         @return pos_real: return the actual position that has been been set.
         """
-
         if self.initialized and self.chainLoadFlag:
             if pos < 0:
                 actual_pos = 0
@@ -705,25 +697,26 @@ class orbitFile:
             self.nxtOrbit = actual_pos
 
             return actual_pos
-        
+
         return -1
-    
+
     @property
     def size(self):
-        """ Returns the number of orbits stored in the file.
-        
+        """
+        Return the number of orbits stored in the file.
+
         @return size: size of the ID list, i.e., number of particle orbits
         stored in the file.
         """
         return self.idList.size
 
-    def plot(self, id = 1, view: str = '2D', ax_options: dict = {}, ax=None,
+    def plot(self, id=1, view: str = '2D', ax_options: dict = {}, ax=None,
              line_options: dict = {}, shaded3d_options: dict = {},
              imin: int = 0, imax: int = None):
         """
         Plot the orbit
 
-        Jose Rueda: jrrueda@us.es 
+        Jose Rueda: jrrueda@us.es
         ft.
         Pablo Oyola: pablo.oyola@ipp.mpg.de
 
@@ -738,7 +731,6 @@ class orbitFile:
         @param shaded3d_options: dictionary with the options for the plotting of
         the 3d vessel
         """
-
         if not self.initialized:
             raise Exception('The orbit object has not been initialized.')
         # --- Reading the orbits.
@@ -746,10 +738,10 @@ class orbitFile:
             orbit = self.getNextOrbit()
         else:
             orbit = self.loadOrbit(id)
-            
+
         ax1 = orbit.plot(view=view, ax_options=ax_options, ax=ax,
                          line_options=line_options,
                          shaded3d_options=shaded3d_options,
                          imin=imin, imax=imax)
-            
+
         return ax1

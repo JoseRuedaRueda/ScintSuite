@@ -1,0 +1,2 @@
+* Myroutines
+Everything you place in this folder wil not be sync with GitLab. This is your safe playground

@@ -8,16 +8,18 @@ PNG files as the old FILD_GUI and will be able to work with tiff files
 
 import os
 import re
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import LibPlotting as ssplt
 import LibMap as ssmap
 import LibPaths as p
 import LibUtilities as ssutilities
-from matplotlib.widgets import Slider
+import LibIO as ssio
 from LibMachine import machine
 from version_suite import version
 from scipy.io import netcdf                # To export remap data
+from scipy import ndimage                  # To filter the images
 from skimage import io                     # To load png images
 import tkinter as tk                       # To open UI windows
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -29,7 +31,7 @@ if machine == 'AUG':
     import LibDataAUG as ssdat
 try:
     import cv2
-except ModuleNotFoundError:
+except ImportError:
     print('There would be no support for the mp4 videos, open cv not found')
 
 
@@ -839,8 +841,8 @@ def read_time_base(filename: str, header: dict, settings: dict):
                                 int(2 * header['ImageCount'][:]))
             cin_time: float = np.float64(dummy[1::2]) - \
                 np.float64(header['TriggerTime']['seconds']) + \
-                (np.float64(dummy[0::2]) -
-                 np.float64(header['TriggerTime']['fractions'])) / 2.0 ** 32
+                (np.float64(dummy[0::2])
+                 - np.float64(header['TriggerTime']['fractions'])) / 2.0 ** 32
             # return
             fid.close()
             return cin_time
@@ -972,8 +974,10 @@ def read_data_png(path):
         if file.endswith('.png') and look_for_png:
             dummy = io.imread(os.path.join(path, file))
             si = dummy.shape
-            imageheader = {'biWidth': si[0],
-                           'biHeight': si[1]}
+            imageheader = {
+                'biWidth': si[0],
+                'biHeight': si[1],
+                'framesDtype': dummy.dtype}
             look_for_png = False
     # If no png was found, raise and error
     if look_for_png:
@@ -990,6 +994,16 @@ def read_data_png(path):
         dummy = np.loadtxt(f[0], skiprows=2, comments='(')
         header = {'ImageCount': int(dummy[-1, 0])}
         settings = {'ShutterNs': dummy[0, 2] / 1000.0}
+        # Possible bytes per pixels for the camera
+        BPP = {'uint8': 8, 'uint16': 16, 'uint32': 32, 'uint64': 64}
+        try:
+            settings['RealBPP'] = BPP[imageheader['framesDtype'].name]
+            text = 'In the PNG there is no info about the real BitesPerPixel'\
+                + ' used in the camera. Assumed that the BPP coincides with'\
+                + ' the byte size of the variable!!!'
+            print(text)
+        except KeyError:
+            raise Exception('Expected uint8,16,32,64 in the frames')
         time_base = dummy[:, 3]
         # Sometimes the camera break and set the says that all the frames
         # where recorded at t = 0... in this case just assume a time base on
@@ -1060,12 +1074,13 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
 
         M = np.zeros((video_object.imageheader['biWidth'],
                       video_object.imageheader['biHeight'],
-                      video_object.header['ImageCount']), dtype=np.float32)
+                      video_object.header['ImageCount']),
+                     dtype=video_object.imageheader['framesDtype'])
         counter = 0
         for file in os.listdir(video_object.path):
             if file.endswith('.png'):
                 M[:, :, counter] = load_png_files(
-                    os.path.join(video_object.path, file)).astype(np.float32)
+                    os.path.join(video_object.path, file))
                 counter = counter + 1
     else:
         # Load only the selected frames
@@ -1077,7 +1092,8 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
             return 0
         M = np.zeros((video_object.imageheader['biWidth'],
                       video_object.imageheader['biHeight'],
-                      len(frames_number)), dtype=np.float32)
+                      len(frames_number)),
+                     dtype=video_object.imageheader['framesDtype'])
 
         for file in os.listdir(video_object.path):
             if file.endswith('.png'):
@@ -1085,7 +1101,7 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
                 if current_frame in frames_number:
                     pngname = os.path.join(video_object.path, file)
                     dummy = load_png_files(pngname)
-                    M[:, :, counter] = dummy.astype(np.float32)
+                    M[:, :, counter] = dummy
                     counter = counter + 1
         print('Number of loaded frames: ', counter)
     return M
@@ -1133,6 +1149,29 @@ def read_mp4_file(file, verbose: bool = True):
 
 
 # -----------------------------------------------------------------------------
+# --- Miscelanea
+# -----------------------------------------------------------------------------
+def guess_filename(shot: int, base_dir: str, extension: str = ''):
+    """
+    Guess the filename of a video
+
+    Jose Rueda Rueda: jrrueda@us.es
+
+    Note AUG criteria of organising files is assumed: .../38/38760/...
+
+    @param shot: shot number
+    @param base_dir: base directory (before /38/)
+    @param extension: extension of the file
+
+    @return file: the name of the file/folder
+    """
+    shot_str = str(shot)
+    name = shot_str + extension
+    file = os.path.join(base_dir, shot_str[0:2], name)
+    return file
+
+
+# -----------------------------------------------------------------------------
 # --- Classes
 # -----------------------------------------------------------------------------
 class Video:
@@ -1158,8 +1197,8 @@ class Video:
         """
         # If no file was given, open a graphical user interface to select it.
         if file is None:
-            root = tk.Tk()    # To close the window after the selection
-            root.withdraw()
+            root = tk.Tk()
+            root.withdraw()   # To close the window after the selection
             filename = tk.filedialog.askopenfilename()
             if filename == '':
                 raise Exception('You must select a file!!!')
@@ -1189,6 +1228,7 @@ class Video:
             self.guess_shot(file, ssdat.shot_number_length)
 
         # Fill the object depending if we have a .cin file or not
+        print('Looking for the file')
         if os.path.isfile(file):
             ## Path to the file and filename
             self.path, self.file_name = os.path.split(file)
@@ -1239,6 +1279,9 @@ class Video:
                     break
                 elif f[i][-4:] == '.tif':
                     self.type_of_file = '.tif'
+                    print('Found tif files!')
+                    print('Tif support still not implemented, sorry')
+                    break
             # if we do not have .png or tiff, give an error
             if self.type_of_file != '.png' and self.type_of_file != '.tiff':
                 print('No .pgn or .tiff files found')
@@ -1291,7 +1334,7 @@ class Video:
 
     def read_frame(self, frames_number=None, limitation: bool = True,
                    limit: int = 2048, internal: bool = True, t1: float = None,
-                   t2: float = None):
+                   t2: float = None, threshold_saturation=0.95):
         """
         Call the read_frame function
 
@@ -1332,6 +1375,7 @@ class Video:
                                    limit=limit)
                 self.exp_dat['tframes'] = self.timebase[frames_number]
                 self.exp_dat['nframes'] = frames_number
+                self.exp_dat['dtype'] = self.exp_dat['frames'][0, 0, 0].dtype
             else:
                 M = read_frame_cin(self, frames_number, limitation=limitation,
                                    limit=limit)
@@ -1344,12 +1388,26 @@ class Video:
                 self.exp_dat['tframes'] = \
                     self.timebase[frames_number].flatten()
                 self.exp_dat['nframes'] = frames_number
+                self.exp_dat['dtype'] = self.exp_dat['frames'][0, 0, 0].dtype
             else:
                 M = read_frame_png(self, frames_number, limitation=limitation,
                                    limit=limit)
                 return M
         else:
             raise Exception('Not initialised file type?')
+        # Count saturated pixels
+        max_scale_frames = 2 ** self.settings['RealBPP'] - 1
+        threshold = threshold_saturation * max_scale_frames
+        print('Counting "saturated" pixels')
+        print('The threshold is set to: ', threshold, ' counts')
+        number_of_frames = len(self.exp_dat['tframes'])
+        n_pixels_saturated = np.zeros(number_of_frames)
+        for i in range(number_of_frames):
+            n_pixels_saturated[i] = \
+                (self.exp_dat['frames'][:, :, i] >= threshold).sum()
+        self.exp_dat['n_pixels_gt_threshold'] = \
+            n_pixels_saturated.astype('int32')
+        self.exp_dat['threshold_for_counts'] = threshold_saturation
         return
 
     def subtract_noise(self, t1: float = None, t2: float = None, frame=None):
@@ -1373,22 +1431,48 @@ class Video:
         """
         print('.--. ... ..-. -')
         print('Substracting noise')
+        if t1 > t2:
+            print('t1: ', t1)
+            print('t2: ', t2)
+            raise Exception('t1 is larger than t2!!!')
         # Get shape and data type of the experimental data
         nx, ny, nt = self.exp_dat['frames'].shape
         original_dtype = self.exp_dat['frames'].dtype
+        # Get the initial and final time loaded in the video:
+        t1_vid = self.exp_dat['tframes'][0]
+        t2_vid = self.exp_dat['tframes'][-1]
         # Calculate the noise frame, if needed:
         if (t1 is not None) and (t2 is not None):
+            if (t1 < t1_vid and t2 < t1_vid) or (t1 > t2_vid and t2 > t2_vid):
+                raise Exception('Requested interval does not overlap with'
+                                + ' the loaded time interval')
+            if t1 < t1_vid:
+                print('Initial time loaded: ', t1_vid)
+                print('Initial time requested for noise substraction: ', t1)
+                t1 = t1_vid
+                warnings.warn('Taking ' + str(t1_vid) + 'as initial point',
+                              category=UserWarning)
+            if t2 > t2_vid:
+                print('Final time loaded: ', t2_vid)
+                print('Final time requested for noise substraction: ', t2)
+                t2 = t2_vid
+                warnings.warn('Taking ' + str(t2_vid) + 'as final point',
+                              category=UserWarning)
             it1 = np.argmin(abs(self.exp_dat['tframes'] - t1))
             it2 = np.argmin(abs(self.exp_dat['tframes'] - t2))
+            self.exp_dat['t1_noise'] = t1
+            self.exp_dat['t2_noise'] = t2
             print('Using frames from the video')
             print(str(it2 - it1 + 1), ' frames will be used to average noise')
             frame = np.mean(self.exp_dat['frames'][:, :, it1:(it2 + 1)],
                             dtype=original_dtype, axis=2)
+            self.exp_dat['frame_noise'] = frame
         else:
             print('Using noise frame provider by the user')
             nxf, nyf = frame.shape
             if (nxf != nx) or (nyf != ny):
                 raise Exception('The noise frame has not the correct shape')
+            self.exp_dat['frame_noise'] = frame
         # Create the original frame array:
         if 'original_frames' not in self.exp_dat:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
@@ -1403,6 +1487,7 @@ class Video:
             # Set negative counts to zero:
             dummy[dummy < 0] = 0.
             self.exp_dat['frames'][:, :, i] = dummy.astype(original_dtype)
+        print('-... -.-- . / -... -.-- .')
         return
 
     def return_to_original_frames(self):
@@ -1421,7 +1506,7 @@ class Video:
         return
 
     def remap_loaded_frames(self, calibration, shot, options: dict = {},
-                            mask=None,):
+                            mask=None):
         """
         Remap all loaded frames in the video object
 
@@ -1454,23 +1539,110 @@ class Video:
                                                    mask=mask, **options)
             self.remap_dat['options'] = opt
 
-    def filter_frames(self, method='jrr'):
+    def integrate_remap(self, xmin=20.0, xmax=90.0, ymin=1.0, ymax=10.0,
+                        mask=None):
+        """
+        Integrate the remaped frames over a given region of the phase space
+
+        Jose Rueda: jrrueda@us.es
+
+        @param xmin: Minimum value of the x axis to integrate (pitch for FILD)
+        @param xmax: Maximum value of the x axis to integrate (pitch for FILD)
+        @param ymin: Minimum value of the y axis to integrate (radius in FILD)
+        @param ymax: Maximum value of the y axis to integrate (radius in FILD)
+        @param mask: bynary mask denoting the desired pixes of the space to
+        integate
+        @return : Output: Dictionary containing the trace and the settings used
+        to caclualte it
+        """
+        if self.remap_dat is None:
+            raise Exception('Please remap before call this function!!!')
+        # First calculate the dif x and y to integrate
+        dx = self.remap_dat['xaxis'][1] - self.remap_dat['xaxis'][0]
+        dy = self.remap_dat['yaxis'][1] - self.remap_dat['yaxis'][0]
+        # Find the flags:
+        mask_was_none = False
+        if mask is None:
+            flagsx = (xmin < self.remap_dat['xaxis']) *\
+                (self.remap_dat['xaxis'] < xmax)
+            flagsy = (ymin < self.remap_dat['yaxis']) *\
+                (self.remap_dat['yaxis'] < ymax)
+            mask_was_none = True
+        # Perform the integration:
+        nx, ny, nt = self.remap_dat['frames'].shape
+        trace = np.zeros(nt)
+        for iframe in tqdm(range(nt)):
+            dummy = self.remap_dat['frames'][:, :, iframe].copy()
+            dummy = dummy.squeeze()
+            if mask_was_none:
+                trace[iframe] = np.sum(dummy[flagsx, :][:, flagsy]) * dx * dy
+            else:
+                trace[iframe] = np.sum(dummy[mask]) * dx * dy
+        if mask_was_none:
+            output = {'xmin': xmin, 'xmax': xmax, 'ymin': ymin, 'ymax': ymax}
+        else:
+            output = {'mask': mask}
+        output['trace'] = trace
+        return output
+
+    def filter_frames(self, method='median', options={}):
         """
         Filter the camera frames
 
         @param method: method to be used:
             -# jrr: neutron method of the extra package
+            -# median: median filter from the scipy.ndimage package
+            -# gaussian: gaussian filter from the scipy.ndimage package
+        @param options: options for the desired filter (dictionary), defaults:
+            -# jrr:
+                nsigma: 3 Number of sigmas to consider a pixel as neutron
+            -# median:
+                size: 4, number of pixels considered
         """
-        print('Removing pixels affected by neutrons')
+        print('Filtering frames')
+        # default options:
+        jrr_options = {
+            'nsigma': 3
+        }
+        median_options = {
+            'size': 2
+        }
+        gaussian_options = {
+            'sigma': 1
+        }
         if 'original_frames' not in self.exp_dat:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
         else:
             print('original frames already present, not making new copy')
-        # Eliminate neutrons
+        # Filter frames
         nx, ny, nt = self.exp_dat['frames'].shape
-        for i in tqdm(range(nt)):
-            self.exp_dat['frames'][:, :, i] = \
-                ssutilities.neutron_filter(self.exp_dat['frames'][:, :, i])
+        if method == 'jrr':
+            print('Removing pixels affected by neutrons')
+            for i in tqdm(range(nt)):
+                self.exp_dat['frames'][:, :, i] = \
+                    ssutilities.neutron_filter(self.exp_dat['frames'][:, :, i],
+                                               **jrr_options)
+        elif method == 'median':
+            print('Median filter selected!')
+            # if footprint is present in the options given by user, delete size
+            # from the default options, to avoid issues in the median filter
+            if 'footprint' in options:
+                median_options['size'] = None
+            # Now update the options
+            median_options.update(options)
+            for i in tqdm(range(nt)):
+                self.exp_dat['frames'][:, :, i] = \
+                    ndimage.median_filter(self.exp_dat['frames'][:, :, i],
+                                          **median_options)
+        elif method == 'gaussian':
+            print('Gaussian filter selected!')
+            gaussian_options.update(options)
+            for i in tqdm(range(nt)):
+                self.exp_dat['frames'][:, :, i] = \
+                    ndimage.gaussian_filter(self.exp_dat['frames'][:, :, i],
+                                            **gaussian_options)
+
+        print('-... -.-- . / -... -.-- .')
         return
 
     def plot_frame(self, frame_number=None, ax=None, fig=None, ccmap=None,
@@ -1542,7 +1714,8 @@ class Video:
 
     def plot_profiles_in_time(self, ccmap=None, plt_params: dict = {}, t=None,
                               nlev: int = 50, cbar_tick_format: str = '%.1E',
-                              normalise=False):
+                              normalise=False, max_gyr=None, min_gyr=None,
+                              max_pitch=None, min_pitch=None):
         """
         Creates a plot with the evolution of the profiles
 
@@ -1554,6 +1727,10 @@ class Video:
         time will be used
         @param nlev: Number of levels for the contourf plots
         @param cbar_tick_format: format for the colorbar ticks
+        @param max_gyr: maximum value for colorbar plot in gyroradius
+        @param min_gyr: minimum value for colorbar plot in gyroradius
+        @param max_pitch: maximum value for colorbar plot in pitch
+        @param min_pitch: minimum value for colorbar plot in pitch
         @todo: substitute pprofmin and max, also with rl or we will have a
         future bug
         """
@@ -1570,7 +1747,8 @@ class Video:
             fig1, ax1 = plt.subplots()
             cont = ax1.contourf(self.remap_dat['tframes'],
                                 self.remap_dat['yaxis'],
-                                self.remap_dat['sprofy'], nlev, cmap=cmap)
+                                self.remap_dat['sprofy'], nlev, cmap=cmap,
+                                vmin=min_gyr, vmax=max_gyr)
             cbar = plt.colorbar(cont, format=cbar_tick_format)
             cbar.set_label('Counts [a.u.]', fontsize=plt_params['fontsize'])
             cbar.ax.tick_params(labelsize=plt_params['fontsize'] * .8)
@@ -1604,7 +1782,8 @@ class Video:
             fig2, ax2 = plt.subplots()
             cont = ax2.contourf(self.remap_dat['tframes'],
                                 self.remap_dat['xaxis'],
-                                self.remap_dat['sprofx'], nlev, cmap=cmap)
+                                self.remap_dat['sprofx'], nlev, cmap=cmap,
+                                vmin=min_gyr, vmax=max_gyr)
             cbar = plt.colorbar(cont, format=cbar_tick_format)
             cbar.set_label('Counts [a.u.]', fontsize=plt_params['fontsize'])
             cbar.ax.tick_params(labelsize=plt_params['fontsize'] * .8)
@@ -1689,6 +1868,123 @@ class Video:
         plt.show()
         return
 
+    def plot_orientation(self, ax_params: dict = {}, line_params: dict = {}):
+        """
+        Plot the orientaton angles of the diagnostic in each time point
+
+        Jose Rueda Rueda: jrrueda@us.es
+
+        @param ax_param: axis parameters for the axis beauty routine
+        """
+        # Set plotting options:
+        ax_options = {
+            'fontsize': 14,
+            'grid': 'both'
+        }
+        ax_options.update(ax_params)
+        line_options = {
+            'linewidth': 2
+        }
+        line_options.update(line_params)
+        # Proceed to plot
+        fig, ax = plt.subplots(2, sharex=True)
+        if self.diag == 'FILD':
+            # Plot the theta angle:
+            # Plot a shaded area indicating the points where only an
+            # aproximate map was used, taken from the solution given here:
+            # https://stackoverflow.com/questions/43233552/
+            # how-do-i-use-axvfill-with-a-boolean-series
+            ax[0].fill_between(self.remap_dat['tframes'], 0, 1,
+                               where=self.remap_dat['existing_smaps'],
+                               alpha=0.25, color='g',
+                               transform=ax[0].get_xaxis_transform())
+            ax[0].fill_between(self.remap_dat['tframes'], 0, 1,
+                               where=~self.remap_dat['existing_smaps'],
+                               alpha=0.25, color='r',
+                               transform=ax[0].get_xaxis_transform())
+            # Plot the line
+            ax[0].plot(self.remap_dat['tframes'], self.remap_dat['theta'],
+                       **line_options, label='Calculated', color='k')
+            ax[0].plot(self.remap_dat['tframes'], self.remap_dat['theta_used'],
+                       **line_options, label='Used', color='b')
+            ax_options['ylabel'] = '$\\Theta$ [degrees]'
+
+            ax[0] = ssplt.axis_beauty(ax[0], ax_options)
+            # Plot the phi angle
+            ax[1].fill_between(self.remap_dat['tframes'], 0, 1,
+                               where=self.remap_dat['existing_smaps'],
+                               alpha=0.25, color='g',
+                               transform=ax[1].get_xaxis_transform())
+            ax[1].fill_between(self.remap_dat['tframes'], 0, 1,
+                               where=~self.remap_dat['existing_smaps'],
+                               alpha=0.25, color='r',
+                               transform=ax[1].get_xaxis_transform())
+            ax[1].plot(self.remap_dat['tframes'], self.remap_dat['phi'],
+                       **line_options, label='Calculated', color='k')
+            ax[1].plot(self.remap_dat['tframes'], self.remap_dat['phi_used'],
+                       **line_options, label='Used', color='b')
+
+            ax_options['ylabel'] = '$\\phi$ [degrees]'
+            ax_options['xlabel'] = 't [s]'
+            ax[1] = ssplt.axis_beauty(ax[1], ax_options)
+            plt.legend()
+
+    def plot_number_saturated_counts(self, ax_params: dict = {},
+                                     line_params: dict = {},
+                                     threshold=None,
+                                     ax=None):
+        """
+        Plot the nuber of camera pixels larger than a given threshold
+
+        Jose Rueda: jrrueda@us.es
+
+        @param ax_params: ax param for the axis_beauty
+        @param line_params: line parameters
+        @param threshold: If none, it will plot the data calculated when
+        reading the camera frames (by the function self.read_frames) if it is
+        a value [0,1] it willrecalculate this number
+        @param ax: axis where to plot, if none, a new figure will pop-up
+        """
+        # Default plot parameters:
+        ax_options = {
+            'fontsize': 14,
+            'grid': 'both',
+            'xlabel': 'T [s]',
+            'ylabel': '# saturated pixels',
+            'yscale': 'log'
+        }
+        ax_options.update(ax_params)
+        line_options = {
+            'linewidth': 2
+        }
+        line_options.update(line_params)
+        # Select x,y data
+        x = self.exp_dat['tframes']
+        if threshold is None:
+            y = self.exp_dat['n_pixels_gt_threshold']
+            print('Threshold was set to: ',
+                  self.exp_dat['threshold_for_counts'] * 100, '%')
+        else:
+            max_scale_frames = 2 ** self.settings['RealBPP'] - 1
+            thres = threshold * max_scale_frames
+            print('Counting "saturated" pixels')
+            print('The threshold is set to: ', thres, ' counts')
+            number_of_frames = len(self.exp_dat['tframes'])
+            n_pixels_saturated = np.zeros(number_of_frames)
+            for i in range(number_of_frames):
+                n_pixels_saturated[i] = \
+                    (self.exp_dat['frames'][:, :, i] >= thres).sum()
+            y = n_pixels_saturated.astype('int32')
+        if ax is None:
+            fig, ax = plt.subplots()
+        ax.plot(x, y, **line_options)  # Plot the data
+        # Plot the maximum posible (the number of pixels)
+        npixels = self.imageheader['biWidth'] * self.imageheader['biHeight']
+        ax.plot([x[0], x[-1]], [npixels, npixels], '--',
+                **line_options)
+        ax = ssplt.axis_beauty(ax, ax_options)
+        return
+
     def export_remap(self, name=None):
         """
         Export the dictionary containing the remapped data
@@ -1698,8 +1994,12 @@ class Video:
 
         # Test if the file exist:
         if name is None:
-            name = os.path.join(pa.ScintSuite, 'Results', str(self.shot) + '_'
-                                + self.diag + '_remap.nc')
+            name = os.path.join(pa.Results, str(self.shot) + '_'
+                                + self.diag + str(self.diag_ID) + '_remap.nc')
+            name = ssio.check_save_file(name)
+            if name == '':
+                print('You canceled the export')
+                return
         print('Saving results in: ', name)
         # Write the data:
         with netcdf.netcdf_file(name, 'w') as f:
@@ -1759,6 +2059,69 @@ class Video:
             sprofy.units = 'a.u.'
             sprofy.long_name = self.remap_dat['sprofylabel']
 
+            # Save the calibration
+            xscale = f.createVariable('xscale', 'float64', ('number', ))
+            xscale[:] = self.remap_dat['options']['calibration'].xscale
+            xscale.units = 'px / cm'
+            xscale.long_name = 'x scale of the used calibration'
+
+            yscale = f.createVariable('yscale', 'float64', ('number', ))
+            yscale[:] = self.remap_dat['options']['calibration'].yscale
+            yscale.units = 'px / cm'
+            yscale.long_name = 'y scale of the used calibration'
+
+            xshift = f.createVariable('xshift', 'float64', ('number', ))
+            xshift[:] = self.remap_dat['options']['calibration'].xshift
+            xshift.units = 'px / cm'
+            xshift.long_name = 'x shift of the used calibration'
+
+            yshift = f.createVariable('yshift', 'float64', ('number', ))
+            yshift[:] = self.remap_dat['options']['calibration'].yshift
+            yshift.units = 'px / cm'
+            yshift.long_name = 'y shift of the used calibration'
+
+            deg = f.createVariable('deg', 'float64', ('number', ))
+            deg[:] = self.remap_dat['options']['calibration'].deg
+            deg.units = 'degrees'
+            deg.long_name = 'alpha angle the used calibration'
+
+            # Noise subtraction
+            if 't1_noise' in self.exp_dat.keys():
+                t1_noise = f.createVariable('t1_noise', 'float64', ('number',))
+                t1_noise[:] = self.exp_dat['t1_noise']
+                t1_noise.units = 's'
+                t1_noise.long_name = 't1 for noise subtraction'
+
+                t2_noise = f.createVariable('t2_noise', 'float64', ('number',))
+                t2_noise[:] = self.exp_dat['t2_noise']
+                t2_noise.units = 's'
+                t2_noise.long_name = 't2 for noise subtraction'
+
+            if 'frame_noise' in self.exp_dat.keys():
+                nframex, nframey = self.exp_dat['frame_noise'].shape
+                f.createDimension('nx', nframex)
+                f.createDimension('ny', nframey)
+                frame_noise = f.createVariable('frame_noise', 'float64',
+                                               ('nx', 'ny',))
+                frame_noise[:] = self.exp_dat['frame_noise']
+                frame_noise.units = 'counts'
+                frame_noise.long_name = 'frame used for noise subtraction'
+
+            # Save the saturated number of pixels
+            n_pixels_gt_threshold = f.createVariable('n_pixels_gt_threshold',
+                                                     'int32', ('tframes', ))
+            n_pixels_gt_threshold[:] = self.exp_dat['n_pixels_gt_threshold']
+            n_pixels_gt_threshold.units = ''
+            n_pixels_gt_threshold.long_name = \
+                'Number of pixels with more counts than threshold'
+
+            threshold_for_counts = f.createVariable('threshold_for_counts',
+                                                    'float64', ('number', ))
+            threshold_for_counts[:] = \
+                self.exp_dat['threshold_for_counts']
+            threshold_for_counts.units = ''
+            threshold_for_counts.long_name = \
+                'Threshold for n_pixels_gt_threshold'
             # Save the specific FILD variables
             if self.diag == 'FILD':
                 # Detector orientation
@@ -1842,6 +2205,17 @@ class Video:
                 beta[:] = self.remap_dat['options']['beta']
                 beta.units = '{}^o'
                 beta.long_name = 'beta orientation'
+
+            # if present, save the bit depth used to save the video
+            try:
+                a = self.settings['RealBPP']
+                bits = f.createVariable('RealBPP', 'i', ('number',))
+                bits[:] = a
+                bits.units = ' '
+                bits.long_name = 'Bits used in the camera'
+            except KeyError:
+                print('Bits info not present in the video object')
+        return
 
 
 class ApplicationShowVid:

@@ -4,16 +4,16 @@ Calculate the time trace.
 Created as an example to use the library without the graphical user interface.
 In this case we will calculate the timetrace of a whole shot
 
-DISCLAIMER: This was created on the 10/12/2020. Since them several
-improvement may have been done, it is possible that some function has been
-changed and the script does not work at all now. If this happens, contact
-jose rueda (jrrueda@us.es) by email and he will update this 'tutorial'
+It is optimised for cin files. In this case the video is not loaded, we just
+read the roi we want and integrate, so almost no RAM memory is consumed and you
+can calculate the TT for the whole shot really fast
 
 @section tt0 0: Settings
 @section tt1 1: Reading video and selecting roi
 @section tt2 2: Calculate and plot the time trace
 
-You must execute first the function paths.py!
+Note; Written for version 0.2.3. Before running this script, please do:
+plt.show(), if not, bug due to spyder 4.0 may arise
 """
 
 # --- Importing packages
@@ -25,20 +25,15 @@ import Lib as ss
 # -----------------------------------------------------------------------------
 # Section 0: Settings
 # -----------------------------------------------------------------------------
-shot = 35953     # shot number
-t0 = 1.25        # Reference time (to select the ROI) in s
-fild_number = 4  # FILD number
+shot = 38626     # shot number
+t0 = 3.0        # Reference time (to select the ROI) in s
 # -----------------------------------------------------------------------------
 # Section 1: Read the video file and create the roi
 # -----------------------------------------------------------------------------
 # --- Load the video
 dummy = str(shot)
-if fild_number == 1:
-    file = ss.paths.CinFiles + dummy[0:2] + '/' + dummy + '_v710.cin'
-else:
-    file = ss.paths.PngFiles + 'FILD' + str(fild_number) + '/' +\
-        dummy[0:2] + '/' + dummy
-
+file = ss.vid.guess_filename(shot, ss.dat.FILD[0]['path'],
+                             ss.dat.FILD[0]['extension'])
 
 video = ss.vid.Video(file)
 # --- Plot a frame to select the roi on it
@@ -56,8 +51,8 @@ fig_ref, roi = ss.tt.create_roi(fig_ref)
 mask = roi.get_mask(video.exp_dat['frames'].squeeze())
 # -----------------------------------------------------------------------------
 # Section 2: Calculate and display the time traces
-video.read_frame()
-time_trace = ss.tt.TimeTrace(video, mask)
+# time_trace = sstt.time_trace_cine(cin, mask, t1=0, t2=7.0)
+time_trace = ss.tt.TimeTrace(video, mask, t1=0.0, t2=10.0)
 # Plot the time trace
 time_trace.plot_all()
 # -----------------------------------------------------------------------------
