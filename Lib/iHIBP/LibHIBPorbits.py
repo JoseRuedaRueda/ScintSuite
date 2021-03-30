@@ -447,6 +447,9 @@ class orbitFile:
             fid.seek(hdr_offset, sspar.SEEK_END)
             self.stepsPerOrbit = np.fromfile(fid, 'uint32', self.nOrbits)
             self.idList = np.fromfile(fid, 'uint32', self.nOrbits)
+            
+            if np.all(self.idList == 1):
+                self.idList = np.arange(len(self.idList))+1
 
             # Checking the file.
             if self.nOrbits == 0 :
