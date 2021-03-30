@@ -1,0 +1,9 @@
+* STRIKE MAPS
+
+You should place in this folders your library of strike maps.
+
+For FILD, create a folder call FILD
+
+For ASDEX, inside the FILD folder and there create two folders: 'Remap', and 'Tomography'. Inisde each of those folders, you must place the strikemap and strikepoints files (strike points only if you want, they are not needed for remap) in a folder names AUG
+
+Inside each folder there should be a FILDSIM namelist call it: parameters.cfg, the suite will load default options (nmarkers etc) from there, in that way all strike maps in the folder will be calculated under the same parameters. This reference configuration file is given by default in the distributed zip

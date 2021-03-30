@@ -1,18 +1,18 @@
-"""Contains the routines to read and write the
-fields and profiles from i-HIBPsim."""
+"""Routines to read and write the fields and profiles from i-HIBPsim."""
 
 import numpy as np
 import warnings
 import dd
-#from version_suite import version
+# from version_suite import version
 from LibMachine import machine
 import LibPlotting as ssplt
-#import LibParameters as sspar
+# import LibParameters as sspar
 import matplotlib.pyplot as plt
-#from scipy.interpolate import RectBivariateSpline as intp2
+# from scipy.interpolate import RectBivariateSpline as intp2
 from scipy.interpolate import interpn
 if machine == 'AUG':
     import LibDataAUG as ssdat
+
 
 class ihibpEMfields:
     def __init__(self):
@@ -28,8 +28,8 @@ class ihibpEMfields:
         self.psipol_on = False
         self.Bfield = {'R': np.array((0), dtype = np.float64),
                        'z': np.array((0), dtype = np.float64),
-                       'fr': np.array((0), dtype = np.float64), 
-                       'fz': np.array((0), dtype = np.float64), 
+                       'fr': np.array((0), dtype = np.float64),
+                       'fz': np.array((0), dtype = np.float64),
                        'ft': np.array((0), dtype = np.float64),
                        'nPhi': np.array((1), dtype = np.int32),
                        'nTime': np.array((1), dtype = np.int32),
@@ -38,11 +38,11 @@ class ihibpEMfields:
                        'Timemin': np.array((0.0), dtype = np.float64),
                        'Timemax': np.array((1.0), dtype = np.float64)
                        }
-        
+
         self.Efield = {'R': np.array((0), dtype = np.float64),
-                       'z': np.array((0), dtype = np.float64), 
-                       'fr': np.array((0), dtype = np.float64), 
-                       'fz': np.array((0), dtype = np.float64), 
+                       'z': np.array((0), dtype = np.float64),
+                       'fr': np.array((0), dtype = np.float64),
+                       'fz': np.array((0), dtype = np.float64),
                        'ft': np.array((0), dtype = np.float64),
                        'nPhi': np.array((1), dtype = np.int32),
                        'nTime': np.array((1), dtype = np.int32),
@@ -51,9 +51,9 @@ class ihibpEMfields:
                        'Timemin': np.array((0.0), dtype = np.float64),
                        'Timemax': np.array((1.0), dtype = np.float64)
                        }
-        
+
         self.psipol = {'R': np.array((0), dtype = np.float64),
-                       'z': np.array((0), dtype = np.float64), 
+                       'z': np.array((0), dtype = np.float64),
                        'f': np.array((0), dtype = np.float64),
                        'nPhi': np.array((1), dtype = np.int32),
                        'nTime': np.array((1), dtype = np.int32),
@@ -62,7 +62,7 @@ class ihibpEMfields:
                        'Timemin': np.array((0.0), dtype = np.float64),
                        'Timemax': np.array((1.0), dtype = np.float64)
                        }
-        
+
         self.Bfield_from_shot_flag = False
 
     def readFiles(self, Bfile: str = None, Efile: str = None):
@@ -83,7 +83,6 @@ class ihibpEMfields:
         @param Bfile: Full path to the magnetic field.
         @param Efile: Full path to the electric field.
         """
-
         self.bdims = 0
         self.edims = 0
         self.psipol_on = False
@@ -246,7 +245,7 @@ class ihibpEMfields:
                                             self.Bfield['ft'],
                                             (r.flatten(), phi.flatten(),
                                              z.flatten(), time.flatten()))
-                
+
                 del br
                 del bz
                 del bphi
@@ -321,7 +320,7 @@ class ihibpEMfields:
                                                       self.Efield['nPhi'][0],
                                                       self.Efield['nZ'][0]),
                                                       order = 'F')
-                    
+
                     self.Efield['R'] = np.linspace(self.Efield['Rmin'][0],
                                                    self.Efield['Rmax'][0],
                                                    self.Efield['nR'][0])
@@ -331,7 +330,7 @@ class ihibpEMfields:
                     self.Efield['phi'] = np.linspace(self.Efield['Phimin'][0],
                                                      self.Efield['Phimax'][0],
                                                      self.Efield['nPhi'][0])
-                    
+
                     self.Erinterp = lambda r, z, phi, time: \
                                    interpn((self.Efield['R'],
                                             self.Efield['z'],
@@ -408,12 +407,12 @@ class ihibpEMfields:
                                             self.Efield['ft'],
                                             (r.flatten(), z.flatten(),
                                              phi.flatten(), time.flatten()))
-                
+
                 del er
                 del ez
                 del ephi
 
-    def readBfromDB(self, time:float, shotnumber: int = 34570,
+    def readBfromDB(self, time: float, shotnumber: int = 34570,
                      exp: str = 'AUGD', diag: str = 'EQI',
                      edition: int = 0,
                      Rmin: float = 1.03, Rmax: float = 2.65,
@@ -445,16 +444,16 @@ class ihibpEMfields:
         self.edims = 0
         self.psipol_on = False
 
-        # Getting from the database.        
+        # Getting from the database.
         R = np.linspace(Rmin, Rmax, num=nR)
         z = np.linspace(zmin, zmax, num=nZ)
         RR, zz = np.meshgrid(R, z)
         grid_shape = RR.shape
-        br, bz, bt, bp = ssdat.get_mag_field(shotnumber, RR.flatten(), 
+        br, bz, bt, bp = ssdat.get_mag_field(shotnumber, RR.flatten(),
                                              zz.flatten(),
-                                             exp=exp, 
+                                             exp=exp,
                                              ed=edition,
-                                             diag=diag, 
+                                             diag=diag,
                                              time=time)
         del RR
         del zz
@@ -499,14 +498,14 @@ class ihibpEMfields:
                         interpn((self.Bfield['R'], self.Bfield['z']),
                                  self.Bfield['ft'],
                                 (r.flatten(), z.flatten()))
-        
+
         # Retrieving as well the poloidal magnetic flux.
-        self.readPsiPolfromDB(time, shotnumber = shotnumber, 
-                              exp = exp, diag = diag, edition = edition, 
-                              Rmin = Rmin, Rmax = Rmax, 
-                              zmin = zmin, zmax = zmax,
-                              nR = nR, nZ = nZ)
-                        
+        self.readPsiPolfromDB(time, shotnumber=shotnumber,
+                              exp=exp, diag=diag, edition=edition,
+                              Rmin=Rmin, Rmax=Rmax,
+                              zmin=zmin, zmax=zmax,
+                              nR=nR, nZ=nZ)
+
         # Saving the input data to the class.
         self.Bfield_from_shot_flag = True
         self.shotnumber = shotnumber
@@ -514,20 +513,20 @@ class ihibpEMfields:
         self.timepoint = time
         self.diag = diag
         self.exp = exp
-    
+
     def readPsiPolfromDB(self, time: float, shotnumber: int = 34570,
-                          exp: str = 'AUGD', diag: str = 'EQI',
-                          edition: int = 0,
-                          Rmin: float = 1.03, Rmax: float = 2.65,
-                          zmin: float = -1.224, zmax: float = 1.05,
-                          nR: int = 128, nZ: int = 256):
+                         exp: str = 'AUGD', diag: str = 'EQI',
+                         edition: int = 0,
+                         Rmin: float = 1.03, Rmax: float = 2.65,
+                         zmin: float = -1.224, zmax: float = 1.05,
+                         nR: int = 128, nZ: int = 256):
         """
-        Fetchs the psi_pol = rho_pol(R, z) map from the AUG database using 
+        Fetchs the psi_pol = rho_pol(R, z) map from the AUG database using
         input grid.
 
         Jose Rueda: jrrueda@us.es
         Pablo Oyola: pablo.oyola@ipp.mpg.de
-        
+
         @param time: Time point from which magnetic equilibrium will be read.
         @param shotnumber: Shot from which to extract the magnetic equilibria
         @param exp: Experiment where the equilibria is stored.
@@ -541,9 +540,7 @@ class ihibpEMfields:
         @param nR: Number of points to define the B field grid in R direction.
         @param nZ: Number of points to define the B field grid in Z direction.
         """
-
-
-        # Getting from the database.        
+        # Getting from the database.
         R = np.linspace(Rmin, Rmax, num=nR)
         z = np.linspace(zmin, zmax, num=nZ)
         RR, zz = np.meshgrid(R, z)
@@ -570,13 +567,13 @@ class ihibpEMfields:
     def getBfield(self, R: float, z: float,
                   phi: float = None, t: float = None):
         """
-        Gets the magnetic field components at the given points. 
+        Gets the magnetic field components at the given points.
 
         Pablo Oyola: pablo.oyola@ipp.mpg.de
 
         @param R: Major radius to evaluate the magnetic field.
         @param z: Vertical position to evaluate the magnetic field.
-        @param phi: Toroidal location to evaluate the magnetic field. 
+        @param phi: Toroidal location to evaluate the magnetic field.
         If the system is in 2D, it will be ignored.
         @param t: Time to evaluate the magnetic field. If the magnetic
         field is only stored for a single time, it will be ignored.
@@ -587,8 +584,8 @@ class ihibpEMfields:
 
         """
         if self.bdims != 0:
-            Br   = self.Brinterp(R, z, phi, t)
-            Bz   = self.Bzinterp(R, z, phi, t)
+            Br = self.Brinterp(R, z, phi, t)
+            Bz = self.Bzinterp(R, z, phi, t)
             Bphi = self.Bphiinterp(R, z, phi, t)
         else:
             raise Exception('The magnetic field has not been loaded!')
@@ -598,13 +595,13 @@ class ihibpEMfields:
     def getEfield(self, R: float, z: float,
                   phi: float = None, t: float = None):
         """
-        Gets the electric field components at the given points. 
+        Gets the electric field components at the given points.
 
         Pablo Oyola: pablo.oyola@ipp.mpg.de
 
         @param R: Major radius to evaluate the electric field.
         @param z: Vertical position to evaluate the electric field.
-        @param phi: Toroidal location to evaluate the electric field. 
+        @param phi: Toroidal location to evaluate the electric field.
         If the system is in 2D, it will be ignored.
         @param t: Time to evaluate the electric field. If the electric
         field is only stored for a single time, it will be ignored.
@@ -614,8 +611,8 @@ class ihibpEMfields:
         @return Ephi: Toroidal component of the electric field.
         """
         if self.edims != 0:
-            Er   = self.Erinterp(R, z, phi, t)
-            Ez   = self.Ezinterp(R, z, phi, t)
+            Er = self.Erinterp(R, z, phi, t)
+            Ez = self.Ezinterp(R, z, phi, t)
             Ephi = self.Ephiinterp(R, z, phi, t)
         else:
             raise Exception('The electric field has not been loaded!')
@@ -631,7 +628,7 @@ class ihibpEMfields:
 
         @param R: Major radius to evaluate the poloidal flux.
         @param z: Vertical position to evaluate the poloidal flux.
-        @param phi: Toroidal location to evaluate the poloidal flux. 
+        @param phi: Toroidal location to evaluate the poloidal flux.
         If the system is in 2D, it will be ignored.
         @param t: Time to evaluate the poloidal flux. If the poloidal
         flux is only stored for a single time, it will be ignored.
@@ -639,7 +636,7 @@ class ihibpEMfields:
         @return psipol: Poloidal flux at the input points.
         """
         if self.psipol_on:
-            psipol   = self.psipol_interp(R, z, phi, t)
+            psipol = self.psipol_interp(R, z, phi, t)
         else:
             raise Exception('The poloidal flux is not loaded!')
 
@@ -655,8 +652,8 @@ class ihibpEMfields:
         @param fid: file identifier where the files will be written.
         @param bflag: states if the magnetic field has to be written.
         Default is True, so magnetic field will be written.
-        @param eflag: states if the electric field has to be written. 
-        Default to False. If this is set to True, the magnetic field 
+        @param eflag: states if the electric field has to be written.
+        Default to False. If this is set to True, the magnetic field
         will not be written.
         """
 
@@ -665,7 +662,7 @@ class ihibpEMfields:
         if (eflag is True) and (self.edims == 0):
             raise Exception('Non-existent electric field in the class')
         elif (eflag is True):
-             # Write header with grid size information:
+            # Write header with grid size information:
             self.Efield['nR'].tofile(fid)
             self.Efield['nZ'].tofile(fid)
             self.Efield['nPhi'].tofile(fid)
@@ -685,7 +682,7 @@ class ihibpEMfields:
             self.Efield['fr'].T.tofile(fid)
             self.Efield['ft'].T.tofile(fid)
             self.Efield['fz'].T.tofile(fid)
-        
+
         elif self.bdims != 0:
             # Write header with grid size information:
             self.Bfield['nR'].tofile(fid)
@@ -711,13 +708,13 @@ class ihibpEMfields:
             raise Exception('Not a valid combination of inputs')
 
     def plot(self, fieldName: str, phiSlice: int = None, timeSlice: int = None,
-             ax_options: dict = {}, ax = None, cmap = None, nLevels: int = 50,
-              cbar_tick_format: str = '%.2e'):
+             ax_options: dict = {}, ax=None, cmap=None, nLevels: int = 50,
+             cbar_tick_format: str = '%.2e'):
         """
-        Plots the input field ('Br', 'Bz', 'Bphi', 'Er', 'Ez', 'Ephi', 
-        'B', 'E' or ''Psipol') into some axis, ax, or the routine creates one 
+        Plots the input field ('Br', 'Bz', 'Bphi', 'Er', 'Ez', 'Ephi',
+        'B', 'E' or ''Psipol') into some axis, ax, or the routine creates one
         for the plotting.
-        
+
         @param fieldName: Name of the field to be plotted.
         @param ax_options: options for the function axis_beauty.
         @param ax: Axis to plot the data.
@@ -725,7 +722,7 @@ class ihibpEMfields:
         @param ax: Return the axis where the plot has been done.
 
         """
-        
+
         # --- Initialise the plotting parameters
         ax_options['ratio'] = 'equal'
         # The ratio must be always equal
@@ -733,19 +730,19 @@ class ihibpEMfields:
             ax_options['fontsize'] = 16
         if 'grid' not in ax_options:
             ax_options['grid'] = 'both'
-        
+
         if cmap is None:
             ccmap = ssplt.Gamma_II()
         else:
             ccmap = cmap
-            
+
         # If there is not any axis provided, create one.
         if ax is None:
             fig, ax = plt.subplots()
-            
+
         # Change to lower case in order to make the choice more flexible.
         fieldName = fieldName.lower()
-        
+
         # Raise an exception if the corresponding field is not loaded.
         dims = 2
         if fieldName[0] == 'e':
@@ -756,7 +753,7 @@ class ihibpEMfields:
                 phiMaxIdx = self.Bfield['nPhi']
                 if dims >= 4:
                     timeMaxIdx = self.Bfield['nTime']
-                    
+
         if fieldName[0] == 'b':
             if self.bdims == 0:
                 raise Exception('Magnetic field is not loaded!')
@@ -765,10 +762,10 @@ class ihibpEMfields:
                 phiMaxIdx = self.Bfield['nPhi']
                 if dims >= 4:
                     timeMaxIdx = self.Bfield['nTime']
-        
-        if fieldName == 'psipol' and (self.psipol_on == False):
+
+        if fieldName == 'psipol' and not self.psipol_on:
             raise Exception('Magnetic flux is not loaded!')
-        
+
         # Get the appropriate field
         field = {
             'br': self.Bfield['fr'],
@@ -785,7 +782,7 @@ class ihibpEMfields:
                          self.Efield['ft']**2),
             'psipol': self.psipol['f']
         }.get(fieldName)
-        
+
         Rplot = {
             'br': self.Bfield['R'],
             'bz': self.Bfield['R'],
@@ -797,7 +794,7 @@ class ihibpEMfields:
             'e': self.Efield['R'],
             'psipol': self.psipol['R']
         }.get(fieldName)
-        
+
         Zplot = {
             'br': self.Bfield['z'],
             'bz': self.Bfield['z'],
@@ -809,35 +806,34 @@ class ihibpEMfields:
             'e': self.Efield['z'],
             'psipol': self.psipol['z']
         }.get(fieldName)
-        
-        # For the 3D case, only a 2D projection can be plotted:        
+
+        # For the 3D case, only a 2D projection can be plotted:
         if dims == 3:
             if phiSlice is None:
                 field = field[:, 0, :]
             else:
                 sliceIdx = max(min(phiSlice, phiMaxIdx), 0)
                 field = field[:, sliceIdx, :]
-        
-        # For the 4D case, only a 2D projection can be plotted: 
+
+        # For the 4D case, only a 2D projection can be plotted:
         if dims == 4:
             if phiSlice is None:
                 phiSlicee = 0
             else:
                 phiSlicee = max(min(phiSlice, phiMaxIdx), 0)
-            
+
             if timeSlice is None:
                 timeSlicee = 0
             else:
                 timeSlicee = max(min(timeSlice, timeMaxIdx), 0)
             field = field[:, phiSlicee, :, timeSlicee]
-        
-        
+
         # Plotting the field using a filled contour.
-        fieldPlotHndl = plt.contourf(Rplot, Zplot, field.T, 
-                                     nLevels, cmap = ccmap)
-        
+        fieldPlotHndl = plt.contourf(Rplot, Zplot, field.T,
+                                     nLevels, cmap=ccmap)
+
         # Selecting the name to display in the colorbar.
-        
+
         ccbarname = {
             'br': '$B_r$ [T]',
             'bz': '$B_z$[T]',
@@ -849,25 +845,23 @@ class ihibpEMfields:
             'e': 'E [V/m]',
             'psipol': '$\\Psi_{pol}$ [Wb]'
             }.get(fieldName)
-        
+
         cbar = plt.colorbar(fieldPlotHndl, format=cbar_tick_format)
         cbar.set_label(ccbarname, fontsize=ax_options['fontsize'])
         cbar.ax.tick_params(labelsize=ax_options['fontsize'] * 0.8)
-        
-        
+
         # Preparing the axis labels:
         ax_options['xlabel'] = 'Major radius R [m]'
         ax_options['ylabel'] = 'Z [m]'
         ax1 = ssplt.axis_beauty(ax, ax_options)
-        
+
         # Plotting the 2D vessel structures.
         ssplt.plot_vessel(linewidth=1, ax=ax1)
         plt.tight_layout()
-        
-        
+
         return ax1
-    
-    
+
+
 class ihibpProfiles:
     def __init__(self):
         """
@@ -882,7 +876,7 @@ class ihibpProfiles:
         self.psipol_on = False
         self.ne = {'R': np.array((0), dtype = np.float64),
                    'z': np.array((0), dtype = np.float64),
-                   'f': np.array((0), dtype = np.float64), 
+                   'f': np.array((0), dtype = np.float64),
                    'nPhi': np.array((1), dtype = np.int32),
                    'nTime': np.array((1), dtype = np.int32),
                    'Phimin': np.array((0.0), dtype = np.float64),
@@ -890,10 +884,10 @@ class ihibpProfiles:
                    'Timemin': np.array((0.0), dtype = np.float64),
                    'Timemax': np.array((1.0), dtype = np.float64)
                    }
-        
+
         self.Te = {'R': np.array((0), dtype = np.float64),
-                   'z': np.array((0), dtype = np.float64), 
-                   'f': np.array((0), dtype = np.float64), 
+                   'z': np.array((0), dtype = np.float64),
+                   'f': np.array((0), dtype = np.float64),
                    'nPhi': np.array((1), dtype = np.int32),
                    'nTime': np.array((1), dtype = np.int32),
                    'Phimin': np.array((0.0), dtype = np.float64),
@@ -901,9 +895,9 @@ class ihibpProfiles:
                    'Timemin': np.array((0.0), dtype = np.float64),
                    'Timemax': np.array((1.0), dtype = np.float64)
                    }
-        
+
         self.ni = {'R': np.array((0), dtype = np.float64),
-                   'z': np.array((0), dtype = np.float64), 
+                   'z': np.array((0), dtype = np.float64),
                    'f': np.array((0), dtype = np.float64),
                    'nPhi': np.array((1), dtype = np.int32),
                    'nTime': np.array((1), dtype = np.int32),
@@ -913,7 +907,7 @@ class ihibpProfiles:
                    'Timemax': np.array((1.0), dtype = np.float64)
                   }
         self.nimp = {'R': np.array((0), dtype = np.float64),
-                     'z': np.array((0), dtype = np.float64), 
+                     'z': np.array((0), dtype = np.float64),
                      'f': np.array((0), dtype = np.float64),
                      'nPhi': np.array((1), dtype = np.int32),
                      'nTime': np.array((1), dtype = np.int32),
@@ -922,9 +916,9 @@ class ihibpProfiles:
                      'Timemin': np.array((0.0), dtype = np.float64),
                      'Timemax': np.array((1.0), dtype = np.float64)
                   }
-        
+
         self.Ti = {'R': np.array((0), dtype = np.float64),
-                   'z': np.array((0), dtype = np.float64), 
+                   'z': np.array((0), dtype = np.float64),
                    'f': np.array((0), dtype = np.float64),
                    'nPhi': np.array((1), dtype = np.int32),
                    'nTime': np.array((1), dtype = np.int32),
@@ -933,9 +927,9 @@ class ihibpProfiles:
                    'Timemin': np.array((0.0), dtype = np.float64),
                    'Timemax': np.array((1.0), dtype = np.float64)
                    }
-        
+
         self.Zeff = {'R': np.array((0), dtype = np.float64),
-                     'z': np.array((0), dtype = np.float64), 
+                     'z': np.array((0), dtype = np.float64),
                      'f': np.array((0), dtype = np.float64),
                      'nPhi': np.array((1), dtype = np.int32),
                      'nTime': np.array((1), dtype = np.int32),
@@ -944,34 +938,34 @@ class ihibpProfiles:
                      'Timemin': np.array((0.0), dtype = np.float64),
                      'Timemax': np.array((1.0), dtype = np.float64)
                      }
-        
+
         self.from_shotfile = False  # If data is taken from DB.
-        self.flag_ni_ne    = True   # Sets equality between electron density 
+        self.flag_ni_ne    = True   # Sets equality between electron density
                                     # and main ion density.
         self.flag_Zeff     = False  # Use Zeff to have the impurities.
-        self.flag_Ti_Te    = True   # Sets equality between electron  
+        self.flag_Ti_Te    = True   # Sets equality between electron
                                     # temperature and main ion temperature.
-        
-        
+
+
         self.avg_charge = 5         # Average charge state of the impurities.
-        
+
     def setOneFluidModel(self):
         """
         This function allows to set the profiles of the class into the
-        one-fluid model approximation, by equating the ion density to the 
+        one-fluid model approximation, by equating the ion density to the
         electron density. Same for temperature.
-        
+
         Pablo Oyola - pablo.oyola@ipp.mpg.de
         """
         self.flag_ni_ne = True
         self.flag_Ti_Te = True
-        
+
     def fromFiles(self, profName: str, fileName: str):
         """
         Reads the appropriate profile from the file and stores it into a
         variable inside the class. This will also create the appropriate
         interpolation routines.
-        This routine has to be called for each one of the profiles that the 
+        This routine has to be called for each one of the profiles that the
         class can store, i.e.:
             a) Electron density: 'ne'
             b) Electron temperature: 'Te'
@@ -979,20 +973,20 @@ class ihibpProfiles:
             d) Main ion temperature: 'Ti'
             e) Effective Z: 'Zeff'
             a) Impurity density: 'nimp'
-        
+
         Pablo Oyola - pablo.oyola@ipp.mpg.de
-        
+
         @param profName: Name of the input profile to read.
         @param fileName: Path to the file containing the profile to read.
         """
-        
+
         tmp = {}
         with open(profName, 'rb') as fid:
             tmp['nR'] = np.fromfile(fid, 'uint32', 1)
             tmp['nZ'] = np.fromfile(fid, 'uint32', 1)
             tmp['nPhi'] = np.fromfile(fid, 'uint32', 1)
             tmp['nTime'] = np.fromfile(fid, 'uint32', 1)
-    
+
             tmp['Rmin'] = np.fromfile(fid, 'float64', 1)
             tmp['Rmax'] = np.fromfile(fid, 'float64', 1)
             tmp['Zmin'] = np.fromfile(fid, 'float64', 1)
@@ -1001,50 +995,49 @@ class ihibpProfiles:
             tmp['Phimax'] = np.fromfile(fid, 'float64', 1)
             tmp['Timemin'] = np.fromfile(fid, 'float64', 1)
             tmp['Timemax'] = np.fromfile(fid, 'float64', 1)
-    
+
             size2read = tmp['nR']   * tmp['nZ'] *\
                         tmp['nPhi'] * tmp['nTime']
-    
+
             data = np.fromfile(fid, 'float64', count=size2read[0])
-            
+
             # Generating the grids.
             grr  = np.linspace(tmp['Rmin'], tmp['Rmax'], num=tmp['nR'])
             gzz  = np.linspace(tmp['Zmin'], tmp['Zmax'], num=tmp['nZ'])
             gphi = np.linspace(tmp['Phimin'], tmp['Phimax'], num=tmp['nPhi'])
-            gtt  = np.linspace(tmp['Timemin'], tmp['Timemax'], 
+            gtt  = np.linspace(tmp['Timemin'], tmp['Timemax'],
                                num=tmp['nTime'])
-            
+
             grid = np.array((tmp['nR'][0], tmp['nPhi'][0], tmp['nZ'][0],
                              tmp['nTime']))
-            
+
             tmp['f'] = data.reshape(grid).squeeze()
-            
+
             # --- Dividing by dimensionality.
             if tmp['nPhi'][0] == 1 and tmp['nTime'][0] == 1:
                 tmp['dims'] = 2
                 tmp['interp'] = lambda r, z, phi, time: \
-                                interpn((grr, gzz), tmp['f'], 
+                                interpn((grr, gzz), tmp['f'],
                                         (r.flatten(), z.flatten()))
-            
+
             elif tmp['nPhi'][0] != 1 and tmp['nTime'][0] == 1:
                 tmp['dims'] = 3
                 tmp['interp'] = lambda r, z, phi, time: \
-                                interpn((grr, gzz, gphi), tmp['f'], 
+                                interpn((grr, gzz, gphi), tmp['f'],
                                         (r.flatten(), phi.flatten(), \
-                                         z.flatten()))    
+                                         z.flatten()))
             else:
                 tmp['dims'] = 4
                 tmp['interp'] = lambda r, z, phi, time: \
-                                interpn((grr, gzz, gphi, gtt), tmp['f'], 
+                                interpn((grr, gzz, gphi, gtt), tmp['f'],
                                         (r.flatten(), phi.flatten(), \
                                          z.flatten(), time.flatten()))
-                                    
-            
+
             # --- Saving the data to the corresponding field:
             profName = profName.lower()
             if profName == 'ne':
                 self.ne = tmp
-            elif profName == 'te': 
+            elif profName == 'te':
                 self.te = tmp
             elif profName == 'ni':
                 self.flag_ni_ne = False
@@ -1052,5 +1045,3 @@ class ihibpProfiles:
             elif profName == 'Ti':
                 self.flag_Ti_Te = False
                 self.Ti = tmp
-                          
-        

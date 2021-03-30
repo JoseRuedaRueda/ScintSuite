@@ -8,32 +8,128 @@ example the routine to read the scintillator efficiency files, common for all
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+import LibTimeTraces as sstt
+import LibParameters as sspar
+import LibMap as ssmapping
 from scipy.io import netcdf
 from version_suite import version
 from LibPaths import Path
 import os
-
+import warnings
+import tkinter as tk                       # To open UI windows
 paths = Path()
+
+
+# -----------------------------------------------------------------------------
+# --- Checking and asking for files
+# -----------------------------------------------------------------------------
+def check_save_file(file):
+    """
+    Check if the file exist, if yes, open a window to select a new filename
+
+    Jose Rueda: jrrueda@us.es
+
+    @param file: the filename to test if exist
+    @return out: fir file does not exist, return the same filename, if exist,
+    open a window for the user to select the filename he wants
+    """
+    if not os.path.isfile(file):
+        out = file
+    else:
+        warnings.warn('The file exist!!! you can choose the new name',
+                      category=UserWarning)
+        dir, name = os.path.split(file)
+        dummy, ext = os.path.splitext(name)
+        out = ask_to_save(dir, ext)
+    return out
+
+
+def check_open_file(file):
+    """
+    Check if the file exist, if no, open a window to select a new filename
+
+    Jose Rueda: jrrueda@us.es
+
+    @param file: the filename to test if exist
+    @return out: fir file exists, return the same filename, if does not,
+    open a window for the user to select the filename he wants
+    """
+    if os.path.isfile(file):
+        out = file
+    else:
+        warnings.warn('The file does not exist!!! you can choose the new name',
+                      category=UserWarning)
+        dir, name = os.path.split(file)
+        dummy, ext = os.path.splitext(name)
+        out = ask_to_open(dir, ext)
+    return out
+
+
+def ask_to_save(dir=None, ext=None):
+    """
+    Open a dialogue to choose the file to be saved
+
+    Jose Rueda: jrrueda@us.es
+
+    @param dir: Initial directory to direct the GUI to open the file, if none,
+    just the current directory will be opened
+    @param ext: extension for filter the possible options, if none, no filter
+    will be applied
+
+    @return out: the filename selected by the user
+    """
+    root = tk.Tk()
+    root.withdraw()   # To close the window after the selection
+    out = tk.filedialog.asksaveasfilename(initialdir=dir, defaultextension=ext,
+                                          filetypes=sspar.filetypes)
+    return out
+
+
+def ask_to_open(dir=None, ext=None):
+    """
+    Open a dialogue to choose the file to be opened
+
+    Jose Rueda: jrrueda@us.es
+
+    @param dir: Initial directory to direct the GUI to open the file, if none,
+    just the current directory will be opened
+    @param ext: extension for filter the possible options, if none, no filter
+    will be applied
+
+    @return out: the filename selected by the user
+    """
+    root = tk.Tk()
+    root.withdraw()   # To close the window after the selection
+    out = tk.filedialog.askopenfilename(initialdir=dir, defaultextension=ext,
+                                        filetypes=sspar.filetypes)
+    return out
 
 
 # -----------------------------------------------------------------------------
 # --- General reading
 # -----------------------------------------------------------------------------
-def read_variable_ncdf(file, varNames):
+def read_variable_ncdf(file, varNames, human=True):
     """
-    Read a variable from a TRANSP cdf file
+    Read a variable from a  netCDF file
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
     @param file: path to the .CDF file to be opened
     @param varNames: list with the variable names
+    @param human: this is just a flag, if true, if the file is not found, it
+    open a window for the user to select the proper file, if False, we assume
+    that this fuctionis used inside some kind of automatic way by some script
+    so just give an exception
     @return data: values of the variable
     @return units: physical units
     @return long_name: name of the variable
     """
+    # Try to locate the filename
+    if human:
+        file = check_open_file(file)
     # see if the inputs is a list/tupple or not
     try:
-        varNames.append_to_database
+        varNames.append
         listNames = varNames.copy()
     except AttributeError:
         listNames = []
@@ -45,6 +141,20 @@ def read_variable_ncdf(file, varNames):
         out.append(dummy)
         del dummy
     return out
+
+
+def print_netCDF_content(file):
+    """
+    Print the list of variables in a netcdf file
+
+    Jose Rueda Rueda: jrrueda@us.es
+
+    @param file: full path to the netCDF file
+    """
+    varfile = netcdf.netcdf_file(file, 'r', mmap=False).variables
+    print('%20s' % ('Var name'),  '|  Description  | Dimensions')
+    for key in sorted(varfile.keys()):
+        print('%20s' % (key), varfile[key].long_name, varfile[key].dimensions)
 
 
 def read_scintillator_efficiency(file, plot: bool = False, verb: bool = True):
@@ -99,9 +209,14 @@ def save_mask(mask, filename=None, nframe=None, shot=None, frame=None):
     @param shot: Shot number of the video used to define the roi (optional)
     @param frame: Frame used to define the roi
     """
-    if filename is None:
-        name = 'mask.nc'
-        filename = os.path.join(paths.Results, name)
+    # --- Check if the file exist
+    if filename is None:    # If no fileis given, just take the 'standard'
+        # name = 'mask.nc'
+        # filename = os.path.join(paths.Results, name)
+        filename = ask_to_save()
+    else:  # Check if the file is there, to avoid overwriting
+        filename = check_save_file(filename)
+
     nnx, nny = mask.shape
     print('Saving results in: ', filename)
     with netcdf.netcdf_file(filename, 'w') as f:
@@ -145,6 +260,64 @@ def save_mask(mask, filename=None, nframe=None, shot=None, frame=None):
 
 
 # -----------------------------------------------------------------------------
+# --- TimeTraces
+# -----------------------------------------------------------------------------
+def read_timetrace(file=None):
+    """
+    Read a timetrace created with the suite
+
+    Jose Rueda: jrrueda@us.es
+
+    Note: If just a txt file is passed as input, only the trace will be loaded,
+    as the mask and extra info are not saved in the txt. netcdf files are
+    prefered
+
+    @todo: implement netcdf part
+
+    @param filename: full path to the file to load, if none, a window will
+    pop-up to do this selection
+    """
+    if file is None:
+        file = ' '
+        file = check_open_file(file)
+        if file == '':
+            raise Exception('You must select a file!!!')
+    TT = sstt.TimeTrace()
+    TT.time_base, TT.sum_of_roi, TT.mean_of_roi, TT.std_of_roi =\
+        np.loadtxt(file, skiprows=2, unpack=True, delimiter='   ,   ')
+    return TT
+
+
+# -----------------------------------------------------------------------------
+# --- Calibration
+# -----------------------------------------------------------------------------
+def read_calibration(file=None):
+    """
+    Read a the used calibration from a remap netCDF file
+
+    Jose Rueda: jrrueda@us.es
+
+    @param filename: full path to the file to load, if none, a window will
+    pop-up to do this selection
+    """
+    if file is None:
+        file = ' '
+        file = check_open_file(file)
+        if file == '':
+            raise Exception('You must select a file!!!')
+    print('-.-. .- .-.. .. -... .-. .- - .. --- -.')
+    cal = ssmapping.CalParams()
+    list = ['xshift', 'yshift', 'xscale', 'yscale', 'deg']
+    var = read_variable_ncdf(file, list, human=False)
+    cal.xshift = var[0].data[:]
+    cal.yshift = var[1].data[:]
+    cal.xscale = var[2].data[:]
+    cal.yscale = var[3].data[:]
+    cal.deg = var[4].data[:]
+    return cal
+
+
+# -----------------------------------------------------------------------------
 # --- Tomography
 # -----------------------------------------------------------------------------
 def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
@@ -172,6 +345,8 @@ def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
             str(a.tm_mon) + '_' + str(a.tm_hour) + '_' + str(a.tm_min) +\
             '.nc'
         filename = os.path.join(paths.Results, name)
+    else:
+        filename = check_save_file(filename)
     print('Saving results in: ', filename)
     with netcdf.netcdf_file(name, 'w') as f:
         f.history = 'Done with version ' + version

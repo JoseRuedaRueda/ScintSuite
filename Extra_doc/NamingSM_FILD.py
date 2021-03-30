@@ -7,7 +7,7 @@ Separated by '_' must appear:
         -# 'map'
         -# 8.3f indicating phi
         -# 8.3f indicating theta
-        -# strike_map_dat
+        -# strike_map.dat
 @section format Format of the strike maps
 As given by the FILDSIM code
 """

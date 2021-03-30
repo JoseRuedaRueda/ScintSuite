@@ -1,5 +1,6 @@
 """
-Perform a tomographic inversion of a FILD frame
+Perform a tomographic inversion of a FILD frame. Note, this in under
+development
 
 Done in 02/02/2021
 """

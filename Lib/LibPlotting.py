@@ -30,7 +30,8 @@ def p1D(ax, x, y, param_dict: dict = None):
     return ax
 
 
-def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=None):
+def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=None,
+                     line_param={}, line=True):
     """
     Plot confidence intervals
 
@@ -47,12 +48,16 @@ def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=None):
     @param color: (Optional) Color of the shaded region
     @param alpha: (Optional) Transparency parameter (0: full transparency,
     1 opacity)
+    @param line: If true, the line x,y will be also plotted
+    @param line_param: (optional) Line parameters to plot the central line
     @return ax with the applied settings
     """
     if u_down is None:
         u_down = u_up
 
     ax.fill_between(x, (y - u_down), (y + u_up), color=color, alpha=alpha)
+    if line:
+        ax.plot(x, y, **line_param)
     return ax
 
 
@@ -174,7 +179,7 @@ def plot_vessel(projection: str = 'pol', units: str = 'm', h: float = None,
 
     Jose Rueda: jrrueda@us.es
 
-    @param projection: 'tor' or 'toroidal', else, poloidal view, '3D'
+    @param projection: 'tor' or 'toroidal', '3D', else, poloidal view
     @param units: 'm' or 'cm' accepted
     @param h: z axis coordinate where to plot (in the case of 3d axes), if none
     a 2d plot will be used
@@ -183,7 +188,6 @@ def plot_vessel(projection: str = 'pol', units: str = 'm', h: float = None,
     @param ax: axes where to plot, if none, a new figure will be created
     @param shot: shot number, only usefull for the case of the poloidal vessel
     of ASDEX Upgrade
-    @param shaded3d: if true a 3d basic representation will be plotted.
     @param params3d: optional parameters for the plot_3D_revolution method,
     except for the axes
     @param tor_rot: rotation parameter to properly set the origin of the phi=0
@@ -194,26 +198,26 @@ def plot_vessel(projection: str = 'pol', units: str = 'm', h: float = None,
     if units == 'm':
         fact = 1.0
     elif units == 'cm':
-        fact = 10.0
+        fact = 100.0
     # --- Section 0: get the coordinates:
     if projection == 'tor' or projection == 'toroidal':
         # get the data
-        vessel = ssdat.toroidal_vessel() * fact
+        vessel = ssdat.toroidal_vessel(rot=tor_rot) * fact
     else:
-        if projection is not '3D':
+        if projection != '3D':
             vessel = ssdat.poloidal_vessel(shot=shot) * fact
         else:
             vessel = ssdat.poloidal_vessel(simplified=True) * fact
     # --- Section 1: Plot the vessel
     # open the figure if needed:
     if ax is None:
-        if (h is None) and (projection is not '3D'):
+        if (h is None) and (projection != '3D'):
             fig, ax = plt.subplots()
         else:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
     # Plot the vessel:
-    if (h is None) and (projection is not '3D'):
+    if (h is None) and (projection != '3D'):
         ax.plot(vessel[:, 0], vessel[:, 1], color=color, linewidth=linewidth)
     elif h is not None:
         height = h * np.ones(len(vessel[:, 1]))
