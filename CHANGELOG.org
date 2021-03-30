@@ -1,3 +1,6 @@
+** 0.2.8 i-HIBP cross sections.
+- Included i-HIBP cross sections calculation and storing to files (Issue 34)
+
 ** 0.2.7: Hot fix
 - *BUG_SOLVED* Problem with the name of the number of saturated pixels solved, now it is possible to export the remap again (the bug was introduced in version 0.2.6). Issue #50
 
