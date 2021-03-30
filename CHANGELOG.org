@@ -1,3 +1,6 @@
+** 0.2.8 i-HIBP cross sections.
+- Included i-HIBP cross sections calculation and storing to files (Issue 34)
+
 ** 0.1.4: What is new?
 - iHIBP routines to interact with the tracker and iHIBPsim, first round
 ** 0.1.5: What's new?
