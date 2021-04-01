@@ -48,6 +48,6 @@ if subtract_noise:
 # --- Extra
 # -----------------------------------------------------------------------------
 # There are 2 main plotting routines one could use at this point:
-#       vid.plot_frames_slider()  # plot to see all the frames
+#       vid.GUI_frames()  # plot to see all the frames
 #       vid.plot_frame(t=2.5) # Plot a single frame, accept custom color map,
 #                             # Given ax to plot, etc...

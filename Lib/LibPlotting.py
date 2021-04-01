@@ -61,6 +61,23 @@ def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=None,
     return ax
 
 
+def remove_lines(ax):
+    """
+    Remove Strike Map from the plot
+
+    Jose Rueda: jrrueda@us.es
+
+    note: this is created to e used inside the GUI, although you can use it
+    if you like. It will remove all lines (python line plots) from your
+    axis
+
+    @param ax: axis to 'clean'
+    @return : nothig, just 'clean the axis' from the StrikeMap
+    """
+    for i in range(len(ax.lines)):
+        ax.lines[-1].remove()
+
+
 # -----------------------------------------------------------------------------
 # --- Axis tuning and colormap
 # -----------------------------------------------------------------------------
@@ -129,6 +146,18 @@ def Gamma_II(n=256):
         'mycmap', ['black', 'blue', 'red', 'yellow', 'white'], N=n)
     return cmap
 
+
+def Cai(n=256):
+    """
+    Cai II colormap
+
+    This is a kind of an easter egg
+
+    @param n: numbers of levels of the output colormap
+    """
+    cmap = LinearSegmentedColormap.from_list(
+        'mycmap', ['blue', 'yellow'], N=n)
+    return cmap
 
 # -----------------------------------------------------------------------------
 # --- 3D Plotting
