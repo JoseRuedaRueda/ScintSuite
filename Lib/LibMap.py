@@ -686,7 +686,8 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
            'dp': dp, 'rprofmin': rprofmin, 'rprofmax': rprofmax,
            'pprofmin': pprofmin, 'pprofmax': pprofmax, 'rfild': rfild,
            'zfild': zfild, 'alpha': alpha, 'beta': beta,
-           'calibration': calibration, 'decimals': decimals}
+           'calibration': calibration, 'decimals': decimals,
+           'smap_folder': smap_folder}
     return output, opt
 
 
@@ -943,7 +944,7 @@ class StrikeMap:
             self.resolution = None
 
     def plot_real(self, ax=None,
-                  plt_param: dict = {}, line_param: dict = {}):
+                  marker_params: dict = {}, line_params: dict = {}):
         """
         Plot the strike map (x,y = dimensions in the scintillator)
 
@@ -953,24 +954,20 @@ class StrikeMap:
         @param plt_param: Parameters for plot beauty, example: markersize=6
         @return: Strike maps over-plotted in the axis
         """
-        # Define some standard parameters:
-        if plt_param is None:
-            plt_param = {}
-        if 'markersize' not in plt_param:
-            plt_param['markersize'] = 6
-        if 'fillstyle' not in plt_param:
-            plt_param['fillstyle'] = 'none'
-        if 'color' not in plt_param:
-            plt_param['color'] = 'w'
-        if 'marker' not in plt_param:
-            plt_param['marker'] = 'o'
-        if 'linestyle' not in plt_param:
-            plt_param['linestyle'] = 'none'
-
-        if 'color' not in line_param:
-            line_param['color'] = 'w'
-        if 'markerstyle' not in line_param:
-            line_param['marker'] = ''
+        # Default plot parameters:
+        marker_options = {
+            'markersize': 6,
+            'fillstyle': 'none',
+            'color': 'w',
+            'marker': 'o',
+            'linestyle': 'none'
+        }
+        marker_options.update(marker_params)
+        line_options = {
+            'color': 'w',
+            'marker': ''
+        }
+        line_options.update(line_params)
 
         if ax is None:
             fig, ax = plt.subplots()
@@ -982,7 +979,7 @@ class StrikeMap:
             n = len(uniq)
             for i in range(n):
                 flags = self.gyroradius == uniq[i]
-                ax.plot(self.y[flags], self.z[flags], **line_param)
+                ax.plot(self.y[flags], self.z[flags], **line_options)
         else:
             return
             ## @todo: talk with Pablo about his strike maps and his coordinates
@@ -994,44 +991,41 @@ class StrikeMap:
             n = len(uniq)
             for i in range(n):
                 flags = self.pitch == uniq[i]
-                ax.plot(self.y[flags], self.z[flags], **line_param)
+                ax.plot(self.y[flags], self.z[flags], **line_options)
         else:
             return
             ## @todo: change == by a < tol??
 
         # Plot some markers in the grid position
         ## @todo include labels energy/pitch in the plot
-        ax.plot(self.y, self.z, **plt_param)
+        ax.plot(self.y, self.z, **marker_options)
 
-    def plot_pix(self, ax=None, plt_param: dict = {},
-                 line_param: dict = {}):
+    def plot_pix(self, ax=None, marker_params: dict = {},
+                 line_params: dict = {}):
         """
         Plot the strike map (x,y = pixels on the camera)
 
         Jose Rueda: jrrueda@us.es
 
         @param ax: Axes where to plot
-        @param plt_param: Parameters for plot beauty, example: markersize=6
+        @param marker_params: parameters for the centroid plotting
+        @param line_params: parameters for the lines plotting
         @return: Strike maps over-plotted in the axis
         """
-        # Define some standard parameters:
-        if plt_param is None:
-            plt_param = {}
-        if 'markersize' not in plt_param:
-            plt_param['markersize'] = 6
-        if 'fillstyle' not in plt_param:
-            plt_param['fillstyle'] = 'none'
-        if 'color' not in plt_param:
-            plt_param['color'] = 'w'
-        if 'marker' not in plt_param:
-            plt_param['marker'] = 'o'
-        if 'linestyle' not in plt_param:
-            plt_param['linestyle'] = 'none'
-
-        if 'color' not in line_param:
-            line_param['color'] = 'w'
-        if 'markerstyle' not in line_param:
-            line_param['marker'] = ''
+        # Default plot parameters:
+        marker_options = {
+            'markersize': 6,
+            'fillstyle': 'none',
+            'color': 'w',
+            'marker': 'o',
+            'linestyle': 'none'
+        }
+        marker_options.update(marker_params)
+        line_options = {
+            'color': 'w',
+            'marker': ''
+        }
+        line_options.update(line_params)
 
         if ax is None:
             fig, ax = plt.subplots()
@@ -1043,7 +1037,7 @@ class StrikeMap:
             n = len(uniq)
             for i in range(n):
                 flags = self.gyroradius == uniq[i]
-                ax.plot(self.xpixel[flags], self.ypixel[flags], **line_param)
+                ax.plot(self.xpixel[flags], self.ypixel[flags], **line_options)
         else:
             return
             ## @todo: talk with Pablo about his strike maps and his coordinates
@@ -1055,14 +1049,14 @@ class StrikeMap:
             n = len(uniq)
             for i in range(n):
                 flags = self.pitch == uniq[i]
-                ax.plot(self.xpixel[flags], self.ypixel[flags], **line_param)
+                ax.plot(self.xpixel[flags], self.ypixel[flags], **line_options)
         else:
             return
             ## @todo: change == by a < tol??
 
         # Plot some markers in the grid position
         ## @todo include labels energy/pitch in the plot
-        ax.plot(self.xpixel, self.ypixel, **plt_param)
+        ax.plot(self.xpixel, self.ypixel, **marker_options)
 
     def calculate_pixel_coordinates(self, calib):
         """
