@@ -1,3 +1,11 @@
+** 0.3.0: GUIs and plotting
+- Simplified StrikeMap.plot_pix() and StrikeMap.plot_real(). *IMPORTANT* Names of the input arguments were changed!!!
+- Included GUI to explore the camera frames, Video.plot plot_frames_slider() was rename as Vide.GUI_frames()
+- Included GUI to explore the remaped frames, Vide.GUI_frames_and_remap()
+- Improved Video.plot_frame() was upgraded now you can write 'auto' and the function will load and plot the StrikeMap (see its documentation for futher instrucitons)
+- LibPlotting.remove_lines() added, it deletes all lines from a plot, usefull to delete the strikemap of one of your plots (used by the new GUIs)
+- *BUG SOLVED*: Selecting 'cancel' in the export remap windows raised and error. Now it solved
+
 ** 0.2.9 Multipow calculation.
 - Included functions to read magnetic coils in LibDataAUG
 - Included functions to read the ECE data in LibDataAUG.
