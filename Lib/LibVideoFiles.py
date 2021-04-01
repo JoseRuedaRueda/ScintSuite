@@ -11,19 +11,19 @@ import re
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
+import tkinter as tk                       # To open UI windows
 import LibPlotting as ssplt
 import LibMap as ssmap
+import LibFILDSIM as ssfildsim
 import LibPaths as p
 import LibUtilities as ssutilities
 import LibIO as ssio
+import LibVideoGUI as ssvidGUI             # For GUI element
 from LibMachine import machine
 from version_suite import version
 from scipy.io import netcdf                # To export remap data
 from scipy import ndimage                  # To filter the images
-from skimage import io                     # To load png images
-import tkinter as tk                       # To open UI windows
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
+from skimage import io                     # To load images
 from tqdm import tqdm                      # For waitbars
 pa = p.Path(machine)
 del p
@@ -1645,22 +1645,34 @@ class Video:
         print('-... -.-- . / -... -.-- .')
         return
 
-    def plot_frame(self, frame_number=None, ax=None, fig=None, ccmap=None,
-                   strike_map=None, t: float = None):
+    def plot_frame(self, frame_number=None, ax=None, ccmap=None,
+                   strike_map='off', t: float = None, verbose=True,
+                   smap_marker_params: dict = {},
+                   smap_line_params: dict = {}):
         """
         Plot a frame from the loaded frames
-
-        Not recommended for general use (it can be slow and it is not very
-        customizable) it is though just for a quick plot
 
         Notice: If ax is given, fig should be also given
 
         @param frame_number: Number of the frame to plot, relative to the video
         file, optional
-        @param fig: Figure where the frame must be drawn
         @param ax: Axes where to plot, is none, just a new axes will be created
         @param ccmap: colormap to be used, if none, Gamma_II from IDL
-        @param strike_map: StrikeMap to be plotted on top (optional)
+        @param strike_map: StrikeMap to plot:
+            -# 'auto': The code will load the Smap corresponding to the theta,
+            phi angles. Note, the angles should be calculated, so the remap,
+            should be done. (also, it will load the calibration from the
+            performed remap)
+            -# StrikeMap(): if a StrikeMap() object is passed, it will be
+            plotted. Note, the program will only check if the StrikeMap input
+            is a class, it will not check if the calibration was apply etc, so
+            it is supposed that the user had given a Smap, ready to be plotted
+            -# 'off': (or any other string) No strike map will be plotted
+        @param verbose: If true, info of the theta and phi used will be printed
+        @param smap_marker_params: dictionary with parameters to plot the
+        strike_map centroid (see StrikeMap.plot_pix)
+        @param smap_line_params: dictionary with parameters to plot the
+        strike_map lines (see StrikeMap.plot_pix)
         @return ax: the axes where the frame has been drawn
         @return fig: the figure where the frame has been drawn
         """
@@ -1669,6 +1681,8 @@ class Video:
             raise Exception('Do not give frame number and time!')
         if (frame_number is None) and (t is None):
             raise Exception("Didn't you want to plot something?")
+        if strike_map == 'auto' and self.remap_dat is None:
+            raise Exception('To use the auto mode, you need to remap first')
         # --- Load the frames
         # If we use the frame number explicitly
         if frame_number is not None:
@@ -1676,6 +1690,7 @@ class Video:
                 if self.exp_dat['nframes'] == frame_number:
                     dummy = self.exp_dat['frames'].squeeze()
                     tf = float(self.exp_dat['tframes'])
+                    frame_index = 0
                 else:
                     raise Exception('Frame not loaded')
             else:
@@ -1686,9 +1701,9 @@ class Video:
                 tf = float(self.exp_dat['tframes'][frame_index])
         # If we give the time:
         if t is not None:
-            it = np.argmin(abs(self.exp_dat['tframes'] - t))
-            tf = self.exp_dat['tframes'][it]
-            dummy = self.exp_dat['frames'][:, :, it].squeeze()
+            frame_index = np.argmin(abs(self.exp_dat['tframes'] - t))
+            tf = self.exp_dat['tframes'][frame_index]
+            dummy = self.exp_dat['frames'][:, :, frame_index].squeeze()
         # --- Check the colormap
         if ccmap is None:
             cmap = ssplt.Gamma_II()
@@ -1699,16 +1714,68 @@ class Video:
             fig, ax = plt.subplots()
         ax.imshow(dummy, origin='lower', cmap=cmap)
         ax.set_title('t = ' + str(round(tf, 4)) + (' s'))
+        # Save axis limits, if not, if the strike map is larger than
+        # the frame (FILD4,5) the output plot will be horrible
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
         # --- Plot the StrikeMap
-        if strike_map is not None:
+        if isinstance(strike_map, ssmap.StrikeMap):
             strike_map.plot_pix(ax=ax)
+        elif strike_map == 'auto':
+            if self.diag == 'FILD':
+                # get parameters of the map
+                theta_used = self.remap_dat['theta_used'][frame_index]
+                phi_used = self.remap_dat['phi_used'][frame_index]
 
-        return fig, ax
+                # Get the full name of the file
+                name__smap = ssfildsim.guess_strike_map_name_FILD(
+                    phi_used, theta_used, machine=machine,
+                    decimals=self.remap_dat['options']['decimals']
+                )
+                smap_folder = self.remap_dat['options']['smap_folder']
+                full_name_smap = os.path.join(smap_folder, name__smap)
+                # Load the map:
+                smap = ssmap.StrikeMap(0, full_name_smap)
+                # Calculate pixel coordinates
+                smap.calculate_pixel_coordinates(
+                    self.remap_dat['options']['calibration']
+                )
+                # Plot the map
+                smap.plot_pix(ax=ax, marker_params=smap_marker_params,
+                              line_params=smap_line_params)
+                if verbose:
+                    theta_calculated = self.remap_dat['theta'][frame_index]
+                    phi_calculated = self.remap_dat['phi'][frame_index]
+                    print('Calculated theta: ', theta_calculated)
+                    print('Used theta: ', theta_used)
+                    print('Calculated phi: ', phi_calculated)
+                    print('Used phi: ', phi_used)
+        # Set 'original' limits:
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
+        return ax
 
-    def plot_frames_slider(self):
-        "Plot the frames with a slider which allows to select the desired time"
+    def GUI_frames(self):
+        """Small GUI to explore camera frames"""
+        text = 'Press TAB until the time slider is highlighted in red.'\
+            + ' Once that happend, you can move the time with the arrows'\
+            + ' of the keyboard, frame by frame'
+        print(text)
         root = tk.Tk()
-        ApplicationShowVid(root, self.exp_dat)
+        root.resizable(height=None, width=None)
+        ssvidGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat)
+        root.mainloop()
+        root.destroy()
+
+    def GUI_frames_and_remap(self):
+        """Small GUI to explore camera and remapped frames"""
+        text = 'Press TAB until the time slider is highlighted in red.'\
+            + ' Once that happend, you can move the time with the arrows'\
+            + ' of the keyboard, frame by frame'
+        print(text)
+        root = tk.Tk()
+        root.resizable(height=None, width=None)
+        ssvidGUI.ApplicationShowVidRemap(root, self.exp_dat, self.remap_dat)
         root.mainloop()
         root.destroy()
 
@@ -1991,13 +2058,12 @@ class Video:
 
         Jose Rueda Rueda: jrrueda@us.es
         """
-
         # Test if the file exist:
         if name is None:
             name = os.path.join(pa.Results, str(self.shot) + '_'
                                 + self.diag + str(self.diag_ID) + '_remap.nc')
             name = ssio.check_save_file(name)
-            if name == '':
+            if name == '' or name == ():
                 print('You canceled the export')
                 return
         print('Saving results in: ', name)
@@ -2216,47 +2282,3 @@ class Video:
             except KeyError:
                 print('Bits info not present in the video object')
         return
-
-
-class ApplicationShowVid:
-    """Class to show the frames"""
-
-    def __init__(self, master, data):
-        """
-        Create the window with the sliders
-
-        @param master: Tk() opened
-        @param data: the dictionary of experimental frames or remapped ones
-        """
-        # Save here the data
-        self.data = data
-        # Create a container
-        frame = tk.Frame(master)
-        # Create the time slider
-        t = data['tframes']
-        print(t.shape)
-        print(t.size)
-        dt = t[1] - t[0]
-        self.tSlider = tk.Scale(master, from_=t[0], to=t[-1], resolution=dt,
-                                command=self.plot_frame)
-        self.tSlider.pack(side='right')
-        # create the quit button
-        self.qButton = tk.Button(master, text="Quit", command=master.quit)
-        self.qButton.pack(side='bottom')
-
-        fig = Figure()
-        ax = fig.add_subplot(111)
-        self.image = ax.imshow(data['frames'][:, :, 0].squeeze(),
-                               origin='lower')
-        self.canvas = FigureCanvasTkAgg(fig, master=master)
-        self.canvas.draw()
-        self.canvas.get_tk_widget().pack(side='top', fill='both', expand=1)
-        frame.pack()
-
-    def plot_frame(self, t):
-        """Get a plot the frame"""
-        t0 = np.float64(t)
-        it = np.argmin(abs(self.data['tframes'] - t0))
-        dummy = self.data['frames'][:, :, it].squeeze()
-        self.image.set_data(dummy)
-        self.canvas.draw()
