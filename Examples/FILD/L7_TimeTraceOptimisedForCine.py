@@ -12,13 +12,14 @@ can calculate the TT for the whole shot really fast
 @section tt1 1: Reading video and selecting roi
 @section tt2 2: Calculate and plot the time trace
 
-Note; Written for version 0.2.3. Before running this script, please do:
+Note; Written for version 0.3.0 Before running this script, please do:
 plt.show(), if not, bug due to spyder 4.0 may arise
 """
 
 # --- Importing packages
 # 'General python packages'
 import numpy as np
+import matplotlib.pyplot as plt
 # Suite packages
 import Lib as ss
 
@@ -41,7 +42,8 @@ video = ss.vid.Video(file)
 frame_index = np.array([np.argmin(abs(video.timebase-t0))])
 video.read_frame(frame_index)
 # - Plot the frame
-fig_ref, ax_ref = video.plot_frame(frame_index)
+ax_ref = video.plot_frame(t=t0)
+fig_ref = plt.gcf()
 # - Define roi
 # Note: if you want the figure to re-appear after the selection of the roi,
 # call create roi with the option re_display=False

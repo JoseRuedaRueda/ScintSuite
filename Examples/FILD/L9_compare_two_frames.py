@@ -117,38 +117,12 @@ if plot_profiles_in_time:
 # -----------------------------------------------------------------------------
 # --- Section 4: Plot the frames
 # -----------------------------------------------------------------------------
-# -- See which strike map is the best for each time point:
-smap = []
 
-for t in [tf1, tf2]:
-    # first calculate the magnetic field
-    br, bz, bt, bp = ss.dat.get_mag_field(shot, par['rfild'], par['zfild'],
-                                          time=t)
-    # Calculate FILD orientation respect to the field
-    phi, theta = \
-        ss.fildsim.calculate_fild_orientation(br, bz, bt, par['alpha'],
-                                              par['beta'])
-    # See if we have that map
-    name = ss.fildsim.guess_strike_map_name_FILD(phi,
-                                                 theta,
-                                                 machine='AUG',
-                                                 decimals=par['decimals'])
-    # Load the map
-    map = ss.mapping.StrikeMap(0, os.path.join(ss.paths.FILDStrikeMapsRemap,
-                                               name))
-    # Transform to pixels in the camera
-    map.calculate_pixel_coordinates(cal)
-    # Append the map
-    smap.append(map)
-# Plot the experimental frames:
 fig1, ax1 = plt.subplots(1, 2)
-vid.plot_frame(t=tf1, strike_map=smap[0], ax=ax1[0])
-# Just set as axis limit the size of the sensor
-ax1[0].set_xlim(0, 640)
-ax1[0].set_ylim(0, 480)
-vid.plot_frame(t=tf2, strike_map=smap[1], ax=ax1[1])
-ax1[1].set_xlim(0, 640)
-ax1[1].set_ylim(0, 480)
+vid.plot_frame(t=tf1, strike_map='auto', ax=ax1[0])
+
+vid.plot_frame(t=tf2, strike_map='auto', ax=ax1[1])
+
 # Plot the remapped frames
 cmap = ss.plt.Gamma_II()
 fig2, ax2 = plt.subplots(1, 2)

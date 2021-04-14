@@ -232,6 +232,9 @@ class TimeTrace:
         # --- check if file exist
         if filename is None:
             filename = ssio.ask_to_save(ext='*.txt')
+            if filename == '' or filename == ():
+                print('You canceled the export')
+                return
         else:
             filename = ssio.check_save_file(filename)
         # --- Prepare the header

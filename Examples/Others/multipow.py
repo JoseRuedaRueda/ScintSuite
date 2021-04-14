@@ -351,7 +351,7 @@ if plot_profiles:
     fig3.colorbar(im3, ax=ax3[0])
 
 
-    #--- Plotting the 1D profile.
+    # --- Plotting the 1D profile.
     f0 = (np.abs(ece['xrel']['freq'] - freq1d[0])).argmin()
     f1 = (np.abs(ece['xrel']['freq'] - freq1d[-1])).argmin()
     ece_1D = np.sqrt(np.sum(ece['xrel']['data2D'][f0:f1, :]**2, axis = 0))
@@ -367,8 +367,7 @@ if plot_profiles:
     ax3[1].set_title('f $\\in$ [%.1f, %.1f] kHz'%(ece['xrel']['freq'][f0],
                                                   ece['xrel']['freq'][f1]))
 
-
-    #--- Plotting the normalized electron temperature gradient.
+    # --- Plotting the normalized electron temperature gradient.
     ax3[1].plot(ece['fft']['dTe_base'],
                 ece['fft']['dTe']/ece['fft']['dTe'].max(), 'b-',
                 label='Electron temperature gradient.')
@@ -382,20 +381,19 @@ if plot_profiles:
 if plot_vessel_flag:
     fig4, ax4 = plt.subplots(1)
 
-    ax4 = ss.plt.plot_vessel(shot=shotnumber, ax = ax4)
+    ax4 = ss.plt.plot_vessel(shot=shotnumber, ax=ax4)
 
     # Getting the flux surfaces.
     ax4 = ss.plt.plot_flux_surfaces(shotnumber, (tBegin+tEnd)/2.0,
                                     ax=ax4)
 
-
-    im6 = plt.scatter(x=ece['r'],  y=ece['z'], c = ece['channels'],
+    im6 = plt.scatter(x=ece['r'],  y=ece['z'], c=ece['channels'],
                       label='ECE positions', cmap='hsv', alpha=0.75)
 
     cbar = plt.colorbar(im6, ax=ax4)
 
     cbar.ax.get_yaxis().labelpad = 15
-    cbar.ax.set_ylabel('ECE Channel number', rotation = 270)
+    cbar.ax.set_ylabel('ECE Channel number', rotation=270)
     ax4.axis('equal')
 
     ax4.plot(mhi['R'], mhi['z'], 'k.', markersize=12,

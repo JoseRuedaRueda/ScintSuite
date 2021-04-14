@@ -1755,6 +1755,39 @@ class Video:
         ax.set_ylim(ylim)
         return ax
 
+    def find_orientation(self, t, verbose: bool = True):
+        """
+        find the orientation of FILD for a given time
+
+        José Rueda: jrrueda@us.es
+
+        ToDo: Now it only load data from the remap_structure, if remap does not
+        exist, it should calculate the angles
+
+        @param t: time point where we want the angles [s]
+        @param verbose: flag to print information or not
+        @return theta: theta angle [º]
+        @return phi: phi angle [º]
+        """
+        if self.remap_dat is None:
+            raise Exception('Remap not done!!!')
+        if self.diag == 'FILD':
+            tmin = self.remap_dat['tframes'][0]
+            tmax = self.remap_dat['tframes'][-1]
+            if t < tmin or t > tmax:
+                raise Exception('Time not present in the remap')
+            else:
+                it = np.argmin(abs(self.remap_dat['tframes'] - t))
+                theta = self.remap_dat['theta'][it]
+                phi = self.remap_dat['phi'][it]
+                time = self.remap_dat['tframes'][it]
+        if verbose:
+            print('Requested time:', t)
+            print('Found time: ', time)
+            print('theta:', theta)
+            print('phi:', phi)
+        return phi, theta
+
     def GUI_frames(self):
         """Small GUI to explore camera frames"""
         text = 'Press TAB until the time slider is highlighted in red.'\

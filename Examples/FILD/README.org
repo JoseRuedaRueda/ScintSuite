@@ -15,3 +15,4 @@ run always paths_suite.py before runing these examples
   - L7: Calculate a time trace, optimised for the case of a cin file
   - L8: Example of remap a single frame
   - L9: Example of how to compare 2 plots from the camera and their remaps, ideal for MMM
+  - L10: Tomographic inversion of a frame

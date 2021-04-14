@@ -7,10 +7,11 @@ this time using a given strike map
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.1.9. Before running this script, please do:
+Note; Written for version 0.3.0. Before running this script, please do:
 plt.show(), if not, bug due to spyder 4.0 may arise
 """
 import Lib as ss
+import matplotlib.pyplot as plt
 from time import time
 # -----------------------------------------------------------------------------
 # --- Section 0: Settings
@@ -38,7 +39,7 @@ plt_TT = True  # Plot the TT
 calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
 Smap_file = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILD_Strike_maps2/'\
     + 'AUG_map_000.00000_000.00000_strike_map.dat'
-camera = 'PHANTOM'      # CCD for other FILDs
+camera = ss.dat.FILD[diag_ID-1]['camera']
 save_remap = False
 par = {
     'rmin': 1.2,      # Minimum gyroradius [in cm]
@@ -88,7 +89,8 @@ if subtract_noise:
 # -----------------------------------------------------------------------------
 if calculate_TT:
     # - Plot the frame
-    fig_ref, ax_ref = vid.plot_frame(t=t0)
+    ax_ref = vid.plot_frame(t=t0)
+    fig_ref = plt.gcf()
     # - Define roi
     # Note: if you want the figure to re-appear after the selection of the roi,
     # call create roi with the option re_display=Ture

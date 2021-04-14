@@ -6,32 +6,33 @@ possibility to substract noise and timetraces remap of the whole video
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.2.3. Before running this script, please do:
+Note; Written for version 0.3.0 Before running this script, please do:
 plt.show(), if not, bug due to spyder 4.0 may arise
 """
 import Lib as ss
+import matplotlib.pyplot as plt
 from time import time
 # -----------------------------------------------------------------------------
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 32312
+shot = 33127
 diag_ID = 1  # 6 for rFILD (DLIF)
-t1 = 0.1     # Initial time to be loaded, [s]
-t2 = 0.4     # Final time to be loaded [s]
+t1 = 0.5     # Initial time to be loaded, [s]
+t2 = 4.8     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
 # - Noise substraction settings:
-subtract_noise = False   # Flag to apply noise subtraction
-tn1 = 0.1     # Initial time to average the frames for noise subtraction [s]
-tn2 = 0.2     # Final time to average the frames for noise subtraction [s]
+subtract_noise = True   # Flag to apply noise subtraction
+tn1 = 0.5     # Initial time to average the frames for noise subtraction [s]
+tn2 = 0.6     # Final time to average the frames for noise subtraction [s]
 
 # - Filter options:
 apply_filter = True  # Flag to apply filter to the frames
 kind_of_filter = 'median'
 options_filter = {
-    'size': 2        # Size of the window to apply the filter
+    'size': 1        # Size of the window to apply the filter
 }
 # If you want a gaussian one
 # kind_of_filter = 'gaussian'
@@ -39,8 +40,8 @@ options_filter = {
 #     'sigma': 1        # sigma of the gaussian for the convolution (in pixels)
 # }
 # - TimeTrace options:
-calculate_TT = False  # Wheter to calculate or not the TT
-t0 = 2.5         # time points to define the ROI
+calculate_TT = True  # Wheter to calculate or not the TT
+t0 = 0.4        # time points to define the ROI
 save_TT = True   # Export the TT and the ROI used
 plt_TT = True  # Plot the TT
 
@@ -51,7 +52,7 @@ save_remap = True
 par = {
     'rmin': 1.2,      # Minimum gyroradius [in cm]
     'rmax': 10.5,     # Maximum gyroradius [in cm]
-    'dr': 0.05,        # Interval of the gyroradius [in cm]
+    'dr': 0.1,        # Interval of the gyroradius [in cm]
     'pmin': 20.0,     # Minimum pitch angle [in degrees]
     'pmax': 90.0,     # Maximum pitch angle [in degrees]
     'dp': 1.0,    # Pitch angle interval
@@ -61,7 +62,7 @@ par = {
     'pprofmin': 20.0,    # Minimum pitch for the gyroradius profile calculation
     'pprofmax': 90.0,    # Maximum pitch for the gyroradius profile calculation
     # Position of the FILD
-    'rfild': 2.190,   # 2.196 for shot 32326, 2.186 for shot 32312
+    'rfild': 2.211,   # 2.196 for shot 32326, 2.186 for shot 32312
     'zfild': ss.dat.FILD[diag_ID-1]['z'],
     'alpha': ss.dat.FILD[diag_ID-1]['alpha'],
     'beta': ss.dat.FILD[diag_ID-1]['beta'],
@@ -99,7 +100,8 @@ if apply_filter:
 # -----------------------------------------------------------------------------
 if calculate_TT:
     # - Plot the frame
-    fig_ref, ax_ref = vid.plot_frame(t=t0)
+    ax_ref = vid.plot_frame(t=t0)
+    fig_ref = plt.gcf()
     # - Define roi
     # Note: if you want the figure to re-appear after the selection of the roi,
     # call create roi with the option re_display=Ture
