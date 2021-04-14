@@ -1,3 +1,11 @@
+** 0.3.1: Tomography:
+- Update examples to the new version
+- Updated Smaps library (more maps) download the new version if you want
+- video.find_orientation() added, allows to find the calculated theta and phi (Yes, I was lazy and I've created a small function to avoid the calculation of this manually)
+- Now the same criteria of rmin, dr and so on is implemented in the tomographic reconstruction section
+- Scan of tomographic reconstruction now gives a dic as output, not single outputs
+- New GUI for tomographic representation plotted
+
 ** 0.3.0: GUIs and plotting
 - Simplified StrikeMap.plot_pix() and StrikeMap.plot_real(). *IMPORTANT* Names of the input arguments were changed!!!
 - Included GUI to explore the camera frames, Video.plot plot_frames_slider() was rename as Vide.GUI_frames()

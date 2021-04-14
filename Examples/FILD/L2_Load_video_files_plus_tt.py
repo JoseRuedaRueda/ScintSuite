@@ -6,28 +6,29 @@ possibility to substract noise and timetraces will be calculated
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.1.8. Before running this script, please do:
+Note; Written for version 0.3.0. Before running this script, please do:
 plt.show(), if not, bug due to spyder 4.0 may arise
 """
 import Lib as ss
+import matplotlib.pyplot as plt
 # -----------------------------------------------------------------------------
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 38663
-diag_ID = 6  # 6 for rFILD (DLIF)
-t1 = 0.5     # Initial time to be loaded, [s]
+shot = 32312
+diag_ID = 1  # 6 for rFILD
+t1 = 0.20     # Initial time to be loaded, [s]
 t2 = 3.5     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
 # - Noise substraction settings:
 subtract_noise = True   # Flag to apply noise subtraction
-tn1 = 0.5     # Initial time to average the frames for noise subtraction [s]
-tn2 = 0.65     # Final time to average the frames for noise subtraction [s]
+tn1 = 0.20     # Initial time to average the frames for noise subtraction [s]
+tn2 = 0.25     # Final time to average the frames for noise subtraction [s]
 
 # - TimeTrace options:
-t0 = 3.0         # time points to define the ROI
+t0 = 0.30         # time points to define the ROI
 save_TT = True   # Export the TT and the ROI used
 
 # - Plotting options:
@@ -56,7 +57,8 @@ if subtract_noise:
 # --- Section 3: Calculate the TT
 # -----------------------------------------------------------------------------
 # - Plot the frame
-fig_ref, ax_ref = vid.plot_frame(t=t0)
+ax_ref = vid.plot_frame(t=t0)
+fig_ref = plt.gcf()
 # - Define roi
 # Note: if you want the figure to re-appear after the selection of the roi,
 # call create roi with the option re_display=Ture

@@ -214,6 +214,9 @@ def save_mask(mask, filename=None, nframe=None, shot=None, frame=None):
         # name = 'mask.nc'
         # filename = os.path.join(paths.Results, name)
         filename = ask_to_save()
+        if filename == '' or filename == ():
+            print('You canceled the export')
+            return
     else:  # Check if the file is there, to avoid overwriting
         filename = check_save_file(filename)
 

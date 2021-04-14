@@ -161,6 +161,7 @@ def Cai(n=256):
         'mycmap', ['blue', 'yellow'], N=n)
     return cmap
 
+
 # -----------------------------------------------------------------------------
 # --- 3D Plotting
 # -----------------------------------------------------------------------------
@@ -262,16 +263,16 @@ def plot_vessel(projection: str = 'pol', units: str = 'm', h: float = None,
 # -----------------------------------------------------------------------------
 # --- Flux surfaces plot.
 # -----------------------------------------------------------------------------
-def plot_flux_surfaces(shotnumber: int, time: float, ax = None, 
-                       linewidth:float = 1.2, 
-                       diag: str = 'EQH', exp: str = 'AUGD', ed: int = 0, 
+def plot_flux_surfaces(shotnumber: int, time: float, ax = None,
+                       linewidth:float = 1.2,
+                       diag: str = 'EQH', exp: str = 'AUGD', ed: int = 0,
                        levels: float = None, label_surf: bool = True,
                        coord_type: str = 'rho_pol'):
     """
     Plots the flux surfaces of a given shot in AUG for a given time point.
-    
+
     Pablo Oyola - pablo.oyola@ipp.mpg.de
-    
+
     @param shotnumber: shot number to get the equilibrium.
     @param time: time point to retrieve the equilibrium.
     @param ax: axis to plot the flux surfaces.
@@ -285,65 +286,65 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax = None,
     @param coord_type: type of coordinate to be used for the map. rho_pol by
     default. Also available 'rho_tor'
     """
-    
+
     if ax is None:
         fig, ax = plt.subplots(1)
-        
+
     if levels is None:
         if coord_type == 'rho_pol':
             levels = np.arange(start=0.2, stop=1.2, step = 0.2)
         else:
             levels = np.arange(start=0.2, stop=1.0, step = 0.2)
-        
+
     #--- Getting the equilibrium
     R = np.linspace(1.03, 2.65, 128)
     z = np.linspace(-1.224, 1.10, 256)
-    
-    Rin, zin = np.meshgrid(R, z)    
+
+    Rin, zin = np.meshgrid(R, z)
     rho = ssdat.get_rho(shot=shotnumber, time=time,
                         Rin=Rin.flatten(), zin=zin.flatten(),
                         diag=diag, exp=exp, ed=ed, coord_out=coord_type)
-    
+
     rho = np.reshape(rho, (256, 128))
     #--- Plotting the flux surfaces.
     CS=ax.contour(R, z, rho, levels, linewidth=linewidth)
     if label_surf:
         ax.clabel(CS, inline=1, fontsize=10)
-    
+
     return ax
 
 # -----------------------------------------------------------------------------
 # --- Plotting ECE
 # -----------------------------------------------------------------------------
-def plot2D_ECE(ecedata: dict, rType: str = 'rho_pol', downsample: int = 2, 
+def plot2D_ECE(ecedata: dict, rType: str = 'rho_pol', downsample: int = 2,
                ax = None, fig = None, cmap = None, which: str='norm',
                cm_norm: str = 'linear'):
     """
     Plots the ECE data into a contour 2D plot.
-    
+
     Pablo Oyola - pablo.oyola@ipp.mpg.de
-    
+
     @param ecedata: data as obtained by routine @see{get_ECE}
-    @param rType: X axis to use. Choice between rho_pol, rho_tor, Rmaj 
+    @param rType: X axis to use. Choice between rho_pol, rho_tor, Rmaj
     and channels.
-    @param downsample: downsampling ratio. If the signal is large, the 
+    @param downsample: downsampling ratio. If the signal is large, the
     plotting routines may saturate your computer.
     @param ax: axis to plot the data.
     @param fig: figure handler where the figure is.
     @param cmap: colormap to use. If None is provide, plasma colormap is used.
-    @param which: type of plot. Norm will plot T_e/<T_e> and total, the whole 
+    @param which: type of plot. Norm will plot T_e/<T_e> and total, the whole
     ECE signal.
-    @param cm_norm: colormap normalization. Optional to be chosen between 
+    @param cm_norm: colormap normalization. Optional to be chosen between
     linear, sqrt and log.
     @return ax: return the axis used.
     """
-    
+
     if ax is None:
         fig, ax = plt.subplots(1)
-        
+
     if cmap is None:
         cmap = matplotlib.cm.plasma
-    
+
     ntime = len(ecedata['time'])
     downsample_flag = np.arange(start=0, stop=ntime, step=downsample)
     ntime2 = len(downsample_flag)
@@ -365,25 +366,25 @@ def plot2D_ECE(ecedata: dict, rType: str = 'rho_pol', downsample: int = 2,
             R = ecedata['r'][downsample_flag]
         elif rType == 'channels':
             R = np.tile(ecedata['channels'], (ntime2, 1))
-    
+
     tbasis = np.tile(ecedata['time'][downsample_flag], (R.shape[1], 1)).T
     if which == 'norm':
         A = ecedata['Trad_norm'][downsample_flag, :]
     elif which == 'total':
         A = ecedata['Trad'][downsample_flag, :]
-    
+
     cont_opts ={'cmap': cmap,
                 'shading':'gouraud',
                 'antialiased': True
                }
-    
+
     if cm_norm == 'sqrt':
         cont_opts['norm'] = colors.PowerNorm(gamma=0.50)
     elif cm_norm == 'log':
         cont_opts['norm'] = colors.LogNorm(A.min(), A.max())
-    
+
     im1 = ax.pcolormesh(tbasis, R, A, **cont_opts)
-    
+
     fig.colorbar(im1, ax=ax)
-    
+
     return ax
