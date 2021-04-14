@@ -16,18 +16,32 @@ def paths_of_the_suite(machine='AUG'):
     ROIPOLY = 'roipoly.py'
     HOME_DIR = os.getenv("HOME")
     SUITE_DIR = os.getcwd()
-    LIB_DIR = 'Lib'
-    LIB_iHIBP = 'Lib/iHIBP'
-    # -- AUG folders:
-    AUG_Python = '/afs/ipp/aug/ads-diags/common/python/lib'
+    Suite_LIBs = {
+        'LIB_DIR': 'Lib',
+        'LIB_iHIBP': 'Lib/iHIBP',
+        'LIB_INPA': 'Lib/INPA',
+        'LIB_INPASIM': 'Lib/INPA/INPASIM'
+    }
+
+    # -- Machine dependent folders:
+    Machine_libs = {
+        'AUG': {
+            'AUG_Python': '/afs/ipp/aug/ads-diags/common/python/lib'
+        }
+    }
 
     # --- Section 1: Add folders to path
-    sys.path.extend([os.path.join(HOME_DIR, ROIPOLY),
-                     os.path.join(SUITE_DIR, LIB_iHIBP),
-                     os.path.join(SUITE_DIR, LIB_DIR)])
+    # Extra python modules:
+    sys.path.extend([os.path.join(HOME_DIR, ROIPOLY)])
+    # Suite directories:
+    for lib in Suite_LIBs.keys():
+        sys.path.extend([os.path.join(SUITE_DIR, Suite_LIBs[lib])])
+    # Machine dependent paths:
+    for lib in Machine_libs[machine].keys():
+        sys.path.extend([os.path.join(SUITE_DIR, Machine_libs[machine][lib])])
 
+    # Check the cluster where we are working
     if machine == 'AUG':
-        sys.path.extend([AUG_Python])
         cluster = os.getenv('HOST')
         if cluster[:4] != 'toki':
             print('We are not in toki')
