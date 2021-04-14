@@ -1,3 +1,7 @@
+** 0.3.2: First INPASIM utilities:
+- Added fuction to fit a line to a 3d cloud of points
+- Rewritten paths_suite.py to allow make easier to include new libraries
+
 ** 0.3.1: Tomography:
 - Update examples to the new version
 - Updated Smaps library (more maps) download the new version if you want

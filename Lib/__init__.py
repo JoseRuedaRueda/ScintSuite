@@ -14,6 +14,7 @@ import LibFastChannel as fc
 import LibTomography as tomo
 import iHIBP as ihibp
 import LibVideoGUI as vidGUI
+import INPA as inpa
 from version_suite import version
 if m.machine == 'AUG':
     import LibDataAUG as dat
