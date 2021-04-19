@@ -18,6 +18,7 @@ import LibFILDSIM as ssFILDSIM
 import LibUtilities as ssextra
 from LibMachine import machine
 import LibPaths as p
+import LibIO as ssio
 from tqdm import tqdm   # For waitbars
 pa = p.Path(machine)
 del p
@@ -519,6 +520,9 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     code will use the indicated by LibPaths
     @param    map: Strike map to be used, if none, we will look in the folder
     for the right strike map
+    @param    mask: binary mask defining the region of the scintillator we want
+    to map. If it is a string pointing to a file, the mask saved in that file
+    will be loaded
 
     @return   output: dictionary containing all the outputs:
         -# 'frames': remaped_frames [xaxis(pitch), yaxis(r), taxis]
@@ -553,6 +557,12 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     if smap_folder is None:
         smap_folder = pa.FILDStrikeMapsRemap
 
+    if type(mask) is str:
+        # the user gave us a saved mask, not the matrix, so load the matrix:
+        file = ssio.check_open_file(mask)
+        [mask] = ssio.read_variable_ncdf(file, ['mask'], human=True)
+        # tranform to bool
+        mask = mask.astype(np.bool)
     # Print  some info:
     if not got_smap:
         print('Looking for strikemaps in: ', smap_folder)

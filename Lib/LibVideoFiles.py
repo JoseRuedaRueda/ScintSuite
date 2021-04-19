@@ -18,7 +18,7 @@ import LibFILDSIM as ssfildsim
 import LibPaths as p
 import LibUtilities as ssutilities
 import LibIO as ssio
-import LibVideoGUI as ssvidGUI             # For GUI element
+import GUIs as ssGUI             # For GUI element
 from LibMachine import machine
 from version_suite import version
 from scipy.io import netcdf                # To export remap data
@@ -869,6 +869,7 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
     flags_negative = frames_number < 0
     flags_above = frames_number > cin_object.header['ImageCount']
     if (np.sum(flags_above) + np.sum(flags_negative)) > 0:
+        print('last saved frame: ', cin_object.header['ImageCount'])
         print('The requested frames are not in the file!!!')
         return 0
     # Check the output size:
@@ -915,8 +916,8 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
     M = np.zeros((int(cin_object.imageheader['biHeight']),
                   int(cin_object.imageheader['biWidth']), nframe),
                  dtype=data_type)
-    img_size_header = cin_object.imageheader['biWidth'] * \
-        cin_object.imageheader['biHeight'] * BPP / 8  # In bytes
+    img_size_header = int(cin_object.imageheader['biWidth'] *
+                          cin_object.imageheader['biHeight'] * BPP / 8)  # byte
     npixels = cin_object.imageheader['biWidth'] * \
         cin_object.imageheader['biHeight']
     # Read the frames
@@ -1108,6 +1109,23 @@ def read_frame_png(video_object, frames_number=None, limitation: bool = True,
 
 
 # -----------------------------------------------------------------------------
+# --- TIFF files
+# -----------------------------------------------------------------------------
+def read_frame_tiff(filename: str):
+    """
+    Load the tiff files
+
+    @param filename: full path pointing to the png
+    @return frame: loaded frame
+    """
+    dummy = io.imread(filename)
+    if len(dummy.shape) > 2:     # We have an rgb png, transform it to gray
+        dummy = rgb2gray(dummy)
+
+    return dummy[::-1, :]
+
+
+# -----------------------------------------------------------------------------
 # --- mp4 files
 # -----------------------------------------------------------------------------
 def read_mp4_file(file, verbose: bool = True):
@@ -1169,6 +1187,25 @@ def guess_filename(shot: int, base_dir: str, extension: str = ''):
     name = shot_str + extension
     file = os.path.join(base_dir, shot_str[0:2], name)
     return file
+
+
+def binary_image(frame, threshold, bool_flag: bool = True):
+    """
+    Set all pixels with signal larger than threshold to one and the rest to 0
+
+    Jose Rueda. jrrueda@us.es
+
+    @param frame: frame we want to process
+    @param threshold: threshold for the algorithms
+    @param bool_flag: if true the output will be bollean array
+    @retun frame_new: 'masked frame' with just 0 and ones (int8)
+    """
+    frame_new = np.zeros(frame.shape, dtype='int8')
+    frame_new[frame > threshold] = 1
+    if bool_flag:
+        return frame_new.astype(np.bool)
+    else:
+        return frame_new
 
 
 # -----------------------------------------------------------------------------
@@ -1375,7 +1412,7 @@ class Video:
                                    limit=limit)
                 self.exp_dat['tframes'] = self.timebase[frames_number]
                 self.exp_dat['nframes'] = frames_number
-                self.exp_dat['dtype'] = self.exp_dat['frames'][0, 0, 0].dtype
+                self.exp_dat['dtype'] = self.exp_dat['frames'][:, :, 0].dtype
             else:
                 M = read_frame_cin(self, frames_number, limitation=limitation,
                                    limit=limit)
@@ -1388,7 +1425,7 @@ class Video:
                 self.exp_dat['tframes'] = \
                     self.timebase[frames_number].flatten()
                 self.exp_dat['nframes'] = frames_number
-                self.exp_dat['dtype'] = self.exp_dat['frames'][0, 0, 0].dtype
+                self.exp_dat['dtype'] = self.exp_dat['frames'][:, :, 0].dtype
             else:
                 M = read_frame_png(self, frames_number, limitation=limitation,
                                    limit=limit)
@@ -1585,7 +1622,7 @@ class Video:
         output['trace'] = trace
         return output
 
-    def filter_frames(self, method='median', options={}):
+    def filter_frames(self, method='median', options={}, make_copy=True):
         """
         Filter the camera frames
 
@@ -1598,6 +1635,7 @@ class Video:
                 nsigma: 3 Number of sigmas to consider a pixel as neutron
             -# median:
                 size: 4, number of pixels considered
+        @param make copy: flag to copy or not the original frames
         """
         print('Filtering frames')
         # default options:
@@ -1610,10 +1648,10 @@ class Video:
         gaussian_options = {
             'sigma': 1
         }
-        if 'original_frames' not in self.exp_dat:
+        if ('original_frames' not in self.exp_dat) and make_copy:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
         else:
-            print('original frames already present, not making new copy')
+            print('Not making a copy')
         # Filter frames
         nx, ny, nt = self.exp_dat['frames'].shape
         if method == 'jrr':
@@ -1643,6 +1681,29 @@ class Video:
                                             **gaussian_options)
 
         print('-... -.-- . / -... -.-- .')
+        return
+
+    def cut_frames(self, px_min, px_max, py_min, py_max, make_copy=True):
+        """
+        Cut the frames in the box: [px_min, px_max, py_min, py_max]
+
+        Jose Rueda: jrrueda@us.es
+
+        @param px_min: min pixel in the x direction to cut
+        @param px_max: max pixel in the x direction to cut
+        @param px_min: min pixel in the x direction to cut
+        @param px_max: max pixel in the x direction to cut
+        @param make copy: flag to copy or not the original frames
+
+        @return: exp_dat['frames'] are repaced for these cut ones
+        """
+        if ('original_frames' not in self.exp_dat) and make_copy:
+            self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
+        else:
+            print('Not making a copy of the original frames')
+        frames = \
+            self.exp_dat['frames'][px_min:(px_max+1), py_min:(py_max+1), :]
+        self.exp_dat['frames'] = frames
         return
 
     def plot_frame(self, frame_number=None, ax=None, ccmap=None,
@@ -1796,7 +1857,7 @@ class Video:
         print(text)
         root = tk.Tk()
         root.resizable(height=None, width=None)
-        ssvidGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat)
+        ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat)
         root.mainloop()
         root.destroy()
 
@@ -1808,7 +1869,7 @@ class Video:
         print(text)
         root = tk.Tk()
         root.resizable(height=None, width=None)
-        ssvidGUI.ApplicationShowVidRemap(root, self.exp_dat, self.remap_dat)
+        ssGUI.ApplicationShowVidRemap(root, self.exp_dat, self.remap_dat)
         root.mainloop()
         root.destroy()
 

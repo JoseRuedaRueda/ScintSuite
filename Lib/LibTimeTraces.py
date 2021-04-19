@@ -44,7 +44,7 @@ def trace(frames, mask):
     std_of_roi = np.zeros(n)
     mean_of_roi = np.zeros(n)
     # calculate the trace
-    print('Calculating the timetrace: ')
+    print('Calculating the timetrace... ')
     for iframe in tqdm(range(n)):
         dummy = frames[:, :, iframe].squeeze()
         sum_of_roi[iframe] = np.sum(dummy[mask])
