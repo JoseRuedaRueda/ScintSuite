@@ -13,8 +13,9 @@ import LibIO as io
 import LibFastChannel as fc
 import LibTomography as tomo
 import iHIBP as ihibp
-import LibVideoGUI as vidGUI
+import GUIs as GUI
 import INPA as inpa
+import Optics as optics
 from version_suite import version
 if m.machine == 'AUG':
     import LibDataAUG as dat
