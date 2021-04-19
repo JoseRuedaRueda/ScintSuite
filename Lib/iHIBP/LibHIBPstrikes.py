@@ -43,18 +43,6 @@ MARK_ANGLE = 19
 MARK_INTENSITY = 20
 
 # ----------------------------------------------------------------------------
-# --- Database name list.
-# ----------------------------------------------------------------------------
-DB_NAMELIST = ['x1(rhopol=1)', 'x2(rhopol=1)', 'avg(x1)', 'avg(x2)', 'E',
-               'beta', 'theta', 'q95', 'q0', 'bt0', 'ip', 'ne0', 'te0',
-               'nesep', 'tesep', 'kappa', 'Raus', 'Raxis', 'beamMass',
-               'beamIntensity', 'itotal', 'i_rate', 'shot_magn', 'diag_magn',
-               'exp_magn', 'ed_magn', 'shot_prof', 'diag_prof', 'exp_prof',
-               'ed_prof', 'timestamp', 'bcoils_flag', 'errorfield_flag', 
-               'bcoil_shot', 'bcoils_exp', 'bcoil_diag', 'bcoil_ed']
-
-
-# ----------------------------------------------------------------------------
 # --- Other parameters.
 # ----------------------------------------------------------------------------
 
@@ -854,15 +842,7 @@ class strikeline_db:
         
     def getProperty(self, name_list: str):
         """
-        Retrieve a property from the strikeline list. The available variables
-        are:
-            x1(rhopol=1), x2(rhopol=1), avg(x1), avg(x2), E, beta, theta,
-            q95, q0, bt0, ip, ne0, te0, nesep, tesep, kappa, Raus, Raxis,
-            beamMass, beamIntensity, itotal, i_rate, shot_magn, diag_magn,
-            exp_magn, ed_magn, shot_prof, diag_prof, exp_prof, ed_prof,
-            timestamp, bcoils_flag, ripple_flag, bcoil_shot, bcoils_exp,
-            bcoil_diag, bcoil_ed, electric_field_model, version
-            
+        Retrieve a property from the strikeline list.
         
         Pablo Oyola - pablo.oyola@ipp.mpg.de
         
@@ -1355,39 +1335,3 @@ class strikeline_db:
                 
             self.root.nstrikeline += 1
             
-        
-# -----------------------------------------------------------------------------
-# --- Example.
-# -----------------------------------------------------------------------------
-
-if __name__ == '__main__':
-    path = 'Lib/iHIBP/38959/' # Path where the strike lines are.
-    
-    # We will list all the files with the '.strikes' extension.
-    strikeFiles = [f for f in listdir(path) if f.endswith('.strikes')]
-    
-    # Writing to the console the number of files found:
-    print('%d files found in folder.'%len(strikeFiles))
-    
-    # Loading the map of strikelines.
-    maps = strikeLine(filename=path+'38959.map', shotnumber=38959)
-    
-    for ii in np.arange(len(strikeFiles)):
-        filename = path+'strikes_%d.strikes'%(ii+1)
-        scimg = strikes(filename=filename)
-        scimg.plotScintillator(min_cb=0, max_cb=1e11)
-        #plt.show()
-        
-        # Getting the current figure:
-        fig = plt.gcf()
-        ax  = plt.gca()
-        ax.set_title('$B_t$ = %.2f s'%(maps.shotinfo['bt0'][ii]))
-        
-        fig.set_size_inches(12.0/2.54, 20.0/2.54)
-        plt.tight_layout()
-        ax.set_xlim(scintillator_limits_X)
-        ax.set_ylim(scintillator_limits_Y)
-        fig.savefig(path+'38959_%d.png'%ii, dpi = 300)
-    
-        plt.close(fig)
-    
