@@ -20,7 +20,9 @@ def paths_of_the_suite(machine='AUG'):
         'LIB_DIR': 'Lib',
         'LIB_iHIBP': 'Lib/iHIBP',
         'LIB_INPA': 'Lib/INPA',
-        'LIB_INPASIM': 'Lib/INPA/INPASIM'
+        'LIB_INPASIM': 'Lib/INPA/INPASIM',
+        'LIB_OPTICS': 'Lib/Optics',
+        'LIB_GUIs': 'Lib/GUIs'
     }
 
     # -- Machine dependent folders:

@@ -184,6 +184,35 @@ def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
     return out
 
 
+def nnRidge(X, y, alpha, param: dict = {}):
+    """
+    Perfom a non-negative Ridge inversion
+
+    @param X: Design matrix
+    @param y: signal
+    @param alpha: hyperparameter
+    @param param. dictionary with extra parameters for scipy.nnls
+    @return ridge.coef_: best fit coefficients
+    @return MSE: Mean squared error
+    @return r2: R2 score
+    """
+    # Auxiliar arrays:
+    n1, n2 = X.shape
+    L = np.eye(n2)
+    GalphaL0 = np.zeros((n2, 1))
+    # Extended design matrix
+    WalphaL = np.vstack((X, np.sqrt(alpha) * L))
+    GalphaL = np.vstack((y[:, np.newaxis], GalphaL0)).squeeze()
+    print(WalphaL.shape, GalphaL.shape)
+    # Non-negative ols solution:
+    beta, dummy = nnls(WalphaL, GalphaL, **param)
+    y_pred = X @ beta
+    MSE = mean_squared_error(y, y_pred)
+    r2 = r2_score(y, y_pred)
+    res = residual(y_pred, y)
+    return beta, MSE, res, r2
+
+
 def Elastic_Net(X, y, alpha, l1_ratio=0.05, positive=True, max_iter=1000):
     """
     Wrap for the elastic net function
