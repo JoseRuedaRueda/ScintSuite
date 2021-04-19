@@ -1,3 +1,8 @@
+** 0.3.3 i-HIBPsim strikeline and strikes reader:
+- New library under iHIBPsim for reading and plotting strikelines and strikes on the scintillator.
+- Added function in LibDataAUG for reading magnetic pick-up coils and group of them (same toroidal location).
+- Added function in LibDataAUG for reading from the equilibrium the basics of the shot data (Bt0, Ip, elongation, ...)
+
 ** 0.3.2: First INPASIM utilities:
 - Added fuction to fit a line to a 3d cloud of points
 - Rewritten paths_suite.py to allow make easier to include new libraries
