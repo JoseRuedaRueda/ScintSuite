@@ -10,12 +10,15 @@ import matplotlib.pyplot as plt
 import LibParameters as sspar
 import LibPlotting as ssplt
 import LibDataAUG as aug
+import LibPaths
 import netCDF4 as nc4
 import dd
 import os
 from LibIO import getFileSize
 from os import listdir
 from warnings import warn
+
+pa = LibPaths.Paths()
 
 # -----------------------------------------------------------------------------
 # --- Index translation.
@@ -46,10 +49,10 @@ MARK_INTENSITY = 20
 # --- Other parameters.
 # ----------------------------------------------------------------------------
 
-scintillator_limits_X = np.array((0.0, 6.6)) # [cm]
-scintillator_limits_Y = np.array((-17.0, 0.0)) # [cm]
+scintillator_limits_X = aug.IHIBP_scintillator_X
+scintillator_limits_Y = aug.IHIBP_scintillator_X
 
-AUG_STRIKELINE_DATABASE = 'Data/StrikeMaps/iHIBP/'
+IHIBP_STRIKELINE_DATABASE_PATH = pa.ihibpsim_strline_database
 
 sigma2fwhm = 2.0*np.sqrt(2.0*np.log(2.0))
 j2keV = 1.0/sspar.ec*1.0e-3
@@ -772,7 +775,7 @@ class strikeline_db:
     Pablo Oyola - pablo.oyola@ipp.mpg.de
     """    
     
-    def __init__(self, filepath: str = AUG_STRIKELINE_DATABASE, 
+    def __init__(self, filepath: str = IHIBP_STRIKELINE_DATABASE_PATH, 
                  species: str='Rb', createNew: bool = False):
         
         """
