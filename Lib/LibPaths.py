@@ -19,6 +19,10 @@ class Path:
             os.path.join(self.ScintSuite, 'Data',
                          'StrikeMaps', 'FILD', 'Tomography')
         self.tracker = os.path.join(home, 'iHIBPsim', 'bin/')
+        self.ihibpsim_strline_database = os.path.join(self.ScintSuite, 
+                                                      'Data',
+                                                      'StrikeMaps',
+                                                      'iHIBP')
         if machine == 'AUG':
             self.iHIBP_videos = '/afs/ipp/home/a/augd/rawfiles/VRT/'
             self.FILDStrikeMapsRemap += '/AUG/'
