@@ -432,22 +432,22 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = False,
     """
     Retrieves from the database the ECE data and the calibrations to obtain
     the electron temperature perturbations.
-    
+
     Pablo Oyola - pablo.oyola@ipp.mpg.de
-    
+
     @param shotnumber: shot Number to get the ECE data.
     @param timeWindow: time window to get the data.
     @param fast: fast reading implies that the position of each of the
     radiometers is averaged along the time window making it faster.
     @param rhopLimits: limits in rho poloidal to retrieve the ECE. If None,
-    the limits are set to [-1.0, 1.0], where the sign is conventional to 
+    the limits are set to [-1.0, 1.0], where the sign is conventional to
     HFS (-) and LFS (+)
     """
-    
-    #--- Opening the shotfiles.
-    exp = 'AUGD' # Only the AUGD data retrieve is supported with the dd.
+
+    # --- Opening the shotfiles.
+    exp = 'AUGD'  # Only the AUGD data retrieve is supported with the dd.
     dt = 2*5.0e-3  # To get a bit more on the edges to make a better interp.
-    method = 'linear' # Interpolation method
+    method = 'linear'  # Interpolation method
     try:
         sf_cec = dd.shotfile(diagnostic='CEC', pulseNumber=shotnumber,
                          experiment=exp,  edition=0) # Slow channel - ECE data.
@@ -455,69 +455,69 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = False,
                          experiment=exp,  edition=0) # Fast channel - ECE data.
     except:
         raise Exception('Shotfile not existent for ECE/RMD/RMC')
-        
+
     try:
         eqh = dd.shotfile(diagnostic='EQH', pulseNumber=shotnumber,
                           experiment=exp, edition=0)
-        equ = meq.equ_map(shotnumber, diag='EQH', exp='AUGD', 
+        equ = meq.equ_map(shotnumber, diag='EQH', exp='AUGD',
                           ed=0)
     except:
         eqh = dd.shotfile(diagnostic='EQI', pulseNumber=shotnumber,
                       experiment=exp, edition=0)
-        equ = meq.equ_map(shotnumber, diag='EQI', exp='AUGD', 
+        equ = meq.equ_map(shotnumber, diag='EQI', exp='AUGD',
                           ed=0)
-        
+
     # Getting the calibration.
     try:
-        cal_shot = dd.getLastShotNumber(diagnostic=b'RMD', 
+        cal_shot = dd.getLastShotNumber(diagnostic=b'RMD',
                                         pulseNumber=shotnumber,
                                         experiment=b'AUGD')
-        
-        sf_rmd = dd.shotfile(diagnostic='RMD', pulseNumber=cal_shot, 
+
+        sf_rmd = dd.shotfile(diagnostic='RMD', pulseNumber=cal_shot,
                          experiment='AUGD', edition=0)
     except:
         raise Exception('Could not retrieve the ECE calibration')
-        
+
     #--- Time base retrieval.
     try:
         # Getting the fastest time basis.
         time = sf_rmc(name='TIME-AD0')
     except:
         raise Exception('Time base not available in shotfile!')
-        
-        
+
+
     if timeWindow is None:
         timeWindow = [time[0], time[-1]]
-        
+
     warnings.filterwarnings('ignore')
     timeWindow[0] = np.maximum(time[0], timeWindow[0])
     timeWindow[1] = np.minimum(time[-1], timeWindow[-1])
-    
+
     #--- Getting the calibration from RMD
     mult_cal = sf_rmd.getParameter('eCAL-A1', 'MULTIA00').data
-    mult_cal = np.append(mult_cal, 
+    mult_cal = np.append(mult_cal,
               sf_rmd.getParameter('eCAL-A2', 'MULTIA00').data)
-    
+
     shift_cal = sf_rmd.getParameter('eCAL-A1', 'SHIFTB00').data
-    shift_cal = np.append(shift_cal, 
+    shift_cal = np.append(shift_cal,
               sf_rmd.getParameter('eCAL-A2', 'SHIFTB00').data)
-    
+
     # Getting the availability.
     avail_cec = sf_cec.getParameter('parms-A', 'AVAILABL').data.astype(bool)
     avail_rmd = sf_rmd.getParameter('parms-A', 'AVAILABL').data.astype(bool)
     avail_rmc = sf_rmc.getParameter('parms-A', 'AVAILABL').data.astype(bool)
     avail_flag = np.array((avail_cec * avail_rmd * avail_rmc), dtype=bool)
-    
+
     del avail_cec
     del avail_rmd
     del avail_rmc
-    
+
     # Getting the positions (R, Z) -> rho_pol
-    rA_rmd = sf_rmd(name='R-A', tBegin=timeWindow[0]-dt, 
+    rA_rmd = sf_rmd(name='R-A', tBegin=timeWindow[0]-dt,
                     tEnd=timeWindow[1]+dt)
-    zA_rmd = sf_rmd(name='z-A', tBegin=timeWindow[0]-dt, 
+    zA_rmd = sf_rmd(name='z-A', tBegin=timeWindow[0]-dt,
                     tEnd=timeWindow[1]+dt)
-    
+
     if fast:
         rA= np.mean(rA_rmd.data, axis=0)
         zA= np.mean(zA_rmd.data, axis=0)
@@ -535,43 +535,43 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = False,
         zA_interp = interp1d(zA_rmd.time, zA_rmd.data, axis = 0,
                              fill_value=np.nan, kind=method,
                              assume_sorted=True, bounds_error=False)
-        
+
         # Getting the rho_pol equivalent to the positions.
-        
+
         rhop = np.zeros(rA_rmd.data.shape)
         rhot = np.zeros(rA_rmd.data.shape)
         for ii in tqdm(np.arange(rA_rmd.data.shape[0])):
             rhop[ii, :] = equ.rz2rho(rA_rmd.data[ii, :], zA_rmd.data[ii, :],
-                                     t_in=rA_rmd.time[ii], 
+                                     t_in=rA_rmd.time[ii],
                                      coord_out='rho_pol',
                                      extrapolate=True)
             rhot[ii, :] = equ.rz2rho(rA_rmd.data[ii, :], zA_rmd.data[ii, :],
-                                      t_in=rA_rmd.time[ii], 
-                                      coord_out='rho_tor',
-                                      extrapolate=True)
-        
-            
+                                     t_in=rA_rmd.time[ii],
+                                     coord_out='rho_tor',
+                                     extrapolate=True)
+
+
         # Creating the interpolators.
-        rhop_interp = interp1d(rA_rmd.time, rhop, axis = 0,
+        rhop_interp = interp1d(rA_rmd.time, rhop, axis=0,
                                fill_value=np.nan, kind=method,
                                assume_sorted=True, bounds_error=False)
-        rhot_interp = interp1d(rA_rmd.time, rhot, axis = 0,
+        rhot_interp = interp1d(rA_rmd.time, rhot, axis=0,
                                fill_value=np.nan, kind=method,
                                assume_sorted=True, bounds_error=False)
     equ.Close()
     sf_rmd.close()
-    
-    
-    #--- Getting the electron temperature from the RMC shotfile.
-    Trad_rmc1 = sf_rmc(name='Trad-A1', 
+
+
+    # --- Getting the electron temperature from the RMC shotfile.
+    Trad_rmc1 = sf_rmc(name='Trad-A1',
                        tBegin=timeWindow[0], tEnd=timeWindow[1])
-    Trad_rmc2 = sf_rmc(name='Trad-A2', 
+    Trad_rmc2 = sf_rmc(name='Trad-A2',
                        tBegin=timeWindow[0], tEnd=timeWindow[1])
-    
+
     sf_rmc.close()
     time = Trad_rmc1.time
     Trad_rmc  = np.append(Trad_rmc1.data, Trad_rmc2.data, axis = 1)
-    
+
     # With the new time-basis, we compute the actual positions of the ECE
     # radiometers in time.
     if fast:
@@ -588,15 +588,15 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = False,
         del zA_interp
         del rhop_interp
         del rhot_interp
-        
-    
+
+
     del Trad_rmc1 # Releasing some memory.
     del Trad_rmc2 # Releasing some memory.
     del rA_rmd
     del zA_rmd
     del rhop
     del rhot
-    
+
     #--- Applying the calibration.
     Trad = np.zeros(Trad_rmc.shape)      # Electron temp [eV]
     Trad_norm = np.zeros(Trad_rmc.shape) # Norm'd by the maximum.
@@ -604,9 +604,9 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = False,
         Trad[:, ii] = Trad_rmc[:, ii]*mult_cal[ii] + shift_cal[ii]
         meanTe = np.mean(Trad[:, ii])
         Trad_norm[:, ii] =  Trad[:, ii]/meanTe
-    
+
     del Trad_rmc # Release the uncalibrated signal from memory.
-    
+
     #--- Checking that the slow channel is consistent with the fast-channels.
     Trad_slow = sf_cec('Trad-A', tBegin = timeWindow[0], tEnd = timeWindow[1])
     sf_cec.close()
@@ -614,7 +614,7 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = False,
     maxRMD    = np.max(Trad, axis=0)
     minRMD    = np.min(Trad, axis=0)
     RmeanRMD = np.mean(Rece.flatten())
-    
+
     # We erase the channels that have and average in the slow channels that
     # are not within the RMD signals. Also, take away those not within the
     # vessel.
@@ -622,32 +622,32 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = False,
     del meanECE
     del maxRMD
     del minRMD
-    
+
     #--- Applying the rhop limits.
     if rhopLimits is None:
         rhopLimits = [-1.0, 1.0]
-        
+
     if fast:
         avail_flag &= ((RhoP_ece > rhopLimits[0]) & \
                        (RhoP_ece < rhopLimits[1]))
-        
+
         Rece = Rece[avail_flag]
         Zece = Zece[avail_flag]
         RhoP_ece = RhoP_ece[avail_flag]
         RhoT_ece = RhoT_ece[avail_flag]
         Trad = Trad[:, avail_flag]
         Trad_norm = Trad_norm[:, avail_flag]
-    else: 
+    else:
         flags = ((RhoP_ece > rhopLimits[0]) & (RhoP_ece < rhopLimits[1]))
-        avail_flag &= np.all(flags, axis=0) # If the channel is continuously 
+        avail_flag &= np.all(flags, axis=0) # If the channel is continuously
                                             # outside, then discard it.
-        Rece = Rece[:, avail_flag] 
-        Zece = Zece[:, avail_flag] 
-        RhoP_ece = RhoP_ece[:, avail_flag] 
-        RhoT_ece = RhoT_ece[:, avail_flag] 
+        Rece = Rece[:, avail_flag]
+        Zece = Zece[:, avail_flag]
+        RhoP_ece = RhoP_ece[:, avail_flag]
+        RhoT_ece = RhoT_ece[:, avail_flag]
         Trad = Trad[:, avail_flag]
         Trad_norm = Trad_norm[:, avail_flag]
-        
+
         # Now, set to NaN the values that are outside the limits.
         flags = not flags[:, avail_flag]
         Rece[flags] = np.nan
@@ -656,53 +656,53 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = False,
         RhoT_ece[flags] = np.nan
         Trad[flags] = np.nan
         Trad_norm[flags] = np.nan
-        
-        
+
+
     #--- Adding a conventional sign to the rhopol and rhotor.
     # Getting the axis center.
-    
+
     eqh_time = np.asarray(eqh(name='time').data)
     eqh_ssqnames = eqh.GetSignal(name='SSQnam')
     eqh_ssq = eqh.GetSignal(name='SSQ')
-    
+
     t0 = (np.abs(eqh_time - timeWindow[0])).argmin() - 1
     t1 = (np.abs(eqh_time - timeWindow[1])).argmin() + 1
-    
+
     ssq = dict()
     for jssq in range(eqh_ssq.shape[1]):
         tmp = b''.join(eqh_ssqnames[jssq,:]).strip()
         lbl = tmp.decode('utf8')
         if lbl.strip() != '':
             ssq[lbl] = eqh_ssq[t0:t1, jssq]
-            
+
     if 'Rmag' not in ssq:
         print('Warning: Proceed with care, magnetic axis radius not found.\n \
               Using the geometrical axis.')
-        if fast: 
+        if fast:
             Raxis = 1.65
         else:
             Raxis = 1.65*np.ones(Rece.shape[0]) # [m]
     else:
         Raxis_eqh = ssq['Rmag']
-        
+
         if fast:
             Raxis = np.mean(Raxis_eqh)
             sign_array = Rece < Raxis
             RhoP_ece[sign_array] = - RhoP_ece[sign_array]
-        else: 
+        else:
             eqh_time = eqh_time[t0:t1]
-            Raxis = interp1d(eqh_time, Raxis_eqh, 
+            Raxis = interp1d(eqh_time, Raxis_eqh,
                              fill_value='extrapolate', kind=method,
                              assume_sorted=True, bounds_error=False)(time)
-            
+
             # If R_ECE < R(magnetic axis), then the rhopol is negative.
             for ii in np.arange(Trad.shape[1]):
                 sign_array = Rece[:,ii] < Raxis
                 RhoP_ece[sign_array, ii] = - RhoP_ece[sign_array, ii]
-    
+
     eqh.close()
     warnings.filterwarnings('default')
-    
+
     #--- Saving output.
     output = {'time': np.asarray(time, dtype=np.float32),
               'r': np.asarray(Rece,dtype=np.float32),
@@ -712,12 +712,12 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = False,
               'Trad': np.asarray(Trad,dtype=np.float32),
               'Trad_norm': np.asarray(Trad_norm,dtype=np.float32),
               'Raxis': np.asarray(Raxis,dtype=np.float32),
-              'fast_rhop': fast, 
+              'fast_rhop': fast,
               'active': avail_flag,
               'channels': (np.arange(len(avail_flag))+1)[avail_flag],
               'shotnumber': shotnumber
               }
-    
+
     return output
 
 
@@ -725,29 +725,29 @@ def correctShineThroughECE(ecedata: dict, diag: str = 'PED', exp: str = 'AUGD',
                            edition: int = 0):
     """
     For a given data-set of the ECE data, a new entry will be provided with
-    the temperature divided by the electron temperature gradient, trying to 
+    the temperature divided by the electron temperature gradient, trying to
     correct the shine-through effect.
-    
+
     Pablo Oyola - pablo.oyola@ipp.mpg.de
-    
+
     @param ecedata: dictionary with the data from the ECE.
     @param diag: Diagnostic from which the eletron gradient will be retrieved.
     By default is set to PED in AUGD, because its separatrix value are more
     reliable. If the PED shotfile is not found, then the IDA shotfile will be
     opened.
-    @parad exp: experiment from which the electron temperature will be 
+    @parad exp: experiment from which the electron temperature will be
     extracted. By default, AUGD.
     @param ed: Edition to retrieve from equilibrium. The latest is taken by
     default.
     """
-    
+
     #--- Trying to open the PED shotfile.
     using_PED = False
     if diag == 'PED':
         sf = dd.shotfile(diagnostic='PED', experiment=exp,
-                         pulseNumber=ecedata['shotnumber'], 
+                         pulseNumber=ecedata['shotnumber'],
                          edition=edition)
-        
+
         name_te = 'TeFit'
         name_rhop = 'rhoFit'
         using_PED = True
@@ -755,60 +755,60 @@ def correctShineThroughECE(ecedata: dict, diag: str = 'PED', exp: str = 'AUGD',
         sf = dd.shotfile(diagnostic='IDA', experiment='AUGD',
                          pulseNumber=ecedata['shotnumber'],
                          edition=edition)
-        
+
         name_te = 'dTe_dr'
         name_rhop = 'rhop'
-    
+
     rhop = sf(name=name_rhop, tBegin=ecedata['fft']['time'][0],
               tEnd=ecedata['fft']['time'][-1])
-    
+
     te_data = sf(name=name_te, tBegin=ecedata['fft']['time'][0],
                  tEnd=ecedata['fft']['time'][-1])
-    
+
     if using_PED:
         dte     = np.abs(np.diff(te_data.data.squeeze()))
         drhop   = np.diff(rhop.data.squeeze())
         dtedrho = dte/drhop
         rhop_c  = (rhop.data.squeeze()[1:] + rhop.data.squeeze()[:-1])/2.0
-        
-        dte_eval = interp1d(rhop_c, dtedrho, kind='linear', 
+
+        dte_eval = interp1d(rhop_c, dtedrho, kind='linear',
                             bounds_error=False, fill_value='extrapolate')\
                             (np.abs(ecedata['rhop']))
-                            
+
         ecedata['fft']['dTe'] = dtedrho
         ecedata['fft']['dTe_base'] = rhop_c
-                            
-        ecedata['fft']['spec_dte'] = ecedata['fft']['spec']   
+
+        ecedata['fft']['spec_dte'] = ecedata['fft']['spec']
         for ii in np.arange(ecedata['fft']['spec_dte'].shape[0]):
             for jj in np.arange(ecedata['fft']['spec_dte'].shape[1]):
                 ecedata['fft']['spec_dte'][ii, jj, :] /= dte_eval
-        
+
     else:
         time = sf(name='time')
-        t0 = np.maximum(0, 
+        t0 = np.maximum(0,
                         np.abs(time.flatten() - \
                                ecedata['fft']['time'][0]).argmin() - 1)
-        t1 = np.minimum(len(time)-1, 
+        t1 = np.minimum(len(time)-1,
                         np.abs(time.flatten() - \
                                ecedata['fft']['time'][-1]).argmin() + 1)
-        
+
         t0 = np.asarray(t0, dtype=int)
         t1 = np.asarray(t1, dtype=int)
-        
+
         # Reducing the size, to make easier the interpolation.
-        
+
         time = time[t0:t1]
         te_data = te_data.data[t0:t1, :]
         rhop = rhop[t0, :]
-        
+
         dte_eval_fun = interp2d(time, rhop, np.abs(te_data.T))
-        
-        dte_eval = np.abs(dte_eval_fun(ecedata['fft']['time'], 
+
+        dte_eval = np.abs(dte_eval_fun(ecedata['fft']['time'],
                                        np.abs((ecedata['rhop']))).T)
-        
+
         ecedata['fft']['dTe_base'] = rhop
         ecedata['fft']['dTe'] = np.abs(np.mean(te_data, axis=0))
-        ecedata['fft']['spec_dte'] = ecedata['fft']['spec']          
+        ecedata['fft']['spec_dte'] = ecedata['fft']['spec']
         for ii in np.arange(ecedata['Trad'].shape[1]):
             ecedata['fft']['spec_dte'][:, ii, :] /= dte_eval
     return ecedata
@@ -898,9 +898,9 @@ def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
                   timeWindow: float = None):
     """
     Retrieves from the shot file the magnetic data information.
-    
+
     Pablo Oyola - pablo.oyola@ipp.mpg.de
-    
+
     @param shotnumber: Shot number to get the data.
     @param coilNumber: Coil number in the coil array.
     @param coilGroup: can be B31, B17, C09,... by default set to B31
@@ -909,31 +909,31 @@ def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
     time window will be obtained.
     @return output: magnetic data (time traces and position.)
     """
-    
+
     if shotnumber <= 33739:
         diag = 'MHA'
     else:
         diag = 'MHI'
-        
+
     exp = 'AUGD' # Only the AUGD data retrieve is supported with the dd.
-    
+
     try:
         sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber,
                          experiment=exp,  edition=0)
     except:
         raise Exception('Shotfile not existent for '+diag+' #'+str(shotnumber))
-    
-    
+
+
     try:
         # Getting the time base.
         time = sf(name='Time')
     except:
         raise Exception('Time base not available in shotfile!')
-        
-        
+
+
     if timeWindow is None:
         timeWindow = [time[0], time[-1]]
-    
+
     timeWindow[0] = np.maximum(time[0], timeWindow[0])
     timeWindow[1] = np.minimum(time[-1], timeWindow[1])
     
@@ -950,8 +950,8 @@ def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
     # Get the last shotnumber where the calibration is written.
     cal_shot = dd.getLastShotNumber(diagnostic=b'CMH', pulseNumber=shotnumber,
                                     experiment=b'AUGD')
-    
-    sf = dd.shotfile(diagnostic='CMH', pulseNumber=cal_shot, 
+
+    sf = dd.shotfile(diagnostic='CMH', pulseNumber=cal_shot,
                      experiment='AUGD', edition=0)
     cal_name = 'C'+name
     cal = {'R': sf.getParameter(setName=cal_name, parName=b'R').data,
@@ -961,21 +961,21 @@ def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
            'EffArea': sf.getParameter(setName=cal_name, 
                                       parName=b'EffArea').data
           }
-        
-        
+
+
     t0 = np.abs(mhi.time-timeWindow[0]).argmin()
     t1 = np.abs(mhi.time-timeWindow[-1]).argmin()
     output = {'time': mhi.time[t0:t1],
               'data': mhi.data[t0:t1],
-              'R': cal['R'], 
-              'z': cal['z'], 
+              'R': cal['R'],
+              'z': cal['z'],
               'phi': cal['phi'],
               'theta':cal['theta'],
               'area': cal['EffArea']
              }
-    
+
     sf.close()
-    
+
     return output
 
 
