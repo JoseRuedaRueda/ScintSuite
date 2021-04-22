@@ -60,7 +60,7 @@ def OLS_inversion(X, y):
     return beta, MSE, res, r2
 
 
-def nnls_inversion(X, y, param: dict = {}):
+def nnols_inversion(X, y, param: dict = {}):
     """
     Perform a non-negative least squares inversion using scipy
 
@@ -211,6 +211,87 @@ def nnRidge(X, y, alpha, param: dict = {}):
     r2 = r2_score(y, y_pred)
     res = residual(y_pred, y)
     return beta, MSE, res, r2
+
+
+def nnRidge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
+                 log_spaced: bool = True, plot: bool = True,
+                 line_param: dict = {'linewidth': 1.5},
+                 FS: float = 14):
+    """
+    Scan the alpha parameters to find the best hyper-parameter (nnRidge)
+
+    Jose Rueda: jrrueda@us.es
+
+    @param X: Design matrix
+    @param y: signal
+    @param alpha_min: minimum value for the hyper-parameter scan
+    @param alpha_max: maximum value for the hyper-parameter scan
+    @param n_alpha: number of points in the scan
+    @param log_spaced: if true, points will be logspaced
+    @param line_param: dictionary with the line plotting parameters
+    @param FS: FontSize
+    @return out: Dictionay with fields:
+        -# beta: array of coefficients [nfeatures, nalphas]
+        -# MSE: arrays of MSEs
+        -# r2: arrays of r2
+        -# residual: arrays of residual
+        -# norm: norm of the coefficients
+        -# alpha: Used hyperparameters
+    """
+    # --- Initialise the variables
+    npoints, nfeatures = X.shape
+    beta = np.zeros((nfeatures, n_alpha))
+    MSE = np.zeros(n_alpha)
+    r2 = np.zeros(n_alpha)
+    res = np.zeros(n_alpha)
+
+    if log_spaced:
+        alpha = np.logspace(np.log10(alpha_min), np.log10(alpha_max), n_alpha)
+    else:
+        alpha = np.linspace(alpha_min, alpha_max, n_alpha)
+    # --- Perform the scan
+    print('Performing regression')
+    for i in tqdm(range(n_alpha)):
+        beta[:, i], MSE[i], res[i], r2[i] = nnRidge(X, y, alpha[i])
+
+    # --- Plot if needed:
+    if plot:
+        fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
+        # Plot the r2:
+        ax1.plot(alpha, r2, **line_param)
+        ax1.grid(True, which='minor', linestyle=':')
+        ax1.minorticks_on()
+        ax1.grid(True, which='major')
+        ax1.set_ylabel('$r^2$', fontsize=FS)
+
+        # Plot the MSE
+        ax2.plot(alpha, MSE, **line_param)
+        ax2.grid(True, which='minor', linestyle=':')
+        ax2.minorticks_on()
+        ax2.grid(True, which='major')
+        ax2.set_ylabel('MSE', fontsize=FS)
+        ax2.set_xlabel('$\\alpha$')
+
+        # Plot the modulus versus the residual
+        fig2, ax = plt.subplots()
+        y = np.sum(np.sqrt(beta**2), axis=0)
+        ax.plot(res, y, **line_param)
+        ax.grid(True, which='minor', linestyle=':')
+        ax.minorticks_on()
+        ax.grid(True, which='major')
+        ax.set_ylabel('$|F| [a.u.]$', fontsize=FS)
+        ax.set_xlabel('Residual')
+        if log_spaced:
+            ax.set_xscale('log')
+    out = {
+        'beta': beta,
+        'MSE': MSE,
+        'residual': res,
+        'norm': np.sum(np.sqrt(beta**2), axis=0),
+        'r2': r2,
+        'alpha': alpha,
+    }
+    return out
 
 
 def Elastic_Net(X, y, alpha, l1_ratio=0.05, positive=True, max_iter=1000):

@@ -1025,7 +1025,13 @@ def read_data_png(path):
 
 
 def rgb2gray(rgb):
-    """Transform rgb images to gray"""
+    """
+    Transform rgb images to gray
+
+    Jose Rueda: jrrueda@us.es
+
+    It uses the scaling of MATLAB and opencv
+    """
     return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
 
 

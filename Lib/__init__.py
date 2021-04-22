@@ -15,7 +15,7 @@ import LibTomography as tomo
 import iHIBP as ihibp
 import GUIs as GUI
 import INPA as inpa
-import Optics as optics
+import LibOptics as optics
 from version_suite import version
 if m.machine == 'AUG':
     import LibDataAUG as dat

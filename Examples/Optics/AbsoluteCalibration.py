@@ -48,8 +48,8 @@ trace_current = trace.sum_of_roi * c_to_e * ss.par.ec\
 # -----------------------------------------------------------------------------
 # --- Section 2: sphere and camera data
 # -----------------------------------------------------------------------------
-cam = ss.optics.transmission.read_spectral_response(camera_response_path, True)
-sph = ss.optics.transmission.read_sphere_data(sphere_path, True)
+cam = ss.optics.read_spectral_response(camera_response_path, True)
+sph = ss.optics.read_sphere_data(sphere_path, True)
 # Interpolate camera data in the same Wl axis:
 inter1D = interp.interp1d(cam['lambda'], cam['response'], fill_value=0,
                           bounds_error=False)
