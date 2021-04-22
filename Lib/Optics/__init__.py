@@ -1,1 +1,0 @@
-import LibOpticsAbsoluteTransmission as transmission
