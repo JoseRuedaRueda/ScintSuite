@@ -68,7 +68,7 @@ fild4 = {'alpha': 0.0, 'beta': -12.0, 'sector': 8, 'r': 2.035,
          'extension': '', 'label': 'FILD4', 'diag': 'FHD', 'channel': 'Chan-',
          'nch': 32, 'camera': 'CCD'}
 
-fild5 = {'alpha': -48.3, 'beta': -12.0, 'sector': 7, 'r': 1.772,
+fild5 = {'alpha': -41.7, 'beta': -12.0, 'sector': 7, 'r': 1.772,
          'z': -0.798, 'phi_tor': 147.25,
          'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD5/',
          'extension': '', 'label': 'FILD5', 'diag': 'FHE', 'channel': 'Chan-',
@@ -213,16 +213,16 @@ def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
     return psipol
 
 
-def get_shot_basics(shotnumber: int = None, diag: str = 'EQH', 
+def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
                     exp: str = 'AUGD', edition: int = 0,
                     time: float = None):
     """
-    Retrieves from the equilibrium reconstruction the basic data stored into 
-    a dictionary. Technically, it reads the SSQ from the equilibrium 
+    Retrieves from the equilibrium reconstruction the basic data stored into
+    a dictionary. Technically, it reads the SSQ from the equilibrium
     diagnostic.
-    
+
     Pablo Oyola - pablo.oyola@ipp.mpg.de
-    
+
     @param shot: Shot number.
     @param diag: Equilibrium diagnostic. By default EQH.
     @param exp: Experiment where the data is stored.
@@ -231,7 +231,7 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
     appropriate data point will be retrieved. If None, all the data points are
     obtained.
     """
-    
+
     # Checking the inputs.
     new_equ_opened = False
     try:
@@ -240,13 +240,13 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
         new_equ_opened = True
     except:
         raise Exception('EQU shotfile cannot be opened.')
-        
-        
+
+
     # Deactivate the nasty warnings for a while.
     warnings.filterwarnings('ignore', category=DeprecationWarning)
     warnings.filterwarnings('ignore', category=RuntimeWarning)
     eqh_time = np.asarray(sf(name='time').data) # Time data.
-    
+
     # Checking the time data.
     nt = len(eqh_time)
     if time is None:
@@ -258,12 +258,12 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
     else:
         t0 = np.abs(eqh_time.flatten() - time[0]).argmin() - 1
         t1 = np.abs(eqh_time.flatten() - time[-1]).argmin() + 1
-    
+
     # Getting the names and the SSQ data.
     eqh_ssqnames = sf.GetSignal(name='SSQnam')
     eqh_ssq = sf.GetSignal(name='SSQ')
-    warnings.filterwarnings('default') 
-    
+    warnings.filterwarnings('default')
+
     # Unpacking the data.
     ssq = dict()
     for jssq in range(eqh_ssq.shape[1]):
@@ -271,55 +271,55 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
         lbl = tmp.decode('utf8')
         if lbl.strip() != '':
             ssq[lbl] = eqh_ssq[t0:t1, jssq]
-            
+
     if new_equ_opened:
         sf.close()
-    
+
     # Adding the time.
     ssq['time'] = eqh_time[t0:t1]
-    
+
     #--- Reading the plasma current.
     try:
         sf = dd.shotfile(pulseNumber=shotnumber, diagnostic='MAG',
                           experiment='AUGD', edition=0)
     except:
         raise Exception('Error loading the MAG shotfile')
-    
+
     # Getting the raw data.
     ipa_raw = sf(name='Ipa', tBegin=ssq['time'][0], tEnd=ssq['time'][-1])
     ipa     = ipa_raw.data
     ipa_time= ipa_raw.time
-    
+
     # Getting the calibration.
     multi = sf.getParameter('06ULID12', 'MULTIA00').data.astype(dtype=float)
     shift = sf.getParameter('06ULID12', 'SHIFTB00').data.astype(dtype=float)
-    
+
     ssq['ip'] = ipa*multi + shift # This provides the current in A.
     ssq['ip'] *= 1.0e-6
     ssq['iptime'] = ipa_time
-    
+
     # Close the shotfile.
     sf.close()
-    
+
     #--- Getting the magnetic field at the axis.
     try:
-        sf = dd.shotfile(pulseNumber=shotnumber, experiment='AUGD', 
+        sf = dd.shotfile(pulseNumber=shotnumber, experiment='AUGD',
                          diagnostic='MAI', edition=0)
     except:
         raise Exception('MAI shotfile could not be loaded!')
-        
+
     # Getting toroidal field.
     btf_sf   = sf(name='BTF', tBegin=ssq['time'][0], tEnd=ssq['time'][-1])
     btf      = btf_sf.data
     btf_time = btf_sf.time
-    
+
     # Getting the calibration.
     multi = sf.getParameter('14BTF', 'MULTIA00').data.astype(dtype=float)
     shift = sf.getParameter('14BTF', 'SHIFTB00').data.astype(dtype=float)
-    
+
     ssq['bt0'] = multi*btf + shift
     ssq['bttime'] = btf_time
-            
+
     return ssq
 
 # -----------------------------------------------------------------------------
@@ -812,7 +812,7 @@ def correctShineThroughECE(ecedata: dict, diag: str = 'PED', exp: str = 'AUGD',
         for ii in np.arange(ecedata['Trad'].shape[1]):
             ecedata['fft']['spec_dte'][:, ii, :] /= dte_eval
     return ecedata
-    
+
 # -----------------------------------------------------------------------------
 # --- Vessel coordinates
 # -----------------------------------------------------------------------------
@@ -936,7 +936,7 @@ def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
 
     timeWindow[0] = np.maximum(time[0], timeWindow[0])
     timeWindow[1] = np.minimum(time[-1], timeWindow[1])
-    
+
     name = '%s-%02d'%(coilGroup, coilNumber)
     try:
         # Getting the time base.
@@ -944,7 +944,7 @@ def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
     except:
         raise Exception(name+' not available in shotfile.')
         sf.close()
-    
+
     sf.close()
     #--- Getting the calibration factors from the CMH shotfile.
     # Get the last shotnumber where the calibration is written.
@@ -958,7 +958,7 @@ def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
            'z': sf.getParameter(setName=cal_name, parName=b'z').data,
            'phi': sf.getParameter(setName=cal_name, parName=b'phi').data,
            'theta': sf.getParameter(setName=cal_name, parName=b'theta').data,
-           'EffArea': sf.getParameter(setName=cal_name, 
+           'EffArea': sf.getParameter(setName=cal_name,
                                       parName=b'EffArea').data
           }
 
@@ -979,146 +979,146 @@ def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
     return output
 
 
-def get_magnetic_poloidal_grp(shotnumber: int, timeWindow: float, 
+def get_magnetic_poloidal_grp(shotnumber: int, timeWindow: float,
                               coilGrp: int=None):
-    
+
     """
     It retrieves from the database the data of a set of magnetic coils lying
     within the same phi-angle. The way to choose them is either providing the
     coils group as provided above or giving the phi angle, and the nearest set
     of coils will be obtained. For example:
         phi_range = 45º will provide the C07 coil group.
-        
+
     Pablo Oyola - pablo.oyola@ipp.mpg.de
-    
+
     @param shotnumber: Shotnumber to retrieve the magnetic coils.
     @param timeWindow: time window to get the data.
     @param coilGrp: 'C07', 'C09', 'B31-5_11', 'B31-32-38' depending upon the
     group that needs to be read from database.
-    @param phi_mag: each coil group is characterized by an approximate phi  
-    angle. If this is provided, the nearest group in phi is retrieved from the 
-    database. See variable @see{MHI_GROUP_APPR_PHI} to see which are the 
+    @param phi_mag: each coil group is characterized by an approximate phi
+    angle. If this is provided, the nearest group in phi is retrieved from the
+    database. See variable @see{MHI_GROUP_APPR_PHI} to see which are the
     angles used.
-    
+
     @return output: group of the magnetic coils.
     """
     # --- Parsing the inputs
     if coilGrp is None:
         raise Exception('Either the coil-group or the angle must be provided.')
-    
-    # If the time window is a single float, we will make an array containing 
+
+    # If the time window is a single float, we will make an array containing
     # at least a 5ms window.
-    dt = 5e-3 
+    dt = 5e-3
     if len(timeWindow) == 1:
         timeWindow = np.array((timeWindow, timeWindow + dt))
-        
+
     # --- Parsing the magnetic group input
     # Check if it is in the list of coils.
     if coilGrp not in mag_coils_grp2coilName:
         raise Exception('Coil group, %s, not found!'%coilGrp)
-        
+
     # Getting the list with the coils names.
     coil_list = mag_coils_grp2coilName[coilGrp]
     numcoils = len(coil_list[1])
-    
+
     # --- Opening the shotfile.
     if shotnumber <= 33739:
         diag = 'MHA'
     else:
         diag = 'MHI'
-        
+
     exp = 'AUGD' # Only the AUGD data retrieve is supported with the dd.
-    
+
     try:
         sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber,
                          experiment=exp,  edition=0)
     except:
         raise Exception('Shotfile not existent for '+diag+' #'+str(shotnumber))
-    
-    
+
+
     try:
         # Getting the time base.
         time = sf(name='Time')
     except:
         raise Exception('Time base not available in shotfile!')
-        
-        
+
+
     if timeWindow is None:
         timeWindow = [time[0], time[-1]]
-    
+
     timeWindow[0] = np.maximum(time[0], timeWindow[0])
     timeWindow[1] = np.minimum(time[-1], timeWindow[1])
-    
-    
+
+
     #--- Getting the calibration factors from the CMH shotfile.
     # Get the last shotnumber where the calibration is written.
     try:
         cal_shot = dd.getLastShotNumber(diagnostic=b'CMH', pulseNumber=shotnumber,
                                         experiment=b'AUGD')
-        cal_sf = dd.shotfile(diagnostic='CMH', pulseNumber=cal_shot, 
+        cal_sf = dd.shotfile(diagnostic='CMH', pulseNumber=cal_shot,
                              experiment='AUGD', edition=0)
     except:
         sf.close()
         raise Exception('Could not get the calibration data.')
-    
-    # --- Getting the coils data.    
+
+    # --- Getting the coils data.
     output = { 'phi': np.zeros((numcoils,)),
                'theta': np.zeros((numcoils,)),
                'dtheta': np.zeros((numcoils,)),
                'R': np.zeros((numcoils,)),
                'z': np.zeros((numcoils,)),
                'area': np.zeros((numcoils,)),
-               'time': [], 
+               'time': [],
                'data': [],
                'coilNumber': np.zeros((numcoils,)),
              }
-    
+
     jj = 0
     flags = np.zeros((numcoils,), dtype=bool)
     for ii in tqdm(np.arange(numcoils)):
         name = '%s-%02d'%(coil_list[0], coil_list[1][ii])
         cal_name = 'C'+name
-        
-        
+
+
         try:
             # Try to get the magnetic data.
-            mhi = sf(name=name, tBegin=timeWindow[0], 
+            mhi = sf(name=name, tBegin=timeWindow[0],
                                 tEnd=timeWindow[-1])
-            
+
             # Try to get the calibration.
-            cal = {'R': cal_sf.getParameter(setName=cal_name, 
+            cal = {'R': cal_sf.getParameter(setName=cal_name,
                                             parName=b'R').data,
-                   
+
                    'z': cal_sf.getParameter(setName=cal_name,
                                             parName=b'z').data,
-                   
-                   'phi': cal_sf.getParameter(setName=cal_name, 
+
+                   'phi': cal_sf.getParameter(setName=cal_name,
                                           parName=b'phi').data,
-                   
-                   'theta': cal_sf.getParameter(setName=cal_name, 
+
+                   'theta': cal_sf.getParameter(setName=cal_name,
                                             parName=b'theta').data,
-                   
-                   'dtheta': cal_sf.getParameter(setName=cal_name, 
+
+                   'dtheta': cal_sf.getParameter(setName=cal_name,
                                                  parName=b'dtheta').data,
-                   
-                   'area': cal_sf.getParameter(setName=cal_name, 
+
+                   'area': cal_sf.getParameter(setName=cal_name,
                                           parName=b'EffArea').data
-                       } 
+                       }
         except:
             print('Could not retrieve coils %s-%02d'%
                  (coil_list[0],coil_list[1][ii]))
             continue
-        
-        
+
+
         t0 = np.abs(mhi.time-timeWindow[0]).argmin()  # Beginning time index.
         t1 = np.abs(mhi.time-timeWindow[-1]).argmin() # Ending time index.
-        
+
         if jj == 0:
             output['time'] = mhi.time[t0:t1]
             output['data'] = mhi.data[t0:t1]
         else:
             output['data'] = np.vstack((output['data'], mhi.data[t0:t1]))
-        
+
         output['phi'][ii] = cal['phi']
         output['theta'][ii] = cal['theta']
         output['dtheta'][ii] = cal['dtheta']
@@ -1127,12 +1127,12 @@ def get_magnetic_poloidal_grp(shotnumber: int, timeWindow: float,
         output['area'][ii] = cal['area']
         output['coilNumber'][ii] = ii+1
         flags[ii] = True
-        
+
         jj += 1
-        
+
         del mhi
         del cal
-        
+
     #--- All the coils have been read.
     # Removing the holes left by the coils that were not available in MHI.
     output['phi']  = output['phi'][flags]
@@ -1145,7 +1145,7 @@ def get_magnetic_poloidal_grp(shotnumber: int, timeWindow: float,
     # --- Closing shotfiles.
     sf.close()
     cal_sf.close()
-        
+
     return output
 
 
@@ -1185,31 +1185,31 @@ def _NBI_diaggeom_coordinates(nnbi):
     return coords
 
 def getNBIwindow(timeWindow: float, shotnumber: int,
-                 nbion: int, nbioff: int = None, 
+                 nbion: int, nbioff: int = None,
                  simul: bool = True, pthreshold: float = 2.0):
     """
     Gets the time window within the limits provide within the timeWindow that
     corresponds to the list nbiON that are turned on and the list nbioff.
-    
+
     Pablo Oyola - pablo.oyola@ipp.mpg.de
-    
+
     @param timeWindow: window of time to retrieve the NBI data.
     @param shotnumber: Shot number from where to take the NBI timetraces.
     @param nbion: list with the NBI number that should be ON.
     @param nbioff: list with the NBIs that should be OFF.
     @param simul: simultaneous flag. If True all the NBIs of nbion should be
     ON simultaenously.
-    @param pthreshold: power threshold to consider the beam is ON [MW]. 
+    @param pthreshold: power threshold to consider the beam is ON [MW].
     Default to 2.0 MW (to choose the 2.5MW standard beam.)
     """
-    
+
     # --- Checking the time inputs.
     if len(timeWindow) == 1:
         timeWindow = np.array((timeWindow, np.inf))
-        
+
     elif np.mod(len(timeWindow), 2) != 0:
         timeWindow[len(timeWindow)] = np.inf
-        
+
     # --- Opening the NBIs shotfile.
     try:
         sf = dd.shotfile(diagnostic='NIS', pulseNumber=shotnumber,
@@ -1223,12 +1223,12 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
     if nbioff is not None:
         nbioff_box = np.asarray(np.floor(nbioff/4), dtype=int)
         nbioff_idx = np.asarray(nbioff - (nbioff_box+1)*4 - 1, dtype=int)
-    
+
     #--- Reading the NBI data.
     pniq = np.transpose(sf.getObjectData(b'PNIQ'), (2, 0, 1))*1.0e-6
     timebase = sf.getTimeBase(b'PNIQ')
     sf.close()
-    
+
     t0_0 = np.abs(timebase-timeWindow[0]).argmin()
     t1_0 = np.abs(timebase-timeWindow[-1]).argmin()
     # Selecting the NBIs.
@@ -1236,46 +1236,46 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
     if nbioff is not None:
         pniq_off = pniq[t0_0:t1_0, nbioff_box, nbioff_idx] > pthreshold
     timebase = timebase[t0_0:t1_0]
-    
+
     # --- Reshaping the PNIQ into a 2D matrix for easier handling.
-    
+
     if len(nbion) == 1:
         pniq_on = np.reshape(pniq_on, (len(pniq_on),1))
     else:
-        pniq_on = pniq_on.reshape((pniq_on.shape[0], 
+        pniq_on = pniq_on.reshape((pniq_on.shape[0],
                                    pniq_on.shape[1]*pniq_on.shape[2]))
-     
+
     if nbioff is not None:
         if len(nbioff) == 1:
             pniq_off = np.reshape(pniq_off, (len(pniq_off),1))
         else:
-            pniq_off = pniq_off.reshape((pniq_off.shape[0], 
+            pniq_off = pniq_off.reshape((pniq_off.shape[0],
                                          pniq_off.shape[1]*pniq_off.shape[2]))
-    
+
     if simul: # if all the NBIs must be simultaneously ON.
         auxON = np.all(pniq_on, axis=1)
     else: # if only one of the beams must be turned on.
         auxON = np.any(pniq_on, axis=1)
-    
+
     # We take out the times at which the NBI_OFF are ON.
     if nbioff is not None:
         auxOFF = np.logical_not(np.any(pniq_off, axis=1))
-        
+
         # Making the AND operation for all the times.
         aux = np.logical_and(auxON, auxOFF)
     else:
         aux = auxON
-   
+
     # --- Loop over the time windows.
     nwindows = np.floor(len(timeWindow)/2)
     flags = np.zeros((pniq_on.shape[0],), dtype=bool)
     for ii in np.arange(nwindows, dtype=int):
         t0 = np.abs(timebase-timeWindow[2*ii]).argmin()
         t1 = np.abs(timebase-timeWindow[2*ii + 1]).argmin()
-        
+
         flags[t0:t1] = True
-    
-            
+
+
     # --- Filtering the outputs.
     aux = np.logical_and(flags, aux)
     data = pniq[t0_0:t1_0, nbion_box,  nbion_idx]

@@ -579,6 +579,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     # shit in python 3, so we need a work around
     if not got_smap:
         if machine == 'AUG':
+            print('Opening shotfile from magnetic field')
             import map_equ as meq
             equ = meq.equ_map(shot, diag='EQH')
         br = np.zeros(nframes)
