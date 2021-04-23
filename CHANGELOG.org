@@ -1,3 +1,6 @@
+** 0.3.5: Bug solved
+- *Bug solved* Solved issue #54 on the broken time base of CCD cameras
+
 ** 0.3.4: First INPASIM utilities:
 - GUIs files where divided into a new folder GUIs
 - *Included requested feature*: Issue #33. Now if a path is passed to the remap routine mask=path the code will load the mask contained in file inidcated by path
@@ -5,7 +8,6 @@
 - Included method to cut the video in the Video class, to restric to a given region of pixels: Video.cut_frames()
 - A flag was added in the noise_subtraction and filter methods of the Video class in order to decide if we want to create a copy of the experimental frames or not
 - First methods to calculate optical transmission
-
 
 ** 0.3.3 i-HIBPsim strikeline and strikes reader:
 - New library under iHIBPsim for reading and plotting strikelines and strikes on the scintillator.
