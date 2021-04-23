@@ -9,6 +9,7 @@ PNG files as the old FILD_GUI and will be able to work with tiff files
 import os
 import re
 import warnings
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 import tkinter as tk                       # To open UI windows
@@ -1006,9 +1007,13 @@ def read_data_png(path):
         except KeyError:
             raise Exception('Expected uint8,16,32,64 in the frames')
         time_base = dummy[:, 3]
+        # --- Check for problemns in the timebase:
+        # - P1: Time base completelly broken:
         # Sometimes the camera break and set the says that all the frames
         # where recorded at t = 0... in this case just assume a time base on
-        # the basis of the exposition time
+        # the basis of the exposition time.
+        # Usually in this situation the camera records fine, it just its time
+        # module which is broken
         std_time = np.std(time_base)
         # Test if all the exposue time was the same
         if std_time < 1e-2 and np.mean(time_base) < 0.1:
@@ -1016,10 +1021,50 @@ def read_data_png(path):
                                     int(dummy[-1, 0]))
             print('Caution!! the experimental time base was broken, a time '
                   'base has been generated on the basis of theexposure time')
-        elif np.mean(time_base) < 0.1:
-            raise Exception('The time base was broken!!!')
-    # extract the shot number from the path
-    # header['shot'] = int(path[-5:])
+        # - P2: Time base partially broken:
+        # some times after recording some frames, the camera fail and record
+        # 'broken frames'. Usually also the time points for these broken frames
+        # is zero (example 34597 at 4.48s). To ensure we are not in one of
+        # these cases, call the check time base function:
+        if check_timebase(time_base):
+            print('The time base seems broken!!!!')
+            print('Time is not always increasing!')
+            print('What do you want to do?: ')
+            print('1: Plot the time base')
+            print('Otherwhise: Continue without plotting')
+            print('Note: the plot will only be shown when spyder finish')
+            print('Sorry, spyder issues ')
+            a = input('Enter the answer: ')
+            if int(a) == 1:
+                # fig, ax = plt.subplots()
+                # ax.plot(time_base)
+                # ax.set_ylabel('Time [s]')
+                # ax.set_xlabel('Frame number')
+                plt.plot(time_base)
+                plt.ylabel('Time [s]')
+                plt.xlabel('Frame number')
+                plt.show()
+
+            print('Now what?: ')
+            print('0: Ignore those frames')
+            print('1: Include a fake time base for those frames')
+            print('Otherwise: Continue with this weird time base')
+            a = int(input('Enter the answer: '))
+            if a == 0 or a == 1:
+                dif = np.diff(time_base)
+                flags = dif < 0
+                id = np.arange(len(time_base))
+                id = id[1:]
+                limit = id[flags]
+                limit = int(limit[:])
+            if a == 0:
+                header['ImageCount'] = limit
+                time_base = time_base[:limit]
+            if a == 1:
+                tb = time_base.copy()
+                time_base = np.linspace(0, dummy[-1, 0] * dummy[0, 2] / 1000,
+                                        int(dummy[-1, 0]))
+                time_base[:limit] = tb[:limit]
 
     return header, imageheader, settings, time_base[:].flatten()
 
@@ -1193,6 +1238,26 @@ def guess_filename(shot: int, base_dir: str, extension: str = ''):
     name = shot_str + extension
     file = os.path.join(base_dir, shot_str[0:2], name)
     return file
+
+
+def check_timebase(timebase):
+    """
+    Check the time base looking for corrupted frames
+
+    Jose Rueda: jrrueda@us.es
+
+    Created because in some case, when we activate ICRH, CCD cameras of FILDs
+    fails so for example up to t = 4.8 measured perfectly and them all
+    time points become zero. This will detect if that happens
+
+    @param timebase: time base of the frames (np.array)
+    @return corrupt: flag to say if the timebase is corrupt or not
+    """
+    if np.sum(np.diff(timebase)<0) > 0:
+        corrupt = True
+    else:
+        corrupt = False
+    return corrupt
 
 
 def binary_image(frame, threshold, bool_flag: bool = True):
