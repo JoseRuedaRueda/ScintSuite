@@ -127,6 +127,9 @@ def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
         -# residual: arrays of residual
         -# norm: norm of the coefficients
         -# alpha: Used hyperparameters
+    @return figures: Dictionay with the figures created by the method:
+        -# Merit: r2 and MSE vs hyperparam
+        -# L_curve: f norm vs residual
     """
     # --- Initialise the variables
     npoints, nfeatures = X.shape
@@ -173,6 +176,12 @@ def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
         ax.set_xlabel('Residual')
         if log_spaced:
             ax.set_xscale('log')
+        figures = {
+            'Merit': fig,
+            'L_curve': fig2
+        }
+    else:
+        figures = {}
     out = {
         'beta': beta,
         'MSE': MSE,
@@ -181,7 +190,7 @@ def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
         'r2': r2,
         'alpha': alpha,
     }
-    return out
+    return out, figures
 
 
 def nnRidge(X, y, alpha, param: dict = {}):
@@ -203,7 +212,6 @@ def nnRidge(X, y, alpha, param: dict = {}):
     # Extended design matrix
     WalphaL = np.vstack((X, np.sqrt(alpha) * L))
     GalphaL = np.vstack((y[:, np.newaxis], GalphaL0)).squeeze()
-    print(WalphaL.shape, GalphaL.shape)
     # Non-negative ols solution:
     beta, dummy = nnls(WalphaL, GalphaL, **param)
     y_pred = X @ beta
@@ -237,6 +245,9 @@ def nnRidge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
         -# residual: arrays of residual
         -# norm: norm of the coefficients
         -# alpha: Used hyperparameters
+    @return figures: Dictionay with the figures created by the method:
+        -# Merit: r2 and MSE vs hyperparam
+        -# L_curve: f norm vs residual
     """
     # --- Initialise the variables
     npoints, nfeatures = X.shape
@@ -283,6 +294,12 @@ def nnRidge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
         ax.set_xlabel('Residual')
         if log_spaced:
             ax.set_xscale('log')
+        figures = {
+            'Merit': fig,
+            'L_curve': fig2
+        }
+    else:
+        figures = {}
     out = {
         'beta': beta,
         'MSE': MSE,
@@ -291,7 +308,7 @@ def nnRidge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
         'r2': r2,
         'alpha': alpha,
     }
-    return out
+    return out, figures
 
 
 def Elastic_Net(X, y, alpha, l1_ratio=0.05, positive=True, max_iter=1000):
@@ -346,6 +363,10 @@ def Elastic_net_scan(X, y, alpha_min: float, alpha_max: float,
         -# norm: norm of the coefficients
         -# alpha: Used hyperparameters
         -# l1_ratio: l1 hyperparameter (ratio LASSO Ridge)
+    @return figures: Dictionay with the figures created by the method:
+        -# Merit: r2 and MSE vs hyperparam
+        -# L_curve: f norm vs residual
+        -# L_curve_alpha: f norm vs hyperparameter
     """
     # --- Initialise the variables
     npoints, nfeatures = X.shape
@@ -405,6 +426,13 @@ def Elastic_net_scan(X, y, alpha_min: float, alpha_max: float,
         ax3.set_xlabel('\\alpha')
         if log_spaced:
             ax2.set_xscale('log')
+        figures = {
+            'Merit': fig,
+            'L_curve': fig2,
+            'L_curve_alpha': fig3
+        }
+    else:
+        figures = {}
     out = {
         'beta': beta,
         'MSE': MSE,
@@ -414,7 +442,8 @@ def Elastic_net_scan(X, y, alpha_min: float, alpha_max: float,
         'alpha': alpha,
         'l1_ratio': l1_ratio
     }
-    return out
+
+    return out, figures
 
 
 # -----------------------------------------------------------------------------

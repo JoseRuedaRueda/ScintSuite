@@ -1032,18 +1032,18 @@ def read_data_png(path):
             print('What do you want to do?: ')
             print('1: Plot the time base')
             print('Otherwhise: Continue without plotting')
-            print('Note: the plot will only be shown when spyder finish')
-            print('Sorry, spyder issues ')
-            a = input('Enter the answer: ')
-            if int(a) == 1:
-                # fig, ax = plt.subplots()
-                # ax.plot(time_base)
-                # ax.set_ylabel('Time [s]')
-                # ax.set_xlabel('Frame number')
-                plt.plot(time_base)
-                plt.ylabel('Time [s]')
-                plt.xlabel('Frame number')
-                plt.show()
+            p = input('Enter the answer: ')
+            if int(p) == 1:
+                fig, ax = plt.subplots()
+                ax.plot(time_base, label='Original')
+                ax.set_ylabel('Time [s]')
+                ax.set_xlabel('Frame number')
+                fig.show()
+                # note, spyder is bugged, so the figure will not be shown until
+                # the end of the execution, therefore, I include here this
+                # ginput with a limit of 1s, this will force the window to
+                # appear and the user will not notice this 1 second stop :-)
+                plt.ginput(timeout=1)
 
             print('Now what?: ')
             print('0: Ignore those frames')
@@ -1065,7 +1065,10 @@ def read_data_png(path):
                 time_base = np.linspace(0, dummy[-1, 0] * dummy[0, 2] / 1000,
                                         int(dummy[-1, 0]))
                 time_base[:limit] = tb[:limit]
-
+            # Plot the new timebase
+            if int(p) == 1:
+                ax.plot(time_base, label='Considered')
+                plt.ginput(timeout=1)
     return header, imageheader, settings, time_base[:].flatten()
 
 
