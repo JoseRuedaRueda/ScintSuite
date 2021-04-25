@@ -10,6 +10,7 @@ import Lib as ss
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+import tkinter as tk
 
 # -----------------------------------------------------------------------------
 # --- Section 0: Settings
@@ -19,8 +20,8 @@ calibration_database = './Data/Calibrations/FILD/calibration_database2.dat'
 # As the strike points are needed and they are not included in the database,
 # for the tomography one should manually select (for now) the strike map)
 smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/tomography_strike_map.dat'
-smap_points = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILDSIM//results/' +\
-    'AUG_map_-002.10000_000.00000_strike_points.dat'
+smap_points = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILDSIM/results/' +\
+    'AUG_map_-002.00000_000.00000_strike_points.dat'
 
 # - General options
 diag_ID = 1     # FILD Number
@@ -89,10 +90,10 @@ pin_options = {
     'pmax': 80.0,
     'dp': 2.0
 }
+nalpha1 = 500  # Number of points for the first hyperparameters scan
+nalpha2 = 500  # Number of points for the second hyperparameters scan
 # Plotting options
-FS = 16     # Font size
-p1 = True   # Plot the MSE and r2 of the hyperparameter scan
-p2 = True   # Plot the L curve and its derivative
+# FS = 16     # Font size
 # -----------------------------------------------------------------------------
 # --- Section 1: Load calibration
 # -----------------------------------------------------------------------------
@@ -145,40 +146,29 @@ W2Dnorm = W2D / Wmax
 # -----------------------------------------------------------------------------
 # --- Section 4: Perform the inversion
 # -----------------------------------------------------------------------------
-# Ridge (0th Tiko...) is also implemented, but there is no option in the build
-# library to perform a Ridge regression forcing the coefficients to be
-# possitive, but for elastic net yes. therefore we will use elastic net with
-# l1 parameter of 0.05, the minimum allowed by the python library. This will be
-# almost equivalent to Ridge (as the lasso penalty is small) but we could
-# benefit from the quick implementation so the calculation can be made in
-# seconds
-# beta, MSE, r2, alpha = ss.tomo.Elastic_net_scan(
-#     W2Dnorm, s1Dnorm, 1e-8, 1000, n_alpha=40, log_spaced=True, plot=p1,
-#     l1_ratio=0.05, positive=True, max_iter=4000)
+# Ridge (0th Tiko...) and Elastic Net (Ridge and LASSSO combination) are also
+# available
 
+# We will perform first a gross scan and them go into the details with a finer
+# hyper parameter scan
+first_scan, fig_first_scan = ss.tomo.nnRidge_scan(W2Dnorm, s1Dnorm, 1e-8, 1000,
+                                                  n_alpha=nalpha1, plot=True)
+# Select the range of hyperparameters to perform the fine scan:
+fig_first_scan['L_curve'].show()
+points = plt.ginput(2)
+alpha_min = points[0][0]
+alpha_max = points[1][0]
 
-first_scan = ss.tomo.Ridge_scan(W2Dnorm, s1Dnorm, 1e-8, 1000, n_alpha=500,
-                                plot=p1)
-# - Calculate the L-curve to choose the best value
-L_curve_fit, opt_res = ss.tomo.L_curve_fit(first_scan['norm'],
-                                           first_scan['residual'], plot=p2)
-
-# - Perform a fine scan around this value:
-verbose = True
-if verbose:
-    print('The approximate optimum residual is: ', opt_res)
-    print('Proceed with a finer scan')
-opt_alpha = first_scan['alpha'][np.argmin(abs(first_scan['residual']-opt_res))]
-second_scan = ss.tomo.Ridge_scan(W2Dnorm, s1Dnorm, opt_alpha/50, opt_alpha*50,
-                                 n_alpha=500, plot=p1)
+second_scan, fig_second_scan = ss.tomo.Ridge_scan(W2Dnorm, s1Dnorm, alpha_min,
+                                                  alpha_max, n_alpha=nalpha2,
+                                                  plot=True)
 
 # -----------------------------------------------------------------------------
 # --- Section 5: Representation
 # -----------------------------------------------------------------------------
-nalpha = len(second_scan['alpha'])
-inversions = np.zeros((pg['nr'], pg['np'], nalpha))
+inversions = np.zeros((pg['nr'], pg['np'], nalpha2))
 
-for i in range(nalpha):
+for i in range(nalpha2):
     inversions[:, :, i] =\
         np.reshape(second_scan['beta'][:, i] * Wmax, (pg['nr'], pg['np']))
 # --- Prepare the dictionary for the GUI:
@@ -193,3 +183,8 @@ data = {
     'pg': pg,
     'sg': sg
 }
+# --- open the gui:
+root = tk.Tk()
+ss.GUI.ApplicationShowTomography(root, data)
+root.mainloop()
+root.destroy()

@@ -1,4 +1,7 @@
-** 0.3.5: Bug solved
+** 0.3.6: Improvements in tomography:
+- Now the Ridge, nnridge and Elastic net scan also return a dictionary with the produced figures
+
+** 0.3.5: Bug solved:
 - *Bug solved* Solved issue #54 on the broken time base of CCD cameras
 
 ** 0.3.4: First INPASIM utilities:
