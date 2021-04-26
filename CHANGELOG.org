@@ -1,3 +1,10 @@
+** 0.4.0: New suite structure:
+- Typos in comments corrected
+- PEP8 agreement revised
+- LibDataAUG subdivided in different modules (it was too big)
+- Re-written first_run.py
+- Verbose of remap_all_loaded_frames_FILD.py improved
+
 ** 0.3.6: Improvements in tomography:
 - Now the Ridge, nnridge and Elastic net scan also return a dictionary with the produced figures
 
@@ -18,7 +25,7 @@
 - Added function in LibDataAUG for reading from the equilibrium the basics of the shot data (Bt0, Ip, elongation, ...)
 
 ** 0.3.2: First INPASIM utilities:
-- Added fuction to fit a line to a 3d cloud of points
+- Added function to fit a line to a 3d cloud of points
 - Rewritten paths_suite.py to allow make easier to include new libraries
 
 ** 0.3.1: Tomography:
@@ -26,15 +33,15 @@
 - Updated Smaps library (more maps) download the new version if you want
 - video.find_orientation() added, allows to find the calculated theta and phi (Yes, I was lazy and I've created a small function to avoid the calculation of this manually)
 - Now the same criteria of rmin, dr and so on is implemented in the tomographic reconstruction section
-- Scan of tomographic reconstruction now gives a dic as output, not single outputs
+- Scan of tomographic reconstruction now gives a dict as output, not single outputs
 - New GUI for tomographic representation plotted
 
 ** 0.3.0: GUIs and plotting
 - Simplified StrikeMap.plot_pix() and StrikeMap.plot_real(). *IMPORTANT* Names of the input arguments were changed!!!
 - Included GUI to explore the camera frames, Video.plot plot_frames_slider() was rename as Vide.GUI_frames()
-- Included GUI to explore the remaped frames, Vide.GUI_frames_and_remap()
-- Improved Video.plot_frame() was upgraded now you can write 'auto' and the function will load and plot the StrikeMap (see its documentation for futher instrucitons)
-- LibPlotting.remove_lines() added, it deletes all lines from a plot, usefull to delete the strikemap of one of your plots (used by the new GUIs)
+- Included GUI to explore the remapped frames, Vide.GUI_frames_and_remap()
+- Improved Video.plot_frame() was upgraded now you can write 'auto' and the function will load and plot the StrikeMap (see its documentation for further instructions)
+- LibPlotting.remove_lines() added, it deletes all lines from a plot, useful to delete the strikemap of one of your plots (used by the new GUIs)
 - *BUG SOLVED*: Selecting 'cancel' in the export remap windows raised and error. Now it solved
 
 ** 0.2.9 Multipow calculation.
@@ -54,14 +61,14 @@
 
 ** 0.2.6: Count pixels
 - *Included requested feature*: Issue #50 now the number of pixels over a given threshold is counted by default. User can set this threshold in the read_frame method of the video object
-- Video.plot_number_saturated_counts() added. If executed without arguments, it plot the pixels counted by default when reading the video. The fuction accept also a threshold, in this case the pixels are count again
+- Video.plot_number_saturated_counts() added. If executed without arguments, it plot the pixels counted by default when reading the video. The function accept also a threshold, in this case the pixels are count again
 - *BUG_SOLVED* The angles of rFILD are now properly included
 
 ** 0.2.5: Improvements in the remap
 - Now when some Smap is missing, the program will give the option to use the nearest (in time) existing strike map
 - The real value of theta (with all the decimals) as well as the used one are stored to compare the angles used in the remap
 - Added plot_orientation() to the video object, to plot the calculated angles with the orientation (real and used)
-- The method fildsim.write_namelist() now overwrite by default the existing namelist. You can change this behaviour with the flag =overwrite=
+- The method fildsim.write_namelist() now overwrite by default the existing namelist. You can change this behavior with the flag =overwrite=
 - The method fildsim.guess_strike_map_name_FILD() now do not create extra strike maps like 0 and -0
 - Camera model included as one more data in the FILD dictionary in LibDataAUG.py
 - Some PEP8 correction in iHIBP library
@@ -85,7 +92,7 @@
 - *BUG_SOLVED* Solved bug when the requested interval to average the noise was not in the file (issue #46)
 
 ** 0.2.1: FIDASIM implementation
-- First routines to read FIDASIM output added, (thanks Pilar :-)) Although some work still needed in that module this is not completelly checked
+- First routines to read FIDASIM output added, (thanks Pilar :-)) Although some work still needed in that module this is not completely checked
 - Updated Readme following nice example of iHIBP
 - Calibration used in the remapping is saved in the remapping options, such that future comparisons of remapped data is easier
 - plot_profiles_in_time of the video object allows now to pass the min and max of the scale as inputs
@@ -101,7 +108,7 @@
 ** 0.1.9: Spectrograms
 - First spectrogram function added, first step towards the fast channel analysis
 - Better examples included
-- Better checking of wether we are in AUG or not
+- Better checking of whether we are in AUG or not
 - Now the remapping of the whole shot can be done using a given strike map
 
 ** 0.1.8: Reverse FILD
@@ -109,7 +116,7 @@
 - *BUG_SOLVED*: Solve a bug which forced the remap to ignore theta and phi if just one of the strike maps was not found
 - Included the RealBPP in the exported remap data
 
-** 0.1.7: Improve reading/writting
+** 0.1.7: Improve reading/writing
 - Solved the issue in the init due to new iHIBPsim libraries
 - Included a check to not overwrite files, now if one of the saving routines try to save a file which exist, it will open a window to give to the user the chance to change the name
 - Added also a similar function to open files in case it does not find the name, it will pop-up a window
@@ -117,14 +124,14 @@
 - Add a method to integrate the remapped frames in the desired range radius-pitch (arbitrary shapes allowed via roi)
 
 ** 0.1.6: What's new?
-- Added possibility of loadind the used ROIs
-- Added the posibility of plotting each individual time trace
+- Added possibility of loading the used ROIs
+- Added the possibility of plotting each individual time trace
 - Added general routine to load the created ncdf files
-- Suppresed remapped slider plotting in the video object, it was too buggy, new one will come with tkinter
+- Suppressed remapped slider plotting in the video object, it was too buggy, new one will come with tkinter
 
 ** 0.1.5: What's new?
-- Now the remap_all_loaded_frames_FILD first calculate all theta and phi and see how many strike maps must be calculated. The user can decide wheter if perform the FILDSIM calculation or just take a single strike map
-- Added the possibility of remaping with a ROI. Also export the ROI
+- Now the remap_all_loaded_frames_FILD first calculate all theta and phi and see how many strike maps must be calculated. The user can decide whether if perform the FILDSIM calculation or just take a single strike map
+- Added the possibility of remapping with a ROI. Also export the ROI
 
 ** 0.1.4: What is new?
 - iHIBP routines to interact with the tracker and iHIBPsim, first round

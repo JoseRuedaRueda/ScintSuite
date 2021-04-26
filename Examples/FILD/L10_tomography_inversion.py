@@ -9,7 +9,6 @@ Note: efficiency is NOT included
 import Lib as ss
 import numpy as np
 import matplotlib.pyplot as plt
-import time
 import tkinter as tk
 
 # -----------------------------------------------------------------------------
@@ -30,7 +29,7 @@ t1 = 0.5      # Initial time to load [in s]
 t2 = 4.8       # Final time to load [in s]
 ttomo = 4.545    # Time to perform the tomography
 # As you can see, I select a quite large interval, instead of just the frame,
-# this is to have the black frames of the beggining and perform the noise
+# this is to have the black frames of the beginning and perform the noise
 # subtraction. One more efficient way would be to load the first frames in
 # another video object, and from there extract the 'noise frame' this is just
 # some more lines of codes (the noise subtraction routines already gives as
@@ -41,7 +40,7 @@ ttomo = 4.545    # Time to perform the tomography
 limitation = False  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
-# - Noise substraction:
+# - Noise subtraction:
 sub_noise = True   # Just a flag to see if we subtract noise or not
 tn1 = 0.5     # Initial time to average the noise
 tn2 = 0.6    # Initial time to average the noise
@@ -112,7 +111,7 @@ file = ss.vid.guess_filename(shot, ss.dat.FILD[diag_ID-1]['path'],
                              ss.dat.FILD[diag_ID-1]['extension'])
 # initialise the video object:
 cin = ss.vid.Video(file)
-# Load the frames we need, it is necesary to load some of them to subtract the
+# Load the frames we need, it is necessary to load some of them to subtract the
 # noise
 cin.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
 # Subtract the noise
@@ -183,7 +182,7 @@ data = {
     'pg': pg,
     'sg': sg
 }
-# --- open the gui:
+# --- open the GUI:
 root = tk.Tk()
 ss.GUI.ApplicationShowTomography(root, data)
 root.mainloop()

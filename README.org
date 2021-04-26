@@ -1,49 +1,49 @@
 * SCINTILLATOR SUITE
 
-This code is created to analyse the signal from scintillator diagnostics. Support for FILD, INPA and i-HIBp is planned. To include a different diagnostic, please contact Jose Rueda: jose.rueda@ipp.mpg.de
+This code is created to analyze the signal from scintillator diagnostics. Support for FILD, INPA and i-HIBp is planned. To include a different diagnostic, please contact Jose Rueda: jose.rueda@ipp.mpg.de
 
 ** Installation and documentation
-*** Prerequites. Python 3.7 or higher
+*** Prerequisites. Python 3.7 or higher
 Needed packages:
 Only listed 'non-standard' packages
 *Essentials* (the suite will not work without them):
-    - f90nml: To read fortran namelist in an easy way (needed since version 0.1.10) =pip install f90nml= . This is the suite standard to read and write namelists!!!
+    - f90nml: To read FORTRAN namelist in an easy way (needed since version 0.1.10) =pip install f90nml= . This is the suite standard to read and write namelists!!!
 *Optional* (the suite will work but some capabilities will not be available)
     - roipoly: To select ROIs in the image. The official package can be found here <https://github.com/jdoepfert/roipoly.py> but it does not work with SPYDER. Please use this fork instead (https://github.com/georgedeath/roipoly.py)
     - cv2 (OpenCv): To load frames from .mp4 files. =pip install opencv-python=
     - lmfit: To perform the fits needed for the resolution calculation =pip install lmfit=
-
+*Automatic install*: Execute First_Run.py in the machine where you want to run the suite, it should check what is missing in order to run the suite and explain you how to install it (you need to run module load git before if you are in toki)
 *** Paths
 There are two files containing the paths and routes for the suite:
 - paths_suite.py: Located in the main directory of the suite. This one just contain the routes pointing to the python packages/files needed by the suite. It shall be run one time before running any routine from the suite as it will says to python where to find what it needs
-- LibPaths.py: Located inside the Lb folder, there they are all the paths pointing towards the different codes (FILDSIM, INPASIM etc) and the results/strike maps directories. Be carefull, by default the suite directory is there written as ScintillatorSuite, while usually if you make git clone, is cloned as scintillatorsuite, you may have to change manually the name of the folder!
+- LibPaths.py: Located inside the Lb folder, there they are all the paths pointing towards the different codes (FILDSIM, INPASIM etc) and the results/strike maps directories. Be careful, by default the suite directory is there written as ScintillatorSuite, while usually if you make git clone, is cloned as scintillatorsuite, you may have to change manually the name of the folder!
 
 *** FILDSIM notes
 - You need to create an empty folder in the root of FILDSIM code with name 'cfg_files' in order to run the remap routine. The namelist of the new calculated strike maps will be stored here, so we do not create thousands of files in the main FILDSIM paths
 
 
 *** Documentation
-- All objects aand methods are documented such that the user can understand what is going on
-- Ass everything has docstrings, you can allways write in the python terminal <fname>? and you will get all the description of the <fnam> method or object
-- The routines in the Example folder are intended to ilustrate the use of the different tools in the suite. Please, if you want to play with them, make your own copy on 'MyRoutines', modifying the examples can cause merge conflicts in the future
+- All objects and methods are documented such that the user can understand what is going on
+- As everything has doc-strings, you can always write in the python terminal <fname>? and you will get all the description of the <fname> method or object
+- The routines in the Example folder are intended to illustrate the use of the different tools in the suite. Please, if you want to play with them, make your own copy on 'MyRoutines', modifying the examples can cause merge conflicts in the future
 - For a Doxygen generated documentation, see: <https://hdvirtual.us.es/discovirt/index.php/s/FBjZ9FPfjjwMDS2> download the content and open the index.html file, inside the html folder
 
 ** Active Development
 *** Version control
 Each release will be denoted by 3 numbers: a.b.c meaning:
-    - c: bug fixed and improved comments and documentation. Some new capabilities could be added (see changelog). The higer the number, the better.
-    - b: Significant changes, versions a.b1.c1 and a.b2.c2, should run perfectly with the same inputs.  But some internal routines may have changed, so if you have your own scripts using them 'outisde the main loop' something can go wrong for you. The higher b, the more extra capabilities you have
+    - c: bug fixed and improved comments and documentation. Some new capabilities could be added (see changelog). The higher the number, the better.
+    - b: Significant changes, versions a.b1.c1 and a.b2.c2, should run perfectly with the same inputs.  But some internal routines may have changed, so if you have your own scripts using them 'outside the main loop' something can go wrong for you. The higher b, the more extra capabilities you have
     - a: indicate major changes in the code, versions with different 'a' may be not compatible, not recommended update to a higher a version close to a conference
 
 *** Branches
-- master: Estable branch, things should work, may be a delay including new features
-- dev-branch: developers branch, may have some small bugs or not fully developed features. Include the latest features, not recomended for general public
+- master: Stable branch, things should work, may be a delay including new features
+- dev-branch: developers branch, may have some small bugs or not fully developed features. Include the latest features, not recommended for general public
 - 'tmp'-branch: linked to specific commits to include new features. Do not use these branches except you are the developer in charge of the new feature. Unicorns can appear
 
 *** Note for developers
-- Before changing anything in a module open a issue in gitlab to start a discussion
+- Before changing anything in a module open a issue in GitLab to start a discussion
 - Indentation must be done via 4 spaces!
-- PEP 8 guide is recommended, if some piece of code is merged without this standard, the maintainers could modify your code to addapt it to this standard
+- PEP 8 guide is recommended, if some piece of code is merged without this standard, the maintainers could modify your code to adapt it to this standard
   + maximum 80 character-long lines
   + space separation between operators, i.e., =a + b=
   + no blanks at the end of the lines
@@ -76,7 +76,7 @@ All devices are identified by three letters:
 The suite is thought to be machine independent, but some work must be done:
 - Create a module equivalent to LibDataAUG with the database methods of your machine
 - Include your paths in paths_suite.py and LibPaths.py
-- Include the calling of your nice module in the 'if' located at the beggining of most Libraries
+- Include the calling of your nice module in the 'if' located at the beginning of most Libraries
 - Cry a bit because there are still things which don't work
 - Send an e-mail to jrrueda@us.es
 - Wait a couple of days for him to solve the issues

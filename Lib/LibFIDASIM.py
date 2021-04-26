@@ -3,7 +3,7 @@ Read FIDASIM Outputs
 
 pcano, 12/2020
 Python reading routines for FIDASIM output
-Still to implement: npa, weighting functions, zeeman lines
+Still to implement: NPA, weighting functions, Zeeman lines
 """
 import numpy as np
 import matplotlib.pyplot as plt

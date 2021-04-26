@@ -2,7 +2,7 @@
 Load video from FILD cameras
 
 Lesson 2 from the FILD experimental analysis. Video files will be loaded,
-possibility to substract noise and timetraces will be calculated
+possibility to subtract noise and timetraces will be calculated
 
 jose Rueda: jrrueda@us.es
 
@@ -22,7 +22,7 @@ t2 = 3.5     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
-# - Noise substraction settings:
+# - Noise subtraction settings:
 subtract_noise = True   # Flag to apply noise subtraction
 tn1 = 0.20     # Initial time to average the frames for noise subtraction [s]
 tn2 = 0.25     # Final time to average the frames for noise subtraction [s]
@@ -48,7 +48,7 @@ print('Reading camera frames: ')
 vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
 
 # -----------------------------------------------------------------------------
-# --- Section 2: Substract the noise
+# --- Section 2: Subtract the noise
 # -----------------------------------------------------------------------------
 if subtract_noise:
     vid.subtract_noise(t1=tn1, t2=tn2)
@@ -61,7 +61,7 @@ ax_ref = vid.plot_frame(t=t0)
 fig_ref = plt.gcf()
 # - Define roi
 # Note: if you want the figure to re-appear after the selection of the roi,
-# call create roi with the option re_display=Ture
+# call create roi with the option re_display=True
 fig_ref, roi = ss.tt.create_roi(fig_ref, re_display=True)
 # Create the mask
 mask = roi.get_mask(vid.exp_dat['frames'][:, :, 0].squeeze())
@@ -81,12 +81,12 @@ if plt_TT:
     time_trace.plot_single()
 
 # By default the TT.plotsingle() plot the summ of counts on the roi, but
-# mean and std are also calculated and ca be ploted with it
+# mean and std are also calculated and ca be plotted with it
 
 # -----------------------------------------------------------------------------
 # --- Extra
 # -----------------------------------------------------------------------------
-# Fourier analisis of the trace can be easily done:
+# Fourier analysis of the trace can be easily done:
 # time_trace.calculate_fft()
 # time_trace.plot_fft()
 #

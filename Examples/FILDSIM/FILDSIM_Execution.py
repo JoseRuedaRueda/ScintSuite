@@ -7,13 +7,12 @@ In this case we will execute FILDSIM and calculate the resolutions
 DISCLAIMER: This was created for version 0.2.4, it is possible that some
 function has been changed and the script does not work at all now.
 (or we have a more fancy and quick way to do this stuff). If this happens,
-contact jose rueda (jrrueda@us.es) by email and he will update this 'tutorial'
+contact Jose Rueda (jrrueda@us.es) by email and he will update this 'tutorial'
 
 You must execute first the function paths.py!
 """
 
 import Lib as ss
-import numpy as np
 import os
 
 
@@ -85,7 +84,7 @@ Smap = ss.mapping.StrikeMap('FILD', strike_map_file)
 # Load the strike points used to calculate the map
 Smap.load_strike_points(strike_points_file)
 # Calculate the resolution: Default is 1 degree of bin width for the pitch
-# histograms, 0.1 for gyro-radius, Gaussians for pitch and skew Gaussian for
+# histograms, 0.1 for gyro-radius, Gaussian for pitch and skew Gaussian for
 # gyro-radius.
 Smap.calculate_resolutions()   # Default call,
 # Example changing the binning and settings skewGaussian for boths
@@ -95,4 +94,4 @@ Smap.calculate_resolutions()   # Default call,
 # default is 20
 # Smap.calculate_resolutions(dpitch=2.0, dgyr=0.25, p_method'Gauss',
 #                            g_method='sGauss', min_statistics=50)
-Smap.plot_resolutions()   # Default call for ploting the resolutions
+Smap.plot_resolutions()   # Default call for plotting the resolutions

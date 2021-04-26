@@ -1,4 +1,3 @@
-
 """Graphical elements to explore the tomographic reconstruction"""
 import tkinter as tk                       # To open UI windows
 import matplotlib.backends.backend_tkagg as tkagg

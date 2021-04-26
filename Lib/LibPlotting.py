@@ -1,4 +1,9 @@
-"""Module to plot"""
+"""
+Methods to enhance plots or to plot auxiliar elements (ie vessel)
+
+Jose Ruea Rueda (jrrueda@us.es) and Pablo Oyola (pablo.oyola@ipp.mpg.de)
+
+"""
 
 import matplotlib.pyplot as plt
 import matplotlib
@@ -74,14 +79,15 @@ def remove_lines(ax):
     axis
 
     @param ax: axis to 'clean'
-    @return : nothig, just 'clean the axis' from the StrikeMap
+
+    @return : nothing, just 'clean the axis' from the StrikeMap
     """
     for i in range(len(ax.lines)):
         ax.lines[-1].remove()
 
 
 # -----------------------------------------------------------------------------
-# --- Axis tuning and colormap
+# --- Axis tuning and colormaps
 # -----------------------------------------------------------------------------
 def axis_beauty(ax, param_dict: dict):
     """
@@ -231,6 +237,8 @@ def plot_vessel(projection: str = 'pol', units: str = 'm', h: float = None,
         fact = 1.0
     elif units == 'cm':
         fact = 100.0
+    else:
+        raise Exception('Units not understood')
     # --- Section 0: get the coordinates:
     if projection == 'tor' or projection == 'toroidal':
         # get the data
@@ -264,8 +272,8 @@ def plot_vessel(projection: str = 'pol', units: str = 'm', h: float = None,
 # -----------------------------------------------------------------------------
 # --- Flux surfaces plot.
 # -----------------------------------------------------------------------------
-def plot_flux_surfaces(shotnumber: int, time: float, ax = None,
-                       linewidth:float = 1.2,
+def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
+                       linewidth: float = 1.2,
                        diag: str = 'EQH', exp: str = 'AUGD', ed: int = 0,
                        levels: float = None, label_surf: bool = True,
                        coord_type: str = 'rho_pol'):
@@ -273,6 +281,9 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax = None,
     Plots the flux surfaces of a given shot in AUG for a given time point.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    Note: @todo, as this has diag and exp as input, maybe we need to rewrite it
+    once we move to MAST-U or SMART, I do not know their format... (jrueda)
 
     @param shotnumber: shot number to get the equilibrium.
     @param time: time point to retrieve the equilibrium.
@@ -282,7 +293,7 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax = None,
     @param exp: experiment in AUG where the EQ is stored. AUGD by default
     @param ed: Edition of the equilibrium. The latest is taken by default.
     @param levels: number of flux surfaces to plot.
-    @param label_surf: states whether the flux surfaces should be labelled by
+    @param label_surf: states whether the flux surfaces should be labeled by
     their value.
     @param coord_type: type of coordinate to be used for the map. rho_pol by
     default. Also available 'rho_tor'
@@ -293,11 +304,11 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax = None,
 
     if levels is None:
         if coord_type == 'rho_pol':
-            levels = np.arange(start=0.2, stop=1.2, step = 0.2)
+            levels = np.arange(start=0.2, stop=1.2, step=0.2)
         else:
-            levels = np.arange(start=0.2, stop=1.0, step = 0.2)
+            levels = np.arange(start=0.2, stop=1.0, step=0.2)
 
-    #--- Getting the equilibrium
+    # --- Getting the equilibrium
     R = np.linspace(1.03, 2.65, 128)
     z = np.linspace(-1.224, 1.10, 256)
 
@@ -307,12 +318,13 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax = None,
                         diag=diag, exp=exp, ed=ed, coord_out=coord_type)
 
     rho = np.reshape(rho, (256, 128))
-    #--- Plotting the flux surfaces.
-    CS=ax.contour(R, z, rho, levels, linewidth=linewidth)
+    # --- Plotting the flux surfaces.
+    CS = ax.contour(R, z, rho, levels, linewidth=linewidth)
     if label_surf:
         ax.clabel(CS, inline=1, fontsize=10)
 
     return ax
+
 
 # -----------------------------------------------------------------------------
 # --- Plotting ECE
@@ -337,6 +349,7 @@ def plot2D_ECE(ecedata: dict, rType: str = 'rho_pol', downsample: int = 2,
     ECE signal.
     @param cm_norm: colormap normalization. Optional to be chosen between
     linear, sqrt and log.
+
     @return ax: return the axis used.
     """
 
@@ -374,10 +387,11 @@ def plot2D_ECE(ecedata: dict, rType: str = 'rho_pol', downsample: int = 2,
     elif which == 'total':
         A = ecedata['Trad'][downsample_flag, :]
 
-    cont_opts ={'cmap': cmap,
-                'shading':'gouraud',
-                'antialiased': True
-               }
+    cont_opts = {
+        'cmap': cmap,
+        'shading': 'gouraud',
+        'antialiased': True
+    }
 
     if cm_norm == 'sqrt':
         cont_opts['norm'] = colors.PowerNorm(gamma=0.50)

@@ -2,7 +2,7 @@
 Remap video from FILD cameras
 
 Lesson 4 from the FILD experimental analysis. Video files will be loaded,
-possibility to substract noise and timetraces remap of the whole video
+possibility to subtract noise and timetraces remap of the whole video
 
 jose Rueda: jrrueda@us.es
 
@@ -23,7 +23,7 @@ t2 = 4.8     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
-# - Noise substraction settings:
+# - Noise subtraction settings:
 subtract_noise = True   # Flag to apply noise subtraction
 tn1 = 0.5     # Initial time to average the frames for noise subtraction [s]
 tn2 = 0.6     # Final time to average the frames for noise subtraction [s]
@@ -88,7 +88,7 @@ print('Reading camera frames: ', shot, '...')
 vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
 print('Elapsed time [s]: ', time() - tdummy)
 # -----------------------------------------------------------------------------
-# --- Section 2: Substract the noise and filter frames
+# --- Section 2: Subtract the noise and filter frames
 # -----------------------------------------------------------------------------
 if subtract_noise:
     vid.subtract_noise(t1=tn1, t2=tn2)
@@ -104,7 +104,7 @@ if calculate_TT:
     fig_ref = plt.gcf()
     # - Define roi
     # Note: if you want the figure to re-appear after the selection of the roi,
-    # call create roi with the option re_display=Ture
+    # call create roi with the option re_display=True
     fig_ref, roi = ss.tt.create_roi(fig_ref, re_display=True)
     # Create the mask
     mask = roi.get_mask(vid.exp_dat['frames'][:, :, 0].squeeze())
@@ -121,9 +121,9 @@ if calculate_TT:
         time_trace.plot_single()
 
 # -----------------------------------------------------------------------------
-# --- Section 4: Remmap
+# --- Section 4: Remap
 # -----------------------------------------------------------------------------
-# - Initialise the calibration database object
+# - Initialize the calibration database object
 database = ss.mapping.CalibrationDatabase(calibration_database)
 # - Get the calibration for our shot
 cal = database.get_calibration(shot, camera, 'PIX', diag_ID)

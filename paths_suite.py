@@ -1,4 +1,4 @@
-"""Contains the path to initialise the suite"""
+"""Contains the path to initialize the suite"""
 
 import os
 import sys
@@ -28,7 +28,8 @@ def paths_of_the_suite(machine='AUG'):
     # -- Machine dependent folders:
     Machine_libs = {
         'AUG': {
-            'AUG_Python': '/afs/ipp/aug/ads-diags/common/python/lib'
+            'AUG_Python': '/afs/ipp/aug/ads-diags/common/python/lib',
+            'Suite_AUG': os.path.join(SUITE_DIR, 'Lib/LibDataAUG')
         }
     }
 

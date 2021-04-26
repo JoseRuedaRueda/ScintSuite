@@ -22,39 +22,38 @@ from tqdm import tqdm
 # Shot data and timing.
 shotnumber = 38877
 coilNumber = 40
-tBegin = 3.50
-tEnd   = 3.55
+tBegin = 3.50           # In s
+tEnd = 3.55             # In s
 
 # FFT options.
-                        # For the window type, go to:
+#                       #  For the window type, go to:
 windowType = 'hann'     # https://docs.scipy.org/doc/scipy/reference/
-                        # generated/scipy.signal.get_window.html
-freqLims = np.array((35.0, 45.0)) # Frequency limits.
-freq1d = np.array((10., 13.0)) # Frequency limits for the plot in 1D.
-specType = 'sfft' # Spectogram type:
-                  # -> Short-Time Fourier Transform in frequency (sfft)
-                  # -> Short-Time Fourier Transform in time (stft)
-timeResolution = 0.75 # Time resolution.
-cmap = matplotlib.cm.plasma # Colormap
+#                       #  generated/scipy.signal.get_window.html
+freqLims = np.array((10.0, 45.0))  # Frequency limits.
+freq1d = np.array((10., 13.0))  # Frequency limits for the plot in 1D.
+specType = 'sfft'   # Spectogram type:
+#                   # -> Short-Time Fourier Transform in frequency (sfft)
+#                   # -> Short-Time Fourier Transform in time (stft)
+timeResolution = 0.75  # Time resolution.
+cmap = matplotlib.cm.plasma  # Colormap
 
 # Diagnostic for the electron gradient reading.
 diag_Te = 'IDA'
-exp_Te  = 'AUGD'
-ed_Te   = 0
-
+exp_Te = 'AUGD'
+ed_Te = 0
 
 # Plotting flags:
-plot_spectrograms   = True # Plot the spectrogram for MHI and ECE and the
-                            # sample CPSD for cross-checking.
-plot_Te_sample      = False   # Plots the Te data as taken from the RMD.
-plot_profiles       = True    # Plot the rhopol vs. f spectrogram.
-plot_vessel_flag    = True    # Plots the vessel and the separatrix
-                              # with the ECE and pick up coil position.
+plot_spectrograms = True    # Plot the spectrogram for MHI and ECE and the
+#                           # sample CPSD for cross-checking.
+plot_Te_sample = False      # Plots the Te data as taken from the RMD.
+plot_profiles = True        # Plot the rhopol vs. f spectrogram.
+plot_vessel_flag = True     # Plots the vessel and the separatrix
+#                           # with the ECE and pick up coil position.
 
 # Plotting options.
-ece_rhop_plot = 0.80 # rho_pol of the ECE to plot.
-spec_abstype = 'log' # linear, sqrt or log
-spec_abstype_cpsd = 'linear' # This is the same as above, but for the CPSD.
+ece_rhop_plot = 0.80   # rho_pol of the ECE to plot.
+spec_abstype = 'log'   # linear, sqrt or log
+spec_abstype_cpsd = 'linear'  # This is the same as above, but for the CPSD.
 
 # -----------------------------------------------------------------------------
 # --- Reading the data from the database.
@@ -66,7 +65,7 @@ ece = ss.dat.get_ECE(shotnumber, timeWindow=[tBegin, tEnd], fast=True)
 # --- Magnetic spectrogram -  Calculation
 # -----------------------------------------------------------------------------
 # This assumes that the data is uniformly taken in time.
-dt = mhi['time'][1] - mhi['time'][0] # For the sampling time.
+dt = mhi['time'][1] - mhi['time'][0]  # For the sampling time.
 
 nfft = get_nfft(timeResolution, specType, len(mhi['time']), windowType, dt)
 
@@ -88,7 +87,7 @@ elif specType == 'sfft':
                              fmax=freqLims[-1]*1000.0,
                              pass_DC=False, complex_spectrum=True)
 
-timeEnd= time.perf_counter()
+timeEnd = time.perf_counter()
 
 print(str(timeEnd-timeStart) + ' seconds elapsed')
 mhi['fft'] = {
@@ -146,7 +145,7 @@ ece['fft'] = {
 
 # Correct the spectra with the dTe_dr (derivative wrt the major radius!)
 ece = ss.dat.correctShineThroughECE(ece, diag=diag_Te,
-                                 exp=exp_Te, edition = ed_Te)
+                                    exp=exp_Te, edition=ed_Te)
 timeEnd = time.perf_counter()
 print(str(timeEnd-timeStart) + ' seconds elapsed')
 warnings.filterwarnings('default')
@@ -158,33 +157,35 @@ warnings.filterwarnings('default')
 if plot_spectrograms:
     plt.ion()
 
-    #--- Plotting the Magnetic spectrogram.
+    # --- Plotting the Magnetic spectrogram.
     fig, ax = plt.subplots(nrows=2, ncols=2)
     mhiplot = np.abs(mhi['fft']['B'])
     if spec_abstype == 'linear':
-         im1 = ax[0][0].imshow(mhiplot, origin='lower',
-                            extent=(mhi['fft']['time'][0],
-                                    mhi['fft']['time'][-1],
-                                    mhi['fft']['freq'][0],
-                                    mhi['fft']['freq'][-1]),
-                             aspect='auto', interpolation='nearest', cmap=cmap)
+        im1 = ax[0][0].imshow(mhiplot, origin='lower',
+                              extent=(mhi['fft']['time'][0],
+                                      mhi['fft']['time'][-1],
+                                      mhi['fft']['freq'][0],
+                                      mhi['fft']['freq'][-1]),
+                              aspect='auto', interpolation='nearest',
+                              cmap=cmap)
     elif spec_abstype == 'log':
-         im1 = ax[0][0].imshow(mhiplot, origin='lower',
-                            extent=(mhi['fft']['time'][0],
-                                    mhi['fft']['time'][-1],
-                                    mhi['fft']['freq'][0],
-                                    mhi['fft']['freq'][-1]),
-                            aspect='auto', interpolation='nearest',
-                            norm=colors.LogNorm(mhiplot.min(), mhiplot.max()),
-                            cmap = cmap)
+        im1 = ax[0][0].imshow(mhiplot, origin='lower',
+                              extent=(mhi['fft']['time'][0],
+                                      mhi['fft']['time'][-1],
+                                      mhi['fft']['freq'][0],
+                                      mhi['fft']['freq'][-1]),
+                              aspect='auto', interpolation='nearest',
+                              norm=colors.LogNorm(mhiplot.min(),
+                                                  mhiplot.max()),
+                              cmap=cmap)
     elif spec_abstype == 'sqrt':
         im1 = ax[0][0].imshow(mhiplot, origin='lower',
-                           extent=(mhi['fft']['time'][0],
-                                   mhi['fft']['time'][-1],
-                                   mhi['fft']['freq'][0],
-                                   mhi['fft']['freq'][-1]),
-                            aspect='auto', interpolation='nearest', cmap=cmap,
-                            norm=colors.PowerNorm(gamma=0.50))
+                              extent=(mhi['fft']['time'][0],
+                                      mhi['fft']['time'][-1],
+                                      mhi['fft']['freq'][0],
+                                      mhi['fft']['freq'][-1]),
+                              aspect='auto', interpolation='nearest',
+                              cmap=cmap, norm=colors.PowerNorm(gamma=0.50))
 
     ax[0][0].set_title('B-coil:' + str(coilNumber))
     ax[0][0].set_xlabel('Time [s]')
@@ -198,43 +199,43 @@ if plot_spectrograms:
     print('Plotting TradA:'+str(ece['channels'][nchann]))
     print('rho_pol = '+str(ece['rhop'][nchann]))
 
-    #--- Plotting ECE sample channel.
+    # --- Plotting ECE sample channel.
     eceplot = np.abs(ece['fft']['spec'][:, :, nchann]).T
 
     if spec_abstype == 'linear':
         im2 = ax[0][1].imshow(eceplot, origin='lower',
-                            extent=(ece['fft']['time'][0],
-                                    ece['fft']['time'][-1],
-                                    ece['fft']['freq'][0],
-                                    ece['fft']['freq'][-1]),
-                            aspect='auto', interpolation='nearest',
-                            cmap=cmap)
+                              extent=(ece['fft']['time'][0],
+                                      ece['fft']['time'][-1],
+                                      ece['fft']['freq'][0],
+                                      ece['fft']['freq'][-1]),
+                              aspect='auto', interpolation='nearest',
+                              cmap=cmap)
     elif spec_abstype == 'log':
         im2 = ax[0][1].imshow(eceplot, origin='lower',
-                            extent=(ece['fft']['time'][0],
-                                    ece['fft']['time'][-1],
-                                    ece['fft']['freq'][0],
-                                    ece['fft']['freq'][-1]),
-                            aspect='auto', interpolation='nearest',
-                            norm=colors.LogNorm(eceplot.min(),
-                                                eceplot.max()),
-                            cmap = cmap)
+                              extent=(ece['fft']['time'][0],
+                                      ece['fft']['time'][-1],
+                                      ece['fft']['freq'][0],
+                                      ece['fft']['freq'][-1]),
+                              aspect='auto', interpolation='nearest',
+                              norm=colors.LogNorm(eceplot.min(),
+                                                  eceplot.max()),
+                              cmap=cmap)
     elif spec_abstype == 'sqrt':
         im2 = ax[0][1].imshow(eceplot, origin='lower',
-                             extent=(ece['fft']['time'][0],
-                                     ece['fft']['time'][-1],
-                                     ece['fft']['freq'][0],
-                                     ece['fft']['freq'][-1]),
-                             aspect='auto', interpolation='nearest',
-                             cmap=cmap,
-                             norm=colors.PowerNorm(gamma=0.50))
+                              extent=(ece['fft']['time'][0],
+                                      ece['fft']['time'][-1],
+                                      ece['fft']['freq'][0],
+                                      ece['fft']['freq'][-1]),
+                              aspect='auto', interpolation='nearest',
+                              cmap=cmap,
+                              norm=colors.PowerNorm(gamma=0.50))
 
-    ax[0][1].set_title('TradA:'+str(ece['channels'][nchann]) +
-                    ' - $\\rho_{pol}$ = ' + str(ece['rhop'][nchann]))
+    ax[0][1].set_title('TradA:'+str(ece['channels'][nchann])
+                       + ' - $\\rho_{pol}$ = ' + str(ece['rhop'][nchann]))
     ax[0][1].set_xlabel('Time [s]')
     fig.colorbar(im2, ax=ax[0][1])
 
-    #--- Plotting the correlation matrix in (freq, time).
+    # --- Plotting the correlation matrix in (freq, time).
     t, freq, A = myCPSD(mhi['fft']['B'],
                         ece['fft']['spec'][:, :, nchann].T,
                         mhi['fft']['time'], mhi['fft']['freq'],
@@ -244,30 +245,32 @@ if plot_spectrograms:
 
     if spec_abstype == 'linear':
         im3 = ax[1][0].imshow(xcor_plot, origin='lower',
-                           extent=(t[0], t[-1], freq[0], freq[-1]),
-                           aspect='auto', interpolation='nearest', cmap=cmap)
+                              extent=(t[0], t[-1], freq[0], freq[-1]),
+                              aspect='auto', interpolation='nearest',
+                              cmap=cmap)
     elif spec_abstype == 'log':
         im3 = ax[1][0].imshow(xcor_plot, origin='lower',
-                           extent=(t[0], t[-1], freq[0], freq[-1]),
-                           aspect='auto', interpolation='nearest',
-                           norm=colors.LogNorm(eceplot.min(), eceplot.max()),
-                           cmap = cmap)
+                              extent=(t[0], t[-1], freq[0], freq[-1]),
+                              aspect='auto', interpolation='nearest',
+                              norm=colors.LogNorm(eceplot.min(),
+                                                  eceplot.max()),
+                              cmap=cmap)
     elif spec_abstype == 'sqrt':
         im3 = ax[1][0].imshow(xcor_plot, origin='lower',
-                           extent=(t[0], t[-1], freq[0], freq[-1]),
-                           aspect='auto', interpolation='nearest', cmap=cmap,
-                           norm=colors.PowerNorm(gamma=0.50))
+                              extent=(t[0], t[-1], freq[0], freq[-1]),
+                              aspect='auto', interpolation='nearest',
+                              norm=colors.PowerNorm(gamma=0.50), cmap=cmap)
 
     ax[1][0].set_title('Cross-correlation')
     ax[1][0].set_xlabel('Time [s]')
     fig.colorbar(im3, ax=ax[1][0])
 
-    #--- Plotting correlation phase.
+    # --- Plotting correlation phase.
     xcor_phase = np.angle(A)
     im4 = ax[1][1].imshow(xcor_phase, origin='lower',
-                        extent=(t[0], t[-1], freq[0], freq[-1]),
-                        aspect='auto', interpolation='nearest', cmap=cmap,
-                        vmin=-np.pi, vmax=np.pi)
+                          extent=(t[0], t[-1], freq[0], freq[-1]),
+                          aspect='auto', interpolation='nearest', cmap=cmap,
+                          vmin=-np.pi, vmax=np.pi)
 
     ax[1][1].set_title('Cross-correlation (Phase)')
     ax[1][1].set_xlabel('Time [s]')
@@ -291,12 +294,12 @@ if plot_Te_sample:
     else:
         downsample = 1
 
-    ss.plt.plot2D_ECE(ece, rType = 'channels',
-                      downsample=downsample, ax = ax1[0],
+    ss.plt.plot2D_ECE(ece, rType='channels',
+                      downsample=downsample, ax=ax1[0],
                       cmap=cmap, fig=fig1, which='norm')
-    ss.plt.plot2D_ECE(ece, rType = 'rho_pol',
-               downsample=downsample, ax = ax1[1],
-               cmap=cmap, fig=fig1, which='norm')
+    ss.plt.plot2D_ECE(ece, rType='rho_pol',
+                      downsample=downsample, ax=ax1[1],
+                      cmap=cmap, fig=fig1, which='norm')
 
     plt.tight_layout()
 
@@ -314,15 +317,16 @@ for ii in tqdm(np.arange(ece['rhop'].shape[0])):
     else:
         Sxx = np.dstack((Sxx, A))
 
-ece['xrel'] = { 'time': mhi['fft']['time'],
-                'freq': mhi['fft']['freq'],
-                'rho':  ece['rhop'],
-                'data': Sxx,
-                'data2D': np.abs(np.sum(Sxx, axis=1)), # [freq, rho_pol]
-                'desc': 'Cross-power spectral density ECE - \
-                         MHI for all channels',
-                'short': '$\\delta B_r \\ast \\delta T_e$'
-                }
+ece['xrel'] = {
+    'time': mhi['fft']['time'],
+    'freq': mhi['fft']['freq'],
+    'rho':  ece['rhop'],
+    'data': Sxx,
+    'data2D': np.abs(np.sum(Sxx, axis=1)),  # [freq, rho_pol]
+    'desc': 'Cross-power spectral density ECE - \
+             MHI for all channels',
+    'short': '$\\delta B_r \\ast \\delta T_e$'
+}
 
 # -----------------------------------------------------------------------------
 # --- Plotting the cross-correlation.
@@ -330,10 +334,11 @@ ece['xrel'] = { 'time': mhi['fft']['time'],
 if plot_profiles:
     fig3, ax3 = plt.subplots(nrows=1, ncols=2)
 
-    opts = {'cmap':cmap,
-            'shading':'nearest',
-            'antialiased': True
-           }
+    opts = {
+        'cmap': cmap,
+        'shading': 'nearest',
+        'antialiased': True
+    }
 
     if spec_abstype_cpsd == 'log':
         opts['norm'] = colors.LogNorm(ece['xrel']['data2D'].min(),
@@ -342,7 +347,7 @@ if plot_profiles:
         opts['norm'] = colors.PowerNorm(gamma=0.50)
 
     im5 = ax3[0].pcolormesh(ece['xrel']['rho'], ece['xrel']['freq'],
-               ece['xrel']['data2D'], **opts)
+                            ece['xrel']['data2D'], **opts)
 
     ax3[0].set_xlim([0, 1.0])
     ax3[0].set_title('Cross-correlation vs. rhopol')
@@ -350,13 +355,10 @@ if plot_profiles:
     ax3[0].set_ylabel('Frequency [kHz]')
     fig3.colorbar(im3, ax=ax3[0])
 
-
     # --- Plotting the 1D profile.
     f0 = (np.abs(ece['xrel']['freq'] - freq1d[0])).argmin()
     f1 = (np.abs(ece['xrel']['freq'] - freq1d[-1])).argmin()
-    ece_1D = np.sqrt(np.sum(ece['xrel']['data2D'][f0:f1, :]**2, axis = 0))
-
-
+    ece_1D = np.sqrt(np.sum(ece['xrel']['data2D'][f0:f1, :]**2, axis=0))
     rhoplot, eceplot1d = zip(*sorted(zip(ece['xrel']['rho'],
                                          ece_1D)))
 
@@ -364,8 +366,8 @@ if plot_profiles:
     eceplot1d = np.array(eceplot1d)
     ax3[1].plot(rhoplot, eceplot1d/eceplot1d.max(), 'r*-',
                 label='Cross-correlation ECE-MHI')
-    ax3[1].set_title('f $\\in$ [%.1f, %.1f] kHz'%(ece['xrel']['freq'][f0],
-                                                  ece['xrel']['freq'][f1]))
+    ax3[1].set_title('f $\\in$ [%.1f, %.1f] kHz' % (ece['xrel']['freq'][f0],
+                                                    ece['xrel']['freq'][f1]))
 
     # --- Plotting the normalized electron temperature gradient.
     ax3[1].plot(ece['fft']['dTe_base'],

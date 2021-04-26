@@ -8,8 +8,7 @@ to run the suite and, if you say yes, install the ones missing.
 pip installations seems a bit more complicated, you must run the command
 yourself. Sorry
 
-In ASDEX, it should be run in lxts, as there is no git installed in toki!!!,
-run it in ipython, spyder is messy for this
+If git is not found, call 'module load git'
 """
 from paths_suite import paths_of_the_suite
 import os
@@ -58,20 +57,24 @@ except ImportError:
             'cd roipoly.py \n' +\
             'git checkout bugfix-spyder'
         os.system(instructions)
-# UNDER development
-# try:
-#     import cv2
-# except ImportError:
-#     print('There would be no support for the mp4 videos, open cv not found')
-#     x = int(input('Install it?: (1 = yes) '))
-#     if x == 1:
-#         os.system('pip install opencv-python')
-#
-#
-# try:
-#     import lmfit
-# except ImportError:
-#     print('lmfit not found, you cannot calculate resolutions')
-#     x = int(input('Install it?: (1 = yes) '))
-#     if x == 1:
-#         os.system('pip install lmfit')
+
+try:
+    import cv2
+except ImportError:
+    print('There would be no support for the mp4 videos, open cv not found')
+    print('To install it:')
+    print('Just execute "pip install opencv-python" in this python console')
+
+try:
+    import lmfit
+except ImportError:
+    print('lmfit not found, you cannot calculate resolutions')
+    print('To install it:')
+    print('Just execute "pip install lmfit" in this python console')
+
+try:
+    import f90nml
+except ImportError:
+    print('f90nml not found, you cannot remap')
+    print('To install it:')
+    print('Just execute "pip install f90nml" in this python console')

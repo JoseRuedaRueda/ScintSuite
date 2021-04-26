@@ -1,5 +1,5 @@
 """
-Perform the absolute calibration using measurements of the itnrgrating sphere
+Perform the absolute calibration using measurements of the integrating sphere
 
 It is written for the case of a video taken with the phantom camera, some minor
 modification may be needed in section 1 if you use another video format
@@ -10,7 +10,6 @@ Jose Rueda: jrrueda@us.es
 
 import numpy as np
 import Lib as ss
-import matplotlib.pyplot as plt
 import scipy.interpolate as interp
 
 
@@ -61,4 +60,4 @@ ideal_current = np.sum(cam_response * sph['spectrum'] * delta_l * area_sphere)
 # --- calculate the transmission
 # -----------------------------------------------------------------------------
 t = trace_current / ideal_current
-print('Your transmission factor is: ', t.mean(), '[sr]')
+print('Your transmission factor is: ', t.mean(), '[sr^-1]')

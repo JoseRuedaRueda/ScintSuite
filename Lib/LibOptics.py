@@ -96,7 +96,7 @@ def read_sphere_data(file: str = None, plot: bool = False):
 # -----------------------------------------------------------------------------
 def edge_detection(image):
     """
-    Detect a edges in an image thanks to an adaptative threshold
+    Detect a edges in an image thanks to an adaptive threshold
 
     José Rueda Rueda: jrrueda@us.es
 

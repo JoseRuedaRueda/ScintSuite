@@ -2,7 +2,7 @@
 Remap video from FILD cameras
 
 Lesson 2 from the FILD experimental analysis. Video files will be loaded,
-possibility to substract noise and timetraces will be calculated
+possibility to subtract noise and timetraces will be calculated
 
 jose Rueda: jrrueda@us.es
 
@@ -23,20 +23,22 @@ t2 = 3.0     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
-# - Noise substraction settings:
+# - Noise subtraction settings:
 subtract_noise = False   # Flag to apply noise subtraction
 tn1 = 2.0     # Initial time to average the frames for noise subtraction [s]
 tn2 = 2.05     # Final time to average the frames for noise subtraction [s]
 
 # - TimeTrace options:
-calculate_TT = False  # Wheter to calculate or not the TT
+calculate_TT = False  # Whether to calculate or not the TT
 t0 = 2.5         # time points to define the ROI
 save_TT = True   # Export the TT and the ROI used
 plt_TT = True  # Plot the TT
 
 # - FILDSIM options: If a SS is not found, a FILDSIM calculation will be
 # launched, default settings are great for FILD, but for DLIF, some details
-# must be changed:
+# must be changed: Note, this should not be done, in the StrikeMaps folders,
+# one should have the .cfg file with the parameters, this is just written here
+# to show how to give special parameters to the strike map calculation
 
 FILDSIM_namelist = {
     'config': {
@@ -97,7 +99,7 @@ print('Reading camera frames: ', shot, '...')
 vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
 print('Elapsed time [s]: ', time() - tdummy)
 # -----------------------------------------------------------------------------
-# --- Section 2: Substract the noise
+# --- Section 2: Subtract the noise
 # -----------------------------------------------------------------------------
 if subtract_noise:
     vid.subtract_noise(t1=tn1, t2=tn2)
@@ -128,7 +130,7 @@ if calculate_TT:
         time_trace.plot_single()
 
 # -----------------------------------------------------------------------------
-# --- Section 4: Remmap
+# --- Section 4: Remap
 # -----------------------------------------------------------------------------
 # - Initialise the calibration database object
 database = ss.mapping.CalibrationDatabase(calibration_database)

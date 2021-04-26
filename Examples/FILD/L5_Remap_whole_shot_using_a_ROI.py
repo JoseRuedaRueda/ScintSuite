@@ -2,7 +2,7 @@
 Remap video from FILD cameras
 
 Lesson 5 from the FILD experimental analysis. Video files will be loaded,
-possibility to substract noise and timetraces remap of the whole video
+possibility to subtract noise and timetraces remap of the whole video
 
 jose Rueda: jrrueda@us.es
 
@@ -23,13 +23,13 @@ t2 = 0.65     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
-# - Noise substraction settings:
+# - Noise subtraction settings:
 subtract_noise = False   # Flag to apply noise subtraction
 tn1 = 0.30     # Initial time to average the frames for noise subtraction [s]
 tn2 = 0.35     # Final time to average the frames for noise subtraction [s]
 
 # - TimeTrace options:
-calculate_TT = False  # Wheter to calculate or not the TT
+calculate_TT = False  # Whether to calculate or not the TT
 t0 = 2.5         # time points to define the ROI
 save_TT = True   # Export the TT and the ROI used
 plt_TT = True  # Plot the TT
@@ -81,7 +81,7 @@ print('Reading camera frames: ', shot, '...')
 vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
 print('Elapsed time [s]: ', time() - tdummy)
 # -----------------------------------------------------------------------------
-# --- Section 2: Substract the noise
+# --- Section 2: Subtract the noise
 # -----------------------------------------------------------------------------
 if subtract_noise:
     vid.subtract_noise(t1=tn1, t2=tn2)
@@ -126,9 +126,9 @@ if use_roi:
 else:
     mask = None
 # -----------------------------------------------------------------------------
-# --- Section 5: Remmap
+# --- Section 5: Remap
 # -----------------------------------------------------------------------------
-# - Initialise the calibration database object
+# - Initialize the calibration database object
 database = ss.mapping.CalibrationDatabase(calibration_database)
 # - Get the calibration for our shot
 cal = database.get_calibration(shot, camera, 'PIX', diag_ID)

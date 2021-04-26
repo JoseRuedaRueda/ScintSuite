@@ -53,12 +53,13 @@ fig_ref, roi = ss.tt.create_roi(fig_ref)
 mask = roi.get_mask(video.exp_dat['frames'].squeeze())
 # -----------------------------------------------------------------------------
 # Section 2: Calculate and display the time traces
-# time_trace = sstt.time_trace_cine(cin, mask, t1=0, t2=7.0)
+# -----------------------------------------------------------------------------
 time_trace = ss.tt.TimeTrace(video, mask, t1=0.0, t2=10.0)
 # Plot the time trace
 time_trace.plot_all()
 # -----------------------------------------------------------------------------
 # Section 3: Calculate and display the fft and spectrogram
+# -----------------------------------------------------------------------------
 time_trace.calculate_fft()
 time_trace.plot_fft()
 

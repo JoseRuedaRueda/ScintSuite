@@ -24,7 +24,7 @@ labels = ('FILD4', 'FILD4', 'FILD5')
 shot = 38626        # Shot number
 pmin = 0.7e6        # Minimum power to consider as on an NBI [W]
 # Plotting options:
-FS = 14             # fontsie
+FS = 14             # FontSize
 grid = 'both'       # activate bck grid or not
 linewidth = 2       # LineWidth
 alpha = 0.5

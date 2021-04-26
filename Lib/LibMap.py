@@ -142,7 +142,7 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
     normal_real = np.cross(v21_real, v23_real)
     normal_pix = np.cross(v21_pix, v23_pix)
 
-    # If the normals has opposite signs, an inversion must be done
+    # If the normal has opposite signs, an inversion must be done
     if normal_pix[2] * normal_real[2] < 0:
         sign = -1.0
     else:
@@ -422,60 +422,6 @@ def estimate_effective_pixel_area(frame_shape, xscale: float, yscale: float,
     return area
 
 
-# This seems repeated with the FILDSIM module. Solve repetition!!!
-# def FILD_calculate_photon_flux(raw_frame, calibration_frame,
-#                                pinhole_area: float, exposure_time: float,
-#                               calib_exposure_time: float, pixel_area_covered,
-#                                int_photon_flux, mask=None):
-#     """
-#     Convert a FILD frame into photon/s
-#
-#     Jose Rueda: ruejo@ipp.mpg.de  based on an IDL routine of Joaquin Galdón
-#
-#     About the units:
-#         -# photon_flux: Photons/(s*m^2)
-#         -# Area covered by the pixel: m^2
-#         -# Calibration exposure time: s
-#         -# Exposure time: s
-#         -# pinhole area: m^2
-#         -# Calibration frame [input]: counts
-#         -# Calibration frame [output]: counts*s*m^2/photons
-#         -# Photon flux frame: Photons/(s*m^2)
-#     @todo include docstring of the inputs
-#     """
-#     # Check frame shapes
-#     # --- Section 0: Check the inputs
-#     s1 = raw_frame.shape
-#     s2 = calibration_frame.shape
-#
-#     if calibration_frame.size == 1:
-#         print('Using mean calibration frame method:')
-#         print('So Using single (mean) value instead of a 2D array')
-#     else:
-#         if (s1[0] != s2[0]) or (s1[1] != s2[0]):
-#             print('Size of data frame and calibration frame not matching!!')
-#             raise Exception('Use mean calibration frame method!!')
-#     # --- Section 1: calibrate the frames
-#     cal_frame_cal = \
-#         FILD_absolute_calibration_frame(calibration_frame, exposure_time,
-#                                         pinhole_area, calib_exposure_time,
-#                                         int_photon_flux, pixel_area_covered)
-#     photon_flux_frame = raw_frame / cal_frame_cal
-#     photon_flux = np.nansum(photon_flux_frame, dtype=np.float)
-#
-#     if mask is not None:
-#         print('USING ROI METHOD FOR PHOTON FRAME CALCULATION')
-#         dummy_frame = photon_flux_frame * 0.0
-#         dummy_frame[mask] = photon_flux_frame[mask]
-#
-#         photon_flux_frame = dummy_frame
-#         photon_flux = np.nansum(photon_flux_frame, dtype=np.float)
-#
-#     return {'photon_flux_frame': photon_flux_frame,
-#             'photon_flux': photon_flux, 'calibration_frame': cal_frame_cal,
-#             'exposure_time': exposure_time, 'pinhole_area': pinhole_area}
-
-
 def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
                                  rmax: float = 10.5, dr: float = 0.1,
                                  pmin: float = 15.0, pmax: float = 90.0,
@@ -542,7 +488,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
         -# 'theta_used': theta_used for the remap [deg]
         -# 'phi_used': phi_used for the remap [deg]
         -# 'tframes': time of the frames
-        -# 'existing_smaps': arry indicateing which smaps where found in the
+        -# 'existing_smaps': array indicating which smaps where found in the
         database and which don't
     @return   opt: dictionary containing all the input parameters
     """
@@ -636,7 +582,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
 
         if nnSmap == 0:
             print('--. .-. . .- -')
-            print('Ideal situation, not a single map needs to be calcuated')
+            print('Ideal situation, not a single map needs to be calculated')
         elif nnSmap == nframes:
             print('Non a single strike map, full calculation needed')
         elif nnSmap != 0:
@@ -652,7 +598,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
                     icloser = ssextra.find_nearest_sorted(existing_index, ii)
                     theta_used[ii] = theta[icloser]
                     phi_used[ii] = phi[icloser]
-    print('Remapping frames')
+    print('Remapping frames ...')
     for iframe in tqdm(range(nframes)):
         if not got_smap:
             name = ssFILDSIM.find_strike_map(rfild, zfild, phi_used[iframe],
@@ -678,11 +624,10 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
                                                pprofmax)
         signal_in_pit[:, iframe] = pitch_profile(dummy, gyr, rprofmin,
                                                  rprofmax)
-        if verbose:
-            print('### Frame:', iframe + 1, 'of', nframes, 'remapped')
-            toc = time.time()
-            print('Whole time interval remaped in: ', toc-tic, ' s')
-            print('Average time per frame: ', (toc-tic) / nframes, ' s')
+    if verbose:
+        toc = time.time()
+        print('Whole time interval remapped in: ', toc-tic, ' s')
+        print('Average time per frame: ', (toc-tic) / nframes, ' s')
     output = {'frames': remaped_frames, 'xaxis': pitch, 'yaxis': gyr,
               'xlabel': 'Pitch', 'ylabel': '$r_l$',
               'xunits': '{}^o', 'yunits': 'cm',

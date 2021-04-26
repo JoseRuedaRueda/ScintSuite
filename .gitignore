@@ -16,7 +16,7 @@ Per_*
 *.pod
 
 # -----------------------------------------------------------------------------
-# Folders to ignore
+# --- Folders to ignore
 # -----------------------------------------------------------------------------
 __pycache__/*
 temp_data/*
@@ -24,4 +24,4 @@ FILD_calibration/*
 Data/StrikeMaps/*
 MyRoutines/*
 Results/*
-doc/
+doc/*
