@@ -1,7 +1,7 @@
 """
 Routines to analyse a time signal in the frequency domain
 
-Include bandpass signal and other filtres aimed to reduce the noise
+Include band signal and other filtres aimed to reduce the noise
 """
 import numpy as np
 import pyfftw
@@ -327,7 +327,8 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                    tOverlap: float=None, smooth: bool=True,
                    smooth_data: dict={}, peak_opts: dict={}, 
                    verbose: bool=True, plotandwait: bool=True, 
-                   plotOpts: dict = {}):
+                   plotOpts: dict = {}, graph_TimeConnect: float=0.0,
+                   freqThr: float = np.inf):
     """
     This function will try to follow a frequency in a spectrogram based on
     peak detection algorithm + Dijsktra's algorithm. To make this function 
@@ -355,8 +356,10 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     is set to dt.
     """
     dt = time[1] - time[0]
+    df = freq[1] - freq[0]
     nfreq = len(freq)
-    ntime = len(time)
+    freqMean = np.mean(freq)
+    k_exp = 4.0
     
     # --- Checking the inputs.
     if costFunction is not None:
@@ -402,12 +405,26 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     if timeLims is not None:
         if len(timeLims)%2 != 0:
             timeLims.append(time[-1])
+            
+        if timeLims[0] < time[0]:
+            timeLims[0] = time[0]
+        if timeLims[-1] > time[-1]:
+            timeLims[-1] = time[-1]
     else:
         timeLims = [time[0], time[-1]]
         
     if freqLims is None:
         freqLims = [freq[0], freq[-1]]
         
+    # Checking the time overlap
+    if graph_TimeConnect < dt:
+        graph_TimeConnect = 10.0*dt
+    
+    nGraphConne = int(np.floor(graph_TimeConnect/dt))
+    if verbose:
+        print('Connecting nodes in graph separated by %d time-slices'%\
+              nGraphConne)
+    
     # --- Checking the filtering data.
     if 'window_length' not in smooth_data:
         smooth_data['window_length'] = 5
@@ -420,7 +437,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
         
     # --- Checking the peaking finding data.
     if 'prominence' not in peak_opts:
-        peak_opts['prominence'] = 1.0 - 1.0/np.exp(1.0) # 66.7%
+        peak_opts['prominence'] = 0.50 # 66.7%
     if 'width' not in peak_opts:
         peak_opts['width'] = (None, None)
         
@@ -445,13 +462,9 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                   'timeList': defaultdict(list)
                 }
     
-    if verbose:
-        print('Shape of spec = '+str(spec.shape))
-        print('Shape of time = '+str(time.shape))
-        print('Shape of freq = '+str(freq.shape))
     # This will help us mapping the node ID to the peak time-frequency.
     peak_map = defaultdict(list)
-    kk = 0 # Index running for the time ordered list.
+    kk = int(0) # Index running for the time ordered list.
     for ii in np.arange(nwindows, dtype=int):
         t0 = np.abs(time - timeLims[2*ii]).argmin()
         t1 = np.abs(time - timeLims[2*ii + 1]).argmin()
@@ -500,7 +513,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                     
             # Adding the peak data to the list.
             peak_data['peak_idx'][kk] = peaks
-            peak_data['width'][kk] = props['width_heights']
+            peak_data['width'][kk] = props['widths']*df
             peak_data['freq'][kk] = freq[peaks]
             peak_data['spec_val'][kk]= np.mean(spec[t0_avg:t1_avg, peaks],
                                                axis=0)
@@ -510,7 +523,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
             time_idx = int(np.floor((t0_avg+t1_avg)/2.0)) * \
                        np.ones(len(peaks), dtype=int)
             peak_data['time'][kk] = time[time_idx]
-            peak_data['timeList'][kk] = kk*nfreq*np.ones(len(time_idx)) + \
+            peak_data['timeList'][kk] = kk*nfreq*np.ones(len(time_idx)) +\
                                         peak_data['peak_idx'][kk]
             
             # Adding the vertex to the list in the graph class.
@@ -526,6 +539,9 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     if verbose:
         print('Found %d peaks!'%len(peak_map))
         
+    if len(peak_map) == 0:
+        raise RuntimeError('No peaks found in the spectrum. Tweak the inputs')
+        
     if plotandwait:
         fig, ax = plt.subplots(1)
         im1 = ax.pcolormesh(time, freq, spec.T, **plotOpts)
@@ -537,75 +553,100 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
         for ii in peak_map:
             ax.plot(peak_map[ii][0], peak_map[ii][1], 'r.')
         
-        print('Check the input and tell me: 0 -> finish here\n')
-        print('                          else -> keep going\n')
-        bb = int(input())
+        # print('Check the input and tell me: 0 -> finish here\n')
+        # print('                          else -> keep going\n')
+        # bb = int(input())
         
-        if bb == 0:
-            output = { 
-              'peak_data': peak_data,
-              'peak_map': peak_map
-             }
-            print('bye-bye')
+        # if bb == 0:
+        #     output = { 
+        #       'peak_data': peak_data,
+        #       'peak_map': peak_map
+        #      }
+        #     print('bye-bye')
     
-            del dgraph
-            return output
+        #     del dgraph
+        #     return output
     
     ntime_peaks = kk - 1
-    # --- Generating the graph.
+    if verbose:
+        print('#time slices = %d'%ntime_peaks)
+    # --- Generating the graph: connecting the vertex
     # The graph will conect the timepoints with the next timepoints peaks only
     for ii in np.arange(ntime_peaks, dtype=int):
+        # Loop over the starting nodes.
         for jj, frm in enumerate(peak_data['timeList'][ii]):
-            for kk, to in enumerate(peak_data['timeList'][ii + 1]):
-                peak_prv = { 'time': peak_data['time'][ii][jj],
-                             'freq': peak_data['freq'][ii][jj],
-                             'width': peak_data['width'][ii][jj],
-                             'spec_val': peak_data['spec_val'][ii][jj],
-                             'spec_norm': peak_data['spec_norm'][ii][jj],
-                           }
-                peak_nxt = { 'time': peak_data['time'][ii+1][kk],
-                             'freq': peak_data['freq'][ii+1][kk],
-                             'width': peak_data['width'][ii+1][kk],
-                             'spec_val': peak_data['spec_val'][ii+1][kk],
-                             'spec_norm': peak_data['spec_norm'][ii+1][kk],
-                           }
-                if costFunction is None:
-                    deltaF = np.abs(peak_prv['freq'] - peak_nxt['freq'])
-                    # deltaA = np.abs(peak_prv['spec_norm'] - \
-                    #                 peak_nxt['spec_norm'])
-                    sigmaF = np.sqrt(peak_prv['width']**2.0 + 
-                                     peak_nxt['width']**2.0)
-                    
-                    cost = deltaF**2.0
-                else:
-                    cost = costFunction(prv=peak_prv, nxt=peak_nxt,
-                                        origin=False, target=False)
+            # Loop over the next nodes: we will connect every node all the
+            # nodes that are lying after it, given a maximum time distance.
+            stop_conn = int(np.minimum(ii+nGraphConne, ntime_peaks+1))
+            for itime in np.arange(start=ii+1, stop=stop_conn, dtype=int):
+                # Loop over the time slices after the current one.
+                for kk, to in enumerate(peak_data['timeList'][itime]):
+                    # Loop over all the nodes in timeslice 'itime'
+                    peak_prv = { 'time': peak_data['time'][ii][jj],
+                                 'freq': peak_data['freq'][ii][jj],
+                                 'width': peak_data['width'][ii][jj],
+                                 'spec_val': peak_data['spec_val'][ii][jj],
+                                 'spec_norm': peak_data['spec_norm'][ii][jj]
+                               }
+                    peak_nxt = { 'time': peak_data['time'][itime][kk],
+                                 'freq': peak_data['freq'][itime][kk],
+                                 'width': peak_data['width'][itime][kk],
+                                 'spec_val': peak_data['spec_val'][itime][kk],
+                                 'spec_norm': peak_data['spec_norm'][itime][kk]
+                               }
+                    if costFunction is None:
+                        deltaF = np.abs(peak_prv['freq'] - peak_nxt['freq'])
+                        deltaA = np.abs(peak_prv['spec_norm'] - \
+                                        peak_nxt['spec_norm'])
+                        deltaTime = np.abs(peak_prv['time'] - peak_nxt['time'])
                         
-                dgraph.add_edge(frm=frm, to=to, cost=cost, forceAdd=False)
+                        sigmaF = np.abs(peak_prv['width'])
+                        #sigmaA = 1.0
+                        sigmaTime = dt
+                        
+                        cost = (deltaF/freqMean)**k_exp *(deltaTime/dt)**4.0
+                        if (deltaF > freqThr):
+                             cost *= (np.inf)
+                    else:
+                        cost = costFunction(prv=peak_prv, nxt=peak_nxt,
+                                            origin=False, target=False)
+                    
+                    dgraph.add_edge(frm=frm, to=to, cost=cost, forceAdd=False)
     
     # --- Adding the origin vertex in the graph.
     dgraph.add_vertex('origin')
-    peak_origin = { 'time': [],
+    peak_origin = { 'time': timeLims[0],
                     'freq': origin,
-                    'width': [],
-                    'spec_val': [],
-                    'spec_norm': [],
+                    'width': 0.0,
+                    'spec_val': interp2d(time, freq, spec.T)\
+                                (timeLims[0], origin),
+                    'spec_norm': 0.0,
                 }
-    for ii, to in enumerate(peak_data['timeList'][0]):
-        peak_nxt = { 'time': peak_data['time'][0][ii],
-                     'freq': peak_data['freq'][0][ii],
-                     'width': peak_data['width'][0][ii],
-                     'spec_val': peak_data['spec_val'][0][ii],
-                     'spec_norm': peak_data['spec_norm'][0][ii],
-                   }
-        if costFunction is None:
-            deltaF = np.abs(peak_origin['freq'] - peak_nxt['freq'])
-            cost = deltaF
-        else:
-            cost = costFunction(prv=peak_origin, nxt=peak_nxt,
-                                origin=True, target=False)
-    
-        dgraph.add_edge(frm='origin', to=to, cost=cost, forceAdd=False)
+        
+    peak_map['origin'] = (peak_origin['time'], 
+                          peak_origin['freq'],
+                          peak_origin['width'],
+                          peak_origin['spec_val'], 
+                          peak_origin['spec_norm'])
+    for jj in np.arange(start=0, stop=nGraphConne):
+        for ii, to in enumerate(peak_data['timeList'][jj]):
+            peak_nxt = { 'time': peak_data['time'][jj][ii],
+                         'freq': peak_data['freq'][jj][ii],
+                         'width': peak_data['width'][jj][ii],
+                         'spec_val': peak_data['spec_val'][jj][ii],
+                         'spec_norm': peak_data['spec_norm'][jj][ii],
+                       }
+            if costFunction is None:
+                deltaF = np.abs(peak_origin['freq'] - peak_nxt['freq'])
+                sigmaF = np.abs(peak_nxt['width'])
+                
+                cost = (deltaF/freqMean)**k_exp*(deltaTime/dt)**2.0
+                if (deltaF > freqThr):
+                     cost *= (np.inf)
+            else:
+                cost = costFunction(prv=peak_origin, nxt=peak_nxt,
+                                    origin=True, target=False)
+            dgraph.add_edge(frm='origin', to=to, cost=cost, forceAdd=False)
         
     # --- Checking for the final vertex:
     if target is not None:
@@ -625,11 +666,16 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                        }
             if costFunction is None:
                 deltaF = np.abs(peak_prv['freq'] - peak_target['freq'])
-                cost = deltaF
+                sigmaF = np.abs(peak_prv['width'])
+                
+                cost = deltaF/sigmaF
             else:
                 cost = costFunction(prv=peak_prv, nxt=peak_target,
                                     origin=False, target=True)
-        
+            if cost.size == 0:
+                print('Adding target')
+                print(ii, frm)
+                print(deltaF, sigmaF)
             dgraph.add_edge(frm=frm, to='target', cost=cost, forceAdd=False)
             
     # --- Using Dijsktra.
@@ -641,18 +687,34 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     # --- Getting the final point:
     path = list()
     if target:
+        path.append('target')
         graph_shortest(dgraph.get_vertex('target'), path)    
     else:
         # Loop over all the endings to see which is the target vertex.
-        v = np.zeros((len(peak_data['timeList'][ntime_peaks]),))
-        for ii, node in enumerate(peak_data['timeList'][ntime_peaks]):
-            v[ii] = dgraph.get_vertex(node=node).distance
+        done_flag = False
+        for jj in np.arange(start=ntime_peaks, stop=0, step=-1, dtype=int):
+            # Test all the time slices, until finding one where one of the
+            # with a node connected to the frequency.
+            v = np.zeros((len(peak_data['timeList'][jj]),))
+            if len(v) == 0:
+                continue
+            for ii, node in enumerate(peak_data['timeList'][jj]):
+                v[ii] = dgraph.get_vertex(node=node).distance
+            if np.any(v != np.inf):
+                imin = v.argmin()
+                distmin = v[imin]
+                path.append(peak_data['timeList'][jj][imin])
+                graph_shortest(dgraph.get_vertex(peak_data['timeList']\
+                                                 [jj][imin]), path)
+            
+            if 'origin' in path:
+                done_flag = True
+                break
         
-        imin = v.argmin()
-        distmin = v[imin]
-        graph_shortest(dgraph.get_vertex(peak_data['timeList'][ntime_peaks][imin]), 
-                       path)   
-        
+        if not done_flag:
+            print('Be careful, the algorithm could not\
+                   find the origin in the path backwards')
+            distmin = np.inf
     # --- Translating the path into the curve (t, freq)
     timecurve = list()
     freqcurve = list()
@@ -660,8 +722,6 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     ampcurve_total = list()
     widths_curve   = list()
     for ii in path:
-        if ii == 'origin':
-            break
         timecurve.append(peak_map[ii][0])
         freqcurve.append(peak_map[ii][1])
         ampcurve_norm.append(peak_map[ii][2])
@@ -682,10 +742,11 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     
     # --- Print the curve.
     if plotandwait:
+        lineParams = {'color':'w'}
         ax=plot_error_band(ax=ax, x=output['track']['time'],
-                           y=output['track']['freq'], color='b', 
+                           y=output['track']['freq'], color='w', 
                            u_up=output['track']['width']/2.0, 
-                           alpha=0.2, line=True)
+                           alpha=0.2, line=True, line_param=lineParams)
     del dgraph
     
     return output
@@ -754,11 +815,13 @@ class Vertex:
         non-negative values. 0 implies direct connection, Inf means no
         connection at all. In the latter, it will not be added to the list.
         """
+        if weight.size == 0:
+            raise Exception('The weight must be a number for neighbour= '+\
+                            str(neighbor.id))
+        
         if weight < 0.0:
             raise Exception('Weigths must be non-negative numbers!')
         elif weight == np.inf:
-            print('The neighbour'+str(neighbor)+' is not added to the list\n')
-            print('because its cost is Infinity')
             return
         
         self.adjacent[neighbor] = weight
@@ -896,7 +959,6 @@ class Graph:
                 raise Exception('Node %s not available in the list'%to)
                 
         self.vert_dict[frm].add_neighbor(self.vert_dict[to], weight=cost)
-        self.vert_dict[to].add_neighbor(self.vert_dict[frm], weight=cost)
         
     def get_vertices(self):
         """
@@ -944,12 +1006,12 @@ class Graph:
                         print('Updated: current = '+ str(current.id)+'\n' + \
                                        'next = '    + str(nxt.id)   + '\n' + \
                                        'new_dist = ' +str(nxt.distance)+ '\n')
-                            
-                # else:
-                #     if verbose:
-                #         print('Non-updated: current = ' + str(current.id)+'\n'+\
-                #               'next = '     + str(nxt.id)     + '\n' + \
-                #                'new_dist = ' + str(nxt.distance) + '\n')
+                                
+                else:
+                    if verbose:
+                        print('Non-updated: current = '+ str(current.id)+'\n'+\
+                              'next = '     + str(nxt.id)     + '\n' + \
+                                'new_dist = ' + str(nxt.distance) + '\n')
                             
             # Rebuild heap:
             # 1. Pop every item.
