@@ -2,7 +2,7 @@
 Load video from FILD cameras
 
 Lesson 1 from the FILD experimental analysis. Video files will be loaded,
-possibility to substract noise
+possibility to subtract noise
 
 jose Rueda: jrrueda@us.es
 
@@ -20,7 +20,7 @@ t2 = 8.0     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
-# - Noise substraction settings:
+# - Noise subtraction settings:
 subtract_noise = True   # Flag to apply noise subtraction
 tn1 = 0.9     # Initial time to average the frames for noise subtraction [s]
 tn2 = 1.0     # Final time to average the frames for noise subtraction [s]
@@ -39,7 +39,7 @@ print('Reading camera frames, shot: ', shot)
 vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
 
 # -----------------------------------------------------------------------------
-# --- Section 2: Substract the noise
+# --- Section 2: Subtract the noise
 # -----------------------------------------------------------------------------
 if subtract_noise:
     vid.subtract_noise(t1=tn1, t2=tn2)

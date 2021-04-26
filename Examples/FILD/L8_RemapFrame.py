@@ -18,11 +18,11 @@ import matplotlib.pyplot as plt
 import LibPlotting as ssplt
 import LibVideoFiles as ssvid
 import LibMap as ssmap
-import LibDataAUG as ssdat
 
 
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Section 0: Settings
+# -----------------------------------------------------------------------------
 cin_file_name = '/p/IPP/AUG/rawfiles/FIT/32/32312_v710.cin'
 calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
 
@@ -36,12 +36,14 @@ diag_ID = 1     # FILD Number
 rfild = 2.186
 zfild = 0.32
 t0 = 0.27
-# ------------------------------------------------------------------------------
-# %% Section 1: Load calibration
+# -----------------------------------------------------------------------------
+# --- Section 1: Load calibration
+# -----------------------------------------------------------------------------
 database = ssmap.CalibrationDatabase(calibration_database)
 cal = database.get_calibration(shot, camera, cal_type, diag_ID)
-# ------------------------------------------------------------------------------
-# %% Section 2: Load the frame
+# -----------------------------------------------------------------------------
+# --- Section 2: Load the frame
+# -----------------------------------------------------------------------------
 # Load a frame
 cin = ssvid.Video(cin_file_name)
 dummy = np.array([np.argmin(abs(cin.timebase-t0))])
@@ -55,7 +57,8 @@ smap.calculate_pixel_coordinates(cal)
 smap.interp_grid(ref_frame.shape, plot=False, method=2)
 smap.plot_pix(ax_ref)
 # -----------------------------------------------------------------------------
-# %% Section 3: Remapping
+# --- Section 3: Remapping
+# -----------------------------------------------------------------------------
 # Perform the remapping with the default options
 remaped, pitch, gyr = ssmap.remap(smap, ref_frame, delta_y=0.1)
 # Plot the remapped frame
@@ -66,7 +69,8 @@ a1 = plt.contourf(pitch, gyr, remaped.T, levels=20, cmap=cmap)
 fig_remap.colorbar(a1, ax=ax_remap)
 
 # -----------------------------------------------------------------------------
-# %% Section 4: Calculation of the profiles
+# --- Section 4: Calculation of the profiles
+# -----------------------------------------------------------------------------
 # Obtain a gyroradius profile
 profile = ssmap.gyr_profile(remaped, pitch, 20.0, 90.0, verbose=True)
 

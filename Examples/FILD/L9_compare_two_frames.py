@@ -3,23 +3,20 @@
 Remap and compare two frames
 
 Lesson 9 from the FILD experimental analysis. Video files will be loaded,
-noise will be substracted, a median filter will be applied, two experimental
+noise will be subtracted, a median filter will be applied, two experimental
 frames will be plotted and their remaps compared
 
-Notes: just for simplicity, although we just one two frames, the whols video
-will be loaded (to have the dark frames to substract the noise) for phantom
-(FILD1) this is a bit overkill, please if you want to use this for a phantom,
-restrict the time interval
+Notes: just for simplicity, although we just one two frames, a large nterval
+of the video video will be loaded (to have the dark frames to subtract the
+noise)
 
 jose Rueda: jrrueda@us.es
 
 Note: Written for version 0.2.6.
 """
-import os
 import Lib as ss
 import matplotlib.pyplot as plt
 import numpy as np
-
 from time import time
 # -----------------------------------------------------------------------------
 # --- Section 0: Settings
@@ -32,7 +29,7 @@ t2 = 7.5     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
-# - Noise substraction settings:
+# - Noise subtraction settings:
 subtract_noise = True   # Flag to apply noise subtraction
 tn1 = 5.75     # Initial time to average the frames for noise subtraction [s]
 tn2 = 5.9     # Final time to average the frames for noise subtraction [s]
@@ -43,10 +40,10 @@ kind_of_filter = 'median'
 options_filter = {
     'size': 2        # Size of the window to apply the filter
 }
-# If you want a gaussian one
+# If you want a Gaussian one
 # kind_of_filter = 'gaussian'
 # options_filter = {
-#     'sigma': 1        # sigma of the gaussian for the convolution (in pixels)
+#     'sigma': 1        # sigma of the Gaussian for the convolution (in pixels)
 # }
 
 # - Frames to compare
@@ -95,7 +92,7 @@ print('Reading camera frames: ', shot, '...')
 vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
 print('Elapsed time [s]: ', time() - tdummy)
 # -----------------------------------------------------------------------------
-# --- Section 2: Substract the noise and filter frames
+# --- Section 2: Subtract the noise and filter frames
 # -----------------------------------------------------------------------------
 if subtract_noise:
     vid.subtract_noise(t1=tn1, t2=tn2)
@@ -103,9 +100,9 @@ if subtract_noise:
 if apply_filter:
     vid.filter_frames(kind_of_filter, options_filter)
 # -----------------------------------------------------------------------------
-# --- Section 3: Remmap
+# --- Section 3: Remap
 # -----------------------------------------------------------------------------
-# - Initialise the calibration database object
+# - Initialize the calibration database object
 database = ss.mapping.CalibrationDatabase(calibration_database)
 # - Get the calibration for our shot
 cal = database.get_calibration(shot, camera, 'PIX', diag_ID)

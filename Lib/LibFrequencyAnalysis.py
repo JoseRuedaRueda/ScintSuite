@@ -258,58 +258,56 @@ def stft(tvec, signal, nfft, resolution=1000, window='gauss', fmin=-np.infty,
 # -----------------------------------------------------------------------------
 
 
-
 # -----------------------------------------------------------------------------
 # --- Cross-power density calculation.
 # -----------------------------------------------------------------------------
 def get_nfft(tau0, specType, nt, windowType, dt):
     """
     Getting the number of FFT required to reach the resolution.
-    
+
     by Giovanni Tardini
-    
+
     @param x: Time resolution parameter
     @param specType: kind of spectrum.
     @param nt: Number of time points.
     @param windowType: kind of window applied.
     @param dt: time step.
+
     @return nfft: number of points to overlap.
     """
     if specType in ('sparse', 'frequency', 'stfft', 'sfft'):
         tau0 = 1.20 - tau0
-    
+
     tau = nt**tau0 * dt
     nfft = tau/dt if windowType == 'gauss' else 2**np.ceil(np.log2(tau/dt))
-    
+
     return nfft
 
 
 def myCPSD(sig1, sig2, time1, freq1, time2, freq2):
     """
     Computing the cross-power spectral density for two complex input signals.
-    The spectrograms of the input signals may be defined onto two different 
+
+    The spectrograms of the input signals may be defined onto two different
     time-frequency basis. The second one will interpolated along the first.
-    
+
     Pablo Oyola - pablo.oyola@ipp.mpg.de
-    
+
     @param sig1: complex matrix. Spectrogram of the 1st signal.
     @param sig2: complex matrix. Spectrogram of the 2nd signal.
     @param time1: Time basis of the first signal. Also time output.
     @param freq1: Frequency basis of the first signal. Also the freq. output.
-    @param time2: Time basis onto which the 2nd signal is defined. 
-    @param freq2: Frequency basis of the 2nd signal is defined. 
+    @param time2: Time basis onto which the 2nd signal is defined.
+    @param freq2: Frequency basis of the 2nd signal is defined.
     """
-    
-    #--- We interpolate the signal 2 into the time and frequency basis of the 
+
+    # --- We interpolate the signal 2 into the time and frequency basis of the
     ## first.
-    sig2_fun_r  = interp2d(time2, freq2, sig2.real, kind='linear',
-                           bounds_error=False)
-    sig2_fun_i  = interp2d(time2, freq2, sig2.imag, kind='linear',
-                           bounds_error=False)
-    sig2_on1  = sig2_fun_r(time1, freq1) + 1j*sig2_fun_i(time1, freq1)
-    
+    sig2_fun_r = interp2d(time2, freq2, sig2.real, kind='linear',
+                          bounds_error=False)
+    sig2_fun_i = interp2d(time2, freq2, sig2.imag, kind='linear',
+                          bounds_error=False)
+    sig2_on1 = sig2_fun_r(time1, freq1) + 1j*sig2_fun_i(time1, freq1)
+
     # Computing the element-wise matrix product:
     return time1, freq1, (sig1*sig2_on1)
-
-
-

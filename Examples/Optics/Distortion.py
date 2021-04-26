@@ -3,9 +3,9 @@ Analyse INPA distortion
 
 Jose Rueda: jrrueda@us.es
 
-Note. I tryed with some fancy method to automatically detect the grids, but at
+Note. I tried with some fancy method to automatically detect the grids, but at
 the end it was giving problems and this is something we will do at most once
-per campaing, so I changed to a ginput method
+per campaign, so I changed to a ginput method
 """
 
 import matplotlib.pyplot as plt

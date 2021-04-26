@@ -30,6 +30,7 @@ def check_save_file(file):
     Jose Rueda: jrrueda@us.es
 
     @param file: the filename to test if exist
+
     @return out: fir file does not exist, return the same filename, if exist,
     open a window for the user to select the filename he wants
     """
@@ -51,6 +52,7 @@ def check_open_file(file):
     Jose Rueda: jrrueda@us.es
 
     @param file: the filename to test if exist
+
     @return out: fir file exists, return the same filename, if does not,
     open a window for the user to select the filename he wants
     """
@@ -118,7 +120,7 @@ def read_variable_ncdf(file, varNames, human=True):
     @param varNames: list with the variable names
     @param human: this is just a flag, if true, if the file is not found, it
     open a window for the user to select the proper file, if False, we assume
-    that this fuctionis used inside some kind of automatic way by some script
+    that this functions used inside some kind of automatic way by some script
     so just give an exception
     @return data: values of the variable
     @return units: physical units
@@ -202,6 +204,7 @@ def save_mask(mask, filename=None, nframe=None, shot=None, frame=None):
     """
     Save the mask used in timetraces and remap calculations
 
+    Jose Rueda: jrrueda@us.es
 
     @param mask: Bynary mask to be saved
     @param filename: Name of the file
@@ -210,7 +213,7 @@ def save_mask(mask, filename=None, nframe=None, shot=None, frame=None):
     @param frame: Frame used to define the roi
     """
     # --- Check if the file exist
-    if filename is None:    # If no fileis given, just take the 'standard'
+    if filename is None:    # If no file is given, just take the 'standard'
         # name = 'mask.nc'
         # filename = os.path.join(paths.Results, name)
         filename = ask_to_save()
@@ -231,12 +234,12 @@ def save_mask(mask, filename=None, nframe=None, shot=None, frame=None):
         nx = f.createVariable('nx', 'i', ('number', ))
         nx[:] = nnx
         nx.units = ' '
-        nx.long_name = 'Number of pixels in the first dimenssion'
+        nx.long_name = 'Number of pixels in the first dimension'
 
         ny = f.createVariable('ny', 'i', ('number', ))
         ny[:] = nny
         ny.units = ' '
-        ny.long_name = 'Number of pixels in the second dimenssion'
+        ny.long_name = 'Number of pixels in the second dimension'
 
         if shot is not None:
             shott = f.createVariable('shot', 'i', ('number', ))
@@ -273,7 +276,7 @@ def read_timetrace(file=None):
 
     Note: If just a txt file is passed as input, only the trace will be loaded,
     as the mask and extra info are not saved in the txt. netcdf files are
-    prefered
+    preferred
 
     @todo: implement netcdf part
 
@@ -336,7 +339,7 @@ def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
     @param grid_p: grid at the pinhole
     @param grid_s: grid at the scintillator
     @param W2D: optional, 2D contraction of W4D
-    @param filename: Optinal filename to use, if none, it will be saved at the
+    @param filename: Optional filename to use, if none, it will be saved at the
     results file with the name W_FILD_<date, time>.nc
     @param efficiency: bool to save at the file, to indicate if the efficiency
     was used in the calculation of W
@@ -414,7 +417,7 @@ def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
             W2 = f.createVariable('W2D', 'float64', ('n_scint', 'n_pin'))
             W2[:, :] = W2D
             W2.units = 'a.u.'
-            W2.long_name = 'Instrument funtion ordered in 2D'
+            W2.long_name = 'Instrument function ordered in 2D'
 
         print('Make sure you are setting the efficiency flag properly!!!')
         if efficiency:

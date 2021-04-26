@@ -16,7 +16,7 @@ if machine == 'AUG':
 try:
     import f90nml
 except ImportError:
-    warnings.warn('You cannot read FILDSIM namelist',
+    warnings.warn('You cannot read FILDSIM namelist nor remap',
                   category=UserWarning)
 
 paths = Path(machine)
@@ -38,6 +38,7 @@ def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
     @param bt: Magnetic field in the toroidal direction
     @param alpha: Poloidal orientation of FILD. Given in deg
     @param beta: Pitch orientation of FILD, given in deg
+
     @return theta: Euler angle to use as input in fildsim.f90 given in deg
     @return phi: Euler angle to use as input in fildsim.f90 given in deg
     """
@@ -81,7 +82,7 @@ def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
               beta * 180.0 / np.pi)
         print('Alpha rotation: ', bt1, bz1, br1, ma.sqrt(bt1**2 + bz1**2
                                                          + br1**2))
-        print('Bx By Bz in FILDSIM are: ', bt2, bz2, br2, ma.sqrt(
+        print('Bx By Bz and B in FILDSIM are: ', br2, bt2, bz2, ma.sqrt(
             bt2**2 + bz2**2 + br2**2))
         print('Euler angles are (phi,theta): ', phi, theta)
 
@@ -111,6 +112,7 @@ def calculate_photon_flux(raw_frame, calibration_frame_in, exposure_time,
     @param mask: binary mask created with the routines of the TimeTraces module
 
     @todo complete this documentation
+
     @return output: Dictionary with the fields:
         -# 'photon_flux_frame':
         -# 'photon_flux':
@@ -186,6 +188,7 @@ def calculate_absolute_calibration_frame(cal_frame, exposure_time,
     @param calib_exposure_time: in s
     @param int_photon_flux: in Photons/(s m^2)
     @param pixel_area_covered: in m^2
+
     @return frame: Calibrated frame [Counts * s * m^2 / photons]
     """
     frame = cal_frame * exposure_time * pinhole_area / \
@@ -226,6 +229,7 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
     @param method:
     @param ignore_fcol:
     @param lower_limit:
+
     @return:
     """
     # Check if we are ignoring the collimator factor which means that we will
@@ -248,7 +252,7 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
     if raw_frame.shape != raw_frame.shape:
         print('Size of the data frame and calibration frame not matching!!')
         print('Artificially resizing the calibration frame!!')
-        ## todo implement the re-binning of the calibration frame
+        ## @todo implement the re-binning of the calibration frame
 
     # Check if the remap was done before calling this function
     if np.max(interpolated_gyro) <= 0:
@@ -266,7 +270,7 @@ def calculate_absolute_flux(raw_frame, calibration_frame, efficiency_energy,
 
 def build_weight_matrix(SMap, rscint, pscint, rpin, ppin,
                         efficiency: dict = {}):
-    """Under development"""
+    """Build FILD weight function"""
     # Check the StrikeMap
     if SMap.resolution is None:
         SMap.calculate_resolutions()
@@ -372,6 +376,7 @@ def build_weight_matrix(SMap, rscint, pscint, rpin, ppin,
         print('No efficiency data given, skipping efficiency')
         eff = np.ones(nr_pin)
     else:
+        print('Efficiency still not implemented :-(')
         eff = np.ones(nr_pin)
     # Build the weight matrix. We will use brute force, I am sure that there is
     # a tensor product implemented in python which does the job in a more
@@ -482,6 +487,7 @@ def read_namelist(filename):
     just a wrapper for the f90nml capabilities
 
     @param filename: full path to the filename to read
+
     @return nml: dictionary with all the parameters of the FILDSIM run
     """
     return f90nml.read(filename)
@@ -514,6 +520,7 @@ def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
     @param theta: theta angle as defined in FILDSIM
     @param machine: 3 characters identifying the machine
     @param decimals: number of decimal numbers to round the angles
+
     @return name: the name of the strike map file
     """
     # Taken from one of Juanfran files :-)
@@ -556,7 +563,9 @@ def find_strike_map(rfild: float, zfild: float,
     @param    FILDSIM_options: FILDSIM namelist options
     @param    clean: True: eliminate the strike_points.dat when calling FILDSIM
     @param    decimals: Number of decimals for theta and phi angles
+
     @return   name:  name of the strikemap to load
+
     @raises   Exception: If FILDSIM is call but the file is not created.
     """
     # Find the name of the strike map
@@ -619,6 +628,7 @@ def get_energy(gyroradius, B: float, A: int = 2, Z: int = 1):
     @param B: Magnetic field, [in T]
     @param A: Ion mass number
     @param Z: Ion charge [in e units]
+
     @return E: the energy [in eV]
     """
     m = ssp.mp * A  # Mass of the ion

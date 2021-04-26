@@ -84,7 +84,7 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
 
     Jose Rueda: jrrueda@us.es
 
-    @param cin_object: cin file object (see class cin of LibCinFiles.py)
+    @param cin_object: cin file object (see class Video of LibVideoFiles.py)
     @param mask: binary mask defining the roi
     @param t1: initial time to calculate the timetrace [in s]
     @param t2: final time to calculate the timetrace [in s]
@@ -169,7 +169,7 @@ class TimeTrace:
         If no times are given, it will use the frames loaded in the video
         object, if t1 and t2 are present, it will load the corresponding frames
         If no argument are giving, and empty timetrace object will be created,
-        to be filled by the reading routiness
+        to be filled by the reading routines
 
         @param video: Video object used for the calculation of the trace
         @param mask: mask to calculate the trace
@@ -205,7 +205,7 @@ class TimeTrace:
         self.spec = {'taxis': None, 'faxis': None, 'data': None}
         ## fft data
         self.fft = {'faxis': None, 'data': None}
-        ## @todo: this eems weird!!! no t1 is passed to the trace routine??
+        ## @todo: this seems weird!!! no t1 is passed to the trace routine??
         # Calculate the time trace
         if video is not None:
             if t1 is None:
@@ -342,7 +342,7 @@ class TimeTrace:
                     ax_par['ylabel'] = 'Mean [a.u.]'
                 else:
                     ax_par['ylabel'] = 'Mean'
-        # --- Normalise the data:
+        # --- Normalize the data:
         if normalised:
             y /= y.max()
 

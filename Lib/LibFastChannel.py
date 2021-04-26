@@ -1,5 +1,5 @@
 """
-Analyse signal from the fast channel
+Analyze signal from the fast channel
 
 Nowadays only a simple reading of the fast channel and some smoothing is
 implemented. In the future, things like correlations with other diagnostics
@@ -37,7 +37,7 @@ class FastChannel:
         @param ax: axes where to plot, if none, new axis will be opened
         @preturn ax: axes with the time traces plotted
         """
-        # Initialise the plotting options:
+        # Initialize the plotting options:
         line_settings = {
             'linewidth': 1.5,
         }
