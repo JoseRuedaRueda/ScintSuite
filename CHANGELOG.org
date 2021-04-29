@@ -1,3 +1,13 @@
+** 0.4.1: Minor improvements + ELM filtering
+- Added a function to calculate the intersection between any curves in 2D (LibUtilities.find_2D_intersection(x1, y1, x2, y2))
+- Improved LibPlotting.plot_flux surfaces() : Now color can be selected, cm can be used as units, the axis limit will not be changed if an axis is given
+- Included root directory of the suite in path_suite.py to be aable of using the command =import Lib as ss= outside the root directory of the suite
+- Included reading of ELM time base (LibData.profiles.get_ELM_timebase.py)
+- Included ELM filtering: Note, it will just delete from your input signal the ELM time points
+- Read frame from a cin file will no longer return a squeeze matrix when you load the frames internally. When you load them externally, they will be squeeze()
+- Solved issue #7: NBI profile calculation and plot upgraded
+
+
 ** 0.4.0: New suite structure:
 - Typos in comments corrected
 - PEP8 agreement revised

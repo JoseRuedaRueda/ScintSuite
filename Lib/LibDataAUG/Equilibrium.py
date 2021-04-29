@@ -46,7 +46,7 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
             ed: int = 0, time: float = None, equ=None,
             coord_out: str = 'rho_pol'):
     """
-    Wrap to get AUG magnetic field
+    Wrap to get AUG normalised radius
 
     Jose Rueda: jrrueda@us.es
 

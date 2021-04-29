@@ -17,6 +17,7 @@ def paths_of_the_suite(machine='AUG'):
     HOME_DIR = os.getenv("HOME")
     SUITE_DIR = os.getcwd()
     Suite_LIBs = {
+        'Base': SUITE_DIR,
         'LIB_DIR': 'Lib',
         'LIB_iHIBP': 'Lib/iHIBP',
         'LIB_INPA': 'Lib/INPA',

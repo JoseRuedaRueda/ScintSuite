@@ -943,8 +943,7 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
                                  int(cin_object.imageheader['biHeight'])),
                                 order='F').transpose()
     fid.close()
-    return M.squeeze()  # eliminate extra dimension in case we have just loaded
-    #                     one frame
+    return M
 
 
 # -----------------------------------------------------------------------------
@@ -1340,6 +1339,7 @@ class Video:
 
         # Fill the object depending if we have a .cin file or not
         print('Looking for the file')
+        print(file)
         if os.path.isfile(file):
             ## Path to the file and filename
             self.path, self.file_name = os.path.split(file)
@@ -1486,11 +1486,11 @@ class Video:
                                    limit=limit)
                 self.exp_dat['tframes'] = self.timebase[frames_number]
                 self.exp_dat['nframes'] = frames_number
-                self.exp_dat['dtype'] = self.exp_dat['frames'][:, :, 0].dtype
+                self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
             else:
                 M = read_frame_cin(self, frames_number, limitation=limitation,
                                    limit=limit)
-                return M
+                return M.squeeze()
         elif self.type_of_file == '.png':
             if internal:
                 self.exp_dat['frames'] = \
@@ -1499,11 +1499,11 @@ class Video:
                 self.exp_dat['tframes'] = \
                     self.timebase[frames_number].flatten()
                 self.exp_dat['nframes'] = frames_number
-                self.exp_dat['dtype'] = self.exp_dat['frames'][:, :, 0].dtype
+                self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
             else:
                 M = read_frame_png(self, frames_number, limitation=limitation,
                                    limit=limit)
-                return M
+                return M.squeeze()
         else:
             raise Exception('Not initialised file type?')
         # Count saturated pixels

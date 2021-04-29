@@ -266,8 +266,13 @@ class NBI:
         @todo implement using insert the insertion of the data on the right
         temporal position
 
+        Note: To simplify, the calculation of the magnetic field is call in
+        each time point (I am lazy to rewrite that part) so it's a bit
+        not-efficient. If you are interesting in an optimum version, open an
+        issue in gitlab
+
         @param shot: Shot number
-        @param time: Time in seconds
+        @param time: Time in seconds, can be an array
         @param rmin: miminum radius to be considered during the calculation
         @param rmax: maximum radius to be considered during the calculation
         @param delta: the spacing of the points along the NBI [m]
@@ -308,41 +313,41 @@ class NBI:
         Z = Z[flags]
         phi = phi[flags]
         ngood = R.size
-        pitch = np.zeros(ngood)
-        br, bz, bt, bp = equil.get_mag_field(shot, R, Z, time=time)
-        bx = -np.cos(0.5*np.pi - phi) * bt + np.cos(phi) * br
-        by = np.sin(0.5*np.pi - phi) * bt + np.sin(phi) * br
-        B = np.vstack((bx, by, bz))
-        bnorm = np.sqrt(np.sum(B**2, axis=0))
-        pitch = (bx * v[0] + by * v[1] + bz * v[2]) / delta / bnorm
-        pitch = BtIp * pitch.squeeze()
-        if deg:
-            pitch = np.arccos(pitch) * 180.0 / np.pi
+        t = np.array([time]).flatten()
+        nt = t.size
+        pitch = np.zeros((nt, ngood))
+        for i in range(nt):
+            br, bz, bt, bp = equil.get_mag_field(shot, R, Z, time=t[i])
+            bx = -np.cos(0.5*np.pi - phi) * bt + np.cos(phi) * br
+            by = np.sin(0.5*np.pi - phi) * bt + np.sin(phi) * br
+            B = np.vstack((bx, by, bz))
+            bnorm = np.sqrt(np.sum(B**2, axis=0))
+            dummy = (bx * v[0] + by * v[1] + bz * v[2]) / delta / bnorm
+            pitch[i, :] = BtIp * dummy.squeeze()
+            if deg:
+                pitch[i, :] = np.arccos(pitch) * 180.0 / np.pi
         # Now we have the pitch profiles, we just need to store the info at the
         # right place
         if self.pitch_profile is None:
-            self.pitch_profile = {'t': np.array(time),
+            self.pitch_profile = {'t': t,
                                   'z': Z, 'R': R, 'pitch': pitch}
 
         else:
-            # number of already present times:
-            nt = len(self.pitch_profile['t'])
-            # see if the number of points along the NBI matches
-            npoints = self.pitch_profile['R'].size
-            if npoints / nt != R.size:
+            if self.pitch_profile['R'].size != R.size:
                 raise Exception('Have you changed delta from the last run?')
             # insert the date where it should be
             self.pitch_profile['t'] = \
-                np.vstack((self.pitch_profile['t'], time))
-            self.pitch_profile['z'] = \
-                np.vstack((self.pitch_profile['z'], Z))
-            self.pitch_profile['R'] = \
-                np.vstack((self.pitch_profile['R'], R))
+                np.concatenate((self.pitch_profile['t'], t))
+            # We assume the user hs not change the grid
+            # self.pitch_profile['z'] = \
+            #     np.vstack((self.pitch_profile['z'], Z))
+            # self.pitch_profile['R'] = \
+            #     np.vstack((self.pitch_profile['R'], R))
             self.pitch_profile['pitch'] = \
                 np.vstack((self.pitch_profile['pitch'], pitch))
 
     def plot_pitch_profile(self, line_param: dict = {'linewidth': 2},
-                           ax_param={'grid': 'both', 'xlabel': 'R [cm]',
+                           ax_param={'grid': 'both', 'xlabel': 'R [m]',
                                      'ylabel': '$\\lambda$', 'fontsize': 14},
                            ax=None):
         """
@@ -360,9 +365,19 @@ class NBI:
         if ax is None:
             fig, ax = plt.subplots()
             ax_created = True
-        ax.plot(self.pitch_profile['R'], self.pitch_profile['pitch'],
-                **line_param, label='NBI#'+str(self.number))
 
+        nt = self.pitch_profile['t'].size
+        if nt == 1:
+            ax.plot(self.pitch_profile['R'],
+                    self.pitch_profile['pitch'].flatten(),
+                    **line_param, label='NBI#'+str(self.number))
+        else:
+            for i in range(nt):
+                ax.plot(self.pitch_profile['R'],
+                        self.pitch_profile['pitch'][i, :],
+                        **line_param,
+                        label='NBI#'+str(self.number) + ', t = ' \
+                        + str(self.pitch_profile['t'][i]))
         if ax_created:
             ax = ssplt.axis_beauty(ax, ax_param)
         try:

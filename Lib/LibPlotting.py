@@ -276,7 +276,9 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
                        linewidth: float = 1.2,
                        diag: str = 'EQH', exp: str = 'AUGD', ed: int = 0,
                        levels: float = None, label_surf: bool = True,
-                       coord_type: str = 'rho_pol'):
+                       coord_type: str = 'rho_pol',
+                       axis_ratio: str = 'auto',
+                       units: str = 'm', color=None):
     """
     Plots the flux surfaces of a given shot in AUG for a given time point.
 
@@ -297,10 +299,24 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
     their value.
     @param coord_type: type of coordinate to be used for the map. rho_pol by
     default. Also available 'rho_tor'
+    @param axis_ratio: axis ratio, 'auto' or 'equal'
+    @param color: if present,all the lines will be plotted in this color
+    @param units: units for the R, Z axis, only cm and m supported
     """
+    if units == 'm':
+        factor = 1.
+    elif units == 'cm':
+        factor = 100.
+    else:
+        raise Exception('Not understood unit')
 
     if ax is None:
         fig, ax = plt.subplots(1)
+        heredado = False
+    else:
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+        heredado = True
 
     if levels is None:
         if coord_type == 'rho_pol':
@@ -319,10 +335,15 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
 
     rho = np.reshape(rho, (256, 128))
     # --- Plotting the flux surfaces.
-    CS = ax.contour(R, z, rho, levels, linewidth=linewidth)
+
+    CS = ax.contour(factor * R, factor * z, rho, levels, linewidths=linewidth,
+                    colors=color)
     if label_surf:
         ax.clabel(CS, inline=1, fontsize=10)
-
+    ax.set_aspect(axis_ratio)
+    if heredado:
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
     return ax
 
 
