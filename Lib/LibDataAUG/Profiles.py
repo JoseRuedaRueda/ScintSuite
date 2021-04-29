@@ -548,3 +548,29 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int):
     time = fast.getTimeBase(name_channel.encode('UTF-8'))
     print('Number of requested channels: ', nch_to_load)
     return {'time': time, 'signal': data}
+
+
+# -----------------------------------------------------------------------------
+# --- ELMs
+# -----------------------------------------------------------------------------
+def get_ELM_timebase(shot):
+    """
+    Give the EML onset and duration times
+
+    Jose Rueda: jrrueda@us.es
+
+    @param shot: shot number
+    @returns tELM: Dictionary with:
+        -# t_onset: The time when each ELM starts
+        -# dt: the duration of each ELM
+        -# n: The number of ELMs
+    """
+    # --- Open the AUG shotfile
+    ELM = ELM = dd.shotfile('ELM', shot)
+    tELM = {
+        't_onset':  ELM('tELM'),
+        'dt': ELM('dt_ELM').data,
+    }
+    tELM['n'] = len(tELM['t_onset'])
+    ELM.close()
+    return tELM

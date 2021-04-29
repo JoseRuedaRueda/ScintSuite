@@ -12,6 +12,10 @@ import math
 from LibMachine import machine
 if machine == 'AUG':
     import LibDataAUG as ssdat
+try:
+    from shapely.geometry import LineString
+except ModuleNotFoundError:
+    print('Shapely not found, you cannot calculate intersections')
 
 
 # -----------------------------------------------------------------------------
@@ -169,3 +173,60 @@ def find_nearest_sorted(array, value):
         return array[idx-1]
     else:
         return array[idx]
+
+
+# -----------------------------------------------------------------------------
+# --- Intersections
+# -----------------------------------------------------------------------------
+def find_2D_intersection(x1, y1, x2, y2):
+    """
+    Get the intersection between curve (x1, y1) and (x2, y2)
+
+    Jose Rueda: jrrueda@us.es
+
+    Note: the precision will be the distance between the points of the array
+    (x2, y2)
+
+    taken from:
+    https://stackoverflow.com/questions/28766692/
+    intersection-of-two-graphs-in-python-find-the-x-value
+
+    @param x1: x coordinate of the first curve, np.array
+    @param y1: y coordinate of the first curve, np.array
+    @param x2. x coordinate of the second curve, np.array
+    @param y2: y coordinate of the second curve, np.array
+
+    @return x: x coordinates of the intersection
+    @return y: y coordinates of the intersection
+    """
+    first_line = LineString(np.column_stack((x1.flatten(), y1.flatten())))
+    second_line = LineString(np.column_stack((x2.flatten(), y2.flatten())))
+    intersection = first_line.intersection(second_line)
+    if intersection.length == 0:  # just one point
+        return intersection.xy
+    else:
+        return LineString(intersection).xy
+
+
+# -----------------------------------------------------------------------------
+# --- ELM filtering
+# -----------------------------------------------------------------------------
+def ELM_filter(s, s_timebase, tELM, offset=0.):
+    """
+    Remove time points affected by ELMs
+
+    Jose Rueda: jrrueda@us.es
+
+    @param s: np array with the signal
+    @param s_timebase: np array with the timebase of the signal
+    @param tELM: the dictionary created by the ss.dat.get_ELM_timebase
+    @param offset: offset to be included in the onset of the elms
+    """
+    time = tELM['t_onset'] + offset
+    dt = tELM['dt']
+    flags = np.ones(len(s_timebase), dtype=np.bool)
+
+    for i in range(tELM['n']):
+        tmp_flags = (s_timebase >= time[i]) * (s_timebase <= (time[i] + dt[i]))
+        flags *= ~tmp_flags
+    return s[flags], s_timebase[flags], flags
