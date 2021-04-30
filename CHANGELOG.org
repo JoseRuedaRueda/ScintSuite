@@ -6,6 +6,8 @@
 - Included ELM filtering: Note, it will just delete from your input signal the ELM time points
 - Read frame from a cin file will no longer return a squeeze matrix when you load the frames internally. When you load them externally, they will be squeeze()
 - Solved issue #7: NBI profile calculation and plot upgraded
+- Plot NBI added to the NBI class
+- Now calc_pitch_profile of the NBI class take as default IpBt sign defined in the .dat library
 
 
 ** 0.4.0: New suite structure:

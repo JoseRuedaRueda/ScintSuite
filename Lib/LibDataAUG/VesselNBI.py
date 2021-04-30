@@ -5,6 +5,7 @@ import numpy as np
 import os
 from LibPaths import Path
 import Equilibrium as equil
+import DiagParam as params
 import matplotlib.pyplot as plt
 import LibPlotting as ssplt
 pa = Path()
@@ -245,11 +246,12 @@ class NBI:
         if diaggeom:
             self.coords = _NBI_diaggeom_coordinates(nnbi)
         else:
-            raise Exception('Sorry, option not jet implemented')
+            raise Exception('Sorry, option not yet implemented')
 
-    def calc_pitch_profile(self, shot: int, time: float, rmin: float = 1.4,
+    def calc_pitch_profile(self, shot: int, time: float, rmin: float = 1.1,
                            rmax: float = 2.2, delta: float = 0.04,
-                           BtIp: int = -1.0, deg: bool = False):
+                           BtIp: float = params.IB_sign, deg: bool = False,
+                           rho_string: str = 'rho_pol'):
         """
         Calculate the pitch profile of the NBI along the injection line
 
@@ -300,14 +302,12 @@ class NBI:
         flags = np.zeros(nstep, dtype=np.bool)
         for istep in range(nstep):
             Rdum = np.sqrt(point[0]**2 + point[1]**2)
-            if Rdum < rmin:
-                break
-            if Rdum < rmax:
+            if (Rdum < rmax) and (Rdum > rmin):
                 R[istep] = Rdum
                 Z[istep] = point[2]
                 phi[istep] = np.arctan2(point[1], point[0])
                 flags[istep] = True
-            point = point + v
+            point += v
         # calculate the magnetic field
         R = R[flags]
         Z = Z[flags]
@@ -316,6 +316,7 @@ class NBI:
         t = np.array([time]).flatten()
         nt = t.size
         pitch = np.zeros((nt, ngood))
+        rho = np.zeros((nt, ngood))
         for i in range(nt):
             br, bz, bt, bp = equil.get_mag_field(shot, R, Z, time=t[i])
             bx = -np.cos(0.5*np.pi - phi) * bt + np.cos(phi) * br
@@ -324,13 +325,18 @@ class NBI:
             bnorm = np.sqrt(np.sum(B**2, axis=0))
             dummy = (bx * v[0] + by * v[1] + bz * v[2]) / delta / bnorm
             pitch[i, :] = BtIp * dummy.squeeze()
+            # Get the rho:
+            dummy = equil.get_rho(shot, R, Z, time=t[i], coord_out=rho_string)
+            rho[i, :] = dummy.squeeze()
             if deg:
                 pitch[i, :] = np.arccos(pitch) * 180.0 / np.pi
         # Now we have the pitch profiles, we just need to store the info at the
         # right place
         if self.pitch_profile is None:
             self.pitch_profile = {'t': t,
-                                  'z': Z, 'R': R, 'pitch': pitch}
+                                  'z': Z, 'R': R, 'pitch': pitch,
+                                  'rho': rho,
+                                  'rho_string': rho}
 
         else:
             if self.pitch_profile['R'].size != R.size:
@@ -345,11 +351,12 @@ class NBI:
             #     np.vstack((self.pitch_profile['R'], R))
             self.pitch_profile['pitch'] = \
                 np.vstack((self.pitch_profile['pitch'], pitch))
+            self.pitch_profile['rho'] = \
+                np.vstack((self.pitch_profile['rho'], rho))
 
-    def plot_pitch_profile(self, line_param: dict = {'linewidth': 2},
-                           ax_param={'grid': 'both', 'xlabel': 'R [m]',
-                                     'ylabel': '$\\lambda$', 'fontsize': 14},
-                           ax=None):
+    def plot_pitch_profile(self, line_params: dict = {},
+                           ax_param={},
+                           ax=None, x_axis: str = 'R'):
         """
         Plot the NBI pitch profile
 
@@ -360,27 +367,118 @@ class NBI:
         @param ax: axis where to plot, if none, open new figure
         @return : Nothing
         """
+        ax_parameters = {
+            'grid': 'both',
+            'ylabel': '$\\lambda$',
+            'fontsize': 14
+        }
+        if x_axis == 'R':
+            ax_parameters['xlabel'] = 'R [m]'
+        else:
+            ax_parameters['xlabel'] = '$\\rho$'
+        ax_parameters.update(ax_param)
+
+        line_options = {
+            'linewidth': 2,
+            'label': 'NBI#' + str(self.number)
+        }
+        line_options.update(line_params)
         if self.pitch_profile is None:
             raise Exception('You must calculate first the pitch profile')
+        ax_created = False
         if ax is None:
             fig, ax = plt.subplots()
             ax_created = True
 
         nt = self.pitch_profile['t'].size
         if nt == 1:
-            ax.plot(self.pitch_profile['R'],
+            if x_axis == 'R':
+                x = self.pitch_profile['R']
+            else:
+                x = self.pitch_profile['rho'].flatten()
+
+            ax.plot(x,
                     self.pitch_profile['pitch'].flatten(),
-                    **line_param, label='NBI#'+str(self.number))
+                    **line_options)
         else:
             for i in range(nt):
-                ax.plot(self.pitch_profile['R'],
+                if x_axis == 'R':
+                    x = self.pitch_profile['R']
+                else:
+                    x = self.pitch_profile['rho'][i, :]
+                ax.plot(x,
                         self.pitch_profile['pitch'][i, :],
-                        **line_param,
-                        label='NBI#'+str(self.number) + ', t = ' \
+                        **line_options,
+                        label=line_options['label'] + ', t = ' \
                         + str(self.pitch_profile['t'][i]))
         if ax_created:
-            ax = ssplt.axis_beauty(ax, ax_param)
-        try:
-            plt.legend(fontsize=ax_param['fontsize'])
-        except KeyError:
-            print('You did not set the fontsize in the input params...')
+            ax = ssplt.axis_beauty(ax, ax_parameters)
+
+        plt.legend(fontsize=ax_parameters['fontsize'])
+
+    def plot_central_line(self, projection: str = 'Poloidal', ax=None,
+                          line_params: dict = {}, units: str = 'm'):
+        """
+        Plot the NBI line
+
+        Jose Rueda: jrrueda@us.es
+
+        @param projection: 'Poloidal' (or 'pol') will plot the poloidal
+        projection, 'Toroidal' (or 'tor') the toroidal one
+        @param ax: ax where to plot the NBI line
+        @param line_params: line parameters for the function plt.plot()
+        @param units: Units to plot, m or cm supportted
+
+        @return ax: The axis where the line was plotted
+        """
+        scales = {
+            'cm': 100.,
+            'm': 1.
+        }
+        # Initialize the plot parameters:
+        line_options = {
+            'linewidth': 2,
+            'label': 'NBI#' + str(self.number)
+        }
+        line_options.update(line_params)
+        # Open the axis
+        created = False
+        if ax is None:
+            fig, ax = plt.subplots()
+            created = True
+
+        # Plot the NBI:
+        if (projection == 'Poloidal') or (projection == 'pol'):
+            xx = np.linspace(self.coords['x0'], self.coords['x1'], 100)
+            yy = np.linspace(self.coords['y0'], self.coords['y1'], 100)
+            zz = np.linspace(self.coords['z0'], self.coords['z1'], 100)
+            rr = np.sqrt(xx**2 + yy**2)
+            # If the plot was already there, do not change its axis limits to
+            # plot this:
+            if not created:
+                xlim = ax.get_xlim()
+                ylim = ax.get_ylim()
+            # Plot the nbi line:
+            ax.plot(scales[units] * rr, scales[units] * zz, **line_options)
+            # Set the axis back to its initial position
+            if not created:
+                ax.set_xlim(xlim)
+                ax.set_ylim(ylim)
+        elif (projection == 'Toroidal') or (projection == 'tor'):
+            xx = np.array((self.coords['x0'], self.coords['x1']))
+            yy = np.array((self.coords['y0'], self.coords['y1']))
+            # If the plot was already there, do not change its axis limits to
+            # plot this:
+            if not created:
+                xlim = ax.get_xlim()
+                ylim = ax.get_ylim()
+            # Plot the nbi line:
+            ax.plot(scales[units] * xx, scales[units] * yy, **line_options)
+            # Set the axis back to its initial position
+            if not created:
+                ax.set_xlim(xlim)
+                ax.set_ylim(ylim)
+        else:
+            print('Projection: ', projection)
+            raise Exception('Projection not understood!')
+        return ax
