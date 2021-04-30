@@ -425,7 +425,7 @@ def Elastic_net_scan(X, y, alpha_min: float, alpha_max: float,
         ax3.set_ylabel('$|F| [a.u.]$', fontsize=FS)
         ax3.set_xlabel('\\alpha')
         if log_spaced:
-            ax2.set_xscale('log')
+            ax3.set_xscale('log')
         figures = {
             'Merit': fig,
             'L_curve': fig2,
