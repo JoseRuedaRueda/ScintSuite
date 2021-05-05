@@ -11,6 +11,8 @@
 - Added routine to search for frequency in a spectrogram (trackFrequency).
 - Moved examples 'multipow', 'frequencyTracking' to new Folder: 'FrequencyAnalysis'
 - New example to plot fast the spectrogram of a given magnetic pick-up coil.
+*** Movement of LibDataAUG
+- LibDataAUG is now moved inside the folder LibData, to allow for a smother integration of future machines
 
 ** 0.4.2: FILDSIM foward modelling
 - Now the StrikeMap.calculate_resolutions() also calculate the interpolators so one can just call smap.interpolators['pitch']['sigma'](gyr0, pitch0) and you will have the interpolated value of sigma of the pitch for gyr0, pitch0.
