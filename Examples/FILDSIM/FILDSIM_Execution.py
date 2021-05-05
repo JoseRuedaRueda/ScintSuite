@@ -9,6 +9,8 @@ function has been changed and the script does not work at all now.
 (or we have a more fancy and quick way to do this stuff). If this happens,
 contact Jose Rueda (jrrueda@us.es) by email and he will update this 'tutorial'
 
+Note: I modify it a bit for 0.4.2, but I did not test it. Plese, if you do,
+send me an email with the results (jrrueda@us.es)
 You must execute first the function paths.py!
 """
 
@@ -88,10 +90,12 @@ Smap.load_strike_points(strike_points_file)
 # gyro-radius.
 Smap.calculate_resolutions()   # Default call,
 # Example changing the binning and settings skewGaussian for boths
-# Smap.calculate_resolutions(dpitch=2.0, dgyr=0.25, p_method='sGauss',
+# Smap.calculate_resolutions(diag_params = {'dpitch':2.0, 'dgyr':0.25,
+#                                           'p_method': 'sGauss'},
 #                            g_method='sGauss')
 # Example changing the minimum of markers needed to consider making the fit,
-# default is 20
-# Smap.calculate_resolutions(dpitch=2.0, dgyr=0.25, p_method'Gauss',
-#                            g_method='sGauss', min_statistics=50)
+# default is 100
+# Smap.calculate_resolutions(diag_params = {'dpitch':2.0, 'dgyr':0.25,
+#                                           'p_method': 'sGauss'},
+#                            g_method='sGauss', min_statistics=500)
 Smap.plot_resolutions()   # Default call for plotting the resolutions

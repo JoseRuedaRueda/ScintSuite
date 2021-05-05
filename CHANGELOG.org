@@ -1,3 +1,15 @@
+** 0.4.2: FILDSIM foward modelling
+- Now the StrikeMap.calculate_resolutions() also calculate the interpolators so one can just call smap.interpolators['pitch']['sigma'](gyr0, pitch0) and you will have the interpolated value of sigma of the pitch for gyr0, pitch0.
+- The StrikeMap object for FILD now include the fields: unique_gyroradius, unique_pitch and collimator_factor_matrix.
+- *Included requested feature*: Issue #58: read_ASCOT_distribution implemented, only valid for ASCOT4
+- Fits of the calculate resolution function are now inside the 'fits' dictionary, contained in the resolution section of the strike map object
+- read_scintillator_efficiency moved from the LibIO to the new LibScintillatorCharacterization.py
+- Efficiency included in FILD forward modeling
+- Efficiency included in tomography
+- Calculation of the W function for FILD re-written in a more compact way. Coherent with the models used to calculate the resolutions. Now it much faster
+- fildsim.plot_geometry added in the fildsim library. It plot the plates geometry in 3d and is projections
+- Method relating the absolute calibration of the frames removed from FILDSIM library, they'll be included again in next version once they are tested
+
 ** 0.4.1: Minor improvements + ELM filtering
 - Added a function to calculate the intersection between any curves in 2D (LibUtilities.find_2D_intersection(x1, y1, x2, y2))
 - Improved LibPlotting.plot_flux surfaces() : Now color can be selected, cm can be used as units, the axis limit will not be changed if an axis is given
@@ -27,7 +39,7 @@
 - GUIs files where divided into a new folder GUIs
 - *Included requested feature*: Issue #33. Now if a path is passed to the remap routine mask=path the code will load the mask contained in file inidcated by path
 - Included Non Negative Ridge as a regression method
-- Included method to cut the video in the Video class, to restric to a given region of pixels: Video.cut_frames()
+- Included method to cut the video in the Video class, to restrict to a given region of pixels: Video.cut_frames()
 - A flag was added in the noise_subtraction and filter methods of the Video class in order to decide if we want to create a copy of the experimental frames or not
 - First methods to calculate optical transmission
 
