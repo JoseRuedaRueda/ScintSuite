@@ -10,13 +10,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 import LibFILDSIM as ssfildsim
 import LibMap as ssmapping
+import LibIO as ssio
 from scipy import ndimage        # To denoise the frames
+from scipy.io import netcdf                # To export remap data
 from tqdm import tqdm            # For waitbars
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
 from scipy.optimize import nnls     # Non negative least squares
 from sklearn.linear_model import ElasticNet  # ElaticNet
+from version_suite import version
 try:
     import lmfit as lm
 except ModuleNotFoundError:
@@ -525,7 +528,7 @@ def L_curve_fit(norm, residual, a1_min=-1000, a1_max=0,
 def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
                      verbose: bool = True, plt_frame: bool = False,
                      LIMIT_REGION_FCOL: bool = True,
-                     efficiency: dict = {}):
+                     efficiency=None):
     """
     Prepare the arrays to perform the tomographic inversion in FILD
 
@@ -638,3 +641,93 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
             signal1D[irs * scint_grid['np'] + ips] = rep_frame[irs, ips]
 
     return signal1D, W2D, W4D, scint_grid, pgrid, rep_frame
+
+
+# -----------------------------------------------------------------------------
+# --- Import/Export tomography
+# -----------------------------------------------------------------------------
+def export_tomography(name, data):
+    """
+    Function in beta phase
+    
+    """
+    if name is None:
+        name = ssio.ask_to_save()
+    print('Saving results in: ', name)
+    with netcdf.netcdf_file(name, 'w') as f:
+        f.history = 'Done with version ' + version
+        # --- Create the dimenssions:
+        pxf, pyf = data['frame'].shape
+        nr_scint = data['sg']['nr']
+        np_scint = data['sg']['np']
+        nr_pin = data['sg']['nr_pin']
+        np_pin = data['sg']['np_pin']
+        nalpha = len(data['MSE'])
+        f.createDimension('pxf', pxf)
+        f.createDimension('pyf', pyf)
+        f.createDimension('nr_scint', nr_scint)
+        f.createDimension('np_scint', np_scint)
+        f.createDimension('nr_pin', nr_pin)
+        f.createDimension('np_pin', np_pin)
+        f.createDimension('nalpha', nalpha)
+
+        # --- Save the camera frame:
+        var = f.createVariable('frame', 'float64', ('pxf', 'pyf'))
+        var[:] = data['frame']
+        var.units = '#'
+        var.long_name = 'Camera frame'
+        var.short_name = 'Counts'
+
+        # --- Remap
+        var = f.createVariable('remap', 'float64', ('nr_scint', 'np_scint'))
+        var[:] = data['remap']
+        var.units = 'a.u.'
+        var.long_name = 'Remaped frame'
+        var.short_name = 'Remap'
+
+        # --- Inverted frames:
+        var = f.createVariable('tomoFrames', 'float64', ('nr_pin', 'np_pin',
+                                                         'nalpha'))
+        var[:] = data['tomoFrames']
+        var.units = 'a.u.'
+        var.long_name = 'Tomographic inversion frame'
+        var.short_name = 'Pinhole frames'
+
+        # --- figures of merit:
+        var = f.createVariable('norm', 'float64', ('nalpha'))
+        var[:] = data['norm']
+        var.units = 'a.u.'
+        var.long_name = 'Norm of the pinhole distribution'
+        var.short_name = '|F|'
+
+        # --- MSE:
+        var = f.createVariable('MSE', 'float64', ('nalpha'))
+        var[:] = data['MSE']
+        var.units = 'a.u.'
+        var.long_name = 'Mean Squared Error'
+        var.short_name = 'MSE'
+
+        # --- grid:
+        var = f.createVariable('rpin', 'float64', ('nr_pin'))
+        var[:] = data['sg']['r']
+        var.units = 'cm'
+        var.long_name = 'Gyroradius at pinhole'
+        var.short_name = '$r_l$'
+
+        var = f.createVariable('ppin', 'float64', ('np_pin'))
+        var[:] = data['sg']['p']
+        var.units = ' '
+        var.long_name = 'Pitch at pinhole'
+        var.short_name = 'Pitch'
+
+        var = f.createVariable('rscint', 'float64', ('nr_scint'))
+        var[:] = data['sg']['r']
+        var.units = 'cm'
+        var.long_name = 'Gyroradius at scintillator'
+        var.short_name = '$r_l$'
+
+        var = f.createVariable('pscint', 'float64', ('nr_scint'))
+        var[:] = data['sg']['r']
+        var.units = ' '
+        var.long_name = 'Pitch at scintillator'
+        var.short_name = 'Pitch'

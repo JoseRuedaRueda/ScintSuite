@@ -1,0 +1,22 @@
+#File with information about light yield of scintillator for application to FILD detectors
+#Species: Deuterium
+#Scintillator: TG-Green
+#Scintillator depth: 9 microns
+#Date: 30.March.2017
+#****************************************************
+#First line indicates number of points in the curve
+#Energy (eV)     Yield(photons/ion)
+9
+30.e3	2700.
+45.e3	3750.
+60.e3	4800.
+90.e3	6700.
+570.e3	42966.7
+1.e6	54724.3
+1.5e6	54693.7
+2.e6	48277.
+3.e6	38740.7
+#Additional comments below this line
+# Yield values with energies above 100 keV are experimental.
+# These are used to fit parameters for Birk model.
+# Yield for energy below 100 keV are calculated with Birk model

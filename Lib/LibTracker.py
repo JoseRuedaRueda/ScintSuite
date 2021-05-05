@@ -1,5 +1,6 @@
 """Contains the methods and classes to interact with iHIBPsim tracker"""
 
+import random
 import numpy as np
 from version_suite import version
 from LibMachine import machine
@@ -754,3 +755,61 @@ def cart2pol(r, v=None):
         vr = v[0] * np.cos(phi) + v[1] * np.sin(phi)
         vphi = - v[0] * np.sin(phi) + v[1] * np.cos(phi)
         return np.array([vr, v[2], vphi])
+
+
+def generate_NBI_markers(Nions, NBI, E: float = 93.0,
+                         Rmin: float = 1.1, Rmax: float = 2.2, A=2):
+    """
+    Prepare markers along the NBI lice
+
+    @param Nions: Number of ions to launch
+    @param NBI: NBI object
+    @param E: energy of the markers [keV]
+    """
+    u = np.array([NBI.coords['x1'] - NBI.coords['x0'],
+                  NBI.coords['y1'] - NBI.coords['y0'],
+                  NBI.coords['z1'] - NBI.coords['z0']])
+    unit = u / np.sqrt(np.sum(u**2))
+    p0 = np.array([NBI.coords['x0'], NBI.coords['y0'], NBI.coords['z0']])
+
+    v = np.sqrt(E * 1000.0 / sspar.mp) * sspar.c * unit
+
+    c = 0
+    R = []
+    z = []
+    phi = []
+    vR = []
+    vz = []
+    vt = []
+    m = []
+    q = []
+    logw = []
+    t = []
+    while c < Nions:
+        a = random.random()
+        p1 = p0 + 1.0 * a * u
+        R1 = np.sqrt(p1[0]**2 + p1[1]**2)
+        if (R1 > Rmin) and (R1 < Rmax):
+            c += 1
+            R.append(R1)
+            z.append(p1[2])
+            phi.append(np.arctan2(p1[1], p1[0]))
+            vv = cart2pol(p1, v)
+            vR.append(vv[0])
+            vz.append(vv[1])
+            vt.append(vv[2])
+            m.append(A)
+            q.append(1)
+            logw.append(0)
+            t.append(0.0)
+    marker = {'R': np.array(R, dtype=np.float64),
+              'z': np.array(z, dtype=np.float64),
+              'phi': np.array(phi, dtype=np.float64),
+              'vR': np.array(vR, dtype=np.float64),
+              'vt': np.array(vt, dtype=np.float64),
+              'vz': np.array(vz, dtype=np.float64),
+              'm': np.array(m, dtype=np.float64),
+              'q': np.array(q, dtype=np.float64),
+              'logw': np.array(logw, dtype=np.float64),
+              't': np.array(t, dtype=np.float64)}
+    return marker
