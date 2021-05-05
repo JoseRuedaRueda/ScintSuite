@@ -22,6 +22,7 @@ def paths_of_the_suite(machine='AUG'):
         'LIB_iHIBP': 'Lib/iHIBP',
         'LIB_INPA': 'Lib/INPA',
         'LIB_INPASIM': 'Lib/INPA/INPASIM',
+        'LIB_FILDSIM': 'Lib/LibFILDSIM',
         'LIB_OPTICS': 'Lib/Optics',
         'LIB_GUIs': 'Lib/GUIs'
     }

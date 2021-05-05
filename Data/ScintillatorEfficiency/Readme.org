@@ -1,0 +1,12 @@
+List of Scintilaltors:
+
+  - TgGreenA: Material used and characterised by Mauri
+
+
+
+Naming convention:
+
+  -<name>_<t>.dat
+
+where <name> is the name of the element which is launch on the scintillator (H, D or Alpha)
+and <t> is the thickness, rounded, integer number 

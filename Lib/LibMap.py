@@ -220,6 +220,10 @@ def remap(smap, frame, x_min=20.0, x_max=80.0, delta_x=1,
 
     Jose Rueda: jrrueda@us.es
 
+    @todo: in this way, the edges of the histogram are calculated here,
+    maybe better calculate the edges in the remap_all_loaded_frames.py and
+    we save some resources
+
     @param smap: StrikeMap() object with the strike map
     @param frame: the frame to be remapped
     @param x_min: Minimum value of the x coordinate, for FILD, pitch [º]
@@ -870,10 +874,14 @@ class StrikeMap:
             # Initialise the class
             ## Gyroradius of map points
             self.gyroradius = dummy[ind, 0]
+            ## Simulated gyroradius (unique points of self.gyroradius)
+            self.unique_gyroradius = np.unique(self.gyroradius)
             ## Energy of map points
             self.energy = None
             ## Pitch of map points
             self.pitch = dummy[ind, 1]
+            ## Simulated pitches (unique points of self.pitch)
+            self.unique_pitch = np.unique(self.pitch)
             ## x coordinates of map points (common)
             self.x = dummy[ind, 2]
             ## y coordinates of map points (common)
@@ -898,6 +906,20 @@ class StrikeMap:
             self.strike_points = None
             ## Resolution of FILD for each strike point
             self.resolution = None
+            ## Interpolators (gyr, pitch)-> sigma_r, sigma_p, and so on
+            self.intepolators = None
+            ## Colimator facror as a matrix
+            # This simplify a lot W calculation and forward modelling:
+            self.ngyr = len(self.unique_gyroradius)
+            self.npitch = len(self.unique_pitch)
+            self.collimator_factor_matrix = np.zeros((self.ngyr, self.npitch))
+            for ir in range(self.ngyr):
+                for ip in range(self.npitch):
+                    flags = (self.gyroradius == self.unique_gyroradius[ir]) \
+                        * (self.pitch == self.unique_pitch[ip])
+                    if np.sum(flags) > 0:
+                        self.collimator_factor_matrix[ir, ip] = \
+                            self.collimator_factor[flags]
 
     def plot_real(self, ax=None,
                   marker_params: dict = {}, line_params: dict = {}):
@@ -1124,7 +1146,7 @@ class StrikeMap:
         FILDSIM format (if we are loading FILD)
         """
         if verbose:
-            print('Reading strike points')
+            print('Reading strike points: ', file)
         if self.diag == 'FILD':
             self.strike_points = {}
             # Load all the data
@@ -1176,8 +1198,7 @@ class StrikeMap:
             ax.scatter(self.strike_points['Data'][:, 4],
                        self.strike_points['Data'][:, 5], ** plt_param)
 
-    def calculate_resolutions(self, diag_options={'dpitch': 1.0, 'dgyr': 0.1,
-                              'p_method': 'Gauss', 'g_method': 'sGauss'},
+    def calculate_resolutions(self, diag_params: dict = {},
                               min_statistics: int = 100,
                               adaptative: bool = True):
         """
@@ -1191,12 +1212,20 @@ class StrikeMap:
         the fit (if we have less markers, this point will be ignored)
         @param min_statistics: Minimum number of counts to perform the fit
         @param adaptative: If true, the bin width will be adapted such that the
-        number of bins in a sigma of the distribution is 4
+        number of bins in a sigma of the distribution is 4. If this is the
+        case, dpitch, dgyr, will no longer have an impact
         """
         if self.strike_points is None:
             raise Exception('You should load the strike points first!!')
         if self.diag == 'FILD':
             # --- Prepare options:
+            diag_options = {
+                'dpitch': 1.0,
+                'dgyr': 0.1,
+                'p_method': 'Gauss',
+                'g_method': 'sGauss'
+            }
+            diag_options.update(diag_params)
             dpitch = diag_options['dpitch']
             dgyr = diag_options['dgyr']
             p_method = diag_options['p_method']
@@ -1215,6 +1244,8 @@ class StrikeMap:
                               'gamma': np.zeros((nr, npitch))}
             fitg = []
             fitp = []
+            gyr_array = []
+            pitch_array = []
             print('Calculating FILD resolutions')
             for ir in tqdm(range(nr)):
                 for ip in range(npitch):
@@ -1271,40 +1302,93 @@ class StrikeMap:
                                                         model=g_method)
                         fitp.append(resultp)
                         fitg.append(resultg)
+                        gyr_array.append(self.strike_points['gyroradius'][ir])
+                        pitch_array.append(self.strike_points['pitch'][ip])
                         # --- Save the data in the matrices:
+                        # pitch parameters:
+                        parameters_pitch['amplitude'][ir, ip] = \
+                            par_p['amplitude']
+                        parameters_pitch['center'][ir, ip] = par_p['center']
+                        parameters_pitch['sigma'][ir, ip] = par_p['sigma']
                         if p_method == 'Gauss':
-                            parameters_pitch['amplitude'][ir, ip] = \
-                                par_p['amplitude']
-                            parameters_pitch['center'][ir, ip] = \
-                                par_p['center']
-                            parameters_pitch['sigma'][ir, ip] = par_p['sigma']
                             parameters_pitch['gamma'][ir, ip] = np.nan
                         elif p_method == 'sGauss':
-                            parameters_pitch['amplitude'][ir, ip] = \
-                                par_p['amplitude']
-                            parameters_pitch['center'][ir, ip] = \
-                                par_p['center']
-                            parameters_pitch['sigma'][ir, ip] = par_p['sigma']
                             parameters_pitch['gamma'][ir, ip] = par_p['gamma']
-
+                        # gyroradius parameters:
+                        parameters_gyr['amplitude'][ir, ip] = \
+                            par_g['amplitude']
+                        parameters_gyr['center'][ir, ip] = par_g['center']
+                        parameters_gyr['sigma'][ir, ip] = par_g['sigma']
                         if g_method == 'Gauss':
-                            parameters_gyr['amplitude'][ir, ip] = \
-                                par_g['amplitude']
-                            parameters_gyr['center'][ir, ip] = par_g['center']
-                            parameters_gyr['sigma'][ir, ip] = par_g['sigma']
                             parameters_gyr['gamma'][ir, ip] = np.nan
                         elif g_method == 'sGauss':
-                            parameters_gyr['amplitude'][ir, ip] = \
-                                par_g['amplitude']
-                            parameters_gyr['center'][ir, ip] = par_g['center']
-                            parameters_gyr['sigma'][ir, ip] = par_g['sigma']
                             parameters_gyr['gamma'][ir, ip] = par_g['gamma']
 
-        self.resolution = {'Gyroradius': parameters_gyr,
-                           'Pitch': parameters_pitch,
-                           'nmarkers': npoints,
-                           'fit_Gyroradius': fitg,
-                           'fit_Pitch': fitp}
+            self.resolution = {'Gyroradius': parameters_gyr,
+                               'Pitch': parameters_pitch,
+                               'nmarkers': npoints,
+                               'fits': {
+                                    'Gyroradius': fitg,
+                                    'Pitch': fitp,
+                                    'FILDSIM_gyroradius': np.array(gyr_array),
+                                    'FILDSIM_pitch': np.array(pitch_array),
+                               },
+                               'gyroradius_model': g_method,
+                               'pitch_model': p_method}
+            # --- Prepare the interpolators:
+            self.calculate_interpolators()
+        return
+
+    def calculate_interpolators(self):
+        """
+        Calculate the interpolators which relates gyr, pitch with the
+        resolution parameters
+        """
+        if self.diag == 'FILD':
+            # --- Prepare the interpolators:
+            # Prepare grid
+            xx, yy = np.meshgrid(self.strike_points['gyroradius'],
+                                 self.strike_points['pitch'])
+            xxx = xx.flatten()
+            yyy = yy.flatten()
+            self.interpolators = {'pitch': {}, 'gyroradius': {}}
+            for i in self.resolution['Gyroradius'].keys():
+                dummy = self.resolution['Gyroradius'][i].T
+                dummy = dummy.flatten()
+                flags = np.isnan(dummy)
+                x1 = xxx[~flags]
+                y1 = yyy[~flags]
+                z1 = dummy[~flags]
+                if np.sum(~flags) > 4:
+                    self.interpolators['gyroradius'][i] = \
+                        scipy_interp.LinearNDInterpolator(
+                            np.vstack((x1, y1)).T,
+                            z1)
+            for i in self.resolution['Pitch'].keys():
+                dummy = self.resolution['Pitch'][i].T
+                dummy = dummy.flatten()
+                flags = np.isnan(dummy)
+                x1 = xxx[~flags]
+                y1 = yyy[~flags]
+                z1 = dummy[~flags]
+                if np.sum(~flags) > 4:
+                    self.interpolators['pitch'][i] = \
+                        scipy_interp.LinearNDInterpolator(
+                            np.vstack((x1, y1)).T,
+                            z1)
+            # Ok, the following is not a resolution, but in order to simplify
+            # the codes of the W preparation or the forward modelling, I'll
+            # also put here the colimator factor
+            dummy = self.collimator_factor_matrix.T
+            dummy = dummy.flatten()
+            flags = np.isnan(dummy)
+            x1 = xxx[~flags]
+            y1 = yyy[~flags]
+            z1 = dummy[~flags]
+            if np.sum(~flags) > 4:
+                self.interpolators['collimator_factor'] = \
+                    scipy_interp.LinearNDInterpolator(np.vstack((x1, y1)).T,
+                                                      z1)
         return
 
     def plot_resolutions(self, ax_param: dict = {}, cMap=None, nlev: int = 20):
@@ -1355,6 +1439,48 @@ class StrikeMap:
             ax[1] = ssplt.axis_beauty(ax[1], ax_param)
             plt.tight_layout()
             return
+
+    def sanity_check_resolutions(self):
+        """
+        Plot basic quantities of the resolution calculation as a test
+
+        Jose Rueda: jrrueda@us.es
+
+        Designed to quickly see some figures of merit of the resolution
+        calculation, ie, compare the centroids of the fits with the actual
+        values the particles were iniciated in FILDSIM
+        """
+        if self.diag == 'FILD':
+            axis_param = {'grid': 'both', 'ratio': 'equal'}
+            # Centroids comparison:
+            cen_g = []
+            cen_p = []
+            fild_g = []
+            # Arange centroids by pitch (gyroradius)
+            for p in np.unique(self.resolution['fits']['FILDSIM_pitch']):
+                dummy = []
+                dummy_FILDSIM = []
+                print(p)
+                for i in range(len(self.resolution['fits']['FILDSIM_gyroradius'])):
+                    if self.resolution['fits']['FILDSIM_pitch'][i] == p:
+                        dummy.append(self.resolution['fits']['Gyroradius'][i].params['center'].value)
+                        dummy_FILDSIM.append(self.resolution['fits']['FILDSIM_gyroradius'][i])
+
+                cen_g.append(dummy.copy())
+                fild_g.append(dummy_FILDSIM.copy())
+            for i in range(len(self.resolution['fits']['FILDSIM_pitch'])):
+                cen_p.append(self.resolution['fits']['Pitch'][i].params['center'].value)
+            figc, axc = plt.subplots(1, 2)
+            for i in range(len(fild_g)):
+                print(len(fild_g))
+                axc[0].plot(fild_g[i], cen_g[i], 'o', label=str(np.unique(self.resolution['fits']['FILDSIM_pitch'])[i]))
+            axc[0].set_xlabel('FILDSIM')
+            axc[0].legend()
+            axc[0] = ssplt.axis_beauty(axc[0], axis_param)
+            axc[1].plot(self.resolution['fits']['FILDSIM_pitch'],
+                        cen_p, 'o')
+            axc[1].set_xlabel('FILDSIM')
+            axc[1] = ssplt.axis_beauty(axc[1], axis_param)
 
 
 class CalParams:

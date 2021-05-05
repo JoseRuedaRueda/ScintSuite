@@ -12,6 +12,7 @@ import LibTracker as tracker
 import LibIO as io
 import LibFastChannel as fc
 import LibTomography as tomo
+import LibScintillatorCharacterization as scintcharact
 import iHIBP as ihibp
 import GUIs as GUI
 import INPA as inpa
