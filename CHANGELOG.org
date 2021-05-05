@@ -1,3 +1,17 @@
+** 0.4.1 i-HIBPsim strike line reader & Frequency tracking.
+*** LibHIBPstrikes
+- Adding support read and plot the strikelines from i-HIBPsim code.
+- Added support to plot the scintillator synthetic signal.
+- Added support to introduce the database of strike lines.
+- Changed attributes in the database to adapt to a common TRANSP-like database. long_name contains a full description of the field while the short_name contains a ready-to-plot name.
+*** LibFrequencyAnalysis
+- Added STFT2 routine: wrapper to scipy implementation, emulating Giovanni's.
+- Added iSTFT routine: wrapper to scipy implmentation, to reconstruct the signal from an STFT.
+- Added Vertex and Graph classes, allowing for minimal path search (using Dijsktra's method).
+- Added routine to search for frequency in a spectrogram (trackFrequency).
+- Moved examples 'multipow', 'frequencyTracking' to new Folder: 'FrequencyAnalysis'
+- New example to plot fast the spectrogram of a given magnetic pick-up coil.
+
 ** 0.3.2: First INPASIM utilities:
 - Added fuction to fit a line to a 3d cloud of points
 - Rewritten paths_suite.py to allow make easier to include new libraries

@@ -9,7 +9,8 @@ import heapq
 import scipy.signal as signal
 import matplotlib.pyplot as plt
 import matplotlib.cm as colorMap
-from scipy.signal import get_window
+import scipy
+from scipy.signal import get_window, istft
 from scipy.fftpack import fftfreq, rfft, ifft, fftshift
 from multiprocessing import cpu_count
 from scipy.fftpack import next_fast_len
@@ -33,7 +34,7 @@ def sfft(tvec, x, nfft, resolution=1000, window='hann', fmin=0, fmax=np.infty,
     """
     Short time Fourier Tranform. in the frequency domain done along 1. axis!
 
-    Taken from pyspeckview from Giovanni Tardini
+    Taken from pyspecview from Giovanni Tardini
 
     @param tvec: array with the time basis
     @param x: array with the data points
@@ -144,7 +145,7 @@ def sfft(tvec, x, nfft, resolution=1000, window='hann', fmin=0, fmax=np.infty,
     return spec, fvec, tvec
 
 
-def stft(tvec, signal, nfft, resolution=1000, window='gauss', fmin=-np.infty,
+def stft(tvec, x, nfft, resolution=1000, window='gauss', fmin=-np.infty,
          fmax=np.infty, tmin=-np.infty, tmax=np.infty, pass_DC=True,
          complex_spectrum=False):
     """
@@ -152,7 +153,7 @@ def stft(tvec, signal, nfft, resolution=1000, window='gauss', fmin=-np.infty,
 
     x - real or complex, transformation done along first axis
 
-    Taken from pyspeckview from Giovanni Tardini
+    Taken from pyspecview from Giovanni Tardini
 
     @param tvec: array with the time basis
     @param x: array with the data points
@@ -166,10 +167,10 @@ def stft(tvec, signal, nfft, resolution=1000, window='gauss', fmin=-np.infty,
     @param pass_DC: remove constant background
     @param complex_spectrum: To return a complex or real spectra
     """
-    if signal.dtype in [np.double, np.cdouble]:
+    if x.dtype in [np.double, np.cdouble]:
         raise Exception('use dtype single or csingle')
 
-    complex_sig = signal.dtype == np.csingle
+    complex_sig = x.dtype == np.csingle
 
     iimin, iimax = tvec.searchsorted((tmin, tmax))
     iimax -= 1
@@ -192,11 +193,11 @@ def stft(tvec, signal, nfft, resolution=1000, window='gauss', fmin=-np.infty,
 
     # input signal
     nalign = pyfftw.simd_alignment
-    sig = pyfftw.n_byte_align_empty(signal.shape[1:]+(nfft,), nalign,
+    sig = pyfftw.n_byte_align_empty(x.shape[1:]+(nfft,), nalign,
                                     dtype=sig_dtype)
     # output signal
     nf = nfft if complex_sig else nfft//2+1
-    out = pyfftw.n_byte_align_empty(signal.shape[1:]+(nf,),
+    out = pyfftw.n_byte_align_empty(x.shape[1:]+(nf,),
                                     nalign, dtype=np.complex64)
 
     fft_forward = pyfftw.FFTW(sig, out, direction='FFTW_FORWARD',
@@ -205,13 +206,13 @@ def stft(tvec, signal, nfft, resolution=1000, window='gauss', fmin=-np.infty,
 
     fft_step = max(1, n//resolution)
     dtype = np.complex64 if complex_spectrum else np.single
-    spec = np.empty((int(n/fft_step), ifmax-ifmin) + signal.shape[1:],
+    spec = np.empty((int(n/fft_step), ifmax-ifmin) + x.shape[1:],
                     dtype=dtype)
     win = None
 
     for i in range(int(n//fft_step)):
         imin = int(max(0, iimin+np.floor(i*fft_step-nfft//2)))
-        imax = int(min(len(signal), iimin + np.floor(i*fft_step+nfft//2)))
+        imax = int(min(len(x), iimin + np.floor(i*fft_step+nfft//2)))
 
         if np.size(win) != imax-imin:
             if window == 'gauss':
@@ -224,10 +225,10 @@ def stft(tvec, signal, nfft, resolution=1000, window='gauss', fmin=-np.infty,
 
         # implicit conversion from int (or anything else) to single!
         if pass_DC:
-            sig[..., :imax-imin] = signal[imin:imax].T
+            sig[..., :imax-imin] = x[imin:imax].T
         else:
-            sig[..., :imax-imin] = signal[imin:imax].T
-            sig[..., :imax-imin] -= np.mean(signal[imin:imax], 0)[None].T
+            sig[..., :imax-imin] = x[imin:imax].T
+            sig[..., :imax-imin] -= np.mean(x[imin:imax], 0)[None].T
 
         sig[..., imax-imin:] = 0
         sig[..., :imax-imin] *= win
@@ -260,6 +261,150 @@ def stft(tvec, signal, nfft, resolution=1000, window='gauss', fmin=-np.infty,
     return spec, fout, tout
 
 
+def stft2(tvec, x, nfft, resolution=1000, window='hann', pass_DC=True, 
+          complex_spectrum=True):
+    """
+    Short-Time Fourier Transform - Wrapper to the scipy.signal implementation.
+    
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    
+    @param tvec: time vector where the signal 'x' is defined.
+    @param x: time-dependent signal to build the spectrogram.
+    @param resolution: time resolution to build the spectogram.
+    @param window: type of windowing to apply.
+    @param pass_DC: sets the amplitude (and phase) to 0 for the first element
+    in the frequency array returned (i.e., f = 0).
+    @param complex_spectrum: returns the complex_spectrum. True by default.
+    @return data: bidimensional array with the spectrogram.
+    @return freq: frequency array.
+    @return time: time array.
+    """
+    
+    nt = len(tvec)
+    fs = 1.0/(tvec[1] - tvec[0])
+     
+    # --- Checking the inputs.
+    if nt < 1:
+        raise Exception('The time vector must be 1D array.')
+        
+        
+    if x.shape != (tvec.size,):
+        raise Exception('The signal must have the dimensions time')
+    
+    # --- Translating the inputs into the inputs for the scipy implementation.
+    nperseg  = next_fast_len(nfft)
+    noverlap = nperseg - max(1, int(nt//resolution))
+    
+    freq, time, data = signal.stft(x, fs=fs, window=window, nperseg=nperseg, 
+                                   noverlap=noverlap, nfft=nperseg, 
+                                   return_onesided=True, padded=False, 
+                                   boundary='even')
+    
+    time += tvec[0]
+    data = data.T
+    
+    if(not pass_DC):
+        data[0, :] = 0.0j
+        
+    if(not complex_spectrum):
+        data = np.abs(data)
+    
+    return data, freq, time
+        
+
+def istft2(tvec: float, fvec: float, x, tRes: float, nyqFreq: float,
+           nfft: int, window='gauss', resolution: int=1000, 
+           tmin: float=None, tmax: float=None, fs:float=1.0,
+           ntime: int = None):
+    """
+    Wrapper to scipy.signal.istft.
+    
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    
+    @param tvec: Time vector where the spectrogram is built.
+    @param fvec: Frequency vector where the spectrogram is built.
+    @param tRes: frequency resolution originally used to build the spectrogram.
+    @param nyqFreq: original Nyquist frequency.
+    @param window: window to use.
+    @param resolution: time resolution used.
+    @param tmin: Minimal time to use in the reconstruction.
+    @param tmax: Maximal time to use in the reconstruction.
+    """
+    nf = len(fvec)
+    nt = len(tvec)
+    
+    # --- Checking the inputs.
+    if nt < 1:
+        raise Exception('The time vector must be 1D array.')
+    if nf < 1:
+        raise Exception('The time vector must be 1D array.')
+        
+    if x.shape == (fvec.size, tvec.size):
+        x = x.T
+        
+    if x.shape != (tvec.size, fvec.size):
+        raise Exception('The signal must have the dimensions time x frequency')
+    
+    # Transform it into a complex signal.
+    if x.dtype in [np.single, np.double]:
+        x = np.asarray(x, dtype=np.cdouble)
+    
+    if tmin is None:
+        tmin = tvec[0]
+    if tmax is None:
+        tmax = tvec[-1]
+        
+    if ntime is None:
+        ntime = len(tvec)
+        
+    # Searching for the initial and ending time points.
+    iimin, iimax = tvec.searchsorted((tmin, tmax))
+    iimax -= 1
+    n = iimax-iimin
+    
+    # --- Filtering in time the signal:
+    sig_copy = x.copy()[iimin:iimax, :]
+    
+    # --- Adding some padding for f = 0 to fmin.
+    fmin = fvec[0]
+    fmax = fvec[-1]
+    fs_spec   = (fvec[1] - fvec[0])
+    
+    if(fmin != 0):
+        padding_size = int(fmin/fs_spec)
+        padding = np.zeros((n, padding_size), dtype=x.dtype)
+        print('Adding %d points of padding up to fmin = %.3f'%(padding_size,
+                                                               fmin))
+        
+        # --- Attaching the padding.
+        sig_copy = np.hstack((padding, sig_copy))
+        del padding_size
+        del padding
+    
+    if(fmax != nyqFreq):
+        
+        padding_size = int((fmax-nyqFreq)/fs_spec)
+        padding = np.zeros((n, padding_size), dtype=x.dtype)
+        print('Adding %d points of padding from fmax = %.3f'%(padding_size,
+                                                               fmax))
+        
+        # --- Attaching the padding.
+        sig_copy = np.hstack((sig_copy, padding))
+        del padding_size
+        del padding
+    
+    # --- Translating the inputs into the inputs for the scipy implementation.
+    nperseg  = nfft
+    noverlap = nperseg - max(1, int(ntime//resolution))
+    
+    time, data = istft(x, fs=fs, window=window, nperseg=nperseg, 
+                       noverlap=noverlap, nfft=nperseg, input_onesided=True,
+                       boundary=True, time_axis=0, freq_axis=1)
+    
+    time += tvec[0]
+    
+    return time, data
+    
 def get_nfft(tau0, specType, nt, windowType, dt):
     """
     Getting the number of FFT required to reach the resolution.
@@ -312,7 +457,7 @@ def myCPSD(sig1, sig2, time1, freq1, time2, freq2):
                            bounds_error=False)
     sig2_fun_i  = interp2d(time2, freq2, sig2.imag, kind='linear',
                            bounds_error=False)
-    sig2_on1  = sig2_fun_r(time1, freq1) + 1j*sig2_fun_i(time1, freq1)
+    sig2_on1  = sig2_fun_r(time1, freq1) - 1j*sig2_fun_i(time1, freq1)
     
     # Computing the element-wise matrix product:
     return time1, freq1, (sig1*sig2_on1)
@@ -322,44 +467,67 @@ def myCPSD(sig1, sig2, time1, freq1, time2, freq2):
 # -----------------------------------------------------------------------------
 def trackFrequency(time: float, freq: float, spec: float, origin: float, 
                    target: float=None, freqLims: float=None, 
-                   timeLims: float=None,
+                   timeLims: float=None, tOverlap: float=None,
+                   graph_TimeConnect: float=0.0, freqThr: float = np.inf,
+                   k_exp: float = 4.0, kt_exp = 1.0, peak_opts: dict={}, 
                    costFunction=None, peakFilterFnc=None,
-                   tOverlap: float=None, smooth: bool=True,
-                   smooth_data: dict={}, peak_opts: dict={}, 
-                   verbose: bool=True, plotandwait: bool=True, 
-                   plotOpts: dict = {}, graph_TimeConnect: float=0.0,
-                   freqThr: float = np.inf):
+                   smooth: bool=True, smooth_opts: dict={}, 
+                   verbose: bool=True, plot: bool=True, plotOpts: dict = {}, 
+                   lineOpts: dict = {}, ax=None, fig=None):
     """
     This function will try to follow a frequency in a spectrogram based on
-    peak detection algorithm + Dijsktra's algorithm. To make this function 
-    more flexible, a particular limit in frequency and time can be used. In 
-    particular, masked arrays can (should?) be used as inputs and outputs.
+    peak detection algorithm + Dijsktra's algorithm. 
     
     Pablo Oyola - pablo.oyola@ipp.mpg.de
     
     @param time: array with the time points (equispaced)
     @param freq: arraq with the frequency points (equispaced)
-    @param spec: spectrogram 2D array. Mask arrays can be used (and will
-    make the work even easier)
+    @param spec: spectrogram 2D array.
+    @param origin: starting frequency to start the search. The initial time
+    point will be taken from the initial time point in the array 'time' or, 
+    whenever provided, from the 'timeLims'.
+    @param target: if provided, the algorithm will look for the shortest path
+    until arriving this target frequency. It forces the code to go through all
+    the nodes. Generally, unrecommended.
     @param freqLims: frequency windows to look for the modes. If None, all the
     frequency window is used instead.
     @param timeLims: time windows to look for the peaks. This can be useful for
     ELM synchronization. If None, the whole time window is used.
-    @param costFunction: callable function to provided two nodes (time, freq,
-    spec) gives the cost (only positive) that will be used to weight the path
-    maker. If None, a standard w = Delta_frequency**2 is used to avoid
-    frequency jumps.
-    @param peakFilterFnc: function to filter peaks. It must admit 
-    (time, freq, spec) and (peaks, width) as inputs to filter them. If None,
-    all the peaks found are used.
+    @param costFunction: callable function to provided two nodes dictionaries,
+    and must provide a POSITIVE value for any kind of input that allows to
+    measure the cost of jumping between two nodes. If not provided, a standard
+    function is always provided ($\\Delta f^$)
+    @param peakFilterFnc: function to filter peaks. It must admit as inputs 
+    the frequency axis, the smoothed data for each time slice, the peak
+    position array and the peak properties.
     @param tOverlap: sum over time when looking for peaks. If None, the sum
     is set to dt.
+    @param smooth: sets if the data is smoothed before searching for peaks. 
+    By default, it is set to True.
+    @param smooth_opts: dictionary containing the options for the sav-golay 
+    filter. If not provided, windows_length = 5 and the polynomial order is set
+    to 3.
+    @param peak_opts: dictionary containing the options for the peak searching.
+        @see{scipy.signal.find_peaks}
+    @param verbose: writes into the console the partial results.
+    @param plot: plots to a new axis the results from the frequency tracking.
+    @param plotOpts: dictionary with options to plot the spectrogram. The 
+    'plasma' colormap is used as deafault is none is provided.
+    @param graph_TimeConnect: Time window in which the connection of the nodes.
+    If None is provided, then it is taken to be 5*dt, i.e., only the 5 closest
+    time slices are connected among themselves.
+    @param freqThr: above the threshold, the routine will disconnect the nodes
+    with a frequency jump above this.
+    @param k_exp: exponent to weight the frequency contribution to the jump.
+    Only useful, when cost function is not provided as input.
+    @param lineOpts: plotting options for the frequency tracker curve. Only 
+    used whenever the plot flat is True. If not provided, color is set to 
+    white.
     """
     dt = time[1] - time[0]
     df = freq[1] - freq[0]
     nfreq = len(freq)
     freqMean = np.mean(freq)
-    k_exp = 4.0
     
     # --- Checking the inputs.
     if costFunction is not None:
@@ -415,6 +583,11 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
         
     if freqLims is None:
         freqLims = [freq[0], freq[-1]]
+    
+    f0, f1 = freq.searchsorted(freqLims)
+    spec2 = spec.copy()
+    spec2 = spec2[:, f0:f1]
+    freq2 = freq[f0:f1]
         
     # Checking the time overlap
     if graph_TimeConnect < dt:
@@ -426,20 +599,23 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
               nGraphConne)
     
     # --- Checking the filtering data.
-    if 'window_length' not in smooth_data:
-        smooth_data['window_length'] = 5
-    elif smooth_data['window_length'] % 2 == 0:
+    if 'window_length' not in smooth_opts:
+        smooth_opts['window_length'] = 5
+    elif smooth_opts['window_length'] % 2 == 0:
         print('The smoothing window must be odd in points. Increasing by 1')
-        smooth_data['window_length'] += 1
+        smooth_opts['window_length'] += 1
     
-    if 'polyorder' not in smooth_data:
-        smooth_data['polyorder'] = 3
+    if 'polyorder' not in smooth_opts:
+        smooth_opts['polyorder'] = 3
         
     # --- Checking the peaking finding data.
     if 'prominence' not in peak_opts:
         peak_opts['prominence'] = 0.50 # 66.7%
     if 'width' not in peak_opts:
         peak_opts['width'] = (None, None)
+    
+    if 'rel_height' not in peak_opts:
+        peak_opts['rel_height'] = 0.50 # By default set to FWHM
         
     # --- Creating a Graph object to store the collection of vertices.
     dgraph = Graph()
@@ -474,25 +650,19 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
             t0_avg = t0 + jj*nOverlap
             t1_avg = np.minimum(t0+(jj+1)*nOverlap, t1+1)
             
-            data = np.mean(spec[t0_avg:t1_avg, :], axis=0)
+            data = np.mean(spec2[t0_avg:t1_avg, :], axis=0)
             data -= np.min(data)
             data /= np.max(data)
             
             if smooth:
                 try:
-                    data = signal.savgol_filter(data, **smooth_data)
+                    data = signal.savgol_filter(data, **smooth_opts)
                 except:
                     print('Data at t = %d non-smoothed!'%t0_avg)
             
             peaks, props = signal.find_peaks(data, **peak_opts)
-            
-            # Filtering the peaks, according to their frequency.
-            flags = np.logical_and(freq[peaks] >= freqLims[0], 
-                                   freq[peaks] <= freqLims[-1])
-            
-            peaks = peaks[flags]
-            for ikey in props.keys():
-                props[ikey] = props[ikey][flags]
+            props['widths'], _, _,_ = signal.peak_widths(data, peaks, 
+                                     rel_height=peak_opts['rel_height'])
             
             # If after everything, there are not any peaks, just go to the
             # next slice.
@@ -501,7 +671,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                 
             # External filtering function.
             if peakFilterFnc is not None:
-                flags = peakFilterFnc(freq, data, peaks, props)
+                flags = peakFilterFnc(freq2, data, peaks, props)
                 peaks = peaks[flags]
                 for ikey in props.keys():
                     props[ikey] = props[ikey][flags]
@@ -514,8 +684,8 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
             # Adding the peak data to the list.
             peak_data['peak_idx'][kk] = peaks
             peak_data['width'][kk] = props['widths']*df
-            peak_data['freq'][kk] = freq[peaks]
-            peak_data['spec_val'][kk]= np.mean(spec[t0_avg:t1_avg, peaks],
+            peak_data['freq'][kk] = freq2[peaks]
+            peak_data['spec_val'][kk]= np.mean(spec2[t0_avg:t1_avg, peaks],
                                                axis=0)
             peak_data['spec_norm'][kk]  = data[peaks]
             peak_data['prominences'][kk] = props['prominences']
@@ -542,9 +712,10 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     if len(peak_map) == 0:
         raise RuntimeError('No peaks found in the spectrum. Tweak the inputs')
         
-    if plotandwait:
-        fig, ax = plt.subplots(1)
-        im1 = ax.pcolormesh(time, freq, spec.T, **plotOpts)
+    if plot:
+        if ax is None:
+            fig, ax = plt.subplots(1)
+        im1 = ax.pcolormesh(time, freq2, spec2.T, **plotOpts)
         ax.set_xlabel('Time [s]')
         ax.set_ylabel('Frequency [kHz]')
         fig.colorbar(im1, ax=ax)
@@ -552,20 +723,6 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
         # Plotting the peaks
         for ii in peak_map:
             ax.plot(peak_map[ii][0], peak_map[ii][1], 'r.')
-        
-        # print('Check the input and tell me: 0 -> finish here\n')
-        # print('                          else -> keep going\n')
-        # bb = int(input())
-        
-        # if bb == 0:
-        #     output = { 
-        #       'peak_data': peak_data,
-        #       'peak_map': peak_map
-        #      }
-        #     print('bye-bye')
-    
-        #     del dgraph
-        #     return output
     
     ntime_peaks = kk - 1
     if verbose:
@@ -604,7 +761,8 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                         #sigmaA = 1.0
                         sigmaTime = dt
                         
-                        cost = (deltaF/freqMean)**k_exp *(deltaTime/dt)**4.0
+                        cost = (deltaF/freqMean)**k_exp * \
+                               (deltaTime/graph_TimeConnect)**kt_exp
                         if (deltaF > freqThr):
                              cost *= (np.inf)
                     else:
@@ -618,7 +776,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     peak_origin = { 'time': timeLims[0],
                     'freq': origin,
                     'width': 0.0,
-                    'spec_val': interp2d(time, freq, spec.T)\
+                    'spec_val': interp2d(time, freq2, spec2.T)\
                                 (timeLims[0], origin),
                     'spec_norm': 0.0,
                 }
@@ -639,8 +797,10 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
             if costFunction is None:
                 deltaF = np.abs(peak_origin['freq'] - peak_nxt['freq'])
                 sigmaF = np.abs(peak_nxt['width'])
+                deltaTime = np.abs(peak_origin['time'] - peak_nxt['freq'])
                 
-                cost = (deltaF/freqMean)**k_exp*(deltaTime/dt)**2.0
+                cost = (deltaF/freqMean)**k_exp* \
+                               (deltaTime/graph_TimeConnect)**kt_exp
                 if (deltaF > freqThr):
                      cost *= (np.inf)
             else:
@@ -728,28 +888,29 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
         ampcurve_total.append(peak_map[ii][3])
         widths_curve.append(peak_map[ii][4])
         
-    output = { 'track': { 'time': np.array(timecurve),
-                          'freq': np.array(freqcurve),
-                          'Anorm': np.array(ampcurve_norm),
-                          'Atot': np.array(ampcurve_total),
-                          'width': np.array(widths_curve)
+    output = { 'track': { 'time': np.flip(np.array(timecurve)),
+                          'freq': np.flip(np.array(freqcurve)),
+                          'Anorm': np.flip(np.array(ampcurve_norm)),
+                          'Atot': np.flip(np.array(ampcurve_total)),
+                          'width': np.flip(np.array(widths_curve))
                         },
               'peak_data': peak_data,
               'peak_map': peak_map,
-              'path_by_graph': path,
+              'path_by_graph': path.reverse(),
               'cost': distmin
              }
     
     # --- Print the curve.
-    if plotandwait:
-        lineParams = {'color':'w'}
+    if plot:
+        if 'color' not in lineOpts:
+            lineOpts['color'] = 'w'
         ax=plot_error_band(ax=ax, x=output['track']['time'],
                            y=output['track']['freq'], color='w', 
                            u_up=output['track']['width']/2.0, 
-                           alpha=0.2, line=True, line_param=lineParams)
+                           alpha=0.2, line=True, line_param=lineOpts)
     del dgraph
     
-    return output
+    return output, ax
         
 # ----------------------------------------------------------------------------
 # --- Graph and vertex classes for shortest path algorithm.
