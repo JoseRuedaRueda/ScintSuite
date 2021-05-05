@@ -17,9 +17,8 @@ import iHIBP as ihibp
 import GUIs as GUI
 import INPA as inpa
 import LibOptics as optics
+import LibData as dat
 from version_suite import version
-if m.machine == 'AUG':
-    import LibDataAUG as dat
 
 
 machine = m.machine

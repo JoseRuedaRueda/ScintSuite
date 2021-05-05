@@ -19,11 +19,11 @@ import LibUtilities as ssextra
 from LibMachine import machine
 import LibPaths as p
 import LibIO as ssio
+import LibData as ssdat
 from tqdm import tqdm   # For waitbars
 pa = p.Path(machine)
 del p
-if machine == 'AUG':
-    import LibDataAUG as ssdat
+
 try:
     import lmfit
 except ImportError:

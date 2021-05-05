@@ -24,14 +24,15 @@ def paths_of_the_suite(machine='AUG'):
         'LIB_INPASIM': 'Lib/INPA/INPASIM',
         'LIB_FILDSIM': 'Lib/LibFILDSIM',
         'LIB_OPTICS': 'Lib/Optics',
-        'LIB_GUIs': 'Lib/GUIs'
+        'LIB_GUIs': 'Lib/GUIs',
+        'LIB_DATA': 'Lib/LibData'
     }
 
     # -- Machine dependent folders:
     Machine_libs = {
         'AUG': {
             'AUG_Python': '/afs/ipp/aug/ads-diags/common/python/lib',
-            'Suite_AUG': os.path.join(SUITE_DIR, 'Lib/LibDataAUG')
+            'Suite_AUG': os.path.join(SUITE_DIR, 'Lib/LibData/AUG')
         }
     }
 

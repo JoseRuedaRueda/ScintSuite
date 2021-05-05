@@ -10,8 +10,7 @@ which will have at the FILD position
 import numpy as np
 import math
 from LibMachine import machine
-if machine == 'AUG':
-    import LibDataAUG as ssdat
+import LibData as ssdat
 try:
     from shapely.geometry import LineString
 except ModuleNotFoundError:

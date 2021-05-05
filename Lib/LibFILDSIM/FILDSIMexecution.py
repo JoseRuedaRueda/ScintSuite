@@ -6,8 +6,7 @@ import math as ma
 import LibParameters as ssp
 from LibMachine import machine
 from LibPaths import Path
-if machine == 'AUG':
-    import LibDataAUG as ssdat
+import LibData as ssdat
 try:
     import f90nml
 except ImportError:

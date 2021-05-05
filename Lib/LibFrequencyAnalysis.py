@@ -404,6 +404,7 @@ def istft2(tvec: float, fvec: float, x, tRes: float, nyqFreq: float,
 
     return time, data
 
+
 def get_nfft(tau0, specType, nt, windowType, dt):
     """
     Getting the number of FFT required to reach the resolution.
@@ -425,11 +426,6 @@ def get_nfft(tau0, specType, nt, windowType, dt):
     nfft = tau/dt if windowType == 'gauss' else 2**np.ceil(np.log2(tau/dt))
 
     return nfft
-# -----------------------------------------------------------------------------
-# --- Noise filtering
-# -----------------------------------------------------------------------------
-
-
 
 
 # -----------------------------------------------------------------------------
@@ -467,14 +463,16 @@ def myCPSD(sig1, sig2, time1, freq1, time2, freq2):
 # --- Tracking algorithm
 # -----------------------------------------------------------------------------
 def trackFrequency(time: float, freq: float, spec: float, origin: float,
-                   target: float=None, freqLims: float=None,
-                   timeLims: float=None, tOverlap: float=None,
-                   graph_TimeConnect: float=0.0, freqThr: float = np.inf,
-                   k_exp: float = 4.0, kt_exp = 1.0, peak_opts: dict={},
+                   target: float = None, freqLims: float = None,
+                   timeLims: float = None, tOverlap: float = None,
+                   graph_TimeConnect: float = 0.0, freqThr: float = np.inf,
+                   k_exp: float = 4.0, kt_exp: float = 1.0,
+                   peak_opts: dict = {},
                    costFunction=None, peakFilterFnc=None,
-                   smooth: bool=True, smooth_opts: dict={},
-                   verbose: bool=True, plot: bool=True, plotOpts: dict = {},
-                   lineOpts: dict = {}, ax=None, fig=None):
+                   smooth: bool = True, smooth_opts: dict = {},
+                   verbose: bool = True, plot: bool = True,
+                   plotOpts: dict = {}, lineOpts: dict = {}, ax=None,
+                   fig=None):
     """
     This function will try to follow a frequency in a spectrogram based on
     peak detection algorithm + Dijsktra's algorithm.

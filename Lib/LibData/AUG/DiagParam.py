@@ -22,7 +22,7 @@ IB_sign = Bt_sign * It_sign
 # All values except for beta, are extracted from the paper:
 # J. Ayllon-Guerola et al. 2019 JINST14 C10032
 # betas are taken to be -12.0 for AUG
-# @todo include jet FILD as 'fild6', Jt-60 as 'fild7' as MAST-U as 'fild8'?
+# fild 5 alpha extracted from FARO measurements
 fild1 = {'alpha': 0.0,   # Alpha angle [deg], see paper
          'beta': -12.0,  # beta angle [deg], see FILDSIM doc
          'sector': 8,    # The sector where FILD is located
