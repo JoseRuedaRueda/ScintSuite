@@ -7,7 +7,7 @@ Still to implement: NPA, weighting functions, Zeeman lines
 """
 import numpy as np
 import matplotlib.pyplot as plt
-import LibParameters as sspar
+import Lib.LibParameters as sspar
 
 
 def read_neutrals(filename: str):

@@ -7,10 +7,10 @@ will be included
 """
 import numpy as np
 import matplotlib.pyplot as plt
-import LibPlotting as ssplt
-from LibMachine import machine
+import Lib.LibPlotting as ssplt
+from Lib.LibMachine import machine
 if machine == 'AUG':
-    import LibDataAUG as ssdat
+    import Lib.LibDataAUG as ssdat
 
 
 # -----------------------------------------------------------------------------

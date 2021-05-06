@@ -7,18 +7,18 @@ import numpy as np
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
-import LibParameters as sspar
-import LibPlotting as ssplt
-import LibDataAUG as aug
-import LibPaths
+import Lib.LibParameters as sspar
+import Lib.LibPlotting as ssplt
+import Lib.LibDataAUG as aug
+import Lib.LibPaths
 import netCDF4 as nc4
 import dd
 import os
-from LibIO import getFileSize
+from Lib.LibIO import getFileSize
 from os import listdir
 from warnings import warn
 
-pa = LibPaths.Paths()
+pa = Lib.LibPaths.Paths()
 
 # -----------------------------------------------------------------------------
 # --- Index translation.
