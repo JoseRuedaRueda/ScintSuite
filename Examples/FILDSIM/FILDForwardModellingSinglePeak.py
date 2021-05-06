@@ -8,6 +8,8 @@ Gaussian input distribution will be used
 done for version 0.4.2
 """
 import Lib as ss
+import matplotlib.pyplot as plt
+import numpy as np
 # -----------------------------------------------------------------------------
 # --- Settings
 # -----------------------------------------------------------------------------
@@ -20,13 +22,13 @@ smap_points = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILDSIM/results/' +\
     'AUG_map_-000.60000_007.50000_strike_points.dat'
 
 # General options:
-r0 = 2.0        # centroid of the distribution in gyroradius
-sr0 = 0.1       # sigma of the distribution in gyroradius
-p0 = 55.0       # centroid of the distribution in pitch
+r0 = 3.31        # centroid of the distribution in gyroradius
+sr0 = 0.05       # sigma of the distribution in gyroradius
+p0 = 64.0       # centroid of the distribution in pitch
 sp0 = 3        # sigma of the distribution in pitch
 efficiency = True
 diag_params = {
-    'g_method': 'sGauss',
+    'g_method': 'Gauss',
     'p_method': 'Gauss'
 }
 # -----------------------------------------------------------------------------
@@ -50,3 +52,16 @@ else:
 g_grid, p_grid, signal = \
     ss.fildsim.synthetic_signal(input, smap_file, spoints=smap_points,
                                 diag_params=diag_params, efficiency=eff)
+
+# -----------------------------------------------------------------------------
+# --- plot the signal
+# -----------------------------------------------------------------------------
+fig1, ax1 = plt.subplots()
+ax1.contourf(g_grid, p_grid, signal.T)
+
+# Get the gyroradius profile
+profile = np.sum(signal, axis=1)
+
+fig21, ax21 = plt.subplots()
+ax21.plot(g_grid, profile / profile.max())
+plt.show()
