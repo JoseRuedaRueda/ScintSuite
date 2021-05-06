@@ -20,22 +20,22 @@ from tqdm import tqdm
 # --- Scripts parameter definition.
 # -----------------------------------------------------------------------------
 # Shot data and timing.
-shotnumber = 38877
-coilNumber = 40
-tBegin = 3.50           # In s
-tEnd = 3.55             # In s
+shotnumber = 38663
+coilNumber = 31
+tBegin = 1.6
+tEnd   = 1.9
 
 # FFT options.
-#                       #  For the window type, go to:
-windowType = 'hann'     # https://docs.scipy.org/doc/scipy/reference/
-#                       #  generated/scipy.signal.get_window.html
-freqLims = np.array((10.0, 45.0))  # Frequency limits.
-freq1d = np.array((10., 13.0))  # Frequency limits for the plot in 1D.
-specType = 'sfft'   # Spectogram type:
-#                   # -> Short-Time Fourier Transform in frequency (sfft)
-#                   # -> Short-Time Fourier Transform in time (stft)
-timeResolution = 0.75  # Time resolution.
-cmap = matplotlib.cm.plasma  # Colormap
+#                        # For the window type, go to:
+windowType = 'hamming'     # https://docs.scipy.org/doc/scipy/reference/
+#                        # generated/scipy.signal.get_window.html
+freqLims = np.array((1.0, 20.0))  # Frequency limits.
+freq1d = np.array((5.0, 10.0))  # Frequency limits for the plot in 1D.
+specType = 'stft'  # Spectogram type:
+#                  # -> Short-Time Fourier Transform in frequency (sfft)
+#                  # -> Short-Time Fourier Transform in time (stft)
+timeResolution = 0.70  # Frequency resolution.
+cmap = matplotlib.cm.plasma # Colormap
 
 # Diagnostic for the electron gradient reading.
 diag_Te = 'IDA'
@@ -43,16 +43,16 @@ exp_Te = 'AUGD'
 ed_Te = 0
 
 # Plotting flags:
-plot_spectrograms = True    # Plot the spectrogram for MHI and ECE and the
-#                           # sample CPSD for cross-checking.
-plot_Te_sample = False      # Plots the Te data as taken from the RMD.
-plot_profiles = True        # Plot the rhopol vs. f spectrogram.
-plot_vessel_flag = True     # Plots the vessel and the separatrix
-#                           # with the ECE and pick up coil position.
+plot_spectrograms   = True # Plot the spectrogram for MHI and ECE and the
+#                          # sample CPSD for cross-checking.
+plot_Te_sample      = False   # Plots the Te data as taken from the RMD.
+plot_profiles       = True    # Plot the rhopol vs. f spectrogram.
+plot_vessel_flag    = False    # Plots the vessel and the separatrix
+#                              # with the ECE and pick up coil position.
 
 # Plotting options.
-ece_rhop_plot = 0.80   # rho_pol of the ECE to plot.
-spec_abstype = 'log'   # linear, sqrt or log
+ece_rhop_plot = 0.90  # rho_pol of the ECE to plot.
+spec_abstype = 'linear'  # linear, sqrt or log
 spec_abstype_cpsd = 'linear'  # This is the same as above, but for the CPSD.
 
 # -----------------------------------------------------------------------------
@@ -175,8 +175,7 @@ if plot_spectrograms:
                                       mhi['fft']['freq'][0],
                                       mhi['fft']['freq'][-1]),
                               aspect='auto', interpolation='nearest',
-                              norm=colors.LogNorm(mhiplot.min(),
-                                                  mhiplot.max()),
+                              norm=colors.LogNorm(mhiplot.min(), mhiplot.max()),
                               cmap=cmap)
     elif spec_abstype == 'sqrt':
         im1 = ax[0][0].imshow(mhiplot, origin='lower',
@@ -230,8 +229,8 @@ if plot_spectrograms:
                               cmap=cmap,
                               norm=colors.PowerNorm(gamma=0.50))
 
-    ax[0][1].set_title('TradA:'+str(ece['channels'][nchann])
-                       + ' - $\\rho_{pol}$ = ' + str(ece['rhop'][nchann]))
+    ax[0][1].set_title('TradA:'+str(ece['channels'][nchann]) +
+                       ' - $\\rho_{pol}$ = ' + str(ece['rhop'][nchann]))
     ax[0][1].set_xlabel('Time [s]')
     fig.colorbar(im2, ax=ax[0][1])
 
@@ -252,14 +251,13 @@ if plot_spectrograms:
         im3 = ax[1][0].imshow(xcor_plot, origin='lower',
                               extent=(t[0], t[-1], freq[0], freq[-1]),
                               aspect='auto', interpolation='nearest',
-                              norm=colors.LogNorm(eceplot.min(),
-                                                  eceplot.max()),
+                              norm=colors.LogNorm(eceplot.min(), eceplot.max()),
                               cmap=cmap)
     elif spec_abstype == 'sqrt':
         im3 = ax[1][0].imshow(xcor_plot, origin='lower',
                               extent=(t[0], t[-1], freq[0], freq[-1]),
                               aspect='auto', interpolation='nearest',
-                              norm=colors.PowerNorm(gamma=0.50), cmap=cmap)
+                              cmap=cmap, norm=colors.PowerNorm(gamma=0.50))
 
     ax[1][0].set_title('Cross-correlation')
     ax[1][0].set_xlabel('Time [s]')
@@ -322,7 +320,7 @@ ece['xrel'] = {
     'freq': mhi['fft']['freq'],
     'rho':  ece['rhop'],
     'data': Sxx,
-    'data2D': np.abs(np.sum(Sxx, axis=1)),  # [freq, rho_pol]
+    'data2D': np.sqrt(np.sum(np.abs(Sxx)**2.0, axis=1)),  # [freq, rho_pol]
     'desc': 'Cross-power spectral density ECE - \
              MHI for all channels',
     'short': '$\\delta B_r \\ast \\delta T_e$'
@@ -336,7 +334,7 @@ if plot_profiles:
 
     opts = {
         'cmap': cmap,
-        'shading': 'nearest',
+        'shading': 'flat',
         'antialiased': True
     }
 
@@ -355,19 +353,21 @@ if plot_profiles:
     ax3[0].set_ylabel('Frequency [kHz]')
     fig3.colorbar(im3, ax=ax3[0])
 
+
     # --- Plotting the 1D profile.
     f0 = (np.abs(ece['xrel']['freq'] - freq1d[0])).argmin()
     f1 = (np.abs(ece['xrel']['freq'] - freq1d[-1])).argmin()
     ece_1D = np.sqrt(np.sum(ece['xrel']['data2D'][f0:f1, :]**2, axis=0))
-    rhoplot, eceplot1d = zip(*sorted(zip(ece['xrel']['rho'],
-                                         ece_1D)))
+
+    rhoplot, eceplot1d = zip(*sorted(zip(ece['xrel']['rho'], ece_1D)))
 
     rhoplot = np.array(rhoplot)
     eceplot1d = np.array(eceplot1d)
     ax3[1].plot(rhoplot, eceplot1d/eceplot1d.max(), 'r*-',
                 label='Cross-correlation ECE-MHI')
-    ax3[1].set_title('f $\\in$ [%.1f, %.1f] kHz' % (ece['xrel']['freq'][f0],
-                                                    ece['xrel']['freq'][f1]))
+    ax3[1].set_title('f $\\in$ [%.1f, %.1f] kHz'%(ece['xrel']['freq'][f0],
+                                                  ece['xrel']['freq'][f1]))
+
 
     # --- Plotting the normalized electron temperature gradient.
     ax3[1].plot(ece['fft']['dTe_base'],
@@ -380,14 +380,18 @@ if plot_profiles:
     plt.tight_layout()
     plt.show()
 
+# -----------------------------------------------------------------------------
+# --- Plotting the vessel and the ECE positions.
+# -----------------------------------------------------------------------------
 if plot_vessel_flag:
     fig4, ax4 = plt.subplots(1)
 
-    ax4 = ss.plt.plot_vessel(shot=shotnumber, ax=ax4)
+    ax4 = ss.plt.plot_vessel(projection='pol', shot=shotnumber, ax=ax4)
 
     # Getting the flux surfaces.
     ax4 = ss.plt.plot_flux_surfaces(shotnumber, (tBegin+tEnd)/2.0,
                                     ax=ax4)
+
 
     im6 = plt.scatter(x=ece['r'],  y=ece['z'], c=ece['channels'],
                       label='ECE positions', cmap='hsv', alpha=0.75)

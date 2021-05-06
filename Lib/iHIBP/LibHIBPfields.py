@@ -10,8 +10,7 @@ import Lib.LibPlotting as ssplt
 import matplotlib.pyplot as plt
 # from scipy.interpolate import RectBivariateSpline as intp2
 from scipy.interpolate import interpn
-if machine == 'AUG':
-    import Lib.LibDataAUG as ssdat
+import Lib.LibData as ssdat
 
 
 class ihibpEMfields:

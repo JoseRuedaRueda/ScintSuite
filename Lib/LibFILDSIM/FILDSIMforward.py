@@ -1,5 +1,4 @@
 """Calculate and plot synthetic signals with FILDSIM"""
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 import Lib.LibMap as ssmapping
@@ -7,8 +6,7 @@ import Lib.LibFILDSIM.FILDSIMexecution as ssfildsimA
 from Lib.LibMachine import machine
 import Lib.LibPlotting as ssplt
 import matplotlib.pyplot as plt
-if machine == 'AUG':
-    import Lib.LibDataAUG as ssdat
+import Lib.LibData as ssdat
 try:
     import lmfit
 except ModuleNotFoundError:

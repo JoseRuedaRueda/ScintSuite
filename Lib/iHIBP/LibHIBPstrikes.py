@@ -1,5 +1,6 @@
 """
 i-HIBPsim -  Lib Strikes.
+
 This library takes care of reading the strikes and their manipulation.
 """
 
@@ -45,6 +46,7 @@ MARK_TPERP = 18
 MARK_ANGLE = 19
 MARK_INTENSITY = 20
 
+
 # ----------------------------------------------------------------------------
 # --- Other parameters.
 # ----------------------------------------------------------------------------
@@ -52,7 +54,7 @@ MARK_INTENSITY = 20
 scintillator_limits_X = aug.IHIBP_scintillator_X
 scintillator_limits_Y = aug.IHIBP_scintillator_X
 
-IHIBP_STRIKELINE_DATABASE_PATH = pa.ihibpsim_strline_database
+AUG_STRIKELINE_DATABASE = pa.ihibpsim_strline_database
 
 sigma2fwhm = 2.0*np.sqrt(2.0*np.log(2.0))
 j2keV = 1.0/sspar.ec*1.0e-3
@@ -722,18 +724,20 @@ class strikeLine:
             tindx[ii] = np.abs(ssq['time']-self.time[ii]).argmin()
             tindx_ip[ii] = np.abs(ssq['iptime']-self.time[ii]).argmin()
             tindx_bt[ii] = np.abs(ssq['bttime']-self.time[ii]).argmin()
-
-        self.shotinfo['q95'] = - ssq['q95'][tindx]
-        self.shotinfo['q0']  = - ssq['q0'][tindx]
-        self.shotinfo['Rgeom'] = ssq['Rgeo'][tindx]
-        self.shotinfo['Raxis'] = ssq['Rmag'][tindx]
-        self.shotinfo['Raus'] = ssq['Raus'][tindx]
-        self.shotinfo['beta_pol'] = ssq['betpol'][tindx]
-        self.shotinfo['H1'] = ssq['lenH-1'][tindx]
-        self.shotinfo['H5'] = ssq['lenH-5'][tindx]
-        self.shotinfo['elongation'] = ssq['k'][tindx]
-        self.shotinfo['ip'] = ssq['ip'][tindx_ip]
-        self.shotinfo['bt0'] = ssq['bt0'][tindx_bt]
+        try:
+            self.shotinfo['q95'] = - ssq['q95'][tindx]
+            self.shotinfo['q0']  = - ssq['q0'][tindx]
+            self.shotinfo['Rgeom'] = ssq['Rgeo'][tindx]
+            self.shotinfo['Raxis'] = ssq['Rmag'][tindx]
+            self.shotinfo['Raus'] = ssq['Raus'][tindx]
+            self.shotinfo['beta_pol'] = ssq['betpol'][tindx]
+            self.shotinfo['H1'] = ssq['lenH-1'][tindx]
+            self.shotinfo['H5'] = ssq['lenH-5'][tindx]
+            self.shotinfo['elongation'] = ssq['k'][tindx]
+            self.shotinfo['ip'] = ssq['ip'][tindx_ip]
+            self.shotinfo['bt0'] = ssq['bt0'][tindx_bt]
+        except:
+            print('The shotinfo could not be fully read!')
 
         # --- Temperature and density data.
         try:
@@ -775,7 +779,7 @@ class strikeline_db:
     Pablo Oyola - pablo.oyola@ipp.mpg.de
     """
 
-    def __init__(self, filepath: str = IHIBP_STRIKELINE_DATABASE_PATH,
+    def __init__(self, filepath: str = AUG_STRIKELINE_DATABASE,
                  species: str='Rb', createNew: bool = False):
 
         """
@@ -845,7 +849,15 @@ class strikeline_db:
 
     def getProperty(self, name_list: str):
         """
-        Retrieve a property from the strikeline list.
+        Retrieve a property from the strikeline list. The available variables
+        are:
+            x1(rhopol=1), x2(rhopol=1), avg(x1), avg(x2), E, beta, theta,
+            q95, q0, bt0, ip, ne0, te0, nesep, tesep, kappa, Raus, Raxis,
+            beamMass, beamIntensity, itotal, i_rate, shot_magn, diag_magn,
+            exp_magn, ed_magn, shot_prof, diag_prof, exp_prof, ed_prof,
+            timestamp, bcoils_flag, ripple_flag, bcoil_shot, bcoils_exp,
+            bcoil_diag, bcoil_ed, electric_field_model, version
+
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
@@ -986,105 +998,105 @@ class strikeline_db:
             newVar = newGrp.createVariable('rhopol', 'f8',
                                          dimensions=('nbasis',))
             newVar[:] = strLine.maps[ii]['rhopol']
-            newVar.short = '$\\rho_{pol}$'
+            newVar.short_name = '$\\rho_{pol}$'
             newVar.units = ''
-            newVar.desc = 'Birth position/Mapping variable'
+            newVar.long_name = 'Birth position/Mapping variable'
 
             # x1.
             newVar = newGrp.createVariable('x1', 'f8',
                                          dimensions=('nbasis',))
             newVar[:] = strLine.maps[ii]['x1']*100.0
-            newVar.short = '$X_{scintillator}$'
+            newVar.short_name = '$X_{scintillator}$'
             newVar.units = 'cm'
-            newVar.desc = 'Coordinate of strikeline along the horizontal\
+            newVar.long_name = 'Coordinate of strikeline along the horizontal\
                          (shortest) direction'
 
             # x2.
             newVar = newGrp.createVariable('x2', 'f8',
                                          dimensions=('nbasis',))
             newVar[:] = strLine.maps[ii]['x2']*100.0
-            newVar.short = '$Y_{scintillator}$'
+            newVar.short_name = '$Y_{scintillator}$'
             newVar.units = 'cm'
-            newVar.desc = 'Coordinate of strikeline along the vertical\
+            newVar.long_name = 'Coordinate of strikeline along the vertical\
                          (longest) direction'
 
             # dx1.
             newVar = newGrp.createVariable('dx1', 'f8',
                                          dimensions=('nbasis',))
             newVar[:] = strLine.maps[ii]['dx1']*100.0
-            newVar.short = '$\\Delta x$'
+            newVar.short_name = '$\\Delta x$'
             newVar.units = 'cm'
-            newVar.desc = 'Uncertainty coordinate of strikeline along the \
+            newVar.long_name = 'Uncertainty coordinate of strikeline along the \
                           horizontal (shortest) direction'
 
             # dx2.
             newVar = newGrp.createVariable('dx2', 'f8',
                                          dimensions=('nbasis',))
             newVar[:] = strLine.maps[ii]['dx2']*100.0
-            newVar.short = '$\\Delta y$'
+            newVar.short_name = '$\\Delta y$'
             newVar.units = 'cm'
-            newVar.desc = 'Uncertainty coordinate of strikeline along the \
+            newVar.long_name = 'Uncertainty coordinate of strikeline along the \
                           vertical (longest) direction'
 
             # w.
             newVar = newGrp.createVariable('w', 'f8',
                                          dimensions=('nbasis',))
             newVar[:] = strLine.maps[ii]['w']
-            newVar.short = '$\\phi_{ion}$'
+            newVar.short_name = '$\\phi_{ion}$'
             newVar.units = 'ion/s'
-            newVar.desc = 'Ion flux per unit area into the scintillator'
+            newVar.long_name = 'Ion flux per unit area into the scintillator'
 
             # Timepoint
             newVar = newGrp.createVariable('timestamp', 'f8',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['timestamp']
-            newVar.short = '$t_0$'
+            newVar.short_name = '$t_0$'
             newVar.units = 's'
-            newVar.desc = 'Time stamp for the strikeline'
+            newVar.long_name = 'Time stamp for the strikeline'
 
             #--- Version
             newVar = newGrp.createVariable('version_major', 'i4',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['version'][0]
-            newVar.short = 'Version Major'
+            newVar.short_name = 'Version Major'
             newVar.units = ''
-            newVar.desc = 'Version Major'
+            newVar.long_name = 'Version Major'
 
             newVar = newGrp.createVariable('version_minor', 'i4',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['version'][1]
-            newVar.short = 'Version Minor'
+            newVar.short_name = 'Version Minor'
             newVar.units = ''
-            newVar.desc = 'Version Minor'
+            newVar.long_name = 'Version Minor'
 
             newVar = newGrp.createVariable('version_fixes', 'i4',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['version'][2]
-            newVar.short = 'Version Fixes'
+            newVar.short_name = 'Version Fixes'
             newVar.units = ''
-            newVar.desc = 'Version Fixes'
+            newVar.long_name = 'Version Fixes'
 
             #--- Beam geometry
             newVar = newGrp.createVariable('beta', 'f8',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['beam']['beta']
-            newVar.short = '$\\beta_{tilting}$'
+            newVar.short_name = '$\\beta_{tilting}$'
             newVar.units = 'rad'
-            newVar.desc = 'Toroidal tilting angle of the beam'
+            newVar.long_name = 'Toroidal tilting angle of the beam'
 
             newVar = newGrp.createVariable('theta', 'f8',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['beam']['theta']
-            newVar.short = '$\\Theta_{tilting}$'
+            newVar.short_name = '$\\Theta_{tilting}$'
             newVar.units = 'rad'
-            newVar.desc = 'Poloidal tilting angle of the beam'
+            newVar.long_name = 'Poloidal tilting angle of the beam'
 
             newVar = newGrp.createVariable('model', 'i4',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['beam']['model']
-            newVar.short = 'Injection model'
+            newVar.short_name = 'Injection model'
             newVar.units = ''
-            newVar.desc = 'Injection model.\n\
+            newVar.long_name = 'Injection model.\n\
                            0: beam-line, no diverg. no E spread\n\
                            1: finite beam, no diverg. w/ E spread\n\
                            2: finite beam, w/ divergency and E-spread'
@@ -1092,72 +1104,72 @@ class strikeline_db:
             newVar = newGrp.createVariable('E', 'f8',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['beam']['E']
-            newVar.short = '$E$'
+            newVar.short_name = '$E$'
             newVar.units = 'keV'
-            newVar.desc = 'Central beam energy'
+            newVar.long_name = 'Central beam energy'
 
             newVar = newGrp.createVariable('FWMH_E', 'f8',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['beam']['FWMH_E']
-            newVar.short = '$FWMH_E$'
+            newVar.short_name = '$FWMH_E$'
             newVar.units = 'keV'
-            newVar.desc = 'Full width half maximum of the energy Gaussian'
+            newVar.long_name = 'Full width half maximum of the energy Gaussian'
 
             newVar = newGrp.createVariable('divergency', 'f8',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['beam']['divergency']
-            newVar.short = '$\\alpha_{beam}$'
+            newVar.short_name = '$\\alpha_{beam}$'
             newVar.units = '${}^{o}$'
-            newVar.desc = 'Opening angle of the beam - Divergence of the beam'
+            newVar.long_name = 'Opening angle of the beam - Divergence of the beam'
 
             newVar = newGrp.createVariable('beammass', 'f8',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['beam']['mass']
-            newVar.short = '$M_{beam}$'
+            newVar.short_name = '$M_{beam}$'
             newVar.units = 'AMU'
-            newVar.desc = 'Ion mass of the beam in Atomic Mass Units'
+            newVar.long_name = 'Ion mass of the beam in Atomic Mass Units'
 
             newVar = newGrp.createVariable('origin_X', 'f8',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['beam']['origin'][0]
-            newVar.short = '$X_{origin}$'
+            newVar.short_name = '$X_{origin}$'
             newVar.units = 'm'
-            newVar.desc = 'Cartesian X-like position of the beam injection'
+            newVar.long_name = 'Cartesian X-like position of the beam injection'
 
             newVar = newGrp.createVariable('origin_Y', 'f8',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['beam']['origin'][1]
-            newVar.short = '$Y_{origin}$'
+            newVar.short_name = '$Y_{origin}$'
             newVar.units = 'm'
-            newVar.desc = 'Cartesian Y-like position of the beam injection'
+            newVar.long_name = 'Cartesian Y-like position of the beam injection'
 
             newVar = newGrp.createVariable('origin_Z', 'f8',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['beam']['origin'][2]
-            newVar.short = '$Z_{origin}$'
+            newVar.short_name = '$Z_{origin}$'
             newVar.units = 'm'
-            newVar.desc = 'Cartesian Z-like position of the beam injection'
+            newVar.long_name = 'Cartesian Z-like position of the beam injection'
 
             #--- Simulations flags.
             newVar = newGrp.createVariable('electricflag', 'u1',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['fields']['electric']
-            newVar.short = 'Electric field flag'
+            newVar.short_name = 'Electric field flag'
             newVar = newGrp.createVariable('bcoilsflag', 'u1',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['fields']['bcoils']
-            newVar.short = 'B-coils field flag'
+            newVar.short_name = 'B-coils field flag'
 
             newVar = newGrp.createVariable('ripple_flag', 'u1',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['fields']['ripple_flag']
-            newVar.short = 'Ripple field flag'
+            newVar.short_name = 'Ripple field flag'
 
             #--- Shot data for the magnetics.
             newVar = newGrp.createVariable('shot_magn', 'i4',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['magEQU']['pulseNumber']
-            newVar.short = 'Shotnumber of the magnetic reconstruction'
+            newVar.short_name = 'Shotnumber of the magnetic reconstruction'
 
 
             newVar = newGrp.createVariable('exp_magn', 'S1',
@@ -1167,27 +1179,27 @@ class strikeline_db:
                               ['magEQU']['experiment'].ljust(8, ' ')], 'S')
 
             newVar[:] = nc4.stringtochar(chain)
-            newVar.short = 'Experiment of the magnetic reconstruction'
+            newVar.short_name = 'Experiment of the magnetic reconstruction'
 
             newVar = newGrp.createVariable('diag_magn', 'S1',
                                            dimensions=('nchar_diag',))
             chain = np.array([strLine.maps[ii]['rundata']\
                               ['magEQU']['diagnostic']], 'S')
             newVar[:] = nc4.stringtochar(chain)
-            newVar.short = 'Diagnostic of the magnetic reconstruction'
+            newVar.short_name = 'Diagnostic of the magnetic reconstruction'
 
 
             newVar = newGrp.createVariable('ed_magn', 'i4',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['magEQU']['edition']
-            newVar.short = 'Edition of the magnetic reconstruction'
+            newVar.short_name = 'Edition of the magnetic reconstruction'
 
 
             #--- Shot data for the profiles.
             newVar = newGrp.createVariable('shot_prof', 'i4',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['profiles']['pulseNumber']
-            newVar.short = 'Shotnumber of the profiles'
+            newVar.short_name = 'Shotnumber of the profiles'
 
 
             newVar = newGrp.createVariable('exp_prof', 'S1',
@@ -1196,7 +1208,7 @@ class strikeline_db:
                               ['profiles']['experiment'].ljust(8, ' ')], 'S')
 
             newVar[:] = nc4.stringtochar(chain)
-            newVar.short = 'Experiment of the magnetic reconstruction'
+            newVar.short_name = 'Experiment of the magnetic reconstruction'
 
             newVar = newGrp.createVariable('diag_prof', 'S1',
                                            dimensions=('nchar_diag',))
@@ -1204,19 +1216,19 @@ class strikeline_db:
                               ['profiles']['diagnostic']], 'S')
 
             newVar[:] = nc4.stringtochar(chain)
-            newVar.short = 'Diagnostic of the magnetic reconstruction'
+            newVar.short_name = 'Diagnostic of the magnetic reconstruction'
 
 
             newVar = newGrp.createVariable('ed_prof', 'i4',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['profiles']['edition']
-            newVar.short = 'Edition of the profiles'
+            newVar.short_name = 'Edition of the profiles'
 
             #--- Shot data for the B-coils.
             newVar = newGrp.createVariable('shot_bcoils', 'i4',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['bcoils']['pulseNumber']
-            newVar.short = 'Shotnumber of the B-coils data'
+            newVar.short_name = 'Shotnumber of the B-coils data'
 
             newVar = newGrp.createVariable('exp_bcoils', 'S1',
                                            dimensions=('nchar_exp',))
@@ -1224,7 +1236,7 @@ class strikeline_db:
                               ['bcoils']['experiment'].ljust(8, ' ')], 'S')
 
             newVar[:] = nc4.stringtochar(chain)
-            newVar.short = 'Experiment of the magnetic reconstruction'
+            newVar.short_name = 'Experiment of the magnetic reconstruction'
 
             newVar = newGrp.createVariable('diag_bcoils', 'S1',
                                            dimensions=('nchar_diag',))
@@ -1232,90 +1244,90 @@ class strikeline_db:
                               ['bcoils']['diagnostic']], 'S')
 
             newVar[:] = nc4.stringtochar(chain)
-            newVar.short = 'Diagnostic of the magnetic reconstruction'
+            newVar.short_name = 'Diagnostic of the magnetic reconstruction'
 
             newVar = newGrp.createVariable('ed_bcoils', 'i4',
                                            dimensions=())
             newVar[:] = strLine.maps[ii]['rundata']['bcoils']['edition']
-            newVar.short = 'Edition of the B-coils data'
+            newVar.short_name = 'Edition of the B-coils data'
 
             # --- Writing shot data from the AUG database.
             newVar = newGrp.createVariable('q95', 'f8',
                                            dimensions=())
             newVar[:] = strLine.shotinfo['q95'][ii]
-            newVar.short = '$q_{95}$'
+            newVar.short_name = '$q_{95}$'
             newVar.units = ''
-            newVar.desc = 'q-profile evaluated at rhopol = 0.95'
+            newVar.long_name = 'q-profile evaluated at rhopol = 0.95'
 
             newVar = newGrp.createVariable('q0', 'f8',
                                            dimensions=())
             newVar[:] = strLine.shotinfo['q0'][ii]
-            newVar.short = '$q_{0}$'
+            newVar.short_name = '$q_{0}$'
             newVar.units = ''
-            newVar.desc = 'q-profile evaluated on the magnetic axis'
+            newVar.long_name = 'q-profile evaluated on the magnetic axis'
 
             newVar = newGrp.createVariable('Ip', 'f8',
                                            dimensions=())
             newVar[:] = strLine.shotinfo['ip'][ii]
-            newVar.short = '$I_p$'
+            newVar.short_name = '$I_p$'
             newVar.units = 'MA'
-            newVar.desc = 'Plasma current'
+            newVar.long_name = 'Plasma current'
 
             newVar = newGrp.createVariable('Bt0', 'f8',
                                            dimensions=())
             newVar[:] = strLine.shotinfo['bt0'][ii]
-            newVar.short = '$B_t^{0}$'
+            newVar.short_name = '$B_t^{0}$'
             newVar.units = ''
-            newVar.desc = 'Magnetic field at the geometric axis'
+            newVar.long_name = 'Magnetic field at the geometric axis'
 
             newVar = newGrp.createVariable('Raus',  'f8',
                                            dimensions=())
             newVar[:] = strLine.shotinfo['Raus'][ii]
-            newVar.short = '$R_{aus}$'
+            newVar.short_name = '$R_{aus}$'
             newVar.units = ''
-            newVar.desc = 'Major radius of the separatrix at the LFS z=0'
+            newVar.long_name = 'Major radius of the separatrix at the LFS z=0'
 
             newVar = newGrp.createVariable('Rgeom', 'f8',
                                            dimensions=())
             newVar[:] = strLine.shotinfo['Rgeom'][ii]
-            newVar.short = '$R_{geom}$'
+            newVar.short_name = '$R_{geom}$'
             newVar.units = ''
-            newVar.desc = 'Major radius of the geometric axis'
+            newVar.long_name = 'Major radius of the geometric axis'
 
             newVar = newGrp.createVariable('Raxis', 'f8',
                                            dimensions=())
             newVar[:] = strLine.shotinfo['Raxis'][ii]
-            newVar.short = '$R_{mag}$'
+            newVar.short_name = '$R_{mag}$'
             newVar.units = ''
-            newVar.desc = 'Major radius of the magnetic axis'
+            newVar.long_name = 'Major radius of the magnetic axis'
 
             newVar = newGrp.createVariable('H1', 'f8',
                                            dimensions=())
             newVar[:] = strLine.shotinfo['H1'][ii]
-            newVar.short = '$H1$'
+            newVar.short_name = '$H1$'
             newVar.units = '$m^{-3}$'
-            newVar.desc = 'Core-line of the DCN system'
+            newVar.long_name = 'Core-line of the DCN system'
 
             newVar = newGrp.createVariable('H5', 'f8',
                                            dimensions=())
             newVar[:] = strLine.shotinfo['H5'][ii]
-            newVar.short = '$H5$'
+            newVar.short_name = '$H5$'
             newVar.units = '$m^{-3}$'
-            newVar.desc = 'Edge-line of the DCN system'
+            newVar.long_name = 'Edge-line of the DCN system'
 
             newVar = newGrp.createVariable('betapol', 'f8',
                                            dimensions=())
             newVar[:] = strLine.shotinfo['beta_pol'][ii]
-            newVar.short = '$\\beta_{pol}$'
+            newVar.short_name = '$\\beta_{pol}$'
             newVar.units = ''
-            newVar.desc = 'Poloidal beta of the plasma'
+            newVar.long_name = 'Poloidal beta of the plasma'
 
             newVar = newGrp.createVariable('elongation', 'f8',
                                            dimensions=())
             newVar[:] = strLine.shotinfo['elongation'][ii]
-            newVar.short = '$\\kappa$'
+            newVar.short_name = '$\\kappa$'
             newVar.units = ''
-            newVar.desc = 'Plasma elongation'
+            newVar.long_name = 'Plasma elongation'
 
             for jj in [0.0, 0.5, 0.8, 0.9, 0.95, 1.0]:
                 name = 'ne%d'%int(jj*100)
@@ -1323,17 +1335,17 @@ class strikeline_db:
                 newVar = newGrp.createVariable(name, 'f8',
                                            dimensions=())
                 newVar[:] = strLine.shotinfo[name][ii]
-                newVar.short = '$n_e$ (@ $\\rho_{pol} = %.2f)$'%jj
+                newVar.short_name = '$n_e$ (@ $\\rho_{pol} = %.2f)$'%jj
                 newVar.units = '$m^{-3}$'
-                newVar.desc = 'Electron density (IDA) at rhopol=%.2f'%jj
+                newVar.long_name = 'Electron density (IDA) at rhopol=%.2f'%jj
 
                 name = 'Te%d'%int(jj*100)
 
                 newVar = newGrp.createVariable(name, 'f8',
                                            dimensions=())
                 newVar[:] = strLine.shotinfo[name][ii]
-                newVar.short = '$T_e$ (@ $\\rho_{pol} = %.2f)$'%jj
+                newVar.short_name = '$T_e$ (@ $\\rho_{pol} = %.2f)$'%jj
                 newVar.units = '$keV$'
-                newVar.desc = 'Electron temperature (IDA) at rhopol=%.2f'%jj
+                newVar.long_name = 'Electron temperature (IDA) at rhopol=%.2f'%jj
 
             self.root.nstrikeline += 1

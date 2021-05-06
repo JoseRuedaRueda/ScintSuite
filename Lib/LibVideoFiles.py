@@ -28,8 +28,7 @@ from skimage import io                     # To load images
 from tqdm import tqdm                      # For waitbars
 pa = p.Path(machine)
 del p
-if machine == 'AUG':
-    import Lib.LibDataAUG as ssdat
+import Lib.LibData as ssdat
 try:
     import cv2
 except ImportError:

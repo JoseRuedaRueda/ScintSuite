@@ -22,8 +22,7 @@ import Lib.LibIO as ssio
 from tqdm import tqdm   # For waitbars
 pa = p.Path(machine)
 del p
-if machine == 'AUG':
-    import Lib.LibDataAUG as ssdat
+import Lib.LibData as ssdat
 try:
     import lmfit
 except ImportError:
@@ -958,7 +957,7 @@ class StrikeMap:
             for i in range(n):
                 flags = self.gyroradius == uniq[i]
                 ax.plot(self.y[flags], self.z[flags], **line_options)
-                
+
                 if (i%2 == 0):#add gyro radius labels
                     ax.text((self.y[flags])[0]-0.2, (self.z[flags])[0], f'{float(uniq[i]):g}', horizontalalignment='right', verticalalignment='center')
         else:
@@ -973,8 +972,8 @@ class StrikeMap:
             for i in range(n):
                 flags = self.pitch == uniq[i]
                 ax.plot(self.y[flags], self.z[flags], **line_options)
-                
-                
+
+
                 ax.text((self.y[flags])[-1], (self.z[flags])[-1]-0.1, f'{float(uniq[i]):g}', horizontalalignment='center', verticalalignment='top')
         else:
             return
@@ -983,7 +982,7 @@ class StrikeMap:
         # Plot some markers in the grid position
         ## @todo include labels energy/pitch in the plot
         ax.plot(self.y, self.z, **marker_options)
-        
+
     def plot_pix(self, ax=None, marker_params: dict = {},
                  line_params: dict = {}):
         """
@@ -1203,7 +1202,7 @@ class StrikeMap:
         if self.diag == 'FILD':
             ax.scatter(self.strike_points['Data'][:, 4],
                        self.strike_points['Data'][:, 5], ** plt_param)
-        
+
     def calculate_resolutions(self, diag_params: dict = {},
                               min_statistics: int = 100,
                               adaptative: bool = True):
