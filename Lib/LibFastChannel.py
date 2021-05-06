@@ -9,8 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Lib.LibPlotting as ssplt
 from Lib.LibMachine import machine
-if machine == 'AUG':
-    import Lib.LibDataAUG as ssdat
+import Lib.LibData as ssdat
 
 
 # -----------------------------------------------------------------------------

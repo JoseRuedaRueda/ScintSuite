@@ -18,8 +18,7 @@ import Lib.GUIs as GUI
 import Lib.INPA as inpa
 import Lib.LibOptics as optics
 from Lib.version_suite import version
-if m.machine == 'AUG':
-    import Lib.LibDataAUG as dat
+import Lib.LibData as ssdat
 
 
 machine = m.machine

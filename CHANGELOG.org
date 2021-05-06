@@ -1,3 +1,19 @@
+** 0.4.3: i-HIBPsim strike line reader & Frequency tracking.
+*** LibHIBPstrikes
+- Adding support read and plot the strikelines from i-HIBPsim code.
+- Added support to plot the scintillator synthetic signal.
+- Added support to introduce the database of strike lines.
+- Changed attributes in the database to adapt to a common TRANSP-like database. long_name contains a full description of the field while the short_name contains a ready-to-plot name.
+*** LibFrequencyAnalysis
+- Added STFT2 routine: wrapper to scipy implementation, emulating Giovanni's.
+- Added iSTFT routine: wrapper to scipy implmentation, to reconstruct the signal from an STFT.
+- Added Vertex and Graph classes, allowing for minimal path search (using Dijsktra's method).
+- Added routine to search for frequency in a spectrogram (trackFrequency).
+- Moved examples 'multipow', 'frequencyTracking' to new Folder: 'FrequencyAnalysis'
+- New example to plot fast the spectrogram of a given magnetic pick-up coil.
+*** Movement of LibDataAUG
+- LibDataAUG is now moved inside the folder LibData, to allow for a smother integration of future machines
+
 ** 0.4.2: FILDSIM foward modelling
 - Now the StrikeMap.calculate_resolutions() also calculate the interpolators so one can just call smap.interpolators['pitch']['sigma'](gyr0, pitch0) and you will have the interpolated value of sigma of the pitch for gyr0, pitch0.
 - The StrikeMap object for FILD now include the fields: unique_gyroradius, unique_pitch and collimator_factor_matrix.

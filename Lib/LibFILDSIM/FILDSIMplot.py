@@ -92,8 +92,9 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100):
         # planer view
         ax2D_yz.plot(np.append(y, y[0]), np.append(z, z[0]), ls='solid',
                      marker='', color='green', label=scintillator_plate['name'])
-        ax2D_yz.fill(np.append(y, y[0]), np.append(z, z[0]),
-                             color='green', alpha=0.8)
+        ax2D_yz.fill(np.append(y, y[0]), np.append(z, z[0]), color='green',
+                     alpha=0.8)
+
         # line views
         ax2D_xy.plot(x, y, ls='solid', marker='', color='green',
                      label=scintillator_plate['name'])
@@ -123,20 +124,20 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100):
                                          np.linspace(min(z), max(z), num=50))
             grid_x = interpolate.griddata((y, z), x, (grid_y, grid_z))
             ax2D_yz.fill(np.append(y, y[0]), np.append(z, z[0]),
-                                 color=slit_line[0].get_color(), alpha=0.8)
+                         color=slit_line[0].get_color(), alpha=0.8)
         elif min(y) == max(y):
             grid_x, grid_z = np.meshgrid(np.linspace(min(x), max(x), num=50),
                                          np.linspace(min(z), max(z), num=50))
             grid_y = interpolate.griddata((x, z), y, (grid_x, grid_z))
             ax2D_xz.fill(np.append(x, x[0]), np.append(z, z[0]),
-                                 color=slit_line[0].get_color(), alpha=0.8)
+                         color=slit_line[0].get_color(), alpha=0.8)
 
         elif min(z) == max(z):
             grid_x, grid_y = np.meshgrid(np.linspace(min(x), max(x), num=50),
                                          np.linspace(min(y), max(y), num=50))
             grid_z = interpolate.griddata((x, y), z, (grid_x, grid_y))
             ax2D_xy.fill(np.append(x, x[0]), np.append(y, y[0]),
-                                 color=slit_line[0].get_color(), alpha=0.8)
+                         color=slit_line[0].get_color(), alpha=0.8)
 
         ax3D.plot_surface(grid_x, grid_y, grid_z, color=slit_line[0].get_color(), alpha=.5,
                           label=scintillator_plate['name'])

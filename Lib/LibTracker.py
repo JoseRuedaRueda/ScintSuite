@@ -8,9 +8,7 @@ import Lib.LibPlotting as ssplt
 import Lib.LibParameters as sspar
 import matplotlib.pyplot as plt
 from scipy.interpolate import RectBivariateSpline as intp
-if machine == 'AUG':
-    import Lib.LibDataAUG as ssdat
-
+import Lib.LibData as ssdat
 
 def prepare_B_field(shot: int, time: float, diag: str = 'EQH',
                     Rmin: float = 1.0, Rmax: float = 2.2, nR: int = 120,

@@ -6,8 +6,7 @@ import math as ma
 import Lib.LibParameters as ssp
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
-if machine == 'AUG':
-    import Lib.LibDataAUG as ssdat
+import Lib.LibData as ssdat
 try:
     import f90nml
 except ImportError:
@@ -130,7 +129,7 @@ def run_FILDSIM(namelist, queue = False):
 
     @param namelist: full path to the namelist
     """
-    
+
     if not queue:
         FILDSIM = os.path.join(paths.FILDSIM, 'bin', 'fildsim.exe')
         # namelist = ' ' + run_ID + '.cfg'
@@ -156,14 +155,14 @@ def run_FILDSIM(namelist, queue = False):
         f.write('## \n')
         f.write('#SBATCH --mail-type=end       #Send mail, e.g. for begin/end/fail/none \n')
         f.write('#SBATCH --mail-user=ajvv@ipp.mpg.de  #Mail address \n')
-        
+
         f.write('# Run the program: \n')
         FILDSIM = os.path.join(paths.FILDSIM, 'bin', 'fildsim.exe')
         f.write(FILDSIM + ' ' + namelist)
         f.close()
-        
+
         os.system('sbatch '+ nml['config']['result_dir']+'/Submit.sh')
-        
+
 def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
                                decimals: int = 1):
     """
