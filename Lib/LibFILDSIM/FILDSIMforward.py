@@ -2,13 +2,13 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import LibMap as ssmapping
-import FILDSIMexecution as ssfildsimA
-from LibMachine import machine
-import LibPlotting as ssplt
+import Lib.LibMap as ssmapping
+import Lib.LibFILDSIM.FILDSIMexecution as ssfildsimA
+from Lib.LibMachine import machine
+import Lib.LibPlotting as ssplt
 import matplotlib.pyplot as plt
 if machine == 'AUG':
-    import LibDataAUG as ssdat
+    import Lib.LibDataAUG as ssdat
 try:
     import lmfit
 except ModuleNotFoundError:

@@ -3,11 +3,11 @@ import get_gc            # Module to load vessel components
 import dd                # Module to load shotfiles
 import numpy as np
 import os
-from LibPaths import Path
-import Equilibrium as equil
-import DiagParam as params
+from Lib.LibPaths import Path
+import Lib.LibDataAUG.Equilibrium as equil
+import Lib.LibDataAUG.DiagParam as params
 import matplotlib.pyplot as plt
-import LibPlotting as ssplt
+import Lib.LibPlotting as ssplt
 pa = Path()
 
 

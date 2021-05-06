@@ -1,3 +1,3 @@
-from TomographyPlayer import ApplicationShowTomography
-from VideoPlayer import ApplicationShowVid
-from VideoPlusRemapPlayer import ApplicationShowVidRemap
+from Lib.GUIs.TomographyPlayer import ApplicationShowTomography
+from Lib.GUIs.VideoPlayer import ApplicationShowVid
+from Lib.GUIs.VideoPlusRemapPlayer import ApplicationShowVidRemap

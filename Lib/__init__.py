@@ -1,25 +1,25 @@
-import LibFILDSIM as fildsim
-import LibParameters as par
-import LibMap as mapping
-import LibPlotting as plt
-import LibTimeTraces as tt
-import LibVideoFiles as vid
-import LibUtilities as extra
-import LibFrequencyAnalysis as ftt
-import LibPaths as p
-import LibMachine as m
-import LibTracker as tracker
-import LibIO as io
-import LibFastChannel as fc
-import LibTomography as tomo
-import LibScintillatorCharacterization as scintcharact
-import iHIBP as ihibp
-import GUIs as GUI
-import INPA as inpa
-import LibOptics as optics
-from version_suite import version
+import Lib.LibFILDSIM as fildsim
+import Lib.LibParameters as par
+import Lib.LibMap as mapping
+import Lib.LibPlotting as plt
+import Lib.LibTimeTraces as tt
+import Lib.LibVideoFiles as vid
+import Lib.LibUtilities as extra
+import Lib.LibFrequencyAnalysis as ftt
+import Lib.LibPaths as p
+import Lib.LibMachine as m
+import Lib.LibTracker as tracker
+import Lib.LibIO as io
+import Lib.LibFastChannel as fc
+import Lib.LibTomography as tomo
+import Lib.LibScintillatorCharacterization as scintcharact
+import Lib.iHIBP as ihibp
+import Lib.GUIs as GUI
+import Lib.INPA as inpa
+import Lib.LibOptics as optics
+from Lib.version_suite import version
 if m.machine == 'AUG':
-    import LibDataAUG as dat
+    import Lib.LibDataAUG as dat
 
 
 machine = m.machine

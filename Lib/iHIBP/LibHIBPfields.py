@@ -4,14 +4,14 @@ import numpy as np
 import warnings
 import dd
 # from version_suite import version
-from LibMachine import machine
-import LibPlotting as ssplt
+from Lib.LibMachine import machine
+import Lib.LibPlotting as ssplt
 # import LibParameters as sspar
 import matplotlib.pyplot as plt
 # from scipy.interpolate import RectBivariateSpline as intp2
 from scipy.interpolate import interpn
 if machine == 'AUG':
-    import LibDataAUG as ssdat
+    import Lib.LibDataAUG as ssdat
 
 
 class ihibpEMfields:

@@ -3,11 +3,11 @@ import os
 import warnings
 import numpy as np
 import math as ma
-import LibParameters as ssp
-from LibMachine import machine
-from LibPaths import Path
+import Lib.LibParameters as ssp
+from Lib.LibMachine import machine
+from Lib.LibPaths import Path
 if machine == 'AUG':
-    import LibDataAUG as ssdat
+    import Lib.LibDataAUG as ssdat
 try:
     import f90nml
 except ImportError:
@@ -122,7 +122,7 @@ def read_namelist(filename):
     return f90nml.read(filename)
 
 
-def run_FILDSIM(namelist):
+def run_FILDSIM(namelist, queue = False):
     """
     Execute a FILDSIM simulation
 
@@ -130,11 +130,40 @@ def run_FILDSIM(namelist):
 
     @param namelist: full path to the namelist
     """
-    FILDSIM = os.path.join(paths.FILDSIM, 'bin', 'fildsim.exe')
-    # namelist = ' ' + run_ID + '.cfg'
-    os.system(FILDSIM + ' ' + namelist)
-
-
+    
+    if not queue:
+        FILDSIM = os.path.join(paths.FILDSIM, 'bin', 'fildsim.exe')
+        # namelist = ' ' + run_ID + '.cfg'
+        os.system(FILDSIM + ' ' + namelist)
+    else:
+        '''
+        write batch file to submit
+        '''
+        nml = read_namelist(namelist)
+        f = open(nml['config']['result_dir']+'/Submit.sh', 'w')
+        f.write('#!/bin/bash -l \n')
+        f.write('#SBATCH -J FILDSIM      #Job name \n')
+        f.write('#SBATCH -o ./%x.%j.out        #stdout (%x=jobname, %j=jobid) \n')
+        f.write('#SBATCH -e ./%x.%j.err        #stderr (%x=jobname, %j=jobid) \n')
+        f.write('#SBATCH -D ./                 #Initial working directory \n')
+        f.write('#SBATCH --partition=s.tok     #Queue/Partition \n')
+        f.write('#SBATCH --qos=s.tok.short \n')
+        f.write('#SBATCH --nodes=1             #Total number of nodes \n')
+        f.write('#SBATCH --ntasks-per-node=1   #MPI tasks per node \n')
+        f.write('#SBATCH --cpus-per-task=1     #CPUs per task for OpenMP \n')
+        f.write('#SBATCH --mem 5GB           #Set mem./node requirement (default: 63000 MB, max: 190GB) \n')
+        f.write('#SBATCH --time=03:59:00       #Wall clock limit \n')
+        f.write('## \n')
+        f.write('#SBATCH --mail-type=end       #Send mail, e.g. for begin/end/fail/none \n')
+        f.write('#SBATCH --mail-user=ajvv@ipp.mpg.de  #Mail address \n')
+        
+        f.write('# Run the program: \n')
+        FILDSIM = os.path.join(paths.FILDSIM, 'bin', 'fildsim.exe')
+        f.write(FILDSIM + ' ' + namelist)
+        f.close()
+        
+        os.system('sbatch '+ nml['config']['result_dir']+'/Submit.sh')
+        
 def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
                                decimals: int = 1):
     """

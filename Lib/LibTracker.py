@@ -2,14 +2,14 @@
 
 import random
 import numpy as np
-from version_suite import version
-from LibMachine import machine
-import LibPlotting as ssplt
-import LibParameters as sspar
+from Lib.version_suite import version
+from Lib.LibMachine import machine
+import Lib.LibPlotting as ssplt
+import Lib.LibParameters as sspar
 import matplotlib.pyplot as plt
 from scipy.interpolate import RectBivariateSpline as intp
 if machine == 'AUG':
-    import LibDataAUG as ssdat
+    import Lib.LibDataAUG as ssdat
 
 
 def prepare_B_field(shot: int, time: float, diag: str = 'EQH',
