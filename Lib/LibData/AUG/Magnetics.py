@@ -1,5 +1,5 @@
 """Magnetic coils data"""
-import Lib.LibDataAUG.DiagParam as params
+import Lib.LibData.AUG.DiagParam as params
 import dd                # Module to load shotfiles
 import numpy as np
 from tqdm import tqdm
