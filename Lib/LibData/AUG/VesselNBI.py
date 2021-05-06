@@ -4,8 +4,8 @@ import dd                # Module to load shotfiles
 import numpy as np
 import os
 from Lib.LibPaths import Path
-import Lib.LibDataAUG.Equilibrium as equil
-import Lib.LibDataAUG.DiagParam as params
+import Lib.LibData.AUG.Equilibrium as equil
+import Lib.LibData.AUG.DiagParam as params
 import matplotlib.pyplot as plt
 import Lib.LibPlotting as ssplt
 pa = Path()
