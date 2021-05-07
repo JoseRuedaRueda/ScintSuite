@@ -3,11 +3,11 @@ import get_gc            # Module to load vessel components
 import dd                # Module to load shotfiles
 import numpy as np
 import os
-from LibPaths import Path
-import Equilibrium as equil
-import DiagParam as params
+from Lib.LibPaths import Path
+import Lib.LibData.AUG.Equilibrium as equil
+import Lib.LibData.AUG.DiagParam as params
 import matplotlib.pyplot as plt
-import LibPlotting as ssplt
+import Lib.LibPlotting as ssplt
 pa = Path()
 
 
@@ -98,7 +98,7 @@ def _NBI_diaggeom_coordinates(nnbi):
     r1 = np.array([1.046, 1.046, 1.046, 1.046, 1.048, 2.04, 2.04, 1.048])
 
     z0 = np.array([0.022, 0.021, -0.021, -0.022,
-                   -0.019, -0.149, 0.149, 0.19])
+                   -0.019, -0.149, 0.149, 0.019])
     z1 = np.array([-0.12, -0.145, 0.145, 0.12, -0.180, -0.6, 0.6, 0.180])
 
     phi0 = np.array([-32.725, -31.88, -31.88, -32.725,

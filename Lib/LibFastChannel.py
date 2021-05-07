@@ -7,9 +7,9 @@ will be included
 """
 import numpy as np
 import matplotlib.pyplot as plt
-import LibPlotting as ssplt
-from LibMachine import machine
-import LibData as ssdat
+import Lib.LibPlotting as ssplt
+from Lib.LibMachine import machine
+import Lib.LibData as ssdat
 
 
 # -----------------------------------------------------------------------------

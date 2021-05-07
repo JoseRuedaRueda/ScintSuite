@@ -8,12 +8,12 @@ example the routine to read the scintillator efficiency files, common for all
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-import LibTimeTraces as sstt
-import LibParameters as sspar
-import LibMap as ssmapping
+import Lib.LibTimeTraces as sstt
+import Lib.LibParameters as sspar
+import Lib.LibMap as ssmapping
 from scipy.io import netcdf
-from version_suite import version
-from LibPaths import Path
+from Lib.version_suite import version
+from Lib.LibPaths import Path
 import os
 import warnings
 import tkinter as tk                       # To open UI windows

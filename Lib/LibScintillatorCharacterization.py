@@ -11,8 +11,8 @@ Introduced in version 0.4.2
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from LibPaths import Path as p
-from LibMachine import machine
+from Lib.LibPaths import Path as p
+from Lib.LibMachine import machine
 from scipy.interpolate import interp1d
 paths = p(machine)
 

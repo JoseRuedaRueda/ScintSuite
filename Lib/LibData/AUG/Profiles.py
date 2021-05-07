@@ -4,10 +4,10 @@ import dd                # Module to load shotfiles
 import numpy as np
 import map_equ as meq    # Module to map the equilibrium
 import warnings
-import DiagParam as params
+import Lib.LibData.AUG.DiagParam as params
 from tqdm import tqdm
 from scipy.interpolate import interpn, interp1d, interp2d
-from LibPaths import Path
+from Lib.LibPaths import Path
 pa = Path()
 
 

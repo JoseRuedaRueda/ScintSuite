@@ -14,8 +14,8 @@ import warnings
 from scipy.fft import rfft, rfftfreq
 from scipy import signal
 import matplotlib.pyplot as plt
-import LibPlotting as ssplt
-import LibIO as ssio
+import Lib.LibPlotting as ssplt
+import Lib.LibIO as ssio
 from tqdm import tqdm
 try:
     from roipoly import RoiPoly

@@ -13,22 +13,22 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 import tkinter as tk                       # To open UI windows
-import LibPlotting as ssplt
-import LibMap as ssmap
-import LibFILDSIM as ssfildsim
-import LibPaths as p
-import LibUtilities as ssutilities
-import LibIO as ssio
-import GUIs as ssGUI             # For GUI element
-from LibMachine import machine
-from version_suite import version
+import Lib.LibPlotting as ssplt
+import Lib.LibMap as ssmap
+import Lib.LibFILDSIM as ssfildsim
+import Lib.LibPaths as p
+import Lib.LibUtilities as ssutilities
+import Lib.LibIO as ssio
+import Lib.GUIs as ssGUI             # For GUI element
+from Lib.LibMachine import machine
+from Lib.version_suite import version
 from scipy.io import netcdf                # To export remap data
 from scipy import ndimage                  # To filter the images
 from skimage import io                     # To load images
 from tqdm import tqdm                      # For waitbars
 pa = p.Path(machine)
 del p
-import LibData as ssdat
+import Lib.LibData as ssdat
 try:
     import cv2
 except ImportError:
