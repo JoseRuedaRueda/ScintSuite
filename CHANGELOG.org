@@ -1,3 +1,9 @@
+** 0.4.5: Bug solved:
+- Solved a bug in the diaggeom coordinates for NBI8. NBI8 end was off by almost 10 cm
+
+** 0.4.4: Import changes:
+- Routes to libraries were change such that you can import the library just setting your environment variable in the path
+
 ** 0.4.3: i-HIBPsim strike line reader & Frequency tracking.
 *** LibHIBPstrikes
 - Adding support read and plot the strikelines from i-HIBPsim code.
