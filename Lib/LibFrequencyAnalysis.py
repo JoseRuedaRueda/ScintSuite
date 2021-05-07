@@ -16,7 +16,7 @@ from multiprocessing import cpu_count
 from scipy.fftpack import next_fast_len
 from scipy.interpolate import interp2d
 from collections import defaultdict
-from LibPlotting import p1D_shaded_error as plot_error_band
+from Lib.LibPlotting import p1D_shaded_error as plot_error_band
 
 # -----------------------------------------------------------------------------
 # --- Band filters

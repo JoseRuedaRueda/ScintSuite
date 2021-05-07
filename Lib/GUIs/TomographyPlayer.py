@@ -2,7 +2,7 @@
 import tkinter as tk                       # To open UI windows
 import matplotlib.backends.backend_tkagg as tkagg
 import matplotlib.pyplot as plt
-import LibPlotting as ssplt
+import Lib.LibPlotting as ssplt
 from matplotlib.figure import Figure
 
 

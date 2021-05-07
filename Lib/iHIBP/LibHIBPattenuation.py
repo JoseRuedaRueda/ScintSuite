@@ -4,9 +4,9 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import LibPlotting as ssplt
+import Lib.LibPlotting as ssplt
 from scipy.interpolate import interp1d, interp2d
-import LibHIBPattenuation as alkali
+import Lib.iHIBP.LibHIBPattenuation as alkali
 import netCDF4 as nc4
 
 # --------------------------------------------------------

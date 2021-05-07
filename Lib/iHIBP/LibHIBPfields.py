@@ -4,12 +4,13 @@ import numpy as np
 import warnings
 import dd
 # from version_suite import version
-import LibPlotting as ssplt
+from Lib.LibMachine import machine
+import Lib.LibPlotting as ssplt
 # import LibParameters as sspar
 import matplotlib.pyplot as plt
 # from scipy.interpolate import RectBivariateSpline as intp2
 from scipy.interpolate import interpn
-import LibData as ssdat
+import Lib.LibData as ssdat
 
 
 class ihibpEMfields:

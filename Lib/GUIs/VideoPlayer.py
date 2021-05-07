@@ -4,12 +4,12 @@ import numpy as np
 import tkinter as tk                       # To open UI windows
 import matplotlib.backends.backend_tkagg as tkagg
 import matplotlib.pyplot as plt
-import LibPlotting as ssplt
-import LibFILDSIM as ssfildsim
-import LibMap as ssmap
+import Lib.LibPlotting as ssplt
+import Lib.LibFILDSIM as ssfildsim
+import Lib.LibMap as ssmap
 from matplotlib.figure import Figure
 from tkinter import ttk
-from LibMachine import machine
+from Lib.LibMachine import machine
 
 
 class ApplicationShowVid:

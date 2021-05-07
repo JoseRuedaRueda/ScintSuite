@@ -11,9 +11,104 @@ import matplotlib.colors as colors
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
-from LibMachine import machine
-import LibData as ssdat
+from Lib.LibMachine import machine
+import Lib.LibData as ssdat
 
+import os
+import matplotlib as mpl
+
+# -----------------------------------------------------------------------------
+# --- Plot settings
+# -----------------------------------------------------------------------------
+def plotSettings(plot_mode='software', usetex=False):
+    '''
+    Matplotlib formating
+    '''
+
+    #Add font directories
+    trueFonts = '/afs/ipp-garching.mpg.de/home/%s/%s/SpectraViewer/lib/fonts/TrueType/'%(os.getenv("USER")[0], os.getenv("USER"))
+    latin_modern_fonts = '/afs/ipp-garching.mpg.de/home/%s/%s/SpectraViewer/lib/fonts/lm-math'%(os.getenv("USER")[0], os.getenv("USER"))
+    font_dirs=[trueFonts, latin_modern_fonts]
+    #comes from: '/usr/share/texmf/fonts/opentype/public/lm-math/','/usr/openwin/lib/X11/fonts/TrueType'
+    #To find fonts use: fc-list | grep "DejaVu Sans"
+    #or: find / -type f -name "*.ttf"
+
+    font_files=mpl.font_manager.findSystemFonts(fontpaths=font_dirs)
+    font_list=mpl.font_manager.createFontList(font_files)
+    mpl.font_manager.fontManager.ttflist.extend(font_list)
+
+    '''
+    Default settings
+    '''
+    #Set default font to Arial
+    mpl.rcParams['font.family']='Arial'
+    #set background transparent
+    mpl.rcParams["savefig.transparent"] = True
+
+    #Set ticks to point inward by default
+    mpl.rcParams['xtick.direction']='in'
+    mpl.rcParams['ytick.direction']='in'
+
+    #other tick settings
+    mpl.rcParams['xtick.major.size'] = 8  # major tick size in points
+    mpl.rcParams['xtick.major.width']= 2
+    mpl.rcParams['xtick.minor.size'] = 6
+    mpl.rcParams['xtick.minor.width']= 1
+    mpl.rcParams['ytick.major.size'] = 8  # major tick size in points
+    mpl.rcParams['ytick.major.width']= 2
+    mpl.rcParams['ytick.minor.size'] = 6
+    mpl.rcParams['ytick.minor.width']= 1
+
+    #Defualt line and marker settings
+    mpl.rcParams['lines.linewidth']  = 2
+    mpl.rcParams['lines.markersize'] = 8
+    #mpl.rcParams['lines.markeredgewidth'] = 2.5
+
+    #Latex formating
+    mpl.rcParams['text.latex.preamble'] = [\
+        r'\usepackage{siunitx}', \
+        r'\sisetup{detect-all}', \
+        r'\usepackage{sansmath}', \
+        r'\usepackage{amsmath}' , \
+        r'\usepackage{amsfonts}', \
+        r'\usepackage{amssymb}', \
+        r'\usepackage{braket}', \
+        r'\sisetup{detect-all}']
+    #needed to be able to edit fonts in inkscape
+    mpl.rcParams['svg.fonttype'] = 'none'
+    #Use latex formating when usetex=True
+    mpl.rc('text', usetex=usetex)
+
+    if(plot_mode == "Article"):
+        #from: https://stackoverflow.com/questions/21321670/how-to-change-fonts-in-matplotlib-python
+        #https://www.w3schools.com/css/css_font.asp
+        mpl.rc('font',**{'family':'serif','serif':['Latin Modern Math'],'size':16})
+        mpl.rcParams["legend.fontsize"]= 16
+        mpl.rcParams['axes.titlesize'] = 16
+        mpl.rcParams['axes.labelsize'] = 16
+    elif(plot_mode == "Presentation"):
+        mpl.rc('font',**{'family':'sans-serif','sans-serif':['Arial'],'size':16})
+        mpl.rcParams["legend.fontsize"]=  16
+        mpl.rcParams['axes.titlesize'] =  16
+        mpl.rcParams['axes.labelsize'] =  16
+
+    elif(plot_mode == "Software"):
+        mpl.rc('font', **{'family':'sans-serif', 'sans-serif':['DejaVu Sans'], 'size' : 12})
+        mpl.rcParams["legend.fontsize"] = 12
+        mpl.rcParams['axes.titlesize']  = 12
+        mpl.rcParams['axes.labelsize']  = 12
+
+        mpl.rcParams['lines.linewidth']  = 1.5
+        mpl.rcParams['lines.markersize'] = 6
+
+        mpl.rcParams['xtick.major.size'] = 4  # major tick size in points
+        mpl.rcParams['xtick.major.width']= 1
+        mpl.rcParams['xtick.minor.size'] = 2
+        mpl.rcParams['xtick.minor.width']= 1
+        mpl.rcParams['ytick.major.size'] = 4  # major tick size in points
+        mpl.rcParams['ytick.major.width']= 1
+        mpl.rcParams['ytick.minor.size'] = 2
+        mpl.rcParams['ytick.minor.width']= 1
 
 # -----------------------------------------------------------------------------
 # --- 1D Plotting

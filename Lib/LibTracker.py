@@ -2,14 +2,13 @@
 
 import random
 import numpy as np
-from version_suite import version
-from LibMachine import machine
-import LibPlotting as ssplt
-import LibParameters as sspar
+from Lib.version_suite import version
+from Lib.LibMachine import machine
+import Lib.LibPlotting as ssplt
+import Lib.LibParameters as sspar
 import matplotlib.pyplot as plt
 from scipy.interpolate import RectBivariateSpline as intp
-import LibData as ssdat
-
+import Lib.LibData as ssdat
 
 def prepare_B_field(shot: int, time: float, diag: str = 'EQH',
                     Rmin: float = 1.0, Rmax: float = 2.2, nR: int = 120,

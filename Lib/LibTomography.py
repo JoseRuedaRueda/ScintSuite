@@ -8,9 +8,9 @@ create these matries are placed are their corresponding libraries
 
 import numpy as np
 import matplotlib.pyplot as plt
-import LibFILDSIM as ssfildsim
-import LibMap as ssmapping
-import LibIO as ssio
+import Lib.LibFILDSIM as ssfildsim
+import Lib.LibMap as ssmapping
+import Lib.LibIO as ssio
 from scipy import ndimage        # To denoise the frames
 from scipy.io import netcdf                # To export remap data
 from tqdm import tqdm            # For waitbars
@@ -19,7 +19,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
 from scipy.optimize import nnls     # Non negative least squares
 from sklearn.linear_model import ElasticNet  # ElaticNet
-from version_suite import version
+from Lib.version_suite import version
 try:
     import lmfit as lm
 except ModuleNotFoundError:

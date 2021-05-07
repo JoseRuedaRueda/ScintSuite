@@ -13,17 +13,16 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
-import LibPlotting as ssplt
-import LibFILDSIM as ssFILDSIM
-import LibUtilities as ssextra
-from LibMachine import machine
-import LibPaths as p
-import LibIO as ssio
-import LibData as ssdat
+import Lib.LibPlotting as ssplt
+import Lib.LibFILDSIM as ssFILDSIM
+import Lib.LibUtilities as ssextra
+from Lib.LibMachine import machine
+import Lib.LibPaths as p
+import Lib.LibIO as ssio
 from tqdm import tqdm   # For waitbars
 pa = p.Path(machine)
 del p
-
+import Lib.LibData as ssdat
 try:
     import lmfit
 except ImportError:
@@ -958,6 +957,19 @@ class StrikeMap:
             for i in range(n):
                 flags = self.gyroradius == uniq[i]
                 ax.plot(self.y[flags], self.z[flags], **line_options)
+
+                if (i%2 == 0):#add gyro radius labels
+                    ax.text((self.y[flags])[0]-0.2, 
+                            (self.z[flags])[0], f'{float(uniq[i]):g}',
+                            horizontalalignment='right',
+                            verticalalignment='center')
+                
+            ax.annotate( 'Gyroradius (cm)',
+                        xy=( min(self.y) - 1.5,
+                         min(self.z)  ),
+                        rotation=90,
+                        horizontalalignment='left',
+                        verticalalignment='center')
         else:
             return
             ## @todo: talk with Pablo about his strike maps and his coordinates
@@ -970,6 +982,20 @@ class StrikeMap:
             for i in range(n):
                 flags = self.pitch == uniq[i]
                 ax.plot(self.y[flags], self.z[flags], **line_options)
+
+
+                ax.text((self.y[flags])[-1],
+                        (self.z[flags])[-1]-0.1, 
+                        f'{float(uniq[i]):g}', 
+                        horizontalalignment='center', 
+                        verticalalignment='top')
+            
+            ax.annotate( 'Pitch Angle ($\degree$)',
+                        xy=( (max(self.y) - min(self.y))/2 + min(self.y) ,
+                        min(self.z)-0.1 ),
+                        rotation=30,
+                        horizontalalignment='center',
+                        verticalalignment='center')
         else:
             return
             ## @todo: change == by a < tol??
