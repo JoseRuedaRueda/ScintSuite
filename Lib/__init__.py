@@ -17,6 +17,7 @@ import Lib.iHIBP as ihibp
 import Lib.GUIs as GUI
 import Lib.INPA as inpa
 import Lib.LibOptics as optics
+import Lib.BEP as libbep
 from Lib.version_suite import version
 import Lib.LibData as dat
 
