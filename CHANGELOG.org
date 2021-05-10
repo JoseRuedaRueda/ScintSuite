@@ -1,3 +1,8 @@
+** 0.4.7: Support for BEP plotting:
+- Added initial library for reading the calibrated and uncalibrated signal from BEP shotfiles.
+- Simple GUI to plot interactively see the spectra for shots.
+- Added few examples to plot the BEP in a non-interactive way.
+
 ** 0.4.6: FILDSIM orbit plotting:
 - Orbit plotting inlcuded to plot FILDSIM calculated orbits
 
