@@ -90,3 +90,5 @@ mag_coils_grp2coilName = {
     'B-31_5_11': ['B31', np.arange(5, 1)],
     'B-31_32_27': ['C07', np.arange(32, 38)]
 }
+
+mag_coils_phase_B31 =  (1, 2, 3, 12, 13, 14)

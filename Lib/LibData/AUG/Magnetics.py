@@ -1,9 +1,12 @@
 """Magnetic coils data"""
 import Lib.LibData.AUG.DiagParam as params
+import Lib.LibPaths as lpath
 import dd                # Module to load shotfiles
 import numpy as np
+import scipy
 from tqdm import tqdm
 
+paths = lpath.Path()
 
 def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
                   timeWindow: float = None):
@@ -81,6 +84,24 @@ def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
         'theta': cal['theta'],
         'area': cal['EffArea']
     }
+    
+    # --- Ballooning coils phase correction
+    # There is a phase correction to be applied for the B-coils.
+    if (coilGroup == 'B31') and (coilNumber in params.mag_coils_phase_B31):
+        A = np.loadtxt(paths.bcoils_phase_corr)
+        
+        idx = params.mag_coils_phase_B31.index(coilNumber)
+        
+        fv = A[2*idx, :]   # Vector frequency.
+        ph = A[2*idx+1, :]  # Phase correction.
+        fun = scipy.interpolate.interp1d(fv, ph, kind='linear', 
+                                         fill_value=0.0, assume_sorted=True,
+                                         bounds_error=False)
+        
+        output['phase_corr'] = { 'freq': fv,
+                                 'phase': ph,
+                                 'interp': fun
+                               }
 
     sf.close()
 
@@ -165,7 +186,12 @@ def get_magnetic_poloidal_grp(shotnumber: int, timeWindow: float,
     except:
         sf.close()
         raise Exception('Could not get the calibration data.')
-
+        
+        
+        
+    # Loading the b-coils corrections.
+    if coilGrp[:3] == 'B31':
+        A = np.loadtxt(paths.bcoils_phase_corr)
     # --- Getting the coils data.
     output = {
         'phi': np.zeros((numcoils,)),
@@ -177,6 +203,7 @@ def get_magnetic_poloidal_grp(shotnumber: int, timeWindow: float,
         'time': [],
         'data': [],
         'coilNumber': np.zeros((numcoils,)),
+        'phase_correction': list()
     }
 
     jj = 0
@@ -224,6 +251,28 @@ def get_magnetic_poloidal_grp(shotnumber: int, timeWindow: float,
         output['area'][ii] = cal['area']
         output['coilNumber'][ii] = ii+1
         flags[ii] = True
+        
+        # Appending the phase correction in case that it is needed.
+        if (coilGrp[:3] == 'B31') and \
+           (coil_list[1][ii] in params.mag_coils_phase_B31):
+            idx = params.mag_coils_phase_B31.index(coil_list[1][ii])
+            
+            fv = A[2*idx, :]   # Vector frequency.
+            ph = A[2*idx+1, :]  # Phase correction.
+            flags = fv == np.nan
+            fv = fv[~flags]
+            ph = ph[~flags]
+            fun = scipy.interpolate.interp1d(fv, ph, kind='linear',
+                                             fill_value=0.0,
+                                             assume_sorted=True,
+                                             bounds_error=False)
+            
+            output['phase_corr'].append({ 'freq': fv,
+                                          'phase': ph,
+                                          'interp': fun
+                                        })
+        else:
+            output['phase_corr'].append(dict())
 
         jj += 1
 

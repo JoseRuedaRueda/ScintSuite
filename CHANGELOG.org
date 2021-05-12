@@ -1,3 +1,10 @@
+** 0.4.8: Toroidal rotation fitting and hotfix for magnetic spectograms:
+*** LibData
+- Introduction of routines to read the toroidal rotation velocity from AUG database. Available profiles from IDI, PED and spline-regression to several CXRS diagnostics (CUZ, COZ, CMZ & CEZ).
+*** Magnetics
+- Ballooning coils phase correction for the FFT taken from pyspecview.
+- All examples in FreqAnalysis corrected with the phase.
+
 ** 0.4.7: Support for BEP plotting:
 - Added initial library for reading the calibrated and uncalibrated signal from BEP shotfiles.
 - Simple GUI to plot interactively see the spectra for shots.
