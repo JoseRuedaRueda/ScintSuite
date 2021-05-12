@@ -102,6 +102,11 @@ for jj in np.arange(Bdot.shape[1]):
     Bdot[:, jj] = Bdot[:, jj]/(mhi['fft']['freq']*1000.0)
 
 mhi['fft']['B'] = Bdot/Bdot.flatten().max()
+# Applying the correction.
+if 'phase_corr' in mhi:
+    print('Applying phase-correction to the spectrogram.')
+    mhi['fft']['B'] *= np.tile(np.exp(1j*mhi['phase_corr']['interp'](freqs)),
+                               (len(times), 1)).T
 del Bdot
 # -----------------------------------------------------------------------------
 # --- ECE spectrogram - Calculation
