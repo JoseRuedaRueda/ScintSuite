@@ -143,6 +143,10 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
 
     elif np.mod(len(timeWindow), 2) != 0:
         timeWindow[len(timeWindow)] = np.inf
+        
+    # Transforming the nbi inputs into ndarrays.
+    nbion = np.array(nbion)
+    nbioff = np.array(nbioff)
 
     # --- Opening the NBIs shotfile.
     try:
