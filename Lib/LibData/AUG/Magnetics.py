@@ -88,7 +88,7 @@ def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
     # --- Ballooning coils phase correction
     # There is a phase correction to be applied for the B-coils.
     if (coilGroup == 'B31') and (coilNumber in params.mag_coils_phase_B31):
-        A = np.loadtxt(paths.bcoils_phase_corr)
+        A = np.loadtxt(paths.bcoils_phase_corr).T
         
         idx = params.mag_coils_phase_B31.index(coilNumber)
         
@@ -191,7 +191,7 @@ def get_magnetic_poloidal_grp(shotnumber: int, timeWindow: float,
         
     # Loading the b-coils corrections.
     if coilGrp[:3] == 'B31':
-        A = np.loadtxt(paths.bcoils_phase_corr)
+        A = np.loadtxt(paths.bcoils_phase_corr).T
     # --- Getting the coils data.
     output = {
         'phi': np.zeros((numcoils,)),

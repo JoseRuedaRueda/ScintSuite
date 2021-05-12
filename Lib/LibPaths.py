@@ -27,3 +27,7 @@ class Path:
             self.iHIBP_videos = '/afs/ipp/home/a/augd/rawfiles/VRT/'
             self.FILDStrikeMapsRemap += '/AUG/'
             self.FILDStrikeMapsTomography += '/AUG/'
+            self.bcoils_phase_corr = os.path.join(self.ScintSuite, 
+                                                  'Data',
+                                                  'Magnetics',
+                                                  'balloning_correction.dat')
