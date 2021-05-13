@@ -3,11 +3,16 @@ import get_gc            # Module to load vessel components
 import dd                # Module to load shotfiles
 import numpy as np
 import os
+import math
 from Lib.LibPaths import Path
 import Lib.LibData.AUG.Equilibrium as equil
 import Lib.LibData.AUG.DiagParam as params
 import matplotlib.pyplot as plt
 import Lib.LibPlotting as ssplt
+import Lib.LibUtilities as ssextra
+import Lib.LibParameters as sspar
+import Lib.LibTracker as sstracker
+
 pa = Path()
 
 
@@ -86,7 +91,7 @@ def toroidal_vessel(rot: float = -np.pi/8.0*3.0):
 # -----------------------------------------------------------------------------
 # --- NBI coordinates
 # -----------------------------------------------------------------------------
-def _NBI_diaggeom_coordinates(nnbi):
+def NBI_diaggeom_coordinates(nnbi):
     """
     Just the coordinates manually extracted for shot 32312
 
@@ -94,6 +99,7 @@ def _NBI_diaggeom_coordinates(nnbi):
     @return coords: dictionary containing the coordinates of the initial and
     final points. '0' are near the source, '1' are near the central column
     """
+    # --- Diaggeom parameters
     r0 = np.array([2.6, 2.6, 2.6, 2.6, 2.6, 2.6, 2.6, 2.6])
     r1 = np.array([1.046, 1.046, 1.046, 1.046, 1.048, 2.04, 2.04, 1.048])
 
@@ -106,16 +112,35 @@ def _NBI_diaggeom_coordinates(nnbi):
     phi1 = np.array([-13.81, 10.07, 10.07, -13.81,
                      -180.0, -99.43, -99.43, -180.0]) * np.pi / 180.0
 
+    # --- Cartesian coordinates
     x0 = r0 * np.cos(phi0)
     x1 = r1 * np.cos(phi1)
 
     y0 = r0 * np.sin(phi0)
     y1 = r1 * np.sin(phi1)
 
+    # --- Distance final-point source
+    length = np.sqrt((x1-x0)**2 + (y1-y0)**2 + (z1-z0)**2)
+
+    # --- Tangency radius:
+    u = np.array((x1[nnbi-1] - x0[nnbi-1], y1[nnbi-1] - y0[nnbi-1],
+                  z1[nnbi-1] - z0[nnbi-1]))
+    u /= math.sqrt(np.sum(u ** 2))
+    p0 = np.array((x0[nnbi-1], y0[nnbi-1], z0[nnbi-1]))
+    t = - (p0[1] * u[1] + p0[0] * u[0]) / (u[0]**2 + u[1]**2)
+    xt = p0[0] + u[0] * t
+    yt = p0[1] + u[1] * t
+    zt = p0[2] + u[2] * t
+    rt = np.sqrt(xt**2 + yt**2)
+
     coords = {'phi0': phi0[nnbi-1], 'phi1': phi1[nnbi-1],
               'x0': x0[nnbi-1], 'y0': y0[nnbi-1],
               'z0': z0[nnbi-1], 'x1': x1[nnbi-1],
-              'y1': y1[nnbi-1], 'z1': z1[nnbi-1]}
+              'y1': y1[nnbi-1], 'z1': z1[nnbi-1],
+              'u': u,   # director vector
+              'rt': rt,  # tangency radius
+              'xt': xt, 'yt': yt, 'zt': zt,  # tangency point
+              'length': length[nnbi-1]}
     return coords
 
 
@@ -244,7 +269,7 @@ class NBI:
         ## Pitch information (injection pitch in each radial position)
         self.pitch_profile = None
         if diaggeom:
-            self.coords = _NBI_diaggeom_coordinates(nnbi)
+            self.coords = NBI_diaggeom_coordinates(nnbi)
         else:
             raise Exception('Sorry, option not yet implemented')
 
@@ -353,6 +378,154 @@ class NBI:
                 np.vstack((self.pitch_profile['pitch'], pitch))
             self.pitch_profile['rho'] = \
                 np.vstack((self.pitch_profile['rho'], rho))
+
+    def calculate_intersection(self, R=None, Z=None, shot=None, t=None, rho=1,
+                               precision=0.01, plot=False):
+        """
+        Calculate the intersection point(s) of the NBI line with a surface
+
+        Note the calculation will be done in R,z projection. The surface to
+        intersect can be defined directly by the set of points R,z (np.arrays)
+        or shot number, time and desired rho (still to be implemented)
+
+        @param R: Arrays of R coordinates of the surface (option 1)
+        @param z: Arrays of R coordinates of the surface (option 1)
+        @param shot: shot number (option 2)
+        @param t: time to make the calculation (option 2)
+        @param rho: rho position to make the calculation (option 2)
+        @param precision: precision for the intersection calcualtion
+        @param plot: plot flag for the function find_2D_intersection()
+
+        @return out: dict containing:
+            -# 'x': x coordinates of the cut
+            -# 'y': y coordinates of the cut
+            -# 'z': z coordinates of the cut
+            -# 'r': coordiantes of the cut
+            -# 'phi': phi coordinates of the cut, in radians
+            -# 'd': distance of the intersections to the NBI initial point
+            -# 'n': number of intersections
+        """
+        npoints = int(self.coords['length'] / precision)
+        xnbi = np.linspace(self.coords['x0'], self.coords['x1'], npoints)
+        ynbi = np.linspace(self.coords['y0'], self.coords['y1'], npoints)
+        znbi = np.linspace(self.coords['z0'], self.coords['z1'], npoints)
+        rnbi = np.sqrt(xnbi**2 + ynbi**2)
+        phinbi = np.arctan2(ynbi, xnbi)
+        if (R is not None) and (Z is not None):
+            rintersec, zintersec = \
+                ssextra.find_2D_intersection(rnbi, znbi, R, Z, plot=plot)
+            if rintersec is None:
+                return None
+            phic = np.zeros(len(rintersec))
+            for i in range(phic.size):
+                phic[i] = phinbi[np.argmin(abs(znbi - zintersec[i]))]
+            xc = rintersec * np.cos(phic)
+            yc = rintersec * np.sin(phic)
+            d = np.zeros(len(rintersec))
+            for i in range(d.size):
+                d[i] = math.sqrt((xc[i] - xnbi[0])**2 + (yc[i] - ynbi[0])**2
+                                 + (zintersec[i] - znbi[0])**2)
+        out = {
+            'x': xc,
+            'y': yc,
+            'z': zintersec,
+            'r': rintersec,
+            'phi': phic,
+            'd': d,
+            'n': d.size
+        }
+        return out
+
+    def generate_tarcker_markers(self, Nions, E: float = 93.0,
+                                 Rmin: float = 1.25, Rmax: float = 2.2, A=2.,
+                                 rc=None, lambda0: float = 0.33,
+                                 max_trials=2000):
+        """
+        Prepare markers along the NBI line
+
+        @param Nions: Number of markers to generate
+        @param E: energy of the markers [keV]
+        @param Rmin: minimum radius to launch the markers
+        @param Rmax: maximum radius to launch the markers
+        @param A: Mass number of the ions
+        @param rc: intersection coords of the NBI with the separatrix [x,y,z]
+        @param lambda0: decay length of the NBI weight in the plasma
+        """
+        unit = self.coords['u']
+        p0 = np.array([self.coords['x0'], self.coords['y0'], self.coords['z0']])
+
+        v = np.sqrt(2. * E * 1000.0 / A / sspar.mp) * sspar.c * unit
+
+        c = 0   # counter of good ions
+        trials = 0  # Number of trials
+        R = np.zeros(Nions, dtype=np.float64)
+        z = np.zeros(Nions, dtype=np.float64)
+        phi = np.zeros(Nions, dtype=np.float64)
+        vR = np.zeros(Nions, dtype=np.float64)
+        vz = np.zeros(Nions, dtype=np.float64)
+        vt = np.zeros(Nions, dtype=np.float64)
+        m = np.zeros(Nions, dtype=np.float64)
+        q = np.zeros(Nions, dtype=np.float64)
+        logw = np.zeros(Nions, dtype=np.float64)
+        t = np.zeros(Nions, dtype=np.float64)
+        if (rc is not None) and (lambda0 is not None):
+            weight_markers = True
+            d0 = math.sqrt((self.coords['x0'] - rc[0])**2
+                           + (self.coords['y0'] - rc[1])**2
+                           + (self.coords['z0'] - rc[2])**2)
+        else:
+            weight_markers = False
+            d0 = 1.
+
+        while c < Nions:
+            trials += 1
+            a = np.random.random()
+            p1 = p0 + a * unit * self.coords['length']
+            R1 = np.sqrt(p1[0]**2 + p1[1]**2)
+
+            if weight_markers:  # to discard markers outside the sep
+                d1 = math.sqrt((self.coords['x0'] - p1[0])**2
+                               + (self.coords['y0'] - p1[1])**2
+                               + (self.coords['z0'] - p1[2])**2)
+                d_plasma = math.sqrt((rc[0] - p1[0])**2
+                                     + (rc[1] - p1[1])**2
+                                     + (rc[2] - p1[2])**2)
+            else:
+                d1 = 2.0 * d0  # to ensure we always enter the next if
+
+            if (R1 > Rmin) and (R1 < Rmax) and (d1 > d0):
+                R[c] = R1
+                z[c] = p1[2]
+                phi[c] = np.arctan2(p1[1], p1[0])
+                vv = sstracker.cart2pol(p1, v)
+                vR[c] = vv[0]
+                vz[c] = vv[1]
+                vt[c] = vv[2]
+                m[c] = A
+                q[c] = 1
+                if weight_markers:
+                    logw[c] = lambda0 * d_plasma
+                else:
+                    logw[c] = 0.
+                t[c] = 0.0
+                c += 1
+            if trials > max_trials:
+                print('All markers could not be generated')
+                print('Maximum trials reached')
+                c = Nions
+        marker = {
+            'R': R[:c],
+            'z': z[:c],
+            'phi': phi[:c],
+            'vR': vR[:c],
+            'vt': vt[:c],
+            'vz': vz[:c],
+            'm': m[:c],
+            'q': q[:c],
+            'logw': logw[:c],
+            't': t[:c]
+        }
+        return marker
 
     def plot_pitch_profile(self, line_params: dict = {},
                            ax_param={},
