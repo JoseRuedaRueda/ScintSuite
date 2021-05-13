@@ -18,7 +18,7 @@ class Path:
         self.FILDStrikeMapsTomography = \
             os.path.join(self.ScintSuite, 'Data',
                          'StrikeMaps', 'FILD', 'Tomography')
-        self.tracker = os.path.join(home, 'iHIBPsim', 'bin/')
+        self.tracker = os.path.join(home, 'ihibpsim', 'bin', 'tracker.go')
         self.ihibpsim_strline_database = os.path.join(self.ScintSuite,
                                                       'Data',
                                                       'StrikeMaps',

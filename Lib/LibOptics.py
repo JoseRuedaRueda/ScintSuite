@@ -7,7 +7,6 @@ Jose Rueda Rueda: jrrueda@us.es
 import numpy as np
 import matplotlib.pyplot as plt
 import Lib.LibIO as ssio
-#import cv2
 
 
 # -----------------------------------------------------------------------------

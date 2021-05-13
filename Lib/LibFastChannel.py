@@ -8,7 +8,6 @@ will be included
 import numpy as np
 import matplotlib.pyplot as plt
 import Lib.LibPlotting as ssplt
-from Lib.LibMachine import machine
 import Lib.LibData as ssdat
 
 
