@@ -11,7 +11,7 @@
 - Added few examples to plot the BEP in a non-interactive way.
 
 ** 0.4.6: FILDSIM orbit plotting:
-- Orbit plotting inlcuded to plot FILDSIM calculated orbits
+- Orbit plotting included to plot FILDSIM calculated orbits
 
 ** 0.4.5: Bug solved:
 - Solved a bug in the diaggeom coordinates for NBI8. NBI8 end was off by almost 10 cm
@@ -35,7 +35,7 @@
 *** Movement of LibDataAUG
 - LibDataAUG is now moved inside the folder LibData, to allow for a smother integration of future machines
 
-** 0.4.2: FILDSIM foward modelling
+** 0.4.2: FILDSIM forward modeling
 - Now the StrikeMap.calculate_resolutions() also calculate the interpolators so one can just call smap.interpolators['pitch']['sigma'](gyr0, pitch0) and you will have the interpolated value of sigma of the pitch for gyr0, pitch0.
 - The StrikeMap object for FILD now include the fields: unique_gyroradius, unique_pitch and collimator_factor_matrix.
 - *Included requested feature*: Issue #58: read_ASCOT_distribution implemented, only valid for ASCOT4

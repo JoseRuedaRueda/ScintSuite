@@ -9,7 +9,7 @@ mp_kg = 1.67262192369e-27  # Mass of the proton in kg
 c = 2.99792458e8       # Speed of light in m/s
 amu2kg = 1.660538782e-27  # Scaling factor to go from AMU to SI units (NIST)
 h_planck = 4.135667e-15         # [eV/s]
-
+eps0 = 5.52635e7  # Vaccum permitivity in e/Vm
 
 iHIBP = {'port_center': [0.687, -3.454, 0.03], 'sector': 13,
          'beta_std': 4.0, 'theta_std': 0.0, 'source_radius': 7.0e-3}
