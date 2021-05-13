@@ -22,7 +22,7 @@ from scipy.interpolate import interp1d
 shotnumber = 38663
 tBegin     = 1.60
 tEnd       = 1.90
-coilNumber = 31
+coilNumber = 1
 
 # FFT options.
                         # For the window type, go to:
@@ -116,6 +116,12 @@ for jj in np.arange(Bdot.shape[1]):
 
 Bdot[0, :] = 0.0j
 mhi['fft']['B'] = Bdot
+
+# Applying the correction.
+if 'phase_corr' in mhi:
+    print('Applying phase-correction to the spectrogram.')
+    mhi['fft']['B'] *= np.tile(np.exp(1j*mhi['phase_corr']['interp'](freqs)),
+                               (len(times), 1)).T
 warnings.filterwarnings('default')
 del Bdot
 

@@ -528,7 +528,7 @@ def L_curve_fit(norm, residual, a1_min=-1000, a1_max=0,
 def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
                      verbose: bool = True, plt_frame: bool = False,
                      LIMIT_REGION_FCOL: bool = True,
-                     efficiency=None):
+                     efficiency=None, median_filter=True):
     """
     Prepare the arrays to perform the tomographic inversion in FILD
 
@@ -544,6 +544,7 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     @param    plt_frame: Plot the frame and noise suppressed frame (todo)
     @param    LIMIT_REGION_FCOL: Limit the pinhole grid to points with fcol>0
     @param    efficiency: efficiency dictionary
+    @param    median_filter: apply median filter to the remap frame
     @return   signal1D:  Signal filtered and reduced in 1D array
     @return   W2D: Weight function compressed as 2D
     """
@@ -555,7 +556,7 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     redges = s_opt['rmin'] - s_opt['dr']/2 + np.arange(nr+2) * s_opt['dr']
     pedges = s_opt['pmin'] - s_opt['dp']/2 + np.arange(nnp+2) * s_opt['dp']
 
-    scint_grid = {'nr': nr, 'np': nnp,
+    scint_grid = {'nr': nr + 1, 'np': nnp + 1,
                   'r': 0.5 * (redges[:-1] + redges[1:]),
                   'p': 0.5 * (pedges[:-1] + pedges[1:])}
 
@@ -563,7 +564,7 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     nnp = int((p_opt['pmax'] - p_opt['pmin']) / p_opt['dp'])
     redges = p_opt['rmin'] - p_opt['dr']/2 + np.arange(nr+2) * p_opt['dr']
     pedges = p_opt['pmin'] - p_opt['dp']/2 + np.arange(nnp+2) * p_opt['dp']
-    pin_grid = {'nr': nr, 'np': nnp,
+    pin_grid = {'nr': nr + 1, 'np': nnp + 1,
                 'r': 0.5 * (redges[:-1] + redges[1:]),
                 'p': 0.5 * (pedges[:-1] + pedges[1:])}
     # Note: In the original IDL implementation, the frame was denoised with the
@@ -582,20 +583,20 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     # Just transpose the frame. (To have the W in the same ijkl order of the
     # old IDL-MATLAB implementation)
     rep_frame = rep_frame.T
+    if median_filter:
+        print('..-. .. .-.. - . .-. .. -. --.')
+        'Applying median filter to remap frame'
+        rep_frame = ndimage.median_filter(rep_frame, size=4)
 
     # --- Limit the grid
     if LIMIT_REGION_FCOL:
         print('Grid Definition --> Limiting to regions where FCOL>0')
-        # Find gyr and pitch with fcol>0
-        flags = smap.collimator_factor > 0.
-        dummy_r = smap.gyroradius[flags]
-        dummy_p = smap.pitch[flags]
-        unique_r = np.unique(dummy_r)
-        unique_p = np.unique(dummy_p)
-        minr = unique_r.min()
-        maxr = unique_r.max()
-        minp = unique_p.min()
-        maxp = unique_p.max()
+        # Find gyr and pitch with fcol>0: Only the ones presents in the
+        # strike points file has fcol>0
+        minr = smap.strike_points['gyroradius'].min()
+        maxr = smap.strike_points['gyroradius'].max()
+        minp = smap.strike_points['pitch'].min()
+        maxp = smap.strike_points['pitch'].max()
         # Select only those values on the scint grid
         flags_r = (pin_grid['r'] > minr) * (pin_grid['r'] < maxr)
         flags_p = (pin_grid['p'] > minp) * (pin_grid['p'] < maxp)
@@ -620,20 +621,10 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
         print('---')
 
     # --- Build transfer function
-    W4D = ssfildsim.build_weight_matrix(smap, scint_grid['r'], scint_grid['p'],
-                                        pgrid['r'], pgrid['p'], efficiency)
+    W4D, W2D = ssfildsim.build_weight_matrix(smap, scint_grid['r'],
+                                             scint_grid['p'], pgrid['r'],
+                                             pgrid['p'], efficiency)
 
-    # --- Collapse Weight function
-    W2D = np.zeros((scint_grid['nr'] * scint_grid['np'],
-                   pgrid['nr'] * pgrid['np']))
-    ## todo make this with an elegant numpy reshape, not manually
-    print('Reshaping W: ')
-    for irs in tqdm(range(scint_grid['nr'])):
-        for ips in range(scint_grid['np']):
-            for irp in range(pgrid['nr']):
-                for ipp in range(pgrid['np']):
-                    W2D[irs * scint_grid['np'] + ips, irp * pgrid['np'] + ipp]\
-                        = W4D[irs, ips, irp, ipp]
     # --- Collapse signal into 1D
     signal1D = np.zeros(scint_grid['nr'] * scint_grid['np'])
     for irs in range(scint_grid['nr']):
@@ -649,7 +640,7 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
 def export_tomography(name, data):
     """
     Function in beta phase
-    
+
     """
     if name is None:
         name = ssio.ask_to_save()

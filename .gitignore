@@ -24,6 +24,7 @@ __pycache__/*
 temp_data/*
 FILD_calibration/*
 Data/StrikeMaps/*
+Data/BEP/spectra/*
 MyRoutines/*
 Results/*
 doc/*
