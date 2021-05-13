@@ -6,7 +6,6 @@ example the routine to read the scintillator efficiency files, common for all
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 import time
 import Lib.LibTimeTraces as sstt
 import Lib.LibParameters as sspar
