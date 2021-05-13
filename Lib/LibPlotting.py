@@ -11,11 +11,10 @@ import matplotlib.colors as colors
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
-from Lib.LibMachine import machine
 import Lib.LibData as ssdat
-
 import os
 import matplotlib as mpl
+
 
 # -----------------------------------------------------------------------------
 # --- Plot settings
@@ -110,6 +109,7 @@ def plotSettings(plot_mode='software', usetex=False):
         mpl.rcParams['ytick.minor.size'] = 2
         mpl.rcParams['ytick.minor.width']= 1
 
+
 # -----------------------------------------------------------------------------
 # --- 1D Plotting
 # -----------------------------------------------------------------------------
@@ -158,6 +158,8 @@ def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=None,
 
     ax.fill_between(x, (y - u_down), (y + u_up), color=color, alpha=alpha)
     if line:
+        if 'color' not in line_param:
+            line_param['color'] = color
         ax.plot(x, y, **line_param)
     return ax
 

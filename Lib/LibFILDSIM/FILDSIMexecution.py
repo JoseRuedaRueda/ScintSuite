@@ -95,7 +95,7 @@ def write_namelist(nml, p=os.path.join(paths.FILDSIM, 'cfg_files'),
 
     just a wrapper for the f90nml file writter
 
-    @param p: full path towards the desired file
+    @param p: full path towards the desired folder to store the namelist
     @param nml: namelist containing the desired fields.
     @param overwrite: flag to overwrite the namelist (if exist)
 
@@ -326,17 +326,17 @@ def read_orbits(orbits_file, orbits_index_file):
                    of the trajectory points.
     """
     orbits = []
-    
+
     orbits_index_data = np.loadtxt(orbits_index_file)
     orbits_data = np.loadtxt(orbits_file)
-    
+
     ii = 0
     for i in orbits_index_data:
         orbits.append( orbits_data[ii: ii+ int(i), :] )
         ii += int(i)
-    
+
     return orbits
-    
+
 # -----------------------------------------------------------------------------
 # --- Energy definition FILDSIM
 # -----------------------------------------------------------------------------
