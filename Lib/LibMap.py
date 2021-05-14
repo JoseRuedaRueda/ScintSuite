@@ -959,15 +959,14 @@ class StrikeMap:
                 flags = self.gyroradius == uniq[i]
                 ax.plot(self.y[flags], self.z[flags], **line_options)
 
-                if (i%2 == 0):#add gyro radius labels
+                if (i % 2 == 0):  # add gyro radius labels
                     ax.text((self.y[flags])[0]-0.2,
                             (self.z[flags])[0], f'{float(uniq[i]):g}',
                             horizontalalignment='right',
                             verticalalignment='center')
 
-            ax.annotate( 'Gyroradius (cm)',
-                        xy=( min(self.y) - 1.5,
-                         min(self.z)  ),
+            ax.annotate('Gyroradius [cm]', xy=(min(self.y) - 1.5,
+                                               min(self.z)),
                         rotation=90,
                         horizontalalignment='left',
                         verticalalignment='center')
@@ -984,16 +983,15 @@ class StrikeMap:
                 flags = self.pitch == uniq[i]
                 ax.plot(self.y[flags], self.z[flags], **line_options)
 
-
                 ax.text((self.y[flags])[-1],
                         (self.z[flags])[-1]-0.1,
                         f'{float(uniq[i]):g}',
                         horizontalalignment='center',
                         verticalalignment='top')
 
-            ax.annotate( 'Pitch Angle ($\degree$)',
-                        xy=( (max(self.y) - min(self.y))/2 + min(self.y) ,
-                        min(self.z)-0.1 ),
+            ax.annotate('Pitch [$\\degree$])',
+                        xy=((max(self.y) - min(self.y))/2 + min(self.y),
+                            min(self.z) - 0.1),
                         rotation=30,
                         horizontalalignment='center',
                         verticalalignment='center')
