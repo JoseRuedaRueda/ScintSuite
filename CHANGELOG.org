@@ -1,3 +1,7 @@
+** 0.4.11: HotFix
+- Fix an issue while importing library of BEB
+- change '()' on the plot strike map for '[]' (all the rest of the plots of the suite indicate the units between [])
+
 ** 0.4.10: Tomography improvements
 *** Tomography improvements
 - Solved a bug in the process to W2D to W4D, last gyroradii was being ignored
