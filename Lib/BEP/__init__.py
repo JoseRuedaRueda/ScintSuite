@@ -1,5 +1,3 @@
-"""
-Beam-Emission Polarimetry Library.
-"""
+"""Beam-Emission Polarimetry Library"""
 
-import Lib.BEP.readBEP as bep_reader
+import Lib.BEP.LibBEP as bep_reader
