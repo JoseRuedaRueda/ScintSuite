@@ -134,6 +134,7 @@ def NBI_diaggeom_coordinates(nnbi):
     rt = np.sqrt(xt**2 + yt**2)
 
     coords = {'phi0': phi0[nnbi-1], 'phi1': phi1[nnbi-1],
+              'r0': r0[nnbi-1], 'r1': r1[nnbi-1],
               'x0': x0[nnbi-1], 'y0': y0[nnbi-1],
               'z0': z0[nnbi-1], 'x1': x1[nnbi-1],
               'y1': y1[nnbi-1], 'z1': z1[nnbi-1],
@@ -168,7 +169,7 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
 
     elif np.mod(len(timeWindow), 2) != 0:
         timeWindow[len(timeWindow)] = np.inf
-        
+
     # Transforming the nbi inputs into ndarrays.
     nbion = np.array(nbion)
     nbioff = np.array(nbioff)
@@ -440,15 +441,20 @@ class NBI:
         }
         return out
 
-    def generate_tarcker_markers(self, Nions, E: float = 93.0,
-                                 Rmin: float = 1.25, Rmax: float = 2.2, A=2.,
-                                 rc=None, lambda0: float = 0.33,
+    def generate_tarcker_markers(self, Nions, E: float = 93000., sE=2000.,
+                                 Rmin: float = 1.25, Rmax: float = 2.1, A=2.,
+                                 rc=None, lambda0: float = 2.5,
                                  max_trials=2000):
         """
         Prepare markers along the NBI line
 
+        Jose Rueda: jrrueda@us.es
+
+        Gaussian distribution will be assumed for the energies
+
         @param Nions: Number of markers to generate
-        @param E: energy of the markers [keV]
+        @param E: energy of the markers [eV]
+        @param sE: standard deviation of the energy of the markers [eV]
         @param Rmin: minimum radius to launch the markers
         @param Rmax: maximum radius to launch the markers
         @param A: Mass number of the ions
@@ -456,10 +462,12 @@ class NBI:
         @param lambda0: decay length of the NBI weight in the plasma
         """
         unit = self.coords['u']
-        p0 = np.array([self.coords['x0'], self.coords['y0'], self.coords['z0']])
-
-        v = np.sqrt(2. * E * 1000.0 / A / sspar.mp) * sspar.c * unit
-
+        p0 = np.array([self.coords['x0'], self.coords['y0'],
+                       self.coords['z0']])
+        # Initialise the random generator:
+        rand = np.random.default_rng()
+        gauss = rand.standard_normal
+        # Initialise the arrays
         c = 0   # counter of good ions
         trials = 0  # Number of trials
         R = np.zeros(Nions, dtype=np.float64)
@@ -498,6 +506,8 @@ class NBI:
                 d1 = 2.0 * d0  # to ensure we always enter the next if
 
             if (R1 > Rmin) and (R1 < Rmax) and (d1 > d0):
+                rand_E = E + sE * gauss()
+                v = np.sqrt(2. * rand_E / A / sspar.mp) * sspar.c * unit
                 R[c] = R1
                 z[c] = p1[2]
                 phi[c] = np.arctan2(p1[1], p1[0])
@@ -522,7 +532,7 @@ class NBI:
             'z': z[:c],
             'phi': phi[:c],
             'vR': vR[:c],
-            'vt': vt[:c],
+            'vphi': vt[:c],
             'vz': vz[:c],
             'm': m[:c],
             'q': q[:c],
@@ -586,7 +596,7 @@ class NBI:
                 ax.plot(x,
                         self.pitch_profile['pitch'][i, :],
                         **line_options,
-                        label=line_options['label'] + ', t = ' \
+                        label=line_options['label'] + ', t = '
                         + str(self.pitch_profile['t'][i]))
         if ax_created:
             ax = ssplt.axis_beauty(ax, ax_parameters)

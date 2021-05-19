@@ -528,12 +528,12 @@ def L_curve_fit(norm, residual, a1_min=-1000, a1_max=0,
 def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
                      verbose: bool = True, plt_frame: bool = False,
                      LIMIT_REGION_FCOL: bool = True,
-                     efficiency=None, median_filter=True):
+                     efficiency=None, median_filter=True,
+                     filter_option: dict = {'size': 4}):
     """
     Prepare the arrays to perform the tomographic inversion in FILD
 
     Jose Rueda: jrrueda@us.es
-
 
     @param    frame: camera frame (in photons /s) you can put directly the
     camera frame if you want a.u
@@ -545,6 +545,8 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     @param    LIMIT_REGION_FCOL: Limit the pinhole grid to points with fcol>0
     @param    efficiency: efficiency dictionary
     @param    median_filter: apply median filter to the remap frame
+    @param    filter options: options for the median filter, for the remap
+
     @return   signal1D:  Signal filtered and reduced in 1D array
     @return   W2D: Weight function compressed as 2D
     """
@@ -586,7 +588,7 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     if median_filter:
         print('..-. .. .-.. - . .-. .. -. --.')
         'Applying median filter to remap frame'
-        rep_frame = ndimage.median_filter(rep_frame, size=4)
+        rep_frame = ndimage.median_filter(rep_frame, **filter_option)
 
     # --- Limit the grid
     if LIMIT_REGION_FCOL:

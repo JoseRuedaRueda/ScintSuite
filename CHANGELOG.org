@@ -1,3 +1,16 @@
+** 0.4.12: Small improvements
+- New examples for the tracker were added
+- *Note*: The order of the inputs in the function write_markers for the tracker was changed, to follow the same logical order of the rest of the suite, now is: write_markers(markers: dict, filename: str)
+- Small PEP8 stile corrections
+- functions to save and read objects with pickles were added, this allows to save and load figures more or less as .fig from matlab (see save_object_pickle and load_object_pickle)
+- Update run_paths.py to the new system to import modules
+- function to read the deposition markers was added
+- old method to write tracker namelist recoverd for legacy compatibility
+- *Note*: the input of the LibIHIBPorbits, for the plot, is now 'ax_params' and 'line_params' instead of 'ax_options' and 'line_options', to be consistent with the rest of the suite
+- *Note*: the input of the LibIHIBfields, to read the magnetic field from the database, now requiers shot and time instead of time and shot, to be consistend with the rest of the suite
+- *Note*: same with readPsiPolfromDB
+- *Note*: vt renamed to vphi in the properties of the markers
+
 ** 0.4.11: HotFix
 - Fix an issue while importing library of BEB
 - change '()' on the plot strike map for '[]' (all the rest of the plots of the suite indicate the units between [])

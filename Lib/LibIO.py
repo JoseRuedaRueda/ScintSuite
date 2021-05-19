@@ -16,6 +16,7 @@ from Lib.LibPaths import Path
 import os
 import warnings
 import tkinter as tk                       # To open UI windows
+import pickle
 paths = Path()
 
 
@@ -282,6 +283,41 @@ def read_calibration(file=None):
     cal.yscale = var[3].data[:]
     cal.deg = var[4].data[:]
     return cal
+
+
+# -----------------------------------------------------------------------------
+# --- Figures
+# -----------------------------------------------------------------------------
+def save_object_pickle(file, obj):
+    """
+    Just a wrapper to the pickle library to write files
+
+    Jose Rueda: jrrueda@us.es
+    @param file: full path to the file to write the object
+    @param obj: object to be saved, can be a list if you want to save several
+    ones
+    """
+    file = check_save_file(file)
+    print('Saving results in: ', file)
+    with open(file, 'wb') as f:
+        pickle.dump(obj, f, protocol=4)
+    return
+
+
+def load_object_pickle(file):
+    """
+    Just a wrapper to the pickle library to load files
+
+    Jose Rueda: jrrueda@us.es
+    @param file: full path to the file to load the object
+
+    @return: object saved in the file
+    """
+    file = check_open_file(file)
+    print('Reading object from: ', file)
+    with open(file, 'rb') as f:
+        obj = pickle.load(f)
+    return obj
 
 
 # -----------------------------------------------------------------------------
