@@ -233,6 +233,10 @@ class ApplicationShowTomography:
         ax.plot(self.data['sg']['r'], np.sum(self.data['remap'], axis=1) /
                 np.sum(self.data['remap'], axis=1).max(),
                 '--k', linewidth=1.5, label='Remap')
+        [self.profile_pinhole] = \
+            ax.plot(self.data['pg']['r'], self.data['profiles_pinhole'][:, 0] /
+                    self.data['profiles_pinhole'][:, 0].max(),
+                    '--b', linewidth=1.5, label='Remap')
         # Place the figure in a canvas
         self.Caprof = tkagg.FigureCanvasTkAgg(fig_prof, master=master)
         # Draw and show
@@ -271,6 +275,11 @@ class ApplicationShowTomography:
         self.profile.set_data(self.data['sg']['r'],
                               self.data['profiles'][:, ii] /
                               self.data['profiles'][:, ii].max())
+        self.profile_pinhole.set_data(
+            self.data['pg']['r'],
+            self.data['profiles_pinhole'][:, ii] /
+            self.data['profiles_pinhole'][:, ii].max()
+        )
         # Plot the selected point in the L curve
         self.point_selected.set_data(self.data['residual'][ii],
                                      self.data['norm'][ii])

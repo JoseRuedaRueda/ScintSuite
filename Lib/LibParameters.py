@@ -21,7 +21,8 @@ iHIBP = {'port_center': [0.687, -3.454, 0.03], 'sector': 13,
 filetypes = [('netCDF files', '*.nc'),
              ('ASCII files', '*.txt'),
              ('cine files', ('*.cin', '*.cine')),
-             ('Python files', '*.py')]
+             ('Python files', '*.py'),
+             ('Pickle4 files', '*.pk4')]
 
 # Access to files via seek routine.
 SEEK_BOF = 0

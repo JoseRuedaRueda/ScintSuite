@@ -496,3 +496,8 @@ def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
         fig, ax = plt.subplots()
         a = ax.contourf(pp, pr, W, nlev, cmap=ccmap)
         plt.colorbar(a, ax=ax)
+        fig2, ax2 = plt.subplots(1, 2)
+        ax2[0].plot(pr, np.sum(W, axis=1))
+        ax2[0].set_xlabel('$r_l$ [cm]')
+        ax2[1].plot(pp, np.sum(W, axis=0))
+        ax2[1].set_xlabel('Pitch')

@@ -406,7 +406,7 @@ class ihibpEMfields:
                 del ez
                 del ephi
 
-    def readBfromDB(self, time: float, shotnumber: int = 34570,
+    def readBfromDB(self, shotnumber: int = 34570, time: float = 2.5,
                     exp: str = 'AUGD', diag: str = 'EQI',
                     edition: int = 0,
                     Rmin: float = 1.03, Rmax: float = 2.65,
@@ -494,7 +494,7 @@ class ihibpEMfields:
                                 (r.flatten(), z.flatten()))
 
         # Retrieving as well the poloidal magnetic flux.
-        self.readPsiPolfromDB(time, shotnumber=shotnumber,
+        self.readPsiPolfromDB(time=time, shotnumber=shotnumber,
                               exp=exp, diag=diag, edition=edition,
                               Rmin=Rmin, Rmax=Rmax,
                               zmin=zmin, zmax=zmax,
@@ -508,7 +508,7 @@ class ihibpEMfields:
         self.diag = diag
         self.exp = exp
 
-    def readPsiPolfromDB(self, time: float, shotnumber: int = 34570,
+    def readPsiPolfromDB(self, shotnumber: int = 34570, time: float = 2.5,
                          exp: str = 'AUGD', diag: str = 'EQI',
                          edition: int = 0,
                          Rmin: float = 1.03, Rmax: float = 2.65,
