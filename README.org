@@ -1,6 +1,6 @@
 * SCINTILLATOR SUITE
 
-This code is created to analyze the signal from scintillator diagnostics. Support for FILD, INPA and i-HIBp is planned. To include a different diagnostic, please contact Jose Rueda: jose.rueda@ipp.mpg.de
+This code is created to analyze the signal from scintillator diagnostics. Support for FILD, INPA, BEP and i-HIBP is planned. To include a different diagnostic, please contact Jose Rueda: jose.rueda@ipp.mpg.de
 
 ** Installation and documentation
 *** Prerequisites. Python 3.7 or higher

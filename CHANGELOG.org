@@ -1,5 +1,56 @@
+** 0.4.12: Small improvements
+- New examples for the tracker were added
+- *Note*: The order of the inputs in the function write_markers for the tracker was changed, to follow the same logical order of the rest of the suite, now is: write_markers(markers: dict, filename: str)
+- Small PEP8 stile corrections
+- functions to save and read objects with pickles were added, this allows to save and load figures more or less as .fig from matlab (see save_object_pickle and load_object_pickle)
+- Update run_paths.py to the new system to import modules
+- function to read the deposition markers was added
+- old method to write tracker namelist recoverd for legacy compatibility
+- *Note*: the input of the LibIHIBPorbits, for the plot, is now 'ax_params' and 'line_params' instead of 'ax_options' and 'line_options', to be consistent with the rest of the suite
+- *Note*: the input of the LibIHIBfields, to read the magnetic field from the database, now requiers shot and time instead of time and shot, to be consistend with the rest of the suite
+- *Note*: same with readPsiPolfromDB
+- *Note*: vt renamed to vphi in the properties of the markers
+
+** 0.4.11: HotFix
+- Fix an issue while importing library of BEB
+- change '()' on the plot strike map for '[]' (all the rest of the plots of the suite indicate the units between [])
+
+** 0.4.10: Tomography improvements
+*** Tomography improvements
+- Solved a bug in the process to W2D to W4D, last gyroradii was being ignored
+- Now fildsim.build_weight_matrix() gives also the W2D matrix
+- Lib.Tomography.prepare_X_y_FILD now can apply a median filter to the remap frame
+- Forward modeled frame and profiles included in the Tomography GUI
+*** NBI improvements
+- Renamed _NBI_diaggeom_cordinates to NBI_diaggeom_cordinates
+- The function NBI_diaggeom_coordinates include now the 'length' of the NBI line as well as the tangency point
+- Included 'calculate_intersection' method in the NBI class to calculate the intersection points of the NBI line with the flux surfaces
+- Included generate_tarcker_markers in the NBI class to generate markers for the tracer
+*** Tracker changes
+- The write namelist for the tracker was updated to the new f90mnl format adapted in the rest of the suite
+- Duplicated tracker routines were eliminated, now only the iHIBPsim library should be used for the fields and orbits reading
+- *DEPRECATED* The flag grid on the plotTimeTraces() of the orbit class was deprecated, if you want to plot the grid pass grid:'both' or 'major' to the ax_options dictionary
+- plotTimeTraces() now has a flag to plot the R,Z,phi temporal evolution
+- The routines to plot the orbits now admit a flag (default: True) to plot the vessel or not
+- Added routine in the orbit class to calculate the gyrocenter coordinates
+- Added the possibility of calculating the magnetic moment with the gyrocenter Bfield
+*** Forward modeling improvements:
+- Include check to avoid the forward modeling routine to give Nan when some points of the distribution are outside the range of the Strike map, these points will be ignored
+
+** 0.4.8: Toroidal rotation fitting and hotfix for magnetic spectograms:
+*** LibData
+- Introduction of routines to read the toroidal rotation velocity from AUG database. Available profiles from IDI, PED and spline-regression to several CXRS diagnostics (CUZ, COZ, CMZ & CEZ).
+*** Magnetics
+- Ballooning coils phase correction for the FFT taken from pyspecview.
+- All examples in FreqAnalysis corrected with the phase.
+
+** 0.4.7: Support for BEP plotting:
+- Added initial library for reading the calibrated and uncalibrated signal from BEP shotfiles.
+- Simple GUI to plot interactively see the spectra for shots.
+- Added few examples to plot the BEP in a non-interactive way.
+
 ** 0.4.6: FILDSIM orbit plotting:
-- Orbit plotting inlcuded to plot FILDSIM calculated orbits
+- Orbit plotting included to plot FILDSIM calculated orbits
 
 ** 0.4.5: Bug solved:
 - Solved a bug in the diaggeom coordinates for NBI8. NBI8 end was off by almost 10 cm
@@ -23,7 +74,7 @@
 *** Movement of LibDataAUG
 - LibDataAUG is now moved inside the folder LibData, to allow for a smother integration of future machines
 
-** 0.4.2: FILDSIM foward modelling
+** 0.4.2: FILDSIM forward modeling
 - Now the StrikeMap.calculate_resolutions() also calculate the interpolators so one can just call smap.interpolators['pitch']['sigma'](gyr0, pitch0) and you will have the interpolated value of sigma of the pitch for gyr0, pitch0.
 - The StrikeMap object for FILD now include the fields: unique_gyroradius, unique_pitch and collimator_factor_matrix.
 - *Included requested feature*: Issue #58: read_ASCOT_distribution implemented, only valid for ASCOT4

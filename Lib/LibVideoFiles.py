@@ -9,7 +9,6 @@ PNG files as the old FILD_GUI and will be able to work with tiff files
 import os
 import re
 import warnings
-import time
 import numpy as np
 import matplotlib.pyplot as plt
 import tkinter as tk                       # To open UI windows
@@ -19,7 +18,8 @@ import Lib.LibFILDSIM as ssfildsim
 import Lib.LibPaths as p
 import Lib.LibUtilities as ssutilities
 import Lib.LibIO as ssio
-import Lib.GUIs as ssGUI             # For GUI element
+import Lib.GUIs as ssGUI             # For GUI elements
+import Lib.LibData as ssdat
 from Lib.LibMachine import machine
 from Lib.version_suite import version
 from scipy.io import netcdf                # To export remap data
@@ -28,7 +28,7 @@ from skimage import io                     # To load images
 from tqdm import tqdm                      # For waitbars
 pa = p.Path(machine)
 del p
-import Lib.LibData as ssdat
+
 try:
     import cv2
 except ImportError:
@@ -1337,8 +1337,7 @@ class Video:
             self.guess_shot(file, ssdat.shot_number_length)
 
         # Fill the object depending if we have a .cin file or not
-        print('Looking for the file')
-        print(file)
+        print('Looking for the file: ', file)
         if os.path.isfile(file):
             ## Path to the file and filename
             self.path, self.file_name = os.path.split(file)

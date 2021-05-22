@@ -17,6 +17,9 @@ Per_*
 *.err
 *.out
 *.pyc
+*.pkc
+*.pck
+*.pk4
 # -----------------------------------------------------------------------------
 # --- Folders to ignore
 # -----------------------------------------------------------------------------
@@ -24,6 +27,7 @@ __pycache__/*
 temp_data/*
 FILD_calibration/*
 Data/StrikeMaps/*
+Data/BEP/spectra/*
 MyRoutines/*
 Results/*
 doc/*

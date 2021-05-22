@@ -32,9 +32,9 @@ class orbit:
     def size(self):
         return self.data['R'].shape[0]
 
-    def plot(self, view: str = '2D', ax_options: dict = {}, ax=None,
-             line_options: dict = {}, shaded3d_options: dict = {},
-             imin: int = 0, imax: int = None):
+    def plot(self, view: str = '2D', ax_params: dict = {}, ax=None,
+             line_params: dict = {}, shaded3d_options: dict = {},
+             imin: int = 0, imax: int = None, plot_vessel: bool = True):
         """
         Plot the orbit
 
@@ -43,24 +43,28 @@ class orbit:
         Pablo Oyola: pablo.oyola@ipp.mpg.de
 
         @param view: '2D' to plot, (R,z), (x,y). '3D' to plot the 3D orbit
-        @param ax_options: options for the function axis_beauty
-        @param line_options: options for the line plot (markers, colors and so on)
+        @param ax_params: options for the function axis_beauty
+        @param line_params: options for the line plot (markers, colors and so on)
         @param ax: axes where to plot, if none, new ones will be created. Note,
         if the '2D' mode is used, ax should be a list of axes, the first one for
         the Rz projection
         @param shaded3d_options: dictionary with the options for the plotting of
         the 3d vessel
+        @param plot_vessel. Flag to plot the vessel or not
         """
 
         # --- Initialise the plotting parameters
-        ax_options['ratio'] = 'equal'
-        # The ratio must be always equal
-        if 'fontsize' not in ax_options:
-            ax_options['fontsize'] = 16
-        if 'grid' not in ax_options:
-            ax_options['grid'] = 'both'
-        if 'linewidth' not in line_options:
-            line_options['linewidth'] = 2
+        ax_options = {
+            'ratio': 'equal',
+            'fontsize': 16,
+            'grid': 'both',
+        }
+        ax_options.update(ax_params)
+        line_options = {
+            'linewidth': 2
+        }
+        line_options.update(line_params)
+
         # --- Get cartesian coordinates:
 
         x = self.data['x']
@@ -80,6 +84,11 @@ class orbit:
                        self.data['z'][imin:imax],
                        label='ID: ' + str(self.ID),
                        **line_options)
+            # plot the initial and final points in a different color
+            ax[0].plot(self.data['R'][imax], self.data['z'][imax],
+                       'o', color='r')
+            ax[0].plot(self.data['R'][imin], self.data['z'][imin],
+                       'o', color='g')
             # Plot the xy projection
             ax[1].plot(x[imin:imax], y[imin:imax],
                        label='ID: ' + str(self.ID), **line_options)
@@ -101,51 +110,61 @@ class orbit:
                 # Poloidal projection.
                 ax_options['xlabel'] = 'R [m]'
                 ax_options['ylabel'] = 'z [m]'
-                ssplt.plot_vessel(ax=ax[0])
+                if plot_vessel:
+                    ssplt.plot_vessel(ax=ax[0])
                 ax[0] = ssplt.axis_beauty(ax[0], ax_options)
 
                 # XY projection.
                 ax_options['xlabel'] = 'x [m]'
                 ax_options['ylabel'] = 'y [m]'
-                ssplt.plot_vessel(projection='toroidal', ax=ax[1])
+                if plot_vessel:
+                    ssplt.plot_vessel(projection='toroidal', ax=ax[1])
                 ax[1] = ssplt.axis_beauty(ax[1], ax_options)
                 plt.tight_layout()
             else:
-                ssplt.plot_vessel(ax=ax, projection='3D',
-                                  params3d=shaded3d_options)
+                if plot_vessel:
+                    ssplt.plot_vessel(ax=ax, projection='3D',
+                                      params3d=shaded3d_options)
                 ax_options['xlabel'] = 'x [m]'
                 ax_options['ylabel'] = 'y [m]'
                 ax_options['zlabel'] = 'z [m]'
                 ax = ssplt.axis_beauty(ax, ax_options)
-
+        plt.gcf().show()
         return ax
 
-    def plotTimeTraces(self, ax=None, ax_options: dict = {},
-                       line_options: dict = {}, grid: bool = True,
-                       legend_on: bool = True):
+    def plotTimeTraces(self, ax=None, ax_params: dict = {},
+                       line_params: dict = {},
+                       legend_on: bool = True, plot_coords: bool = False,
+                       ax_coords=None):
         """
+        Plot the time traces of some orbit parameters
+
         This routine plots the time traces of some of the magnetic coordinates.
-        As of Feb21, it plots only energy, pitch-angle, toroidal canonical
-        momentum and magnetic moment.
+        As of May21, it plots only energy, pitch-angle, toroidal canonical
+        momentum and magnetic moment, R, Z, and phi
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
         Jose Rueda Rueda - jrrueda@us.es
 
         @param ax: set of axis to plot the timetraces. As of Feb21, it must be
         an array of 4 axis to plot.
-        @param ax_options: options to make beautiful plots.
-        @param line_options: set of options to be sent when using plot
+        @param ax_params: options to make beautiful plots.
+        @param line_params: set of options to be sent when using plot
         routines.
-        @grid: establish if plotting the grids in the axis.
-        @legend_on: flag to determine when the legend is plot.
+        @param legend_on: flag to determine when the legend is plot.
+        @param plot_coords: flag to plot the evolusion of r, z and phi
+        @param ax_coords: axis to plot the coordinate evolution
         """
         # --- Initialise the plotting parameter
-        if 'fontsize' not in ax_options:
-            ax_options['fontsize'] = 16
-        if 'grid' not in ax_options:
-            ax_options['grid'] = 'both'
-        if 'linewidth' not in line_options:
-            line_options['linewidth'] = 2
+        ax_opt = {
+            'fontsize': 16,
+            'grid': 'both',
+        }
+        line_opt = {
+            'linewidth': 2,
+        }
+        ax_opt.update(ax_params)
+        line_opt.update(line_params)
 
         # --- Preparing axis array
         if (ax is None) or (ax.shape[0] != 4):
@@ -153,48 +172,56 @@ class orbit:
             fig, ax = plt.subplots(nrows=4, sharex=True)
 
             # --- Setting up the labels.
-            ax_options['xlabel'] = 'Time [s]'
-            ax_options['ylabel'] = 'E [keV]'
-            ax[0] = ssplt.axis_beauty(ax[0], ax_options)
+            ax_opt['ylabel'] = 'E [keV]'
+            ax[0] = ssplt.axis_beauty(ax[0], ax_opt)
 
-            ax_options['ylabel'] = '$\\lambda$ [-]'
-            ax[1] = ssplt.axis_beauty(ax[1], ax_options)
+            ax_opt['ylabel'] = '$\\lambda$ [-]'
+            ax[1] = ssplt.axis_beauty(ax[1], ax_opt)
 
-            ax_options['ylabel'] = '$\\mu$ [J/T]'
-            ax[2] = ssplt.axis_beauty(ax[2], ax_options)
+            ax_opt['ylabel'] = '$\\mu$ [J/T]'
+            ax[2] = ssplt.axis_beauty(ax[2], ax_opt)
 
-            ax_options['ylabel'] = '$P_\\phi$ [kg$m^2$/s]'
-            ax[3] = ssplt.axis_beauty(ax[3], ax_options)
+            ax_opt['ylabel'] = '$P_\\phi$ [kg$m^2$/s]'
+            ax_opt['xlabel'] = 'Time [s]'
+            ax[3] = ssplt.axis_beauty(ax[3], ax_opt)
 
-        # --- Making the plot
+        # --- Make the plot
         ax[0].plot(self.data['time'], self.data['K']/sspar.ec*1e-3,
-                   label='ID: ' + str(self.ID), **line_options)
+                   label='ID: ' + str(self.ID), **line_opt)
         ax[1].plot(self.data['time'], self.data['pitch'],
-                   label='ID: ' + str(self.ID), **line_options)
+                   label='ID: ' + str(self.ID), **line_opt)
         ax[2].plot(self.data['time'], self.data['mu'],
-                   label='ID: ' + str(self.ID), **line_options)
+                   label='ID: ' + str(self.ID), **line_opt)
         ax[3].plot(self.data['time'], self.data['Pphi'],
-                   label='ID: ' + str(self.ID), **line_options)
+                   label='ID: ' + str(self.ID), **line_opt)
+        plt.gcf().show()    # show the figure
+        # --- Plot the coordinate evolution, if needed
+        if plot_coords:
+            if (ax_coords is None) or (ax_coords.shape[0] != 3):
+                # Open the figure if not provided.
+                fig2, ax_coords = plt.subplots(nrows=3, sharex=True)
 
+                # --- Setting up the labels.
+                del ax_opt['xlabel']
+                ax_opt['ylabel'] = 'R [m]'
+                ax_coords[0] = ssplt.axis_beauty(ax_coords[0], ax_opt)
+
+                ax_opt['ylabel'] = 'z [m]'
+                ax_coords[1] = ssplt.axis_beauty(ax_coords[1], ax_opt)
+
+                ax_opt['ylabel'] = '$\\phi$ [rad]'
+                ax_opt['xlabel'] = 'Time [s]'
+                ax_coords[2] = ssplt.axis_beauty(ax_coords[2], ax_opt)
+            # --- Making the plot
+            ax_coords[0].plot(self.data['time'], self.data['R'],
+                              label='ID: ' + str(self.ID), **line_opt)
+            ax_coords[1].plot(self.data['time'], self.data['z'],
+                              label='ID: ' + str(self.ID), **line_opt)
+            ax_coords[2].plot(self.data['time'], self.data['phi'],
+                              label='ID: ' + str(self.ID), **line_opt)
+            plt.gcf().show()    # show the figure
         if legend_on:
             plt.legend()
-
-        if grid:
-            ax[0].grid(True, which='minor', linestyle=':')
-            ax[0].minorticks_on()
-            ax[0].grid(True, which='major')
-
-            ax[1].grid(True, which='minor', linestyle=':')
-            ax[1].minorticks_on()
-            ax[1].grid(True, which='major')
-
-            ax[2].grid(True, which='minor', linestyle=':')
-            ax[2].minorticks_on()
-            ax[2].grid(True, which='major')
-
-            ax[3].grid(True, which='minor', linestyle=':')
-            ax[3].minorticks_on()
-            ax[3].grid(True, which='major')
 
         return ax
 
@@ -208,6 +235,7 @@ class orbit:
     """
 
     def setMagnetics(self, magn, calcMomenta=True, magMomentumOrder=0,
+                     magMomentumGyrocenter=False, magToroidalUseVpar=False,
                      IpBt: float = 1.0):
         """
         Sets the magnetic field to compute magnetic field related variables,
@@ -228,8 +256,66 @@ class orbit:
 
         if calcMomenta:
             self.calculatePitchAngle(IpBt)
-            self.calculateToroidalCanonicalMomentum()
-            self.calculateMagMoment(order=magMomentumOrder)
+            if magMomentumGyrocenter:
+                self.calculateGyrocenter()
+            self.calculateToroidalCanonicalMomentum(usevpar=magToroidalUseVpar,
+                                                    IpBt=IpBt)
+            self.calculateMagMoment(order=magMomentumOrder,
+                                    gyrocenter=magMomentumGyrocenter)
+
+    def calculateGyrocenter(self):
+        """
+        Calculate the coordinates (approx) of the gyrocenter
+
+        Jose Rueda: jrrueda@us.es
+
+        Note: it will take a step of size rl from the actual orbit position
+        if rl is larger respect to the scale of the magnetic field, this is
+        not really correct
+
+        Side effect, r_l, larmor radius and omega_c, cyclotron frecuency
+        will be added to the orbit dictionary
+
+        @return : fields xc, yc, rc, zc, phic at the orbit data dict
+        """
+        br, bz, bphi = self.magObject.getBfield(self.data['R'],
+                                                self.data['z'],
+                                                self.data['phi'],
+                                                self.data['time'])
+        # --- Field in cartesian cooridnates
+        b = np.sqrt(br**2 + bz**2 + bphi**2)
+        bx = br * np.cos(self.data['phi'])\
+            - bphi * np.sin(self.data['phi'])
+        by = br * np.sin(self.data['phi'])\
+            + bphi * np.cos(self.data['phi'])
+        # --- velocity in cartesian coordinates
+        vx = self.data['vR'] * np.cos(self.data['phi']) \
+            - self.data['vt'] * np.sin(self.data['phi'])
+        vy = self.data['vR'] * np.sin(self.data['phi']) \
+            + self.data['vt'] * np.cos(self.data['phi'])
+        v = np.sqrt(vx**2 + vy**2 + self.data['vz']**2)
+        # --- coordinates
+        x = self.data['R'] * np.cos(self.data['phi'])
+        y = self.data['R'] * np.sin(self.data['phi'])
+        # --- approximate gyro-frequency and rl
+        self.data['omega_c'] = self.charge * b / self.mass
+        self.data['r_l'] = v * np.sqrt((1.0 - self.data['pitch']**2))\
+            / self.data['omega_c']
+        # --- vector pointing towards gyrocenter in cartesian coordinates
+        ux = (vy * bz - self.data['vz'] * by) * self.charge
+        uy = (self.data['vz'] * bx - vx * bz) * self.charge
+        uz = (vx * by - vy * bx) * self.charge
+        u = np.sqrt(ux**2 + uy**2 + uz**2)
+        ux *= self.data['r_l'] / u
+        uy *= self.data['r_l'] / u
+        uz *= self.data['r_l'] / u
+        # --- coordinates of the gyrocenter
+        self.data['xc'] = x + ux
+        self.data['yc'] = y + uy
+        self.data['zc'] = self.data['z'] + uz
+        self.data['rc'] = np.sqrt(self.data['xc']**2 + self.data['yc']**2)
+        self.data['phic'] = np.arctan2(self.data['yc'], self.data['xc'])
+        return
 
     def calculatePitchAngle(self, ipbt):
         """
@@ -258,7 +344,7 @@ class orbit:
                                       self.data['vt'] * bphi) /
                                      (babs*vabs))
 
-    def calculateToroidalCanonicalMomentum(self):
+    def calculateToroidalCanonicalMomentum(self, usevpar=False, IpBt=-1.0):
         """
         For the orbits stored in the class, the routine computes the
         toroidal canonical momentum.
@@ -273,10 +359,16 @@ class orbit:
                                                        self.data['z'],
                                                        self.data['phi'],
                                                        self.data['time'])
-        self.data['Pphi'] = self.mass * self.data['vt'] *\
-            self.data['R'] - self.charge * self.data['psipol']
+        if usevpar:
+            v = np.sqrt(self.data['vt']**2 + self.data['vR']**2
+                        + self.data['vt']**2)
+            self.data['Pphi'] = self.mass * v * self.data['pitch'] * IpBt\
+                * self.data['R'] - self.charge * self.data['psipol']
+        else:
+            self.data['Pphi'] = self.mass * self.data['vt'] *\
+                self.data['R'] - self.charge * self.data['psipol']
 
-    def calculateMagMoment(self, order: int = 0):
+    def calculateMagMoment(self, order: int = 0, gyrocenter=False):
         """
         For the orbits stored in the class, the routine computes the
         magnetic dipole momentum. The order parameter establish up to which
@@ -292,19 +384,31 @@ class orbit:
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param order: approximation order of the magnetic moment.
+        @param gyrocenter: if true the field at the gyrocenter will be used
         """
 
-        # Interpolate the magnetic field in the point.
-        br, bz, bphi = self.magObject.getBfield(self.data['R'],
-                                                self.data['z'],
-                                                self.data['phi'],
-                                                self.data['time'])
-        # Get the absolute magnetic field and velocities.
-        babs = np.sqrt(br**2 + bz**2 + bphi**2)
-
-        if order == 0:
+        if gyrocenter:
+            # --- field at gyrocenter
+            brc, bzc, bphic = self.magObject.getBfield(self.data['rc'],
+                                                       self.data['zc'],
+                                                       self.data['phic'],
+                                                       self.data['time'])
+            # Get the absolute magnetic field and velocities.
+            babs = np.sqrt(brc**2 + bzc**2 + bphic**2)
             self.data['mu'] = self.data['K']/babs *\
-                             (1.0 - self.data['pitch']**2)
+                (1.0 - self.data['pitch']**2)
+        else:
+            # Interpolate the magnetic field in the point.
+            br, bz, bphi = self.magObject.getBfield(self.data['R'],
+                                                    self.data['z'],
+                                                    self.data['phi'],
+                                                    self.data['time'])
+            # Get the absolute magnetic field and velocities.
+            babs = np.sqrt(br**2 + bz**2 + bphi**2)
+
+            if order == 0:
+                self.data['mu'] = self.data['K']/babs *\
+                                 (1.0 - self.data['pitch']**2)
         return
 
     def getNaturalParameter(self):
@@ -342,8 +446,8 @@ class orbit:
         return self.data[idx]
 
 
-def plotOrbits(orbitList, view: str = '2D', ax_options: dict = {}, ax=None,
-               line_options: dict = {}, shaded3d_options: dict = {},
+def plotOrbits(orbitList, view: str = '2D', ax_params: dict = {}, ax=None,
+               line_params: dict = {}, shaded3d_options: dict = {},
                imin: int = 0, imax: int = None):
     """
     Given an input list of orbits, this routine will plot all the orbits into
@@ -352,14 +456,24 @@ def plotOrbits(orbitList, view: str = '2D', ax_options: dict = {}, ax=None,
     Pablo Oyola - pablo.oyola@ipp.mpg.de
     @param orbitList: list of orbits to plot.
     @param view: '2D' to plot, (R,z), (x,y). '3D' to plot the 3D orbit
-    @param ax_options: options for the function axis_beauty
-    @param line_options: options for the line plot (markers, colors and so on)
+    @param ax_params: options for the function axis_beauty
+    @param line_params: options for the line plot (markers, colors and so on)
     @param ax: axes where to plot, if none, new ones will be created. Note,
     if the '2D' mode is used, ax should be a list of axes, the first one for
     the Rz projection
     @param shaded3d_options: dictionary with the options for the plotting of
     the 3d vessel
     """
+    # --- Initialise the plotting parameters
+    ax_options = {
+        'ratio': 'equal',
+        'fontsize': 14,
+    }
+    ax_options.update(ax_params)
+    line_options = {
+        'linewidth': 1
+    }
+    line_options.update(line_params)
     if orbitList is None:
         raise Exception('The input object is empty!')
 
@@ -377,8 +491,8 @@ def plotOrbits(orbitList, view: str = '2D', ax_options: dict = {}, ax=None,
     return ax
 
 
-def plotTimeTraces(orbitList, magn, ax=None, ax_options: dict = {},
-                   line_options: dict = {}, grid: bool = True,
+def plotTimeTraces(orbitList, magn, ax=None, ax_params: dict = {},
+                   line_params: dict = {}, grid: bool = True,
                    legend_on: bool = True):
     """
     Given a list of orbits, this routine will plot all the orbits time-traces
@@ -387,12 +501,22 @@ def plotTimeTraces(orbitList, magn, ax=None, ax_options: dict = {},
     Pablo Oyola - pablo.oyola@ipp.mpg.de
     @param ax: set of axis to plot the timetraces. As of Feb21, it must be
     an array of 4 axis to plot.
-    @param ax_options: options to make beautiful plots.
-    @param line_options: set of options to be sent when using plot
+    @param ax_params: options to make beautiful plots.
+    @param line_params: set of options to be sent when using plot
     routines.
     @grid: establish if plotting the grids in the axis.
     @legend_on: flag to determine when the legend is plot.
     """
+    # --- Initialise the plotting parameters
+    ax_options = {
+        'fontsize': 16,
+        'grid': 'both',
+    }
+    ax_options.update(ax_params)
+    line_options = {
+        'linewidth': 2
+    }
+    line_options.update(line_params)
     if orbitList is None:
         raise Exception('The input object is empty!')
 
@@ -493,7 +617,7 @@ class orbitFile:
         @return orbOut: class with the orbit information. @see{orbit}.
         """
         if id is None:
-            return self.getAllOrbits(full_info=full_info)
+            return self.loadAllOrbits(full_info=full_info)
         output = []
         if self.initialized and not self.chainLoadFlag:
             # Getting the ID index location:

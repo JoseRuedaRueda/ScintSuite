@@ -32,7 +32,7 @@ namelist_path = ss.paths.FILDSIM   # Paths to save namelist
 
 FILDSIM_namelist = {
     'config': {
-        'runid': 'ilustration',
+        'runid': 'kiwi',
         'result_dir': ss.paths.FILDSIM + '/results/',
         'backtrace': False,
         'n_gyroradius': 11,
@@ -41,12 +41,12 @@ FILDSIM_namelist = {
         'verbose': True,
     },
     'input_parameters': {
-        'n_ions': 3000,
+        'n_ions': 6000,
         'step': 0.01,
         'helix_length': 10.0,
         'gyroradius': [1.5, 1.75, 2., 3., 4., 5., 6., 7., 8., 9., 10.],
         'pitch_angle': [85., 80., 70., 60., 50., 40., 30., 20., 10, 0.],
-        'gyrophase_range': [1.0, 1.8],
+        'gyrophase_range': [0., 3.14],
         'start_x': [-0.025, 0.025],
         'start_y': [-0.1, 0.1],
         'start_z': [0.0, 0.0],

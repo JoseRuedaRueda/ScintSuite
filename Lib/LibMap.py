@@ -19,10 +19,11 @@ import Lib.LibUtilities as ssextra
 from Lib.LibMachine import machine
 import Lib.LibPaths as p
 import Lib.LibIO as ssio
+import Lib.LibData as ssdat
 from tqdm import tqdm   # For waitbars
 pa = p.Path(machine)
 del p
-import Lib.LibData as ssdat
+
 try:
     import lmfit
 except ImportError:
@@ -959,12 +960,12 @@ class StrikeMap:
                 flags = self.gyroradius == uniq[i]
                 ax.plot(self.y[flags], self.z[flags], **line_options)
 
-                if (i%2 == 0):#add gyro radius labels
-                    ax.text((self.y[flags])[0]-0.2, 
+                if (i % 2 == 0):  # add gyro radius labels
+                    ax.text((self.y[flags])[0]-0.2,
                             (self.z[flags])[0], f'{float(uniq[i]):g}',
                             horizontalalignment='right',
                             verticalalignment='center')
-                
+
             ax.annotate( 'Gyroradius (cm)',
                         xy=( min(self.y) - 0.5,
                          (max(self.z) - min(self.z))/2 + min(self.z)  ),
@@ -984,16 +985,15 @@ class StrikeMap:
                 flags = self.pitch == uniq[i]
                 ax.plot(self.y[flags], self.z[flags], **line_options)
 
-
                 ax.text((self.y[flags])[-1],
-                        (self.z[flags])[-1]-0.1, 
-                        f'{float(uniq[i]):g}', 
-                        horizontalalignment='center', 
+                        (self.z[flags])[-1]-0.1,
+                        f'{float(uniq[i]):g}',
+                        horizontalalignment='center',
                         verticalalignment='top')
-            
-            ax.annotate( 'Pitch Angle ($\degree$)',
-                        xy=( (max(self.y) - min(self.y))/2 + min(self.y) ,
-                        min(self.z)-0.1 ),
+
+            ax.annotate('Pitch [$\\degree$])',
+                        xy=((max(self.y) - min(self.y))/2 + min(self.y),
+                            min(self.z) - 0.1),
                         rotation=30,
                         horizontalalignment='center',
                         verticalalignment='center')
@@ -1283,8 +1283,8 @@ class StrikeMap:
                         (self.strike_points['Data'][:, 1] ==
                          self.strike_points['pitch'][ip]), :]
                     npoints[ir, ip] = len(data[:, 0])
-                    
-                    
+
+
                     # --- See if there is enough points:
                     if npoints[ir, ip] < min_statistics:
                         parameters_gyr['amplitude'][ir, ip] = np.nan
@@ -1511,7 +1511,7 @@ class StrikeMap:
                                 levels=nlev, cmap=cmap)
             fig.colorbar(a1, ax=ax, label='Collimating factor')
             ax = ssplt.axis_beauty(ax, ax_param)
-            
+
             plt.tight_layout()
             return
 
@@ -1563,7 +1563,7 @@ class StrikeMap:
                               gyroradius = 3,
                               plot_fit = True,
                               axarr=None, dpi=100, alpha=0.5):
-        """ 
+        """
         Calculate the resolution associated with each point of the map
 
         Jose Rueda Rueda: jrrueda@us.es
@@ -1592,10 +1592,10 @@ class StrikeMap:
             dgyr = diag_options['dgyr']
             p_method = diag_options['p_method']
             g_method = diag_options['g_method']
-           
+
             npitch = self.strike_points['pitch'].size
             ir = np.argmin(abs(self.strike_points['gyroradius'] - gyroradius))
-            
+
             for ip in range(npitch):
                 # --- Select the data
                 data = self.strike_points['Data'][
@@ -1603,7 +1603,7 @@ class StrikeMap:
                      self.strike_points['gyroradius'][ir]) *
                     (self.strike_points['Data'][:, 1] ==
                      self.strike_points['pitch'][ip]), :]
-                
+
                 if len(data[:, 0]) < min_statistics:
                     continue
                 # Prepare the bin edges according to the desired width
@@ -1640,26 +1640,26 @@ class StrikeMap:
                     ax_pitch = axarr  # topdown view, i.e should see pinhole surface
                     ax_pitch.set_xlabel('Pitch [$\degree$]')
                     ax_pitch.set_ylabel('Counts')
-                    ax_pitch.set_title('Pitch resolution at gyroradius ' 
+                    ax_pitch.set_title('Pitch resolution at gyroradius '
                                             +str(self.strike_points['gyroradius'][ir])+' cm')
-    
+
                     created_ax = True
-                
+
                 cent = 0.5 * (edges_pitch[1:] + edges_pitch[:-1])
                 fit_line = ax_pitch.plot(cent, resultp.best_fit,
-                                   label = '_nolegend_') 
-                
+                                   label = '_nolegend_')
+
                 hist = ax_pitch.hist(data[:, 7], bins = edges_pitch, alpha = alpha,
                                    label = f"{float(self.strike_points['pitch'][ip]):g}"+ '$\degree$',
                                    color = fit_line[0].get_color()
                                    )
-        
+
         ax_pitch.legend(loc='best')
 
         if created_ax:
             fig.tight_layout()
             fig.show()
-        
+
         return
 
     def plot_gyroradius_histograms(self, diag_params: dict = {},
@@ -1697,11 +1697,11 @@ class StrikeMap:
             dgyr = diag_options['dgyr']
             p_method = diag_options['p_method']
             g_method = diag_options['g_method']
-           
+
             nr = self.strike_points['gyroradius'].size
-            
+
             ip = np.argmin(abs(self.strike_points['pitch'] - pitch))
-            
+
             for ir in range(nr):
                 # --- Select the data
                 data = self.strike_points['Data'][
@@ -1709,7 +1709,7 @@ class StrikeMap:
                      self.strike_points['gyroradius'][ir]) *
                     (self.strike_points['Data'][:, 1] ==
                      self.strike_points['pitch'][ip]), :]
-                
+
                 if len(data[:, 0]) < min_statistics:
                     continue
                 # Prepare the bin edges according to the desired width
@@ -1740,25 +1740,25 @@ class StrikeMap:
                     ax_gyroradius = axarr  # topdown view, i.e should see pinhole surface
                     ax_gyroradius.set_xlabel('Gyroradius [cm]')
                     ax_gyroradius.set_ylabel('Counts')
-                    ax_gyroradius.set_title('Gyroradius resolution at pitch ' 
+                    ax_gyroradius.set_title('Gyroradius resolution at pitch '
                                             +str(self.strike_points['pitch'][ip])+'$\degree$')
-    
+
                     created_ax = True
-                
+
                 cent = 0.5 * (edges_gyr[1:] + edges_gyr[:-1])
                 fit_line = ax_gyroradius.plot(cent, resultg.best_fit,
-                                   label = '_nolegend_') 
-                
+                                   label = '_nolegend_')
+
                 hist = ax_gyroradius.hist(data[:, 6], bins = edges_gyr, alpha = alpha,
                                    label = f"{float(self.strike_points['gyroradius'][ir]):g}"+ ' [cm]',
                                    color = fit_line[0].get_color())
-        
+
         ax_gyroradius.legend(loc='best')
 
         if created_ax:
             fig.tight_layout()
             fig.show()
-        
+
         return
 
 class CalParams:
