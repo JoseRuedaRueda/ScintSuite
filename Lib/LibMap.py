@@ -653,7 +653,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
 # -----------------------------------------------------------------------------
 # --- Fitting routines
 # -----------------------------------------------------------------------------
-def _fit_to_model_(data, bins=20, model='Gauss'):
+def _fit_to_model_(data, bins=20, model='Gauss', normalize=True):
     """
     Make histogram of input data and fit to a model
 
@@ -665,7 +665,8 @@ def _fit_to_model_(data, bins=20, model='Gauss'):
     # --- Make the histogram of the data
     hist, edges = np.histogram(data, bins=bins)
     hist = hist.astype(np.float64)
-    hist /= hist.max()  # Normalise to  have the data between 0 and 1
+    if normalize:
+        hist /= hist.max()  # Normalise to  have the data between 0 and 1
     cent = 0.5 * (edges[1:] + edges[:-1])
     # --- Make the fit
     if model == 'Gauss':
@@ -965,10 +966,10 @@ class StrikeMap:
                             verticalalignment='center')
                 
             ax.annotate( 'Gyroradius (cm)',
-                        xy=( min(self.y) - 1.5,
-                         min(self.z)  ),
+                        xy=( min(self.y) - 0.5,
+                         (max(self.z) - min(self.z))/2 + min(self.z)  ),
                         rotation=90,
-                        horizontalalignment='left',
+                        horizontalalignment='center',
                         verticalalignment='center')
         else:
             return
@@ -1282,6 +1283,8 @@ class StrikeMap:
                         (self.strike_points['Data'][:, 1] ==
                          self.strike_points['pitch'][ip]), :]
                     npoints[ir, ip] = len(data[:, 0])
+                    
+                    
                     # --- See if there is enough points:
                     if npoints[ir, ip] < min_statistics:
                         parameters_gyr['amplitude'][ir, ip] = np.nan
@@ -1432,19 +1435,20 @@ class StrikeMap:
         @param nlev: number of levels for the contour
         """
         # Open the figure and prepare the map:
-        fig, ax = plt.subplots(1, 2)
+        fig, ax = plt.subplots(1, 2, figsize=(12, 10),
+                                   facecolor='w', edgecolor='k')
 
         if cMap is None:
             cmap = ssplt.Gamma_II()
         else:
             cmap = cMap
-        if 'fontsize' not in ax_param:
-            ax_param['fontsize'] = 14
+        #if 'fontsize' not in ax_param:
+        #   ax_param['fontsize'] = 14
             # cFS = 14
         # else:
             # cFS = ax_param['fontsize']
         if 'xlabel' not in ax_param:
-            ax_param['xlabel'] = '$\\lambda [{}^o]$'
+            ax_param['xlabel'] = '$\\lambda [\\degree]$'
         if 'ylabel' not in ax_param:
             ax_param['ylabel'] = '$r_l [cm]$'
 
@@ -1463,6 +1467,51 @@ class StrikeMap:
                                levels=nlev, cmap=cmap)
             fig.colorbar(a, ax=ax[1], label='$\\sigma_\\lambda$')
             ax[1] = ssplt.axis_beauty(ax[1], ax_param)
+            plt.tight_layout()
+            return
+
+    def plot_collimator_factor(self, ax_param: dict = {}, cMap=None, nlev: int = 20):
+        """
+        Plot the resolutions
+
+        Jose Rueda: jrrueda@us.es
+
+        @todo: Implement label size in colorbar
+
+        @param ax_param: parameters for the axis beauty function. Note, labels
+        of the color axis are hard-cored, if you want custom axis labels you
+        would need to draw the plot on your own
+        @param cMap: is None, Gamma_II will be used
+        @param nlev: number of levels for the contour
+        """
+        # Open the figure and prepare the map:
+        fig, ax = plt.subplots(1, 1, figsize=(6, 10),
+                                   facecolor='w', edgecolor='k')
+
+        if cMap is None:
+            cmap = ssplt.Gamma_II()
+        else:
+            cmap = cMap
+        #if 'fontsize' not in ax_param:
+        #   ax_param['fontsize'] = 14
+            # cFS = 14
+        # else:
+            # cFS = ax_param['fontsize']
+        if 'xlabel' not in ax_param:
+            ax_param['xlabel'] = '$\\lambda [\\degree]$'
+        if 'ylabel' not in ax_param:
+            ax_param['ylabel'] = '$r_l [cm]$'
+
+        if self.diag == 'FILD':
+            # Plot the gyroradius resolution
+            a1 = ax.contourf(self.strike_points['pitch'],
+                                self.strike_points['gyroradius'],
+                                #self.resolution['Gyroradius']['sigma'],
+                                self.collimator_factor_matrix,
+                                levels=nlev, cmap=cmap)
+            fig.colorbar(a1, ax=ax, label='Collimating factor')
+            ax = ssplt.axis_beauty(ax, ax_param)
+            
             plt.tight_layout()
             return
 
@@ -1508,6 +1557,209 @@ class StrikeMap:
             axc[1].set_xlabel('FILDSIM')
             axc[1] = ssplt.axis_beauty(axc[1], axis_param)
 
+    def plot_pitch_histograms(self, diag_params: dict = {},
+                              adaptative: bool = True,
+                              min_statistics = 100,
+                              gyroradius = 3,
+                              plot_fit = True,
+                              axarr=None, dpi=100, alpha=0.5):
+        """ 
+        Calculate the resolution associated with each point of the map
+
+        Jose Rueda Rueda: jrrueda@us.es
+
+        @param diag_options: Dictionary with the diagnostic specific parameters
+        like for example the method used to fit the pitch
+        @param min_statistics: Minimum number of points for a given r p to make
+        the fit (if we have less markers, this point will be ignored)
+        @param min_statistics: Minimum number of counts to perform the fit
+        @param adaptative: If true, the bin width will be adapted such that the
+        number of bins in a sigma of the distribution is 4. If this is the
+        case, dpitch, dgyr, will no longer have an impact
+        """
+        if self.strike_points is None:
+            raise Exception('You should load the strike points first!!')
+        if self.diag == 'FILD':
+            # --- Prepare options:
+            diag_options = {
+                'dpitch': 1.0,
+                'dgyr': 0.1,
+                'p_method': 'Gauss',
+                'g_method': 'sGauss'
+            }
+            diag_options.update(diag_params)
+            dpitch = diag_options['dpitch']
+            dgyr = diag_options['dgyr']
+            p_method = diag_options['p_method']
+            g_method = diag_options['g_method']
+           
+            npitch = self.strike_points['pitch'].size
+            ir = np.argmin(abs(self.strike_points['gyroradius'] - gyroradius))
+            
+            for ip in range(npitch):
+                # --- Select the data
+                data = self.strike_points['Data'][
+                    (self.strike_points['Data'][:, 0] ==
+                     self.strike_points['gyroradius'][ir]) *
+                    (self.strike_points['Data'][:, 1] ==
+                     self.strike_points['pitch'][ip]), :]
+                
+                if len(data[:, 0]) < min_statistics:
+                    continue
+                # Prepare the bin edges according to the desired width
+                edges_pitch = \
+                    np.arange(start=data[:, 7].min() - dpitch,
+                              stop=data[:, 7].max() + dpitch,
+                              step=dpitch)
+
+                # --- Reduce (if needed) the bin width, we will set the
+                # bin width as 1/4 of the std, to ensure a good fitting
+                if adaptative:
+                    n_bins_in_sigma = 4
+                    sigma_r = np.std(data[:, 6])
+                    new_dgyr = sigma_r / n_bins_in_sigma
+                    edges_gyr = \
+                        np.arange(start=data[:, 6].min() - new_dgyr,
+                                  stop=data[:, 6].max() + new_dgyr,
+                                  step=new_dgyr)
+                    sigma_p = np.std(data[:, 7])
+                    new_dpitch = sigma_p / n_bins_in_sigma
+                    edges_pitch = \
+                        np.arange(start=data[:, 7].min() - dpitch,
+                                  stop=data[:, 7].max() + dpitch,
+                                  step=new_dpitch)
+                # --- Proceed to fit
+                par_p, resultp = _fit_to_model_(data[:, 7],
+                                                bins=edges_pitch,
+                                                model=p_method,
+                                                normalize = False)
+
+                if axarr is None:
+                    fig, axarr = plt.subplots(nrows=1, ncols=1, figsize=(6, 10),
+                                               facecolor='w', edgecolor='k', dpi=dpi)
+                    ax_pitch = axarr  # topdown view, i.e should see pinhole surface
+                    ax_pitch.set_xlabel('Pitch [$\degree$]')
+                    ax_pitch.set_ylabel('Counts')
+                    ax_pitch.set_title('Pitch resolution at gyroradius ' 
+                                            +str(self.strike_points['gyroradius'][ir])+' cm')
+    
+                    created_ax = True
+                
+                cent = 0.5 * (edges_pitch[1:] + edges_pitch[:-1])
+                fit_line = ax_pitch.plot(cent, resultp.best_fit,
+                                   label = '_nolegend_') 
+                
+                hist = ax_pitch.hist(data[:, 7], bins = edges_pitch, alpha = alpha,
+                                   label = f"{float(self.strike_points['pitch'][ip]):g}"+ '$\degree$',
+                                   color = fit_line[0].get_color()
+                                   )
+        
+        ax_pitch.legend(loc='best')
+
+        if created_ax:
+            fig.tight_layout()
+            fig.show()
+        
+        return
+
+    def plot_gyroradius_histograms(self, diag_params: dict = {},
+                              adaptative: bool = True,
+                              min_statistics = 100,
+                              pitch = 30,
+                              plot_fit = True,
+                              axarr=None, dpi=100, alpha=0.5):
+        """
+        Calculate the resolution associated with each point of the map
+
+        Jose Rueda Rueda: jrrueda@us.es
+
+        @param diag_options: Dictionary with the diagnostic specific parameters
+        like for example the method used to fit the pitch
+        @param min_statistics: Minimum number of points for a given r p to make
+        the fit (if we have less markers, this point will be ignored)
+        @param min_statistics: Minimum number of counts to perform the fit
+        @param adaptative: If true, the bin width will be adapted such that the
+        number of bins in a sigma of the distribution is 4. If this is the
+        case, dpitch, dgyr, will no longer have an impact
+        """
+        if self.strike_points is None:
+            raise Exception('You should load the strike points first!!')
+        if self.diag == 'FILD':
+            # --- Prepare options:
+            diag_options = {
+                'dpitch': 1.0,
+                'dgyr': 0.1,
+                'p_method': 'Gauss',
+                'g_method': 'sGauss'
+            }
+            diag_options.update(diag_params)
+            dpitch = diag_options['dpitch']
+            dgyr = diag_options['dgyr']
+            p_method = diag_options['p_method']
+            g_method = diag_options['g_method']
+           
+            nr = self.strike_points['gyroradius'].size
+            
+            ip = np.argmin(abs(self.strike_points['pitch'] - pitch))
+            
+            for ir in range(nr):
+                # --- Select the data
+                data = self.strike_points['Data'][
+                    (self.strike_points['Data'][:, 0] ==
+                     self.strike_points['gyroradius'][ir]) *
+                    (self.strike_points['Data'][:, 1] ==
+                     self.strike_points['pitch'][ip]), :]
+                
+                if len(data[:, 0]) < min_statistics:
+                    continue
+                # Prepare the bin edges according to the desired width
+                edges_gyr = \
+                    np.arange(start=data[:, 6].min() - dgyr,
+                              stop=data[:, 6].max() + dgyr,
+                              step=dgyr)
+                # --- Reduce (if needed) the bin width, we will set the
+                # bin width as 1/4 of the std, to ensure a good fitting
+                if adaptative:
+                    n_bins_in_sigma = 4
+                    sigma_r = np.std(data[:, 6])
+                    new_dgyr = sigma_r / n_bins_in_sigma
+                    edges_gyr = \
+                        np.arange(start=data[:, 6].min() - new_dgyr,
+                                  stop=data[:, 6].max() + new_dgyr,
+                                  step=new_dgyr)
+
+                # --- Proceed to fit
+
+                par_g, resultg = _fit_to_model_(data[:, 6],
+                                                bins=edges_gyr,
+                                                model=g_method,
+                                                normalize=False)
+                if axarr is None:
+                    fig, axarr = plt.subplots(nrows=1, ncols=1, figsize=(6, 10),
+                                               facecolor='w', edgecolor='k', dpi=dpi)
+                    ax_gyroradius = axarr  # topdown view, i.e should see pinhole surface
+                    ax_gyroradius.set_xlabel('Gyroradius [cm]')
+                    ax_gyroradius.set_ylabel('Counts')
+                    ax_gyroradius.set_title('Gyroradius resolution at pitch ' 
+                                            +str(self.strike_points['pitch'][ip])+'$\degree$')
+    
+                    created_ax = True
+                
+                cent = 0.5 * (edges_gyr[1:] + edges_gyr[:-1])
+                fit_line = ax_gyroradius.plot(cent, resultg.best_fit,
+                                   label = '_nolegend_') 
+                
+                hist = ax_gyroradius.hist(data[:, 6], bins = edges_gyr, alpha = alpha,
+                                   label = f"{float(self.strike_points['gyroradius'][ir]):g}"+ ' [cm]',
+                                   color = fit_line[0].get_color())
+        
+        ax_gyroradius.legend(loc='best')
+
+        if created_ax:
+            fig.tight_layout()
+            fig.show()
+        
+        return
 
 class CalParams:
     """
