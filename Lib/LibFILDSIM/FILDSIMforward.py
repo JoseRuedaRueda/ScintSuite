@@ -3,9 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Lib.LibMap as ssmapping
 import Lib.LibFILDSIM.FILDSIMexecution as ssfildsimA
-from Lib.LibMachine import machine
 import Lib.LibPlotting as ssplt
-import matplotlib.pyplot as plt
 import Lib.LibData as ssdat
 try:
     import lmfit
@@ -234,41 +232,44 @@ def synthetic_signal(distro, smap, spoints=None, diag_params: dict = {},
         eff = True
     else:
         eff = False
-    
-    print(efficiency)
-    print(eff)
-    for i in range(distro['n']):
+    # Remove all the values outside the Smap, to avoid NaN:
+    gmax = smap.unique_gyroradius.max()
+    gmin = smap.unique_gyroradius.min()
+    pmax = smap.unique_pitch.max()
+    pmin = smap.unique_pitch.min()
+    flags = (distro['gyroradius'] < gmin) * (distro['gyroradius'] > gmax) \
+        * (distro['pitch'] < pmin) * (distro['pitch'] > pmax)
+    flags = flags.astype(np.bool)
+    distro_gyr = distro['gyroradius'][~flags]
+    distro_pitch = distro['pitch'][~flags]
+    distro_energy = distro['energy'][~flags]
+    distro_w = distro['weight'][~flags]
+    if np.sum(flags) > 0:
+        print('Some markers were outside the strike map!')
+        print('We neglected ', str(np.sum(flags)), ' markers')
+    for i in range(len(distro_gyr)):
         # Interpolate sigmas, gammas and collimator_factor
         g_parameters = {}
         for k in parameters_to_consider[smap.resolution['gyroradius_model']]:
             g_parameters[k] = \
                 smap.interpolators['gyroradius'][k]\
-                (distro['gyroradius'][i], distro['pitch'][i])
+                (distro_gyr[i], distro_pitch[i])
         p_parameters = {}
         for k in parameters_to_consider[smap.resolution['pitch_model']]:
             p_parameters[k] = \
-                smap.interpolators['pitch'][k]\
-                (distro['gyroradius'][i], distro['pitch'][i])
+                smap.interpolators['pitch'][k](distro_gyr[i], distro_pitch[i])
 
         col_factor = smap.interpolators['collimator_factor']\
-            (distro['gyroradius'][i], distro['pitch'][i]) / 100.0
+            (distro_gyr[i], distro_pitch[i]) / 100.0
 
         if eff:
             signal += col_factor * g_func(g_grid.flatten(), **g_parameters) \
                 * pitch_func(p_grid.flatten(), **p_parameters)\
-                * distro['weight'][i]\
-                * efficiency.interpolator(distro['energy'][i])
+                * distro_w[i] * efficiency.interpolator(distro_energy[i])
         else:
             dummy = col_factor * g_func(g_grid.flatten(), **g_parameters) \
                 * pitch_func(p_grid.flatten(), **p_parameters)\
-                * distro['weight'][i]
-            
-            if np.sum(np.isnan(dummy)):
-                continue
-            
-            print(np.sum(dummy))
-            signal += dummy
-            
+                * distro_w[i]
     signal = np.reshape(signal, g_grid.shape)
 
     return g_array, p_array, signal.T
@@ -312,10 +313,10 @@ def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, fig=None, ax_params=
     a1 = ax.contourf(p, r, signal, cmap=cmap)
     if created:
         ax = ssplt.axis_beauty(ax, ax_options)
-    
-    if not fig==None: 
+
+    if not fig==None:
         fig.colorbar(a1, ax=ax, label='Counts')
-        
+
     return ax
 
 
@@ -324,7 +325,7 @@ def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, fig=None, ax_params=
 # -----------------------------------------------------------------------------
 def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
                         efficiency=None, spoints=None, diag_params: dict = {},
-                        B = 1.8, A = 2.0, Z = 1):
+                        B=1.8, A=2.0, Z=1):
     """
     Build FILD weight function
 
@@ -441,7 +442,18 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
             else:
                 res_matrix[:, :, kk, ll] = 0.0
     res_matrix[np.isnan(res_matrix)] = 0.0
-    return res_matrix
+
+    # --- Collapse Weight function
+    W2D = np.zeros((nr_scint * np_scint, nr_pin * np_pin))
+    ## todo make this with an elegant numpy reshape, not manually
+    print('Reshaping W... ')
+    for irs in range(nr_scint):
+        for ips in range(np_scint):
+            for irp in range(nr_pin):
+                for ipp in range(np_pin):
+                    W2D[irs * np_scint + ips, irp * np_pin + ipp] =\
+                        res_matrix[irs, ips, irp, ipp]
+    return res_matrix, W2D
 
 
 def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
@@ -476,6 +488,11 @@ def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
         fig, ax = plt.subplots()
         a = ax.contourf(sp, sr, W, nlev, cmap=ccmap)
         plt.colorbar(a, ax=ax)
+        fig2, ax2 = plt.subplots(1, 2)
+        ax2[0].plot(sr, np.sum(W, axis=1))
+        ax2[0].set_xlabel('$r_l$ [cm]')
+        ax2[1].plot(sp, np.sum(W, axis=0))
+        ax2[1].set_xlabel('Pitch')
     if (sp0 is not None) and (sr0 is not None):
         ip = np.argmin(abs(pp - sp0))
         ir = np.argmin(abs(pr - sr0))
@@ -483,3 +500,8 @@ def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
         fig, ax = plt.subplots()
         a = ax.contourf(pp, pr, W, nlev, cmap=ccmap)
         plt.colorbar(a, ax=ax)
+        fig2, ax2 = plt.subplots(1, 2)
+        ax2[0].plot(pr, np.sum(W, axis=1))
+        ax2[0].set_xlabel('$r_l$ [cm]')
+        ax2[1].plot(pp, np.sum(W, axis=0))
+        ax2[1].set_xlabel('Pitch')

@@ -2,13 +2,8 @@
 
 import numpy as np
 import warnings
-import dd
-# from version_suite import version
-from Lib.LibMachine import machine
 import Lib.LibPlotting as ssplt
-# import LibParameters as sspar
 import matplotlib.pyplot as plt
-# from scipy.interpolate import RectBivariateSpline as intp2
 from scipy.interpolate import interpn
 import Lib.LibData as ssdat
 
@@ -25,41 +20,41 @@ class ihibpEMfields:
         self.bdims = 0
         self.edims = 0
         self.psipol_on = False
-        self.Bfield = {'R': np.array((0), dtype = np.float64),
-                       'z': np.array((0), dtype = np.float64),
-                       'fr': np.array((0), dtype = np.float64),
-                       'fz': np.array((0), dtype = np.float64),
-                       'ft': np.array((0), dtype = np.float64),
-                       'nPhi': np.array((1), dtype = np.int32),
-                       'nTime': np.array((1), dtype = np.int32),
-                       'Phimin': np.array((0.0), dtype = np.float64),
-                       'Phimax': np.array((2.0*np.pi), dtype = np.float64),
-                       'Timemin': np.array((0.0), dtype = np.float64),
-                       'Timemax': np.array((1.0), dtype = np.float64)
+        self.Bfield = {'R': np.array((0), dtype=np.float64),
+                       'z': np.array((0), dtype=np.float64),
+                       'fr': np.array((0), dtype=np.float64),
+                       'fz': np.array((0), dtype=np.float64),
+                       'ft': np.array((0), dtype=np.float64),
+                       'nPhi': np.array((1), dtype=np.int32),
+                       'nTime': np.array((1), dtype=np.int32),
+                       'Phimin': np.array((0.0), dtype=np.float64),
+                       'Phimax': np.array((2.0*np.pi), dtype=np.float64),
+                       'Timemin': np.array((0.0), dtype=np.float64),
+                       'Timemax': np.array((1.0), dtype=np.float64)
                        }
 
-        self.Efield = {'R': np.array((0), dtype = np.float64),
-                       'z': np.array((0), dtype = np.float64),
-                       'fr': np.array((0), dtype = np.float64),
-                       'fz': np.array((0), dtype = np.float64),
-                       'ft': np.array((0), dtype = np.float64),
-                       'nPhi': np.array((1), dtype = np.int32),
-                       'nTime': np.array((1), dtype = np.int32),
-                       'Phimin': np.array((0.0), dtype = np.float64),
-                       'Phimax': np.array((2.0*np.pi), dtype = np.float64),
-                       'Timemin': np.array((0.0), dtype = np.float64),
-                       'Timemax': np.array((1.0), dtype = np.float64)
+        self.Efield = {'R': np.array((0), dtype=np.float64),
+                       'z': np.array((0), dtype=np.float64),
+                       'fr': np.array((0), dtype=np.float64),
+                       'fz': np.array((0), dtype=np.float64),
+                       'ft': np.array((0), dtype=np.float64),
+                       'nPhi': np.array((1), dtype=np.int32),
+                       'nTime': np.array((1), dtype=np.int32),
+                       'Phimin': np.array((0.0), dtype=np.float64),
+                       'Phimax': np.array((2.0*np.pi), dtype=np.float64),
+                       'Timemin': np.array((0.0), dtype=np.float64),
+                       'Timemax': np.array((1.0), dtype=np.float64)
                        }
 
-        self.psipol = {'R': np.array((0), dtype = np.float64),
-                       'z': np.array((0), dtype = np.float64),
-                       'f': np.array((0), dtype = np.float64),
-                       'nPhi': np.array((1), dtype = np.int32),
-                       'nTime': np.array((1), dtype = np.int32),
-                       'Phimin': np.array((0.0), dtype = np.float64),
-                       'Phimax': np.array((2.0*np.pi), dtype = np.float64),
-                       'Timemin': np.array((0.0), dtype = np.float64),
-                       'Timemax': np.array((1.0), dtype = np.float64)
+        self.psipol = {'R': np.array((0), dtype=np.float64),
+                       'z': np.array((0), dtype=np.float64),
+                       'f': np.array((0), dtype=np.float64),
+                       'nPhi': np.array((1), dtype=np.int32),
+                       'nTime': np.array((1), dtype=np.int32),
+                       'Phimin': np.array((0.0), dtype=np.float64),
+                       'Phimax': np.array((2.0*np.pi), dtype=np.float64),
+                       'Timemin': np.array((0.0), dtype=np.float64),
+                       'Timemax': np.array((1.0), dtype=np.float64)
                        }
 
         self.Bfield_from_shot_flag = False
@@ -102,8 +97,8 @@ class ihibpEMfields:
                 self.Bfield['Timemin'] = np.fromfile(fid, 'float64', 1)
                 self.Bfield['Timemax'] = np.fromfile(fid, 'float64', 1)
 
-                size2read = self.Bfield['nR'] * self.Bfield['nZ'] *\
-                            self.Bfield['nPhi'] * self.Bfield['nTime']
+                size2read = self.Bfield['nR'] * self.Bfield['nZ'] \
+                    * self.Bfield['nPhi'] * self.Bfield['nTime']
 
                 br = np.fromfile(fid, 'float64', count=size2read[0])
                 bphi = np.fromfile(fid, 'float64', count=size2read[0])
@@ -113,13 +108,13 @@ class ihibpEMfields:
                     self.bdims = 2
                     self.Bfield['fr'] = br.reshape((self.Bfield['nR'][0],
                                                     self.Bfield['nZ'][0]),
-                                                    order = 'F')
+                                                   order='F')
                     self.Bfield['fz'] = bz.reshape((self.Bfield['nR'][0],
                                                     self.Bfield['nZ'][0]),
-                                                    order = 'F')
+                                                   order='F')
                     self.Bfield['ft'] = bphi.reshape((self.Bfield['nR'][0],
                                                       self.Bfield['nZ'][0]),
-                                                    order = 'F')
+                                                     order='F')
 
                     self.Bfield['R'] = np.linspace(self.Bfield['Rmin'][0], \
                                                    self.Bfield['Rmax'][0], \
@@ -411,12 +406,12 @@ class ihibpEMfields:
                 del ez
                 del ephi
 
-    def readBfromDB(self, time: float, shotnumber: int = 34570,
-                     exp: str = 'AUGD', diag: str = 'EQI',
-                     edition: int = 0,
-                     Rmin: float = 1.03, Rmax: float = 2.65,
-                     zmin: float = -1.224, zmax: float = 1.05,
-                     nR: int = 128, nZ: int = 256):
+    def readBfromDB(self, shotnumber: int = 34570, time: float = 2.5,
+                    exp: str = 'AUGD', diag: str = 'EQI',
+                    edition: int = 0,
+                    Rmin: float = 1.03, Rmax: float = 2.65,
+                    zmin: float = -1.224, zmax: float = 1.05,
+                    nR: int = 128, nZ: int = 256):
         """
         Starts the class info for the magnetic field using the AUG
         database equilibrium.
@@ -466,17 +461,17 @@ class ihibpEMfields:
 
         # Storing the data in the class.
         self.bdims = 2
-        self.Bfield['R'] = np.array(R, dtype = np.float64)
-        self.Bfield['z'] = np.array(z, dtype = np.float64)
-        self.Bfield['Rmin'] = np.array((Rmin), dtype = np.float64)
-        self.Bfield['Rmax'] = np.array((Rmax), dtype = np.float64)
-        self.Bfield['Zmin'] = np.array((zmin), dtype = np.float64)
-        self.Bfield['Zmax'] = np.array((zmax), dtype = np.float64)
-        self.Bfield['nR'] = np.array([nR], dtype = np.int32)
-        self.Bfield['nZ'] = np.array([nZ], dtype = np.int32)
-        self.Bfield['fr'] = Br.astype(dtype = np.float64)
-        self.Bfield['fz'] = Bz.astype(dtype = np.float64)
-        self.Bfield['ft'] = Bt.astype(dtype = np.float64)
+        self.Bfield['R'] = np.array(R, dtype=np.float64)
+        self.Bfield['z'] = np.array(z, dtype=np.float64)
+        self.Bfield['Rmin'] = np.array((Rmin), dtype=np.float64)
+        self.Bfield['Rmax'] = np.array((Rmax), dtype=np.float64)
+        self.Bfield['Zmin'] = np.array((zmin), dtype=np.float64)
+        self.Bfield['Zmax'] = np.array((zmax), dtype=np.float64)
+        self.Bfield['nR'] = np.array([nR], dtype=np.int32)
+        self.Bfield['nZ'] = np.array([nZ], dtype=np.int32)
+        self.Bfield['fr'] = Br.astype(dtype=np.float64)
+        self.Bfield['fz'] = Bz.astype(dtype=np.float64)
+        self.Bfield['ft'] = Bt.astype(dtype=np.float64)
 
         del Br
         del Bz
@@ -485,21 +480,21 @@ class ihibpEMfields:
         # Creating the interpolating functions.
         self.Brinterp = lambda r, z, phi, time: \
                         interpn((self.Bfield['R'], self.Bfield['z']),
-                                 self.Bfield['fr'],
+                                self.Bfield['fr'],
                                 (r.flatten(), z.flatten()))
 
         self.Bzinterp = lambda r, z, phi, time: \
                         interpn((self.Bfield['R'], self.Bfield['z']),
-                                 self.Bfield['fz'],
+                                self.Bfield['fz'],
                                 (r.flatten(), z.flatten()))
 
         self.Bphiinterp = lambda r, z, phi, time: \
                         interpn((self.Bfield['R'], self.Bfield['z']),
-                                 self.Bfield['ft'],
+                                self.Bfield['ft'],
                                 (r.flatten(), z.flatten()))
 
         # Retrieving as well the poloidal magnetic flux.
-        self.readPsiPolfromDB(time, shotnumber=shotnumber,
+        self.readPsiPolfromDB(time=time, shotnumber=shotnumber,
                               exp=exp, diag=diag, edition=edition,
                               Rmin=Rmin, Rmax=Rmax,
                               zmin=zmin, zmax=zmax,
@@ -513,7 +508,7 @@ class ihibpEMfields:
         self.diag = diag
         self.exp = exp
 
-    def readPsiPolfromDB(self, time: float, shotnumber: int = 34570,
+    def readPsiPolfromDB(self, shotnumber: int = 34570, time: float = 2.5,
                          exp: str = 'AUGD', diag: str = 'EQI',
                          edition: int = 0,
                          Rmin: float = 1.03, Rmax: float = 2.65,
@@ -551,14 +546,14 @@ class ihibpEMfields:
         psipol = np.reshape(psipol, grid_shape).T
 
         # Creating the interpolating function.
-        self.psipol['R'] = np.array(R, dtype = np.float64)
-        self.psipol['z'] = np.array(z, dtype = np.float64)
-        self.psipol['nR'] = np.array([nR], dtype = np.int32)
-        self.psipol['nZ'] = np.array([nZ], dtype = np.int32)
-        self.psipol['f'] = psipol.astype(dtype = np.float64)
+        self.psipol['R'] = np.array(R, dtype=np.float64)
+        self.psipol['z'] = np.array(z, dtype=np.float64)
+        self.psipol['nR'] = np.array([nR], dtype=np.int32)
+        self.psipol['nZ'] = np.array([nZ], dtype=np.int32)
+        self.psipol['f'] = psipol.astype(dtype=np.float64)
         self.psipol_interp = lambda r, z, phi, time: \
-                             interpn((self.psipol['R'], self.psipol['z']), \
-                                     self.psipol['f'], \
+                             interpn((self.psipol['R'], self.psipol['z']),
+                                     self.psipol['f'],
                                      (r.flatten(), z.flatten()))
         self.psipol_on = True
         return
@@ -708,7 +703,7 @@ class ihibpEMfields:
 
     def plot(self, fieldName: str, phiSlice: int = None, timeSlice: int = None,
              ax_options: dict = {}, ax=None, cmap=None, nLevels: int = 50,
-             cbar_tick_format: str = '%.2e'):
+             cbar_tick_format: str = '%.2e', plot_vessel: bool = True):
         """
         Plots the input field ('Br', 'Bz', 'Bphi', 'Er', 'Ez', 'Ephi',
         'B', 'E' or ''Psipol') into some axis, ax, or the routine creates one
@@ -719,6 +714,7 @@ class ihibpEMfields:
         @param ax: Axis to plot the data.
         @param cmap: Colormap to use. Gamma_II is set by default.
         @param ax: Return the axis where the plot has been done.
+        @param plot_vessel: Flag to plot the vessel
 
         """
 
@@ -855,7 +851,8 @@ class ihibpEMfields:
         ax1 = ssplt.axis_beauty(ax, ax_options)
 
         # Plotting the 2D vessel structures.
-        ssplt.plot_vessel(linewidth=1, ax=ax1)
+        if plot_vessel:
+            ssplt.plot_vessel(linewidth=1, ax=ax1)
         plt.tight_layout()
 
         return ax1

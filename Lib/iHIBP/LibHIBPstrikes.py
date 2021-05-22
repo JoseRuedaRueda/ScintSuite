@@ -10,16 +10,16 @@ import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import Lib.LibParameters as sspar
 import Lib.LibPlotting as ssplt
-import Lib.LibDataAUG as aug
-import Lib.LibPaths
+import Lib.LibData as aug
+from Lib.LibPaths import Path
 import netCDF4 as nc4
 import dd
 import os
-from Lib.LibIO import getFileSize
+# from Lib.LibIO import getFileSize
 from os import listdir
 from warnings import warn
 
-pa = Lib.LibPaths.Paths()
+pa = Path()
 
 # -----------------------------------------------------------------------------
 # --- Index translation.
@@ -74,8 +74,8 @@ def readStrikeFile(filename: str):
     """
 
     with open(filename) as fid:
-        nstrikes = np.fromfile(fid, 'int32', 1)[0]
-        nch      = np.fromfile(fid, 'int32', 1)[0]
+        nstrikes = 200 #  np.fromfile(fid, 'int32', 1)[0]
+        nch      = 11  # np.fromfile(fid, 'int32', 1)[0]
         data     = np.fromfile(fid, 'float64', nch*nstrikes)
 
         data = np.reshape(data, (nstrikes, nch)).T
@@ -84,6 +84,7 @@ def readStrikeFile(filename: str):
         output['nStrikes'] = nstrikes
         output['nCh'] = nch
         output['data'] = data
+        output['ID'] = data[MARK_ID, :]
         output['R'] = data[MARK_R, :]
         output['z'] = data[MARK_Z, :]
         output['phi'] = data[MARK_PHI, :]
@@ -94,7 +95,7 @@ def readStrikeFile(filename: str):
         output['q'] = data[MARK_Q, :]
         output['w'] = np.exp(data[MARK_WEIGHT, :])
         output['time'] = data[MARK_TIME, :]
-        if nch > 10:
+        if nch > 11 :
             output['rhopol0'] = data[MARK_RHOPOL0, :]
             output['R0'] = data[MARK_R0, :]
             output['z0'] = data[MARK_Z0, :]
@@ -296,17 +297,17 @@ class strikes:
         """
 
         # Reading from the file.
-        self.data = readStrikeFile(filename = filename)
+        self.data = readStrikeFile(filename=filename)
         if not bool(self.data):
             raise Exception('Error while reading the file. Empty file')
 
         # Compute some derive information, such as energy, speed, the particle
         # flux.
         if compute2nd:
-            self.data['v'] = np.sqrt(self.data['vr']**2 + \
-                                     self.data['vz']**2 + \
+            self.data['v'] = np.sqrt(self.data['vr']**2 +
+                                     self.data['vz']**2 +
                                      self.data['vphi']**2)
-            self.data['K'] = 0.5*sspar.amu2kg*self.data['mass']*\
+            self.data['K'] = 0.5*sspar.amu2kg*self.data['mass'] *\
                                               self.data['v']**2
             self.data['flux'] = self.data['w']*self.data['v'] # ion/s
 
@@ -349,8 +350,8 @@ class strikes:
     def plotScintillator(self, dx: float = 0.1, dy: float = 0.1, ax=None,
                          cmap=cm.plasma, kindplot: str = 'flux',
                          norm=None, ax_options: dict = {}, levels=100,
-                         plot_strikemap: bool = False, min_cb: float=None,
-                         max_cb: float=None):
+                         plot_strikemap: bool = False, min_cb: float = None,
+                         max_cb: float = None):
 
         """
         Plot the scintillator image to the provided axis. If None are provided,
@@ -377,38 +378,42 @@ class strikes:
             fig, ax = plt.subplots()
 
         # Checking the configuration of the axis.
-        ax_options['ratio'] = 'equal'
-        if 'fontsize' not in ax_options:
-            ax_options['fontsize'] = 16
+        ax_option = {
+            'ratio': 'equal',
+            'fontsize': 16,
+            'xlabel': 'X [cm]'
+            'ylabel' 'Y [cm]'
+        }
+        ax_option.update(ax_options)
 
         # Scintillator size
         sizeX = self.Xlims[1]-self.Xlims[0]
         sizeY = self.Ylims[1]-self.Ylims[0]
 
         # Compute the number of points for the histogram.
-        Nx = np.asarray(np.ceil(sizeX/dx),dtype=int)
-        Ny = np.asarray(np.ceil(sizeY/dy),dtype=int)
+        Nx = np.asarray(np.ceil(sizeX/dx), dtype=int)
+        Ny = np.asarray(np.ceil(sizeY/dy), dtype=int)
 
         # Updating the bin sizes.
         dx = sizeX/Nx
         dy = sizeY/Ny
 
         # computing the histograms.
-        if kindplot  == 'flux':
+        if kindplot == 'flux':
             h, xe, ye, = np.histogram2d(self.data['x1']*100.0,
                                         self.data['x2']*100.0,
                                         weights=self.data['flux'],
-                                        bins = (Nx, Ny),
+                                        bins=(Nx, Ny),
                                         range=(self.Xlims, self.Ylims))
 
             h *= (dx*dy)
             clabel = 'Ion flux [ion/s]'
 
-        elif kindplot  == 'intensity':
+        elif kindplot == 'intensity':
             h, xe, ye, = np.histogram2d(self.data['x1']*100.0,
                                         self.data['x2']*100.0,
                                         weights=self.data['intensity']*1e6,
-                                        bins = (Nx, Ny),
+                                        bins=(Nx, Ny),
                                         range=(self.Xlims, self.Ylims))
 
             h *= (dx*dy)
@@ -418,7 +423,7 @@ class strikes:
             h, xe, ye, = np.histogram2d(self.data['x1']*100.0,
                                         self.data['x2']*100.0,
                                         weights=self.data['weight'],
-                                        bins = (Nx, Ny),
+                                        bins=(Nx, Ny),
                                         range=(self.Xlims, self.Ylims))
 
             clabel = 'Ion density [$m^{-3}$]'
@@ -426,10 +431,8 @@ class strikes:
         xcenter = (xe[:-1] + xe[1:]) / 2.0
         ycenter = (ye[:-1] + ye[1:]) / 2.0
 
-
         # Setting up the options.
-        cont_opts = { 'cmap': cmap,
-                    }
+        cont_opts = {'cmap': cmap}
 
         if norm == 'log':
             cont_opts['norm'] = colors.LogNorm()
@@ -440,15 +443,13 @@ class strikes:
             cont_opts['vmin'] = min_cb
             cont_opts['vmax'] = max_cb
 
-
         im = ax.pcolormesh(xcenter, ycenter, h.T, **cont_opts)
 
-        #--- Plotting the strikemap:
+        # --- Plotting the strikemap:
         if self.mapSet and plot_strikemap:
             rhopolplot = np.linspace(start=self.map['rhopol'].min(),
-                                     stop =self.map['rhopol'].max(),
-                                     num = 10)
-
+                                     stop=self.map['rhopol'].max(),
+                                     num=10)
 
             drhopol = rhopolplot[1] - rhopolplot[0]
 
@@ -465,27 +466,22 @@ class strikes:
                 w_plot[ii] = self.map['w'][irho]
 
             # Generating the discrete colormap.
-            cmap2 =cm.get_cmap('tab10', len(rhopolplot))
+            cmap2 = cm.get_cmap('tab10', len(rhopolplot))
             im2 = ax.scatter(x=x1_plot*100.0, y=x2_plot*100.0,
-                              c=rhopolplot, s = 20.0,
-                              cmap = cmap2,
-                              vmin = rhopolplot_vmin,
-                              vmax = rhopolplot_vmax,
-                              zorder = 5)
+                             c=rhopolplot, s=20.0,
+                             cmap=cmap2,
+                             vmin=rhopolplot_vmin,
+                             vmax=rhopolplot_vmax,
+                             zorder=5)
 
         if axis_was_none:
-            ax_options['xlabel'] = 'X [cm]'
-            ax_options['ylabel'] = 'Y [cm]'
-
             ax.set_xlim(self.Xlims)
             ax.set_ylim(self.Ylims)
-            ax = ssplt.axis_beauty(ax=ax, param_dict=ax_options)
-
+            ax = ssplt.axis_beauty(ax=ax, param_dict=ax_option)
 
             cbar = plt.colorbar(im, ax=ax)
             cbar.ax.get_yaxis().labelpad = 15
             cbar.ax.set_ylabel(clabel, rotation=270)
-
 
             # if self.mapSet and plot_strikemap:
             #     cbar2 = plt.colorbar(im2, ax=ax,
@@ -495,14 +491,14 @@ class strikes:
 
             plt.tight_layout()
 
-        return ax, {'x':xcenter, 'y':ycenter, 'W':h}
+        return ax, {'x': xcenter, 'y': ycenter, 'W': h}
 
 
 # -----------------------------------------------------------------------------
 # --- Strikeline object.
 # -----------------------------------------------------------------------------
 class strikeLine:
-    def __init__(self,filename: str, shotnumber: int = None,
+    def __init__(self, filename: str, shotnumber: int = None,
                  diag: str = 'EQH', exp: str = 'AUGD', ed: int = 0,
                  scint: float = None):
         """
@@ -620,7 +616,7 @@ class strikeLine:
         axis_was_none = False
         if ax is None:
             if plot_weight:
-                fig, ax = plt.subplots(1,2)
+                fig, ax = plt.subplots(1, 2)
             else:
                 fig, ax = plt.subplots()
             axis_was_none = True
