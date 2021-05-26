@@ -915,6 +915,7 @@ class StrikeMap:
             self.collimator_factor_matrix = np.zeros((self.ngyr, self.npitch))
             for ir in range(self.ngyr):
                 for ip in range(self.npitch):
+                    # By definition, flags can only have one True
                     flags = (self.gyroradius == self.unique_gyroradius[ir]) \
                         * (self.pitch == self.unique_pitch[ip])
                     if np.sum(flags) > 0:
@@ -1401,9 +1402,7 @@ class StrikeMap:
                         scipy_interp.LinearNDInterpolator(
                             np.vstack((x1, y1)).T,
                             z1)
-            # Ok, the following is not a resolution, but in order to simplify
-            # the codes of the W preparation or the forward modelling, I'll
-            # also put here the colimator factor
+            # Collimator factor
             dummy = self.collimator_factor_matrix.T
             dummy = dummy.flatten()
             flags = np.isnan(dummy)
@@ -1414,6 +1413,26 @@ class StrikeMap:
                 self.interpolators['collimator_factor'] = \
                     scipy_interp.LinearNDInterpolator(np.vstack((x1, y1)).T,
                                                       z1)
+            # positions:
+            YMATRIX = np.zeros((self.npitch, self.ngyr))
+            ZMATRIX = np.zeros((self.npitch, self.ngyr))
+            for ir in range(self.ngyr):
+                for ip in range(self.npitch):
+                    flags = (self.gyroradius == self.unique_gyroradius[ir]) \
+                        * (self.pitch == self.unique_pitch[ip])
+                    if np.sum(flags) > 0:
+                        # By definition, flags can only have one True
+                        # yes, x is smap.y... FILDSIM notation
+                        YMATRIX[ip, ir] = self.y[flags]
+                        ZMATRIX[ip, ir] = self.z[flags]
+            self.interpolators['x'] = \
+                scipy_interp.LinearNDInterpolator(np.vstack((xxx.flatten(),
+                                                             yyy.flatten())).T,
+                                                  YMATRIX.flatten())
+            self.interpolators['y'] = \
+                scipy_interp.LinearNDInterpolator(np.vstack((xxx.flatten(),
+                                                             yyy.flatten())).T,
+                                                  ZMATRIX.flatten())
         return
 
     def plot_resolutions(self, ax_param: dict = {}, cMap=None, nlev: int = 20):
@@ -1521,7 +1540,7 @@ class CalParams:
         # To transform the from real coordinates to pixel (see
         # transform_to_pixel())
         ## pixel/cm in the x direction
-        self.xscale = 0
+        self.xscale = 0.0
         ## pixel/cm in the y direction
         self.yscale = 0
         ## Offset to align 0,0 of the sensor with the scintillator
@@ -1529,7 +1548,7 @@ class CalParams:
         ## Offset to align 0,0 of the sensor with the scintillator
         self.yshift = 0
         ## Rotation angle to transform from the sensor to the scintillator
-        self.deg = 0
+        self.deg = 0.0
 
     def print(self):
         """Print calibration"""
@@ -1591,7 +1610,7 @@ class Scintillator:
         self.ypixel = None
         # We want the coordinates in cm, if 'cm' is not the unit, apply the
         # corresponding transformation. (Void it is interpreter as cm)
-        factors = {'cm': 1, 'm': 0.01, 'mm': 0.1, 'inch': 2.54}
+        factors = {'cm': 1., 'm': 100., 'mm': 0.1, 'inch': 2.54}
         if self.orig_units in factors:
             self.coord_real = self.coord_real * factors[self.orig_units]
         else:
@@ -1648,3 +1667,4 @@ class Scintillator:
         dummyy = self.coord_real[:, 2]
 
         self.xpixel, self.ypixel = transform_to_pixel(dummyx, dummyy, calib)
+        return

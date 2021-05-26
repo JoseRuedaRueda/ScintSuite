@@ -7,6 +7,10 @@ Jose Rueda Rueda: jrrueda@us.es
 import numpy as np
 import matplotlib.pyplot as plt
 import Lib.LibIO as ssio
+try:
+    from wand.image import Image
+except ModuleNotFoundError:
+    print('Wand image not found, you cannnot apply distortion to figures')
 
 
 # -----------------------------------------------------------------------------
@@ -93,27 +97,6 @@ def read_sphere_data(file: str = None, plot: bool = False):
 # -----------------------------------------------------------------------------
 # --- Distortion analysis
 # -----------------------------------------------------------------------------
-def edge_detection(image):
-    """
-    Detect a edges in an image thanks to an adaptive threshold
-
-    José Rueda Rueda: jrrueda@us.es
-
-    Adepted from:
-    https://stackoverflow.com/questions/61589953/
-    how-to-identify-the-complete-grid-in-the-image-using-python-opencv
-
-    @param image: frame with the distorted grid. Should be RGB or gray
-    """
-    # If the image is rgb, translated to gray:
-    if len(image.shape) > 2:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    # Get the threshold
-    thresh = cv2.threshold(image, 0, 255,
-                           cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
-    return thresh
-
-
 def manual_find_grid_points(image):
     """
     Manually find the edges corners of the calibration grid
@@ -127,3 +110,26 @@ def manual_find_grid_points(image):
     print('Middle mouse: stop input')
     points = plt.ginput(-1, timeout=0, show_cliks=True)
     return points
+
+
+def distort_image(frame, params: dict = {}):
+    """
+    Apply distortion to the images
+    """
+    options = {
+        'model': 'WandImage',
+        'parameters': {
+            'method': 'barrel',
+            'arguments': (0.2, 0.1, 0.1, 0.6)
+        },
+    }
+    options.update(params)
+    if options['model'] == 'WandImage':
+        maximum = frame.max()
+        dummy = frame.astype(np.float) / maximum
+        img = Image.from_array(dummy)
+        img.virtual_pixel = 'transparent'
+        img.distort(**options['parameters'])
+        output = np.array(img)[:, :, 0].astype(np.float) * maximum / 255
+
+    return output.astype(np.uint)

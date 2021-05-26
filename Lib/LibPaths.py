@@ -1,12 +1,12 @@
 """Paths to the different folders and codes"""
 import os
-
+from Lib.LibMachine import machine
 
 class Path:
     """Paths of the different codes and folders"""
 
     ## @todo: include here a proper machine dependent path to png files
-    def __init__(self, machine='AUG'):
+    def __init__(self, machine=machine):
         """Initialise the class"""
         home = os.getenv("HOME")
         self.FILDSIM = os.path.join(home, 'FILDSIM/')
@@ -27,7 +27,7 @@ class Path:
             self.iHIBP_videos = '/afs/ipp/home/a/augd/rawfiles/VRT/'
             self.FILDStrikeMapsRemap += '/AUG/'
             self.FILDStrikeMapsTomography += '/AUG/'
-            self.bcoils_phase_corr = os.path.join(self.ScintSuite, 
+            self.bcoils_phase_corr = os.path.join(self.ScintSuite,
                                                   'Data',
                                                   'Magnetics',
                                                   'balloning_correction.dat')
