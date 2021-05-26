@@ -29,34 +29,3 @@ SEEK_BOF = 0
 SEEK_CUR = 1
 SEEK_EOF = 2
 SEEK_END = 2
-
-
-# -----------------------------------------------------------------------------
-# --- Camera parameters
-# -----------------------------------------------------------------------------
-class Camera:
-    """Class containing the properties of the cameras"""
-
-    def __init__(self, model):
-        """
-        Initialise the class
-
-        @param model: Model of the used camera
-        """
-        if model == 'VGA_Pixelfly':
-            ## todo find the units in which pixel size ie given
-            self.params = {'camera_name': 'VGA Pixelfly', 'nx_pixels': 640,
-                           'ny_pixels': 480, 'pixel_xsize': 9.9e-4,
-                           'pixel_ysize': 9.9e-4, 'quantum_efficiency': 0.40,
-                           'f_analog_digital': 6.5, 'dynamic_range': 12}
-        elif model == 'Phantom':
-            self.params = {'camera_name': 'Phantom'}
-            print('Most Phantom parameters are written in the .cin file')
-            print('Just open the Video object and enjoy')
-        elif model == 'QE_Pixelfly':
-            self.params = {'camera_name': 'QE Pixelfly', 'nx_pixels': 1392,
-                           'ny_pixels': 1024, 'pixel_xsize': 6.45e-4,
-                           'pixel_ysize': 6.45e-4, 'quantum_efficiency': 0.62,
-                           'f_analog_digital': 3.8, 'dynamic_range': 12}
-        else:
-            print('Camera not defined')

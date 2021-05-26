@@ -7,12 +7,7 @@ import Lib.LibParameters as ssp
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
 import Lib.LibData as ssdat
-try:
-    import f90nml
-except ImportError:
-    warnings.warn('You cannot read FILDSIM namelist nor remap',
-                  category=UserWarning)
-
+import f90nml
 paths = Path(machine)
 
 
@@ -121,7 +116,7 @@ def read_namelist(filename):
     return f90nml.read(filename)
 
 
-def run_FILDSIM(namelist, queue = False):
+def run_FILDSIM(namelist, queue=False):
     """
     Execute a FILDSIM simulation
 
@@ -161,7 +156,9 @@ def run_FILDSIM(namelist, queue = False):
         f.write(FILDSIM + ' ' + namelist)
         f.close()
 
-        os.system('sbatch '+ nml['config']['result_dir']+'/Submit.sh')
+        os.system('sbatch '+ nml['config']['result_dir'] + '/Submit.sh')
+    return
+
 
 def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
                                decimals: int = 1):
@@ -310,6 +307,7 @@ def read_plate(filename):
     }
     f.close()
     return plate
+
 
 def read_orbits(orbits_file, orbits_index_file):
     """

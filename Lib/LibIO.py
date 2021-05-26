@@ -17,6 +17,7 @@ import os
 import warnings
 import tkinter as tk                       # To open UI windows
 import pickle
+import f90nml
 paths = Path()
 
 
@@ -318,6 +319,34 @@ def load_object_pickle(file):
     with open(file, 'rb') as f:
         obj = pickle.load(f)
     return obj
+
+
+# -----------------------------------------------------------------------------
+# --- Camera properties
+# -----------------------------------------------------------------------------
+def read_camera_properties(file: str):
+    """
+    Read namelist with the camera properties
+
+    Jose Rueda Rueda: jrrueda@us.es
+
+    @param file: full path to the file to be loaded, or the name of the camera
+    we want to load
+
+    @return out: dictionary containing camera properties
+    """
+    if os.path.isfile(file):
+        filename = file
+    else:
+        filename = os.path.join(paths.ScintSuite, 'Data',
+                                'CameraGeneralParameters', file + '.txt')
+    if not os.path.isfile(filename):
+        print('Looking for: ', filename)
+        raise Exception('File not found, revise camera name')
+
+    nml = f90nml.read(filename)
+
+    return nml['camera'].todict()
 
 
 # -----------------------------------------------------------------------------

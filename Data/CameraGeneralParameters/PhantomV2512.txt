@@ -1,0 +1,12 @@
+&camera
+camera_name='Phantom v2512',   ! Name of the camera
+nx = 1280,                     ! Number of pixels x direction
+ny = 840,                      ! Number of pixels y direction
+px_x_size = 9.9e-4,            ! Length of the pixel, x direction [cm]
+px_y_size = 9.9e-4,            ! Length of the pixel, y direction [cm]
+qe = 0.40,                     ! QE at scintillator wavelength
+ad_gain = 5.0,                 ! Analog to digital gain
+range = 12,                    ! Dynamic range, in bits
+dark_noise = 80,               ! Dark noise, in electrons, centroid
+readout_noise = 5,             ! Readout noise + dark sigma of the noise, elec
+/

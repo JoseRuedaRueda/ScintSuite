@@ -5,7 +5,7 @@ NOTICE: I consider the creatation of the transfer matrix as an issue of the
 synthetic codes (INPASIM, FILDSIM, i/HIBPSIM) therefore the routines which
 create these matries are placed are their corresponding libraries
 """
-
+import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import Lib.LibFILDSIM as ssfildsim
@@ -639,88 +639,108 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
 # -----------------------------------------------------------------------------
 # --- Import/Export tomography
 # -----------------------------------------------------------------------------
-def export_tomography(name, data):
+def export_tomography(name, data, file_format='pickle'):
     """
-    Function in beta phase
+    Function in beta phase, netCDF not fully implemented
 
     """
     if name is None:
         name = ssio.ask_to_save()
     print('Saving results in: ', name)
-    with netcdf.netcdf_file(name, 'w') as f:
-        f.history = 'Done with version ' + version
-        # --- Create the dimenssions:
-        pxf, pyf = data['frame'].shape
-        nr_scint = data['sg']['nr']
-        np_scint = data['sg']['np']
-        nr_pin = data['sg']['nr_pin']
-        np_pin = data['sg']['np_pin']
-        nalpha = len(data['MSE'])
-        f.createDimension('pxf', pxf)
-        f.createDimension('pyf', pyf)
-        f.createDimension('nr_scint', nr_scint)
-        f.createDimension('np_scint', np_scint)
-        f.createDimension('nr_pin', nr_pin)
-        f.createDimension('np_pin', np_pin)
-        f.createDimension('nalpha', nalpha)
+    if file_format == 'netCDF':
+        with netcdf.netcdf_file(name, 'w') as f:
+            f.history = 'Done with version ' + version
+            # --- Create the dimenssions:
+            pxf, pyf = data['frame'].shape
+            nr_scint = data['sg']['nr']
+            np_scint = data['sg']['np']
+            nr_pin = data['sg']['nr_pin']
+            np_pin = data['sg']['np_pin']
+            nalpha = len(data['MSE'])
+            f.createDimension('pxf', pxf)
+            f.createDimension('pyf', pyf)
+            f.createDimension('nr_scint', nr_scint)
+            f.createDimension('np_scint', np_scint)
+            f.createDimension('nr_pin', nr_pin)
+            f.createDimension('np_pin', np_pin)
+            f.createDimension('nalpha', nalpha)
 
-        # --- Save the camera frame:
-        var = f.createVariable('frame', 'float64', ('pxf', 'pyf'))
-        var[:] = data['frame']
-        var.units = '#'
-        var.long_name = 'Camera frame'
-        var.short_name = 'Counts'
+            # --- Save the camera frame:
+            var = f.createVariable('frame', 'float64', ('pxf', 'pyf'))
+            var[:] = data['frame']
+            var.units = '#'
+            var.long_name = 'Camera frame'
+            var.short_name = 'Counts'
 
-        # --- Remap
-        var = f.createVariable('remap', 'float64', ('nr_scint', 'np_scint'))
-        var[:] = data['remap']
-        var.units = 'a.u.'
-        var.long_name = 'Remaped frame'
-        var.short_name = 'Remap'
+            # --- Remap
+            var = f.createVariable('remap', 'float64',
+                                   ('nr_scint', 'np_scint'))
+            var[:] = data['remap']
+            var.units = 'a.u.'
+            var.long_name = 'Remaped frame'
+            var.short_name = 'Remap'
 
-        # --- Inverted frames:
-        var = f.createVariable('tomoFrames', 'float64', ('nr_pin', 'np_pin',
-                                                         'nalpha'))
-        var[:] = data['tomoFrames']
-        var.units = 'a.u.'
-        var.long_name = 'Tomographic inversion frame'
-        var.short_name = 'Pinhole frames'
+            # --- Inverted frames:
+            var = f.createVariable('tomoFrames', 'float64',
+                                   ('nr_pin', 'np_pin', 'nalpha'))
+            var[:] = data['tomoFrames']
+            var.units = 'a.u.'
+            var.long_name = 'Tomographic inversion frame'
+            var.short_name = 'Pinhole frames'
 
-        # --- figures of merit:
-        var = f.createVariable('norm', 'float64', ('nalpha'))
-        var[:] = data['norm']
-        var.units = 'a.u.'
-        var.long_name = 'Norm of the pinhole distribution'
-        var.short_name = '|F|'
+            # --- figures of merit:
+            var = f.createVariable('norm', 'float64', ('nalpha'))
+            var[:] = data['norm']
+            var.units = 'a.u.'
+            var.long_name = 'Norm of the pinhole distribution'
+            var.short_name = '|F|'
 
-        # --- MSE:
-        var = f.createVariable('MSE', 'float64', ('nalpha'))
-        var[:] = data['MSE']
-        var.units = 'a.u.'
-        var.long_name = 'Mean Squared Error'
-        var.short_name = 'MSE'
+            # --- MSE:
+            var = f.createVariable('MSE', 'float64', ('nalpha'))
+            var[:] = data['MSE']
+            var.units = 'a.u.'
+            var.long_name = 'Mean Squared Error'
+            var.short_name = 'MSE'
 
-        # --- grid:
-        var = f.createVariable('rpin', 'float64', ('nr_pin'))
-        var[:] = data['sg']['r']
-        var.units = 'cm'
-        var.long_name = 'Gyroradius at pinhole'
-        var.short_name = '$r_l$'
+            # --- grid:
+            var = f.createVariable('rpin', 'float64', ('nr_pin'))
+            var[:] = data['sg']['r']
+            var.units = 'cm'
+            var.long_name = 'Gyroradius at pinhole'
+            var.short_name = '$r_l$'
 
-        var = f.createVariable('ppin', 'float64', ('np_pin'))
-        var[:] = data['sg']['p']
-        var.units = ' '
-        var.long_name = 'Pitch at pinhole'
-        var.short_name = 'Pitch'
+            var = f.createVariable('ppin', 'float64', ('np_pin'))
+            var[:] = data['sg']['p']
+            var.units = ' '
+            var.long_name = 'Pitch at pinhole'
+            var.short_name = 'Pitch'
 
-        var = f.createVariable('rscint', 'float64', ('nr_scint'))
-        var[:] = data['sg']['r']
-        var.units = 'cm'
-        var.long_name = 'Gyroradius at scintillator'
-        var.short_name = '$r_l$'
+            var = f.createVariable('rscint', 'float64', ('nr_scint'))
+            var[:] = data['sg']['r']
+            var.units = 'cm'
+            var.long_name = 'Gyroradius at scintillator'
+            var.short_name = '$r_l$'
 
-        var = f.createVariable('pscint', 'float64', ('nr_scint'))
-        var[:] = data['sg']['r']
-        var.units = ' '
-        var.long_name = 'Pitch at scintillator'
-        var.short_name = 'Pitch'
+            var = f.createVariable('pscint', 'float64', ('nr_scint'))
+            var[:] = data['sg']['r']
+            var.units = ' '
+            var.long_name = 'Pitch at scintillator'
+            var.short_name = 'Pitch'
+    elif file_format == 'pickle':
+        f = open(name, 'wb')
+        pickle.dump(data, f, protocol=4)
+        f.close()
+
+
+def load_tomography(name, file_format='pickle'):
+    """
+    Function to load the tomography, netCDF not fully implemented
+    """
+    if name is None:
+        name = ssio.ask_to_open()
+    print('Reading data from: ', name)
+    if file_format == 'pickle':
+        f = open(name, 'rb')
+        output = pickle.load(name)
+        f.close()
+    return output

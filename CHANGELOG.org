@@ -1,3 +1,13 @@
+** 0.4.13: FILDSIM forward modeling
+- Camera parameters no longer in LibParams but in separate txt files in the Data folders
+- f90mnl is now a fundamental module, the suite will not work without it
+- Added function in the LibIO to read the camera properties
+- Current synthetic_signal and plot_synthetic signal function of the FILDSIM library renamed to synthetic_remap and plot_synthetic_remap
+- *Note*: The weight function calculation does no longer include  * dr_scint * dp_scint, so the W has dimension of one over dgyr and dpitch of the scintillator grid used for the calculus
+- Several plotting plotting capabilities added (credit to Ajvv)
+- Routines to model basic camera noise added
+
+
 ** 0.4.12: Small improvements
 - New examples for the tracker were added
 - *Note*: The order of the inputs in the function write_markers for the tracker was changed, to follow the same logical order of the rest of the suite, now is: write_markers(markers: dict, filename: str)
