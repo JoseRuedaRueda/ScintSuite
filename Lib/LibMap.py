@@ -1578,14 +1578,14 @@ class StrikeMap:
 
     def plot_pitch_histograms(self, diag_params: dict = {},
                               adaptative: bool = True,
-                              min_statistics = 100,
-                              gyroradius = 3,
-                              plot_fit = True,
+                              min_statistics=100,
+                              gyroradius=3,
+                              plot_fit=True,
                               axarr=None, dpi=100, alpha=0.5):
         """
         Calculate the resolution associated with each point of the map
 
-        Jose Rueda Rueda: jrrueda@us.es
+        Ajvv
 
         @param diag_options: Dictionary with the diagnostic specific parameters
         like for example the method used to fit the pitch
@@ -1651,27 +1651,32 @@ class StrikeMap:
                 par_p, resultp = _fit_to_model_(data[:, 7],
                                                 bins=edges_pitch,
                                                 model=p_method,
-                                                normalize = False)
+                                                normalize=False)
 
                 if axarr is None:
-                    fig, axarr = plt.subplots(nrows=1, ncols=1, figsize=(6, 10),
-                                               facecolor='w', edgecolor='k', dpi=dpi)
-                    ax_pitch = axarr  # topdown view, i.e should see pinhole surface
-                    ax_pitch.set_xlabel('Pitch [$\degree$]')
+                    fig, axarr = plt.subplots(nrows=1, ncols=1,
+                                              figsize=(6, 10),
+                                              facecolor='w', edgecolor='k',
+                                              dpi=dpi)
+                    ax_pitch = axarr  # topdown view, should see pinhole surfac
+                    ax_pitch.set_xlabel('Pitch [$\\degree$]')
                     ax_pitch.set_ylabel('Counts')
-                    ax_pitch.set_title('Pitch resolution at gyroradius '
-                                            +str(self.strike_points['gyroradius'][ir])+' cm')
+                    ax_pitch.set_title(
+                        'Pitch resolution at gyroradius '
+                        + str(self.strike_points['gyroradius'][ir])+' cm')
 
                     created_ax = True
 
                 cent = 0.5 * (edges_pitch[1:] + edges_pitch[:-1])
                 fit_line = ax_pitch.plot(cent, resultp.best_fit,
-                                   label = '_nolegend_')
-
-                hist = ax_pitch.hist(data[:, 7], bins = edges_pitch, alpha = alpha,
-                                   label = f"{float(self.strike_points['pitch'][ip]):g}"+ '$\degree$',
-                                   color = fit_line[0].get_color()
-                                   )
+                                         label='_nolegend_')
+                label_plot = \
+                    f"{float(self.strike_points['pitch'][ip]):g}"\
+                    + '$\\degree$'
+                hist = ax_pitch.hist(data[:, 7], bins=edges_pitch,
+                                     alpha=alpha,
+                                     label=label_plot,
+                                     color=fit_line[0].get_color())
 
         ax_pitch.legend(loc='best')
 
@@ -1682,15 +1687,15 @@ class StrikeMap:
         return
 
     def plot_gyroradius_histograms(self, diag_params: dict = {},
-                              adaptative: bool = True,
-                              min_statistics = 100,
-                              pitch = 30,
-                              plot_fit = True,
-                              axarr=None, dpi=100, alpha=0.5):
+                                   adaptative: bool = True,
+                                   min_statistics=100,
+                                   pitch=30,
+                                   plot_fit=True,
+                                   axarr=None, dpi=100, alpha=0.5):
         """
         Calculate the resolution associated with each point of the map
 
-        Jose Rueda Rueda: jrrueda@us.es
+        Ajvv
 
         @param diag_options: Dictionary with the diagnostic specific parameters
         like for example the method used to fit the pitch
@@ -1754,21 +1759,22 @@ class StrikeMap:
                                                 model=g_method,
                                                 normalize=False)
                 if axarr is None:
-                    fig, axarr = plt.subplots(nrows=1, ncols=1, figsize=(6, 10),
-                                               facecolor='w', edgecolor='k', dpi=dpi)
-                    ax_gyroradius = axarr  # topdown view, i.e should see pinhole surface
+                    fig, axarr = \
+                        plt.subplots(nrows=1, ncols=1, figsize=(6, 10),
+                                     facecolor='w', edgecolor='k', dpi=dpi)
+                    ax_gyroradius = axarr
                     ax_gyroradius.set_xlabel('Gyroradius [cm]')
                     ax_gyroradius.set_ylabel('Counts')
                     ax_gyroradius.set_title('Gyroradius resolution at pitch '
-                                            +str(self.strike_points['pitch'][ip])+'$\degree$')
+                                            +str(self.strike_points['pitch'][ip])+'$\\degree$')
 
                     created_ax = True
 
                 cent = 0.5 * (edges_gyr[1:] + edges_gyr[:-1])
                 fit_line = ax_gyroradius.plot(cent, resultg.best_fit,
-                                   label = '_nolegend_')
+                                   label='_nolegend_')
 
-                hist = ax_gyroradius.hist(data[:, 6], bins = edges_gyr, alpha = alpha,
+                hist = ax_gyroradius.hist(data[:, 6], bins=edges_gyr, alpha = alpha,
                                    label = f"{float(self.strike_points['gyroradius'][ir]):g}"+ ' [cm]',
                                    color = fit_line[0].get_color())
 
@@ -1779,6 +1785,7 @@ class StrikeMap:
             fig.show()
 
         return
+
 
 class CalParams:
     """
