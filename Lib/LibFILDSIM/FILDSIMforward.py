@@ -276,7 +276,7 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
                 * pitch_func(p_grid.flatten(), **p_parameters)\
                 * distro_w[i] * efficiency.interpolator(distro_energy[i])
         else:
-            signal += col_factor * g_func(g_grid.flatten(), **g_parameters) \
+            dummy = col_factor * g_func(g_grid.flatten(), **g_parameters) \
                 * pitch_func(p_grid.flatten(), **p_parameters)\
                 * distro_w[i]
     signal = np.reshape(signal, g_grid.shape)
@@ -291,7 +291,8 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
     return output
 
 
-def plot_synthetic_remap(r, p, signal, cmap=None, ax=None, ax_params={}):
+def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, fig=None,
+                          ax_params = {}):
     """
     Plot the synthetic signal
 
@@ -326,9 +327,13 @@ def plot_synthetic_remap(r, p, signal, cmap=None, ax=None, ax_params={}):
     else:
         created = False
     # plot:
-    ax.contourf(r, p, signal.T, cmap=cmap)
+    a1 = ax.contourf(p, r, signal, cmap=cmap)
     if created:
         ax = ssplt.axis_beauty(ax, ax_options)
+
+    if not fig == None:
+        fig.colorbar(a1, ax=ax, label='Counts')
+
     return ax
 
 

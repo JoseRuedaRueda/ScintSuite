@@ -328,6 +328,10 @@ def read_orbits(orbits_file, orbits_index_file):
     orbits_index_data = np.loadtxt(orbits_index_file)
     orbits_data = np.loadtxt(orbits_file)
 
+    ##Todo check if there are no orbits
+    if len(orbits_index_data) == 1:
+        orbits_index_data = [orbits_index_data]
+
     ii = 0
     for i in orbits_index_data:
         orbits.append( orbits_data[ii: ii+ int(i), :] )
