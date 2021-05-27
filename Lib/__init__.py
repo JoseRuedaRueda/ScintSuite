@@ -18,6 +18,7 @@ import Lib.GUIs as GUI
 import Lib.INPA as inpa
 import Lib.LibOptics as optics
 import Lib.BEP as libbep
+import Lib.LibNoise as noise
 from Lib.version_suite import version
 import Lib.LibData as dat
 

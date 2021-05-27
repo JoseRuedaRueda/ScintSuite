@@ -32,8 +32,8 @@ class orbit:
     def size(self):
         return self.data['R'].shape[0]
 
-    def plot(self, view: str = '2D', ax_options: dict = {}, ax=None,
-             line_options: dict = {}, shaded3d_options: dict = {},
+    def plot(self, view: str = '2D', ax_params: dict = {}, ax=None,
+             line_params: dict = {}, shaded3d_options: dict = {},
              imin: int = 0, imax: int = None, plot_vessel: bool = True):
         """
         Plot the orbit
@@ -43,8 +43,8 @@ class orbit:
         Pablo Oyola: pablo.oyola@ipp.mpg.de
 
         @param view: '2D' to plot, (R,z), (x,y). '3D' to plot the 3D orbit
-        @param ax_options: options for the function axis_beauty
-        @param line_options: options for the line plot (markers, colors and so on)
+        @param ax_params: options for the function axis_beauty
+        @param line_params: options for the line plot (markers, colors and so on)
         @param ax: axes where to plot, if none, new ones will be created. Note,
         if the '2D' mode is used, ax should be a list of axes, the first one for
         the Rz projection
@@ -54,14 +54,17 @@ class orbit:
         """
 
         # --- Initialise the plotting parameters
-        ax_options['ratio'] = 'equal'
-        # The ratio must be always equal
-        if 'fontsize' not in ax_options:
-            ax_options['fontsize'] = 16
-        if 'grid' not in ax_options:
-            ax_options['grid'] = 'both'
-        if 'linewidth' not in line_options:
-            line_options['linewidth'] = 2
+        ax_options = {
+            'ratio': 'equal',
+            'fontsize': 16,
+            'grid': 'both',
+        }
+        ax_options.update(ax_params)
+        line_options = {
+            'linewidth': 2
+        }
+        line_options.update(line_params)
+
         # --- Get cartesian coordinates:
 
         x = self.data['x']
@@ -129,8 +132,8 @@ class orbit:
         plt.gcf().show()
         return ax
 
-    def plotTimeTraces(self, ax=None, ax_options: dict = {},
-                       line_options: dict = {},
+    def plotTimeTraces(self, ax=None, ax_params: dict = {},
+                       line_params: dict = {},
                        legend_on: bool = True, plot_coords: bool = False,
                        ax_coords=None):
         """
@@ -145,8 +148,8 @@ class orbit:
 
         @param ax: set of axis to plot the timetraces. As of Feb21, it must be
         an array of 4 axis to plot.
-        @param ax_options: options to make beautiful plots.
-        @param line_options: set of options to be sent when using plot
+        @param ax_params: options to make beautiful plots.
+        @param line_params: set of options to be sent when using plot
         routines.
         @param legend_on: flag to determine when the legend is plot.
         @param plot_coords: flag to plot the evolusion of r, z and phi
@@ -160,8 +163,8 @@ class orbit:
         line_opt = {
             'linewidth': 2,
         }
-        ax_opt.update(ax_options)
-        line_opt.update(line_options)
+        ax_opt.update(ax_params)
+        line_opt.update(line_params)
 
         # --- Preparing axis array
         if (ax is None) or (ax.shape[0] != 4):
@@ -443,8 +446,8 @@ class orbit:
         return self.data[idx]
 
 
-def plotOrbits(orbitList, view: str = '2D', ax_options: dict = {}, ax=None,
-               line_options: dict = {}, shaded3d_options: dict = {},
+def plotOrbits(orbitList, view: str = '2D', ax_params: dict = {}, ax=None,
+               line_params: dict = {}, shaded3d_options: dict = {},
                imin: int = 0, imax: int = None):
     """
     Given an input list of orbits, this routine will plot all the orbits into
@@ -453,14 +456,24 @@ def plotOrbits(orbitList, view: str = '2D', ax_options: dict = {}, ax=None,
     Pablo Oyola - pablo.oyola@ipp.mpg.de
     @param orbitList: list of orbits to plot.
     @param view: '2D' to plot, (R,z), (x,y). '3D' to plot the 3D orbit
-    @param ax_options: options for the function axis_beauty
-    @param line_options: options for the line plot (markers, colors and so on)
+    @param ax_params: options for the function axis_beauty
+    @param line_params: options for the line plot (markers, colors and so on)
     @param ax: axes where to plot, if none, new ones will be created. Note,
     if the '2D' mode is used, ax should be a list of axes, the first one for
     the Rz projection
     @param shaded3d_options: dictionary with the options for the plotting of
     the 3d vessel
     """
+    # --- Initialise the plotting parameters
+    ax_options = {
+        'ratio': 'equal',
+        'fontsize': 14,
+    }
+    ax_options.update(ax_params)
+    line_options = {
+        'linewidth': 1
+    }
+    line_options.update(line_params)
     if orbitList is None:
         raise Exception('The input object is empty!')
 
@@ -478,8 +491,8 @@ def plotOrbits(orbitList, view: str = '2D', ax_options: dict = {}, ax=None,
     return ax
 
 
-def plotTimeTraces(orbitList, magn, ax=None, ax_options: dict = {},
-                   line_options: dict = {}, grid: bool = True,
+def plotTimeTraces(orbitList, magn, ax=None, ax_params: dict = {},
+                   line_params: dict = {}, grid: bool = True,
                    legend_on: bool = True):
     """
     Given a list of orbits, this routine will plot all the orbits time-traces
@@ -488,12 +501,22 @@ def plotTimeTraces(orbitList, magn, ax=None, ax_options: dict = {},
     Pablo Oyola - pablo.oyola@ipp.mpg.de
     @param ax: set of axis to plot the timetraces. As of Feb21, it must be
     an array of 4 axis to plot.
-    @param ax_options: options to make beautiful plots.
-    @param line_options: set of options to be sent when using plot
+    @param ax_params: options to make beautiful plots.
+    @param line_params: set of options to be sent when using plot
     routines.
     @grid: establish if plotting the grids in the axis.
     @legend_on: flag to determine when the legend is plot.
     """
+    # --- Initialise the plotting parameters
+    ax_options = {
+        'fontsize': 16,
+        'grid': 'both',
+    }
+    ax_options.update(ax_params)
+    line_options = {
+        'linewidth': 2
+    }
+    line_options.update(line_params)
     if orbitList is None:
         raise Exception('The input object is empty!')
 
