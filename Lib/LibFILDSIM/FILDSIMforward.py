@@ -647,8 +647,8 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
     nr_scint = len(rscint)
     np_scint = len(pscint)
 
-    dr_scint = abs(rscint[1] - rscint[0])
-    dp_scint = abs(pscint[1] - pscint[0])
+    # dr_scint = abs(rscint[1] - rscint[0])
+    # dp_scint = abs(pscint[1] - pscint[0])
 
     # Pinhole grid
     nr_pin = len(rpin)

@@ -1,6 +1,5 @@
 """Routines to interact with FILDSIM"""
 import os
-import warnings
 import numpy as np
 import math as ma
 import Lib.LibParameters as ssp

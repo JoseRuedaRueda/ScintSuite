@@ -28,10 +28,6 @@ try:
     import lmfit
 except ImportError:
     warnings.warn('lmfit not found, you cannot calculate resolutions')
-try:
-    import f90nml
-except ImportError:
-    warnings.warn('You cannot remap', category=UserWarning)
 
 
 def transform_to_pixel(x, y, grid_param):
@@ -967,9 +963,9 @@ class StrikeMap:
                             horizontalalignment='right',
                             verticalalignment='center')
 
-            ax.annotate( 'Gyroradius (cm)',
-                        xy=( min(self.y) - 0.5,
-                         (max(self.z) - min(self.z))/2 + min(self.z)  ),
+            ax.annotate('Gyroradius (cm)',
+                        xy=(min(self.y) - 0.5,
+                            (max(self.z) - min(self.z))/2 + min(self.z)),
                         rotation=90,
                         horizontalalignment='center',
                         verticalalignment='center')
@@ -1285,7 +1281,6 @@ class StrikeMap:
                          self.strike_points['pitch'][ip]), :]
                     npoints[ir, ip] = len(data[:, 0])
 
-
                     # --- See if there is enough points:
                     if npoints[ir, ip] < min_statistics:
                         parameters_gyr['amplitude'][ir, ip] = np.nan
@@ -1453,23 +1448,20 @@ class StrikeMap:
         @param cMap: is None, Gamma_II will be used
         @param nlev: number of levels for the contour
         """
-        # Open the figure and prepare the map:
-        fig, ax = plt.subplots(1, 2, figsize=(12, 10),
-                                   facecolor='w', edgecolor='k')
-
+        # --- Initialise the settings:
         if cMap is None:
             cmap = ssplt.Gamma_II()
         else:
             cmap = cMap
-        #if 'fontsize' not in ax_param:
-        #   ax_param['fontsize'] = 14
-            # cFS = 14
-        # else:
-            # cFS = ax_param['fontsize']
-        if 'xlabel' not in ax_param:
-            ax_param['xlabel'] = '$\\lambda [\\degree]$'
-        if 'ylabel' not in ax_param:
-            ax_param['ylabel'] = '$r_l [cm]$'
+        ax_options = {
+            'xlabel': '$\\lambda [\\degree]$',
+            'ylabel': '$r_l [cm]$'
+        }
+        ax_options.update(ax_param)
+
+        # --- Open the figure and prepare the map:
+        fig, ax = plt.subplots(1, 2, figsize=(12, 10),
+                               facecolor='w', edgecolor='k')
 
         if self.diag == 'FILD':
             # Plot the gyroradius resolution
@@ -1485,13 +1477,14 @@ class StrikeMap:
                                self.resolution['Pitch']['sigma'],
                                levels=nlev, cmap=cmap)
             fig.colorbar(a, ax=ax[1], label='$\\sigma_\\lambda$')
-            ax[1] = ssplt.axis_beauty(ax[1], ax_param)
+            ax[1] = ssplt.axis_beauty(ax[1], ax_options)
             plt.tight_layout()
             return
 
-    def plot_collimator_factor(self, ax_param: dict = {}, cMap=None, nlev: int = 20):
+    def plot_collimator_factor(self, ax_param: dict = {}, cMap=None,
+                               nlev: int = 20):
         """
-        Plot the resolutions
+        Plot the collimator factor
 
         Jose Rueda: jrrueda@us.es
 
@@ -1503,36 +1496,32 @@ class StrikeMap:
         @param cMap: is None, Gamma_II will be used
         @param nlev: number of levels for the contour
         """
-        # Open the figure and prepare the map:
-        fig, ax = plt.subplots(1, 1, figsize=(6, 10),
-                                   facecolor='w', edgecolor='k')
-
+        # --- Initialise the settings:
         if cMap is None:
             cmap = ssplt.Gamma_II()
         else:
             cmap = cMap
-        #if 'fontsize' not in ax_param:
-        #   ax_param['fontsize'] = 14
-            # cFS = 14
-        # else:
-            # cFS = ax_param['fontsize']
-        if 'xlabel' not in ax_param:
-            ax_param['xlabel'] = '$\\lambda [\\degree]$'
-        if 'ylabel' not in ax_param:
-            ax_param['ylabel'] = '$r_l [cm]$'
+        ax_options = {
+            'xlabel': '$\\lambda [\\degree]$',
+            'ylabel': '$r_l [cm]$'
+        }
+        ax_options.update(ax_param)
+
+        # --- Open the figure and prepare the map:
+        fig, ax = plt.subplots(1, 1, figsize=(6, 10),
+                               facecolor='w', edgecolor='k')
 
         if self.diag == 'FILD':
             # Plot the gyroradius resolution
             a1 = ax.contourf(self.strike_points['pitch'],
-                                self.strike_points['gyroradius'],
-                                #self.resolution['Gyroradius']['sigma'],
-                                self.collimator_factor_matrix,
-                                levels=nlev, cmap=cmap)
+                             self.strike_points['gyroradius'],
+                             self.collimator_factor_matrix,
+                             levels=nlev, cmap=cmap)
             fig.colorbar(a1, ax=ax, label='Collimating factor')
-            ax = ssplt.axis_beauty(ax, ax_param)
+            ax = ssplt.axis_beauty(ax, ax_options)
 
             plt.tight_layout()
-            return
+        return
 
     def sanity_check_resolutions(self):
         """
@@ -1555,19 +1544,24 @@ class StrikeMap:
                 dummy = []
                 dummy_FILDSIM = []
                 print(p)
-                for i in range(len(self.resolution['fits']['FILDSIM_gyroradius'])):
+                nfits = len(self.resolution['fits']['FILDSIM_gyroradius'])
+                for i in range(nfits):
                     if self.resolution['fits']['FILDSIM_pitch'][i] == p:
-                        dummy.append(self.resolution['fits']['Gyroradius'][i].params['center'].value)
-                        dummy_FILDSIM.append(self.resolution['fits']['FILDSIM_gyroradius'][i])
+                        dummy.append(self.resolution['fits']['Gyroradius'][i]\
+                                     .params['center'].value)
+                        dummy_FILDSIM.append(self.resolution['fits']\
+                                             ['FILDSIM_gyroradius'][i])
 
                 cen_g.append(dummy.copy())
                 fild_g.append(dummy_FILDSIM.copy())
             for i in range(len(self.resolution['fits']['FILDSIM_pitch'])):
-                cen_p.append(self.resolution['fits']['Pitch'][i].params['center'].value)
+                cen_p.append(self.resolution['fits']['Pitch'][i]\
+                             .params['center'].value)
             figc, axc = plt.subplots(1, 2)
             for i in range(len(fild_g)):
-                print(len(fild_g))
-                axc[0].plot(fild_g[i], cen_g[i], 'o', label=str(np.unique(self.resolution['fits']['FILDSIM_pitch'])[i]))
+                label_plot = \
+                    str(np.unique(self.resolution['fits']['FILDSIM_pitch'])[i])
+                axc[0].plot(fild_g[i], cen_g[i], 'o', label=label_plot)
             axc[0].set_xlabel('FILDSIM')
             axc[0].legend()
             axc[0] = ssplt.axis_beauty(axc[0], axis_param)
@@ -1608,9 +1602,7 @@ class StrikeMap:
             }
             diag_options.update(diag_params)
             dpitch = diag_options['dpitch']
-            dgyr = diag_options['dgyr']
             p_method = diag_options['p_method']
-            g_method = diag_options['g_method']
 
             npitch = self.strike_points['pitch'].size
             ir = np.argmin(abs(self.strike_points['gyroradius'] - gyroradius))
@@ -1635,12 +1627,6 @@ class StrikeMap:
                 # bin width as 1/4 of the std, to ensure a good fitting
                 if adaptative:
                     n_bins_in_sigma = 4
-                    sigma_r = np.std(data[:, 6])
-                    new_dgyr = sigma_r / n_bins_in_sigma
-                    edges_gyr = \
-                        np.arange(start=data[:, 6].min() - new_dgyr,
-                                  stop=data[:, 6].max() + new_dgyr,
-                                  step=new_dgyr)
                     sigma_p = np.std(data[:, 7])
                     new_dpitch = sigma_p / n_bins_in_sigma
                     edges_pitch = \
@@ -1673,10 +1659,8 @@ class StrikeMap:
                 label_plot = \
                     f"{float(self.strike_points['pitch'][ip]):g}"\
                     + '$\\degree$'
-                hist = ax_pitch.hist(data[:, 7], bins=edges_pitch,
-                                     alpha=alpha,
-                                     label=label_plot,
-                                     color=fit_line[0].get_color())
+                ax_pitch.hist(data[:, 7], bins=edges_pitch, alpha=alpha,
+                              label=label_plot, color=fit_line[0].get_color())
 
         ax_pitch.legend(loc='best')
 
@@ -1717,9 +1701,7 @@ class StrikeMap:
                 'g_method': 'sGauss'
             }
             diag_options.update(diag_params)
-            dpitch = diag_options['dpitch']
             dgyr = diag_options['dgyr']
-            p_method = diag_options['p_method']
             g_method = diag_options['g_method']
 
             nr = self.strike_points['gyroradius'].size
@@ -1765,18 +1747,20 @@ class StrikeMap:
                     ax_gyroradius = axarr
                     ax_gyroradius.set_xlabel('Gyroradius [cm]')
                     ax_gyroradius.set_ylabel('Counts')
-                    ax_gyroradius.set_title('Gyroradius resolution at pitch '
-                                            +str(self.strike_points['pitch'][ip])+'$\\degree$')
+                    title_plot = 'Gyroradius resolution at pitch '\
+                        + str(self.strike_points['pitch'][ip]) + '$\\degree$'
+                    ax_gyroradius.set_title(title_plot)
 
                     created_ax = True
 
                 cent = 0.5 * (edges_gyr[1:] + edges_gyr[:-1])
                 fit_line = ax_gyroradius.plot(cent, resultg.best_fit,
-                                   label='_nolegend_')
-
-                hist = ax_gyroradius.hist(data[:, 6], bins=edges_gyr, alpha = alpha,
-                                   label = f"{float(self.strike_points['gyroradius'][ir]):g}"+ ' [cm]',
-                                   color = fit_line[0].get_color())
+                                              label='_nolegend_')
+                label_plot = \
+                    f"{float(self.strike_points['gyroradius'][ir]):g}" + '[cm]'
+                ax_gyroradius.hist(data[:, 6], bins=edges_gyr,
+                                   alpha=alpha, label=label_plot,
+                                   color=fit_line[0].get_color())
 
         ax_gyroradius.legend(loc='best')
 
