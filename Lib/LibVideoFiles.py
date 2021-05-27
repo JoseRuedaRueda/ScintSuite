@@ -1337,8 +1337,7 @@ class Video:
             self.guess_shot(file, ssdat.shot_number_length)
 
         # Fill the object depending if we have a .cin file or not
-        print('Looking for the file')
-        print(file)
+        print('Looking for the file: ', file)
         if os.path.isfile(file):
             ## Path to the file and filename
             self.path, self.file_name = os.path.split(file)

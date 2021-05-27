@@ -138,7 +138,7 @@ f.close()
 # --- Namelist
 ss.tracker.write_tracker_namelist(nml, files['Namelist'])
 # --- markers
-ss.tracker.write_markers(files['Deposition'], marker)
+ss.tracker.write_markers(marker, files['Deposition'])
 # --- Launch tracker
 os.system(ss.paths.tracker + ' ' + files['Namelist'])
 # --- Read the orbits output

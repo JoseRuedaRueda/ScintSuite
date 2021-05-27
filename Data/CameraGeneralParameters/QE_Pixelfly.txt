@@ -1,0 +1,10 @@
+&camera
+camera_name='QE Pixelfly',     ! Name of the camera
+nx = 1392,                     ! Number of pixels x direction
+ny = 1024,                     ! Number of pixels y direction
+px_x_size = 6.45e-4,           ! Length of the pixel, x direction [cm]
+px_y_size = 6.45e-4,           ! Length of the pixel, y direction [cm]
+qe = 0.62,                     ! QE at scintillator wavelength
+gain = 3.8,                    ! Analog to digital gain
+range = 12,                    ! Dynamic range, in bits
+/

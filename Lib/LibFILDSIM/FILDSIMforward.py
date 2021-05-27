@@ -5,6 +5,9 @@ import Lib.LibMap as ssmapping
 import Lib.LibFILDSIM.FILDSIMexecution as ssfildsimA
 import Lib.LibPlotting as ssplt
 import Lib.LibData as ssdat
+import Lib.LibNoise as ssnoise
+import Lib.LibIO as ssio
+import Lib.LibOptics as ssoptics
 try:
     import lmfit
 except ModuleNotFoundError:
@@ -14,7 +17,7 @@ except ModuleNotFoundError:
 # -----------------------------------------------------------------------------
 # --- Inputs distributions
 # -----------------------------------------------------------------------------
-def gaussian_input_distribution(r0, sr0, p0, sp0, B=1.8, A=2.0, Z=1):
+def gaussian_input_distribution(r0, sr0, p0, sp0, B=1.8, A=2.0, Z=1, F=1e6):
     """
     Prepare an 2D Gaussian input distribution
 
@@ -27,6 +30,7 @@ def gaussian_input_distribution(r0, sr0, p0, sp0, B=1.8, A=2.0, Z=1):
     @param B: Magnetic field (to translate from r to Energy)
     @param A: Mass, in amu, (to translate from r to Energy)
     @param Z: Charge in e units (to translate from r to Energy)
+    @param F: Sum of the weight of the generated markers
 
     @return: distribution ready to be used by the foward model routine
     """
@@ -41,7 +45,7 @@ def gaussian_input_distribution(r0, sr0, p0, sp0, B=1.8, A=2.0, Z=1):
     distro = {
         'pitch': P.flatten(),
         'gyroradius': G.flatten(),
-        'weight': weights.flatten(),
+        'weight': weights.flatten() * F / np.sum(weights),
         'histograms': {
             'gp': {
                 'gyroradius': ggrid,
@@ -154,9 +158,9 @@ def distribution_tomography_frame(g_grid, p_grid, coefficients,
 # -----------------------------------------------------------------------------
 # --- Synthetic signals
 # -----------------------------------------------------------------------------
-def synthetic_signal(distro, smap, spoints=None, diag_params: dict = {},
-                     gmin=1.5, gmax=10.0, dg=0.1, pmin=20.0, pmax=90.0,
-                     dp=1.0, efficiency=None):
+def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
+                           gmin=1.5, gmax=10.0, dg=0.1, pmin=20.0, pmax=90.0,
+                           dp=1.0, efficiency=None):
     """
     Generate FILD synthetic signal
 
@@ -181,9 +185,14 @@ def synthetic_signal(distro, smap, spoints=None, diag_params: dict = {},
     @param efficiency: ScintillatorEfficiency() object. If None, efficiency
     will not be included
 
-    @return g_grid: gyroradius where the synthetic signal was evaluated
-    @return p_grid: pitch where the synthetic signal was evaluated
-    @return signal: Synthetic signal[ngyr, npitch]
+    @return output. dictionary contaiong:
+            'gyroradius': Array of gyroradius where the signal is evaluated
+            'pitch': Array of pitches where the signal is evaluated
+            'dgyr': spacing of the gyroradius array
+            'dp': spaing of the signal array
+            'signal': signal matrix [ngyr, npitch], the units will be the ones
+            of the input, divided by dgyr and dpitch. And, if efficiency is
+            included, multiplied by photons/ions
     """
     # Initialise the diag_params:
     diag_parameters = {
@@ -267,15 +276,23 @@ def synthetic_signal(distro, smap, spoints=None, diag_params: dict = {},
                 * pitch_func(p_grid.flatten(), **p_parameters)\
                 * distro_w[i] * efficiency.interpolator(distro_energy[i])
         else:
-            signal += col_factor * g_func(g_grid.flatten(), **g_parameters) \
+            dummy = col_factor * g_func(g_grid.flatten(), **g_parameters) \
                 * pitch_func(p_grid.flatten(), **p_parameters)\
                 * distro_w[i]
     signal = np.reshape(signal, g_grid.shape)
+    output = {
+        'gyroradius': g_array,
+        'pitch': p_array,
+        'dgyr': g_array[1] - g_array[0],
+        'dp': p_array[1] - p_array[0],
+        'signal': signal.T
+    }
 
-    return g_array, p_array, signal.T
+    return output
 
 
-def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, ax_params={}):
+def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, fig=None,
+                          ax_params = {}):
     """
     Plot the synthetic signal
 
@@ -310,10 +327,269 @@ def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, ax_params={}):
     else:
         created = False
     # plot:
-    ax.contourf(r, p, signal.T, cmap=cmap)
+    a1 = ax.contourf(p, r, signal, cmap=cmap)
     if created:
         ax = ssplt.axis_beauty(ax, ax_options)
+
+    if not fig == None:
+        fig.colorbar(a1, ax=ax, label='Counts')
+
     return ax
+
+
+def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
+                     smap, scintillator, camera_parameters,
+                     exp_time: float,
+                     scint_synthetic_signal_params: dict = {},
+                     spoints: str = None, px_shift: int = 0, py_shift: int = 0,
+                     diag_parameters: dict = {},
+                     noise_params: dict = {},
+                     distortion_params: dict = {},
+                     plot=True):
+    """
+    Calculate the camera synthetic signal of FILD detectors
+
+    Jose Rueda: jrrueda@us.es
+
+    Workflow:
+        1- Calculate synthetic signal at the scintillator: photons/dgyr/dpitch
+        2- relate gyroradius and pitch positions with pixels at the camera
+        3- Map the scintillator distribution to the camera chip
+        4- apply factors to consider transmission and finite focusing
+    px_shift:-position of the 0,0
+    Added in version 0.4.13
+    """
+    # --- Check inputs and initialise the settings
+    # check/load strike map
+    if isinstance(smap, str):  # if it is string, load the file.
+        if spoints is None:
+            raise Exception('StrikePoints file needed!!')
+        print('Reading strike map: ', smap)
+        smap = ssmapping.StrikeMap(file=smap)
+        smap.load_strike_points(spoints)
+    if smap.resolution is None:
+        smap.calculate_resolutions(diag_params=diag_parameters)
+    # check/load the scintillator
+    if isinstance(scintillator, str):  # if it is string, load the file.
+        print('Reading scintillator: ', scintillator)
+        scintillator = ssmapping.Scintillator(scintillator)
+    # check that the optics parameters included all necesary elements
+    if 'beta' not in optics_parameters:
+        print('Optic magnification not set, calculating proxy')
+        xsize = camera_parameters['px_x_size'] * camera_parameters['nx']
+        ysize = camera_parameters['px_y_size'] * camera_parameters['ny']
+        chip_min_length = np.minimum(xsize, ysize)
+
+        xscint_size = scintillator.coord_real[:, 1].max() \
+            - scintillator.coord_real[:, 1].min()
+        yscint_size = scintillator.coord_real[:, 2].max() \
+            - scintillator.coord_real[:, 2].min()
+        scintillator_max_length = np.maximum(xscint_size, yscint_size)
+
+        beta = chip_min_length / scintillator_max_length
+        print('Optics magnification, beta: ', beta)
+    # Camera parameters:
+    if isinstance(camera_parameters, str):
+        camera_parameters = ssio.read_camera_properties(camera_parameters)
+    # Grid for the synthetic signal at the scintillator
+    scint_signal_options = {
+        'gmin': 1.5,
+        'gmax': 10.0,
+        'dg': 0.1,
+        'pmin': 20.0,
+        'pmax': 80.0,
+        'dp': 1.0,
+    }
+    # Noise options:
+    noise_options = {
+        'dark_readout': {
+            'apply': True
+        },
+        'camera_neutrons': {
+            'percent': 0.001,
+            'vmin': 0.7,
+            'vmax': 0.9,
+            'camera_bits': camera_parameters['range']
+        },
+        'broken': {
+            'percent': 0.001
+        },
+        'photon': {
+            'multiplier': 1.0
+        },
+        'ions': {
+        },
+        'betas': {
+        },
+        'neutrons': {
+        },
+        'gamma': {
+        },
+        'camera_gamma': {
+        }
+    }
+    for i in noise_options.keys():
+        if i in noise_params:
+            noise_options[i].update(noise_params[i])
+    # Distortion options
+    distortion_options = {
+        'model': 'WandImage',
+        'parameters': {
+            'method': 'barrel',
+            'arguments': (0.2, 0.1, 0.1, 0.6)
+        },
+    }
+    distortion_options.update(distortion_params)
+    # Camera range:
+    max_count = 2 ** camera_parameters['range'] - 1
+    # --- Calculate the synthetic signal at the scintillator
+    scint_signal = synthetic_signal_remap(pinhole_distribution, smap,
+                                          efficiency=efficiency,
+                                          **scint_signal_options)
+    # --- Aling the center of the scintillator with the camera chip
+    # center of the chip
+    px_center = int(camera_parameters['ny'] / 2)
+    py_center = int(camera_parameters['nx'] / 2)
+    # center the scintillator at the coordinate origin
+    y_scint_center = 0.5 * (scintillator.coord_real[:, 1].max()
+                            + scintillator.coord_real[:, 1].min())
+    x_scint_center = 0.5 * (scintillator.coord_real[:, 2].max()
+                            + scintillator.coord_real[:, 2].min())
+    scintillator.coord_real[:, 1] -= y_scint_center
+    scintillator.coord_real[:, 2] -= x_scint_center
+    # shift the strike map by the same quantity:
+    smap.y -= y_scint_center
+    smap.z -= x_scint_center
+    # center of the scintillator in pixel space
+    px_0 = px_center + px_shift
+    py_0 = py_center + py_shift
+    # Scale to relate scintillator to camera
+    xscale = optics_parameters['beta'] / camera_parameters['px_x_size']
+    yscale = optics_parameters['beta'] / camera_parameters['px_y_size']
+    # calculate the pixel position of the scintillator vertices
+    transformation_params = ssmapping.CalParams()
+    transformation_params.xscale = xscale
+    transformation_params.yscale = yscale
+    transformation_params.xshift = px_0
+    transformation_params.yshift = py_0
+    scintillator.calculate_pixel_coordinates(transformation_params)
+    # Align the strike map:
+    smap.calculate_pixel_coordinates(transformation_params)
+    smap.interp_grid((camera_parameters['nx'], camera_parameters['ny']))
+
+    # --- Map scintillator and grid to frame
+    n_gyr = scint_signal['gyroradius'].size
+    n_pitch = scint_signal['pitch'].size
+    synthetic_frame = np.zeros(smap.gyr_interp.shape)
+    for ir in range(n_gyr):
+        # Gyroradius limits to integrate
+        gmin = scint_signal['gyroradius'][ir] - scint_signal['dgyr'] / 2.
+        gmax = scint_signal['gyroradius'][ir] + scint_signal['dgyr'] / 2.
+        for ip in range(n_pitch):
+            # Pitch limits to integrates
+            pmin = scint_signal['pitch'][ip] - scint_signal['dp'] / 2.
+            pmax = scint_signal['pitch'][ip] + scint_signal['dp'] / 2.
+            # Look for the pixels which cover this region:
+            flags = (smap.gyr_interp >= gmin) * (smap.gyr_interp < gmax) \
+                * (smap.pit_interp >= pmin) * (smap.pit_interp < pmax)
+            flags = flags.astype(np.bool)
+            # If there are some pixels, just divide the value weight among them
+            n = np.sum(flags)
+            if n > 0:
+                synthetic_frame[flags] = scint_signal['signal'][ir, ip] / n \
+                    * scint_signal['dgyr'] * scint_signal['dp']
+    # --- Now apply all factors
+    # Divide by 4\pi, ie, assume isotropic emission of the scintillator
+    synthetic_frame *= 1 / 4 / np.pi
+    print('Assuming isotropic emission of the scintillator light')
+    # Consider the solid angle covered by the optics and the transmission of
+    # the beam line through the lenses and mirrors:
+    synthetic_frame *= optics_parameters['T'] * optics_parameters['Omega']
+    # Photon to electrons in the camera sensor (QE)
+    synthetic_frame *= camera_parameters['qe']
+    # Electrons to counts in the camera sensor,
+    synthetic_frame /= camera_parameters['ad_gain']
+    # Consider the exposure time
+    synthetic_frame *= exp_time
+    # Pass to integer, as we are dealing with counts
+    synthetic_frame = synthetic_frame.astype(np.int)
+    # --- Add noise
+    noise = {
+        'dark_readout': None,
+        'camera_neutrons': None,
+        'broken': None,
+        'photon': None,
+        'ions': None,
+        'betas': None,
+        'neutrons': None,
+        'gamma': None,
+        'camera_gamma': None,
+        'total': np.zeros(synthetic_frame.shape, np.int),
+    }
+    # broken pixels or fibers
+    dummy = ssnoise.broken_pixels(synthetic_frame, **noise_options['broken'])
+    noise['broken'] = dummy - synthetic_frame
+    synthetic_frame = dummy
+    # read out + dark noise:
+    flag = ('dark_noise' in camera_parameters) and \
+        ('readout_noise') in camera_parameters
+    if flag:
+        print('Including dark and reading noise')
+        noise['dark_readout'] = \
+            ssnoise.dark_plus_readout(synthetic_frame,
+                                      camera_parameters['dark_noise'],
+                                      camera_parameters['readout_noise'])
+    else:
+        noise['dark_readout'] = np.zeros(synthetic_frame.shape)
+    noise['total'] += noise['dark_readout']
+    # photon noise:
+    print('Including photon noise')
+    noise['photon'] = \
+        ssnoise.photon(synthetic_frame, **noise_options['photon'])
+    noise['total'] += noise['photon']
+    # neutron noise:
+    if plot:
+        # just set the maximum of the scale for the future plot before the
+        # neutrons saturate everything
+        vmax = 0.95 * synthetic_frame.max()
+    dummy = \
+        ssnoise.camera_neutrons(synthetic_frame,
+                                **noise_options['camera_neutrons'])
+
+    noise['camera_neutrons'] = dummy - synthetic_frame
+    synthetic_frame = dummy.copy()
+    # Add the noise
+    synthetic_frame += noise['total']
+    # add the broken part to the noise frame, notice that we add it now because
+    # this part of the noise was applied at the begining to the frame, as we
+    # need to apply it before the photon noise is calculated (to do not
+    # include the noise with \sqrt(N) to a pixel which do not have incident
+    # photons due to a broken optical fiber, for example)
+    noise['total'] += noise['broken']
+    # idem with neutrons
+    noise['total'] += noise['camera_neutrons']
+    # --- Remove 'saturated' pixels:
+    flags = synthetic_frame > max_count
+    synthetic_frame[flags] = max_count
+    synthetic_frame = synthetic_frame.astype(np.uint)
+    flags = synthetic_frame < 0
+    synthetic_frame[flags] = 0
+    # --- Apply distortion
+    distorted_frame = ssoptics.distort_image(synthetic_frame,
+                                             distortion_options)
+    output = {
+        'noise': noise,
+        'camera_frame': distorted_frame,
+        'original_camera_frame': synthetic_frame,
+    }
+    if plot:
+        fig, ax = plt.subplots()
+        ax.imshow(distorted_frame, cmap=ssplt.Gamma_II(), origin='lower',
+                  vmin=0, vmax=vmax)
+        smap.plot_pix(ax)
+        scintillator.plot_pix(ax)
+        fig.show()
+    return output
 
 
 # -----------------------------------------------------------------------------
@@ -371,8 +647,8 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
     nr_scint = len(rscint)
     np_scint = len(pscint)
 
-    dr_scint = abs(rscint[1] - rscint[0])
-    dp_scint = abs(pscint[1] - pscint[0])
+    # dr_scint = abs(rscint[1] - rscint[0])
+    # dp_scint = abs(pscint[1] - pscint[0])
 
     # Pinhole grid
     nr_pin = len(rpin)
@@ -433,7 +709,7 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
                 # Calculate the contribution:
                 dummy = col_factor * g_func(Rscint.flatten(), **g_parameters) \
                     * pitch_func(Pscint.flatten(), **p_parameters)\
-                    * eff[kk] * dr_scint * dp_scint
+                    * eff[kk]
                 res_matrix[:, :, kk, ll] = np.reshape(dummy, Rscint.shape).T
             else:
                 res_matrix[:, :, kk, ll] = 0.0
@@ -496,3 +772,8 @@ def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
         fig, ax = plt.subplots()
         a = ax.contourf(pp, pr, W, nlev, cmap=ccmap)
         plt.colorbar(a, ax=ax)
+        fig2, ax2 = plt.subplots(1, 2)
+        ax2[0].plot(pr, np.sum(W, axis=1))
+        ax2[0].set_xlabel('$r_l$ [cm]')
+        ax2[1].plot(pp, np.sum(W, axis=0))
+        ax2[1].set_xlabel('Pitch')

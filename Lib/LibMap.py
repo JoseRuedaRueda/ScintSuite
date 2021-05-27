@@ -28,10 +28,6 @@ try:
     import lmfit
 except ImportError:
     warnings.warn('lmfit not found, you cannot calculate resolutions')
-try:
-    import f90nml
-except ImportError:
-    warnings.warn('You cannot remap', category=UserWarning)
 
 
 def transform_to_pixel(x, y, grid_param):
@@ -654,7 +650,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
 # -----------------------------------------------------------------------------
 # --- Fitting routines
 # -----------------------------------------------------------------------------
-def _fit_to_model_(data, bins=20, model='Gauss'):
+def _fit_to_model_(data, bins=20, model='Gauss', normalize=True):
     """
     Make histogram of input data and fit to a model
 
@@ -666,7 +662,8 @@ def _fit_to_model_(data, bins=20, model='Gauss'):
     # --- Make the histogram of the data
     hist, edges = np.histogram(data, bins=bins)
     hist = hist.astype(np.float64)
-    hist /= hist.max()  # Normalise to  have the data between 0 and 1
+    if normalize:
+        hist /= hist.max()  # Normalise to  have the data between 0 and 1
     cent = 0.5 * (edges[1:] + edges[:-1])
     # --- Make the fit
     if model == 'Gauss':
@@ -915,6 +912,7 @@ class StrikeMap:
             self.collimator_factor_matrix = np.zeros((self.ngyr, self.npitch))
             for ir in range(self.ngyr):
                 for ip in range(self.npitch):
+                    # By definition, flags can only have one True
                     flags = (self.gyroradius == self.unique_gyroradius[ir]) \
                         * (self.pitch == self.unique_pitch[ip])
                     if np.sum(flags) > 0:
@@ -965,10 +963,11 @@ class StrikeMap:
                             horizontalalignment='right',
                             verticalalignment='center')
 
-            ax.annotate('Gyroradius [cm]', xy=(min(self.y) - 1.5,
-                                               min(self.z)),
+            ax.annotate('Gyroradius (cm)',
+                        xy=(min(self.y) - 0.5,
+                            (max(self.z) - min(self.z))/2 + min(self.z)),
                         rotation=90,
-                        horizontalalignment='left',
+                        horizontalalignment='center',
                         verticalalignment='center')
         else:
             return
@@ -1281,6 +1280,7 @@ class StrikeMap:
                         (self.strike_points['Data'][:, 1] ==
                          self.strike_points['pitch'][ip]), :]
                     npoints[ir, ip] = len(data[:, 0])
+
                     # --- See if there is enough points:
                     if npoints[ir, ip] < min_statistics:
                         parameters_gyr['amplitude'][ir, ip] = np.nan
@@ -1401,9 +1401,7 @@ class StrikeMap:
                         scipy_interp.LinearNDInterpolator(
                             np.vstack((x1, y1)).T,
                             z1)
-            # Ok, the following is not a resolution, but in order to simplify
-            # the codes of the W preparation or the forward modelling, I'll
-            # also put here the colimator factor
+            # Collimator factor
             dummy = self.collimator_factor_matrix.T
             dummy = dummy.flatten()
             flags = np.isnan(dummy)
@@ -1414,6 +1412,26 @@ class StrikeMap:
                 self.interpolators['collimator_factor'] = \
                     scipy_interp.LinearNDInterpolator(np.vstack((x1, y1)).T,
                                                       z1)
+            # positions:
+            YMATRIX = np.zeros((self.npitch, self.ngyr))
+            ZMATRIX = np.zeros((self.npitch, self.ngyr))
+            for ir in range(self.ngyr):
+                for ip in range(self.npitch):
+                    flags = (self.gyroradius == self.unique_gyroradius[ir]) \
+                        * (self.pitch == self.unique_pitch[ip])
+                    if np.sum(flags) > 0:
+                        # By definition, flags can only have one True
+                        # yes, x is smap.y... FILDSIM notation
+                        YMATRIX[ip, ir] = self.y[flags]
+                        ZMATRIX[ip, ir] = self.z[flags]
+            self.interpolators['x'] = \
+                scipy_interp.LinearNDInterpolator(np.vstack((xxx.flatten(),
+                                                             yyy.flatten())).T,
+                                                  YMATRIX.flatten())
+            self.interpolators['y'] = \
+                scipy_interp.LinearNDInterpolator(np.vstack((xxx.flatten(),
+                                                             yyy.flatten())).T,
+                                                  ZMATRIX.flatten())
         return
 
     def plot_resolutions(self, ax_param: dict = {}, cMap=None, nlev: int = 20):
@@ -1430,22 +1448,20 @@ class StrikeMap:
         @param cMap: is None, Gamma_II will be used
         @param nlev: number of levels for the contour
         """
-        # Open the figure and prepare the map:
-        fig, ax = plt.subplots(1, 2)
-
+        # --- Initialise the settings:
         if cMap is None:
             cmap = ssplt.Gamma_II()
         else:
             cmap = cMap
-        if 'fontsize' not in ax_param:
-            ax_param['fontsize'] = 14
-            # cFS = 14
-        # else:
-            # cFS = ax_param['fontsize']
-        if 'xlabel' not in ax_param:
-            ax_param['xlabel'] = '$\\lambda [{}^o]$'
-        if 'ylabel' not in ax_param:
-            ax_param['ylabel'] = '$r_l [cm]$'
+        ax_options = {
+            'xlabel': '$\\lambda [\\degree]$',
+            'ylabel': '$r_l [cm]$'
+        }
+        ax_options.update(ax_param)
+
+        # --- Open the figure and prepare the map:
+        fig, ax = plt.subplots(1, 2, figsize=(12, 10),
+                               facecolor='w', edgecolor='k')
 
         if self.diag == 'FILD':
             # Plot the gyroradius resolution
@@ -1461,9 +1477,51 @@ class StrikeMap:
                                self.resolution['Pitch']['sigma'],
                                levels=nlev, cmap=cmap)
             fig.colorbar(a, ax=ax[1], label='$\\sigma_\\lambda$')
-            ax[1] = ssplt.axis_beauty(ax[1], ax_param)
+            ax[1] = ssplt.axis_beauty(ax[1], ax_options)
             plt.tight_layout()
             return
+
+    def plot_collimator_factor(self, ax_param: dict = {}, cMap=None,
+                               nlev: int = 20):
+        """
+        Plot the collimator factor
+
+        Jose Rueda: jrrueda@us.es
+
+        @todo: Implement label size in colorbar
+
+        @param ax_param: parameters for the axis beauty function. Note, labels
+        of the color axis are hard-cored, if you want custom axis labels you
+        would need to draw the plot on your own
+        @param cMap: is None, Gamma_II will be used
+        @param nlev: number of levels for the contour
+        """
+        # --- Initialise the settings:
+        if cMap is None:
+            cmap = ssplt.Gamma_II()
+        else:
+            cmap = cMap
+        ax_options = {
+            'xlabel': '$\\lambda [\\degree]$',
+            'ylabel': '$r_l [cm]$'
+        }
+        ax_options.update(ax_param)
+
+        # --- Open the figure and prepare the map:
+        fig, ax = plt.subplots(1, 1, figsize=(6, 10),
+                               facecolor='w', edgecolor='k')
+
+        if self.diag == 'FILD':
+            # Plot the gyroradius resolution
+            a1 = ax.contourf(self.strike_points['pitch'],
+                             self.strike_points['gyroradius'],
+                             self.collimator_factor_matrix,
+                             levels=nlev, cmap=cmap)
+            fig.colorbar(a1, ax=ax, label='Collimating factor')
+            ax = ssplt.axis_beauty(ax, ax_options)
+
+            plt.tight_layout()
+        return
 
     def sanity_check_resolutions(self):
         """
@@ -1486,19 +1544,24 @@ class StrikeMap:
                 dummy = []
                 dummy_FILDSIM = []
                 print(p)
-                for i in range(len(self.resolution['fits']['FILDSIM_gyroradius'])):
+                nfits = len(self.resolution['fits']['FILDSIM_gyroradius'])
+                for i in range(nfits):
                     if self.resolution['fits']['FILDSIM_pitch'][i] == p:
-                        dummy.append(self.resolution['fits']['Gyroradius'][i].params['center'].value)
-                        dummy_FILDSIM.append(self.resolution['fits']['FILDSIM_gyroradius'][i])
+                        dummy.append(self.resolution['fits']['Gyroradius'][i]\
+                                     .params['center'].value)
+                        dummy_FILDSIM.append(self.resolution['fits']\
+                                             ['FILDSIM_gyroradius'][i])
 
                 cen_g.append(dummy.copy())
                 fild_g.append(dummy_FILDSIM.copy())
             for i in range(len(self.resolution['fits']['FILDSIM_pitch'])):
-                cen_p.append(self.resolution['fits']['Pitch'][i].params['center'].value)
+                cen_p.append(self.resolution['fits']['Pitch'][i]\
+                             .params['center'].value)
             figc, axc = plt.subplots(1, 2)
             for i in range(len(fild_g)):
-                print(len(fild_g))
-                axc[0].plot(fild_g[i], cen_g[i], 'o', label=str(np.unique(self.resolution['fits']['FILDSIM_pitch'])[i]))
+                label_plot = \
+                    str(np.unique(self.resolution['fits']['FILDSIM_pitch'])[i])
+                axc[0].plot(fild_g[i], cen_g[i], 'o', label=label_plot)
             axc[0].set_xlabel('FILDSIM')
             axc[0].legend()
             axc[0] = ssplt.axis_beauty(axc[0], axis_param)
@@ -1506,6 +1569,206 @@ class StrikeMap:
                         cen_p, 'o')
             axc[1].set_xlabel('FILDSIM')
             axc[1] = ssplt.axis_beauty(axc[1], axis_param)
+
+    def plot_pitch_histograms(self, diag_params: dict = {},
+                              adaptative: bool = True,
+                              min_statistics=100,
+                              gyroradius=3,
+                              plot_fit=True,
+                              axarr=None, dpi=100, alpha=0.5):
+        """
+        Calculate the resolution associated with each point of the map
+
+        Ajvv
+
+        @param diag_options: Dictionary with the diagnostic specific parameters
+        like for example the method used to fit the pitch
+        @param min_statistics: Minimum number of points for a given r p to make
+        the fit (if we have less markers, this point will be ignored)
+        @param min_statistics: Minimum number of counts to perform the fit
+        @param adaptative: If true, the bin width will be adapted such that the
+        number of bins in a sigma of the distribution is 4. If this is the
+        case, dpitch, dgyr, will no longer have an impact
+        """
+        if self.strike_points is None:
+            raise Exception('You should load the strike points first!!')
+        if self.diag == 'FILD':
+            # --- Prepare options:
+            diag_options = {
+                'dpitch': 1.0,
+                'dgyr': 0.1,
+                'p_method': 'Gauss',
+                'g_method': 'sGauss'
+            }
+            diag_options.update(diag_params)
+            dpitch = diag_options['dpitch']
+            p_method = diag_options['p_method']
+
+            npitch = self.strike_points['pitch'].size
+            ir = np.argmin(abs(self.strike_points['gyroradius'] - gyroradius))
+
+            for ip in range(npitch):
+                # --- Select the data
+                data = self.strike_points['Data'][
+                    (self.strike_points['Data'][:, 0] ==
+                     self.strike_points['gyroradius'][ir]) *
+                    (self.strike_points['Data'][:, 1] ==
+                     self.strike_points['pitch'][ip]), :]
+
+                if len(data[:, 0]) < min_statistics:
+                    continue
+                # Prepare the bin edges according to the desired width
+                edges_pitch = \
+                    np.arange(start=data[:, 7].min() - dpitch,
+                              stop=data[:, 7].max() + dpitch,
+                              step=dpitch)
+
+                # --- Reduce (if needed) the bin width, we will set the
+                # bin width as 1/4 of the std, to ensure a good fitting
+                if adaptative:
+                    n_bins_in_sigma = 4
+                    sigma_p = np.std(data[:, 7])
+                    new_dpitch = sigma_p / n_bins_in_sigma
+                    edges_pitch = \
+                        np.arange(start=data[:, 7].min() - dpitch,
+                                  stop=data[:, 7].max() + dpitch,
+                                  step=new_dpitch)
+                # --- Proceed to fit
+                par_p, resultp = _fit_to_model_(data[:, 7],
+                                                bins=edges_pitch,
+                                                model=p_method,
+                                                normalize=False)
+
+                if axarr is None:
+                    fig, axarr = plt.subplots(nrows=1, ncols=1,
+                                              figsize=(6, 10),
+                                              facecolor='w', edgecolor='k',
+                                              dpi=dpi)
+                    ax_pitch = axarr  # topdown view, should see pinhole surfac
+                    ax_pitch.set_xlabel('Pitch [$\\degree$]')
+                    ax_pitch.set_ylabel('Counts')
+                    ax_pitch.set_title(
+                        'Pitch resolution at gyroradius '
+                        + str(self.strike_points['gyroradius'][ir])+' cm')
+
+                    created_ax = True
+
+                cent = 0.5 * (edges_pitch[1:] + edges_pitch[:-1])
+                fit_line = ax_pitch.plot(cent, resultp.best_fit,
+                                         label='_nolegend_')
+                label_plot = \
+                    f"{float(self.strike_points['pitch'][ip]):g}"\
+                    + '$\\degree$'
+                ax_pitch.hist(data[:, 7], bins=edges_pitch, alpha=alpha,
+                              label=label_plot, color=fit_line[0].get_color())
+
+        ax_pitch.legend(loc='best')
+
+        if created_ax:
+            fig.tight_layout()
+            fig.show()
+
+        return
+
+    def plot_gyroradius_histograms(self, diag_params: dict = {},
+                                   adaptative: bool = True,
+                                   min_statistics=100,
+                                   pitch=30,
+                                   plot_fit=True,
+                                   axarr=None, dpi=100, alpha=0.5):
+        """
+        Calculate the resolution associated with each point of the map
+
+        Ajvv
+
+        @param diag_options: Dictionary with the diagnostic specific parameters
+        like for example the method used to fit the pitch
+        @param min_statistics: Minimum number of points for a given r p to make
+        the fit (if we have less markers, this point will be ignored)
+        @param min_statistics: Minimum number of counts to perform the fit
+        @param adaptative: If true, the bin width will be adapted such that the
+        number of bins in a sigma of the distribution is 4. If this is the
+        case, dpitch, dgyr, will no longer have an impact
+        """
+        if self.strike_points is None:
+            raise Exception('You should load the strike points first!!')
+        if self.diag == 'FILD':
+            # --- Prepare options:
+            diag_options = {
+                'dpitch': 1.0,
+                'dgyr': 0.1,
+                'p_method': 'Gauss',
+                'g_method': 'sGauss'
+            }
+            diag_options.update(diag_params)
+            dgyr = diag_options['dgyr']
+            g_method = diag_options['g_method']
+
+            nr = self.strike_points['gyroradius'].size
+
+            ip = np.argmin(abs(self.strike_points['pitch'] - pitch))
+
+            for ir in range(nr):
+                # --- Select the data
+                data = self.strike_points['Data'][
+                    (self.strike_points['Data'][:, 0] ==
+                     self.strike_points['gyroradius'][ir]) *
+                    (self.strike_points['Data'][:, 1] ==
+                     self.strike_points['pitch'][ip]), :]
+
+                if len(data[:, 0]) < min_statistics:
+                    continue
+                # Prepare the bin edges according to the desired width
+                edges_gyr = \
+                    np.arange(start=data[:, 6].min() - dgyr,
+                              stop=data[:, 6].max() + dgyr,
+                              step=dgyr)
+                # --- Reduce (if needed) the bin width, we will set the
+                # bin width as 1/4 of the std, to ensure a good fitting
+                if adaptative:
+                    n_bins_in_sigma = 4
+                    sigma_r = np.std(data[:, 6])
+                    new_dgyr = sigma_r / n_bins_in_sigma
+                    edges_gyr = \
+                        np.arange(start=data[:, 6].min() - new_dgyr,
+                                  stop=data[:, 6].max() + new_dgyr,
+                                  step=new_dgyr)
+
+                # --- Proceed to fit
+
+                par_g, resultg = _fit_to_model_(data[:, 6],
+                                                bins=edges_gyr,
+                                                model=g_method,
+                                                normalize=False)
+                if axarr is None:
+                    fig, axarr = \
+                        plt.subplots(nrows=1, ncols=1, figsize=(6, 10),
+                                     facecolor='w', edgecolor='k', dpi=dpi)
+                    ax_gyroradius = axarr
+                    ax_gyroradius.set_xlabel('Gyroradius [cm]')
+                    ax_gyroradius.set_ylabel('Counts')
+                    title_plot = 'Gyroradius resolution at pitch '\
+                        + str(self.strike_points['pitch'][ip]) + '$\\degree$'
+                    ax_gyroradius.set_title(title_plot)
+
+                    created_ax = True
+
+                cent = 0.5 * (edges_gyr[1:] + edges_gyr[:-1])
+                fit_line = ax_gyroradius.plot(cent, resultg.best_fit,
+                                              label='_nolegend_')
+                label_plot = \
+                    f"{float(self.strike_points['gyroradius'][ir]):g}" + '[cm]'
+                ax_gyroradius.hist(data[:, 6], bins=edges_gyr,
+                                   alpha=alpha, label=label_plot,
+                                   color=fit_line[0].get_color())
+
+        ax_gyroradius.legend(loc='best')
+
+        if created_ax:
+            fig.tight_layout()
+            fig.show()
+
+        return
 
 
 class CalParams:
@@ -1521,7 +1784,7 @@ class CalParams:
         # To transform the from real coordinates to pixel (see
         # transform_to_pixel())
         ## pixel/cm in the x direction
-        self.xscale = 0
+        self.xscale = 0.0
         ## pixel/cm in the y direction
         self.yscale = 0
         ## Offset to align 0,0 of the sensor with the scintillator
@@ -1529,7 +1792,7 @@ class CalParams:
         ## Offset to align 0,0 of the sensor with the scintillator
         self.yshift = 0
         ## Rotation angle to transform from the sensor to the scintillator
-        self.deg = 0
+        self.deg = 0.0
 
     def print(self):
         """Print calibration"""
@@ -1591,7 +1854,7 @@ class Scintillator:
         self.ypixel = None
         # We want the coordinates in cm, if 'cm' is not the unit, apply the
         # corresponding transformation. (Void it is interpreter as cm)
-        factors = {'cm': 1, 'm': 0.01, 'mm': 0.1, 'inch': 2.54}
+        factors = {'cm': 1., 'm': 100., 'mm': 0.1, 'inch': 2.54}
         if self.orig_units in factors:
             self.coord_real = self.coord_real * factors[self.orig_units]
         else:
@@ -1648,3 +1911,4 @@ class Scintillator:
         dummyy = self.coord_real[:, 2]
 
         self.xpixel, self.ypixel = transform_to_pixel(dummyx, dummyy, calib)
+        return

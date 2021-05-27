@@ -1,5 +1,5 @@
 """
-Example of the use of the tracker under a dummy magnetic field
+Example of the use of the tracker under an AUG field
 
 Jose Rueda: jrrueda@us.es
 
@@ -8,13 +8,12 @@ Done for version 0.4.10
 import Lib as ss
 import os
 import numpy as np
-from scipy.interpolate import interpn
 
 # -----------------------------------------------------------------------------
 # --- Settings
 # -----------------------------------------------------------------------------
-shot = 34570   # shot number
-time = 2.5     # time point [s]
+shot = 28061   # shot number
+time = 4.495     # time point [s]
 diag = 'EQH'   # diagnostic for the magnetic field
 A = 2.0   # mass of the particle in amu
 Ze = 1.0   # charge of the particle in |e| units
@@ -34,14 +33,14 @@ nml = {
     },
     'INTEGRATION': {
         'dt': 1.0e-10,
-        'max_step': 2000,
+        'max_step': 10000000,
         'file_out': files['Output'],
     },
     'ORBITS_CONF': {
         'save_orbits': True,
         'num_orbits': 1.0,
         'file_orbits': files['Orbits'],
-        'dt_orbit': 1.0e-10,
+        'dt_orbit': 1.0e-8,
     },
     'DEPOSITION': {
         'markerNumber': 1,
@@ -56,13 +55,8 @@ nml = {
 # -----------------------------------------------------------------------------
 # --- Field preparation
 # -----------------------------------------------------------------------------
-# note for a full documentation of the order in which the field matrix should
-# be written, see the really nice documentation of iHIBPsim. Here as the field
-# will be taken as constan in the z direction, I will just include a dummy 1D
-# array
-
-field = ss.iHIBP.fields.ihibpEMfields()   # open the field object
-field.readBfromDB(time, shot, nR=1000, nZ=2000)
+field = ss.iHIBP.fields.ihibpEMfields()                 # open the field object
+field.readBfromDB(time=time, shot=shot, nR=1000, nZ=2000, diag=diag)   # read B
 # -----------------------------------------------------------------------------
 # --- Markers preparation
 # -----------------------------------------------------------------------------
@@ -90,7 +84,7 @@ f.close()
 # --- Namelist
 ss.tracker.write_tracker_namelist(nml, files['Namelist'])
 # --- markers
-ss.tracker.write_markers(files['Deposition'], marker)
+ss.tracker.write_markers(marker, files['Deposition'])
 # --- Launch tracker
 os.system(ss.paths.tracker + ' ' + files['Namelist'])
 # --- Read the orbits output
