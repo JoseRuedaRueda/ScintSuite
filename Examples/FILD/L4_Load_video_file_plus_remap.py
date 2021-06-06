@@ -27,6 +27,7 @@ limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 subtract_noise = True   # Flag to apply noise subtraction
 tn1 = 0.5     # Initial time to average the frames for noise subtraction [s]
 tn2 = 0.6     # Final time to average the frames for noise subtraction [s]
+flag_copy = False  # If true, a copy of the frame will be done
 
 # - Filter options:
 apply_filter = True  # Flag to apply filter to the frames
@@ -91,7 +92,7 @@ print('Elapsed time [s]: ', time() - tdummy)
 # --- Section 2: Subtract the noise and filter frames
 # -----------------------------------------------------------------------------
 if subtract_noise:
-    vid.subtract_noise(t1=tn1, t2=tn2)
+    vid.subtract_noise(t1=tn1, t2=tn2, flag_copy=flag_copy)
 
 if apply_filter:
     vid.filter_frames(kind_of_filter, options_filter)

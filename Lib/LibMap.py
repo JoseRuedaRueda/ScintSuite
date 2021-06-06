@@ -840,14 +840,24 @@ class CalibrationDatabase:
 class StrikeMap:
     """Class with the information of the strike map"""
 
-    def __init__(self, flag=0, file: str = None):
+    def __init__(self, flag=0, file: str = None, machine='AUG', theta=None,
+                 phi=None, decimals=1):
         """
         Initialise the class
+
+        Thera are 2 ways of selecting the smap: give the full path to the file,
+        or give the theta and phi angles and the machine, so the strike map
+        will be selected from the remap database
 
         @param flag: 0  means FILD, 1 means INPA, 2 means iHIBP (you can also
         write directly 'FILD', 'INPA', 'iHIBP')
         @param file: Full path to file with the strike map
-        @todo Eliminate flag and extract info from file name??
+        @param machine: machine, to look in the datbase
+        @param theta: theta angle  (see FILDSIM doc)
+        @param phi: phi angle (see FILDSIM doc)
+        @param decimals: decimals to look in the database
+
+        Notes: machine, theta and phi options introduced in version 0.4.14
         """
         ## Associated diagnostic
         if flag == 0 or flag == 'FILD':
@@ -861,9 +871,22 @@ class StrikeMap:
         self.xpixel = None
         ## Y-Position, in pixels, of the strike map (common)
         self.ypixel = None
+        ## file
+        if file is not None:
+            self.file = file
 
         if flag == 0 or flag == 'FILD':
             # Read the file
+            if file is None:
+                smap_folder = pa.FILDStrikeMapsRemap
+                dumm = ssFILDSIM.guess_strike_map_name_FILD(phi,
+                                                            theta,
+                                                            machine=machine,
+                                                            decimals=decimals)
+                file = os.path.join(smap_folder, dumm)
+                self.file = file
+            if not os.path.isfile(file):
+                print('Strike map no fpun in the database')
             dummy = np.loadtxt(file, skiprows=3)
             # See which rows has collimator factor larger than zero (ie see for
             # which combination of energy and pitch some markers has arrived)
@@ -920,15 +943,19 @@ class StrikeMap:
                             self.collimator_factor[flags]
 
     def plot_real(self, ax=None,
-                  marker_params: dict = {}, line_params: dict = {}):
+                  marker_params: dict = {}, line_params: dict = {},
+                  labels: bool = False,
+                  rotation_for_gyr_label: float = 90.0,
+                  rotation_for_pitch_label: float = 30.0):
         """
         Plot the strike map (x,y = dimensions in the scintillator)
 
         Jose Rueda: jrrueda@us.es
 
         @param ax: Axes where to plot
-        @param plt_param: Parameters for plot beauty, example: markersize=6
-        @return: Strike maps over-plotted in the axis
+        @param markers_params: parameters for plt.plot() to plot the markers
+        @param line_params: parameters for plt.plot() to plot the markers
+        @param labels: flag to add the labes (gyroradius, pitch) on the plot
         """
         # Default plot parameters:
         marker_options = {
@@ -948,9 +975,9 @@ class StrikeMap:
         if ax is None:
             fig, ax = plt.subplots()
 
-        # Draw the lines of constant gyroradius, energy, or rho (depending on
-        # the particular diagnostic) [These are the 'horizontal' lines]
-        if hasattr(self, 'gyroradius'):
+        if self.diag == 'FILD':
+            # Draw the lines of constant gyroradius (energy). These are the
+            # 'horizontal' lines]
             uniq = np.unique(self.gyroradius)
             n = len(uniq)
             for i in range(n):
@@ -966,16 +993,11 @@ class StrikeMap:
             ax.annotate('Gyroradius (cm)',
                         xy=(min(self.y) - 0.5,
                             (max(self.z) - min(self.z))/2 + min(self.z)),
-                        rotation=90,
+                        rotation=rotation_for_gyr_label,
                         horizontalalignment='center',
                         verticalalignment='center')
-        else:
-            return
-            ## @todo: talk with Pablo about his strike maps and his coordinates
 
-        # Draw the lines of constant pitch (depending of the diagnostic,
-        # in INPA would be constant radius [these are the vertical lines]
-        if hasattr(self, 'pitch'):
+            # Draw the lines of constant pitch. 'Vertical' lines
             uniq = np.unique(self.pitch)
             n = len(uniq)
             for i in range(n):
@@ -983,7 +1005,7 @@ class StrikeMap:
                 ax.plot(self.y[flags], self.z[flags], **line_options)
 
                 ax.text((self.y[flags])[-1],
-                        (self.z[flags])[-1]-0.1,
+                        (self.z[flags])[-1] - 0.1,
                         f'{float(uniq[i]):g}',
                         horizontalalignment='center',
                         verticalalignment='top')
@@ -991,16 +1013,15 @@ class StrikeMap:
             ax.annotate('Pitch [$\\degree$])',
                         xy=((max(self.y) - min(self.y))/2 + min(self.y),
                             min(self.z) - 0.1),
-                        rotation=30,
+                        rotation=rotation_for_pitch_label,
                         horizontalalignment='center',
                         verticalalignment='center')
         else:
-            return
-            ## @todo: change == by a < tol??
+            raise Exception('Diagnostic not implemented')
 
         # Plot some markers in the grid position
-        ## @todo include labels energy/pitch in the plot
         ax.plot(self.y, self.z, **marker_options)
+        return
 
     def plot_pix(self, ax=None, marker_params: dict = {},
                  line_params: dict = {}):
@@ -1034,27 +1055,21 @@ class StrikeMap:
 
         # Draw the lines of constant gyroradius, energy, or rho (depending on
         # the particular diagnostic) [These are the 'horizontal' lines]
-        if hasattr(self, 'gyroradius'):
+        if self.diag == 'FILD':
+            # Lines of constant gyroradius
             uniq = np.unique(self.gyroradius)
             n = len(uniq)
             for i in range(n):
                 flags = self.gyroradius == uniq[i]
                 ax.plot(self.xpixel[flags], self.ypixel[flags], **line_options)
-        else:
-            return
-            ## @todo: talk with Pablo about his strike maps and his coordinates
-
-        # Draw the lines of constant pitch (depending of the diagnostic,
-        # in INPA would be constant radius [these are the vertical lines]
-        if hasattr(self, 'pitch'):
+            # Lines of constant pitch
             uniq = np.unique(self.pitch)
             n = len(uniq)
             for i in range(n):
                 flags = self.pitch == uniq[i]
                 ax.plot(self.xpixel[flags], self.ypixel[flags], **line_options)
         else:
-            return
-            ## @todo: change == by a < tol??
+            raise Exception('Not implemented diagnostic')
 
         # Plot some markers in the grid position
         ## @todo include labels energy/pitch in the plot
@@ -1160,15 +1175,19 @@ class StrikeMap:
             self.energy = ssFILDSIM.get_energy(self.gyroradius, B0, A=A, Z=Z)
         return
 
-    def load_strike_points(self, file, verbose: bool = True):
+    def load_strike_points(self, file=None, verbose: bool = True):
         """
         Load the strike points used to calculate the map
 
         Jose Rueda: ruejo@ipp.mpg.de
 
         @param file: File to be loaded. It should contain the strike points in
-        FILDSIM format (if we are loading FILD)
+        FILDSIM format (if we are loading FILD). If none, name will be deduced
+        from the self.file variable, so the strike points are supposed to be in
+        the same folder than the strike map
         """
+        if file is None:
+            file = self.file[:-14] + 'strike_points.dat'
         if verbose:
             print('Reading strike points: ', file)
         if self.diag == 'FILD':

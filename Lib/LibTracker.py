@@ -196,7 +196,6 @@ def write_namelist_legacy_(name_of_namelist_file: str,
         # Ion density profile. If this is not provided, electron is used
         print("n0_name = '", n0_name, "',", file=f, sep='')
         # Modifies the input n0 by this factor. Set to 1.0d0 by default
-        ## todo : talk with pablo about Zeff
         print("Zeff = ", Zeff, ",", file=f, sep='')
         print('/', file=f, sep='')
         print("", file=f, sep='')

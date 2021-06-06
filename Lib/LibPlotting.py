@@ -14,100 +14,86 @@ from matplotlib.colors import LinearSegmentedColormap
 import Lib.LibData as ssdat
 import os
 import matplotlib as mpl
+from Lib.LibPaths import Path
+import f90nml
+
+paths = Path()
 
 
 # -----------------------------------------------------------------------------
 # --- Plot settings
 # -----------------------------------------------------------------------------
 def plotSettings(plot_mode='software', usetex=False):
-    '''
-    Matplotlib formating
-    '''
+    """
+    Set default options for matplotlib
 
-    #Add font directories
-    trueFonts = '/afs/ipp-garching.mpg.de/home/%s/%s/SpectraViewer/lib/fonts/TrueType/'%(os.getenv("USER")[0], os.getenv("USER"))
-    latin_modern_fonts = '/afs/ipp-garching.mpg.de/home/%s/%s/SpectraViewer/lib/fonts/lm-math'%(os.getenv("USER")[0], os.getenv("USER"))
-    font_dirs=[trueFonts, latin_modern_fonts]
-    #comes from: '/usr/share/texmf/fonts/opentype/public/lm-math/','/usr/openwin/lib/X11/fonts/TrueType'
-    #To find fonts use: fc-list | grep "DejaVu Sans"
-    #or: find / -type f -name "*.ttf"
+    Anton J. van Vuuren ft. Jose Rueda
 
-    font_files=mpl.font_manager.findSystemFonts(fontpaths=font_dirs)
-    font_list=mpl.font_manager.createFontList(font_files)
+    @param plot_mode: set of options to load: software, article or presentation
+    @param usetex: flag to use tex formating or not
+    """
+    # Load default plotting options
+    filename = os.path.join(paths.ScintSuite, 'Data', 'MyData',
+                            'plotting_default_param.cfg')
+    nml = f90nml.read(filename)
+
+    # Add font directories
+    font_files = mpl.font_manager.findSystemFonts(fontpaths=paths.fonts)
+    font_list = mpl.font_manager.createFontList(font_files)
     mpl.font_manager.fontManager.ttflist.extend(font_list)
 
-    '''
-    Default settings
-    '''
-    #Set default font to Arial
-    mpl.rcParams['font.family']='Arial'
-    #set background transparent
-    mpl.rcParams["savefig.transparent"] = True
+    # Set some matplotlib parameters
+    mpl.rcParams["savefig.transparent"] = \
+        nml['default']['transparent_background']
 
-    #Set ticks to point inward by default
-    mpl.rcParams['xtick.direction']='in'
-    mpl.rcParams['ytick.direction']='in'
+    mpl.rcParams['xtick.direction'] = nml['default']['tick_direction']
+    mpl.rcParams['ytick.direction'] = nml['default']['tick_direction']
 
-    #other tick settings
-    mpl.rcParams['xtick.major.size'] = 8  # major tick size in points
-    mpl.rcParams['xtick.major.width']= 2
-    mpl.rcParams['xtick.minor.size'] = 6
-    mpl.rcParams['xtick.minor.width']= 1
-    mpl.rcParams['ytick.major.size'] = 8  # major tick size in points
-    mpl.rcParams['ytick.major.width']= 2
-    mpl.rcParams['ytick.minor.size'] = 6
-    mpl.rcParams['ytick.minor.width']= 1
+    mpl.rcParams['svg.fonttype'] = 'none'  # to edit fonts in inkscape
 
-    #Defualt line and marker settings
-    mpl.rcParams['lines.linewidth']  = 2
-    mpl.rcParams['lines.markersize'] = 8
-    #mpl.rcParams['lines.markeredgewidth'] = 2.5
-
-    #Latex formating
-    mpl.rcParams['text.latex.preamble'] = [\
-        r'\usepackage{siunitx}', \
-        r'\sisetup{detect-all}', \
-        r'\usepackage{sansmath}', \
-        r'\usepackage{amsmath}' , \
-        r'\usepackage{amsfonts}', \
-        r'\usepackage{amssymb}', \
-        r'\usepackage{braket}', \
-        r'\sisetup{detect-all}']
-    #needed to be able to edit fonts in inkscape
-    mpl.rcParams['svg.fonttype'] = 'none'
-    #Use latex formating when usetex=True
+    # Latex formating
+    mpl.rcParams['text.latex.preamble'] = [
+        r'\usepackage{siunitx}',
+        r'\sisetup{detect-all}',
+        r'\usepackage{sansmath}',
+        r'\usepackage{amsmath}',
+        r'\usepackage{amsfonts}',
+        r'\usepackage{amssymb}',
+        r'\usepackage{braket}',
+        r'\sisetup{detect-all}'
+    ]
     mpl.rc('text', usetex=usetex)
 
-    if(plot_mode == "Article"):
-        #from: https://stackoverflow.com/questions/21321670/how-to-change-fonts-in-matplotlib-python
-        #https://www.w3schools.com/css/css_font.asp
-        mpl.rc('font',**{'family':'serif','serif':['Latin Modern Math'],'size':16})
-        mpl.rcParams["legend.fontsize"]= 16
-        mpl.rcParams['axes.titlesize'] = 16
-        mpl.rcParams['axes.labelsize'] = 16
-    elif(plot_mode == "Presentation"):
-        mpl.rc('font',**{'family':'sans-serif','sans-serif':['Arial'],'size':16})
-        mpl.rcParams["legend.fontsize"]=  16
-        mpl.rcParams['axes.titlesize'] =  16
-        mpl.rcParams['axes.labelsize'] =  16
+    # from: https://stackoverflow.com/questions/21321670/
+    #   how-to-change-fonts-in-matplotlib-python
+    # https://www.w3schools.com/css/css_font.asp
 
-    elif(plot_mode == "Software"):
-        mpl.rc('font', **{'family':'sans-serif', 'sans-serif':['DejaVu Sans'], 'size' : 12})
-        mpl.rcParams["legend.fontsize"] = 12
-        mpl.rcParams['axes.titlesize']  = 12
-        mpl.rcParams['axes.labelsize']  = 12
+    mode = plot_mode.lower()
+    opt = {
+        'family': nml[mode]['font_family'],
+        'serif': [nml[mode]['font_name']],
+        'size': nml[mode]['axis_font_size']
+    }
+    mpl.rc('font', **opt)
+    mpl.rcParams['legend.fontsize'] = nml[mode]['legend_font_size']
+    mpl.rcParams['axes.titlesize'] = nml[mode]['title_font_size']
+    mpl.rcParams['axes.labelsize'] = nml[mode]['axis_font_size']
 
-        mpl.rcParams['lines.linewidth']  = 1.5
-        mpl.rcParams['lines.markersize'] = 6
+    mpl.rcParams['lines.linewidth'] = nml[mode]['line_width']
+    mpl.rcParams['lines.markersize'] = nml[mode]['marker_size']
 
-        mpl.rcParams['xtick.major.size'] = 4  # major tick size in points
-        mpl.rcParams['xtick.major.width']= 1
-        mpl.rcParams['xtick.minor.size'] = 2
-        mpl.rcParams['xtick.minor.width']= 1
-        mpl.rcParams['ytick.major.size'] = 4  # major tick size in points
-        mpl.rcParams['ytick.major.width']= 1
-        mpl.rcParams['ytick.minor.size'] = 2
-        mpl.rcParams['ytick.minor.width']= 1
+    mpl.rcParams['xtick.major.size'] = nml[mode]['Major_tick_length']
+    mpl.rcParams['xtick.major.width'] = nml[mode]['Major_tick_width']
+    mpl.rcParams['xtick.minor.size'] = nml[mode]['minor_tick_length']
+    mpl.rcParams['xtick.minor.width'] = nml[mode]['minor_tick_width']
+    mpl.rcParams['ytick.major.size'] = nml[mode]['Major_tick_length']
+    mpl.rcParams['ytick.major.width'] = nml[mode]['Major_tick_width']
+    mpl.rcParams['ytick.minor.size'] = nml[mode]['minor_tick_length']
+    mpl.rcParams['ytick.minor.width'] = nml[mode]['minor_tick_width']
+
+    # Print and return
+    print('Plotting options initialised')
+    return
 
 
 # -----------------------------------------------------------------------------
@@ -376,7 +362,7 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
                        axis_ratio: str = 'auto',
                        units: str = 'm', color=None):
     """
-    Plots the flux surfaces of a given shot in AUG for a given time point.
+    Plot the flux surfaces of a given shot in AUG for a given time point.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
@@ -447,10 +433,10 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
 # --- Plotting ECE
 # -----------------------------------------------------------------------------
 def plot2D_ECE(ecedata: dict, rType: str = 'rho_pol', downsample: int = 2,
-               ax = None, fig = None, cmap = None, which: str='norm',
+               ax=None, fig=None, cmap=None, which: str = 'norm',
                cm_norm: str = 'linear'):
     """
-    Plots the ECE data into a contour 2D plot.
+    Plot the ECE data into a contour 2D plot.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
@@ -467,9 +453,8 @@ def plot2D_ECE(ecedata: dict, rType: str = 'rho_pol', downsample: int = 2,
     @param cm_norm: colormap normalization. Optional to be chosen between
     linear, sqrt and log.
 
-    @return ax: return the axis used.
+    @return ax: The used axis.
     """
-
     if ax is None:
         fig, ax = plt.subplots(1)
 

@@ -1,3 +1,11 @@
+** 0.4.14: Smap and plotting improvements
+- The StrikeMap object can now be initialised with the theta and phi angle, no longer need the full path to the file (although of course you can still use the file)
+- If no file is given to the StrikeMap.load_strike_points() the code will look for the strike points file in the same folder than the strike map
+- The substract noise function include now an option to make a copy of the frames or not (to save memory, dafult: True)
+- Default plotting options now available via configurable namelist (Data/MyData)
+- Minor ToDos solved
+- Upgraded Readme
+
 ** 0.4.13: FILDSIM forward modeling
 - Camera parameters no longer in LibParams but in separate txt files in the Data folders
 - f90mnl is now a fundamental module, the suite will not work without it
