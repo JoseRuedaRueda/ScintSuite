@@ -2,17 +2,17 @@
 import os
 from Lib.LibMachine import machine
 
+
 class Path:
     """Paths of the different codes and folders"""
 
-    ## @todo: include here a proper machine dependent path to png files
     def __init__(self, machine=machine):
         """Initialise the class"""
         home = os.getenv("HOME")
         self.FILDSIM = os.path.join(home, 'FILDSIM/')
         self.INPASIM = os.path.join(home, 'INPASIM/')
-        self.Results = os.path.join(home, 'ScintSuite/Results')
         self.ScintSuite = os.path.join(home, 'ScintSuite/')
+        self.Results = os.path.join(self.ScintSuite, 'Results')
         self.FILDStrikeMapsRemap = os.path.join(self.ScintSuite, 'Data',
                                                 'StrikeMaps', 'FILD', 'Remap')
         self.FILDStrikeMapsTomography = \
@@ -31,3 +31,9 @@ class Path:
                                                   'Data',
                                                   'Magnetics',
                                                   'balloning_correction.dat')
+            self.fonts = [
+                '/usr/share/fonts/truetype',
+                '/usr/share/fonts/truetype/ms-corefonts',
+                '/usr/share/texmf/fonts/opentype/public/lm',
+                '/usr/share/texmf/fonts/opentype/public/lm-math'
+            ]
