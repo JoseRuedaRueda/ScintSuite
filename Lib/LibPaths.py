@@ -29,8 +29,7 @@ class Path:
             self.FILDStrikeMapsTomography += '/AUG/'
             self.bcoils_phase_corr = os.path.join(self.ScintSuite,
                                                   'Data',
-                                                  'Magnetics',
-                                                  'balloning_correction.dat')
+                                                  'Magnetics')
             self.fonts = [
                 '/usr/share/fonts/truetype',
                 '/usr/share/fonts/truetype/ms-corefonts',
