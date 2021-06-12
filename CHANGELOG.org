@@ -1,3 +1,11 @@
+** 0.4.15 Profile routines and EHO tracker.
+- Toroidal rotation reading routines has been included: from PED, IDI or make a smoothing spline to the CXRS raw data.
+- Routines to read the profiles (electron temperature and density) from PED.
+- EHO tracker with and without diamagnetic corrections has been included in Examples.
+- Phase correction for the magnetic pick-up coils in AUG is now included.
+- The phase correction files are automatically downloaded at the first time that the magnetic routines from AUG are run.
+
+
 ** 0.4.14: Smap and plotting improvements
 - The StrikeMap object can now be initialised with the theta and phi angle, no longer need the full path to the file (although of course you can still use the file)
 - If no file is given to the StrikeMap.load_strike_points() the code will look for the strike points file in the same folder than the strike map

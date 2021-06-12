@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import tkinter as tk 
-import Lib.BEP.readBEP as rbep
+import Lib.BEP.LibBEP as rbep
 from Lib.GUIs.BEP_gui import AppBEP_plot
 
 

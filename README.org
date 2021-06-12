@@ -71,6 +71,7 @@ All devices are identified by three letters:
 - INPASIM code: <https://gitlab.mpcdf.mpg.de/ruejo/inpasim.git>
 - i-HIBPSIM code: <https://gitlab.mpcdf.mpg.de/poyo/ihibpsim>
 - SMap library: <https://datashare.mpcdf.mpg.de/s/yyLR7hCKNBqK34W>
+- Phase correction for magnetics: <https://datashare.mpcdf.mpg.de/s/FiqRIixNMb82HTq>
 
 ** Implementation of other machines
 The suite is thought to be machine independent, but some work must be done:
