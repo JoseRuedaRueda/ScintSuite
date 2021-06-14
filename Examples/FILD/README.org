@@ -1,18 +1,18 @@
 * FILD ANALYSIS EXAMPLES
 
-These routines should serve as an example of the main FILD data analysis you can perform with the ScintillatorSuite. Of course several small options and auxiliary plotting capabilities are not included in these examples, but they shuld give a good overview. Please ask jrrueda@us.es if you want futher examples
+These routines should serve as an example of the main FILD data analysis you can perform with the ScintillatorSuite. Of course several small options and auxiliary plotting capabilities are not included in these examples, but they should give a good overview. Please ask jrrueda@us.es if you want further examples
 
-** Prerequites
-run always paths_suite.py before runing these examples
+** Pre-requites
+run always paths_suite.py before running these examples
 
 ** Examples
   - L1: Load a video from FILD
   - L2: Load a video and calculate the time trace, this is not the recommended method if you want to calculate a TT of a .cin video, as it load all the video before calculating the timetrace. For Cin videos, please see a follow up example
   - L3: Remap a whole video. The focus is put on rFILD (which need different FILDSIM options and strike maps)
-  - L4: Remap a whole video. Ideal for all foward FILDs, include filter examples
+  - L4: Remap a whole video. Ideal for all forward FILDs, include filter examples
   - L5: Remap a whole video but using a roi to limit a region in the scintillator
   - L6: Remap the whole video but using the same strike map
-  - L7: Calculate a time trace, optimised for the case of a cin file
-  - L8: Example of remap a single frame
+  - L7: Calculate a time trace, optimized for the case of a .cin file
+  - L8: Example of remap a single frame, compares MC and 'typical' remap
   - L9: Example of how to compare 2 plots from the camera and their remaps, ideal for MMM
   - L10: Tomographic inversion of a frame

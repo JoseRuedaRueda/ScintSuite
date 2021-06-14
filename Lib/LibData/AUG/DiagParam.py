@@ -12,8 +12,8 @@ shot_number_length = 5  # In AUG shots numbers are written with 5 numbers 00001
 ## @todo> This is hardcored here, at the end there are only 2 weeks of reverse
 # field experiments in  the whole year, but if necesary, we could include here
 # some kind of method to check the sign calling the AUG database
-Bt_sign = 1   # +1 Indicates the positive phi direction (counterclockwise)
-It_sign = -1  # -1 Indicates the negative phi direction (clockwise)
+Bt_sign = -1   # +1 Indicates the positive phi direction (counterclockwise)
+It_sign = 1  # -1 Indicates the negative phi direction (clockwise)
 IB_sign = Bt_sign * It_sign
 
 # -----------------------------------------------------------------------------

@@ -5,7 +5,7 @@ This reads directly from the database the data from the BEP shotfile and plots
 the raw signal (uncalibrated signal) for a set of given shots.s
 """
 
-import Lib.BEP.libBEP as rbep
+import Lib.BEP.LibBEP as rbep
 import numpy as np
 import matplotlib.pyplot as plt
 
