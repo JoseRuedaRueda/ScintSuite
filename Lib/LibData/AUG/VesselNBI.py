@@ -374,11 +374,7 @@ class NBI:
             # insert the date where it should be
             self.pitch_profile['t'] = \
                 np.concatenate((self.pitch_profile['t'], t))
-            # We assume the user hs not change the grid
-            # self.pitch_profile['z'] = \
-            #     np.vstack((self.pitch_profile['z'], Z))
-            # self.pitch_profile['R'] = \
-            #     np.vstack((self.pitch_profile['R'], R))
+            # We assume the user has not change the grid
             self.pitch_profile['pitch'] = \
                 np.vstack((self.pitch_profile['pitch'], pitch))
             self.pitch_profile['rho'] = \

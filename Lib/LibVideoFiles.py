@@ -1443,7 +1443,8 @@ class Video:
 
     def read_frame(self, frames_number=None, limitation: bool = True,
                    limit: int = 2048, internal: bool = True, t1: float = None,
-                   t2: float = None, threshold_saturation=0.95):
+                   t2: float = None, threshold_saturation=0.95,
+                   read_from_loaded: bool = False):
         """
         Call the read_frame function
 
@@ -1463,63 +1464,74 @@ class Video:
         @param t1: Initial time to load frames (alternative to frames number)
         @param t2: Final time to load frames (alternative to frames number), if
         just t1 is given , only one frame will be loaded
+        @param read_from_loaded: If true, it will return the frame closer to t1
+        , independently of the flag 'internal' (usefull to extract noise
+        corrected frames from the video object :-)
         @return M: 3D numpy array with the frames M[px,py,nframes]
         """
         # --- Select frames to load
-        if (frames_number is not None) and (t1 is not None):
-            raise Exception('You cannot give frames number and time')
-        elif (t1 is not None) and (t2 is None):
-            frames_number = np.array([np.argmin(abs(self.timebase-t1))])
-        elif (t1 is not None) and (t2 is not None):
-            it1 = np.argmin(abs(self.timebase-t1))
-            it2 = np.argmin(abs(self.timebase-t2))
-            frames_number = np.arange(start=it1, stop=it2+1, step=1)
-        # else:
-        #     raise Exception('Something went wrong, check inputs')
+        if not read_from_loaded:
+            if (frames_number is not None) and (t1 is not None):
+                raise Exception('You cannot give frames number and time')
+            elif (t1 is not None) and (t2 is None):
+                frames_number = np.array([np.argmin(abs(self.timebase-t1))])
+            elif (t1 is not None) and (t2 is not None):
+                it1 = np.argmin(abs(self.timebase-t1))
+                it2 = np.argmin(abs(self.timebase-t2))
+                frames_number = np.arange(start=it1, stop=it2+1, step=1)
+            # else:
+            #     raise Exception('Something went wrong, check inputs')
 
-        if self.type_of_file == '.cin':
-            if internal:
-                self.exp_dat['frames'] = \
-                    read_frame_cin(self, frames_number, limitation=limitation,
-                                   limit=limit)
-                self.exp_dat['tframes'] = self.timebase[frames_number]
-                self.exp_dat['nframes'] = frames_number
-                self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
+            if self.type_of_file == '.cin':
+                if internal:
+                    self.exp_dat['frames'] = \
+                        read_frame_cin(self, frames_number,
+                                       limitation=limitation, limit=limit)
+                    self.exp_dat['tframes'] = self.timebase[frames_number]
+                    self.exp_dat['nframes'] = frames_number
+                    self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
+                else:
+                    M = read_frame_cin(self, frames_number,
+                                       limitation=limitation, limit=limit)
+                    return M.squeeze()
+            elif self.type_of_file == '.png':
+                if internal:
+                    self.exp_dat['frames'] = \
+                        read_frame_png(self, frames_number,
+                                       limitation=limitation, limit=limit)
+                    self.exp_dat['tframes'] = \
+                        self.timebase[frames_number].flatten()
+                    self.exp_dat['nframes'] = frames_number
+                    self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
+                else:
+                    M = read_frame_png(self, frames_number,
+                                       limitation=limitation, limit=limit)
+                    return M.squeeze()
             else:
-                M = read_frame_cin(self, frames_number, limitation=limitation,
-                                   limit=limit)
-                return M.squeeze()
-        elif self.type_of_file == '.png':
-            if internal:
-                self.exp_dat['frames'] = \
-                    read_frame_png(self, frames_number, limitation=limitation,
-                                   limit=limit)
-                self.exp_dat['tframes'] = \
-                    self.timebase[frames_number].flatten()
-                self.exp_dat['nframes'] = frames_number
-                self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
-            else:
-                M = read_frame_png(self, frames_number, limitation=limitation,
-                                   limit=limit)
-                return M.squeeze()
+                raise Exception('Not initialised file type?')
+            # Count saturated pixels
+            max_scale_frames = 2 ** self.settings['RealBPP'] - 1
+            threshold = threshold_saturation * max_scale_frames
+            print('Counting "saturated" pixels')
+            print('The threshold is set to: ', threshold[0], ' counts')
+            number_of_frames = len(self.exp_dat['tframes'])
+            n_pixels_saturated = np.zeros(number_of_frames)
+            for i in range(number_of_frames):
+                n_pixels_saturated[i] = \
+                    (self.exp_dat['frames'][:, :, i] >= threshold).sum()
+            self.exp_dat['n_pixels_gt_threshold'] = \
+                n_pixels_saturated.astype('int32')
+            self.exp_dat['threshold_for_counts'] = threshold_saturation
+            print('Maximum number of saturated pixels in a frame: '
+                  + str(self.exp_dat['n_pixels_gt_threshold'].max()))
         else:
-            raise Exception('Not initialised file type?')
-        # Count saturated pixels
-        max_scale_frames = 2 ** self.settings['RealBPP'] - 1
-        threshold = threshold_saturation * max_scale_frames
-        print('Counting "saturated" pixels')
-        print('The threshold is set to: ', threshold, ' counts')
-        number_of_frames = len(self.exp_dat['tframes'])
-        n_pixels_saturated = np.zeros(number_of_frames)
-        for i in range(number_of_frames):
-            n_pixels_saturated[i] = \
-                (self.exp_dat['frames'][:, :, i] >= threshold).sum()
-        self.exp_dat['n_pixels_gt_threshold'] = \
-            n_pixels_saturated.astype('int32')
-        self.exp_dat['threshold_for_counts'] = threshold_saturation
+            it = np.argmin(abs(self.exp_dat['tframes'] - t1))
+            M = self.exp_dat['frames'][:, :, it].squeeze()
+            return M
         return
 
-    def subtract_noise(self, t1: float = None, t2: float = None, frame=None):
+    def subtract_noise(self, t1: float = None, t2: float = None, frame=None,
+                       flag_copy: bool = False, return_noise: bool = False):
         """
         Subtract noise from camera frames
 
@@ -1537,6 +1549,9 @@ class Video:
         @param t1: Minimum time to average the noise
         @param t2: Maximum time to average the noise
         @param frame: Optional, frame containing the noise to be subtracted
+        @param flag_copy: If true, a copy of the frame will be stored
+        @param  return_noise: If True, the average frame used for the noise
+        will be returned
         """
         print('.--. ... ..-. -')
         print('Substracting noise')
@@ -1583,7 +1598,7 @@ class Video:
                 raise Exception('The noise frame has not the correct shape')
             self.exp_dat['frame_noise'] = frame
         # Create the original frame array:
-        if 'original_frames' not in self.exp_dat:
+        if 'original_frames' not in self.exp_dat and flag_copy:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
         else:
             print('original frames already present, not making new copy')
@@ -1597,6 +1612,8 @@ class Video:
             dummy[dummy < 0] = 0.
             self.exp_dat['frames'][:, :, i] = dummy.astype(original_dtype)
         print('-... -.-- . / -... -.-- .')
+        if return_noise:
+            return frame
         return
 
     def return_to_original_frames(self):
@@ -1888,22 +1905,30 @@ class Video:
         ax.set_ylim(ylim)
         return ax
 
-    def find_orientation(self, t, verbose: bool = True):
+    def find_orientation(self, t, verbose: bool = True, R=None, z=None):
         """
         find the orientation of FILD for a given time
 
         José Rueda: jrrueda@us.es
 
-        ToDo: Now it only load data from the remap_structure, if remap does not
-        exist, it should calculate the angles
-
         @param t: time point where we want the angles [s]
         @param verbose: flag to print information or not
+        @param R: R coordinate of the detector (in meters) for B calculation
+        @param z: z coordinate of the detector (in meters) for B calculation
+
         @return theta: theta angle [º]
         @return phi: phi angle [º]
         """
         if self.remap_dat is None:
-            raise Exception('Remap not done!!!')
+            if self.diag == 'FILD':
+                print('Remap not done, calculating angles')
+                br, bz, bt, bp =\
+                    ssdat.get_mag_field(self.shot, R, z, time=t)
+                alpha = ssdat.FILD[self.diag_ID-1]['alpha']
+                beta = ssdat.FILD[self.diag_ID-1]['beta']
+                phi, theta = \
+                    ssfildsim.calculate_fild_orientation(br, bz, bt,
+                                                         alpha, beta)
         if self.diag == 'FILD':
             tmin = self.remap_dat['tframes'][0]
             tmax = self.remap_dat['tframes'][-1]
@@ -1916,7 +1941,8 @@ class Video:
                 time = self.remap_dat['tframes'][it]
         if verbose:
             print('Requested time:', t)
-            print('Found time: ', time)
+            if self.remap_dat is None:
+                print('Found time: ', time)
             print('theta:', theta)
             print('phi:', phi)
         return phi, theta

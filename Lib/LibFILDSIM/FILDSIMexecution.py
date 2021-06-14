@@ -119,7 +119,7 @@ def run_FILDSIM(namelist, queue=False):
     """
     Execute a FILDSIM simulation
 
-    @todo Include the capability of connecting to a external machine
+    Jose Rueda and Anton J. van Vuuren
 
     @param namelist: full path to the namelist
     """

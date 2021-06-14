@@ -4,8 +4,8 @@ This code is created to analyze the signal from scintillator diagnostics. Suppor
 
 ** Installation and documentation
 *** Prerequisites. Python 3.7 or higher
-Needed packages:
-Only listed 'non-standard' packages
+Needed packages(Only listed 'non-standard' packages):
+
 *Essentials* (the suite will not work without them):
     - f90nml: To read FORTRAN namelist in an easy way (needed since version 0.1.10) =pip install f90nml= . This is the suite standard to read and write namelists!!!
 *Optional* (the suite will work but some capabilities will not be available)
@@ -33,7 +33,7 @@ There are two files containing the paths and routes for the suite:
 Each release will be denoted by 3 numbers: a.b.c meaning:
     - c: bug fixed and improved comments and documentation. Some new capabilities could be added (see changelog). The higher the number, the better.
     - b: Significant changes, versions a.b1.c1 and a.b2.c2, should run perfectly with the same inputs.  But some internal routines may have changed, so if you have your own scripts using them 'outside the main loop' something can go wrong for you. The higher b, the more extra capabilities you have
-    - a: indicate major changes in the code, versions with different 'a' may be not compatible, not recommended update to a higher a version close to a conference
+    - a: indicate major changes in the code, versions with different 'a' may be not compatible, not recommended update to a higher 'a' version close to a conference
 
 *** Branches
 - master: Stable branch, things should work, may be a delay including new features
@@ -71,6 +71,7 @@ All devices are identified by three letters:
 - INPASIM code: <https://gitlab.mpcdf.mpg.de/ruejo/inpasim.git>
 - i-HIBPSIM code: <https://gitlab.mpcdf.mpg.de/poyo/ihibpsim>
 - SMap library: <https://datashare.mpcdf.mpg.de/s/yyLR7hCKNBqK34W>
+- Phase correction for magnetics: <https://datashare.mpcdf.mpg.de/s/FiqRIixNMb82HTq>
 
 ** Implementation of other machines
 The suite is thought to be machine independent, but some work must be done:

@@ -685,8 +685,7 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
         eff = np.ones(rpin.size)
     # Build the weight matrix. We will use brute force, I am sure that there is
     # a tensor product implemented in python which does the job in a more
-    # efficient way, bot for the moment, I will leave exactly as in the
-    # original IDL routine
+    # efficient way
     res_matrix = np.zeros((nr_scint, np_scint, nr_pin, np_pin))
 
     print('Creating matrix')
@@ -735,8 +734,6 @@ def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @todo: add titles and print the used point
-
     @param W4D: 4-D weight function
     @param pr: array of gyroradius at the pinhole used to calculate W
     @param pp: array of pitches at the pinhole used to calculate W
@@ -756,22 +753,29 @@ def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
     if (pp0 is not None) and (pr0 is not None):
         ip = np.argmin(abs(pp - pp0))
         ir = np.argmin(abs(pr - pr0))
+        up = pp[ip]   # Used value of pitch
+        ur = pr[ir]   # Used value of radius
         W = W4D[:, :, ir, ip]
         fig, ax = plt.subplots()
         a = ax.contourf(sp, sr, W, nlev, cmap=ccmap)
         plt.colorbar(a, ax=ax)
+        ax.set_title('Pinhole point: (' + str(ur) + ', ' + str(up) + ')')
         fig2, ax2 = plt.subplots(1, 2)
         ax2[0].plot(sr, np.sum(W, axis=1))
         ax2[0].set_xlabel('$r_l$ [cm]')
         ax2[1].plot(sp, np.sum(W, axis=0))
         ax2[1].set_xlabel('Pitch')
+
     if (sp0 is not None) and (sr0 is not None):
-        ip = np.argmin(abs(pp - sp0))
-        ir = np.argmin(abs(pr - sr0))
+        ip = np.argmin(abs(sp - sp0))
+        ir = np.argmin(abs(sr - sr0))
+        up = sp[ip]   # Used value of pitch
+        ur = sr[ir]   # Used value of radius
         W = W4D[ir, ip, :, :]
         fig, ax = plt.subplots()
         a = ax.contourf(pp, pr, W, nlev, cmap=ccmap)
         plt.colorbar(a, ax=ax)
+        ax.set_title('Scint point: (' + str(ur) + ', ' + str(up) + ')')
         fig2, ax2 = plt.subplots(1, 2)
         ax2[0].plot(pr, np.sum(W, axis=1))
         ax2[0].set_xlabel('$r_l$ [cm]')
