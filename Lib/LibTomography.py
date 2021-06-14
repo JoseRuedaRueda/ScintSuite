@@ -528,8 +528,9 @@ def L_curve_fit(norm, residual, a1_min=-1000, a1_max=0,
 def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
                      verbose: bool = True, plt_frame: bool = False,
                      LIMIT_REGION_FCOL: bool = True,
-                     efficiency=None, median_filter=True,
-                     filter_option: dict = {'size': 4}):
+                     efficiency=None, median_filter=False,
+                     filter_option: dict = {'size': 4},
+                     remap_method: str = 'MC'):
     """
     Prepare the arrays to perform the tomographic inversion in FILD
 
@@ -555,12 +556,12 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     # --- create the grids
     nr = int((s_opt['rmax'] - s_opt['rmin']) / s_opt['dr'])
     nnp = int((s_opt['pmax'] - s_opt['pmin']) / s_opt['dp'])
-    redges = s_opt['rmin'] - s_opt['dr']/2 + np.arange(nr+2) * s_opt['dr']
-    pedges = s_opt['pmin'] - s_opt['dp']/2 + np.arange(nnp+2) * s_opt['dp']
+    sredges = s_opt['rmin'] - s_opt['dr']/2 + np.arange(nr+2) * s_opt['dr']
+    spedges = s_opt['pmin'] - s_opt['dp']/2 + np.arange(nnp+2) * s_opt['dp']
 
     scint_grid = {'nr': nr + 1, 'np': nnp + 1,
-                  'r': 0.5 * (redges[:-1] + redges[1:]),
-                  'p': 0.5 * (pedges[:-1] + pedges[1:])}
+                  'r': 0.5 * (sredges[:-1] + sredges[1:]),
+                  'p': 0.5 * (spedges[:-1] + spedges[1:])}
 
     nr = int((p_opt['rmax'] - p_opt['rmin']) / p_opt['dr'])
     nnp = int((p_opt['pmax'] - p_opt['pmin']) / p_opt['dp'])
@@ -576,12 +577,8 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     # duplicated and all the new implementations of filters can be used
 
     # --- Remap the frame
-    rep_frame, r, p = ssmapping.remap(smap, frame, x_min=s_opt['pmin'],
-                                      x_max=s_opt['pmax'],
-                                      delta_x=s_opt['dp'],
-                                      y_min=s_opt['rmin'],
-                                      y_max=s_opt['rmax'],
-                                      delta_y=s_opt['dr'])
+    rep_frame = ssmapping.remap(smap, frame, x_edges=spedges,
+                                y_edges=sredges, method='MC')
     # Just transpose the frame. (To have the W in the same ijkl order of the
     # old IDL-MATLAB implementation)
     rep_frame = rep_frame.T
