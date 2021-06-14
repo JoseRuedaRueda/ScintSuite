@@ -1,3 +1,10 @@
+** 0.5.0: New FILD remap
+- The 'nearest' method of the interp_grid was deprecated
+- The interp_grid method of the StrikeMap class was completelly rewritten, please see the new function
+- The remap method will call interp_grid of the smap object instead of failing if the grid was not interpolated before calling this function
+- inputs for remap method of the mapping library was changed, now the edges of the histogram should be calculated outside (improve efficiency and easily allows for MC or standard remap switch)
+- New MC remap based in the 'Translation Tensor' developed. See documentation PDF for a full description of the method
+
 ** 0.4.15 Profile routines and EHO tracker.
 - Toroidal rotation reading routines has been included: from PED, IDI or make a smoothing spline to the CXRS raw data.
 - Routines to read the profiles (electron temperature and density) from PED.
@@ -13,6 +20,7 @@
 - Default plotting options now available via configurable namelist (Data/MyData)
 - Minor ToDos solved
 - Upgraded Readme
+
 
 ** 0.4.13: FILDSIM forward modeling
 - Camera parameters no longer in LibParams but in separate txt files in the Data folders
