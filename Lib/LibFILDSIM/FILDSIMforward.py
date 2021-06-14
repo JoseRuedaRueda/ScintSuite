@@ -685,8 +685,7 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
         eff = np.ones(rpin.size)
     # Build the weight matrix. We will use brute force, I am sure that there is
     # a tensor product implemented in python which does the job in a more
-    # efficient way, bot for the moment, I will leave exactly as in the
-    # original IDL routine
+    # efficient way
     res_matrix = np.zeros((nr_scint, np_scint, nr_pin, np_pin))
 
     print('Creating matrix')

@@ -209,60 +209,63 @@ def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
 # -----------------------------------------------------------------------------
 # --- Remap and profiles
 # -----------------------------------------------------------------------------
-def remap(smap, frame, x_min=20.0, x_max=80.0, delta_x=1,
-          y_min=1.5, y_max=10.0, delta_y=0.2, mask=None):
+def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
     """
     Remap a frame
 
     Jose Rueda: jrrueda@us.es
 
-    @todo: in this way, the edges of the histogram are calculated here,
-    maybe better calculate the edges in the remap_all_loaded_frames.py and
-    we save some resources
+    Edges are only needed if you select the centers method, if not, they will
+    be 'inside' the transformation matrix already
 
     @param smap: StrikeMap() object with the strike map
     @param frame: the frame to be remapped
-    @param x_min: Minimum value of the x coordinate, for FILD, pitch [º]
-    @param x_max: Maximum value of the x coordinate
-    @param delta_x: Spacing for the x coordinate
-    @param y_min: Minimim value of the y coordinate, for FILD, gyroradius [cm]
-    @param y_max: Maximum value of the y coordinate
-    @param delta_x: Spacing of the y coordinate
+    @param x_edges: edges of the x coordinate, for FILD, pitch [º]
+    @param y_edges: edges of the y coordinate, for FILD, gyroradius [cm]
+    @param method: procedure for the remap
+        - MC: Use the transformation matrix calculated with markers at the chip
+        - centers: Consider just the center of each pixel (Old IDL method)
     """
     # --- 0: Check inputs
-    if smap.gyr_interp is None:
-        raise Exception('Interpolate strike map before!!!')
+    if smap.grid_interp is None:
+        print('Grid interpolation was not done, performing grid interpolation')
+        smap.interp_grid(frame.shape)
 
-    # --- 1: Edges of the histogram
-    nx = int((x_max-x_min)/delta_x)
-    ny = int((y_max-y_min)/delta_y)
-    x_edges = x_min - delta_x/2 + np.arange(nx+2) * delta_x
-    y_edges = y_min - delta_y/2 + np.arange(ny+2) * delta_y
-
-    # --- 2: Information of the calibration
-    if smap.diag == 'FILD':
+    if method == 'MC':
         if mask is None:
-            x = smap.pit_interp.flatten()   # pitch associated to each pixel
-            y = smap.gyr_interp.flatten()   # gyroradius of each pixel
+            H = np.tensordot(smap.grid_interp['transformation_matrix'],
+                             frame, 2)
         else:
-            x = smap.pit_interp[mask].flatten()   # pitch of each pixel
-            y = smap.gyr_interp[mask].flatten()   # gyroradius of each pixel
+            dummy = smap.grid_interp['transformation_matrix'].copy()
+            dummy[..., mask] = 0
+            dummy_frame = frame.copy()
+            dummy_frame[mask] = 0
+            H = np.tensordot(dummy, dummy_frame, 2)
 
-    # --- 3: Remap (via histogram)
-    if mask is None:
-        z = frame.flatten()
-    else:
-        z = frame[mask].flatten()
-    H, xedges, yedges = np.histogram2d(x, y, bins=[x_edges, y_edges],
-                                       weights=z)
-    # Normalise H to counts per unit of each axis
-    H /= delta_x * delta_y
+    else:  # similar to old IDL implementation
+        # --- 1: Information of the calibration
+        if smap.diag == 'FILD':
+            # Get the gyroradius and pitch of each pixel
+            if mask is None:
+                x = smap.grid_interp['pitch'].flatten()
+                y = smap.grid_interp['gyroradius'].flatten()
+            else:
+                x = smap.grid_interp['pitch'][mask].flatten()
+                y = smap.grid_interp['gyroradius'][mask].flatten()
 
-    # --- 4: Calculate the centroids of the bins, for later plotting
-    x_cen = 0.5 * (x_edges[0:-1] + x_edges[1:])
-    y_cen = 0.5 * (y_edges[0:-1] + y_edges[1:])
+        # --- 3: Remap (via histogram)
+        if mask is None:
+            z = frame.flatten()
+        else:
+            z = frame[mask].flatten()
+        H, xedges, yedges = np.histogram2d(x, y, bins=[x_edges, y_edges],
+                                           weights=z)
+        # Normalise H to counts per unit of each axis
+        delta_x = xedges[1] - xedges[0]
+        delta_y = yedges[1] - yedges[0]
+        H /= delta_x * delta_y
 
-    return H, x_cen, y_cen
+    return H
 
 
 def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
@@ -436,7 +439,9 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
                                  machine: str = 'AUG',
                                  decimals: int = 1,
                                  smap_folder: str = None,
-                                 map=None):
+                                 map=None,
+                                 remap_method: str = 'centers',
+                                 MC_number: int = 100):
     """
     Remap all loaded frames from a FILD video
 
@@ -469,6 +474,10 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     @param    mask: binary mask defining the region of the scintillator we want
     to map. If it is a string pointing to a file, the mask saved in that file
     will be loaded
+    @param    remap_method: 'MC' or 'centers', the method to be used for the
+    remapping of the frames (MC recomended for tomography, but it needs 3
+    minutes per new strike map...)
+    @param    number of MC markers for the MC remap
 
     @return   output: dictionary containing all the outputs:
         -# 'frames': remaped_frames [xaxis(pitch), yaxis(r), taxis]
@@ -512,7 +521,9 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     # Print  some info:
     if not got_smap:
         print('Looking for strikemaps in: ', smap_folder)
-
+    # Check the tipe of remap
+    if remap_method == 'centers':
+        MC_number = 0  # to turn off the transformation matrix calculation
     # Get frame shape:
     nframes = len(video.exp_dat['nframes'])
     frame_shape = video.exp_dat['frames'].shape[0:2]
@@ -548,6 +559,11 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
     name_old = ' '
     name = ' '
     exist = np.zeros(nframes, np.bool)
+    # --- Calculate the grid
+    p_edges = pmin - dp/2 + np.arange(npit+1) * dp
+    g_edges = rmin - dr/2 + np.arange(ngyr+1) * dr
+    gyr = 0.5 * (g_edges[0:-1] + g_edges[1:])
+    pitch = 0.5 * (p_edges[0:-1] + p_edges[1:])
     # --- Calculate the theta and phi angles
     if not got_smap:  # if no smap was given calculate the theta and phi
         print('Calculating theta and phi')
@@ -611,13 +627,17 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
             map = StrikeMap(0, os.path.join(smap_folder, name))
             map.calculate_pixel_coordinates(calibration)
             # print('Interpolating grid')
-            map.interp_grid(frame_shape, plot=False, method=method)
+            map.interp_grid(frame_shape, plot=False, method=method,
+                            MC_number=MC_number,
+                            grid_params={'ymin': rmin, 'ymax': rmax,
+                                         'dy': dr,
+                                         'xmin': pmin, 'xmax': pmax,
+                                         'dx': dp})
         name_old = name
         # remap the frames
-        remaped_frames[:, :, iframe], pitch, gyr = \
-            remap(map, video.exp_dat['frames'][:, :, iframe], x_min=pmin,
-                  x_max=pmax, delta_x=dp, y_min=rmin, y_max=rmax, delta_y=dr,
-                  mask=mask)
+        remaped_frames[:, :, iframe] = \
+            remap(map, video.exp_dat['frames'][:, :, iframe], x_edges=p_edges,
+                  y_edges=g_edges, mask=mask, method=remap_method)
         # Calculate the gyroradius and pitch profiles
         dummy = remaped_frames[:, :, iframe].squeeze()
         signal_in_gyr[:, iframe] = gyr_profile(dummy, pitch, pprofmin,
@@ -630,7 +650,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
         print('Average time per frame: ', (toc-tic) / nframes, ' s')
     output = {'frames': remaped_frames, 'xaxis': pitch, 'yaxis': gyr,
               'xlabel': 'Pitch', 'ylabel': '$r_l$',
-              'xunits': '{}^o', 'yunits': 'cm',
+              'xunits': '$\\degree$', 'yunits': 'cm',
               'sprofx': signal_in_pit, 'sprofy': signal_in_gyr,
               'sprofxlabel': 'Signal integrated in r_l',
               'sprofylabel': 'Signal integrated in pitch',
@@ -916,12 +936,8 @@ class StrikeMap:
             self.collimator_factor = dummy[ind, 7]
             ## Average incident angle of the FILDSIM markers
             self.avg_incident_angle = dummy[ind, 8]
-            ## Translate from pixels in the camera to gyroradius
-            self.gyr_interp = None
-            ## Translate from pixels in the camera to pitch
-            self.pit_interp = None
-            ## Translate from pixels in the camera to collimator factor
-            self.col_interp = None
+            ## Translate from pixels in the camera to velocity space
+            self.grid_interp = None
             ## Strike points used to calculate the map
             self.strike_points = None
             ## Resolution of FILD for each strike point
@@ -1085,80 +1101,153 @@ class StrikeMap:
         """
         self.xpixel, self.ypixel = transform_to_pixel(self.y, self.z, calib)
 
-    def interp_grid(self, frame_shape, method=2, plot=False):
+    def interp_grid(self, frame_shape, method=2, plot=False, verbose=False,
+                    grid_params: dict = {}, MC_number: int = 100):
         """
         Interpolate grid values on the frames
 
         @param smap: StrikeMap() object
         @param frame_shape: Size of the frame used for the calibration (in px)
         @param method: method to calculate the interpolation:
-            - 0: griddata nearest (not recommended)
-            - 1: griddata linear
-            - 2: griddata cubic
+            - 1: griddata linear (you can also write 'linear')
+            - 2: griddata cubic  (you can also write 'cubic')
+        @param plot: flag to perform a quick plot to see the interpolation
+        @param verbose: flag to print some info along the way
+        @param grid_params: grid options for the transformationn matrix grid
+        @param MC_number: Number of MC markers for the transformation matrix,
+        if this number < 0, the transformation matrix will not be calculated
         """
         # --- 0: Check inputs
         if self.xpixel is None:
             raise Exception('Transform to pixel the strike map before')
+        # Default grid options
+        grid_options = {
+            'ymin': 1.2,
+            'ymax': 10.5,
+            'dy': 0.1,
+            'xmin': 20.0,
+            'xmax': 90.0,
+            'dx': 1.0
+        }
+        grid_options.update(grid_params)
         # --- 1: Create grid for the interpolation
+        # Note, it seems transposed, but the reason is that the calibration
+        # paramters were adjusted with the frame transposed (to agree with old
+        # IDL implementation) therefore we have to transpose a bit almost
+        # everything. Sorry for the headache
         grid_x, grid_y = np.mgrid[0:frame_shape[1], 0:frame_shape[0]]
         # --- 2: Interpolate the grid
+        # Prepare the grid for te griddata method:
         dummy = np.column_stack((self.xpixel, self.ypixel))
-        if method == 0:
-            met = 'nearest'
-        elif method == 1:
+        # Prepare the options and interpolators for later
+        if method == 1 or method == 'linear':
             met = 'linear'
-        elif method == 2:
+            interpolator = scipy_interp.LinearNDInterpolator
+        elif method == 2 or method == 'cubic':
             met = 'cubic'
+            interpolator = scipy_interp.CloughTocher2DInterpolator
         else:
             raise Exception('Not recognized interpolation method')
+        if verbose:
+            print('Using %s interpolation of the grid' % met)
         if self.diag == 'FILD':
-            self.gyr_interp = scipy_interp.griddata(dummy,
-                                                    self.gyroradius,
-                                                    (grid_x, grid_y),
-                                                    method=met,
-                                                    fill_value=1000)
-            self.gyr_interp = self.gyr_interp.transpose()
-            self.pit_interp = scipy_interp.griddata(dummy,
-                                                    self.pitch,
-                                                    (grid_x, grid_y),
-                                                    method=met,
-                                                    fill_value=1000)
-            self.pit_interp = self.pit_interp.transpose()
-            self.col_interp = scipy_interp.griddata(dummy,
-                                                    self.collimator_factor,
-                                                    (grid_x, grid_y),
-                                                    method=met,
-                                                    fill_value=1000)
-            self.col_interp = self.col_interp.transpose()
+            # Initialise the structure
+            self.grid_interp = {
+                'gyroradius': None,
+                'pitch': None,
+                'collimator_factor': None,
+                'interpolators': {
+                    'gyroradius': None,
+                    'pitch': None,
+                    'collimator_factor': None
+                },
+                'transformation_matrix': None
+            }
+            # Get gyroradius values of each pixel
+            dummy2 = scipy_interp.griddata(dummy, self.gyroradius,
+                                           (grid_x, grid_y), method=met,
+                                           fill_value=1000)
+            self.grid_interp['gyroradius'] = dummy2.copy().T
+            # Get pitch values of each pixel
+            dummy2 = scipy_interp.griddata(dummy, self.pitch, (grid_x, grid_y),
+                                           method=met, fill_value=1000)
+            self.grid_interp['pitch'] = dummy2.copy().T
+            # Get collimator factor
+            dummy2 = scipy_interp.griddata(dummy, self.collimator_factor,
+                                           (grid_x, grid_y), method=met,
+                                           fill_value=1000)
+            self.grid_interp['collimator_factor'] = dummy2.copy().T
+            # Calculate the interpolator
+            grid = list(zip(self.xpixel, self.ypixel))
+            self.grid_interp['interpolators']['gyroradius'] = \
+                interpolator(grid, self.gyroradius, fill_value=1000)
+            self.grid_interp['interpolators']['pitch'] = \
+                interpolator(grid, self.pitch, fill_value=1000)
+            self.grid_interp['interpolators']['collimator_factor'] = \
+                interpolator(grid, self.collimator_factor, fill_value=1000)
+            # --- Prepare the transformation matrix
+            # Initialise the random number generator
+            rand = np.random.default_rng()
+            generator = rand.uniform
+            # Prepare the edges for the r, pitch histogram
+            n_gyr = int((grid_options['ymax'] - grid_options['ymin'])
+                        / grid_options['dy']) + 1
+            n_pitch = int((grid_options['xmax'] - grid_options['xmin'])
+                          / grid_options['dx']) + 1
+            pitch_edges = grid_options['xmin'] - grid_options['dx']/2 \
+                + np.arange(n_pitch+1) * grid_options['dx']
+            gyr_edges = grid_options['ymin'] - grid_options['dy']/2 \
+                + np.arange(n_gyr+1) * grid_options['dy']
+            # Initialise the transformation matrix
+            transform = np.zeros((n_pitch, n_gyr,
+                                  frame_shape[0], frame_shape[1]))
+            # Calculate the transformation matrix
+            if MC_number > 0:
+                print('Calculating transformation matrix')
+                for i in tqdm(range(frame_shape[0])):
+                    for j in range(frame_shape[1]):
+                        # Generate markers coordinates in the chip, note the
+                        # first dimmension of the frame is y-pixel
+                        # (IDL heritage)
+                        x_markers = j + generator(size=MC_number)
+                        y_markers = i + generator(size=MC_number)
+                        # Calculate the r-pitch coordinates
+                        r_markers = self.grid_interp['interpolators']\
+                            ['gyroradius'](x_markers, y_markers)
+                        p_markers = self.grid_interp['interpolators']\
+                            ['pitch'](x_markers, y_markers)
+                        # make the histogram in the r-pitch space
+                        H, xedges, yedges = \
+                            np.histogram2d(p_markers, r_markers,
+                                           bins=[pitch_edges, gyr_edges])
+                        transform[:, :, i, j] = H.copy()
+                # Normalise the transformation matrix
+                transform /= MC_number
+                transform /= (grid_options['dx'] * grid_options['dy'])
+                # This last normalization will be removed once we include the
+                # jacobian somehow
+                self.grid_interp['transformation_matrix'] = transform
 
         # --- Plot
         if plot:
             if self.diag == 'FILD':
                 fig, axes = plt.subplots(2, 2)
                 # Plot the scintillator grid
-                self.plot_pix(axes[0, 0], line_param={'color': 'k'})
-                axes[0, 0].set_xlim(0, frame_shape[0])
-                axes[0, 0].set_ylim(0, frame_shape[1])
+                self.plot_pix(axes[0, 0], line_params={'color': 'k'})
                 # Plot the interpolated gyroradius
-                c1 = axes[0, 1].contourf(grid_x, grid_y,
-                                         self.gyr_interp.transpose(),
-                                         cmap=ssplt.Gamma_II())
-                axes[0, 1].set_xlim(0, frame_shape[0])
-                axes[0, 1].set_ylim(0, frame_shape[1])
+                c1 = axes[0, 1].imshow(self.grid_interp['gyroradius'],
+                                       cmap=ssplt.Gamma_II(),
+                                       vmin=0, vmax=10, origin='lower')
                 fig.colorbar(c1, ax=axes[0, 1], shrink=0.9)
-                # Plot the interpolated gyroradius
-                c2 = axes[1, 0].contourf(grid_x, grid_y,
-                                         self.pit_interp.transpose(),
-                                         cmap=ssplt.Gamma_II())
-                axes[1, 0].set_xlim(0, frame_shape[0])
-                axes[1, 0].set_ylim(0, frame_shape[1])
+                # Plot the interpolated pitch
+                c2 = axes[1, 0].imshow(self.grid_interp['pitch'],
+                                       cmap=ssplt.Gamma_II(),
+                                       vmin=0, vmax=90, origin='lower')
                 fig.colorbar(c2, ax=axes[1, 0], shrink=0.9)
-                # Plot the interpolated gyroradius
-                c3 = axes[1, 1].contourf(grid_x, grid_y,
-                                         self.col_interp.transpose(),
-                                         cmap=ssplt.Gamma_II())
-                axes[1, 1].set_xlim(0, frame_shape[0])
-                axes[1, 1].set_ylim(0, frame_shape[1])
+                # Plot the interpolated collimator factor
+                c3 = axes[1, 1].imshow(self.grid_interp['collimator_factor'],
+                                       cmap=ssplt.Gamma_II(),
+                                       vmin=0, vmax=50, origin='lower')
                 fig.colorbar(c3, ax=axes[1, 1], shrink=0.9)
 
     def get_energy(self, B0: float, Z: int = 1, A: int = 2):
@@ -1387,6 +1476,8 @@ class StrikeMap:
         """
         Calculate the interpolators which relates gyr, pitch with the
         resolution parameters
+
+        Jose Rueda: jrrueda@us.es
         """
         if self.diag == 'FILD':
             # --- Prepare the interpolators:
