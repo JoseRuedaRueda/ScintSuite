@@ -9,6 +9,7 @@ import heapq
 import scipy.signal as signal
 import matplotlib.pyplot as plt
 import matplotlib.cm as colorMap
+import scipy
 from scipy.signal import get_window, istft
 from scipy.fftpack import fftfreq, rfft, ifft, fftshift
 from multiprocessing import cpu_count
@@ -716,7 +717,6 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
         im1 = ax.pcolormesh(time, freq2, spec2.T, **plotOpts)
         ax.set_xlabel('Time [s]')
         ax.set_ylabel('Frequency [kHz]')
-        fig.colorbar(im1, ax=ax)
 
         # Plotting the peaks
         for ii in peak_map:
