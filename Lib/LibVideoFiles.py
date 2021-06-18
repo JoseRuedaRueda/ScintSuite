@@ -1513,7 +1513,7 @@ class Video:
             max_scale_frames = 2 ** self.settings['RealBPP'] - 1
             threshold = threshold_saturation * max_scale_frames
             print('Counting "saturated" pixels')
-            print('The threshold is set to: ', threshold[0], ' counts')
+            print('The threshold is set to: ', threshold, ' counts')
             number_of_frames = len(self.exp_dat['tframes'])
             n_pixels_saturated = np.zeros(number_of_frames)
             for i in range(number_of_frames):
@@ -1600,10 +1600,8 @@ class Video:
         # Create the original frame array:
         if 'original_frames' not in self.exp_dat and flag_copy:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
-        else:
-            print('original frames already present, not making new copy')
         # Subtract the noise
-        for i in range(nt):
+        for i in tqdm(range(nt)):
             # Perform the subtraction in float to avoid negative values in uint
             dummy = \
                 self.exp_dat['frames'][:, :, i].squeeze().astype(np.float64) -\
