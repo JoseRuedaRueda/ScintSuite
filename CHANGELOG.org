@@ -1,3 +1,8 @@
+** 0.5.1: Fast Channel analysis v1
+- synthetic_signal_remap() inputs changed, now gmin, gmax, dg is now renamed as rmin, rmax, dr, to be consistent with the rest of the ScintillatorSuite
+- *Bug solved* solves a bug in the synthetic_signal_remap() method, nan where appearing if the markers were outside the map range
+- get_fast_channel() from the LibData now also returns the number of the loaded channel
+
 ** 0.5.0: New FILD remap
 - The 'nearest' method of the interp_grid was deprecated
 - The interp_grid method of the StrikeMap class was completelly rewritten, please see the new function

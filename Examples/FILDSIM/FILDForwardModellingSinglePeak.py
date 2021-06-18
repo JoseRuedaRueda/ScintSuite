@@ -5,7 +5,10 @@ Jose Rueda: jrrueda@us.es
 
 Gaussian input distribution will be used
 
-done for version 0.4.2
+done for version 0.5.1
+
+Note: Please change (in your local copy on MyRoutines!!!) lines starting ending
+with # -#
 """
 import Lib as ss
 import matplotlib.pyplot as plt
@@ -17,9 +20,9 @@ import numpy as np
 # database, for the tomography one should manually select (for now) the strike
 # map
 smap_file = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILDSIM/results/' +\
-    'AUG_map_-000.60000_007.50000_strike_map.dat'
+    'AUG_map_-000.60000_007.50000_strike_map.dat'                          # -#
 smap_points = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILDSIM/results/' +\
-    'AUG_map_-000.60000_007.50000_strike_points.dat'
+    'AUG_map_-000.60000_007.50000_strike_points.dat'                       # -#
 
 # General options:
 r0 = 3.31        # centroid of the distribution in gyroradius
@@ -49,19 +52,21 @@ else:
 # -----------------------------------------------------------------------------
 # --- synthetic signal
 # -----------------------------------------------------------------------------
-g_grid, p_grid, signal = \
-    ss.fildsim.synthetic_signal(input, smap_file, spoints=smap_points,
-                                diag_params=diag_params, efficiency=eff)
+signal = \
+    ss.fildsim.synthetic_signal_remap(input, smap_file, spoints=smap_points,
+                                      diag_params=diag_params, efficiency=eff)
 
 # -----------------------------------------------------------------------------
 # --- plot the signal
 # -----------------------------------------------------------------------------
 fig1, ax1 = plt.subplots()
-ax1.contourf(g_grid, p_grid, signal.T)
+ss.fildsim.plot_synthetic_signal(signal['gyroradius'], signal['pitch'],
+                                 signal['signal'], ax=ax1, fig=fig1)
+
 
 # Get the gyroradius profile
-profile = np.sum(signal, axis=1)
+profile = np.sum(signal['signal'], axis=1)
 
 fig21, ax21 = plt.subplots()
-ax21.plot(g_grid, profile / profile.max())
+ax21.plot(signal['gyroradius'], profile / profile.max())
 plt.show()
