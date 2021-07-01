@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Lib.LibPlotting as ssplt
 import Lib.LibData as ssdat
+import Lib.LibFrequencyAnalysis as ssfq
 import scipy.signal as sp  # signal processing
 
 
@@ -23,6 +24,10 @@ class FastChannel:
         ## Experimental data (time and channel signals)
         self.raw_data = \
             ssdat.get_fast_channel(diag, diag_number, channels, shot)
+        ## Filtered data:
+        self.filtered_data = None
+        ## Spectras
+        self.spectra = None
 
     def filter(self, method, params: dict = {}):
         """
@@ -63,7 +68,57 @@ class FastChannel:
             'data': filtered_data,
             'channels': self.raw_data['channels']
         }
-        filtered_data
+        return
+
+    def calculate_spectrogram(self, method: str = 'stft', params: dict = {},
+                              timeResolution: float = 0.70):
+        """
+        Calculate spectrograms of loaded signals
+
+        Jose Rueda: jrrueda@us.es
+
+        @todo: if 'gauss' timewindow is passed as parameter, my call to
+        get_nfft is wrong
+
+        @param method: method to perfor the fourier transform:
+            - sfft
+            - stft: hort-Time Fourier Transform, Giovanni implementation.
+            - stft2: Short-Time Fourier Transform, scipy.signal implementation.
+        @param params: dictionary containing the optional parameters of those
+                       methos (see Lib.LibFrequencyAnalysis)
+        """
+        # --- Just select the desited method
+        if method == 'stft':
+            spec = ssfq.stft
+        elif method == 'stft':
+            spec = ssfq.sfft
+        elif method == 'stft2':
+            spec = ssfq.stft2
+        else:
+            raise Exception('Method not understood')
+        # --- Perform the spectogram for each channel:
+        ch = np.arange(len(self.raw_data['data'])) + 1
+        spectra = []
+        # Estimate the window size for the ft
+        dt = self.raw_data['time'][1] - self.raw_data['time'][0]
+        nfft = int(ssfq.get_nfft(timeResolution, method,
+                                 self.raw_data['time'].size,
+                                 'hann', dt))
+        for ic in ch:
+            if self.raw_data['data'][ic - 1] is not None:
+                s, fvec, tvec = \
+                    spec(self.raw_data['time'],
+                         self.raw_data['data'][ic - 1],
+                         nfft, **params)
+                dummy = {
+                    'spec': s.copy(),
+                    'fvec': fvec.copy(),
+                    'tvec': tvec.copy(),
+                }
+                spectra.append(dummy)
+            else:
+                spectra.append(0)
+        self.spectra = spectra
         return
 
     def plot_channels(self, ch_number=None, line_params: dict = {},
@@ -158,3 +213,83 @@ class FastChannel:
         ax = ssplt.axis_beauty(ax, ax_settings)
         plt.legend()
         plt.tight_layout()
+        return
+
+    def plot_spectra(self, ch_number=None,
+                     ax_params: dict = {}, scale='log',
+                     cmap=None):
+        """
+        Plot the fast channel spectrograms
+
+        Jose Rueda: jrrueda@us.es
+
+        @param ch_number: channels to plot, np arrays accepted, if none, all
+        channels will be plotted
+        @param ax_param: parameters for the axis beauty plot
+        @param scale: 'linear', 'sqrt', 'log'
+        """
+        # Initialize the plotting options:
+        ax_settings = {
+            'ylabel': 'Freq. [kHz]'
+        }
+        ax_settings.update(ax_params)
+        if cmap is None:
+            cmap = ssplt.Gamma_II()
+        if ch_number is None:
+            ch = self.raw_data['channels']
+        else:
+            # See if the desired number of channels is an array:
+            try:    # If we received a numpy array, all is fine
+                ch_number.size
+                ch = ch_number
+            except AttributeError:  # If not, we need to create it
+                ch = np.array([ch_number])
+                # nch_to_plot = ch.size
+
+        # Open the figure:
+        nchanels = ch.size
+        if nchanels < 4:
+            nn = nchanels
+            ncolumns = 1
+        else:
+            nn = 4
+            ncolumns = int(nchanels/nn) + 1
+        fig, ax = plt.subplots(nn, ncolumns, sharex=True)
+        if nn == 1 and ncolumns == 1:
+            ax = np.array(ax)
+        if ncolumns == 1:
+            ax = ax.reshape(nn, 1)
+        # Plot the traces:
+        counter = 0
+        for ic in ch:
+            if self.spectra[ic - 1] is not None:
+                # Scale the data
+                if scale == 'sqrt':
+                    data = np.sqrt(self.spectra[ic - 1]['spec'])
+                elif scale == 'log':
+                    data = np.log10(self.spectra[ic - 1]['spec'])
+                elif scale == 'linear':
+                    data = self.spectra[ic - 1]['spec']
+                else:
+                    raise Exception('Not understood scale')
+                # Limit for the scale
+                tmin = self.spectra[ic - 1]['tvec'][0]
+                tmax = self.spectra[ic - 1]['tvec'][-1]
+
+                fmin = self.spectra[ic - 1]['fvec'][0] / 1000.
+                fmax = self.spectra[ic - 1]['fvec'][-1] / 1000.
+                # Look row and colum
+                column = int(counter/nn)
+                row = counter - nn * column
+                ax[row, column].imshow(data.T, extent=[tmin, tmax, fmin, fmax],
+                                       cmap=cmap, origin='lower', aspect='auto'
+                                       )
+                ax[row, column] = ssplt.axis_beauty(ax[row, column],
+                                                    ax_settings)
+                ax[row, column].set_title('Ch ' + str(ic))
+                if row == nn-1:
+                    ax[row, column].set_xlabel('Time [s]')
+                counter += 1
+            else:
+                print('Channel ', ic, 'requested but not loaded, skipping!')
+        return

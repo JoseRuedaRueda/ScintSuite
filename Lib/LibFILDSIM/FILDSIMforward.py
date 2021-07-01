@@ -286,14 +286,15 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
         'pitch': p_array,
         'dgyr': g_array[1] - g_array[0],
         'dp': p_array[1] - p_array[0],
-        'signal': signal.T
+        'signal': signal
     }
 
     return output
 
 
 def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, fig=None,
-                          ax_params={}):
+                          ax_params={}, profiles=True, ax_profiles=None,
+                          ax_params_profiles={}):
     """
     Plot the synthetic signal
 
@@ -306,6 +307,12 @@ def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, fig=None,
     @param ax: axes where to plot, if none, a new figure will be created
     @param ax_params: only used if the axis was created here, parameters for
     the axis_beauty function
+    @param profiles: flag to also plot the profiles
+    @param ax_profiles: axis where to draw the profiles, should be a list with
+    the 2 axes
+    @param ax_params_profiles: only used if the axis was created here,
+    parameters for the axis_beauty function, note, gyr and pitch labels are
+    hardcored, sorry
 
     @return ax: axes where the figure was drawn
     """
@@ -316,6 +323,10 @@ def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, fig=None,
     }
     ax_options.update(ax_params)
 
+    ax_options_profiles = {
+        'ylabel': 'Signal [a.u.]',
+    }
+    ax_options_profiles.update(ax_params_profiles)
     # Prepare the color map:
     if cmap is None:
         cmap = ssplt.Gamma_II()
@@ -326,15 +337,27 @@ def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, fig=None,
         created = True
     else:
         created = False
-    # plot:
-    a1 = ax.contourf(p, r, signal, cmap=cmap)
+    # plot the contour
+    a1 = ax.contourf(p, r, signal.T, cmap=cmap)
     if created:
         ax = ssplt.axis_beauty(ax, ax_options)
-
-    if not fig == None:
         fig.colorbar(a1, ax=ax, label='Counts')
     fig.show()
-    return ax
+    # Plot the profiles
+    if ax_profiles is None:
+        fig2, ax_profiles = plt.subplots(1, 2)
+        created2 = True
+    else:
+        created2 = False
+    ax_profiles[0].plot(p, np.sum(signal, axis=1))
+    ax_profiles[1].plot(r, np.sum(signal, axis=0))
+    if created2:
+        ax_options_profiles['xlabel'] = 'Pitch [$\\degree$]'
+        ax_profiles[0] = ssplt.axis_beauty(ax_profiles[0], ax_options_profiles)
+        ax_options_profiles['xlabel'] = 'Gyroradius [cm]'
+        ax_profiles[1] = ssplt.axis_beauty(ax_profiles[1], ax_options_profiles)
+    fig2.show()
+    return ax, ax_profiles
 
 
 def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
