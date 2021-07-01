@@ -530,7 +530,8 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
                      LIMIT_REGION_FCOL: bool = True,
                      efficiency=None, median_filter=False,
                      filter_option: dict = {'size': 4},
-                     remap_method: str = 'MC'):
+                     remap_method: str = 'MC',
+                     is_remap: bool = False):
     """
     Prepare the arrays to perform the tomographic inversion in FILD
 
@@ -547,6 +548,14 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     @param    efficiency: efficiency dictionary
     @param    median_filter: apply median filter to the remap frame
     @param    filter options: options for the median filter, for the remap
+    @param    remap_method: Method to perform the remap, center or MC, MC is
+              hihgly recomended to avoid remap noise
+    @param    is_remap: if true, it will means that the frame input is not the
+              camer frame but the (r pitch) distribution at the pinhole,
+              in this case, no remap will be done here and 'frame' will be
+              directly consider as signal for the tomography (useful if we are
+              dealing with shyntetic data). In this case, frame should be
+              [npitch, nradius], as in the remap
 
     @return   signal1D:  Signal filtered and reduced in 1D array
     @return   W2D: Weight function compressed as 2D
@@ -577,11 +586,14 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     # duplicated and all the new implementations of filters can be used
 
     # --- Remap the frame
-    rep_frame = ssmapping.remap(smap, frame, x_edges=spedges,
-                                y_edges=sredges, method='MC')
-    # Just transpose the frame. (To have the W in the same ijkl order of the
-    # old IDL-MATLAB implementation)
-    rep_frame = rep_frame.T
+    if not is_remap:
+        rep_frame = ssmapping.remap(smap, frame, x_edges=spedges,
+                                    y_edges=sredges, method='MC')
+        # Just transpose the frame. (To have the W in the same ijkl order of
+        # old IDL-MATLAB implementation)
+        rep_frame = rep_frame.T
+    else:
+        rep_frame = frame.T
     if median_filter:
         print('..-. .. .-.. - . .-. .. -. --.')
         'Applying median filter to remap frame'

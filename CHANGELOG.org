@@ -1,3 +1,7 @@
+** 0.5.2: Minor improvements
+- synthetic_signal_remap() will output the signal as a matrix [npitch, nradius] to be consistent with the remap (before it was [nradius, npitch])
+- The fast channel options allows now to calculate spectrograms and plot them
+
 ** 0.5.1: Fast Channel analysis v1
 - synthetic_signal_remap() inputs changed, now gmin, gmax, dg is now renamed as rmin, rmax, dr, to be consistent with the rest of the ScintillatorSuite
 - *Bug solved* solves a bug in the synthetic_signal_remap() method, nan where appearing if the markers were outside the map range
