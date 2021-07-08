@@ -19,9 +19,9 @@ import dd 					# load latest (!) dd library
 # --- Scripts parameter definition.
 # -----------------------------------------------------------------------------
 # Shot data and timing.
-shotnumber = 39414
+shotnumber = 39451
 tBegin     = 0.25
-tEnd       = 2.2
+tEnd       = 6.0
 coilNumber = 14      # By default it load the B31 group
 
 # FFT options.
