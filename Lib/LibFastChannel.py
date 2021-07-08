@@ -29,7 +29,7 @@ class FastChannel:
         ## Spectras
         self.spectra = None
 
-    def filter(self, method, params: dict = {}):
+    def filter(self, method='savgol', params: dict = {}):
         """
         Smooth the signal
 
@@ -90,7 +90,7 @@ class FastChannel:
         # --- Just select the desited method
         if method == 'stft':
             spec = ssfq.stft
-        elif method == 'stft':
+        elif method == 'sfft':
             spec = ssfq.sfft
         elif method == 'stft2':
             spec = ssfq.stft2
@@ -111,7 +111,7 @@ class FastChannel:
                          self.raw_data['data'][ic - 1],
                          nfft, **params)
                 dummy = {
-                    'spec': s.copy(),
+                    'spec': abs(s),
                     'fvec': fvec.copy(),
                     'tvec': tvec.copy(),
                 }
@@ -173,6 +173,12 @@ class FastChannel:
             fig, ax = plt.subplots()
         # Plot the traces:
         for ic in ch:
+            if 'label' not in line_settings:
+                label = 'Ch{0:02}'.format(ic)
+            else:
+                label = line_settings['label']
+                del line_settings['label']
+
             if self.raw_data['data'][ic - 1] is not None:
                 per = max_to_plot / self.raw_data['data'][ic - 1].size
                 flag = np.random.rand(self.raw_data['data'][ic - 1].size) < per
@@ -184,7 +190,7 @@ class FastChannel:
                         factor = 1.0
                     ax.plot(self.raw_data['time'][flag],
                             (self.raw_data['data'][ic - 1][flag] - bline)/factor,
-                            label='Ch{0:02}'.format(ic), **line_settings,
+                            label=label, **line_settings,
                             alpha=0.5)
                 elif ptype == 'smooth':
                     if normalise:
@@ -193,7 +199,7 @@ class FastChannel:
                         factor = 1.0
                     ax.plot(self.filtered_data['time'][flag],
                             (self.filtered_data['data'][ic - 1][flag] - bline) / factor,
-                            label='Ch{0:02}'.format(ic), **line_settings)
+                            label=label, **line_settings)
                 elif ptype == 'cloud':
                     if normalise:
                         factor = self.raw_data['data'][ic - 1][flag].max() -bline
@@ -206,7 +212,7 @@ class FastChannel:
                                 label='_nolegend_', **line_settings)
                     ax.plot(self.filtered_data['time'][flag],
                             (self.filtered_data['data'][ic - 1][flag] - bline) / factor,
-                            '--', alpha=0.5, label='Ch{0:02}'.format(ic),
+                            '--', alpha=0.5, label=label,
                             color=points.get_color(), **line_settings)
             else:
                 print('Channel ', ic, 'requested but not loaded, skipping!')

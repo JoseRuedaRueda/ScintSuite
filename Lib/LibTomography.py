@@ -6,6 +6,7 @@ synthetic codes (INPASIM, FILDSIM, i/HIBPSIM) therefore the routines which
 create these matries are placed are their corresponding libraries
 """
 import pickle
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import Lib.LibFILDSIM as ssfildsim
@@ -109,7 +110,7 @@ def Ridge_inversion(X, y, alpha):
 def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
                log_spaced: bool = True, plot: bool = True,
                line_param: dict = {'linewidth': 1.5},
-               FS: float = 14):
+               FS: float = 14, folder_to_save: str = None):
     """
     Scan the slpha parameters to find the best hyper-parameter
 
@@ -123,6 +124,9 @@ def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
     @param log_spaced: if true, points will be logspaced
     @param line_param: dictionary with the line plotting parameters
     @param FS: FontSize
+    @param folder_to_save: if not None, in each iteration the calculated
+           inversion will be saved, in pickle format, inside the folder
+
     @return out: Dictionay with fields:
         -# beta: array of coefficients [nfeatures, nalphas]
         -# MSE: arrays of MSEs
@@ -149,7 +153,9 @@ def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
     print('Performing regression')
     for i in tqdm(range(n_alpha)):
         beta[:, i], MSE[i], res[i], r2[i] = Ridge_inversion(X, y, alpha[i])
-
+        if folder_to_save is not None:
+            file = os.path.join(folder_to_save, str(i) + '.pck')
+            ssio.save_object_pickle(file, [beta[:, i], MSE[i], res[i], r2[i]])
     # --- Plot if needed:
     if plot:
         fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
@@ -227,7 +233,7 @@ def nnRidge(X, y, alpha, param: dict = {}):
 def nnRidge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
                  log_spaced: bool = True, plot: bool = True,
                  line_param: dict = {'linewidth': 1.5},
-                 FS: float = 14):
+                 FS: float = 14, folder_to_save: str = None):
     """
     Scan the alpha parameters to find the best hyper-parameter (nnRidge)
 
@@ -241,6 +247,9 @@ def nnRidge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
     @param log_spaced: if true, points will be logspaced
     @param line_param: dictionary with the line plotting parameters
     @param FS: FontSize
+    @param folder_to_save: if not None, in each iteration the calculated
+       inversion will be saved, in pickle format, inside the folder
+
     @return out: Dictionay with fields:
         -# beta: array of coefficients [nfeatures, nalphas]
         -# MSE: arrays of MSEs
@@ -267,6 +276,9 @@ def nnRidge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
     print('Performing regression')
     for i in tqdm(range(n_alpha)):
         beta[:, i], MSE[i], res[i], r2[i] = nnRidge(X, y, alpha[i])
+        if folder_to_save is not None:
+            file = os.path.join(folder_to_save, str(i) + '.pck')
+            ssio.save_object_pickle(file, [beta[:, i], MSE[i], res[i], r2[i]])
 
     # --- Plot if needed:
     if plot:

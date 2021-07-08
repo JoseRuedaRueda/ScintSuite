@@ -4,7 +4,6 @@ Methods to enhance plots or to plot auxiliar elements (ie vessel)
 Jose Ruea Rueda (jrrueda@us.es) and Pablo Oyola (pablo.oyola@ipp.mpg.de)
 
 """
-
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.colors as colors
@@ -16,7 +15,10 @@ import os
 import matplotlib as mpl
 from Lib.LibPaths import Path
 import f90nml
-
+try:
+    from cycler import cycler
+except ImportError:
+    print("Not cycler module, default color of lines can't be changed")
 paths = Path()
 
 
@@ -63,6 +65,13 @@ def plotSettings(plot_mode='software', usetex=False):
         r'\sisetup{detect-all}'
     ]
     mpl.rc('text', usetex=usetex)
+
+    # Default plotting color
+    try:
+        mpl.rcParams['axes.prop_cycle'] = \
+            cycler(color=nml['default']['default_line_colors'])
+    except NameError:
+        print("Not cycler module, default color of lines can't be changed")
 
     # from: https://stackoverflow.com/questions/21321670/
     #   how-to-change-fonts-in-matplotlib-python
