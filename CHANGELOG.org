@@ -1,3 +1,7 @@
+** 0.5.4: Minor improvements
+- plot_single of the TimeTrace object now no longer have default color red, so is not a problem to compare different shots. Line_par and ax_par entries of that functions were renamed to line_params and ax_params to be coherent with the rest of the suite
+- new examples to analyse FILD data
+
 ** 0.5.3: Minor improvements
 - Now the scan of the tomography library saves the data in each interaction (can be deactivate via inputs)
 - Label can be set in the plotting of the fast channel via line_params dictionary

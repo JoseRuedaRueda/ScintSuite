@@ -293,8 +293,9 @@ class TimeTrace:
         self.spec['data'] = Sxx
         return
 
-    def plot_single(self, data: str = 'sum', ax_par: dict = {},
-                    line_par: dict = {}, normalised: bool = False, ax=None):
+    def plot_single(self, data: str = 'sum', ax_params: dict = {},
+                    line_params: dict = {}, normalised: bool = False, ax=None,
+                    correct_baseline: bool = False):
         """
         Plot the total number of counts in the ROI
 
@@ -306,8 +307,12 @@ class TimeTrace:
         function.
         @param line_par: Dictionary containing the line parameters
         @param normalised: if normalised, plot will be normalised to one.
-        @param, ax: axes where to draw the figure, if none, new figure will be
+        @param ax: axes where to draw the figure, if none, new figure will be
         created
+        @param correct_baseline: flag to correct baseline. If true, the last
+        mean of the last 15 points of the time trace will be substracted to the
+        tt. (minus the very last one, because some time this points is off for
+        AUG CCDs)
         """
         # default plotting options
         ax_options = {
@@ -316,41 +321,41 @@ class TimeTrace:
             'xlabel': 't [s]'
         }
         line_options = {
-            'linewidth': 1.5,
-            'color': 'r'
         }
         # --- Select the proper data:
         if data == 'sum':
             y = self.sum_of_roi
-            if 'ylabel' not in ax_par:
+            if 'ylabel' not in ax_params:
                 if normalised:
-                    ax_par['ylabel'] = 'Counts [a.u.]'
+                    ax_params['ylabel'] = 'Counts [a.u.]'
                 else:
-                    ax_par['ylabel'] = 'Counts'
+                    ax_params['ylabel'] = 'Counts'
         elif data == 'std':
             y = self.std_of_roi
-            if 'ylabel' not in ax_par:
+            if 'ylabel' not in ax_params:
                 if normalised:
-                    ax_par['ylabel'] = '$\\sigma [a.u.]$'
+                    ax_params['ylabel'] = '$\\sigma [a.u.]$'
                 else:
-                    ax_par['ylabel'] = '$\\sigma$'
+                    ax_params['ylabel'] = '$\\sigma$'
         else:
             y = self.mean_of_roi
-            if 'ylabel' not in ax_par:
+            if 'ylabel' not in ax_params:
                 if normalised:
-                    ax_par['ylabel'] = 'Mean [a.u.]'
+                    ax_params['ylabel'] = 'Mean [a.u.]'
                 else:
-                    ax_par['ylabel'] = 'Mean'
+                    ax_params['ylabel'] = 'Mean'
         # --- Normalize the data:
+        if correct_baseline:
+            y += -y[-15:-2].mean()
         if normalised:
             y /= y.max()
 
         # create and plot the figure
         if ax is None:
             fig, ax = plt.subplots()
-        line_options.update(line_par)
+        line_options.update(line_params)
         ax.plot(self.time_base, y, **line_options)
-        ax_options.update(ax_par)
+        ax_options.update(ax_params)
         ax = ssplt.axis_beauty(ax, ax_options)
         plt.tight_layout()
         return ax
