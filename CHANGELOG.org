@@ -1,3 +1,7 @@
+** 0.5.5: Minor improvements and examples
+- added an example to plot a discharge overview in AUG
+- calculate spectrograms of the fast channel now uses as default the scipy spectrogram function
+
 ** 0.5.4: Minor improvements
 - plot_single of the TimeTrace object now no longer have default color red, so is not a problem to compare different shots. Line_par and ax_par entries of that functions were renamed to line_params and ax_params to be coherent with the rest of the suite
 - new examples to analyse FILD data

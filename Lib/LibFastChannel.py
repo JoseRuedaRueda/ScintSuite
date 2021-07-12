@@ -19,15 +19,21 @@ import scipy.signal as sp  # signal processing
 class FastChannel:
     """To interact with signals from the fast channel"""
 
-    def __init__(self, diag, diag_number, channels, shot):
+    def __init__(self, diag, diag_ID, channels, shot):
         """Initialize the class, see get_fast_channel for inputs description"""
         ## Experimental data (time and channel signals)
         self.raw_data = \
-            ssdat.get_fast_channel(diag, diag_number, channels, shot)
+            ssdat.get_fast_channel(diag, diag_ID, channels, shot)
         ## Filtered data:
         self.filtered_data = None
         ## Spectras
         self.spectra = None
+        ## Diagnostic name
+        self.diag = diag
+        ## Diagnostic number
+        self.diag_ID = diag_ID
+        ## Shot number
+        self.shot = shot
 
     def filter(self, method='savgol', params: dict = {}):
         """
@@ -70,8 +76,8 @@ class FastChannel:
         }
         return
 
-    def calculate_spectrogram(self, method: str = 'stft', params: dict = {},
-                              timeResolution: float = 0.70):
+    def calculate_spectrogram(self, method: str = 'scipy', params: dict = {},
+                              timeResolution: float = 0.002):
         """
         Calculate spectrograms of loaded signals
 
@@ -84,41 +90,85 @@ class FastChannel:
             - sfft
             - stft: hort-Time Fourier Transform, Giovanni implementation.
             - stft2: Short-Time Fourier Transform, scipy.signal implementation.
+            - scipy: just call the scipy spectrogram function (recomended)
         @param params: dictionary containing the optional parameters of those
                        methos (see Lib.LibFrequencyAnalysis)
+        @param timeResolution: set the time resolution of the spectogram, if
+                               sfft, stft2 or stft are selected this would be
+                               the time resolution parameter, normalise to one,
+                               see fast channel library for more information.
+                               If you select the scipy method, this will be
+                               just the time window you want to use in each
+                               point to calculate the fourier transform. Notice
+                               that if you include manually 'nperseg' in the
+                               params dict, this timeResolution will be ignored
         """
         # --- Just select the desited method
-        if method == 'stft':
-            spec = ssfq.stft
-        elif method == 'sfft':
-            spec = ssfq.sfft
-        elif method == 'stft2':
-            spec = ssfq.stft2
-        else:
-            raise Exception('Method not understood')
-        # --- Perform the spectogram for each channel:
-        ch = np.arange(len(self.raw_data['data'])) + 1
-        spectra = []
-        # Estimate the window size for the ft
-        dt = self.raw_data['time'][1] - self.raw_data['time'][0]
-        nfft = int(ssfq.get_nfft(timeResolution, method,
-                                 self.raw_data['time'].size,
-                                 'hann', dt))
-        for ic in ch:
-            if self.raw_data['data'][ic - 1] is not None:
-                s, fvec, tvec = \
-                    spec(self.raw_data['time'],
-                         self.raw_data['data'][ic - 1],
-                         nfft, **params)
-                dummy = {
-                    'spec': abs(s),
-                    'fvec': fvec.copy(),
-                    'tvec': tvec.copy(),
-                }
-                spectra.append(dummy)
+        if method != 'scipy':
+            if method == 'stft':
+                spec = ssfq.stft
+            elif method == 'sfft':
+                spec = ssfq.sfft
+            elif method == 'stft2':
+                spec = ssfq.stft2
             else:
-                spectra.append(0)
-        self.spectra = spectra
+                raise Exception('Method not understood')
+            # --- Perform the spectogram for each channel:
+            ch = np.arange(len(self.raw_data['data'])) + 1
+            spectra = []
+            # Estimate the window size for the ft
+            dt = self.raw_data['time'][1] - self.raw_data['time'][0]
+            nfft = int(ssfq.get_nfft(timeResolution, method,
+                                     self.raw_data['time'].size,
+                                     'hann', dt))
+            for ic in ch:
+                if self.raw_data['data'][ic - 1] is not None:
+                    s, fvec, tvec = \
+                        spec(self.raw_data['time'],
+                             self.raw_data['data'][ic - 1],
+                             nfft, **params)
+                    dummy = {
+                        'spec': abs(s),
+                        'fvec': fvec.copy(),
+                        'tvec': tvec.copy(),
+                    }
+                    spectra.append(dummy)
+                else:
+                    spectra.append(0)
+            self.spectra = spectra
+        else:
+            # --- Time spacing of the data points
+            dt = self.raw_data['time'][1] - self.raw_data['time'][0]
+
+            # --- default options for the spectrogram
+            options = {
+                'window': ('tukey', 0.),
+                'fs': 1.0 / dt
+            }
+            options.update(params)
+
+            # --- estimate the number of points we need:
+            npoints = int(timeResolution/dt)
+            print(npoints)
+            if 'nperseg' not in options:
+                options['nperseg'] = npoints
+            # --- Perform the spectogram for each channel:
+            ch = np.arange(len(self.raw_data['data'])) + 1
+            spectra = []
+            for ic in ch:
+                if self.raw_data['data'][ic - 1] is not None:
+                    fvec, tvec, s = \
+                        sp.spectrogram(self.raw_data['data'][ic - 1],
+                                       **options)
+                    dummy = {
+                        'spec': np.abs(s).T,
+                        'fvec': fvec.copy(),
+                        'tvec': tvec.copy(),
+                    }
+                    spectra.append(dummy)
+                else:
+                    spectra.append(0)
+            self.spectra = spectra
         return
 
     def plot_channels(self, ch_number=None, line_params: dict = {},
