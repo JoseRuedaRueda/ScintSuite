@@ -24,13 +24,13 @@ import Lib as ss
 # -----------------------------------------------------------------------------
 # -- Paths (change them to your own paths)
 cin_file_name = '/p/IPP/AUG/rawfiles/FIT/32/32312_v710.cin'
-calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
+calibration_database = './Data/Calibrations/FILD/calibration_database3.txt'
 
-strike_map = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILD_Strike_maps/' + \
-    'AUG_map_-000.80000_008.10000_strike_map.dat'
+strike_map = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILDSIM/results/' +\
+    'AUG_map_-000.60000_007.50000_strike_map.dat'
 # -- Discharge settings
 shot = 32312
-t0 = 0.27
+t0 = 0.29
 # -- FILD settings
 camera = 'PHANTOM'
 cal_type = 'PIX'
@@ -39,14 +39,14 @@ diag_ID = 1     # FILD Number
 par = {
     'rmin': 1.2,      # Minimum gyroradius [in cm]
     'rmax': 10.5,     # Maximum gyroradius [in cm]
-    'dr': 0.1,        # Interval of the gyroradius [in cm]
+    'dr': 0.05,        # Interval of the gyroradius [in cm]
     'pmin': 20.0,     # Minimum pitch angle [in degrees]
     'pmax': 90.0,     # Maximum pitch angle [in degrees]
     'dp': 1.0,    # Pitch angle interval
     # method for the interpolation
     'method': 2,  # 2 Spline, 1 Linear
 }
-MC_markers = 100  # Number of MC markers to use. 0 Deactivate the MC remap
+MC_markers = 300  # Number of MC markers to use. 0 Deactivate the MC remap
 # -- Noise subtraction
 tn1 = 0.15
 tn2 = 0.19
