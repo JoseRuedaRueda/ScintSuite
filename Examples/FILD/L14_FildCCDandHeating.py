@@ -17,10 +17,10 @@ import numpy as np
 # --- Settings
 # -----------------------------------------------------------------------------
 
-shot = 39613
+shot = 39631
 diag_ID = [1, 4, 5]     # FILD number
-t0 = 5.6                # time (at the first shot) to define the roi
-t1 = 0.0
+t0 = 4.0                # time (at the first shot) to define the roi
+t1 = 0.1
 t2 = 10.0
 # -----------------------------------------------------------------------------
 # --- Calculate and plot the TT
@@ -53,9 +53,10 @@ for id in diag_ID:
 fig, ax = plt.subplots()
 for i in range(len(TT)):
     TT[i].plot_single(ax=ax, line_params={'label': 'FILD' + str(diag_ID[i])},
-                      normalised=True, correct_baseline=True)
+                      normalised=True, correct_baseline='ini')
 
 fig.show()
 plt.legend()
+plt.title('#' + str(shot))
 
 print('Thanks for using the ScintillatorSuite')

@@ -1,3 +1,7 @@
+** 0.5.6: Bug fix
+- L6 example now uses the MC method
+- *Bug solved* related with the single strikemap remap. Before, if you asked the single map remapping, it failed at the end when it tries to save the data, as the variable theta_used was not created, as the theta angle was not evaluated. Now it just save theta_used=0 and solved!
+
 ** 0.5.5: Minor improvements and examples
 - added an example to plot a discharge overview in AUG
 - calculate spectrograms of the fast channel now uses as default the scipy spectrogram function

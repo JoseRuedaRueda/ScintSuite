@@ -108,7 +108,7 @@ def plotSettings(plot_mode='software', usetex=False):
 # -----------------------------------------------------------------------------
 # --- 1D Plotting
 # -----------------------------------------------------------------------------
-def p1D(ax, x, y, param_dict: dict = None):
+def p1D(ax, x, y, param_dict={}):
     """
     Create basic 1D plot
 
@@ -120,8 +120,6 @@ def p1D(ax, x, y, param_dict: dict = None):
     @param param_dict: dict. Dictionary of kwargs to pass to ax.plot
     @return out: ax.plot with the applied settings
     """
-    if param_dict is None:
-        param_dict = {}
     ax.plot(x, y, **param_dict)
     return ax
 
@@ -175,6 +173,33 @@ def remove_lines(ax):
     """
     for i in range(len(ax.lines)):
         ax.lines[-1].remove()
+
+
+def overplot_trace(ax, x, y, line_params={}, ymin=0., ymax=0.95):
+    """
+    Over plot a time traces over figure
+
+    Jose Rueda Rueda: jrreda@us.es
+
+    Notice, we will just plot the trace x,y on top of the current figure. y
+    will be normalise such that its minimum is ymin * axis yscale and its max
+    is ymax * axis y scale
+
+    @param ax: ax where to plot
+    @param x: x of the line to plot
+    @param y: y of the line to plot
+    @param line_params: dictionary for plt.plot with the line parameters
+    @param ymin: minimum normalization percentage
+    @param ymax: maximum normalization percentage
+    """
+    # --- Create the transformation
+    # the x coords of this transformation are data, and the y coord are axes
+    trans = \
+        matplotlib.transforms.blended_transform_factory(
+            ax.transData, ax.transAxes)
+    # --- Normalise the y data
+    ydummy = (y - y.min()) / (y.max() - y.min()) * (ymax - ymin) + ymin
+    ax.plot(x, ydummy, transform=trans, **line_params)
 
 
 # -----------------------------------------------------------------------------
