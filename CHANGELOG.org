@@ -1,3 +1,31 @@
+** 0.5.6: Bug fix
+- L6 example now uses the MC method
+- *Bug solved* related with the single strikemap remap. Before, if you asked the single map remapping, it failed at the end when it tries to save the data, as the variable theta_used was not created, as the theta angle was not evaluated. Now it just save theta_used=0 and solved!
+
+** 0.5.5: Minor improvements and examples
+- added an example to plot a discharge overview in AUG
+- calculate spectrograms of the fast channel now uses as default the scipy spectrogram function
+
+** 0.5.4: Minor improvements
+- plot_single of the TimeTrace object now no longer have default color red, so is not a problem to compare different shots. Line_par and ax_par entries of that functions were renamed to line_params and ax_params to be coherent with the rest of the suite
+- new examples to analyse FILD data
+
+** 0.5.3: Minor improvements
+- Now the scan of the tomography library saves the data in each interaction (can be deactivate via inputs)
+- Label can be set in the plotting of the fast channel via line_params dictionary
+- *Bug solved* now the get_fast_signal() will not fail if the requested channel is a component of a numpy array
+- Lib.LibData.AUG.plot_FILD4_trayectory(shot) and Lib.LibData.AUG.load_FILD4_trayectory(shot) added to load FILD4 data. First step of FILD4 disclosure
+- Plotting style sheet updated, now you can choose default colors for line plotting
+
+** 0.5.2: Minor improvements
+- synthetic_signal_remap() will output the signal as a matrix [npitch, nradius] to be consistent with the remap (before it was [nradius, npitch])
+- The fast channel options allows now to calculate spectrograms and plot them
+
+** 0.5.1: Fast Channel analysis v1
+- synthetic_signal_remap() inputs changed, now gmin, gmax, dg is now renamed as rmin, rmax, dr, to be consistent with the rest of the ScintillatorSuite
+- *Bug solved* solves a bug in the synthetic_signal_remap() method, nan where appearing if the markers were outside the map range
+- get_fast_channel() from the LibData now also returns the number of the loaded channel
+
 ** 0.5.0: New FILD remap
 - The 'nearest' method of the interp_grid was deprecated
 - The interp_grid method of the StrikeMap class was completelly rewritten, please see the new function
