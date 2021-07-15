@@ -7,12 +7,12 @@ import matplotlib.pyplot as plt
 # --- Settings
 # -----------------------------------------------------------------------------
 
-shot = [39413, 39414, 39415]  # figure with a subplot for each shot will pop-up
+shot = [39610, 39611]  # figure with a subplot for each shot will pop-up
 
 ch_to_plot = {  # Select the channels you want to plot
-    1: [8],
-    2: [8],
-    4: [17],
+    1: [],
+    2: [],
+    4: [19],
     5: [],  # FILD 5 APD is broken
 }
 ptype = 'cloud'  # Type of plot: raw, smooth or cloud (this is raw + smooth)

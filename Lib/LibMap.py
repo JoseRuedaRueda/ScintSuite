@@ -587,6 +587,8 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
                 exist[iframe] = True
     else:
         exist = np.ones(nframes, np.bool)
+        theta_used = np.zeros(nframes, np.bool)
+        phi_used = np.zeros(nframes, np.bool)
     # See how many strike maps we need to calculate:
     if not got_smap:
         nnSmap = np.sum(~exist)  # Number of Smaps missing
