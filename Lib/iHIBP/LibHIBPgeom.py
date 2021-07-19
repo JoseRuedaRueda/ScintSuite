@@ -344,7 +344,7 @@ class gaussian_beam:
         self.mass   = mass
         self.pinsize = pinhole_size
         
-        self.mass_si = mass * Lib.parm.amu2kg
+        self.mass_si = mass * Lib.par.amu2kg
         
         # Computing the beam line.
         self._beam_data = generateBeamTrajectory(start=origin, beta=beta,
@@ -747,7 +747,12 @@ class gaussian_beam:
             vout[0, ...] = vel
             vout[1, ...] = beta
             vout[2, ...] = theta
-                           
+            
+        # Changing back the axis to its original shape.
+        vin = np.moveaxis(vin, 0, axis_3)
+        vout = np.moveaxis(vout, 0, axis_3)
+        
+        return vout
         
     def makebeam(self, model: int=BEAM_INF_SMALL, Nbeam = 100, Ndisk=1,
                  Rmin: float=None, Rmax: float=None):
@@ -807,9 +812,9 @@ class gaussian_beam:
             Ebeam = np.random.normal(loc=self.meanE, scale=self.stdE, 
                                      size=(Ndisk*Nbeam,))
             
-            vbeam = np.sqrt(2.*Ebeam*Lib.parm.ec*1e3/self.mass_si)
+            vbeam = np.sqrt(2.*Ebeam*Lib.par.ec*1e3/self.mass_si)
         else:
-            vbeam = np.sqrt(2.*self.meanE*Lib.parm.ec*1e3/self.mass_si)
+            vbeam = np.sqrt(2.*self.meanE*Lib.par.ec*1e3/self.mass_si)
             
         # Transforming the velocities into the cartesian coordinates.
         vin = np.zeros((3, len(s_data)))
@@ -818,11 +823,26 @@ class gaussian_beam:
         vin[2, :] = theta_vel
         
         vout = self.change_vel(vin, 'beam', 'cart')
+        
         vout_cyl = self.change_vel(vout, 'cart', 'cyl', phi=xout_cyl[1, :])
         
         # We finally need the time coordinate:
         time = s_data/(vbeam*np.cos(beta))
         
+        # --- Computing the velocity-space volume:
+        idx_sorting_beta = np.argsort(beta)
+        bbeam_sorted = beta[idx_sorting_beta]
+        print(bbeam_sorted.shape)
         
+        dbbeam_sorted = np.zeros(beta.shape)
+        db = np.zeros(beta.shape)
         
-        return xout
+        dbbeam = bbeam_sorted[2:] - bbeam_sorted[:-2]
+        dbbeam_idx0 = bbeam_sorted[1] - bbeam_sorted[0]
+        dbbeam_idx_end = bbeam_sorted[-1] - bbeam_sorted[-2]
+        dbbeam_sorted[0] = dbbeam_idx0
+        dbbeam_sorted[-1] = dbbeam_idx_end
+        dbbeam_sorted[1:-1] = dbbeam
+        db[idx_sorting_beta] = dbbeam_sorted
+        
+        return beta, db
