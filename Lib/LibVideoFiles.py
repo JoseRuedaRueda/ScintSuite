@@ -1516,7 +1516,7 @@ class Video:
             print('The threshold is set to: ', threshold, ' counts')
             number_of_frames = len(self.exp_dat['tframes'])
             n_pixels_saturated = np.zeros(number_of_frames)
-            for i in range(number_of_frames):
+            for i in tqdm(range(number_of_frames)):
                 n_pixels_saturated[i] = \
                     (self.exp_dat['frames'][:, :, i] >= threshold).sum()
             self.exp_dat['n_pixels_gt_threshold'] = \
