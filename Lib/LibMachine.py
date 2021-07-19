@@ -3,4 +3,5 @@ import os
 if os.path.isdir('/afs/ipp-garching.mpg.de'):
     machine = 'AUG'
 else:
-    raise Exception('Not recognised machine')
+    machine = 'UNKNOWN'
+    print('Not recognised machine')

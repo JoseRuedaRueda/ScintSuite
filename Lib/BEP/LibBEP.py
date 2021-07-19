@@ -449,3 +449,5 @@ def plotBEP_fromSF(bepdata: dict, losname: str, ax = None,
 
         fig.tight_layout()
     return ax
+
+

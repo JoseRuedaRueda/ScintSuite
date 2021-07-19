@@ -4,6 +4,7 @@ import dd                # Module to load shotfiles
 import numpy as np
 import os
 import math
+import warnings
 from Lib.LibPaths import Path
 import Lib.LibData.AUG.Equilibrium as equil
 import Lib.LibData.AUG.DiagParam as params
@@ -182,8 +183,8 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
         raise Exception('Could not open NIS shotfile for #$05d' % shotnumber)
 
     # --- Transforming the indices of the NBIs into the AUG system (BOX, Beam)
-    nbion_box = np.asarray(np.floor(nbion/4), dtype=int)
-    nbion_idx = np.asarray(nbion - (nbion_box+1)*4 - 1, dtype=int)
+    nbion_box = np.asarray(np.floor((nbion-1)/4), dtype=int)
+    nbion_idx = np.asarray(nbion - (nbion_box)*4 - 1, dtype=int)
     if nbioff is not None:
         nbioff_box = np.asarray(np.floor(nbioff/4), dtype=int)
         nbioff_idx = np.asarray(nbioff - (nbioff_box+1)*4 - 1, dtype=int)
@@ -250,6 +251,37 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
              }
     return output
 
+
+def getNBI_timeTraces(shotnumber: int, nbilist: int=None):
+    if nbilist is None:
+        nbilist = (1, 2, 3, 4, 5, 6, 7, 8)
+    
+    
+    nbilist = np.atleast_1d(nbilist)
+    nbi_box = np.asarray(np.floor((nbilist-1)/4), dtype=int)
+    nbi_idx = np.asarray(nbilist - (nbi_box)*4 - 1, dtype=int)
+    
+    try:
+        sf = dd.shotfile(diagnostic='NIS', pulseNumber=shotnumber,
+                            edition=0, experiment='AUGD')
+        
+    except:
+        raise Exception('NBI shotfile cannot be opened for #%05d'%shotnumber)
+        
+    output = dict()
+    
+    pniq = np.transpose(sf.getObjectData(b'PNIQ'), (2, 0, 1))*1.0e-6
+    timebase = sf.getTimeBase(b'PNIQ')
+    sf.close()
+    
+    
+    for ii, nbinum in enumerate(nbilist):
+        output[nbinum] = pniq[:, nbi_box[ii], nbi_idx[ii]]
+        
+    output['time']  = timebase
+    output['total'] = np.sum(pniq, axis=(1,2))
+    
+    return output
 
 class NBI:
     """Class with the information and data from an NBI"""
