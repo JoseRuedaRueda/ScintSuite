@@ -17,7 +17,8 @@ except ModuleNotFoundError:
 # -----------------------------------------------------------------------------
 # --- Inputs distributions
 # -----------------------------------------------------------------------------
-def gaussian_input_distribution(r0, sr0, p0, sp0, B=1.8, A=2.0, Z=1, F=1e6):
+def gaussian_input_distribution(r0, sr0, p0, sp0, B=1.8, A=2.0, Z=1, F=1e6,
+                                n=50):
     """
     Prepare an 2D Gaussian input distribution
 
@@ -35,9 +36,9 @@ def gaussian_input_distribution(r0, sr0, p0, sp0, B=1.8, A=2.0, Z=1, F=1e6):
     @return: distribution ready to be used by the foward model routine
     """
     gaussian = lmfit.models.GaussianModel().func
-
-    ggrid = np.linspace(r0 - 3 * sr0, r0 + 3 * sr0)
-    pgrid = np.linspace(p0 - 3 * sp0, p0 + 3 * sp0)
+    # 50 points in 6 sigmas sounds a finner enought grid
+    ggrid = np.linspace(r0 - 3 * sr0, r0 + 3 * sr0, num=n)
+    pgrid = np.linspace(p0 - 3 * sp0, p0 + 3 * sp0, num=n)
 
     G, P = np.meshgrid(ggrid, pgrid)
     weights = gaussian(G.flatten(), center=r0, sigma=sr0) \
@@ -159,7 +160,7 @@ def distribution_tomography_frame(g_grid, p_grid, coefficients,
 # --- Synthetic signals
 # -----------------------------------------------------------------------------
 def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
-                           gmin=1.5, gmax=10.0, dg=0.1, pmin=20.0, pmax=90.0,
+                           rmin=1.5, rmax=10.0, dr=0.1, pmin=20.0, pmax=90.0,
                            dp=1.0, efficiency=None):
     """
     Generate FILD synthetic signal
@@ -224,9 +225,9 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
         g_func = lmfit.models.SkewedGaussianModel().func
     # --- Calculate the signal:
     # Prepare the grid
-    ng = int((gmax-gmin)/dg)
+    ng = int((rmax-rmin)/dr)
     npitch = int((pmax-pmin)/dp)
-    g_array = gmin + np.arange(ng+1) * dg
+    g_array = rmin + np.arange(ng+1) * dr
     p_array = pmin + np.arange(npitch+1) * dp
     g_grid, p_grid = np.meshgrid(g_array, p_array)
     # Prepare the parameters we will interpolate:
@@ -246,16 +247,16 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
     gmin = smap.unique_gyroradius.min()
     pmax = smap.unique_pitch.max()
     pmin = smap.unique_pitch.min()
-    flags = (distro['gyroradius'] < gmin) * (distro['gyroradius'] > gmax) \
-        * (distro['pitch'] < pmin) * (distro['pitch'] > pmax)
+    flags = (distro['gyroradius'] > gmin) * (distro['gyroradius'] < gmax) \
+        * (distro['pitch'] > pmin) * (distro['pitch'] < pmax)
     flags = flags.astype(np.bool)
-    distro_gyr = distro['gyroradius'][~flags]
-    distro_pitch = distro['pitch'][~flags]
-    distro_energy = distro['energy'][~flags]
-    distro_w = distro['weight'][~flags]
-    if np.sum(flags) > 0:
+    distro_gyr = distro['gyroradius'][flags]
+    distro_pitch = distro['pitch'][flags]
+    distro_energy = distro['energy'][flags]
+    distro_w = distro['weight'][flags]
+    if np.sum(flags) < distro['n']:
         print('Some markers were outside the strike map!')
-        print('We neglected ', str(np.sum(flags)), ' markers')
+        print('We neglected ', str(distro['n'] - np.sum(flags)), ' markers')
     for i in range(len(distro_gyr)):
         # Interpolate sigmas, gammas and collimator_factor
         g_parameters = {}
@@ -276,7 +277,7 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
                 * pitch_func(p_grid.flatten(), **p_parameters)\
                 * distro_w[i] * efficiency.interpolator(distro_energy[i])
         else:
-            dummy = col_factor * g_func(g_grid.flatten(), **g_parameters) \
+            signal = col_factor * g_func(g_grid.flatten(), **g_parameters) \
                 * pitch_func(p_grid.flatten(), **p_parameters)\
                 * distro_w[i]
     signal = np.reshape(signal, g_grid.shape)
@@ -285,14 +286,15 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
         'pitch': p_array,
         'dgyr': g_array[1] - g_array[0],
         'dp': p_array[1] - p_array[0],
-        'signal': signal.T
+        'signal': signal
     }
 
     return output
 
 
 def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, fig=None,
-                          ax_params = {}):
+                          ax_params={}, profiles=True, ax_profiles=None,
+                          ax_params_profiles={}):
     """
     Plot the synthetic signal
 
@@ -305,6 +307,12 @@ def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, fig=None,
     @param ax: axes where to plot, if none, a new figure will be created
     @param ax_params: only used if the axis was created here, parameters for
     the axis_beauty function
+    @param profiles: flag to also plot the profiles
+    @param ax_profiles: axis where to draw the profiles, should be a list with
+    the 2 axes
+    @param ax_params_profiles: only used if the axis was created here,
+    parameters for the axis_beauty function, note, gyr and pitch labels are
+    hardcored, sorry
 
     @return ax: axes where the figure was drawn
     """
@@ -312,10 +320,13 @@ def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, fig=None,
     ax_options = {
         'xlabel': 'Pitch',
         'ylabel': 'Gyroradius [cm]',
-        'fontsize': 14,
     }
     ax_options.update(ax_params)
 
+    ax_options_profiles = {
+        'ylabel': 'Signal [a.u.]',
+    }
+    ax_options_profiles.update(ax_params_profiles)
     # Prepare the color map:
     if cmap is None:
         cmap = ssplt.Gamma_II()
@@ -326,15 +337,27 @@ def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, fig=None,
         created = True
     else:
         created = False
-    # plot:
-    a1 = ax.contourf(p, r, signal, cmap=cmap)
+    # plot the contour
+    a1 = ax.contourf(p, r, signal.T, cmap=cmap)
     if created:
         ax = ssplt.axis_beauty(ax, ax_options)
-
-    if not fig == None:
         fig.colorbar(a1, ax=ax, label='Counts')
-
-    return ax
+    fig.show()
+    # Plot the profiles
+    if ax_profiles is None:
+        fig2, ax_profiles = plt.subplots(1, 2)
+        created2 = True
+    else:
+        created2 = False
+    ax_profiles[0].plot(p, np.sum(signal, axis=1))
+    ax_profiles[1].plot(r, np.sum(signal, axis=0))
+    if created2:
+        ax_options_profiles['xlabel'] = 'Pitch [$\\degree$]'
+        ax_profiles[0] = ssplt.axis_beauty(ax_profiles[0], ax_options_profiles)
+        ax_options_profiles['xlabel'] = 'Gyroradius [cm]'
+        ax_profiles[1] = ssplt.axis_beauty(ax_profiles[1], ax_options_profiles)
+    fig2.show()
+    return ax, ax_profiles
 
 
 def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
@@ -685,8 +708,7 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
         eff = np.ones(rpin.size)
     # Build the weight matrix. We will use brute force, I am sure that there is
     # a tensor product implemented in python which does the job in a more
-    # efficient way, bot for the moment, I will leave exactly as in the
-    # original IDL routine
+    # efficient way
     res_matrix = np.zeros((nr_scint, np_scint, nr_pin, np_pin))
 
     print('Creating matrix')
