@@ -43,8 +43,9 @@ def paths_of_the_suite(machine='AUG'):
     for lib in Suite_LIBs.keys():
         sys.path.extend([os.path.join(SUITE_DIR, Suite_LIBs[lib])])
     # Machine dependent paths:
-    for lib in Machine_libs[machine].keys():
-        sys.path.extend([os.path.join(SUITE_DIR, Machine_libs[machine][lib])])
+    if machine in Machine_libs:
+        for lib in Machine_libs[machine].keys():
+            sys.path.extend([os.path.join(SUITE_DIR, Machine_libs[machine][lib])])
 
     # Check the cluster where we are working
     if machine == 'AUG':
