@@ -600,7 +600,7 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     # --- Remap the frame
     if not is_remap:
         rep_frame = ssmapping.remap(smap, frame, x_edges=spedges,
-                                    y_edges=sredges, method='MC')
+                                    y_edges=sredges, method=remap_method)
         # Just transpose the frame. (To have the W in the same ijkl order of
         # old IDL-MATLAB implementation)
         rep_frame = rep_frame.T
