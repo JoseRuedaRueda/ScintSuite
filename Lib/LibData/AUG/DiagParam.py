@@ -80,6 +80,8 @@ fild_number_of_channels = [20, 20, 99, 32, 64, 20]
 IHIBP_scintillator_X = np.array((0.0, 6.6))  # [cm]
 IHIBP_scintillator_Y = np.array((-17.0, 0.0))  # [cm]
 
+iHIBP = {'port_center': [0.687, -3.454, 0.03], 'sector': 13,
+         'beta_std': 4.117, 'theta_std': 0.0, 'source_radius': 7.0e-3}
 
 # -----------------------------------------------------------------------------
 # --- Magnetics data.
