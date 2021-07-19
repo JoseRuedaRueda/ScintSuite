@@ -14,7 +14,7 @@ import Lib as ss
 # -----------------------------------------------------------------------------
 # - General settings
 shot = 38686
-diag_ID = 6  # 6 for rFILD (DLIF)
+diag_ID = 6  # 6 for rFILD
 t1 = 0.9     # Initial time to be loaded, [s]
 t2 = 8.0     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than

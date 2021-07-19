@@ -1,9 +1,11 @@
 """Routines to interact with the AUG database"""
-
+import os
 import dd                # Module to load shotfiles
 import numpy as np
 import map_equ as meq    # Module to map the equilibrium
 import warnings
+import matplotlib.pyplot as plt
+import Lib.LibParameters as libparms
 import Lib.LibData.AUG.DiagParam as params
 from tqdm import tqdm
 from scipy.interpolate import interp1d, interp2d, UnivariateSpline
@@ -305,9 +307,364 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
                                          bounds_error=False, fill_value=np.nan,
                                          assume_sorted=True)(time).T
 
+    return output
 
+
+# -----------------------------------------------------------------------------
+# --- Ion temperature
+# -----------------------------------------------------------------------------
+def get_Ti_idi(shot: int, time: float = None, exp: str = 'AUGD',
+               edition: int = 0, sf=None):
+    """
+    Wrap to get AUG ion temperature from the IDI shotfile.
+
+    Jose Rueda: jrrueda@us.es
+
+    Copy of get_Te_ida
+
+    @param shot: Shot number
+    @param time: Time point to read the profile.
+    @param exp: Experiment name.
+    @param diag: diagnostic from which 'Te' will extracted.
+    @param edition: edition of the shotfile to be read.
+
+    @return output: a dictionary containing the electron temp. evaluated
+    in the input times and the corresponding rhopol base.
+    """
+    # --- Opening the shotfile.
+    sf_was_none = False
+    if sf is None:
+        sf_was_none = True
+        try:
+            sf = dd.shotfile(diagnostic='IDI', pulseNumber=shot,
+                             experiment=exp, edition=edition)
+        except:
+            raise NameError('The shotnumber %d is not in the database'\
+                            %shot)
+
+    # --- Reading from the database
+    try:
+        ti = sf(name='Ti')
+        ti_unc = sf(name='Ti_unc')
+        rhop = ti.area.data[0, :]
+        timebase = sf(name='time').data
+
+    except:
+        raise Exception('Cannot read the density from the IDA #%05d' % shot)
+
+    # --- Closing the shotfile.
+    if sf_was_none:
+        sf.close()
+
+    # We will return the data in the same spatial basis as provided by IDA.
+    output = {'rhop': rhop, 'time': timebase}
+
+    if time is None:
+        time = timebase
+        output['data'] = ti.data
+        output['time'] = time
+        output['uncertainty'] = ti_unc.data
+    else:
+        output['time'] = time
+        output['data'] = interp1d(timebase, ti.data, kind='linear', axis=0,
+                                  bounds_error=False, fill_value=np.nan,
+                                  assume_sorted=True)(time).T
+        output['uncertainty'] = interp1d(timebase, ti_unc.data,
+                                         kind='linear', axis=0,
+                                         bounds_error=False, fill_value=np.nan,
+                                         assume_sorted=True)(time).T
+    return output
+
+
+def get_Ti_cxrs(shotnumber: int, time: float = None,
+                exp: str = 'AUGD', edition: int = 0,
+                tavg: float = 50.0, nrho: int = 200,
+                smooth_factor: float = 500.0,
+                rhop0: float = None, rhop1: float = None,
+                dr=None, dz=None):
+    """
+    Read the ion temperature from CXRS diagnostics
+
+    Jose Rueda: jrrueda@us.es
+
+    Copied from Pablo routine of vtor
+
+    @param shotnumber: shotnumber to read.
+    @param time: time window to get the data. If None, all the available times
+    are read.
+    @param exp: experiment under which the shotfile is stored.
+    @param edition: edition of the shotfile to read
+    @param tavg: averaging time in miliseconds. 50 ms by default.
+    @param nrho: number of points in rho_pol to calculate the smoothed profile.
+    @param smooth_factor: smoothing factor to send to the UnivariateSpline
+    class to perform the smoothing regression.
+    @param dr: correction in the radial direction. Can be just a number or a
+    dict containing a correction for each diagnostic
+    @param dz: correction in the z direction
+    """
+
+    diags = ('CMZ', 'CEZ', 'CUZ', 'COZ',)
+    signals = ('Ti_c', 'Ti_c', 'Ti_c', 'Ti_c', )
+    error_signals = ('err_Ti_c', 'err_Ti_c', 'err_Ti_c', 'err_Ti_c')
+    tavg *= 1.0e-3
+
+    # --- Checking the inputs consistency.
+    if dr is None:
+        dr_corr_flag = False
+    else:
+        dr_corr_flag = True
+
+    if dz is None:
+        dz_corr_flag = False
+    else:
+        dz_corr_flag = True
+
+    # --- Opening the shotfiles.
+    nshotfiles = 0
+    sf = list()
+    for ii in diags:
+        try:
+            sf_aux = dd.shotfile(diagnostic=ii, pulseNumber=shotnumber,
+                                 experiment=exp, edition=edition)
+        except:
+            print('Cannot open %s for shot #%05d\n' % (ii, shotnumber))
+            continue
+
+        nshotfiles += 1
+        sf.append(sf_aux)
+
+    if nshotfiles == 0:
+        raise Exception('Ti not available!')
+
+    # --- Checking the time input.
+    if time is None:
+        time = np.array((0, 3600.0))  # Dummy limits.
+
+    # --- Reading the shotfiles.
+    Ti = list()
+    timebase = list()
+    rhopol = list()
+    Ti_err = list()
+    dt = list()
+    for ii in np.arange(len(sf), dtype=int):
+        Ti_data = sf[ii](name=signals[ii])
+        zaux = sf[ii](name='z').data.squeeze()
+        Raux = sf[ii](name='R').data.squeeze()
+        err_aux = sf[ii](name=error_signals[ii]).data
+        if Ti_data.size == 0:
+            sf[ii].close()
+            nshotfiles -= 1
+            continue
+        if len(sf) == 0:
+            raise Exception('Ti not available!')
+        if ii == 0:
+            Ti_aux = Ti_data.data
+            time_aux = Ti_data.time
+
+            # Cut only the interesting time window.
+            t0, t1 = time_aux.searchsorted(time)
+            time_aux = time_aux[t0:t1]
+
+            if len(time_aux) == 0:
+                sf[ii].close()
+                nshotfiles -= 1
+                continue
+            if len(sf) == 0:
+                raise Exception('Ti not available!')
+
+            # Some channels are broken. For those R = 0, and we can easily
+            # take them out.
+            flags = Raux > 1.0
+            R = Raux[flags]
+            z = zaux[flags]
+
+            # Adding the dR and dZ corrections into the diagnostic
+            if dr_corr_flag:
+                if isinstance(dr, dict):
+                    if diags[ii] in dr:
+                        R += dr[diags[ii]]
+                elif isinstance(dr, float):
+                    R += dr
+
+            if dz_corr_flag:
+                if isinstance(dz, dict):
+                    if diags[ii] in dr:
+                        z += dz[diags[ii]]
+                elif isinstance(dz, float):
+                    z += dz
+
+            Ti_aux = Ti_aux[t0:t1, flags]
+            err_aux = err_aux[t0:t1, flags]
+
+            # Appending to the diagnostic list.
+            Ti.append(Ti_aux)
+            timebase.append(time_aux)
+            Ti_err.append(err_aux)
+
+            # Transforming (R, z) into rhopol.
+            rhopol_aux = get_rho(shot=shotnumber, Rin=R, zin=z,
+                                 time=time_aux)
+            rhopol.append(rhopol_aux)
+
+            dt.append(time_aux[1]-time_aux[0])
+            del R
+            del z
+            del rhopol_aux
+            del Ti_aux
+        else:
+            # Getting the time window.
+            Ti_aux = Ti_data.data
+            t0, t1 = Ti_data.time.searchsorted(time)
+            time_aux = Ti_data.time[t0:t1]
+            if len(time_aux) == 0:
+                sf[ii].close()
+                nshotfiles -= 1
+                continue
+            if len(sf) == 0:
+                raise Exception('Ti not available!')
+
+            # If the major radius is zero, that channel should be taken
+            # away.
+            flags = Raux > 1.0
+            R = Raux[flags]
+            z = zaux[flags]
+
+            # Adding the dR and dZ corrections into the diagnostic
+            if dr_corr_flag:
+                if isinstance(dr, dict):
+                    if diags[ii] in dr:
+                        R += dr[diags[ii]]
+                elif isinstance(dr, float):
+                    R += dr
+
+            if dz_corr_flag:
+                if isinstance(dz, dict):
+                    if diags[ii] in dr:
+                        z += dz[diags[ii]]
+                elif isinstance(dz, float):
+                    z += dz
+
+            # Transforming (R, z) into rhopol.
+            rhopol_aux = get_rho(shot=shotnumber, Rin=R, zin=z,
+                                 time=time_aux)
+            rhopol.append(rhopol_aux)
+            Ti_aux = Ti_aux[t0:t1, flags]
+            err_aux = err_aux[t0:t1, flags]
+
+            # Appending to the diagnostic list.
+            Ti.append(Ti_aux)
+            timebase.append(time_aux)
+            Ti_err.append(err_aux)
+            dt.append(time_aux[1]-time_aux[0])
+
+            del R
+            del z
+            del time_aux
+            del rhopol_aux
+            del Ti_aux
+        del Raux
+        del zaux
+        del Ti_data
+        del err_aux
+
+    # --- Closing the shotfiles.
+    for ii in sf:
+        ii.close()
+
+    # --- Transforming R -> rhopol.
+    output = {
+        'diags': diags,
+        'raw': {
+            'data': Ti,
+            'rhopol': rhopol,
+            'time': timebase,
+            'err': Ti_err
+        }
+    }
+
+    # --- Fitting the profiles.
+    if nshotfiles > 1:
+        tBegin = np.concatenate(timebase).min()
+        tEnd = np.concatenate(timebase).max()
+        if rhop0 is None:
+            rhop0 = np.array([x.min() for x in rhopol]).min()
+        if rhop1 is None:
+            rhop1 = np.array([x.max() for x in rhopol]).max()
+    else:
+        tBegin = np.array(timebase).min()
+        tEnd = np.array(timebase).max()
+        if rhop0 is None:
+            rhop0 = np.array(rhopol).min()
+        if rhop1 is None:
+            rhop1 = np.array(rhopol).max()
+
+    dt = max(dt)
+    tavg = max(tavg, dt)
+    nwindows = max(1, int((tEnd - tBegin)/tavg))
+
+    time_out = np.linspace(tBegin, tEnd, nwindows)
+    rhop_out = np.linspace(rhop0, rhop1, num=nrho)
+    Ti_out = np.zeros((time_out.size, rhop_out.size))
+    for iwin in np.arange(nwindows, dtype=int):
+        data = list()
+        rhop = list()
+        weight = list()
+        # Appending to a list all the data points within the time range
+        # for all diagnostics.
+        for idiags in np.arange(nshotfiles, dtype=int):
+            time0 = float(iwin) * tavg + tBegin
+            time1 = time0 + tavg
+
+            t0, t1 = timebase[idiags].searchsorted((time0, time1))
+
+            data.append(Ti[idiags][t0:t1, :].flatten())
+            rhop.append(rhopol[idiags][t0:t1, :].flatten())
+            weight.append(1.0/Ti_err[idiags][t0:t1, :].flatten())
+
+        # Using the smoothing spline.
+        data = np.asarray(np.concatenate(data)).flatten()
+        err = np.asarray(np.concatenate(weight)).flatten()
+        rhop = np.asarray(np.concatenate(rhop)).flatten()
+
+        sorted_index = np.argsort(rhop)
+        rhop = rhop[sorted_index]
+        data = data[sorted_index]
+        err = err[sorted_index]
+
+        flags_err = (err == np.inf) | (err == 0.0) | (data == 0.0)
+        rhop = rhop[~flags_err]
+        err = err[~flags_err]
+        data = data[~flags_err]
+
+        if len(data) < 8:
+            time_out[iwin] = np.nan
+            Ti_out[iwin, :] = np.nan
+            continue
+
+        # Creating smoothing spline
+        splineFun = UnivariateSpline(x=rhop, y=data, w=err, s=smooth_factor,
+                                     ext=0.0)
+        Ti_out[iwin, :] = splineFun(rhop_out)
+        rhop_local_min = rhop.min()
+        rhop_local_max = rhop.max()
+        flags = (rhop_out < rhop_local_min) | (rhop_out > rhop_local_max)
+        Ti_out[iwin, flags] = np.nan
+        del splineFun
+        del data
+        del rhop
+        del weight
+        del flags
+
+    flags = np.isnan(time_out)
+
+    output['fit'] = {
+        'rhop': rhop_out,
+        'data': Ti_out[~flags, :],
+        'time': time_out[~flags]
+    }
 
     return output
+
 
 # -----------------------------------------------------------------------------
 # --- ECE data.

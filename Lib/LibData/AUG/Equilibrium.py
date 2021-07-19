@@ -231,8 +231,8 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
     ssq['bt0'] = multi*btf + shift
     ssq['bttime'] = btf_time
 
+    # Close the shotfile
     sf.close()
-
     return ssq
 
 

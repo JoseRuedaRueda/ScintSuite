@@ -30,6 +30,8 @@ class Path:
             self.bcoils_phase_corr = os.path.join(self.ScintSuite,
                                                   'Data',
                                                   'Magnetics')
+            self.FILD4_trayectories = \
+                '/afs/ipp/home/j/javih/FILD4/'
             self.fonts = [
                 '/usr/share/fonts/truetype',
                 '/usr/share/fonts/truetype/ms-corefonts',

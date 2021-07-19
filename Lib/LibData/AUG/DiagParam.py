@@ -1,7 +1,7 @@
 """Diagnostics and parameters of ASDEX Upgrade"""
 
 import numpy as np
-
+import warnings
 # -----------------------------------------------------------------------------
 # --- AUG parameters
 # -----------------------------------------------------------------------------
@@ -12,8 +12,8 @@ shot_number_length = 5  # In AUG shots numbers are written with 5 numbers 00001
 ## @todo> This is hardcored here, at the end there are only 2 weeks of reverse
 # field experiments in  the whole year, but if necesary, we could include here
 # some kind of method to check the sign calling the AUG database
-Bt_sign = 1   # +1 Indicates the positive phi direction (counterclockwise)
-It_sign = -1  # -1 Indicates the negative phi direction (clockwise)
+Bt_sign = -1   # +1 Indicates the positive phi direction (counterclockwise)
+It_sign = 1  # -1 Indicates the negative phi direction (clockwise)
 IB_sign = Bt_sign * It_sign
 
 # -----------------------------------------------------------------------------
@@ -68,11 +68,6 @@ fild6 = {'alpha': 0.0, 'beta': 171.3, 'sector': 8, 'r': 2.180,
          'diag': 'FHC', 'channel': 'FILD3_', 'nch': 20, 'camera': 'CCD'}
 
 FILD = (fild1, fild2, fild3, fild4, fild5, fild6)
-## FILD diag names:
-# fast-channels:
-fild_diag = ['FHC', 'FHA', 'XXX', 'FHD', 'FHE', 'FHC']
-fild_signals = ['FILD3_', 'FIPM_', 'XXX', 'Chan-', 'Chan-', 'FILD3_']
-fild_number_of_channels = [20, 20, 99, 32, 64, 20]
 
 # -----------------------------------------------------------------------------
 # --- IHIBP PARAMETERS
@@ -93,4 +88,55 @@ mag_coils_grp2coilName = {
     'B-31_32_27': ['C07', np.arange(32, 38)]
 }
 
-mag_coils_phase_B31 =  (1, 2, 3, 12, 13, 14)
+mag_coils_phase_B31 = (1, 2, 3, 12, 13, 14)
+
+
+# -----------------------------------------------------------------------------
+# --- FILD Position
+# -----------------------------------------------------------------------------
+def FILD_position(insertion, fild_number: int = 4):
+    """
+    Return the FILD position (R,z)
+
+    @params insertion: FILD insertion. For the moment, for FILD4 must be given
+    in m while for FILD1,2,5 mm should be used (as is the unit used in the
+    logbook) we will revise this soon
+    @param fild_number: FILD detector to check, default 4
+    """
+    if fild_number == 1:   # Taken from logbook
+        # Only valid for shots before 2017 campaing
+        warnings.warn('Be sure yout shot is after 2017 campaing')
+        R = 2315.0 - (insertion - 1700.) - 6
+        R /= 1000.0   # Convert to m
+        z = 0.3
+    elif fild_number == 2:   # Taken from logbook
+        R = 2182.36-(insertion-55.08+56.2)
+        R /= 1000.0   # Convert to m
+        z = 0.3
+    elif fild_number == 4:
+        R4_lim = [2.082410, 2.015961]
+        Z4_lim = [-0.437220, -0.437906]
+        ins_lim = [0, 0.066526]
+        R = R4_lim[0]+(insertion-ins_lim[0])/(ins_lim[0]-ins_lim[1])*\
+            (R4_lim[0]-R4_lim[1])
+        z = Z4_lim[0]+(insertion-ins_lim[0])/(ins_lim[0]-ins_lim[1])*\
+            (Z4_lim[0]-Z4_lim[1])
+    elif fild_number == 5:
+        # Position for manipulator inserted 2 mm
+        R2 = 1794.6
+        z2 = -794.0
+        # Position for the manipulator inserted 25 mm
+        R25 = 1777.4
+        z25 = -778.7
+        # Deltas
+        deltaR = R25 - R2
+        deltaz = z25 - z2
+        # Interpolation
+        R = R2 + (insertion - 2.0)/23.0 * deltaR
+        z = z2 + (insertion - 2.0)/23.0 * deltaz
+        # Go to m
+        R /= 1000.0
+        z /= 1000.0
+    else:
+        raise Exception('Diagnostic no understood')
+    return (R, z)

@@ -6,6 +6,7 @@ synthetic codes (INPASIM, FILDSIM, i/HIBPSIM) therefore the routines which
 create these matries are placed are their corresponding libraries
 """
 import pickle
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import Lib.LibFILDSIM as ssfildsim
@@ -109,7 +110,7 @@ def Ridge_inversion(X, y, alpha):
 def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
                log_spaced: bool = True, plot: bool = True,
                line_param: dict = {'linewidth': 1.5},
-               FS: float = 14):
+               FS: float = 14, folder_to_save: str = None):
     """
     Scan the slpha parameters to find the best hyper-parameter
 
@@ -123,6 +124,9 @@ def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
     @param log_spaced: if true, points will be logspaced
     @param line_param: dictionary with the line plotting parameters
     @param FS: FontSize
+    @param folder_to_save: if not None, in each iteration the calculated
+           inversion will be saved, in pickle format, inside the folder
+
     @return out: Dictionay with fields:
         -# beta: array of coefficients [nfeatures, nalphas]
         -# MSE: arrays of MSEs
@@ -149,7 +153,9 @@ def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
     print('Performing regression')
     for i in tqdm(range(n_alpha)):
         beta[:, i], MSE[i], res[i], r2[i] = Ridge_inversion(X, y, alpha[i])
-
+        if folder_to_save is not None:
+            file = os.path.join(folder_to_save, str(i) + '.pck')
+            ssio.save_object_pickle(file, [beta[:, i], MSE[i], res[i], r2[i]])
     # --- Plot if needed:
     if plot:
         fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
@@ -227,7 +233,7 @@ def nnRidge(X, y, alpha, param: dict = {}):
 def nnRidge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
                  log_spaced: bool = True, plot: bool = True,
                  line_param: dict = {'linewidth': 1.5},
-                 FS: float = 14):
+                 FS: float = 14, folder_to_save: str = None):
     """
     Scan the alpha parameters to find the best hyper-parameter (nnRidge)
 
@@ -241,6 +247,9 @@ def nnRidge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
     @param log_spaced: if true, points will be logspaced
     @param line_param: dictionary with the line plotting parameters
     @param FS: FontSize
+    @param folder_to_save: if not None, in each iteration the calculated
+       inversion will be saved, in pickle format, inside the folder
+
     @return out: Dictionay with fields:
         -# beta: array of coefficients [nfeatures, nalphas]
         -# MSE: arrays of MSEs
@@ -267,6 +276,9 @@ def nnRidge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
     print('Performing regression')
     for i in tqdm(range(n_alpha)):
         beta[:, i], MSE[i], res[i], r2[i] = nnRidge(X, y, alpha[i])
+        if folder_to_save is not None:
+            file = os.path.join(folder_to_save, str(i) + '.pck')
+            ssio.save_object_pickle(file, [beta[:, i], MSE[i], res[i], r2[i]])
 
     # --- Plot if needed:
     if plot:
@@ -528,8 +540,10 @@ def L_curve_fit(norm, residual, a1_min=-1000, a1_max=0,
 def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
                      verbose: bool = True, plt_frame: bool = False,
                      LIMIT_REGION_FCOL: bool = True,
-                     efficiency=None, median_filter=True,
-                     filter_option: dict = {'size': 4}):
+                     efficiency=None, median_filter=False,
+                     filter_option: dict = {'size': 4},
+                     remap_method: str = 'MC',
+                     is_remap: bool = False):
     """
     Prepare the arrays to perform the tomographic inversion in FILD
 
@@ -546,6 +560,14 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     @param    efficiency: efficiency dictionary
     @param    median_filter: apply median filter to the remap frame
     @param    filter options: options for the median filter, for the remap
+    @param    remap_method: Method to perform the remap, center or MC, MC is
+              hihgly recomended to avoid remap noise
+    @param    is_remap: if true, it will means that the frame input is not the
+              camer frame but the (r pitch) distribution at the pinhole,
+              in this case, no remap will be done here and 'frame' will be
+              directly consider as signal for the tomography (useful if we are
+              dealing with shyntetic data). In this case, frame should be
+              [npitch, nradius], as in the remap
 
     @return   signal1D:  Signal filtered and reduced in 1D array
     @return   W2D: Weight function compressed as 2D
@@ -555,12 +577,12 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     # --- create the grids
     nr = int((s_opt['rmax'] - s_opt['rmin']) / s_opt['dr'])
     nnp = int((s_opt['pmax'] - s_opt['pmin']) / s_opt['dp'])
-    redges = s_opt['rmin'] - s_opt['dr']/2 + np.arange(nr+2) * s_opt['dr']
-    pedges = s_opt['pmin'] - s_opt['dp']/2 + np.arange(nnp+2) * s_opt['dp']
+    sredges = s_opt['rmin'] - s_opt['dr']/2 + np.arange(nr+2) * s_opt['dr']
+    spedges = s_opt['pmin'] - s_opt['dp']/2 + np.arange(nnp+2) * s_opt['dp']
 
     scint_grid = {'nr': nr + 1, 'np': nnp + 1,
-                  'r': 0.5 * (redges[:-1] + redges[1:]),
-                  'p': 0.5 * (pedges[:-1] + pedges[1:])}
+                  'r': 0.5 * (sredges[:-1] + sredges[1:]),
+                  'p': 0.5 * (spedges[:-1] + spedges[1:])}
 
     nr = int((p_opt['rmax'] - p_opt['rmin']) / p_opt['dr'])
     nnp = int((p_opt['pmax'] - p_opt['pmin']) / p_opt['dp'])
@@ -576,15 +598,14 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     # duplicated and all the new implementations of filters can be used
 
     # --- Remap the frame
-    rep_frame, r, p = ssmapping.remap(smap, frame, x_min=s_opt['pmin'],
-                                      x_max=s_opt['pmax'],
-                                      delta_x=s_opt['dp'],
-                                      y_min=s_opt['rmin'],
-                                      y_max=s_opt['rmax'],
-                                      delta_y=s_opt['dr'])
-    # Just transpose the frame. (To have the W in the same ijkl order of the
-    # old IDL-MATLAB implementation)
-    rep_frame = rep_frame.T
+    if not is_remap:
+        rep_frame = ssmapping.remap(smap, frame, x_edges=spedges,
+                                    y_edges=sredges, method='MC')
+        # Just transpose the frame. (To have the W in the same ijkl order of
+        # old IDL-MATLAB implementation)
+        rep_frame = rep_frame.T
+    else:
+        rep_frame = frame.T
     if median_filter:
         print('..-. .. .-.. - . .-. .. -. --.')
         'Applying median filter to remap frame'
