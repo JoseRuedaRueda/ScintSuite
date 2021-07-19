@@ -1,3 +1,9 @@
+** 0.5.6 i-HIBP namelists and ELM sync routines.
+- Added new sublibrary in LibData/AUG names Misc, containing FILD4 trajectories, ELM shotfile...
+- Basic namelist generation for i-HIBP simulation codes library included.
+- Basic library for i-HIBP beam plotting and marker generator.
+- Update in the library BPZ to read and plot BEP fitting data.
+
 ** 0.4.15 Profile routines and EHO tracker.
 - Toroidal rotation reading routines has been included: from PED, IDI or make a smoothing spline to the CXRS raw data.
 - Routines to read the profiles (electron temperature and density) from PED.
