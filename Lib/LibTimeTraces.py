@@ -351,7 +351,7 @@ class TimeTrace:
         if correct_baseline == 'end':
             y += -y[-15:-2].mean()
         elif correct_baseline == 'ini':
-            y += -y[0:15].mean()
+            y += -y[3:8].mean()
 
         if normalised:
             y /= y.max()

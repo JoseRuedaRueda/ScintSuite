@@ -146,7 +146,7 @@ def read_variable_ncdf(file, varNames, human=True):
     return out
 
 
-def print_netCDF_content(file):
+def print_netCDF_content(file, long_name=False):
     """
     Print the list of variables in a netcdf file
 
@@ -155,9 +155,15 @@ def print_netCDF_content(file):
     @param file: full path to the netCDF file
     """
     varfile = netcdf.netcdf_file(file, 'r', mmap=False).variables
-    print('%20s' % ('Var name'),  '|  Description  | Dimensions')
-    for key in sorted(varfile.keys()):
-        print('%20s' % (key), varfile[key].long_name, varfile[key].dimensions)
+    if long_name:
+        print('%20s' % ('Var name'),  '|  Description  | Dimensions')
+        for key in sorted(varfile.keys()):
+            print('%20s' % (key), varfile[key].long_name,
+                  varfile[key].dimensions)
+    else:
+        print('%20s' % ('Var name'),  '| Dimensions')
+        for key in sorted(varfile.keys()):
+            print('%20s' % (key), varfile[key].dimensions)
 
 
 # -----------------------------------------------------------------------------
