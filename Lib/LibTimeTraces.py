@@ -1,4 +1,3 @@
-
 """
 Package to calculate time traces
 
@@ -85,6 +84,11 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
     Calculate the time trace from a cin file
 
     Jose Rueda: jrrueda@us.es
+
+    Note, this solution is not ideal, I should include something relaying in
+    the LibVideo library, because if in the future we made som upgrade to the
+    .cin routines... but for the time this looks like the most efficient way
+    of doing it, as there is no need of opening the video in each frame
 
     @param cin_object: cin file object (see class Video of LibVideoFiles.py)
     @param mask: binary mask defining the roi
@@ -191,6 +195,9 @@ class TimeTrace:
                 raise Exception('Only one time was given!')
             elif t1 is not None and t2 is None:
                 raise Exception('Only one time was given!')
+            self.shot = video.shot
+        else:
+            self.shot = None
         # Initialise the different arrays
         ## Numpy array with the time base
         self.time_base = None
@@ -221,7 +228,7 @@ class TimeTrace:
                 else:
                     raise Exception('Still not implemented, contact ruejo')
 
-    def export_to_ascii(self, filename: str = None):
+    def export_to_ascii(self, filename: str = None, precision=3):
         """
         Export time trace to acsii
 
@@ -229,6 +236,8 @@ class TimeTrace:
 
         @param self: the TimeTrace object
         @param filename: file where to write the data
+        @param precision: number of digints after the decimal point
+
         @return None. A file is created with the information
         """
         # --- check if file exist
@@ -241,17 +250,19 @@ class TimeTrace:
             filename = ssio.check_save_file(filename)
         # --- Prepare the header
         date = datetime.datetime.now()
-        line = '# Time trace: ' + date.strftime("%d-%b-%Y (%H:%M:%S.%f)") \
-               + '\n' + 'Time [s]                     ' + \
-               'Counts in Roi                     ' + \
-               'Mean in Roi                     Std Roi'
+        line = 'Time trace: ' + date.strftime("%d-%b-%Y (%H:%M:%S.%f)") + \
+               ' shot ' + str(self.shot) + '\n' + \
+               'Time [s]    ' + \
+               'Counts in Roi     ' + \
+               'Mean in Roi      Std Roi'
         length = self.time_base.size
         # Save the data
         np.savetxt(filename, np.hstack((self.time_base.reshape(length, 1),
                                         self.sum_of_roi.reshape(length, 1),
                                         self.mean_of_roi.reshape(length, 1),
                                         self.std_of_roi.reshape(length, 1))),
-                   delimiter='   ,   ', header=line)
+                   delimiter='   ,   ', header=line,
+                   fmt='%.'+str(precision)+'e')
 
     def calculate_fft(self, params: dict = {}):
         """
@@ -351,7 +362,7 @@ class TimeTrace:
         if correct_baseline == 'end':
             y += -y[-15:-2].mean()
         elif correct_baseline == 'ini':
-            y += -y[0:15].mean()
+            y += -y[3:8].mean()
 
         if normalised:
             y /= y.max()
