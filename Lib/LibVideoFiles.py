@@ -1410,6 +1410,7 @@ class Video:
         Guess the shot number from the name of the file
 
         Jose Rueda Rueda: jrrueda@us.es
+
         @param file: Name of the file or folder containing the data. In that
         name it is assumed to be the shot number in the proper format
         @param shot_number_length: Number of characters expected from the shot
@@ -1432,14 +1433,14 @@ class Video:
             if options[0] == options[1]:
                 self.shot = int(options[0])
         elif ntrues == 0:
-            er = 'No shot number found in the name of the file\n'
-            er2 = 'Give the shot number as input when loading the file'
-            raise Exception(er + er2)
+            print('No shot number found in the name of the file')
+            print('Give the shot number as input when loading the file')
+            self.shot = None
         else:
-            er = 'Several possibles shot number were found\n'
-            er2 = 'Give the shot number as input when loading the file'
+            print('Several possibles shot number were found')
+            print('Give the shot number as input when loading the file')
             print('Possible shot numbers ', list[flags])
-            raise Exception(er + er2)
+            self.shot = None
 
     def read_frame(self, frames_number=None, limitation: bool = True,
                    limit: int = 2048, internal: bool = True, t1: float = None,
