@@ -1,4 +1,16 @@
-** 0.5.6: Bug fix
+** 0.5.8 Minor improvements
+- The guess_shot of the video class will no longer give an error if the shot number can't be deduced from the file name, it will just return none
+- TimeTrace.export_to_ascii() now allows to select the number of digits you want for the output. By default, just 4 digits are used. 
+
+** 0.5.7 Minor improvements
+- The print netCDF routine of the io is now compatible with netCDF saved without the long _name field
+- Upgraded plot_profiles in time, now the labels re-adapt when the user makes zoom
+
+** 0.5.6 i-HIBP namelists and ELM sync routines.
+- Added new sublibrary in LibData/AUG names Misc, containing FILD4 trajectories, ELM shotfile...
+- Basic namelist generation for i-HIBP simulation codes library included.
+- Basic library for i-HIBP beam plotting and marker generator.
+- Update in the library BPZ to read and plot BEP fitting data.
 - L6 example now uses the MC method
 - *Bug solved* related with the single strikemap remap. Before, if you asked the single map remapping, it failed at the end when it tries to save the data, as the variable theta_used was not created, as the theta angle was not evaluated. Now it just save theta_used=0 and solved!
 

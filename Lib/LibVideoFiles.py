@@ -1410,6 +1410,7 @@ class Video:
         Guess the shot number from the name of the file
 
         Jose Rueda Rueda: jrrueda@us.es
+
         @param file: Name of the file or folder containing the data. In that
         name it is assumed to be the shot number in the proper format
         @param shot_number_length: Number of characters expected from the shot
@@ -1432,14 +1433,14 @@ class Video:
             if options[0] == options[1]:
                 self.shot = int(options[0])
         elif ntrues == 0:
-            er = 'No shot number found in the name of the file\n'
-            er2 = 'Give the shot number as input when loading the file'
-            raise Exception(er + er2)
+            print('No shot number found in the name of the file')
+            print('Give the shot number as input when loading the file')
+            self.shot = None
         else:
-            er = 'Several possibles shot number were found\n'
-            er2 = 'Give the shot number as input when loading the file'
+            print('Several possibles shot number were found')
+            print('Give the shot number as input when loading the file')
             print('Possible shot numbers ', list[flags])
-            raise Exception(er + er2)
+            self.shot = None
 
     def read_frame(self, frames_number=None, limitation: bool = True,
                    limit: int = 2048, internal: bool = True, t1: float = None,
@@ -1516,7 +1517,7 @@ class Video:
             print('The threshold is set to: ', threshold, ' counts')
             number_of_frames = len(self.exp_dat['tframes'])
             n_pixels_saturated = np.zeros(number_of_frames)
-            for i in range(number_of_frames):
+            for i in tqdm(range(number_of_frames)):
                 n_pixels_saturated[i] = \
                     (self.exp_dat['frames'][:, :, i] >= threshold).sum()
             self.exp_dat['n_pixels_gt_threshold'] = \
@@ -1996,70 +1997,63 @@ class Video:
         else:
             cmap = ccmap
 
-        if 'fontsize' not in plt_params:
-            plt_params['fontsize'] = 16
+        # if 'fontsize' not in plt_params:
+        #     plt_params['fontsize'] = 16
 
         if t is None:  # 2d plots
-            # Gyroradius profiles
-            fig1, ax1 = plt.subplots()
+            # --- Gyroradius profiles
+            fig1, ax1 = plt.subplots()   # Open figure and plot
             cont = ax1.contourf(self.remap_dat['tframes'],
                                 self.remap_dat['yaxis'],
                                 self.remap_dat['sprofy'], nlev, cmap=cmap,
                                 vmin=min_gyr, vmax=max_gyr)
             cbar = plt.colorbar(cont, format=cbar_tick_format)
-            cbar.set_label('Counts [a.u.]', fontsize=plt_params['fontsize'])
-            cbar.ax.tick_params(labelsize=plt_params['fontsize'] * .8)
-            # Write the shot number and detector id
-            gyr_level = self.remap_dat['yaxis'][-1] -\
-                0.1*(self.remap_dat['yaxis'][-1]
-                     - self.remap_dat['yaxis'][0])  # Jut a nice position
-            tpos1 = self.remap_dat['tframes'][0] + 0.05 * \
-                (self.remap_dat['tframes'][-1] - self.remap_dat['tframes'][0])
-            tpos2 = self.remap_dat['tframes'][0] + 0.95 * \
-                (self.remap_dat['tframes'][-1] - self.remap_dat['tframes'][0])
-            FS = plt_params['fontsize']
+            cbar.set_label('Counts [a.u.]')
+            # Write the shot number and detector id.
             if self.diag == 'FILD':
-                plt.text(tpos1, gyr_level, '#' + str(self.shot),
-                         horizontalalignment='left', fontsize=0.9*FS,
-                         color='w', verticalalignment='bottom')
-                plt.text(tpos1, gyr_level,
+                plt.text(0.05, 0.9, '#' + str(self.shot),
+                         horizontalalignment='left',
+                         color='w', verticalalignment='bottom',
+                         transform=ax1.transAxes)
+                plt.text(0.05, 0.9,
                          str(self.remap_dat['options']['pprofmin']) + 'º to '
                          + str(self.remap_dat['options']['pprofmax']) + 'º',
-                         horizontalalignment='left', fontsize=0.9*FS,
-                         color='w', verticalalignment='top')
-                plt.text(tpos2, gyr_level, self.diag + str(self.diag_ID),
-                         horizontalalignment='right', fontsize=0.9*FS,
-                         color='w', verticalalignment='bottom')
+                         horizontalalignment='left',
+                         color='w', verticalalignment='top',
+                         transform=ax1.transAxes)
+                plt.text(0.95, 0.9, self.diag + str(self.diag_ID),
+                         horizontalalignment='right',
+                         color='w', verticalalignment='bottom',
+                         transform=ax1.transAxes)
                 plt_params['xlabel'] = 'Time [s]'
                 plt_params['ylabel'] = self.remap_dat['ylabel'] + ' [' +\
                     self.remap_dat['yunits'] + ']'
             ax1 = ssplt.axis_beauty(ax1, plt_params)
             plt.tight_layout()
-            # Pitch profiles in time
-            fig2, ax2 = plt.subplots()
+            # --- Pitch profiles in time
+            fig2, ax2 = plt.subplots()   # Open figure and draw contour
             cont = ax2.contourf(self.remap_dat['tframes'],
                                 self.remap_dat['xaxis'],
                                 self.remap_dat['sprofx'], nlev, cmap=cmap,
                                 vmin=min_gyr, vmax=max_gyr)
             cbar = plt.colorbar(cont, format=cbar_tick_format)
-            cbar.set_label('Counts [a.u.]', fontsize=plt_params['fontsize'])
-            cbar.ax.tick_params(labelsize=plt_params['fontsize'] * .8)
+            cbar.set_label('Counts [a.u.]')
             # Write the shot number and detector id
-            level = self.remap_dat['xaxis'][-1] -\
-                0.1*(self.remap_dat['xaxis'][-1]
-                     - self.remap_dat['xaxis'][0])  # Jut a nice position
             if self.diag == 'FILD':  # Add a labal with the integration range
-                plt.text(tpos1, level, '#' + str(self.shot),
-                         horizontalalignment='left', fontsize=0.9*FS,
-                         color='w', verticalalignment='bottom')
-                plt.text(tpos1, level,
+                plt.text(0.05, 0.9, '#' + str(self.shot),
+                         horizontalalignment='left',
+                         color='w', verticalalignment='bottom',
+                         transform=ax2.transAxes)
+                plt.text(0.05, 0.9,
                          str(self.remap_dat['options']['rprofmin']) + 'cm to '
                          + str(self.remap_dat['options']['rprofmax']) + 'cm',
-                         horizontalalignment='left', fontsize=0.9*FS,
-                         color='w', verticalalignment='top')
-                plt.text(tpos2, level, self.diag + str(self.diag_ID),
-                         horizontalalignment='right', fontsize=0.9*FS,
-                         color='w', verticalalignment='bottom')
+                         horizontalalignment='left',
+                         color='w', verticalalignment='top',
+                         transform=ax2.transAxes)
+                plt.text(0.95, 0.9, self.diag + str(self.diag_ID),
+                         horizontalalignment='right',
+                         color='w', verticalalignment='bottom',
+                         transform=ax2.transAxes)
                 plt_params['xlabel'] = 'Time [s]'
                 plt_params['ylabel'] = self.remap_dat['xlabel'] + ' [' +\
                     self.remap_dat['xunits'] + ']'
