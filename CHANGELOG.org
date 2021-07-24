@@ -1,3 +1,7 @@
+** 0.5.8 Minor improvements
+- The guess_shot of the video class will no longer give an error if the shot number can't be deduced from the file name, it will just return none
+- TimeTrace.export_to_ascii() now allows to select the number of digits you want for the output. By default, just 4 digits are used. 
+
 ** 0.5.7 Minor improvements
 - The print netCDF routine of the io is now compatible with netCDF saved without the long _name field
 - Upgraded plot_profiles in time, now the labels re-adapt when the user makes zoom

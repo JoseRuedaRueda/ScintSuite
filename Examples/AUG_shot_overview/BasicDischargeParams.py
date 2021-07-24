@@ -8,7 +8,7 @@ import numpy as np
 # --- Settings
 # -----------------------------------------------------------------------------
 
-shot = 39613
+shot = 39612
 
 # -----------------------------------------------------------------------------
 # --- Load and plot temporal evolution
@@ -53,11 +53,16 @@ BDP.close()
 MAC = dd.shotfile('MAC', shot)
 Ipolsola = MAC(b'Ipolsola')
 MAC.close()
+
+# Other data (q95)
+data = ss.dat.get_shot_basics(shot)
 # --- Plot
 fig, ax = plt.subplots(5, sharex=True)
 # - Ip
-ax[0].plot(Ip.time, Ip.data/1.0e6)
-ax[0].set_ylabel('Ip [MA]')
+ax[0].plot(Ip.time, Ip.data/1.0e6, label='Ip [MA]')
+ax[0].plot(data['time'], -0.1*data['q95'], label='-0.1 * q95')
+ax[0].legend()
+
 # - ne
 ax[1].plot(H2.time, H2.data, label='H-2')
 ax[1].plot(H5.time, H5.data, label='H-5')
