@@ -47,7 +47,6 @@ def get_signal_generic(shot: int, diag: str, signame: str, exp: str='AUGD',
         data = signal_obj.data
         time = signal_obj.time
 
-
     except:
         raise Exception('The signal data cannot be read for #%05d:%s:%s(%d)'\
                         (shot, diag, signame, edition))
@@ -117,6 +116,7 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int):
     print('Number of requested channels: ', nch_to_load)
     return {'time': time, 'data': data, 'channels': ch}
 
+
 # -----------------------------------------------------------------------------
 # --- FILD 4 TRAJECTORIES
 # -----------------------------------------------------------------------------
@@ -176,7 +176,7 @@ def load_FILD4_trajectory(shot, path=pa.FILD4_trayectories):
     return {'PSouput': PSouput, 'insertion': insertion}
 
 
-def plot_FILD4_trayectory(shot, PS_output=False, ax=None, ax_PS=None,
+def plot_FILD4_trajectory(shot, PS_output=False, ax=None, ax_PS=None,
                           line_params={}, line_params_PS={}, overlay=False,
                           unit='cm'):
     """
@@ -253,7 +253,7 @@ def plot_FILD4_trayectory(shot, PS_output=False, ax=None, ax_PS=None,
 # -----------------------------------------------------------------------------
 # --- ELMs
 # -----------------------------------------------------------------------------
-def get_ELM_timebase(shot: int, time:float=None, edition: int=0,
+def get_ELM_timebase(shot: int, time: float=None, edition: int=0,
                      exp: str='AUGD'):
     """
     Give the ELM onset and duration times

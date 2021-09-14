@@ -17,7 +17,7 @@ from time import time
 # -----------------------------------------------------------------------------
 # - General settings
 shot = 33127
-diag_ID = 1  # 6 for rFILD (DLIF)
+diag_ID = 1  # 6 for rFILD
 t1 = 0.5     # Initial time to be loaded, [s]
 t2 = 4.8     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than

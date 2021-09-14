@@ -543,7 +543,8 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
                      efficiency=None, median_filter=False,
                      filter_option: dict = {'size': 4},
                      remap_method: str = 'MC',
-                     is_remap: bool = False):
+                     is_remap: bool = False,
+                     B=1.8, Z=1.0, A=2.0, only_gyroradius=False):
     """
     Prepare the arrays to perform the tomographic inversion in FILD
 
@@ -557,7 +558,7 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     @param    verbose: Print some notes on the console
     @param    plt_frame: Plot the frame and noise suppressed frame (todo)
     @param    LIMIT_REGION_FCOL: Limit the pinhole grid to points with fcol>0
-    @param    efficiency: efficiency dictionary
+    @param    efficiency: efficiency dictionary, or path to the efficiency file
     @param    median_filter: apply median filter to the remap frame
     @param    filter options: options for the median filter, for the remap
     @param    remap_method: Method to perform the remap, center or MC, MC is
@@ -568,6 +569,15 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
               directly consider as signal for the tomography (useful if we are
               dealing with shyntetic data). In this case, frame should be
               [npitch, nradius], as in the remap
+    @param B: Magnetic field, used to translate between radius and energy, for
+    the efficiency evaluation
+    @param A: Mass in amu, used to translate between radius and energy, for the
+    efficiency evaluation
+    @param Z: charge in elecrton charges, used to translate between radius and
+    energy, for the efficiency evaluation
+    @param only_gyroradius: flag to decide if the output will be the matrix
+    just relating giroradius in the pinhole and the scintillator, ie, pitch
+    integrated
 
     @return   signal1D:  Signal filtered and reduced in 1D array
     @return   W2D: Weight function compressed as 2D
@@ -592,7 +602,7 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
                 'r': 0.5 * (redges[:-1] + redges[1:]),
                 'p': 0.5 * (pedges[:-1] + pedges[1:])}
     # Note: In the original IDL implementation, the frame was denoised with the
-    # median filter at thi point of the routine. Here the frame it supposed to
+    # median filter at this point of the routine. Here the frame it supposed to
     # be filtered and denoised with the routines of the video class BEFORE
     # calling the tomography reconstruction. In this way routines are not
     # duplicated and all the new implementations of filters can be used
@@ -605,6 +615,9 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
         # old IDL-MATLAB implementation)
         rep_frame = rep_frame.T
     else:
+        n_g_remap, n_p_remap = rep_frame.shape
+        if n_g_remap != scint_grid['nr'] or n_p_remap != scint_grid['np']:
+            raise Exception('Remap frame not in the proper grid')
         rep_frame = frame.T
     if median_filter:
         print('..-. .. .-.. - . .-. .. -. --.')
@@ -646,13 +659,18 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     # --- Build transfer function
     W4D, W2D = ssfildsim.build_weight_matrix(smap, scint_grid['r'],
                                              scint_grid['p'], pgrid['r'],
-                                             pgrid['p'], efficiency)
+                                             pgrid['p'], efficiency,
+                                             B=B, Z=Z, A=A,
+                                             only_gyroradius=only_gyroradius)
 
     # --- Collapse signal into 1D
-    signal1D = np.zeros(scint_grid['nr'] * scint_grid['np'])
-    for irs in range(scint_grid['nr']):
-        for ips in range(scint_grid['np']):
-            signal1D[irs * scint_grid['np'] + ips] = rep_frame[irs, ips]
+    if not only_gyroradius:
+        signal1D = np.zeros(scint_grid['nr'] * scint_grid['np'])
+        for irs in range(scint_grid['nr']):
+            for ips in range(scint_grid['np']):
+                signal1D[irs * scint_grid['np'] + ips] = rep_frame[irs, ips]
+    else:
+        signal1D = np.sum(rep_frame, axis=1)
 
     return signal1D, W2D, W4D, scint_grid, pgrid, rep_frame
 

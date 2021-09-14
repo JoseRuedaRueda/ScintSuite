@@ -6,12 +6,13 @@ Jose Rueda Rueda: jrrueda@us.es
 It is not optimized for cin files. You can used it, but it will be slow and
 will load in memory and unnecesary amound of data
 
+Under development, heating part still not included
 Note: Done for version 0.5.3
 """
 
 import Lib as ss
 import matplotlib.pyplot as plt
-import numpy as np
+
 
 # -----------------------------------------------------------------------------
 # --- Settings
