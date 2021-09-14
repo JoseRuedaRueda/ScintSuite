@@ -15,15 +15,12 @@ import matplotlib.pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 if __name__ == '__main__':
-    #set plotting settings
-    ss.LibPlotting.plotSettings(plot_mode='Presentation')
-    
-    # -----------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     namelist_path = ss.paths.FILDSIM   # Paths to save namelist
-    # -----------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Section 0: FILDSIM Settings
-    # -----------------------------------------------------------------------------
-    
+    # -------------------------------------------------------------------------
+
     FILDSIM_namelist = {
         'config': {
             'runid': 'orbit_geometry_exaple',
@@ -50,29 +47,30 @@ if __name__ == '__main__':
         'plate_setup_cfg': {
             'geometry_dir': ss.paths.FILDSIM + './geometry/AUG/',
             'n_scintillator': 1,
-            'n_slits': 3#6
+            'n_slits': 3  #6
         },
         'plate_files': {
             'scintillator_files': ['aug_fild1_scint.pl'],
-            'slit_files': [#'aug_fild1_pinhole_1_v2.pl',
-                           #'aug_fild1_pinhole_2_v2.pl',
-                           #'aug_fild1_slit_1_v2.pl',
+            'slit_files': [  # 'aug_fild1_pinhole_1_v2.pl',
+                             # 'aug_fild1_pinhole_2_v2.pl',
+                             # 'aug_fild1_slit_1_v2.pl',
                            'aug_fild1_slit_back_v2.pl',
                            'aug_fild1_slit_lateral_1_v2.pl',
                            'aug_fild1_slit_lateral_2_v2.pl']
         }
     }
-    
+
     # Write namelist
     ss.fildsim.write_namelist(FILDSIM_namelist, namelist_path)
     namelist_name = os.path.join(namelist_path,
                                  FILDSIM_namelist['config']['runid'] + '.cfg')
     # Run FILDSIM
     ss.fildsim.run_FILDSIM(namelist_name)
-    
+
     # Load the result of the simulation
 
-    base_name = FILDSIM_namelist['config']['result_dir'] + FILDSIM_namelist['config']['runid']
+    base_name = FILDSIM_namelist['config']['result_dir'] \
+        + FILDSIM_namelist['config']['runid']
     orbits_file = base_name + '_orbits.dat'
     orbits_index_file = base_name + '_orbits_index.dat'
 
@@ -82,7 +80,6 @@ if __name__ == '__main__':
     ax3D.set_xlabel('X [cm]')
     ax3D.set_ylabel('Y [cm]')
     ax3D.set_zlabel('Z [cm]')
-    
 
     fig2, axarr = plt.subplots(nrows=1, ncols=3, figsize=(18, 10),
                                facecolor='w', edgecolor='k', dpi=100)
@@ -98,13 +95,13 @@ if __name__ == '__main__':
     ax2D_xz.set_xlabel('X [cm]')
     ax2D_xz.set_ylabel('Z [cm]')
     ax2D_xz.set_title('Side view (Y-Z plane)')
-    
-    #Plot geometry of input FILD plates
-    ss.LibFILDSIM.FILDSIMplot.plot_geometry(namelist_name, 
-                                            ax3D =ax3D, axarr=axarr,
+
+    # Plot geometry of input FILD plates
+    ss.LibFILDSIM.FILDSIMplot.plot_geometry(namelist_name,
+                                            ax3D=ax3D, axarr=axarr,
                                             plates_all_black=True)
     # plot geometry of calculated orbits
-    ss.LibFILDSIM.FILDSIMplot.plot_orbits(orbits_file, orbits_index_file, 
-                                          ax3D =ax3D , axarr=axarr)
-    
+    ss.LibFILDSIM.FILDSIMplot.plot_orbits(orbits_file, orbits_index_file,
+                                          ax3D=ax3D, axarr=axarr)
+
     plt.show()

@@ -3,9 +3,6 @@ Calculate and compare the TimeTraces of the camera signal for different shots
 
 Jose Rueda Rueda: jrrueda@us.es
 
-It is not optimized for cin files, please do not proceed with this example to
-compare cin files. Use please L13
-
 Note: Done for version 0.5.3
 """
 

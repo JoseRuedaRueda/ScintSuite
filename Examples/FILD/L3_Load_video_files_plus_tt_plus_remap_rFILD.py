@@ -34,11 +34,12 @@ t0 = 2.5         # time points to define the ROI
 save_TT = True   # Export the TT and the ROI used
 plt_TT = True  # Plot the TT
 
-# - FILDSIM options: If a SS is not found, a FILDSIM calculation will be
-# launched, default settings are great for FILD, but for DLIF, some details
-# must be changed: Note, this should not be done, in the StrikeMaps folders,
-# one should have the .cfg file with the parameters, this is just written here
-# to show how to give special parameters to the strike map calculation
+# - FILDSIM options: Note, this should not be done, in the StrikeMaps folders,
+# one should have the .cfg file with the parameters. The code will read these
+# parameters and will launch the FILDSIM simulation with the same parameters
+# to be consistent and have all the strike map equaly calculated
+# this is just written here to show how to give special parameters to the
+# strike map calculation
 
 FILDSIM_namelist = {
     'config': {
@@ -72,7 +73,7 @@ par = {
     'pprofmin': 20.0,    # Minimum pitch for the gyroradius profile calculation
     'pprofmax': 90.0,    # Maximum pitch for the gyroradius profile calculation
     # Position of the FILD
-    'rfild': 2.190,   # 2.196 for shot 32326, 2.186 for shot 32312
+    'rfild': 2.190,   # 2.196 for shot 32326, 2.186 for shot 32312 [in m]
     'zfild': ss.dat.FILD[diag_ID-1]['z'],
     'alpha': ss.dat.FILD[diag_ID-1]['alpha'],
     'beta': ss.dat.FILD[diag_ID-1]['beta'],
