@@ -5,7 +5,10 @@ Jose Rueda Rueda: jrrueda@us.es
 
 Note: This use routines for ASDEX directly, it will not work on other machine.
 Date: 20/02/2021
+
 Issues: Up to now, only NBI injection is included
+
+Lines finishing with  !#! Must be modified acordingly to your local files
 """
 import sys
 import Lib as ss
@@ -17,11 +20,10 @@ import dd 					# load latest (!) dd library
 # --- Settings
 # -----------------------------------------------------------------------------
 
-FILD_TT = ['/afs/ipp/home/r/ruejo/ScintSuite/Results/202102Pilar/'
-           + '38626/38626_4_full_frame_TT.txt']
-# Paths to timetrace files
-labels = ('FILD4', 'FILD4', 'FILD5')
-shot = 38626        # Shot number
+FILD_TT = ['MyAwesomeTimetraceFile']  # Paths to timetrace files            !#!
+
+labels = ('FILD4')                    # Label for each timetrace            !#!
+shot = 38626        # Shot number (for the NBI timetraces)
 pmin = 0.7e6        # Minimum power to consider as on an NBI [W]
 # Plotting options:
 FS = 14             # FontSize
