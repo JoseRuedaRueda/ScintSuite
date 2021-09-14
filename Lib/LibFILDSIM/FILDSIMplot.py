@@ -7,7 +7,7 @@ import scipy.interpolate as interpolate
 
 
 def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
-                  plates_all_black=False, plate_alpha = 0.5):
+                  plates_all_black=False, plate_alpha=0.5):
     '''
     Plot the input FILDSIM geometry, namely the slits and scintillator
 
@@ -116,7 +116,7 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
         ax2D_xz.plot(np.append(x, x[0]), np.append(z, z[0]),
                      color=slit_line[0].get_color(), ls='solid', marker='',
                      label=slit_plate['name'])
-        
+
         if plates_all_black:
             plate_color = 'black'
         else:
@@ -143,7 +143,7 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
             ax2D_xy.fill(np.append(x, x[0]), np.append(y, y[0]),
                          color=plate_color, alpha=plate_alpha)
 
-        ax3D.plot_surface(grid_x, grid_y, grid_z, color=plate_color, 
+        ax3D.plot_surface(grid_x, grid_y, grid_z, color=plate_color,
                           alpha=plate_alpha,
                           label=scintillator_plate['name'])
     ax2D_xz.legend(loc='best')
@@ -163,17 +163,17 @@ def plot_orbits(orbits_file, orbits_index_file, ax3D=None, axarr=None, dpi=100,
     ajvv: avanvuuren@us.es
 
     ----------
-    @param orbits_file: full path to the orbits file. 
+    @param orbits_file: full path to the orbits file.
         eg. /path/to/runid_example_orbits.dat
-    @param orbits_index_file: full path to the orbits_index file. 
+    @param orbits_index_file: full path to the orbits_index file.
         eg. /path/to/runid_example_orbits_index.dat
     @param ax3D: 3D axis where to plot the orbits, if None, new will be made
     @param axarr: array of axis to plot projections, if None, new will be made
     @param dpi: dpi to render the figures, only used if the axis are created
     by this function
-    @param line_params: Parameters for plot orbit lines, 
+    @param line_params: Parameters for plot orbit lines,
                         Default: linestyle = 'solid' or color = 'red'
-    @param marker_params: Parameters for plot orbit end points, 
+    @param marker_params: Parameters for plot orbit end points,
                         Default: maker = 'circle' or color = 'red'
     '''
     # Default plot parameters:
@@ -184,15 +184,15 @@ def plot_orbits(orbits_file, orbits_index_file, ax3D=None, axarr=None, dpi=100,
         'marker': 'o',
         'linestyle': 'none'
     }
-    marker_options.update(marker_params)    
+    marker_options.update(marker_params)
     line_options = {
                     'color': 'red',
                     'marker': ''
                     }
     line_options.update(line_params)
-    
+
     orbits = ssfildsimA.read_orbits(orbits_file, orbits_index_file)
-    
+
     # --- Open the figure
     created_3D = False
     if ax3D is None:
@@ -224,30 +224,30 @@ def plot_orbits(orbits_file, orbits_index_file, ax3D=None, axarr=None, dpi=100,
         ax2D_yz = axarr[1]  # front view, i.e. should see scintilator plate
         ax2D_xz = axarr[2]  # side view, i.e. should see slit plate surface(s)
         created_2D = False
-        
+
     for orbit in orbits:
         xline = orbit[:, 0]
         yline = orbit[:, 1]
         zline = orbit[:, 2]
         ax3D.plot3D(xline, yline, zline, **line_options)
-        
+
         ax2D_xy.plot(xline, yline, **line_options)
         ax2D_xy.plot(xline[0], yline[0], **marker_options)
         ax2D_xy.plot(xline[-1], yline[-1], **marker_options)
-        
+
         ax2D_yz.plot(yline, zline, **line_options)
         ax2D_yz.plot(yline[0], zline[0], **marker_options)
         ax2D_yz.plot(yline[-1], zline[-1], **marker_options)
-        
+
         ax2D_xz.plot(xline, zline, **line_options)
         ax2D_xz.plot(xline[0], zline[0], **marker_options)
         ax2D_xz.plot(xline[-1], zline[-1], **marker_options)
-        
+
     if created_2D:
         fig2.tight_layout()
         fig2.show()
     if created_3D:
         fig.tight_layout()
         fig.show()
-    
+
     return

@@ -1008,7 +1008,7 @@ class StrikeMap:
                             horizontalalignment='right',
                             verticalalignment='center')
 
-            ax.annotate('Gyroradius (cm)',
+            ax.annotate('Gyroradius [cm]',
                         xy=(min(self.y) - 0.5,
                             (max(self.z) - min(self.z))/2 + min(self.z)),
                         rotation=rotation_for_gyr_label,
@@ -1028,7 +1028,7 @@ class StrikeMap:
                         horizontalalignment='center',
                         verticalalignment='top')
 
-            ax.annotate('Pitch [$\\degree$])',
+            ax.annotate('Pitch [$\\degree$]',
                         xy=((max(self.y) - min(self.y))/2 + min(self.y),
                             min(self.z) - 0.1),
                         rotation=rotation_for_pitch_label,

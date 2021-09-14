@@ -1918,32 +1918,37 @@ class Video:
         @return theta: theta angle [º]
         @return phi: phi angle [º]
         """
-        if self.remap_dat is None:
-            if self.diag == 'FILD':
-                print('Remap not done, calculating angles')
-                br, bz, bt, bp =\
-                    ssdat.get_mag_field(self.shot, R, z, time=t)
-                alpha = ssdat.FILD[self.diag_ID-1]['alpha']
-                beta = ssdat.FILD[self.diag_ID-1]['beta']
-                phi, theta = \
-                    ssfildsim.calculate_fild_orientation(br, bz, bt,
-                                                         alpha, beta)
         if self.diag == 'FILD':
-            tmin = self.remap_dat['tframes'][0]
-            tmax = self.remap_dat['tframes'][-1]
-            if t < tmin or t > tmax:
-                raise Exception('Time not present in the remap')
+            if self.remap_dat is None:
+
+                    print('Remap not done, calculating angles')
+                    br, bz, bt, bp =\
+                        ssdat.get_mag_field(self.shot, R, z, time=t)
+                    alpha = ssdat.FILD[self.diag_ID-1]['alpha']
+                    beta = ssdat.FILD[self.diag_ID-1]['beta']
+                    phi, theta = \
+                        ssfildsim.calculate_fild_orientation(br, bz, bt,
+                                                             alpha, beta)
+                    time = t
+
             else:
-                it = np.argmin(abs(self.remap_dat['tframes'] - t))
-                theta = self.remap_dat['theta'][it]
-                phi = self.remap_dat['phi'][it]
-                time = self.remap_dat['tframes'][it]
+                tmin = self.remap_dat['tframes'][0]
+                tmax = self.remap_dat['tframes'][-1]
+                if t < tmin or t > tmax:
+                    raise Exception('Time not present in the remap')
+                else:
+                    it = np.argmin(abs(self.remap_dat['tframes'] - t))
+                    theta = self.remap_dat['theta'][it]
+                    phi = self.remap_dat['phi'][it]
+                    time = self.remap_dat['tframes'][it]
         if verbose:
             print('Requested time:', t)
             if self.remap_dat is None:
                 print('Found time: ', time)
             print('theta:', theta)
             print('phi:', phi)
+            if self.remap_dat is None:
+                print('B field: ', np.sqrt(bt**2 + bp**2)[0])
         return phi, theta
 
     def GUI_frames(self):
@@ -1951,7 +1956,9 @@ class Video:
         text = 'Press TAB until the time slider is highlighted in red.'\
             + ' Once that happend, you can move the time with the arrows'\
             + ' of the keyboard, frame by frame'
+        print('-------------------')
         print(text)
+        print('-------------------')
         root = tk.Tk()
         root.resizable(height=None, width=None)
         ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat)
@@ -2102,7 +2109,7 @@ class Video:
                 plt_params['xlabel'] = self.remap_dat['ylabel'] + ' [' +\
                     self.remap_dat['yunits'] + ']'
                 plt_params['ylabel'] = 'Counts [a.u.]'
-                ax1.set_title(title, fontsize=plt_params['fontsize'])
+                ax1.set_title(title)
             ax1 = ssplt.axis_beauty(ax1, plt_params)
             ax1.legend()
             if self.diag == 'FILD':
@@ -2112,7 +2119,7 @@ class Video:
                 plt_params['xlabel'] = self.remap_dat['xlabel'] + ' [' +\
                     self.remap_dat['xunits'] + ']'
                 plt_params['ylabel'] = 'Counts [a.u.]'
-                ax2.set_title(title, fontsize=plt_params['fontsize'])
+                ax2.set_title(title)
             ax2.legend()
             ax2 = ssplt.axis_beauty(ax2, plt_params)
             plt.tight_layout()

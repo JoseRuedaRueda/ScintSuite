@@ -1,4 +1,3 @@
-
 """
 Remap and compare two frames
 
@@ -6,7 +5,7 @@ Lesson 9 from the FILD experimental analysis. Video files will be loaded,
 noise will be subtracted, a median filter will be applied, two experimental
 frames will be plotted and their remaps compared
 
-Notes: just for simplicity, although we just one two frames, a large nterval
+Notes: just for simplicity, although we just want two frames, a large interval
 of the video video will be loaded (to have the dark frames to subtract the
 noise)
 
