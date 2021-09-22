@@ -1,6 +1,18 @@
+** 0.6.0 SINPA Support and new Tomography (prerelease)
+*** SINPA
+- the new Synthetic INPA code is supported (will be done in the final 6.0 release)
+*** Tomography
+- Mono dimensional tomography can be performed, examples can be found in L15
+*** Others
+- function Lib.LibData.AUG.plot_FILD4_trayectory(shot) renamed to Lib.LibData.AUG.plot_FILD4_trajectory(shot)
+- Solved a bug in Video.find_orientation when the function was called with the remap not calculated
+- Solve small bug in the plot_real routine of the strike map, before pitch label was 'Pitch [0])' and in the gyroradius one, there were () instead of []
+- Vid.plot_orientation no longer set by default the font size, as that is don now when initialising the suite
+- Improvements in comments
+
 ** 0.5.8 Minor improvements
 - The guess_shot of the video class will no longer give an error if the shot number can't be deduced from the file name, it will just return none
-- TimeTrace.export_to_ascii() now allows to select the number of digits you want for the output. By default, just 4 digits are used. 
+- TimeTrace.export_to_ascii() now allows to select the number of digits you want for the output. By default, just 4 digits are used.
 
 ** 0.5.7 Minor improvements
 - The print netCDF routine of the io is now compatible with netCDF saved without the long _name field
@@ -40,7 +52,7 @@
 
 ** 0.5.0: New FILD remap
 - The 'nearest' method of the interp_grid was deprecated
-- The interp_grid method of the StrikeMap class was completelly rewritten, please see the new function
+- The interp_grid method of the StrikeMap class was completely rewritten, please see the new function
 - The remap method will call interp_grid of the smap object instead of failing if the grid was not interpolated before calling this function
 - inputs for remap method of the mapping library was changed, now the edges of the histogram should be calculated outside (improve efficiency and easily allows for MC or standard remap switch)
 - New MC remap based in the 'Translation Tensor' developed. See documentation PDF for a full description of the method
