@@ -380,13 +380,13 @@ def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
     if filename is None:
         a = time.localtime()
         name = 'W_FILD_' + str(a.tm_year) + '_' + str(a.tm_mon) + '_' +\
-            str(a.tm_mon) + '_' + str(a.tm_hour) + '_' + str(a.tm_min) +\
+            str(a.tm_mday) + '_' + str(a.tm_hour) + '_' + str(a.tm_min) +\
             '.nc'
         filename = os.path.join(paths.Results, name)
     else:
         filename = check_save_file(filename)
     print('Saving results in: ', filename)
-    with netcdf.netcdf_file(name, 'w') as f:
+    with netcdf.netcdf_file(filename, 'w') as f:
         f.history = 'Done with version ' + version
 
         # --- Save the pinhole grid

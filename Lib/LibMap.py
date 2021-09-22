@@ -1188,23 +1188,23 @@ class StrikeMap:
             self.grid_interp['interpolators']['collimator_factor'] = \
                 interpolator(grid, self.collimator_factor, fill_value=1000)
             # --- Prepare the transformation matrix
-            # Initialise the random number generator
-            rand = np.random.default_rng()
-            generator = rand.uniform
-            # Prepare the edges for the r, pitch histogram
-            n_gyr = int((grid_options['ymax'] - grid_options['ymin'])
-                        / grid_options['dy']) + 1
-            n_pitch = int((grid_options['xmax'] - grid_options['xmin'])
-                          / grid_options['dx']) + 1
-            pitch_edges = grid_options['xmin'] - grid_options['dx']/2 \
-                + np.arange(n_pitch+1) * grid_options['dx']
-            gyr_edges = grid_options['ymin'] - grid_options['dy']/2 \
-                + np.arange(n_gyr+1) * grid_options['dy']
-            # Initialise the transformation matrix
-            transform = np.zeros((n_pitch, n_gyr,
-                                  frame_shape[0], frame_shape[1]))
             # Calculate the transformation matrix
             if MC_number > 0:
+                # Initialise the random number generator
+                rand = np.random.default_rng()
+                generator = rand.uniform
+                # Prepare the edges for the r, pitch histogram
+                n_gyr = int((grid_options['ymax'] - grid_options['ymin'])
+                            / grid_options['dy']) + 1
+                n_pitch = int((grid_options['xmax'] - grid_options['xmin'])
+                              / grid_options['dx']) + 1
+                pitch_edges = grid_options['xmin'] - grid_options['dx']/2 \
+                    + np.arange(n_pitch+1) * grid_options['dx']
+                gyr_edges = grid_options['ymin'] - grid_options['dy']/2 \
+                    + np.arange(n_gyr+1) * grid_options['dy']
+                # Initialise the transformation matrix
+                transform = np.zeros((n_pitch, n_gyr,
+                                      frame_shape[0], frame_shape[1]))
                 print('Calculating transformation matrix')
                 for i in tqdm(range(frame_shape[0])):
                     for j in range(frame_shape[1]):

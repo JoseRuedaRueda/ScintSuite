@@ -8,6 +8,7 @@ import Lib.LibData as ssdat
 import Lib.LibNoise as ssnoise
 import Lib.LibIO as ssio
 import Lib.LibOptics as ssoptics
+from tqdm import tqdm            # For waitbars
 try:
     import lmfit
 except ModuleNotFoundError:
@@ -703,7 +704,7 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
         eff = True
         energy = ssfildsimA.get_energy(rpin, B, A, Z)
         eff = efficiency.interpolator(energy)
-        print('considering scintillator efficiency in W')
+        print('Considering scintillator efficiency in W')
     else:
         eff = np.ones(rpin.size)
     # Build the weight matrix. We will use brute force, I am sure that there is
@@ -742,7 +743,7 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
         W2D = np.zeros((nr_scint * np_scint, nr_pin * np_pin))
         ## todo make this with an elegant numpy reshape, not manually
         print('Reshaping W... ')
-        for irs in range(nr_scint):
+        for irs in tqdm(range(nr_scint)):
             for ips in range(np_scint):
                 for irp in range(nr_pin):
                     for ipp in range(np_pin):
