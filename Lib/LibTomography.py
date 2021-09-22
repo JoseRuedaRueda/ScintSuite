@@ -541,7 +541,7 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
                      verbose: bool = True, plt_frame: bool = False,
                      LIMIT_REGION_FCOL: bool = True,
                      efficiency=None, median_filter=False,
-                     filter_option: dict = {'size': 4},
+                     filter_option: dict = {'size': 0},
                      remap_method: str = 'MC',
                      is_remap: bool = False,
                      B=1.8, Z=1.0, A=2.0, only_gyroradius=False):
@@ -579,8 +579,13 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     just relating giroradius in the pinhole and the scintillator, ie, pitch
     integrated
 
-    @return   signal1D:  Signal filtered and reduced in 1D array
-    @return   W2D: Weight function compressed as 2D
+    @return s1D: The 2D remapped ordered in a 1D array, (for the inversion)
+    @return W2D: The weight function, ordered just in 2D [scint, pinhole]
+    @return W4D: The W, in its 4 dimmensions
+    @return scint_grid: Grid used in the scintillator
+    @return pgrid: Grid used in the pinhole, can be different from the input if
+    LIMIT_REGION_FCOL is activated
+    @return rep_frame: Remapped frame (signal)
     """
     print('.--. ... ..-. -')
     print('Preparing W and the measurement')
@@ -615,9 +620,15 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
         # old IDL-MATLAB implementation)
         rep_frame = rep_frame.T
     else:
+        rep_frame = frame.T
         n_g_remap, n_p_remap = rep_frame.shape
         if n_g_remap != scint_grid['nr'] or n_p_remap != scint_grid['np']:
+            print('nr in frame', n_g_remap)
+            print('nr in grid', scint_grid['nr'])
+            print('np in frame', n_p_remap)
+            print('np in grid', scint_grid['np'])
             raise Exception('Remap frame not in the proper grid')
+
         rep_frame = frame.T
     if median_filter:
         print('..-. .. .-.. - . .-. .. -. --.')

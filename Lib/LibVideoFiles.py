@@ -20,6 +20,7 @@ import Lib.LibUtilities as ssutilities
 import Lib.LibIO as ssio
 import Lib.GUIs as ssGUI             # For GUI elements
 import Lib.LibData as ssdat
+import Lib.LibFILDSIM as ssFILDSIM
 from Lib.LibMachine import machine
 from Lib.version_suite import version
 from scipy.io import netcdf                # To export remap data
@@ -1910,7 +1911,8 @@ class Video:
 
         José Rueda: jrrueda@us.es
 
-        @param t: time point where we want the angles [s]
+        @param t: time point where we want the angles [s]. It can be 'all' in
+        that case, the orientation will be calculated for all time points
         @param verbose: flag to print information or not
         @param R: R coordinate of the detector (in meters) for B calculation
         @param z: z coordinate of the detector (in meters) for B calculation
@@ -1920,12 +1922,40 @@ class Video:
         """
         if self.diag == 'FILD':
             if self.remap_dat is None:
+                alpha = ssdat.FILD[self.diag_ID-1]['alpha']
+                beta = ssdat.FILD[self.diag_ID-1]['beta']
+                print('Remap not done, calculating angles')
 
-                    print('Remap not done, calculating angles')
+                if t == 'all':
+                    nframes = self.exp_dat['tframes'].size
+                    if machine == 'AUG':
+                        print('Opening shotfile from magnetic field')
+                        import map_equ as meq
+                        equ = meq.equ_map(self.shot, diag='EQH')
+                        br = np.zeros(nframes)
+                        bz = np.zeros(nframes)
+                        bt = np.zeros(nframes)
+                    theta = np.zeros(nframes)
+                    phi = np.zeros(nframes)
+                    for iframe in tqdm(range(nframes)):
+                        # To avoid stupid bugs in the python library of AUG to
+                        # read the magnetic field
+                        if machine == 'AUG':
+                            tframe = self.exp_dat['tframes'][iframe]
+                            br[iframe], bz[iframe], bt[iframe], bp =\
+                                ssdat.get_mag_field(self.shot, R, z,
+                                                    time=tframe,
+                                                    equ=equ)
+                        phi[iframe], theta[iframe] = \
+                            ssFILDSIM.calculate_fild_orientation(br[iframe],
+                                                                 bz[iframe],
+                                                                 bt[iframe],
+                                                                 alpha, beta)
+                    time = 'all'
+                else:
                     br, bz, bt, bp =\
                         ssdat.get_mag_field(self.shot, R, z, time=t)
-                    alpha = ssdat.FILD[self.diag_ID-1]['alpha']
-                    beta = ssdat.FILD[self.diag_ID-1]['beta']
+
                     phi, theta = \
                         ssfildsim.calculate_fild_orientation(br, bz, bt,
                                                              alpha, beta)
@@ -1942,13 +1972,17 @@ class Video:
                     phi = self.remap_dat['phi'][it]
                     time = self.remap_dat['tframes'][it]
         if verbose:
+            # I include these 'np.array' in order to be compatible with the
+            # case of just one time point and multiple ones. It is not the most
+            # elegant way to proceed, but it works ;)
             print('Requested time:', t)
             if self.remap_dat is None:
                 print('Found time: ', time)
-            print('theta:', theta)
-            print('phi:', phi)
+            print('Average theta:', np.array(theta).mean())
+            print('Average phi:', np.array(phi).mean())
             if self.remap_dat is None:
-                print('B field: ', np.sqrt(bt**2 + bp**2)[0])
+                print('Average B field: ',
+                      np.array(np.sqrt(bt**2 + bp**2)[0]).mean())
         return phi, theta
 
     def GUI_frames(self):
@@ -1974,6 +2008,18 @@ class Video:
         root = tk.Tk()
         root.resizable(height=None, width=None)
         ssGUI.ApplicationShowVidRemap(root, self.exp_dat, self.remap_dat)
+        root.mainloop()
+        root.destroy()
+
+    def GUI_profiles(self):
+        """Small GUI to explore camera and remapped frames"""
+        text = 'Press TAB until the time slider is highlighted in red.'\
+            + ' Once that happend, you can move the time with the arrows'\
+            + ' of the keyboard, frame by frame'
+        print(text)
+        root = tk.Tk()
+        root.resizable(height=None, width=None)
+        ssGUI.ApplicationShowProfiles(root, self.exp_dat, self.remap_dat)
         root.mainloop()
         root.destroy()
 
@@ -2136,7 +2182,6 @@ class Video:
         """
         # Set plotting options:
         ax_options = {
-            'fontsize': 14,
             'grid': 'both'
         }
         ax_options.update(ax_params)
