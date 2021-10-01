@@ -25,12 +25,13 @@ class ApplicationShowVidRemap:
         """
         # --- List of supported colormaps
         self.cmaps = {
+            'Cai': ssplt.Cai(),
+            'Greys': plt.get_cmap('Greys_r'),
             'Gamma_II': ssplt.Gamma_II(),
             'Plasma': plt.get_cmap('plasma'),
-            'Cai': ssplt.Cai()
         }
-        names_cmaps = ['Gamma_II', 'Plasma', 'Cai']
-        defalut_cmap = 'Plasma'
+        names_cmaps = ['Cai', 'Gamma_II', 'Greys', 'Plasma']
+        defalut_cmap = 'Greys'
         # --- List of supported interpolators for the remap
         self.interpolators = [
             'none', 'nearest', 'bilinear',
