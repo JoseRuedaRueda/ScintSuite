@@ -86,126 +86,6 @@ def get_points(fig, scintillator, plt_flag: bool = True, npoints: int = 3):
     return index
 
 
-def calculate_transformation_factors(scintillator, fig, plt_flag: bool = True):
-    """
-    Calculate the transformation factor to align the strike map
-
-    Jose Rueda: jrrueda@us.es
-
-    Calculate the transformation factor to align the strike map with the
-    camera sensor. It ask for the user to select some points in the
-    scintillator and to select the same points in the calibration file
-
-    @param scintillator: Scintillator object
-    @param fig: figure where the calibration image is drawn
-    @param plt_flag: flag to plot the selected points to align the scintillator
-    @return xmag: magnification factor in the x direction to align strike map
-    @return mag: magnification factor in the y direction
-    @return alpha: rotation angle to orientate the strike map
-    @return offset: offset to place the strike map
-    @todo check with a non inverted png if the minus I included to align the
-    scintillator is needed or not
-    """
-    # Plot the scintillator
-    fig_scint, ax_scint = plt.subplots()
-    scintillator.plot_real(ax_scint)
-
-    # Select the points in the scintillator
-    index = get_points(fig_scint, scintillator, plt_flag)
-    npoints = index.size
-    print(npoints)
-    # Select the corresponding points in the reference frame
-    print('Select the points on the calibration frame, in the same order as '
-          'before')
-    points_frame = fig.ginput(npoints)
-    # Define the vectors which will give us the reference
-    v21_real = np.array((scintillator.coord_real[index[0], 1]
-                         - scintillator.coord_real[index[1], 1],
-                         scintillator.coord_real[index[0], 2]
-                         - scintillator.coord_real[index[1], 2], 0))
-    v23_real = np.array((scintillator.coord_real[index[2], 1]
-                         - scintillator.coord_real[index[1], 1],
-                         scintillator.coord_real[index[2], 2]
-                         - scintillator.coord_real[index[1], 2], 0))
-
-    v21_pix = np.array([points_frame[0][0], points_frame[0][1], 0]) - \
-        np.array([points_frame[1][0], points_frame[1][1], 0])
-
-    v23_pix = np.array([points_frame[2][0], points_frame[2][1], 0]) - \
-        np.array([points_frame[1][0], points_frame[1][1], 0])
-
-    # See if an inversion of one of the axis is needed or not.
-    normal_real = np.cross(v21_real, v23_real)
-    normal_pix = np.cross(v21_pix, v23_pix)
-
-    # If the normal has opposite signs, an inversion must be done
-    if normal_pix[2] * normal_real[2] < 0:
-        sign = -1.0
-    else:
-        sign = 1.0
-    # With this sign in mind, now we can proceed with the calculation of the
-    # ratio and the gyration angle
-    # Initialize the variables
-    alpha = 0  # Rotation to be applied
-    mag = 0  # Magnification
-    offset = np.zeros(2)
-    for i in range(npoints):
-        # We will use the pair formed by each point and the following,
-        # for the case of the last point in the list, just take the next one
-        i2 = i + 1
-        if i2 == npoints:
-            i2 = 0
-        # Distance in the real scintillator
-        d_real = np.sqrt((scintillator.coord_real[index[i], 2]
-                          - scintillator.coord_real[index[i2], 2]) ** 2
-                         + (scintillator.coord_real[index[i], 1]
-                            - scintillator.coord_real[index[i2], 1]) ** 2)
-        # Distance in the sensor
-        dummy = np.array(points_frame[i]) - np.array(points_frame[i2])
-        d_pix = np.sqrt(dummy[1] ** 2 + dummy[0] ** 2)
-        # Accumulate the magnification factor (we will normalise at the end)
-        mag = mag + d_pix / d_real
-        # Calculate the angles
-        alpha_r = -  math.atan2(scintillator.coord_real[index[i], 2]
-                                - scintillator.coord_real[index[i2], 2],
-                                sign * scintillator.coord_real[index[i], 1]
-                                - sign * scintillator.coord_real[index[i2], 1])
-        # If alpha == 180, it can be also -180, atan2 fails here, check which
-        # one is the case
-        if int(alpha_r * 180 / np.pi) == 180:
-            print('Correcting angle')
-            if scintillator.coord_real[index[i2], 1] > scintillator.coord_real[
-                                                        index[i], 1]:
-                alpha_r = - alpha_r
-
-        alpha_px = - math.atan2(dummy[1], dummy[0])
-        alpha = alpha + (alpha_px - alpha_r)
-        # Transform the coordinate to estimate the offset
-        x_new = (scintillator.coord_real[index[i], 1]
-                 * math.cos(alpha_px - alpha_r)
-                 - scintillator.coord_real[index[i], 2]
-                 * math.sin(alpha_px - alpha_r)) * d_pix / d_real * sign
-        y_new = (scintillator.coord_real[index[i], 1]
-                 * math.sin(alpha_px - alpha_r)
-                 + scintillator.coord_real[index[i], 2]
-                 * math.cos(alpha_px - alpha_r)) * d_pix / d_real
-        offset = offset + np.array(points_frame[i]) - np.array((x_new, y_new))
-        # print(alpha_px*180/np.pi, alpha_real*180/np.pi)
-        # print((alpha_px-alpha_real)*180/np.pi)
-    # Normalise magnification and angle
-    mag = mag / npoints
-    xmag = sign * mag
-    alpha = alpha / npoints * 180 / np.pi
-    offset = offset / npoints
-    cal = CalParams()
-    cal.xscale = xmag
-    cal.yscale = mag
-    cal.xshift = offset[0]
-    cal.yshift = offset[1]
-    cal.deg = alpha
-    return cal
-
-
 # -----------------------------------------------------------------------------
 # --- Remap and profiles
 # -----------------------------------------------------------------------------
@@ -869,26 +749,31 @@ class StrikeMap:
 
         Thera are 2 ways of selecting the smap: give the full path to the file,
         or give the theta and phi angles and the machine, so the strike map
-        will be selected from the remap database
+        will be selected from the remap database. This is still not implemented
+        for the INPA
 
         @param flag: 0  means FILD, 1 means INPA, 2 means iHIBP (you can also
         write directly 'FILD', 'INPA', 'iHIBP')
         @param file: Full path to file with the strike map
         @param machine: machine, to look in the datbase
-        @param theta: theta angle  (see FILDSIM doc)
-        @param phi: phi angle (see FILDSIM doc)
+        @param theta: theta angle  (see FILDSIM doc) (zita for SINPA)
+        @param phi: phi angle (see FILDSIM doc) (ipsilon for SINPA)
         @param decimals: decimals to look in the database
 
-        Notes: machine, theta and phi options introduced in version 0.4.14
+        Notes: machine, theta and phi options introduced in version 0.4.14.
+        INPA compatibility included in version 0.6.0
         """
         ## Associated diagnostic
         if flag == 0 or flag == 'FILD':
             self.diag = 'FILD'
+        if flag == 1 or flag == 'INPA':
+            self.diag = 'INPA'
         elif flag == 2 or flag == 'iHIBP':
             self.diag = 'iHIBP'
         else:
             print('Flag: ', flag)
             raise Exception('Diagnostic not implemented')
+        # --- Initialise the part which are commond for the 3 diagnostics:
         ## X-position, in pixels, of the strike map (common)
         self.xpixel = None
         ## Y-Position, in pixels, of the strike map (common)
@@ -896,8 +781,21 @@ class StrikeMap:
         ## file
         if file is not None:
             self.file = file
-
-        if flag == 0 or flag == 'FILD':
+        ## Resolution of FILD (INPA) for each strike point
+        self.resolution = None
+        ## Interpolators (gyr, pitch)-> sigma_r, sigma_p, etc, (or gyr, aplha)
+        self.intepolators = None
+        ## x coordinates of map points
+        self.x = None
+        ## y coordinates of map points
+        self.y = None
+        ## z coordinates of map points
+        self.z = None
+        ## Translate from pixels in the camera to velocity space
+        self.grid_interp = None
+        ## Strike points used to calculate the map
+        self.strike_points = None
+        if self.diag == 'FILD':
             # Read the file
             if file is None:
                 smap_folder = pa.FILDStrikeMapsRemap
@@ -911,7 +809,7 @@ class StrikeMap:
                 print('Strike map no fpun in the database')
             dummy = np.loadtxt(file, skiprows=3)
             # See which rows has collimator factor larger than zero (ie see for
-            # which combination of energy and pitch some markers has arrived)
+            # which combination of gyroradius and pitch some markers arrived)
             ind = dummy[:, 7] > 0
             # Initialise the class
             ## Gyroradius of map points
@@ -924,28 +822,20 @@ class StrikeMap:
             self.pitch = dummy[ind, 1]
             ## Simulated pitches (unique points of self.pitch)
             self.unique_pitch = np.unique(self.pitch)
-            ## x coordinates of map points (common)
+            # x coordinates of map points (common)
             self.x = dummy[ind, 2]
-            ## y coordinates of map points (common)
+            # y coordinates of map points (common)
             self.y = dummy[ind, 3]
-            ## z coordinates of map points (common)
+            # z coordinates of map points (common)
             self.z = dummy[ind, 4]
             ## Average initial gyrophase of map markers
             self.avg_ini_gyrophase = dummy[ind, 5]
             ## Number of markers striking in this area
-            self.n_strike_points = dummy[ind, 6]
+            self.n_strike_points = dummy[ind, 6].astype(np.int)
             ## Collimator factor as defined in FILDSIM
             self.collimator_factor = dummy[ind, 7]
             ## Average incident angle of the FILDSIM markers
             self.avg_incident_angle = dummy[ind, 8]
-            ## Translate from pixels in the camera to velocity space
-            self.grid_interp = None
-            ## Strike points used to calculate the map
-            self.strike_points = None
-            ## Resolution of FILD for each strike point
-            self.resolution = None
-            ## Interpolators (gyr, pitch)-> sigma_r, sigma_p, and so on
-            self.intepolators = None
             ## Colimator facror as a matrix
             # This simplify a lot W calculation and forward modelling:
             self.ngyr = len(self.unique_gyroradius)
@@ -956,6 +846,53 @@ class StrikeMap:
                     # By definition, flags can only have one True
                     flags = (self.gyroradius == self.unique_gyroradius[ir]) \
                         * (self.pitch == self.unique_pitch[ip])
+                    if np.sum(flags) > 0:
+                        self.collimator_factor_matrix[ir, ip] = \
+                            self.collimator_factor[flags]
+        elif self.diag == 'INPA':
+            dummy = np.loadtxt(file, skiprows=2)
+            # See which rows has collimator factor larger than zero (ie see for
+            # which combination of rl and alpha some markers arrived)
+            ind = dummy[:, 9] > 0
+            # Initialise the class
+            ## Gyroradius of map points
+            self.gyroradius = dummy[ind, 0]
+            ## Simulated gyroradius (unique points of self.gyroradius)
+            self.unique_gyroradius = np.unique(self.gyroradius)
+            ## Energy of map points
+            self.energy = None
+            ## Alpha of map points
+            self.alpha = dummy[ind, 1]
+            ## Simulated pitches (unique points of self.pitch)
+            self.unique_alpha = np.unique(self.alpha)
+            # x coordinates of map points (common)
+            self.x = dummy[ind, 2]
+            # y coordinates of map points (common)
+            self.y = dummy[ind, 3]
+            # z coordinates of map points (common)
+            self.z = dummy[ind, 4]
+            ## x coordinates of closest point to NBI
+            self.x0 = dummy[ind, 5]
+            ## y coordinates of closest point to NBI
+            self.y0 = dummy[ind, 6]
+            ## z coordinates of closest point to NBI
+            self.z0 = dummy[ind, 7]
+            ## distance to the NBI central line
+            self.d0 = dummy[ind, 8]
+            ## Collimator factor as defined in FILDSIM
+            self.collimator_factor = dummy[ind, 9]
+            ## Number of markers striking in this area
+            self.n_strike_points = dummy[ind, 10]
+            ## Colimator facror as a matrix
+            # This simplify a lot W calculation and forward modelling:
+            self.ngyr = len(self.unique_gyroradius)
+            self.nalpha = len(self.unique_alpha)
+            self.collimator_factor_matrix = np.zeros((self.ngyr, self.nalpha))
+            for ir in range(self.ngyr):
+                for ip in range(self.nalpha):
+                    # By definition, flags can only have one True
+                    flags = (self.gyroradius == self.unique_gyroradius[ir]) \
+                        * (self.nalpha == self.unique_alpha[ip])
                     if np.sum(flags) > 0:
                         self.collimator_factor_matrix[ir, ip] = \
                             self.collimator_factor[flags]
@@ -1029,6 +966,47 @@ class StrikeMap:
                         verticalalignment='top')
 
             ax.annotate('Pitch [$\\degree$]',
+                        xy=((max(self.y) - min(self.y))/2 + min(self.y),
+                            min(self.z) - 0.1),
+                        rotation=rotation_for_pitch_label,
+                        horizontalalignment='center',
+                        verticalalignment='center')
+        elif self.diag == 'INPA':
+            # Draw the lines of constant gyroradius (energy). These are the
+            # 'horizontal' lines]
+            uniq = np.unique(self.gyroradius)
+            n = len(uniq)
+            for i in range(n):
+                flags = self.gyroradius == uniq[i]
+                ax.plot(self.y[flags], self.z[flags], **line_options)
+
+                if (i % 2 == 0):  # add gyro radius labels
+                    ax.text((self.y[flags])[0]-0.2,
+                            (self.z[flags])[0], f'{float(uniq[i]):g}',
+                            horizontalalignment='right',
+                            verticalalignment='center')
+
+            ax.annotate('Gyroradius [cm]',
+                        xy=(min(self.y) - 0.5,
+                            (max(self.z) - min(self.z))/2 + min(self.z)),
+                        rotation=rotation_for_gyr_label,
+                        horizontalalignment='center',
+                        verticalalignment='center')
+
+            # Draw the lines of constant alpha. 'Vertical' lines
+            uniq = np.unique(self.alpha)
+            n = len(uniq)
+            for i in range(n):
+                flags = self.alpha == uniq[i]
+                ax.plot(self.y[flags], self.z[flags], **line_options)
+
+                ax.text((self.y[flags])[-1],
+                        (self.z[flags])[-1] - 0.1,
+                        f'{float(uniq[i]):g}',
+                        horizontalalignment='center',
+                        verticalalignment='top')
+
+            ax.annotate('Alpha [rad]',
                         xy=((max(self.y) - min(self.y))/2 + min(self.y),
                             min(self.z) - 0.1),
                         rotation=rotation_for_pitch_label,

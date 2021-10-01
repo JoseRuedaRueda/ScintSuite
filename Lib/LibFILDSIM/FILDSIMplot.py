@@ -69,7 +69,7 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
         ax2D_xz = axarr[2]  # side view, i.e. should see slit plate surface(s)
         ax2D_xz.set_xlabel('X [cm]')
         ax2D_xz.set_ylabel('Z [cm]')
-        ax2D_xz.set_title('Side view (Y-Z plane)')
+        ax2D_xz.set_title('Side view (X-Z plane)')
         created_2D = True
     else:
         ax2D_xy = axarr[0]  # topdown view, i.e should see pinhole surface

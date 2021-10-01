@@ -1,4 +1,4 @@
-"""Contains routine to load data from the tokamak database"""
+"""Routines to load data from the tokamak database"""
 
 from Lib.LibMachine import machine
 if machine == 'AUG':
