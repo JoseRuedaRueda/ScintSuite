@@ -23,7 +23,7 @@ nml_options = {
         'geomID': 'Test',
         'nAlpha': 3,
         'nGyroradius': 5,
-        'nMap': 1000,
+        'nMap': 10000,
         'mapping': True,
         'signal': False,
         'resampling': False,
@@ -49,8 +49,8 @@ nml_options = {
     },
     'inputParams': {
          'nGyro': 20,
-         'beta0': 0.05,
-         'alphas': [2.83, 3.14, 3.46],
+         'beta0': 0.1,
+         'alphas': [2.41, 3.14, 3.5],
          # 'alphas': [3.141592],
          'rL': [0.5, 0.7, 1.5, 2.0, 2.5],
          'maxT': 0.000005

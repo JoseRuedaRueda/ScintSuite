@@ -13,6 +13,8 @@
 - Vid.plot_orientation no longer set by default the font size, as that is don now when initialising the suite
 - Lib.Libfildsim.plot_geometry(). Dummy bug corrected, in the title of the 3 subplot it said 'Y-Z' instead of 'X-Z'
 - Default colormap in the GUIS to plot the videos is now grey scale
+- Added update_case_insensitive to the Utilities library to compare dictionaries in a case insensitive way
+- Added a custom path file so the user can define its own paths
 - Improvements in comments + PEP8 checking
 
 ** 0.5.8 Minor improvements

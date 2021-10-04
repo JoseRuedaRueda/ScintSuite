@@ -19,6 +19,9 @@ There are two files containing the paths and routes for the suite:
 - paths_suite.py: Located in the main directory of the suite. This one just contain the routes pointing to the python packages/files needed by the suite. It shall be run one time before running any routine from the suite as it will says to python where to find what it needs
 - LibPaths.py: Located inside the Lb folder, there they are all the paths pointing towards the different codes (FILDSIM, INPASIM etc) and the results/strike maps directories. Be careful, by default the suite directory is there written as ScintillatorSuite, while usually if you make git clone, is cloned as scintillatorsuite, you may have to change manually the name of the folder!
 
+It could happen that you have FILDSIM, SINPA or whatever installed in a route which is not 'the official' the suite allows you to define these different paths via the namelist 'Paths.txt' inside the MyData folder (inside Data) Please use always this file and do not modify the LibPaths.py file
+
+
 *** FILDSIM notes
 - You need to create an empty folder in the root of FILDSIM code with name 'cfg_files' in order to run the remap routine. The namelist of the new calculated strike maps will be stored here, so we do not create thousands of files in the main FILDSIM paths
 
