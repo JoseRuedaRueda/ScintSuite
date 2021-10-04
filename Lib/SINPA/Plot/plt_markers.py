@@ -30,7 +30,7 @@ def axisEqual3D(ax):
 
 
 def plot_strikes3D(strikes, per=0.1, ax=None, mar_params={},
-                   iig=None, iia=None, NBI_pos=False):
+                   iig=None, iia=None, NBI_pos=False, scint_system=False):
     """
     Plot the strike points in a 3D axis as scatter points
 
@@ -68,22 +68,28 @@ def plot_strikes3D(strikes, per=0.1, ax=None, mar_params={},
             for ia in range(nalpha):
                 if strikes['counters'][ia, ig] > 0:
                     flags = np.random.rand(strikes['counters'][ia, ig]) < per
-                    if not NBI_pos:
-                        x = strikes['data'][ia, ig][flags, 0]
-                    else:
+                    if NBI_pos:
                         x = strikes['data'][ia, ig][flags, 3]
+                    elif scint_system:
+                        x = strikes['data'][ia, ig][flags, 15]
+                    else:
+                        x = strikes['data'][ia, ig][flags, 0]
                     minx = min(minx, x.min())
                     maxx = max(maxx, x.max())
-                    if not NBI_pos:
-                        y = strikes['data'][ia, ig][flags, 1]
-                    else:
+                    if NBI_pos:
                         y = strikes['data'][ia, ig][flags, 4]
+                    elif scint_system:
+                        y = strikes['data'][ia, ig][flags, 16]
+                    else:
+                        y = strikes['data'][ia, ig][flags, 1]
                     miny = min(miny, y.min())
                     maxy = max(maxy, y.max())
-                    if not NBI_pos:
-                        z = strikes['data'][ia, ig][flags, 2]
-                    else:
+                    if NBI_pos:
                         z = strikes['data'][ia, ig][flags, 5]
+                    elif scint_system:
+                        z = strikes['data'][ia, ig][flags, 17]
+                    else:
+                        z = strikes['data'][ia, ig][flags, 2]
                     minz = min(minz, z.min())
                     maxz = max(maxz, z.max())
                     ax.scatter(x, y, z, **mar_options)
