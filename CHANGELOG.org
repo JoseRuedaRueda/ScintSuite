@@ -3,7 +3,7 @@
 - Support for SINPA strike maps was included in the mapping library
 - calculate_transformation_factors was deprecated
 *** SINPA
-- the new Synthetic INPA code is supported (will be done in the final 6.0 release)
+- the new Synthetic INPA code is supported (to be completed in the final 6.0 release)
 *** Tomography
 - Mono dimensional tomography can be performed, examples can be found in L15
 *** Others
