@@ -310,37 +310,6 @@ def read_plate(filename):
     return plate
 
 
-def read_orbits(orbits_file, orbits_index_file):
-    """
-    Read FILDSIM orbits
-
-    ajvv
-
-    @param orbits_file: full path to the orbits file
-    @param orbits_index_file: full path to the orbits_index file
-    @return orbit: list with orbit trajectories where each tracetory
-                   is given as an array with shape:
-                   (number of trajectory points, 3).
-                   The second index refers to the x, y and z coordinates
-                   of the trajectory points.
-    """
-    orbits = []
-
-    orbits_index_data = np.loadtxt(orbits_index_file)
-    orbits_data = np.loadtxt(orbits_file)
-
-    ## Todo check if there are no orbits
-    if len(orbits_index_data) == 1:
-        orbits_index_data = [orbits_index_data]
-
-    ii = 0
-    for i in orbits_index_data:
-        orbits.append(orbits_data[ii:(ii + int(i)), :])
-        ii += int(i)
-
-    return orbits
-
-
 # -----------------------------------------------------------------------------
 # --- Energy definition FILDSIM
 # -----------------------------------------------------------------------------

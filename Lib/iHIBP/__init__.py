@@ -1,7 +1,7 @@
 """
 Interaction with the iHIBPsim code
 
-Pablo Oyola: poyola@us.es
+Pablo Oyola - pablo.oyola@ipp.mog.de
 """
 import Lib.iHIBP.LibHIBPfields as fields
 import Lib.iHIBP.LibHIBP_crossSections as xsection

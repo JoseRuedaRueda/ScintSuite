@@ -39,4 +39,4 @@ def calculate_rotation_matrix(n, verbose=True):
         print('Please write in fortran this matrix but transposed!!')
     # --- Calculate the rotation
     r = R.from_rotvec(alpha * u_turn)
-    return r.as_matrix()
+    return r.as_matrix().T

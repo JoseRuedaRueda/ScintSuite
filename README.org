@@ -13,6 +13,8 @@ Needed packages(Only listed 'non-standard' packages):
     - cv2 (OpenCv): To load frames from .mp4 files. =pip install opencv-python=
     - lmfit: To perform the fits needed for the resolution calculation =pip install lmfit=
     - cycler: To set default plotting color
+    - pyfft: To have extra capabilities in the spectrogram calculation.
+    - netCDF4: To load and save files from the BEB database
 *Automatic install*: Execute First_Run.py in the machine where you want to run the suite, it should check what is missing in order to run the suite and explain you how to install it (you need to run module load git before if you are in toki)
 *** Paths
 There are two files containing the paths and routes for the suite:

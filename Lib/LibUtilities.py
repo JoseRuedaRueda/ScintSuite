@@ -250,7 +250,7 @@ def update_case_insensitive(a, b):
     routinely inside heavy loops. It will only change in a the fields contained
     in b, it will not create new fields in a
 
-    Please Pablo do not kill me for this extremelly uneficient way of doing
+    Please, Pablo, do not kill me for this extremelly uneficient way of doing
     this
 
     @params a: Main dictionary

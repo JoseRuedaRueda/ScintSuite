@@ -46,7 +46,11 @@ class Path:
                 '/usr/share/texmf/fonts/opentype/public/lm',
                 '/usr/share/texmf/fonts/opentype/public/lm-math'
             ]
-
+        else:  # Generic case, assume you have linux :-)
+            self.fonts = [
+            '/usr/share/fonts/truetype',
+            '/usr/share/fonts/opentype',
+            ]
         # Load the custom paths
         file = os.path.join(self.ScintSuite, 'Data', 'MyData', 'Paths.txt')
         nml = f90nml.read(file)

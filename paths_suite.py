@@ -54,7 +54,20 @@ def paths_of_the_suite(machine='AUG'):
             print('We are not in toki')
             print('The suite has not been tested outside toki')
             print('Things can go wrong!')
+    else:
+        print('Not recognised tokamak environment')
+        print('We assume you are in your personal PC')
+        print('You will not have access to databases')
 
 
 if __name__ == "__main__":
-    paths_of_the_suite()
+
+    if os.path.isdir('/afs/ipp-garching.mpg.de'):
+        machine = 'AUG'
+    else:
+        machine = 'Generic'
+        print('Not recognised machine')
+        print('Assume that your are using your personal computer')
+        print('Database call will not work')
+
+    paths_of_the_suite(machine)

@@ -24,67 +24,6 @@ from tqdm import tqdm   # For waitbars
 pa = p.Path(machine)
 del p
 
-try:
-    import lmfit
-except ImportError:
-    warnings.warn('lmfit not found, you cannot calculate resolutions')
-
-
-def transform_to_pixel(x, y, grid_param):
-    """
-    Transform from X,Y coordinates (scintillator) to pixels in the camera
-
-    Jose Rueda Rueda: jrrueda@us.es
-
-    @param x: Array of positions to be transformed, x coordinate
-    @param y: Array of positions to be transformed, y coordinate
-    @param grid_param: Object containing all the information for the
-    transformation, see class CalParams()
-    @return xpixel: x positions in pixels
-    @return ypixel: y position in pixels
-    @todo Include a model to take into account the distortion
-    """
-    alpha = grid_param.deg * np.pi / 180
-    xpixel = (np.cos(alpha) * x - np.sin(alpha) * y) * grid_param.xscale + \
-        grid_param.xshift
-    ypixel = (np.sin(alpha) * x + np.cos(alpha) * y) * grid_param.yscale + \
-        grid_param.yshift
-
-    return xpixel, ypixel
-
-
-# -----------------------------------------------------------------------------
-# --- Align the scintillator
-# -----------------------------------------------------------------------------
-def get_points(fig, scintillator, plt_flag: bool = True, npoints: int = 3):
-    """
-    Get the points of the scintillator via ginput method
-
-    Jose Rueda: jrrueda@us.es
-
-    @param fig: Axis where the scintillator is drawn
-    @param scintillator: Scintillator object
-    @param plt_flag: flag to plot
-    @param npoints: number of points in the selection
-    @return index: array with the index of each point, to be located in the
-    scintillator.coord_real
-    """
-    print('Select the points in the scintillator')
-    points = fig.ginput(npoints)
-    index = np.zeros(npoints, dtype=int)
-    for i in range(npoints):
-        relative_pos = scintillator.coord_real[:, 1:3] - points[i]
-        # print(relative_pos)
-        index[i] = int(
-            np.argmin(relative_pos[:, 1] ** 2 + relative_pos[:, 0] ** 2))
-        # print(index[i])
-        if plt_flag:
-            plt.plot(scintillator.coord_real[index[i], 1],
-                     scintillator.coord_real[index[i], 2], 'o')
-            plt.text(scintillator.coord_real[index[i], 1],
-                     scintillator.coord_real[index[i], 2], str(i + 1))
-    return index
-
 
 # -----------------------------------------------------------------------------
 # --- Remap and profiles
@@ -552,39 +491,7 @@ def remap_all_loaded_frames_FILD(video, calibration, shot, rmin: float = 1.0,
 # -----------------------------------------------------------------------------
 # --- Fitting routines
 # -----------------------------------------------------------------------------
-def _fit_to_model_(data, bins=20, model='Gauss', normalize=True):
-    """
-    Make histogram of input data and fit to a model
 
-    Jose Rueda: jrrueda@us.es
-
-    @param bins: Can be the desired number of bins or the edges
-    @param model: 'Gauss' Pure Gaussian, 'sGauss' Screw Gaussian
-    """
-    # --- Make the histogram of the data
-    hist, edges = np.histogram(data, bins=bins)
-    hist = hist.astype(np.float64)
-    if normalize:
-        hist /= hist.max()  # Normalise to  have the data between 0 and 1
-    cent = 0.5 * (edges[1:] + edges[:-1])
-    # --- Make the fit
-    if model == 'Gauss':
-        model = lmfit.models.GaussianModel()
-        params = model.guess(hist, x=cent)
-        result = model.fit(hist, params, x=cent)
-        par = {'amplitude': result.params['amplitude'].value,
-               'center': result.params['center'].value,
-               'sigma': result.params['sigma'].value}
-    elif model == 'sGauss':
-        model = lmfit.models.SkewedGaussianModel()
-        params = model.guess(hist, x=cent)
-        result = model.fit(hist, params, x=cent)
-        par = {'amplitude': result.params['amplitude'].value,
-               'center': result.params['center'].value,
-               'sigma': result.params['sigma'].value,
-               'gamma': result.params['gamma'].value}
-
-    return par, result
 
 
 # -----------------------------------------------------------------------------
@@ -634,37 +541,8 @@ class CalibrationDatabase:
                 self.data['cal_type'] = self.data['cal_type'] + [dummy[9]]
                 self.data['diag_ID'] = self.data['diag_ID'] + [int(dummy[10])]
 
-    def append_to_database(self, camera: str, shot1: int, shot2: int,
-                           xshift: float, yshift: float, xscale: float,
-                           yscale: float, deg: float, cal_type: str,
-                           diag_ID: str):
-        """
-        Add a new entry to the database
 
-        @param camera:
-        @param shot1:
-        @param shot2:
-        @param xshift:
-        @param yshift:
-        @param xscale:
-        @param yscale:
-        @param deg:
-        @param cal_type:
-        @param diag_ID:
-        """
-        self.data['ID'] = self.data['ID'] + [self.data['ID'][-1] + 1]
-        self.data['camera'] = self.data['camera'] + [camera]
-        self.data['shot1'] = self.data['shot1'] + [shot1]
-        self.data['shot2'] = self.data['shot2'] + [shot2]
-        self.data['xshift'] = self.data['xshift'] + [xshift]
-        self.data['yshift'] = self.data['yshift'] + [yshift]
-        self.data['xscale'] = self.data['xscale'] + [xscale]
-        self.data['yscale'] = self.data['yscale'] + [yscale]
-        self.data['deg'] = self.data['deg'] + [deg]
-        self.data['cal_type'] = self.data['cal_type'] + [cal_type]
-        self.data['diag_ID'] = self.data['diag_ID'] + [diag_ID]
-
-    def write_database_to_txt(self, file: str = ''):
+    def write_database_to_txt(self, file: str = None):
         """
         Write database into a txt.
 
@@ -675,9 +553,8 @@ class CalibrationDatabase:
         the original database.
 
         @param file: name of the file where to write the results
-        @return : a file created with your information
         """
-        if file == '':
+        if file == None:
             file = self.file[:-4] + '_new.txt'
         with open(file, 'w') as f:
             # Write the header
@@ -697,7 +574,7 @@ class CalibrationDatabase:
                        self.data['cal_type'][i] + ' ' + \
                        str(self.data['diag_ID'][i]) + ' ' + '\n'
                 f.write(line)
-            print('File ' + file + ' writen')
+            print('File: ' + file + ' writen')
 
     def get_calibration(self, shot, camera, cal_type, diag_ID):
         """
@@ -1086,7 +963,6 @@ class StrikeMap:
         """
         Interpolate grid values on the frames
 
-        @param smap: StrikeMap() object
         @param frame_shape: Size of the frame used for the calibration (in px)
         @param method: method to calculate the interpolation:
             - 1: griddata linear (you can also write 'linear')
@@ -1230,12 +1106,11 @@ class StrikeMap:
                                        vmin=0, vmax=50, origin='lower')
                 fig.colorbar(c3, ax=axes[1, 1], shrink=0.9)
 
-    def get_energy(self, B0: float, Z: int = 1, A: int = 2):
+    def get_energy(self, B0: float, Z: int = 1, A: float = 2.0):
         """Get the energy associated with each gyroradius
 
         Jose Rueda: jrrueda@us.es
 
-        @param self:
         @param B0: Magnetic field [in T]
         @param Z: the charge [in e units]
         @param A: the mass number
@@ -1255,49 +1130,29 @@ class StrikeMap:
         from the self.file variable, so the strike points are supposed to be in
         the same folder than the strike map
         """
-        if file is None:
-            file = self.file[:-14] + 'strike_points.dat'
-        if verbose:
-            print('Reading strike points: ', file)
+
         if self.diag == 'FILD':
-            self.strike_points = {}
-            # Load all the data
-            self.strike_points['Data'] = np.loadtxt(file, skiprows=3)
-            # Check with version of FILDSIM was used
-            if len(self.strike_points['Data'][0, :]) == 9:
-                print('Old FILDSIM format, initial position NOT included')
-                old = True
-            elif len(self.strike_points['Data'][0, :]) == 12:
-                print('New FILDSIM format, initial position included')
-                old = False
-            else:
-                raise Exception('Error loading file, not recognised columns')
-            # Write some help
-            self.strike_points['help'] =\
-                ['0: Gyroradius (cm)',
-                 '1: Pitch Angle (deg)',
-                 '2: Initial Gyrophase',
-                 '3-5: X (cm)  Y (cm)  Z (cm)',
-                 '6: Remapped gyro',
-                 '7: Remapped pitch',
-                 '8: Incidence angle']
-            if not old:
-                self.strike_points['help'].append('9-11: Xi (cm)  Yi (cm)'
-                                                  + '  Zi (cm)')
-            # Get the 'pinhole' gyr and pitch values:
-            self.strike_points['pitch'] = \
-                np.unique(self.strike_points['Data'][:, 1])
-            self.strike_points['gyroradius'] = \
-                np.unique(self.strike_points['Data'][:, 0])
+            if file is None:
+                file = self.file[:-14] + 'strike_points.dat'
+            if verbose:
+                print('Reading strike points: ', file)
+            ssfildsim.Strikes(file=file, verbose=verbose)
+
         return
 
     def plot_strike_points(self, ax=None, plt_param={}):
         """
-        Scatter plot of the strik points
+        Scatter plot of the strik points. DEPRECATED!
 
         Note, no weighting is done, just a scatter plot, this is not a
         sofisticated ready to print figure maker but just a quick plot to see
-        what is going on
+        what is going on.
+
+        Note 2: Since version 0.6.0, there smap.strike_points is no longer a
+        dictionary, but a complete object with its advanced plot routines.
+        This mathod is left here for retrocompatibility. If you are planning a
+        new implementation, use smap.strike_points.plot2D directly (or the hist
+        plot also present there)
 
         @param ax: axes where to plot, if not given, new figure will pop up
         @param plt_param: options for the matplotlib scatter function
@@ -1305,10 +1160,9 @@ class StrikeMap:
         # Open the figure if needed:
         if ax is None:
             fig, ax = plt.subplots()
-        # plot
-        if self.diag == 'FILD':
-            ax.scatter(self.strike_points['Data'][:, 4],
-                       self.strike_points['Data'][:, 5], ** plt_param)
+        print('This function will be removed in future versions.')
+        print('Please use smap.strike_points.plot2D() instead')
+        self.strike_points.plot2D(ax=ax, mar_params=plt_param)
 
     def calculate_resolutions(self, diag_params: dict = {},
                               min_statistics: int = 100,
@@ -1342,8 +1196,8 @@ class StrikeMap:
             dgyr = diag_options['dgyr']
             p_method = diag_options['p_method']
             g_method = diag_options['g_method']
-            npitch = self.strike_points['pitch'].size
-            nr = self.strike_points['gyroradius'].size
+            npitch = self.strike_points.header['npitch']
+            nr = self.strike_points.header['ngyroradius']
             # --- Pre-allocate variables
             npoints = np.zeros((nr, npitch))
             parameters_pitch = {'amplitude': np.zeros((nr, npitch)),
@@ -1362,15 +1216,10 @@ class StrikeMap:
             for ir in tqdm(range(nr)):
                 for ip in range(npitch):
                     # --- Select the data
-                    data = self.strike_points['Data'][
-                        (self.strike_points['Data'][:, 0] ==
-                         self.strike_points['gyroradius'][ir]) *
-                        (self.strike_points['Data'][:, 1] ==
-                         self.strike_points['pitch'][ip]), :]
-                    npoints[ir, ip] = len(data[:, 0])
+                    data = self.strike_points.data[ip, ir]
 
                     # --- See if there is enough points:
-                    if npoints[ir, ip] < min_statistics:
+                    if self.header['counters'][ip, ir] < min_statistics:
                         parameters_gyr['amplitude'][ir, ip] = np.nan
                         parameters_gyr['center'][ir, ip] = np.nan
                         parameters_gyr['sigma'][ir, ip] = np.nan
@@ -1383,40 +1232,40 @@ class StrikeMap:
                     else:  # If we have enough points, make the fit
                         # Prepare the bin edges according to the desired width
                         edges_pitch = \
-                            np.arange(start=data[:, 7].min() - dpitch,
-                                      stop=data[:, 7].max() + dpitch,
+                            np.arange(start=data[:, 5].min() - dpitch,
+                                      stop=data[:, 5].max() + dpitch,
                                       step=dpitch)
                         edges_gyr = \
-                            np.arange(start=data[:, 6].min() - dgyr,
-                                      stop=data[:, 6].max() + dgyr,
+                            np.arange(start=data[:, 4].min() - dgyr,
+                                      stop=data[:, 4].max() + dgyr,
                                       step=dgyr)
                         # --- Reduce (if needed) the bin width, we will set the
                         # bin width as 1/4 of the std, to ensure a good fitting
                         if adaptative:
                             n_bins_in_sigma = 4
-                            sigma_r = np.std(data[:, 6])
+                            sigma_r = np.std(data[:, 4])
                             new_dgyr = sigma_r / n_bins_in_sigma
                             edges_gyr = \
-                                np.arange(start=data[:, 6].min() - new_dgyr,
-                                          stop=data[:, 6].max() + new_dgyr,
+                                np.arange(start=data[:, 4].min() - new_dgyr,
+                                          stop=data[:, 4].max() + new_dgyr,
                                           step=new_dgyr)
-                            sigma_p = np.std(data[:, 7])
+                            sigma_p = np.std(data[:, 5])
                             new_dpitch = sigma_p / n_bins_in_sigma
                             edges_pitch = \
-                                np.arange(start=data[:, 7].min() - dpitch,
-                                          stop=data[:, 7].max() + dpitch,
+                                np.arange(start=data[:, 5].min() - dpitch,
+                                          stop=data[:, 5].max() + dpitch,
                                           step=new_dpitch)
                         # --- Proceed to fit
-                        par_p, resultp = _fit_to_model_(data[:, 7],
+                        par_p, resultp = _fit_to_model_(data[:, 5],
                                                         bins=edges_pitch,
                                                         model=p_method)
-                        par_g, resultg = _fit_to_model_(data[:, 6],
+                        par_g, resultg = _fit_to_model_(data[:, 4],
                                                         bins=edges_gyr,
                                                         model=g_method)
                         fitp.append(resultp)
                         fitg.append(resultg)
-                        gyr_array.append(self.strike_points['gyroradius'][ir])
-                        pitch_array.append(self.strike_points['pitch'][ip])
+                        gyr_array.append(self.strike_points.header['gyroradius'][ir])
+                        pitch_array.append(self.strike_points.header['pitch'][ip])
                         # --- Save the data in the matrices:
                         # pitch parameters:
                         parameters_pitch['amplitude'][ir, ip] = \
@@ -1437,17 +1286,19 @@ class StrikeMap:
                         elif g_method == 'sGauss':
                             parameters_gyr['gamma'][ir, ip] = par_g['gamma']
 
-            self.resolution = {'Gyroradius': parameters_gyr,
-                               'Pitch': parameters_pitch,
-                               'nmarkers': npoints,
-                               'fits': {
-                                    'Gyroradius': fitg,
-                                    'Pitch': fitp,
-                                    'FILDSIM_gyroradius': np.array(gyr_array),
-                                    'FILDSIM_pitch': np.array(pitch_array),
-                               },
-                               'gyroradius_model': g_method,
-                               'pitch_model': p_method}
+            self.resolution = {
+                'Gyroradius': parameters_gyr,
+                'Pitch': parameters_pitch,
+                'nmarkers': npoints,
+                'fits': {
+                    'Gyroradius': fitg,
+                    'Pitch': fitp,
+                    'FILDSIM_gyroradius': np.array(gyr_array),
+                    'FILDSIM_pitch': np.array(pitch_array),
+                },
+                'gyroradius_model': g_method,
+                'pitch_model': p_method
+                }
             # --- Prepare the interpolators:
             self.calculate_interpolators()
         return
@@ -1462,8 +1313,8 @@ class StrikeMap:
         if self.diag == 'FILD':
             # --- Prepare the interpolators:
             # Prepare grid
-            xx, yy = np.meshgrid(self.strike_points['gyroradius'],
-                                 self.strike_points['pitch'])
+            xx, yy = np.meshgrid(self.strike_points.header['gyroradius'],
+                                 self.strike_points.header['pitch'])
             xxx = xx.flatten()
             yyy = yy.flatten()
             self.interpolators = {'pitch': {}, 'gyroradius': {}}
@@ -1555,15 +1406,15 @@ class StrikeMap:
 
         if self.diag == 'FILD':
             # Plot the gyroradius resolution
-            a1 = ax[0].contourf(self.strike_points['pitch'],
-                                self.strike_points['gyroradius'],
+            a1 = ax[0].contourf(self.strike_points.header['pitch'],
+                                self.strike_points.header['gyroradius'],
                                 self.resolution['Gyroradius']['sigma'],
                                 levels=nlev, cmap=cmap)
             fig.colorbar(a1, ax=ax[0], label='$\\sigma_r [cm]$')
             ax[0] = ssplt.axis_beauty(ax[0], ax_param)
             # plot the pitch resolution
-            a = ax[1].contourf(self.strike_points['pitch'],
-                               self.strike_points['gyroradius'],
+            a = ax[1].contourf(self.strike_points.header['pitch'],
+                               self.strike_points.header['gyroradius'],
                                self.resolution['Pitch']['sigma'],
                                levels=nlev, cmap=cmap)
             fig.colorbar(a, ax=ax[1], label='$\\sigma_\\lambda$')
@@ -1603,8 +1454,8 @@ class StrikeMap:
 
         if self.diag == 'FILD':
             # Plot the gyroradius resolution
-            a1 = ax.contourf(self.strike_points['pitch'],
-                             self.strike_points['gyroradius'],
+            a1 = ax.contourf(self.strike_points.header['pitch'],
+                             self.strike_points.header['gyroradius'],
                              self.collimator_factor_matrix,
                              levels=nlev, cmap=cmap)
             fig.colorbar(a1, ax=ax, label='Collimating factor')
@@ -1680,6 +1531,8 @@ class StrikeMap:
         number of bins in a sigma of the distribution is 4. If this is the
         case, dpitch, dgyr, will no longer have an impact
         """
+        print('This function is provisional')
+        print('It will be changed in future versions')
         if self.strike_points is None:
             raise Exception('You should load the strike points first!!')
         if self.diag == 'FILD':
@@ -1694,37 +1547,34 @@ class StrikeMap:
             dpitch = diag_options['dpitch']
             p_method = diag_options['p_method']
 
-            npitch = self.strike_points['pitch'].size
-            ir = np.argmin(abs(self.strike_points['gyroradius'] - gyroradius))
+            npitch = self.strike_points.header['pitch'].size
+            ir = np.argmin(abs(self.strike_points.header['gyroradius']
+                               - gyroradius))
 
             for ip in range(npitch):
                 # --- Select the data
-                data = self.strike_points['Data'][
-                    (self.strike_points['Data'][:, 0] ==
-                     self.strike_points['gyroradius'][ir]) *
-                    (self.strike_points['Data'][:, 1] ==
-                     self.strike_points['pitch'][ip]), :]
+                data = self.strike_points.data[ip, ir]
 
                 if len(data[:, 0]) < min_statistics:
                     continue
                 # Prepare the bin edges according to the desired width
                 edges_pitch = \
-                    np.arange(start=data[:, 7].min() - dpitch,
-                              stop=data[:, 7].max() + dpitch,
+                    np.arange(start=data[:, 5].min() - dpitch,
+                              stop=data[:, 5].max() + dpitch,
                               step=dpitch)
 
                 # --- Reduce (if needed) the bin width, we will set the
                 # bin width as 1/4 of the std, to ensure a good fitting
                 if adaptative:
                     n_bins_in_sigma = 4
-                    sigma_p = np.std(data[:, 7])
+                    sigma_p = np.std(data[:, 5])
                     new_dpitch = sigma_p / n_bins_in_sigma
                     edges_pitch = \
-                        np.arange(start=data[:, 7].min() - dpitch,
-                                  stop=data[:, 7].max() + dpitch,
+                        np.arange(start=data[:, 5].min() - dpitch,
+                                  stop=data[:, 5].max() + dpitch,
                                   step=new_dpitch)
                 # --- Proceed to fit
-                par_p, resultp = _fit_to_model_(data[:, 7],
+                par_p, resultp = _fit_to_model_(data[:, 5],
                                                 bins=edges_pitch,
                                                 model=p_method,
                                                 normalize=False)
@@ -1739,7 +1589,8 @@ class StrikeMap:
                     ax_pitch.set_ylabel('Counts')
                     ax_pitch.set_title(
                         'Pitch resolution at gyroradius '
-                        + str(self.strike_points['gyroradius'][ir])+' cm')
+                        + str(self.strike_points.header['gyroradius'][ir])\
+                        +' cm')
 
                     created_ax = True
 
@@ -1747,7 +1598,7 @@ class StrikeMap:
                 fit_line = ax_pitch.plot(cent, resultp.best_fit,
                                          label='_nolegend_')
                 label_plot = \
-                    f"{float(self.strike_points['pitch'][ip]):g}"\
+                    f"{float(self.strike_points.header['pitch'][ip]):g}"\
                     + '$\\degree$'
                 ax_pitch.hist(data[:, 7], bins=edges_pitch, alpha=alpha,
                               label=label_plot, color=fit_line[0].get_color())
@@ -1780,6 +1631,8 @@ class StrikeMap:
         number of bins in a sigma of the distribution is 4. If this is the
         case, dpitch, dgyr, will no longer have an impact
         """
+        print('This function is provisional')
+        print('It will be changed in future versions')
         if self.strike_points is None:
             raise Exception('You should load the strike points first!!')
         if self.diag == 'FILD':
@@ -1794,39 +1647,35 @@ class StrikeMap:
             dgyr = diag_options['dgyr']
             g_method = diag_options['g_method']
 
-            nr = self.strike_points['gyroradius'].size
+            nr = self.strike_points.header['gyroradius'].size
 
-            ip = np.argmin(abs(self.strike_points['pitch'] - pitch))
+            ip = np.argmin(abs(self.strike_points.header['pitch'] - pitch))
 
             for ir in range(nr):
                 # --- Select the data
-                data = self.strike_points['Data'][
-                    (self.strike_points['Data'][:, 0] ==
-                     self.strike_points['gyroradius'][ir]) *
-                    (self.strike_points['Data'][:, 1] ==
-                     self.strike_points['pitch'][ip]), :]
+                data = self.strike_points.data[ip, ir]
 
                 if len(data[:, 0]) < min_statistics:
                     continue
                 # Prepare the bin edges according to the desired width
                 edges_gyr = \
-                    np.arange(start=data[:, 6].min() - dgyr,
-                              stop=data[:, 6].max() + dgyr,
+                    np.arange(start=data[:, 4].min() - dgyr,
+                              stop=data[:, 4].max() + dgyr,
                               step=dgyr)
                 # --- Reduce (if needed) the bin width, we will set the
                 # bin width as 1/4 of the std, to ensure a good fitting
                 if adaptative:
                     n_bins_in_sigma = 4
-                    sigma_r = np.std(data[:, 6])
+                    sigma_r = np.std(data[:, 4])
                     new_dgyr = sigma_r / n_bins_in_sigma
                     edges_gyr = \
-                        np.arange(start=data[:, 6].min() - new_dgyr,
-                                  stop=data[:, 6].max() + new_dgyr,
+                        np.arange(start=data[:, 4].min() - new_dgyr,
+                                  stop=data[:, 4].max() + new_dgyr,
                                   step=new_dgyr)
 
                 # --- Proceed to fit
 
-                par_g, resultg = _fit_to_model_(data[:, 6],
+                par_g, resultg = _fit_to_model_(data[:, 4],
                                                 bins=edges_gyr,
                                                 model=g_method,
                                                 normalize=False)
@@ -1838,7 +1687,8 @@ class StrikeMap:
                     ax_gyroradius.set_xlabel('Gyroradius [cm]')
                     ax_gyroradius.set_ylabel('Counts')
                     title_plot = 'Gyroradius resolution at pitch '\
-                        + str(self.strike_points['pitch'][ip]) + '$\\degree$'
+                        + str(self.strike_points.header['pitch'][ip])\
+                        + '$\\degree$'
                     ax_gyroradius.set_title(title_plot)
 
                     created_ax = True
@@ -1847,7 +1697,8 @@ class StrikeMap:
                 fit_line = ax_gyroradius.plot(cent, resultg.best_fit,
                                               label='_nolegend_')
                 label_plot = \
-                    f"{float(self.strike_points['gyroradius'][ir]):g}" + '[cm]'
+                    f"{float(self.strike_points.header['gyroradius'][ir]):g}"\
+                    + '[cm]'
                 ax_gyroradius.hist(data[:, 6], bins=edges_gyr,
                                    alpha=alpha, label=label_plot,
                                    color=fit_line[0].get_color())
