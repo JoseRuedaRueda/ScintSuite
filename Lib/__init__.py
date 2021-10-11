@@ -1,3 +1,12 @@
+"""
+Main Core of the Suite
+
+Allows to access all the diferent libraries and capabilities
+
+Please see https://gitlab.mpcdf.mpg.de/ruejo/scintsuite for a full
+documentation
+"""
+
 import Lib.LibFILDSIM as fildsim
 import Lib.LibParameters as par
 import Lib.LibMap as mapping
@@ -13,18 +22,22 @@ import Lib.LibIO as io
 import Lib.LibFastChannel as fc
 import Lib.LibTomography as tomo
 import Lib.LibScintillatorCharacterization as scintcharact
-import Lib.iHIBP as ihibp
 import Lib.GUIs as GUI
-import Lib.INPA as inpa
+import Lib.SINPA as sinpa
 import Lib.LibOptics as optics
-import Lib.BEP as libbep
 import Lib.LibNoise as noise
 from Lib.version_suite import version
 import Lib.LibData as dat
-
+import Lib.LibCAD as cad
+import Lib.LibSideFunctions as side
 
 machine = m.machine
 paths = p.Path(machine)
+
+if machine == 'AUG':
+    import Lib.BEP as libbep
+    import Lib.iHIBP as ihibp
+
 # Delte the intermedite variables to 'clean'
 del p
 del m
