@@ -115,7 +115,7 @@ def read_namelist(filename):
     return f90nml.read(filename)
 
 
-def run_FILDSIM(namelist, queue=False):
+def run_FILDSIM(namelist, queue: bool = False):
     """
     Execute a FILDSIM simulation
 
@@ -123,10 +123,8 @@ def run_FILDSIM(namelist, queue=False):
 
     @param namelist: full path to the namelist
     """
-
     if not queue:
         FILDSIM = os.path.join(paths.FILDSIM, 'bin', 'fildsim.exe')
-        # namelist = ' ' + run_ID + '.cfg'
         os.system(FILDSIM + ' ' + namelist)
     else:
         '''
@@ -135,27 +133,31 @@ def run_FILDSIM(namelist, queue=False):
         nml = read_namelist(namelist)
         f = open(nml['config']['result_dir']+'/Submit.sh', 'w')
         f.write('#!/bin/bash -l \n')
-        f.write('#SBATCH -J FILDSIM_%s      #Job name \n' %(nml['config']['runid']))
-        f.write('#SBATCH -o ./%x.%j.out        #stdout (%x=jobname, %j=jobid) \n')
-        f.write('#SBATCH -e ./%x.%j.err        #stderr (%x=jobname, %j=jobid) \n')
+        f.write('#SBATCH -J FILDSIM_%s      #Job name \n'
+                % (nml['config']['runid']))
+        f.write('#SBATCH -o ./%x.%j.out        '
+                + '#stdout (%x=jobname, %j=jobid) \n')
+        f.write('#SBATCH -e ./%x.%j.err        '
+                + '#stderr (%x=jobname, %j=jobid) \n')
         f.write('#SBATCH -D ./                 #Initial working directory \n')
         f.write('#SBATCH --partition=s.tok     #Queue/Partition \n')
         f.write('#SBATCH --qos=s.tok.short \n')
         f.write('#SBATCH --nodes=1             #Total number of nodes \n')
         f.write('#SBATCH --ntasks-per-node=1   #MPI tasks per node \n')
         f.write('#SBATCH --cpus-per-task=1     #CPUs per task for OpenMP \n')
-        f.write('#SBATCH --mem 5GB           #Set mem./node requirement (default: 63000 MB, max: 190GB) \n')
+        f.write('#SBATCH --mem 5GB             #Set mem./node requirement \n')
         f.write('#SBATCH --time=03:59:00       #Wall clock limit \n')
         f.write('## \n')
-        f.write('#SBATCH --mail-type=end       #Send mail, e.g. for begin/end/fail/none \n')
-        f.write('#SBATCH --mail-user=%s@ipp.mpg.de  #Mail address \n' %(os.getenv("USER")))
+        f.write('#SBATCH --mail-type=end       #Send mail \n')
+        f.write('#SBATCH --mail-user=%s@ipp.mpg.de  #Mail address \n'
+                % (os.getenv("USER")))
 
         f.write('# Run the program: \n')
         FILDSIM = os.path.join(paths.FILDSIM, 'bin', 'fildsim.exe')
         f.write(FILDSIM + ' ' + namelist)
         f.close()
 
-        os.system('sbatch '+ nml['config']['result_dir'] + '/Submit.sh')
+        os.system('sbatch ' + nml['config']['result_dir'] + '/Submit.sh')
     return
 
 
@@ -306,37 +308,6 @@ def read_plate(filename):
     }
     f.close()
     return plate
-
-
-def read_orbits(orbits_file, orbits_index_file):
-    """
-    Read FILDSIM orbits
-
-    ajvv
-
-    @param orbits_file: full path to the orbits file
-    @param orbits_index_file: full path to the orbits_index file
-    @return orbit: list with orbit trajectories where each tracetory
-                   is given as an array with shape:
-                   (number of trajectory points, 3).
-                   The second index refers to the x, y and z coordinates
-                   of the trajectory points.
-    """
-    orbits = []
-
-    orbits_index_data = np.loadtxt(orbits_index_file)
-    orbits_data = np.loadtxt(orbits_file)
-
-    ## Todo check if there are no orbits
-    if len(orbits_index_data) == 1:
-        orbits_index_data = [orbits_index_data]
-
-    ii = 0
-    for i in orbits_index_data:
-        orbits.append(orbits_data[ii:(ii + int(i)), :])
-        ii += int(i)
-
-    return orbits
 
 
 # -----------------------------------------------------------------------------

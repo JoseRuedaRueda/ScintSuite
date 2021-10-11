@@ -1,4 +1,4 @@
-"""Plot FILDSIM geometry and results from FILDSIM.f90"""
+"""Plot FILDSIM geometry and results from FILDSIM fortran."""
 import Lib.LibFILDSIM.FILDSIMexecution as ssfildsimA
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,7 +8,7 @@ import scipy.interpolate as interpolate
 
 def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
                   plates_all_black=False, plate_alpha=0.5):
-    '''
+    """
     Plot the input FILDSIM geometry, namely the slits and scintillator
 
     ajvv: avanvuuren@us.es
@@ -19,7 +19,7 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
     @param axarr: array of axis to plot projections, if None, new will be made
     @param dpi: dpi to render the figures, only used if the axis are created
     by this function
-    '''
+    """
     namelist = ssfildsimA.read_namelist(filename)
     geometry_dir = namelist['plate_setup_cfg']['geometry_dir']
     scintillator_files = namelist['plate_files']['scintillator_files']
@@ -69,7 +69,7 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
         ax2D_xz = axarr[2]  # side view, i.e. should see slit plate surface(s)
         ax2D_xz.set_xlabel('X [cm]')
         ax2D_xz.set_ylabel('Z [cm]')
-        ax2D_xz.set_title('Side view (Y-Z plane)')
+        ax2D_xz.set_title('Side view (X-Z plane)')
         created_2D = True
     else:
         ax2D_xy = axarr[0]  # topdown view, i.e should see pinhole surface
@@ -153,101 +153,4 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
     if created_3D:
         fig.tight_layout()
         fig.show()
-    return
-
-def plot_orbits(orbits_file, orbits_index_file, ax3D=None, axarr=None, dpi=100,
-                marker_params: dict = {}, line_params: dict = {}):
-    '''
-    Plot the output FILDSIM orbits
-
-    ajvv: avanvuuren@us.es
-
-    ----------
-    @param orbits_file: full path to the orbits file.
-        eg. /path/to/runid_example_orbits.dat
-    @param orbits_index_file: full path to the orbits_index file.
-        eg. /path/to/runid_example_orbits_index.dat
-    @param ax3D: 3D axis where to plot the orbits, if None, new will be made
-    @param axarr: array of axis to plot projections, if None, new will be made
-    @param dpi: dpi to render the figures, only used if the axis are created
-    by this function
-    @param line_params: Parameters for plot orbit lines,
-                        Default: linestyle = 'solid' or color = 'red'
-    @param marker_params: Parameters for plot orbit end points,
-                        Default: maker = 'circle' or color = 'red'
-    '''
-    # Default plot parameters:
-    marker_options = {
-        'markersize': 3,
-        #'fillstyle': 'none',
-        'color': 'r',
-        'marker': 'o',
-        'linestyle': 'none'
-    }
-    marker_options.update(marker_params)
-    line_options = {
-                    'color': 'red',
-                    'marker': ''
-                    }
-    line_options.update(line_params)
-
-    orbits = ssfildsimA.read_orbits(orbits_file, orbits_index_file)
-
-    # --- Open the figure
-    created_3D = False
-    if ax3D is None:
-        fig = plt.figure(figsize=(6, 10), facecolor='w', edgecolor='k',
-                         dpi=dpi)
-        ax3D = fig.add_subplot(111, projection='3d')
-        ax3D.set_xlabel('X [cm]')
-        ax3D.set_ylabel('Y [cm]')
-        ax3D.set_zlabel('Z [cm]')
-        created_3D = True
-    if axarr is None:
-        fig2, axarr = plt.subplots(nrows=1, ncols=3, figsize=(18, 10),
-                                   facecolor='w', edgecolor='k', dpi=dpi)
-        ax2D_xy = axarr[0]  # topdown view, i.e should see pinhole surface
-        ax2D_xy.set_xlabel('X [cm]')
-        ax2D_xy.set_ylabel('Y [cm]')
-        ax2D_xy.set_title('Top down view (X-Y plane)')
-        ax2D_yz = axarr[1]  # front view, i.e. should see scintilator plate
-        ax2D_yz.set_xlabel('Y [cm]')
-        ax2D_yz.set_ylabel('Z [cm]')
-        ax2D_yz.set_title('Front view (Y-Z plane)')
-        ax2D_xz = axarr[2]  # side view, i.e. should see slit plate surface(s)
-        ax2D_xz.set_xlabel('X [cm]')
-        ax2D_xz.set_ylabel('Z [cm]')
-        ax2D_xz.set_title('Side view (Y-Z plane)')
-        created_2D = True
-    else:
-        ax2D_xy = axarr[0]  # topdown view, i.e should see pinhole surface
-        ax2D_yz = axarr[1]  # front view, i.e. should see scintilator plate
-        ax2D_xz = axarr[2]  # side view, i.e. should see slit plate surface(s)
-        created_2D = False
-
-    for orbit in orbits:
-        xline = orbit[:, 0]
-        yline = orbit[:, 1]
-        zline = orbit[:, 2]
-        ax3D.plot3D(xline, yline, zline, **line_options)
-
-        ax2D_xy.plot(xline, yline, **line_options)
-        ax2D_xy.plot(xline[0], yline[0], **marker_options)
-        ax2D_xy.plot(xline[-1], yline[-1], **marker_options)
-
-        ax2D_yz.plot(yline, zline, **line_options)
-        ax2D_yz.plot(yline[0], zline[0], **marker_options)
-        ax2D_yz.plot(yline[-1], zline[-1], **marker_options)
-
-        ax2D_xz.plot(xline, zline, **line_options)
-        ax2D_xz.plot(xline[0], zline[0], **marker_options)
-        ax2D_xz.plot(xline[-1], zline[-1], **marker_options)
-
-    if created_2D:
-        fig2.tight_layout()
-        fig2.show()
-    if created_3D:
-        fig.tight_layout()
-        fig.show()
-
     return

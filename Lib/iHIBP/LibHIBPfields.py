@@ -15,7 +15,7 @@ class ihibpEMfields:
         a) readFiles: to read from the files the EM fields.
         b) readBfromAUG: to fetch the fields from the AUG database.
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
         """
         self.bdims = 0
         self.edims = 0
@@ -72,7 +72,7 @@ class ihibpEMfields:
         --> Bphi[nR, nPhi, nZ, nTime]: float64
         --> Bz[nR, nPhi, nZ, nTime]: float64
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param Bfile: Full path to the magnetic field.
         @param Efile: Full path to the electric field.
@@ -416,7 +416,7 @@ class ihibpEMfields:
         Starts the class info for the magnetic field using the AUG
         database equilibrium.
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
         ft.
         Jose Rueda: jrrueda@us.es
 
@@ -519,7 +519,7 @@ class ihibpEMfields:
         input grid.
 
         Jose Rueda: jrrueda@us.es
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param time: Time point from which magnetic equilibrium will be read.
         @param shotnumber: Shot from which to extract the magnetic equilibria
@@ -563,7 +563,7 @@ class ihibpEMfields:
         """
         Gets the magnetic field components at the given points.
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param R: Major radius to evaluate the magnetic field.
         @param z: Vertical position to evaluate the magnetic field.
@@ -591,7 +591,7 @@ class ihibpEMfields:
         """
         Gets the electric field components at the given points.
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param R: Major radius to evaluate the electric field.
         @param z: Vertical position to evaluate the electric field.
@@ -618,7 +618,7 @@ class ihibpEMfields:
         """
         Gets the poloidal magnetic flux at the position.
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param R: Major radius to evaluate the poloidal flux.
         @param z: Vertical position to evaluate the poloidal flux.
@@ -641,7 +641,7 @@ class ihibpEMfields:
         Write the magnetic or the electric field to files following
         the i-HIBPsims scheme.
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param fid: file identifier where the files will be written.
         @param bflag: states if the magnetic field has to be written.
@@ -865,7 +865,7 @@ class ihibpProfiles:
         a) readFiles: to read from the files the appropriate profiles.
         b) readDB: to fetch the data from the database.
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
         """
         self.bdims = 0
         self.edims = 0

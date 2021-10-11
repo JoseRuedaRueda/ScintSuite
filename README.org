@@ -13,11 +13,16 @@ Needed packages(Only listed 'non-standard' packages):
     - cv2 (OpenCv): To load frames from .mp4 files. =pip install opencv-python=
     - lmfit: To perform the fits needed for the resolution calculation =pip install lmfit=
     - cycler: To set default plotting color
+    - pyfft: To have extra capabilities in the spectrogram calculation.
+    - netCDF4: To load and save files from the BEB database
 *Automatic install*: Execute First_Run.py in the machine where you want to run the suite, it should check what is missing in order to run the suite and explain you how to install it (you need to run module load git before if you are in toki)
 *** Paths
 There are two files containing the paths and routes for the suite:
-- paths_suite.py: Located in the main directory of the suite. This one just contain the routes pointing to the python packages/files needed by the suite. It shall be run one time before running any routine from the suite as it will says to python where to find what it needs
+- paths_suite.py: Located in the main directory of the suite. This one just contain the routes pointing to the python packages/files needed by the suite. It shall be run one time before running any routine from the suite as it will says to python where to find what it needs. If you need to add something due to the peculiarities of your system, please do it locally in your bash file or open a issue in gitlab, do not modify this file
 - LibPaths.py: Located inside the Lb folder, there they are all the paths pointing towards the different codes (FILDSIM, INPASIM etc) and the results/strike maps directories. Be careful, by default the suite directory is there written as ScintillatorSuite, while usually if you make git clone, is cloned as scintillatorsuite, you may have to change manually the name of the folder!
+
+It could happen that you have FILDSIM, SINPA or whatever installed in a route which is not 'the official'. The suite allows you to define these different paths via the namelist 'Paths.txt' inside the MyData folder (inside Data) Please use always this file and do not modify the LibPaths.py file
+
 
 *** FILDSIM notes
 - You need to create an empty folder in the root of FILDSIM code with name 'cfg_files' in order to run the remap routine. The namelist of the new calculated strike maps will be stored here, so we do not create thousands of files in the main FILDSIM paths

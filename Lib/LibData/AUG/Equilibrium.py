@@ -85,7 +85,7 @@ def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
 
     Jose Rueda: jrrueda@us.es
     ft.
-    Pablo Oyola: pablo.oyola@ipp.mpg.de
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
 
     @param shot: Shot number
     @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
@@ -335,7 +335,6 @@ def get_ECRH_traces(shot: int, time: float=None, ec_list: list=None):
     if ec_list is None:
         ec_list = (1, 2, 3, 4, 5, 6, 7, 8)
 
-
     ec_list = np.atleast_1d(ec_list)
 
     try:
@@ -345,7 +344,7 @@ def get_ECRH_traces(shot: int, time: float=None, ec_list: list=None):
         sftbm = dd.shotfile(diagnostic='TBM', pulseNumber=shot,
                             edition=0, experiment='AUGD')
     except:
-        raise Exception('EC shotfiles cannot be opened for #%05d'%shot)
+        raise Exception('EC shotfiles cannot be opened for #%05d' % shot)
 
     output = dict()
     flag_first = False
@@ -365,8 +364,8 @@ def get_ECRH_traces(shot: int, time: float=None, ec_list: list=None):
             continue
 
 
-        poloidal_angle_name = 'thpl-G%d'%ecrh_num
-        toroidal_angle_name = 'phtr-G%d'%ecrh_num
+        poloidal_angle_name = 'thpl-G%d' % ecrh_num
+        toroidal_angle_name = 'phtr-G%d' % ecrh_num
 
         pol_ang = sfecs(poloidal_angle_name)
         tor_ang = sfecs(toroidal_angle_name)
@@ -386,17 +385,17 @@ def get_ECRH_traces(shot: int, time: float=None, ec_list: list=None):
 
         del power
 
-        output[int(ecrh_num)] = { 'time': timebase,
-                                  'power': power_data*1e-6,
-                                  'pol_ang': polang_data,
-                                  'tor_ang': torang_data,
-                                }
-
+        output[int(ecrh_num)] = {
+            'time': timebase,
+            'power': power_data*1e-6,
+            'pol_ang': polang_data,
+            'tor_ang': torang_data,
+        }
 
         # Getting the deposition position according to the RT controller.
-        rhopol = sftbm('rhoout%d'%ecrh_num)
-        Recrh  = sftbm('R_out%d'%ecrh_num)
-        zecrh  = sftbm('z_out%d'%ecrh_num)
+        rhopol = sftbm('rhoout%d' % ecrh_num)
+        Recrh = sftbm('R_out%d' % ecrh_num)
+        zecrh = sftbm('z_out%d' % ecrh_num)
 
         output[int(ecrh_num)]['time_pos'] = rhopol.time
         output[int(ecrh_num)]['rhopol'] = rhopol.data
@@ -411,7 +410,6 @@ def get_ECRH_traces(shot: int, time: float=None, ec_list: list=None):
                                           bounds_error=False,
                                           fill_value=0.0)(timebase)*1.e-6
                       }
-
 
     warnings.filterwarnings('default', category=RuntimeWarning)
 
