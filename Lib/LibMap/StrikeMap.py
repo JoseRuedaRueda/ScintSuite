@@ -536,9 +536,9 @@ class StrikeMap:
         if self.diag == 'FILD':
             if file is None:
                 file = self.file[:-14] + 'strike_points.dat'
-            if verbose:
-                print('Reading strike points: ', file)
-            ssFILDSIM.Strikes(file=file, verbose=verbose)
+            # if verbose:
+            #     print('Reading strike points: ', file)
+            self.strike_points = ssFILDSIM.Strikes(file=file, verbose=verbose)
 
         return
 
@@ -599,7 +599,7 @@ class StrikeMap:
             p_method = diag_options['p_method']
             g_method = diag_options['g_method']
             npitch = self.strike_points.header['npitch']
-            nr = self.strike_points.header['ngyroradius']
+            nr = self.strike_points.header['ngyr']
             # --- Pre-allocate variables
             npoints = np.zeros((nr, npitch))
             parameters_pitch = {'amplitude': np.zeros((nr, npitch)),
@@ -621,7 +621,7 @@ class StrikeMap:
                     data = self.strike_points.data[ip, ir]
 
                     # --- See if there is enough points:
-                    if self.header['counters'][ip, ir] < min_statistics:
+                    if self.strike_points.header['counters'][ip, ir] < min_statistics:
                         parameters_gyr['amplitude'][ir, ip] = np.nan
                         parameters_gyr['center'][ir, ip] = np.nan
                         parameters_gyr['sigma'][ir, ip] = np.nan
