@@ -24,8 +24,8 @@ import Lib as ss
 # -----------------------------------------------------------------------------
 # -- Paths (change them to your own paths)
 cin_file_name = '/p/IPP/AUG/rawfiles/FIT/32/32312_v710.cin'
-calibration_database = './Data/Calibrations/FILD/calibration_database3.txt'
-
+calibration_database = ss.paths.ScintSuite \
+    + '/Data/Calibrations/FILD/calibration_database.txt'
 strike_map = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILDSIM/results/' +\
     'AUG_map_-000.60000_007.50000_strike_map.dat'
 # -- Discharge settings

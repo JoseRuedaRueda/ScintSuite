@@ -37,7 +37,8 @@ save_TT = True   # Export the TT and the ROI used
 plt_TT = True  # Plot the TT
 
 # - Remapping options:
-calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
+calibration_database = ss.paths.ScintSuite \
+    + '/Data/Calibrations/FILD/calibration_database.txt'
 Smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/39612_1p99s_strike_map.dat'
 camera = ss.dat.FILD[diag_ID-1]['camera']
 insertion = 1820  # In manipulator units (except for FILD4 that needs m)
