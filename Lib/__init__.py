@@ -29,6 +29,7 @@ import Lib.LibNoise as noise
 from Lib.version_suite import version
 import Lib.LibData as dat
 import Lib.LibCAD as cad
+import Lib.LibSideFunctions as side
 
 machine = m.machine
 paths = p.Path(machine)
