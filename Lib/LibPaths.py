@@ -1,7 +1,7 @@
 """Paths to the different folders and codes"""
 import os
 from Lib.LibMachine import machine
-from Lib.LibUtilities import update_case_insensitive
+from Lib.LibSideFunctions import update_case_insensitive
 import f90nml
 
 
