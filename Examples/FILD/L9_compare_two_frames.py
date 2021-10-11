@@ -50,7 +50,8 @@ tf1 = 6.8  # time of the first frame to be used [s]
 tf2 = 7.1  # time of the second frame to be used [s]
 
 # - Remapping options:
-calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
+calibration_database = ss.paths.ScintSuite \
+    + '/Data/Calibrations/FILD/calibration_database.txt'
 camera = 'CCD'      # CCD for other FILDs
 par = {
     'rmin': 1.2,      # Minimum gyroradius [in cm]
