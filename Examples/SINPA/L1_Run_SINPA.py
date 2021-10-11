@@ -20,10 +20,10 @@ paths = Path(machine)
 nml_options = {
     'config':  {            # General parameters
         'runid': 'test',
-        'geomID': 'Test',
-        'nAlpha': 3,
-        'nGyroradius': 5,
-        'nMap': 10000,
+        'geomID': 'Test0',
+        'nAlpha': 11,
+        'nGyroradius': 2,
+        'nMap': 5000,
         'mapping': True,
         'signal': False,
         'resampling': False,
@@ -49,10 +49,10 @@ nml_options = {
     },
     'inputParams': {
          'nGyro': 20,
-         'beta0': 0.1,
-         'alphas': [2.41, 3.14, 3.5],
+         'beta0': 0.10,
+         'alphas': [2.0, 2.1, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.3, 3.4, 3.5],
          # 'alphas': [3.141592],
-         'rL': [0.5, 0.7, 1.5, 2.0, 2.5],
+         'rL': [5.0, 5.5],
          'maxT': 0.000005
     },
     'nbi_namelist': {            # NBI geometry

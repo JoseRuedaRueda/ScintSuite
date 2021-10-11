@@ -1,11 +1,25 @@
 ** 0.6.0 SINPA Support and new Tomography (prerelease)
+*** FILDSIM
+- a new FILDSIMmarkers library was created. It contain the new object to load and plot the strike maps
+- *Note*: This library imply a small change of phylosophy against previous versions. Yuo can still load and use the strike points as before from the strike map, but they are now a part from the FILDSIM library, with their own object and ploting routines.
+This change was made for an earier integration of INPA and for an easier analysis of FILDSIM strike points for FILD optimization
+- Fuction to plot any variable of the FILDSIM strike points was added: see LibFILDSIM.Strikes.plot1D()
+- Direct and easy calculation of the histogram of strike points in the scintillator was added: see LibFILDSIM.Strike.calculate_scintillator_histogram() and LibFILDSIM.Strike.plot_scintillator_histogram()
+- When the FILDSIM markers are loaded, they are no longer treated like a single matrix, they are splits by pairs (gyroradius, pitch). This save memory (we do not need to save the first 2 colums of the matrix) and simplify routines as the calculation of the resolution
+- The function to read the orbits was removed from the FILDSIMexecution library and moved to the FILDSIMmarkers one, inside the new orbtis object
+- The same happeded with the plot orbits, which is now a part from the orbit object
 *** Mapping library
 - Support for SINPA strike maps was included in the mapping library
 - calculate_transformation_factors was deprecated
+- get_points was deprecated
+- append_to_database from the database object was deprecated
+- The strike points variable of the StrikeMap was completelly changed, see the FILDSIM part of the changelog for a full documentation
 *** SINPA
 - the new Synthetic INPA code is supported (to be completed in the final 6.0 release)
 *** Tomography
 - Mono dimensional tomography can be performed, examples can be found in L15
+*** PC compatibility
+- Included a dummy LibData in order to be able to import the suite in your personal PC. Minor modifications here and there in the import statements were done to support this
 *** Others
 - function Lib.LibData.AUG.plot_FILD4_trayectory(shot) renamed to Lib.LibData.AUG.plot_FILD4_trajectory(shot)
 - Solved a bug in Video.find_orientation when the function was called with the remap not calculated
@@ -16,6 +30,7 @@
 - Added update_case_insensitive to the Utilities library to compare dictionaries in a case insensitive way
 - Added a custom path file so the user can define its own paths
 - Improvements in comments + PEP8 checking
+- change 'Pablo Oyola:' to 'Pablo Oyola - ' beause Pablo likes more the ' - ' notation to introduce his email
 
 ** 0.5.8 Minor improvements
 - The guess_shot of the video class will no longer give an error if the shot number can't be deduced from the file name, it will just return none

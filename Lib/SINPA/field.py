@@ -91,7 +91,7 @@ class sinpaField:
         a) readFiles: to read from the SINPA file
         b) readBfromAUG: to fetch the fields from the AUG database.
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de ft. Jose Rueda: jrrueda@us.es
+        Pablo Oyola - pablo.oyola@ipp.mpg.de ft. Jose Rueda: jrrueda@us.es
         """
         self.bdims = 0
         self.Bfield = {'R': np.array((0), dtype=np.float64),
@@ -122,7 +122,7 @@ class sinpaField:
         --> Bphi[nR, nPhi, nZ]: float64
         --> Bz[nR, nPhi, nZ]: float64
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param Bfile: Full path to the magnetic field.
         """
@@ -243,7 +243,7 @@ class sinpaField:
         """
         Read field from machine database
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
         ft.
         Jose Rueda: jrrueda@us.es
 
@@ -333,7 +333,7 @@ class sinpaField:
         """
         Read field from machine database, single point
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
         ft.
         Jose Rueda: jrrueda@us.es
 
@@ -533,7 +533,7 @@ class sinpaField:
 
         Note, it extract the field using the interpolators
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param R: Major radius to evaluate the magnetic field.
         @param z: Vertical position to evaluate the magnetic field.
@@ -558,7 +558,7 @@ class sinpaField:
         """
         Write the magnetic field to files following the SINPA scheme.
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param fid: file identifier where the files will be written.
         @param bflag: states if the magnetic field has to be written.

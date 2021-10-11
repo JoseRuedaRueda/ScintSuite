@@ -22,19 +22,21 @@ import Lib.LibIO as io
 import Lib.LibFastChannel as fc
 import Lib.LibTomography as tomo
 import Lib.LibScintillatorCharacterization as scintcharact
-import Lib.iHIBP as ihibp
 import Lib.GUIs as GUI
 import Lib.SINPA as sinpa
 import Lib.LibOptics as optics
-import Lib.BEP as libbep
 import Lib.LibNoise as noise
 from Lib.version_suite import version
 import Lib.LibData as dat
 import Lib.LibCAD as cad
 
-
 machine = m.machine
 paths = p.Path(machine)
+
+if machine == 'AUG':
+    import Lib.BEP as libbep
+    import Lib.iHIBP as ihibp
+
 # Delte the intermedite variables to 'clean'
 del p
 del m

@@ -1,7 +1,7 @@
 """
 Beam-Emission Polarimetry Library
 
-Developed by Pablo Oyola: poyola@us.es
+Developed by Pablo Oyola - pablo.oyola@ipp.mog.de
 
 Notice: Is not guarantie that this library works outise AUG
 """
