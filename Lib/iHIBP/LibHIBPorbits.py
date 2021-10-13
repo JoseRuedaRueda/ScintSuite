@@ -40,7 +40,7 @@ class orbit:
 
         Jose Rueda: jrrueda@us.es
         ft.
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param view: '2D' to plot, (R,z), (x,y). '3D' to plot the 3D orbit
         @param ax_params: options for the function axis_beauty
@@ -438,7 +438,7 @@ class orbit:
         Overload of the method to be able to access the data in the orbit data.
         It returns the whole data of a given orbit.
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param idx: orbit number.
         @return self.data[idx]: Orbit dictionary.
@@ -540,7 +540,7 @@ class orbitFile:
         """
         Initialization of the orbit class. Loads the header.
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param filename: Filename containing the orbit data. If provided,
                          this routine will read and store the header info.
@@ -603,7 +603,7 @@ class orbitFile:
         If some or all the 'id' provided do not exist, the corresponding
         is not loaded.
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         WARNING: consider that the reading Fortran -> Python will transp-
         ose the matrix order.
@@ -697,7 +697,7 @@ class orbitFile:
         This routine is just an overloaded operator that acts a wrapper
         for the 'loadOrbit'.
 
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param id: Identifiers of the particle orbits to load from the
         file.
@@ -842,7 +842,7 @@ class orbitFile:
 
         Jose Rueda: jrrueda@us.es
         ft.
-        Pablo Oyola: pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param id: ID of the orbit. If we are in the serial reading, it will be
         ignored, and the next orbit will be loaded instead.

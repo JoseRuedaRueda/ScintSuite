@@ -3,11 +3,14 @@ import Lib.LibData as aug
 import Lib.LibPlotting as ssplt
 import numpy as np
 import matplotlib.pyplot as plt
-import netCDF4 as nc4
 import Lib.LibPaths as lpath
 import os
 import dd
 import shutil
+try:
+    import netCDF4 as nc4
+except ModuleNotFoundError:
+    print('Yout cannot save or load BEB database')        
 
 
 FCTSPH = 0.46926  # Counts per photon.
@@ -449,5 +452,3 @@ def plotBEP_fromSF(bepdata: dict, losname: str, ax = None,
 
         fig.tight_layout()
     return ax
-
-

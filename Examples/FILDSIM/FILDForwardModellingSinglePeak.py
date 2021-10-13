@@ -7,7 +7,7 @@ Gaussian input distribution will be used
 
 done for version 0.5.1
 
-Note: Please change (in your local copy on MyRoutines!!!) lines starting ending
+Note: Please change (in your local copy on MyRoutines!!!) lines ending
 with # -#
 """
 import Lib as ss
@@ -17,7 +17,7 @@ import numpy as np
 # --- Settings
 # -----------------------------------------------------------------------------
 # As the strike points are needed and they are not included in the remap
-# database, for the tomography one should manually select (for now) the strike
+# database, for this one should manually select (for now) the strike
 # map
 smap_file = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILDSIM/results/' +\
     'AUG_map_-000.60000_007.50000_strike_map.dat'                          # -#

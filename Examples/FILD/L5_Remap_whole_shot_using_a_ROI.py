@@ -17,20 +17,20 @@ from time import time
 # -----------------------------------------------------------------------------
 # - General settings
 shot = 32312
-diag_ID = 1  # 6 for rFILD (DLIF)
-t1 = 0.30     # Initial time to be loaded, [s]
+diag_ID = 1  # 6 for rFILD
+t1 = 0.15     # Initial time to be loaded, [s]
 t2 = 0.65     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
 # - Noise subtraction settings:
-subtract_noise = False   # Flag to apply noise subtraction
-tn1 = 0.30     # Initial time to average the frames for noise subtraction [s]
-tn2 = 0.35     # Final time to average the frames for noise subtraction [s]
+subtract_noise = True   # Flag to apply noise subtraction
+tn1 = 0.15     # Initial time to average the frames for noise subtraction [s]
+tn2 = 0.17     # Final time to average the frames for noise subtraction [s]
 
 # - TimeTrace options:
 calculate_TT = False  # Whether to calculate or not the TT
-t0 = 2.5         # time points to define the ROI
+tt0 = 0.29         # time points to define the ROI for the TT
 save_TT = True   # Export the TT and the ROI used
 plt_TT = True  # Plot the TT
 
@@ -51,7 +51,7 @@ par = {
     'pprofmin': 20.0,    # Minimum pitch for the gyroradius profile calculation
     'pprofmax': 90.0,    # Maximum pitch for the gyroradius profile calculation
     # Position of the FILD
-    'rfild': 2.190,   # 2.196 for shot 32326, 2.186 for shot 32312
+    'rfild': 2.186,   # 2.196 for shot 32326, 2.186 for shot 32312
     'zfild': ss.dat.FILD[diag_ID-1]['z'],
     'alpha': ss.dat.FILD[diag_ID-1]['alpha'],
     'beta': ss.dat.FILD[diag_ID-1]['beta'],
@@ -62,7 +62,7 @@ par = {
 # Note, if the smap_folder variable is not present, the program will look for
 # the strike maps in the path given by ss.paths.StrikeMaps
 use_roi = True      # Flag to decide if we must use a ROI
-t0 = 3.2         # time points to define the ROI
+t0 = 0.35         # time points to define the ROI for the remap
 save_ROI = True   # Export the TT and the ROI used
 # - Plotting options:
 plot_profiles_in_time = True   # Plot the time evolution of pitch and r
@@ -91,7 +91,7 @@ if subtract_noise:
 # -----------------------------------------------------------------------------
 if calculate_TT:
     # - Plot the frame
-    fig_ref, ax_ref = vid.plot_frame(t=t0)
+    fig_ref, ax_ref = vid.plot_frame(t=tt0)
     # - Define roi
     # Note: if you want the figure to re-appear after the selection of the roi,
     # call create roi with the option re_display=Ture

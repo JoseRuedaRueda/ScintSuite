@@ -8,6 +8,7 @@ import Lib.LibData as ssdat
 import Lib.LibNoise as ssnoise
 import Lib.LibIO as ssio
 import Lib.LibOptics as ssoptics
+from tqdm import tqdm            # For waitbars
 try:
     import lmfit
 except ModuleNotFoundError:
@@ -620,7 +621,7 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
 # -----------------------------------------------------------------------------
 def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
                         efficiency=None, spoints=None, diag_params: dict = {},
-                        B=1.8, A=2.0, Z=1):
+                        B=1.8, A=2.0, Z=1, only_gyroradius=False):
     """
     Build FILD weight function
 
@@ -629,25 +630,28 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
     Introduced in version 0.4.2
 
     @param smap: Strike map object or path pointing to the strike map file
+
+
+    @param rscint: Gyroradius array in the scintillator grid
+    @param pscint: Pitch array in the scintillator grid
+    @param rpin: Gyroradius array in the pinhole grid
+    @param ppin: Pitch array in the pinhole grid
+    @param efficiency: ScintillatorEfficiency() object. If None, efficiency
+    will not be included
     @param spoints: path pointing to the strike point file. Not needed if smap
     is a strike map object with the resolutions already calculated
     @param diag_params: Parametes for the resolution calculation, useless if
     the input strike map has the resolutions already calcualted See
     StrikeMap.calculate_resolutions() for the whole list of options
-    @param sgmin: Minimum gyroradius to consider in the scintillator
-    @param sgmax: Maximum gyroradius to consider in the scintillator
-    @param sdg: space in the gyroradius scintillator
-    @param spmin: Minimum pitch to consider in the scintillator
-    @param spmax: Maximum pitch to consider in the scintillator
-    @param sdp: space in pitch scintillator
-    @param pgmin: Minimum gyroradius to consider in the pinhole
-    @param pgmax: Maximum gyroradius to consider in the pinhole
-    @param pdg: space in the gyroradius pinhole
-    @param ppmin: Minimum pitch to consider in the pinhole
-    @param ppmax: Maximum pitch to consider in the pinhole
-    @param pdp: space in pitch pinhole
-    @param efficiency: ScintillatorEfficiency() object. If None, efficiency
-    will not be included
+    @param B: Magnetic field, used to translate between radius and energy, for
+    the efficiency evaluation
+    @param A: Mass in amu, used to translate between radius and energy, for the
+    efficiency evaluation
+    @param Z: charge in elecrton charges, used to translate between radius and
+    energy, for the efficiency evaluation
+    @param only_gyroradius: flag to decide if the output will be the matrix
+    just relating giroradius in the pinhole and the scintillator, ie, pitch
+    integrated
     """
     # --- Initialise the diag_params:
     diag_parameters = {
@@ -669,9 +673,6 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
     # Prepare the grid:
     nr_scint = len(rscint)
     np_scint = len(pscint)
-
-    # dr_scint = abs(rscint[1] - rscint[0])
-    # dp_scint = abs(pscint[1] - pscint[0])
 
     # Pinhole grid
     nr_pin = len(rpin)
@@ -703,7 +704,7 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
         eff = True
         energy = ssfildsimA.get_energy(rpin, B, A, Z)
         eff = efficiency.interpolator(energy)
-        print('considering scintillator efficiency in W')
+        print('Considering scintillator efficiency in W')
     else:
         eff = np.ones(rpin.size)
     # Build the weight matrix. We will use brute force, I am sure that there is
@@ -738,15 +739,18 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
     res_matrix[np.isnan(res_matrix)] = 0.0
 
     # --- Collapse Weight function
-    W2D = np.zeros((nr_scint * np_scint, nr_pin * np_pin))
-    ## todo make this with an elegant numpy reshape, not manually
-    print('Reshaping W... ')
-    for irs in range(nr_scint):
-        for ips in range(np_scint):
-            for irp in range(nr_pin):
-                for ipp in range(np_pin):
-                    W2D[irs * np_scint + ips, irp * np_pin + ipp] =\
-                        res_matrix[irs, ips, irp, ipp]
+    if not only_gyroradius:
+        W2D = np.zeros((nr_scint * np_scint, nr_pin * np_pin))
+        ## todo make this with an elegant numpy reshape, not manually
+        print('Reshaping W... ')
+        for irs in tqdm(range(nr_scint)):
+            for ips in range(np_scint):
+                for irp in range(nr_pin):
+                    for ipp in range(np_pin):
+                        W2D[irs * np_scint + ips, irp * np_pin + ipp] =\
+                            res_matrix[irs, ips, irp, ipp]
+    else:  # The required W2D is directly the integral of res_matrix
+        W2D = np.sum(np.sum(res_matrix, axis=3), axis=1)
     return res_matrix, W2D
 
 
