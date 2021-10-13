@@ -1,6 +1,6 @@
 """Magnetic coils data"""
 import Lib.LibData.AUG.DiagParam as params
-import Lib.LibPaths as lpath
+from Lib.LibPaths import Path
 import dd                # Module to load shotfiles
 import numpy as np
 import os
@@ -10,64 +10,64 @@ import requests
 import re
 import shutil
 
-paths = lpath.Path()
+paths = Path(machine='AUG')
 
 
 # ----------------------------------------------------------------------------
 # --- Coils corrections routines.
 # ----------------------------------------------------------------------------
-def magneticPhaseCorrection(coilnumber: int, coilgrp:str, freq: float=None, 
+def magneticPhaseCorrection(coilnumber: int, coilgrp:str, freq: float=None,
                             shotnumber: int=None):
     """
     Reads the impedance correction for the phase calculation of the magnetic
     pick-up coils.
-    
-    Taken from mode_determinaton.py by 
+
+    Taken from mode_determinaton.py by
         Felician Mink, Marcus Roth & Markus Wappl
-        
+
     @param coilnumber: number of the coils within its group.
     @param coilgrp: group name of the coil, like 'B31', 'B17', ...
     @param freq: frequency array to evaluate the correction (in kHz).
     @param shotnumber: shotnumber for the coils. The correction is taken in
     different times.
     """
-    
-        
-    
-    
+
+
+
+
     if freq is None:
         freq = np.linspace(start=0.0, stop=500.0, num=256, dtype=float)
-    
+
     if shotnumber is None:
         shotnumber = 33724 + 1
-    
+
     imped_phase = np.zeros((len(freq),2))
 
     magPath = paths.bcoils_phase_corr
-    
-    
+
+
     if not os.path.isdir(magPath):
         try:
             os.mkdir(magPath)
         except FileExistsError:
             raise Exception('Cannot create folder! Admin privileges needed?!')
         print('Downloading AUG phase corrections')
-        
+
         url='https://datashare.mpcdf.mpg.de/s/FiqRIixNMb82HTq/download'
-        
+
         r = requests.get(url, allow_redirects=True)
-        filename = re.findall('filename=(.+)', 
+        filename = re.findall('filename=(.+)',
                               r.headers.get('content-disposition'))[0]
-        
+
         filename = filename.replace('\"', '')
-        
+
         with open(filename, 'wb') as fid:
             fid.write(r.content)
-        
+
         print('Done! Unpacking...')
         shutil.unpack_archive(filename, magPath)
         os.remove(filename)
-    
+
     if coilgrp not in ('B31', 'C07', 'B17'):
         print('Coils not supported for phase-correction')
         output = { 'freq': freq,
@@ -75,9 +75,9 @@ def magneticPhaseCorrection(coilnumber: int, coilgrp:str, freq: float=None,
                    'interp': lambda x: 1.0
                  }
         return output
-    
+
     coilfullname = '%s-%02d'%(coilgrp, coilnumber)
-	
+
     if shotnumber > 33724:
         path = os.path.join(magPath, 'felix_trans')  + '/' + \
                coilfullname + ".txt"
@@ -87,8 +87,8 @@ def magneticPhaseCorrection(coilnumber: int, coilgrp:str, freq: float=None,
     else:
         path = os.path.join(magPath, 'horvath')  + '/' + \
                coilfullname + ".txt"
-               
-               
+
+
     try:
         with open(path, "r") as ins:
             array = []
@@ -101,21 +101,21 @@ def magneticPhaseCorrection(coilnumber: int, coilgrp:str, freq: float=None,
             for k in range(entries):
                 datas[i,k] = split[k]
         if entries > 2:
-            imped_phase[:,0] = np.interp(freq,datas[:,0]/1000.0,datas[:,4])	
+            imped_phase[:,0] = np.interp(freq,datas[:,0]/1000.0,datas[:,4])
             imped_phase[:,1] = np.interp(freq,datas[:,0]/1000.0,datas[:,3])
-            			
+
             imped_phase[np.where(freq > 500)[0],1] = datas[-1,3]
             imped_phase[np.where(freq < 0)[0],1] = datas[0,3]
-            			
-            imped_phase[np.where(freq > 500)[0],0] = 1.0		
+
+            imped_phase[np.where(freq > 500)[0],0] = 1.0
             imped_phase[np.where(freq < 0)[0],0] = 1.0
         else:
-            imped_phase[:,0] = np.ones(len(freq))	
-            imped_phase[:,1] = np.interp(freq,datas[:,0],datas[:,1])	
-            			
+            imped_phase[:,0] = np.ones(len(freq))
+            imped_phase[:,1] = np.interp(freq,datas[:,0],datas[:,1])
+
             imped_phase[np.where(freq > 500)[0],1] = datas[-1,1]
-            imped_phase[np.where(freq < 0)[0],1] = datas[0,1]	
-		
+            imped_phase[np.where(freq < 0)[0],1] = datas[0,1]
+
     except ValueError:
         print('Transferfunction valueerror in %s' %coilfullname)
         imped_phase[:,0] = 1.0
@@ -124,8 +124,8 @@ def magneticPhaseCorrection(coilnumber: int, coilgrp:str, freq: float=None,
         print('Transferfunction IOerror in %s' %coilfullname)
         imped_phase[:,0] = 1.0
         imped_phase[:,1] = 0.0
-        
-        
+
+
     output = { 'freq': freq,
                'phase': imped_phase[:, 1],
                'interp': interp1d(freq, imped_phase[:, 1], kind='linear',
@@ -133,7 +133,7 @@ def magneticPhaseCorrection(coilnumber: int, coilgrp:str, freq: float=None,
                                   assume_sorted=True)
              }
     return output
-	
+
 
 def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
                   timeWindow: float = None):
@@ -211,7 +211,7 @@ def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
         'theta': cal['theta'],
         'area': cal['EffArea']
     }
-    
+
     # --- Pick-up coils phase correction
     output['phase_corr'] = magneticPhaseCorrection(coilNumber, coilGroup,
                                                    shotnumber=shotnumber)
@@ -299,7 +299,7 @@ def get_magnetic_poloidal_grp(shotnumber: int, timeWindow: float,
     except:
         sf.close()
         raise Exception('Could not get the calibration data.')
-        
+
     # --- Getting the coils data.
     output = {
         'phi': np.zeros((numcoils,)),
@@ -359,10 +359,10 @@ def get_magnetic_poloidal_grp(shotnumber: int, timeWindow: float,
         output['area'][ii] = cal['area']
         output['coilNumber'][ii] = ii+1
         flags[ii] = True
-        
+
         # Appending the phase correction in case that it is needed.
         # --- Pick-up coils phase correction
-        output['phase_corr'].append(magneticPhaseCorrection(coil_list[0], 
+        output['phase_corr'].append(magneticPhaseCorrection(coil_list[0],
                                                             coil_list[1][ii],
                                                             shotnumber))
         jj += 1
@@ -384,4 +384,3 @@ def get_magnetic_poloidal_grp(shotnumber: int, timeWindow: float,
     cal_sf.close()
 
     return output
-

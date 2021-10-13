@@ -105,7 +105,7 @@ def get_ne_ida(shotnumber: int, time: float=None, exp: str = 'AUGD',
     """
     Wrap to get AUG electron density using the IDA profiles.
 
-    Pablo Oyola: pablo.oyola@ipp.mpg.de
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
 
     @param shot: Shot number
     @param time: Time point to read the profile.
@@ -252,7 +252,7 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
     """
     Wrap to get AUG electron temperature from the IDA shotfile.
 
-    Pablo Oyola: pablo.oyola@ipp.mpg.de
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
 
     @param shot: Shot number
     @param time: Time point to read the profile.

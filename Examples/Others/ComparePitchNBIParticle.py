@@ -17,7 +17,7 @@ import Lib as ss
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 R0 = 1.80       # Radial position from where we know the pitch
-P0 = 60.        # Pitch angle at that radial position
+P0 = 40.        # Pitch angle at that radial position
 nNBI = 8        # Number of the NBI we want to use to compare
 t = 0.25        # Time in seconds to calculate the pitch profile
 shot = 38017    # Shot to calculate the pitch profile

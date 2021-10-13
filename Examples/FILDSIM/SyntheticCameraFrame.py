@@ -10,8 +10,6 @@ Created for version 0.4.13
 Note: The plotted strike map and scintillator in the final picture is not
 distorted!!!! Distortion is just applied to the camera frames
 """
-import numpy as np
-import matplotlib.pyplot as plt
 import Lib as ss
 
 # -----------------------------------------------------------------------------
