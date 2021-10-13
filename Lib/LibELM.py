@@ -344,15 +344,85 @@ def ELMsync(time: float, signal: float, elm_dict:dict):
     for ii in np.arange(len(elm_dict['tstart_val'])):
         t0, t1 = np.searchsorted(time, (elm_dict['tstart_val'][ii],
                                         elm_dict['tend_val'][ii]))
-        print(t0, t1)
+        #print(t0, t1)
 
         if t0 == t1:
             continue
 
         new_time.append(time[t0:t1]-elm_dict['t_onset'][ii])
         new_signal.append(signal[t0:t1, ...])
+    
+    
+    new_time = np.concatenate(new_time)#.squeeze()
+    new_signal = np.concatenate(new_signal)#.squeeze()
 
-    new_time = np.concatenate(new_time).squeeze()
-    new_signal = np.concatenate(new_signal).squeeze()
+    return new_time, new_signal
+
+
+def ELMsyncAJVV(time: float, signal: float, elm_dict:dict, average = True):
+    """
+    Using the time synchonization provided by the elm_dict, the (time, signal)
+    pair is parsed to return only the ELM synced time and data and be able
+    to make ELM-averaging.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param time: new time basis to analyze.
+    @param signal: signal to apply the ELM synchronization. The time axis
+    must be the first axis. This enables multiple signals to be synced
+    simultaneously.
+    @param elm_dict: dictionary with the ELM data (output of ELM_similarity.)
+    """
+
+    time   = np.atleast_1d(time)
+    signal = np.atleast_1d(signal)
+
+    if 'ELM' not in elm_dict:
+        raise KeyError('The key ELM must be in the elm_dict input!')
+
+    if 'tstart_val' not in elm_dict:
+        raise KeyError('The key tstart_val must be in the elm_dict input!')
+    if 'tend_val' not in elm_dict:
+        raise KeyError('The key tend_val must be in the elm_dict input!')
+
+    new_time = list()
+    new_signal = list()
+    
+    t0, t1 = np.searchsorted(time, (elm_dict['tstart_val'][0],
+                                elm_dict['tend_val'][0]))
+
+    new_time.append(time[t0:t1]-elm_dict['t_onset'][0])
+    new_signal.append(signal[t0:t1, ...])
+    
+    elm_len = t1 - t0
+    
+    for ii in np.arange(1, len(elm_dict['tstart_val'])):
+        t0, t1 = np.searchsorted(time, (elm_dict['tstart_val'][ii],
+                                        elm_dict['tend_val'][ii]))
+        #print(t0, t1)
+
+        if t0 == t1:
+            continue
+
+        if not ((elm_len +1 >= (t1 - t0) ) and (elm_len - 1 <= (t1 - t0) )):
+            print('warning ELM lenght substantially different')
+            continue
+
+        new_time.append(time[t0:t0 + elm_len]-elm_dict['t_onset'][ii])
+        new_signal.append(signal[t0:t0 + elm_len, ...])
+    
+    import IPython
+    print('in ELM')
+    #IPython.embed()
+    if average:
+        new_time   = np.array(new_time)
+        new_signal = np.array(new_signal)
+        
+        new_time = np.mean(new_time, axis = 0)
+        new_signal = np.mean(new_signal, axis = 0)
+    
+    else:
+        new_time = np.concatenate(new_time)#.squeeze()
+        new_signal = np.concatenate(new_signal)#.squeeze()
 
     return new_time, new_signal
