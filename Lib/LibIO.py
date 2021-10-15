@@ -111,7 +111,7 @@ def ask_to_open(dir=None, ext=None):
 # -----------------------------------------------------------------------------
 # --- General reading
 # -----------------------------------------------------------------------------
-def read_variable_ncdf(file, varNames, human=True):
+def read_variable_ncdf(file, varNames, human=True, verbose=True):
     """
     Read a variable from a  netCDF file
 
@@ -131,15 +131,16 @@ def read_variable_ncdf(file, varNames, human=True):
     if human:
         file = check_open_file(file)
     # see if the inputs is a list/tupple or not
-    try:
-        varNames.append
-        listNames = varNames.copy()
-    except AttributeError:
+    if isinstance(varNames, list):
+        listNames = varNames
+    else:
         listNames = []
         listNames.append(varNames)
     out = []
     varfile = netcdf.netcdf_file(file, 'r', mmap=False).variables
     for ivar in range(len(listNames)):
+        if verbose:
+            print('Reading: ', listNames[ivar])
         dummy = varfile[listNames[ivar]]
         out.append(dummy)
         del dummy
@@ -305,7 +306,7 @@ def save_object_pickle(file, obj):
     ones
     """
     file = check_save_file(file)
-    print('Saving results in: ', file)
+    print('Saving object in: ', file)
     with open(file, 'wb') as f:
         pickle.dump(obj, f, protocol=4)
     return

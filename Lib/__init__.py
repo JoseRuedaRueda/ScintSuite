@@ -6,7 +6,7 @@ Allows to access all the diferent libraries and capabilities
 Please see https://gitlab.mpcdf.mpg.de/ruejo/scintsuite for a full
 documentation
 """
-
+import Lib.LibFIDASIM as fidasim
 import Lib.LibFILDSIM as fildsim
 import Lib.LibParameters as par
 import Lib.LibMap as mapping
