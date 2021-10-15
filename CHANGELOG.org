@@ -1,4 +1,7 @@
 ** 0.6.0 SINPA Support and new Tomography (prerelease)
+*** FIDASIM
+- Included routines to read the npa data
+- Library subdivided in read and plot
 *** FILDSIM
 - a new FILDSIMmarkers library was created. It contain the new object to load and plot the strike maps
 - *Note*: This library imply a small change of phylosophy against previous versions. Yuo can still load and use the strike points as before from the strike map, but they are now a part from the FILDSIM library, with their own object and ploting routines.
@@ -31,7 +34,7 @@ This change was made for an earier integration of INPA and for an easier analysi
 - Added a custom path file so the user can define its own paths
 - Improvements in comments + PEP8 checking
 - change 'Pablo Oyola:' to 'Pablo Oyola - ' beause Pablo likes more the ' - ' notation to introduce his email
-
+- NBI object includes now an option to plot in 3D
 ** 0.5.8 Minor improvements
 - The guess_shot of the video class will no longer give an error if the shot number can't be deduced from the file name, it will just return none
 - TimeTrace.export_to_ascii() now allows to select the number of digits you want for the output. By default, just 4 digits are used.

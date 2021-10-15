@@ -62,7 +62,7 @@ class StrikeMap:
         ## Resolution of FILD (INPA) for each strike point
         self.resolution = None
         ## Interpolators (gyr, pitch)-> sigma_r, sigma_p, etc, (or gyr, aplha)
-        self.intepolators = None
+        self.interpolators = None
         ## x coordinates of map points
         self.x = None
         ## y coordinates of map points
@@ -821,7 +821,8 @@ class StrikeMap:
             fig.colorbar(a, ax=ax[1], label='$\\sigma_\\lambda$')
             ax[1] = ssplt.axis_beauty(ax[1], ax_options)
             plt.tight_layout()
-            return
+        fig.show()
+        return
 
     def plot_collimator_factor(self, ax_param: dict = {}, cMap=None,
                                nlev: int = 20):

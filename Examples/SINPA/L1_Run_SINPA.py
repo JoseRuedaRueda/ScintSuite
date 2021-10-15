@@ -31,6 +31,7 @@ nml_options = {
         'saveOrbits': False,
         'saveRatio': 0.1,
         'SINPA_dir': paths.SINPA,
+        'FIDASIMfolder': '/afs/ipp/home/r/ruejo/FIDASIM4/RESULTS/30585inpa_beauty',
         'verbose': True
     },
     'particlesFoil': {    # Particles and foil modelling
@@ -56,8 +57,8 @@ nml_options = {
          'maxT': 0.000005
     },
     'nbi_namelist': {            # NBI geometry
-        'p0': [220.7590, -137.35, -2.1],  # xyz of first point in the NBI
-        'u': [-0.58993824, 0.8016366,  0.0967039],  # vector of the NBI
+        'p0': [220.78, -137.32, -2.1],  # xyz of first point in the NBI
+        'u': [-0.6013878 ,  0.79444944,  0.08475143],  # vector of the NBI
         'd': 0.5,                # Distance between points
         'npoints': 400,          # Number of points
     },
@@ -88,7 +89,7 @@ ss.sinpa.execution.write_namelist(nml_options)
 direction = \
     ss.sinpa.field.constructDirection(zita, ipsilon,
                                       nml_options['config']['geomID'])
-direction = [0., 0.0, -1.0]
+direction = [0., 0.0, -1.8]
 # Get the field
 field = ss.sinpa.field.sinpaField()
 field.createFromSingleB(direction)
