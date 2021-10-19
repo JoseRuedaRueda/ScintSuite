@@ -97,9 +97,10 @@ class Strikes:
                 'ymin': 300.,
                 'ymax': -300.
             }
-            ycolum = header['info']['ys']['i']
-            zcolum = header['info']['zs']['i']
             scints = ['scintillator',  'signalscintillator']
+            if plate.lower() in scints:
+                ycolum = header['info']['ys']['i']
+                zcolum = header['info']['zs']['i']
             for ig in range(header['ngyr']):
                 for ia in range(header['nalpha']):
                     header['counters'][ia, ig] = \
@@ -401,6 +402,7 @@ class Strikes:
         # axis beauty:
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
+            fig.show()
 
     def plot1D(self, var='beta', gyr_index=None, alpha_index=None, ax=None,
                ax_params: dict = {}, nbins: int = 20, includeW: bool = False):

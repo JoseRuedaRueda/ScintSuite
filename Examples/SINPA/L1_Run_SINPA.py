@@ -21,7 +21,9 @@ nml_options = {
     'config':  {            # General parameters
         'runid': 'test',
         'geomID': 'Test0',
-        'nAlpha': 11,
+        'FILDSIMmode': False,
+        'nGeomElements': 3,
+        'nxi': 11,
         'nGyroradius': 2,
         'nMap': 5000,
         'mapping': True,
@@ -32,12 +34,12 @@ nml_options = {
         'saveRatio': 0.1,
         'SINPA_dir': paths.SINPA,
         'FIDASIMfolder': '/afs/ipp/home/r/ruejo/FIDASIM4/RESULTS/30585inpa_beauty',
-        'verbose': True
-    },
-    'particlesFoil': {    # Particles and foil modelling
+        'verbose': True,
         'M': 2.0,         # Mass of the particle (in uma)
         'Zin': 0.0,         # Charge before the ionization in the foil
         'Zout': 1.0,        # Charge after the ionization in the foil
+    },
+    'markerinteractions': {    # Particles and foil modelling
         'energyLoss': True,
         'a_SRIM': 8.202948e-02,
         'b_SRIM': -9.984000e-05,
@@ -50,10 +52,11 @@ nml_options = {
     },
     'inputParams': {
          'nGyro': 20,
-         'beta0': 0.10,
+         'minAngle': -0.1,
+         'dAngle': 0.2,
          'alphas': [2.0, 2.1, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.3, 3.4, 3.5],
          # 'alphas': [3.141592],
-         'rL': [5.0, 5.5],
+         'rL': [2.5, 3.0],
          'maxT': 0.000005
     },
     'nbi_namelist': {            # NBI geometry
