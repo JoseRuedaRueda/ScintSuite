@@ -15,7 +15,7 @@ import Lib.LibTomography as tomo
 import Lib.LibScintillatorCharacterization as scintcharact
 import Lib.iHIBP as ihibp
 import Lib.GUIs as GUI
-import Lib.INPA as inpa
+# import Lib.INPA as inpa
 import Lib.LibOptics as optics
 import Lib.BEP as libbep
 import Lib.LibNoise as noise
