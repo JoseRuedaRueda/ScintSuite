@@ -160,10 +160,10 @@ if __name__ == '__main__':
     plot_strikemap = True
 
     #for best case    
-    plot_gyro_res= True
-    plot_pitch_res= True
-    plot_collimating_factor = True
-    plot_synthetic_signal= True
+    plot_gyro_res= False
+    plot_pitch_res= False
+    plot_collimating_factor = False
+    plot_synthetic_signal= False
     
     marker_params = {'markersize':6, 'marker':'o','color':'b'}
     line_params =  {'ls':'solid','color':'k'}
@@ -181,11 +181,11 @@ if __name__ == '__main__':
     alpha = 0.16  #From J. Hidalgo
     beta = 215. #180
     
-    n_markers = int(1e5)
+    n_markers = int(1e3)
     
     scan_Parameters = {}
     scan_Parameters['Pinhole width'] = {'scan_str': 'pw',
-                                        'scan_values':[0.08],#np.arange(0.03, 0.15, 0.01), #
+                                        'scan_values':[0.08],#np.arange(0.03, 0.15, 0.01), #[0.08],#
                                         'scan': True,
                                         'value': pinhole_width}
     scan_Parameters['Pinhole lenght'] = {'scan_str': 'pl',
@@ -428,15 +428,16 @@ if __name__ == '__main__':
 
                     min_gyro_res.append(np.nanmin(Smap.resolution['Gyroradius']['sigma']))
                     max_gyro_res.append(np.nanmax(Smap.resolution['Gyroradius']['sigma']))
-                    idx_85 = np.argmin( abs(Smap.strike_points['pitch'] - 85))
+                    #IPython.embed()
+                    idx_85 = np.argmin( abs(Smap.strike_points.header['pitch'] - 85))
                     try:
                         pitch_85_res.append(np.nanmax(Smap.resolution['Gyroradius']['sigma'][idx_85]))
                     except:
                         pitch_85_res.append(np.nan)
                     
-                    idx1 = np.argmin( abs(Smap.strike_points['gyroradius'] -0.5))
-                    idx2 = np.argmin( abs(Smap.strike_points['gyroradius'] -1.0))
-                    idx3 = np.argmin( abs(Smap.strike_points['gyroradius'] -1.5))
+                    idx1 = np.argmin( abs(Smap.strike_points.header['gyroradius'] -0.5))
+                    idx2 = np.argmin( abs(Smap.strike_points.header['gyroradius'] -1.0))
+                    idx3 = np.argmin( abs(Smap.strike_points.header['gyroradius'] -1.5))
                     gyro_1_res.append(np.nanmin(Smap.resolution['Gyroradius']['sigma'][idx1,:]))
                     gyro_2_res.append(np.nanmax(Smap.resolution['Gyroradius']['sigma'][idx2,:]))
                     gyro_3_res.append(np.nanmax(Smap.resolution['Gyroradius']['sigma'][idx3,:]))
