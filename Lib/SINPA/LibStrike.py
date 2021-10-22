@@ -78,6 +78,8 @@ class Strikes:
             'versionID2': np.fromfile(fid, 'int32', 1)[0],
         }
         header['info'] = {}
+        if plate.lower() == 'signalcollimator':
+            plate = 'collimator'
         header['info'].update(info[header['versionID1']][plate.lower()])
         if header['versionID1'] < 1:
             # Keys of what we have in the file:

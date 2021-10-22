@@ -9,7 +9,5 @@ This library contains:
 - ELM starting points.
 
 """
-
 import numpy as np
 import os
-import matplotlib.pyplot as plt

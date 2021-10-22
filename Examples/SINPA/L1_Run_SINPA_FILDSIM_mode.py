@@ -19,15 +19,15 @@ paths = Path(machine)
 # -----------------------------------------------------------------------------
 nml_options = {
     'config':  {            # General parameters
-        'runid': 'test',
-        'geomID': 'Test0',
-        'FILDSIMmode': False,
-        'nGeomElements': 3,
-        'nxi': 5,
+        'runid': 'FILD4',
+        'geomID': 'FILD4',
+        'FILDSIMmode': True,
+        'nGeomElements': 2,
+        'nxi': 11,
         'nGyroradius': 2,
-        'nMap': 500000,
-        'mapping': True,
-        'signal': False,
+        'nMap': 500,
+        'mapping': False,
+        'signal': True,
         'resampling': False,
         'nResampling': 4,
         'saveOrbits': False,
@@ -55,10 +55,10 @@ nml_options = {
          'nGyro': 20,
          'minAngle': -0.1,
          'dAngle': 0.2,
-         'alphas': [3.0, 3.2, 3.3, 3.4, 3.5],
+         'alphas': [2.0, 2.1, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.3, 3.4, 3.5],
          # 'alphas': [3.141592],
          'rL': [2.5, 3.0],
-         'maxT': 0.0000001
+         'maxT': 0.0000005
     },
     'nbi_namelist': {            # NBI geometry
         'p0': [220.78, -137.32, -2.1],  # xyz of first point in the NBI
@@ -95,7 +95,7 @@ direction = \
                                       nml_options['config']['geomID'])
 direction = [0., 0.0, -1.8]
 # Get the field
-field = ss.sinpa.Bfield()
+field = ss.sinpa.field.sinpaField()
 field.createFromSingleB(direction)
 # Write the field
 fieldFileName = os.path.join(inputsDir, 'field.bin')

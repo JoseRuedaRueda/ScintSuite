@@ -48,8 +48,8 @@ class Path:
             ]
         else:  # Generic case, assume you have linux :-)
             self.fonts = [
-            '/usr/share/fonts/truetype',
-            '/usr/share/fonts/opentype',
+                '/usr/share/fonts/truetype',
+                '/usr/share/fonts/opentype',
             ]
         # Load the custom paths
         file = os.path.join(self.ScintSuite, 'Data', 'MyData', 'Paths.txt')
