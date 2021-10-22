@@ -23,7 +23,7 @@ import Lib.LibFastChannel as fc
 import Lib.LibTomography as tomo
 import Lib.LibScintillatorCharacterization as scintcharact
 import Lib.GUIs as GUI
-import Lib.SINPA as sinpa
+# import Lib.SINPA as sinpa
 import Lib.LibOptics as optics
 import Lib.LibNoise as noise
 from Lib.version_suite import version
