@@ -14,3 +14,4 @@ import Lib.SINPA.reading as read
 import Lib.SINPA.Plot as plt
 import Lib.SINPA.execution as execution
 from Lib.SINPA.LibStrike import Strikes as strikes
+from Lib.SimulationCodes.Common.fields import fields as Bfield

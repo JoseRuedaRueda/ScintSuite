@@ -1,6 +1,6 @@
 """Routines to plot the FIDASIM data."""
 import numpy as np
-import Lib.LibFIDASIM.FIDASIMread as read
+import Lib.SimulationCodes.FIDASIM.read as read
 import matplotlib.pyplot as plt
 
 

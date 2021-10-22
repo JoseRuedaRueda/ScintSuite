@@ -57,3 +57,6 @@ ax.set_xlabel('Pinhole Width [cm]')
 ax.set_ylabel('$\\sigma_r [cm]$')
 ax.plot([simulations['width'][0], simulations['width'][-1]],
         [experiment, experiment], '--r')
+ax.plot([simulations['width'][0], simulations['width'][-1]],
+        [experiment-0.11, experiment-0.11], '--g')
+fig.show()

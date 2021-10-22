@@ -40,9 +40,12 @@ def plotSettings(plot_mode='software', usetex=False):
     nml = f90nml.read(filename)
 
     # Add font directories
-    font_files = mpl.font_manager.findSystemFonts(fontpaths=paths.fonts)
-    font_list = mpl.font_manager.createFontList(font_files)
-    mpl.font_manager.fontManager.ttflist.extend(font_list)
+    try:
+        font_files = mpl.font_manager.findSystemFonts(fontpaths=paths.fonts)
+        font_list = mpl.font_manager.createFontList(font_files)
+        mpl.font_manager.fontManager.ttflist.extend(font_list)
+    except:
+        Warning('No fonts founds. Using matplotlib default')
 
     # Set some matplotlib parameters
     mpl.rcParams["savefig.transparent"] = \
