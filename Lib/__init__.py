@@ -12,7 +12,7 @@ import Lib.LibMap as mapping
 # Simulations codes
 import Lib.SimulationCodes.FILDSIM as fildsim
 import Lib.SimulationCodes.FIDASIM as fidasim
-import Lib.SINPA as sinpa
+import Lib.SimulationCodes.SINPA as sinpa
 
 # Reconstructions
 import Lib.LibTomography as tomo

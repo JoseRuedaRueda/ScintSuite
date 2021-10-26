@@ -10,7 +10,7 @@ import numpy as np
 # import Lib.LibParameters as sspar
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
-from Lib.SINPA.StrikesHeader import order as info
+from Lib.SimulationCodes.SINPA.StrikesHeader import order as info
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import Lib.LibPlotting as ssplt

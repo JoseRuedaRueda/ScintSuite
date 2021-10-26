@@ -14,13 +14,13 @@ import matplotlib.pyplot as plt
 import tkinter as tk                       # To open UI windows
 import Lib.LibPlotting as ssplt
 import Lib.LibMap as ssmap
-import Lib.LibFILDSIM as ssfildsim
+import Lib.SimulationCodes.FILDSIM as ssfildsim
 import Lib.LibPaths as p
 import Lib.LibUtilities as ssutilities
 import Lib.LibIO as ssio
 import Lib.GUIs as ssGUI             # For GUI elements
 import Lib.LibData as ssdat
-import Lib.LibFILDSIM as ssFILDSIM
+import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 from Lib.LibMachine import machine
 from Lib.version_suite import version
 from scipy.io import netcdf                # To export remap data

@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
 import Lib.LibPlotting as ssplt
-import Lib.LibFILDSIM as ssFILDSIM
+import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 import Lib.LibMap.Common as common
 from Lib.LibMachine import machine
 import Lib.LibPaths as p
