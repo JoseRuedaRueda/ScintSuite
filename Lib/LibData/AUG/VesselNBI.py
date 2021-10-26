@@ -310,7 +310,7 @@ class NBI:
         else:
             raise Exception('Sorry, option not yet implemented')
 
-    def calc_pitch_profile(self, shot: int, time: float, rmin: float = 1.1,
+    def calc_pitch_profile(self, shot: int, time: float, rmin: float = 1.3,
                            rmax: float = 2.2, delta: float = 0.04,
                            BtIp: float = params.IB_sign, deg: bool = False,
                            rho_string: str = 'rho_pol'):
@@ -587,7 +587,7 @@ class NBI:
         ax_parameters = {
             'grid': 'both',
             'ylabel': '$\\lambda$',
-            'fontsize': 14
+            # 'fontsize': 14
         }
         if x_axis == 'R':
             ax_parameters['xlabel'] = 'R [m]'
@@ -631,7 +631,7 @@ class NBI:
         if ax_created:
             ax = ssplt.axis_beauty(ax, ax_parameters)
 
-        plt.legend(fontsize=ax_parameters['fontsize'])
+        plt.legend()
 
     def plot_central_line(self, projection: str = 'Poloidal', ax=None,
                           line_params: dict = {}, units: str = 'm'):
@@ -641,7 +641,7 @@ class NBI:
         Jose Rueda: jrrueda@us.es
 
         @param projection: 'Poloidal' (or 'pol') will plot the poloidal
-        projection, 'Toroidal' (or 'tor') the toroidal one
+        projection, 'Toroidal' (or 'tor') the toroidal one. Also, 3D supported
         @param ax: ax where to plot the NBI line
         @param line_params: line parameters for the function plt.plot()
         @param units: Units to plot, m or cm supportted
@@ -661,14 +661,19 @@ class NBI:
         # Open the axis
         created = False
         if ax is None:
-            fig, ax = plt.subplots()
-            created = True
+            if projection.lower() != '3d':
+                fig, ax = plt.subplots()
+                created = True
+            else:
+                fig = plt.figure()
+                ax = fig.add_subplot(projection='3d')
+                created = True
 
         # Plot the NBI:
-        if (projection == 'Poloidal') or (projection == 'pol'):
-            xx = np.linspace(self.coords['x0'], self.coords['x1'], 100)
-            yy = np.linspace(self.coords['y0'], self.coords['y1'], 100)
-            zz = np.linspace(self.coords['z0'], self.coords['z1'], 100)
+        xx = np.linspace(self.coords['x0'], self.coords['x1'], 100)
+        yy = np.linspace(self.coords['y0'], self.coords['y1'], 100)
+        zz = np.linspace(self.coords['z0'], self.coords['z1'], 100)
+        if (projection.lower() == 'poloidal') or (projection == 'pol'):
             rr = np.sqrt(xx**2 + yy**2)
             # If the plot was already there, do not change its axis limits to
             # plot this:
@@ -681,9 +686,7 @@ class NBI:
             if not created:
                 ax.set_xlim(xlim)
                 ax.set_ylim(ylim)
-        elif (projection == 'Toroidal') or (projection == 'tor'):
-            xx = np.array((self.coords['x0'], self.coords['x1']))
-            yy = np.array((self.coords['y0'], self.coords['y1']))
+        elif (projection.lower() == 'toroidal') or (projection == 'tor'):
             # If the plot was already there, do not change its axis limits to
             # plot this:
             if not created:
@@ -695,6 +698,9 @@ class NBI:
             if not created:
                 ax.set_xlim(xlim)
                 ax.set_ylim(ylim)
+        elif projection.lower() == '3d':
+            ax.plot(scales[units] * xx, scales[units] * yy,
+                    scales[units] * zz, **line_options)
         else:
             print('Projection: ', projection)
             raise Exception('Projection not understood!')

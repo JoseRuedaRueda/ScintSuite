@@ -18,11 +18,11 @@ import tkinter as tk
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - Paths:
-calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
+calibration_database = ss.paths.ScintSuite \
+    + '/Data/Calibrations/FILD/calibration_database.txt'
 # As the strike points are needed and they are not included in the database,
 # for the tomography one should manually select (for now) the strike map)
-smap_file = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILDSIM/results/' + \
-    '06low_stat_strike_map.dat'
+smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/09_tomo_strike_map.dat'
 # The strike points are supposed to be saved in the same folder and with the
 # same run id
 
@@ -60,22 +60,22 @@ options_filter = {
 scintillator_options = {
     'rmin': 1.8,
     'rmax': 7.0,
-    'dr': 0.1,
+    'dr': 0.05,
     'pmin': 40.0,
     'pmax': 60.0,
-    'dp': 1.0
+    'dp': 0.5
 }
 pin_options = {
     'rmin': 1.8,
     'rmax': 7.0,
-    'dr': 0.2,
+    'dr': 0.05,
     'pmin': 40.0,
     'pmax': 60.0,
-    'dp': 1.0
+    'dp': 0.5
 }
 diag_params = {
     'p_method': 'Gauss',
-    'g_method': 'sGauss'
+    'g_method': 'Gauss'
 }
 size_filter = 3
 alpha_max = 1e1
@@ -87,6 +87,7 @@ FS = 16     # Font size
 Ridge = True
 l1 = 0.33
 MC_markers = 600  # Markers for the MC remap
+efficiency = True
 # -----------------------------------------------------------------------------
 # --- Section 1: Load calibration
 # -----------------------------------------------------------------------------
@@ -135,8 +136,10 @@ grid_params = {
     'dx': scintillator_options['dp']
 }
 smap.interp_grid(frame.shape, grid_params=grid_params, MC_number=MC_markers)
-eff = ss.scintcharact.ScintillatorEfficiency()
-# eff = None
+if efficiency:
+    eff = ss.scintcharact.ScintillatorEfficiency()
+else:
+    eff = None
 # Prepare the weight function and the signal
 s1D, W2D, W4D, sg, pg, remap = \
     ss.tomo.prepare_X_y_FILD(frame, smap, scintillator_options, pin_options,
