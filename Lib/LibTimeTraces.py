@@ -14,8 +14,8 @@ import warnings
 from scipy.fft import rfft, rfftfreq
 from scipy import signal
 import matplotlib.pyplot as plt
-import LibPlotting as ssplt
-import LibIO as ssio
+import Lib.LibPlotting as ssplt
+import Lib.LibIO as ssio
 from tqdm import tqdm
 try:
     from roipoly import RoiPoly
@@ -71,6 +71,7 @@ def create_roi(fig, re_display=False):
     print('Select each vertex with left click')
     print('Once you finished, right click')
     roi = RoiPoly(color='r', fig=fig)
+    print('Thanks')
     # Show again the image with the roi
     if re_display:
         fig.show()
@@ -83,6 +84,11 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
     Calculate the time trace from a cin file
 
     Jose Rueda: jrrueda@us.es
+
+    Note, this solution is not ideal, I should include something relaying in
+    the LibVideo library, because if in the future we made som upgrade to the
+    .cin routines... but for the time this looks like the most efficient way
+    of doing it, as there is no need of opening the video in each frame
 
     @param cin_object: cin file object (see class Video of LibVideoFiles.py)
     @param mask: binary mask defining the roi
@@ -132,7 +138,8 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
         cin_object.imageheader['biHeight']
     itt = 0  # Index to cover the array during the loop
     # --- Section 2: Read the frames
-    for i in range(i1, i2):
+    print('Calculating the timetrace... ')
+    for i in tqdm(range(i1, i2)):
         #  Go to the position of the file
         iframe = i  # - cin_object.header['FirstImageNo']
         fid.seek(position_array[iframe])
@@ -188,6 +195,9 @@ class TimeTrace:
                 raise Exception('Only one time was given!')
             elif t1 is not None and t2 is None:
                 raise Exception('Only one time was given!')
+            self.shot = video.shot
+        else:
+            self.shot = None
         # Initialise the different arrays
         ## Numpy array with the time base
         self.time_base = None
@@ -205,7 +215,6 @@ class TimeTrace:
         self.spec = {'taxis': None, 'faxis': None, 'data': None}
         ## fft data
         self.fft = {'faxis': None, 'data': None}
-        ## @todo: this seems weird!!! no t1 is passed to the trace routine??
         # Calculate the time trace
         if video is not None:
             if t1 is None:
@@ -219,7 +228,7 @@ class TimeTrace:
                 else:
                     raise Exception('Still not implemented, contact ruejo')
 
-    def export_to_ascii(self, filename: str = None):
+    def export_to_ascii(self, filename: str = None, precision=3):
         """
         Export time trace to acsii
 
@@ -227,6 +236,8 @@ class TimeTrace:
 
         @param self: the TimeTrace object
         @param filename: file where to write the data
+        @param precision: number of digints after the decimal point
+
         @return None. A file is created with the information
         """
         # --- check if file exist
@@ -239,17 +250,19 @@ class TimeTrace:
             filename = ssio.check_save_file(filename)
         # --- Prepare the header
         date = datetime.datetime.now()
-        line = '# Time trace: ' + date.strftime("%d-%b-%Y (%H:%M:%S.%f)") \
-               + '\n' + 'Time [s]                     ' + \
-               'Counts in Roi                     ' + \
-               'Mean in Roi                     Std Roi'
+        line = 'Time trace: ' + date.strftime("%d-%b-%Y (%H:%M:%S.%f)") + \
+               ' shot ' + str(self.shot) + '\n' + \
+               'Time [s]    ' + \
+               'Counts in Roi     ' + \
+               'Mean in Roi      Std Roi'
         length = self.time_base.size
         # Save the data
         np.savetxt(filename, np.hstack((self.time_base.reshape(length, 1),
                                         self.sum_of_roi.reshape(length, 1),
                                         self.mean_of_roi.reshape(length, 1),
                                         self.std_of_roi.reshape(length, 1))),
-                   delimiter='   ,   ', header=line)
+                   delimiter='   ,   ', header=line,
+                   fmt='%.'+str(precision)+'e')
 
     def calculate_fft(self, params: dict = {}):
         """
@@ -294,8 +307,9 @@ class TimeTrace:
         self.spec['data'] = Sxx
         return
 
-    def plot_single(self, data: str = 'sum', ax_par: dict = {},
-                    line_par: dict = {}, normalised: bool = False, ax=None):
+    def plot_single(self, data: str = 'sum', ax_params: dict = {},
+                    line_params: dict = {}, normalised: bool = False, ax=None,
+                    correct_baseline: str = 'end'):
         """
         Plot the total number of counts in the ROI
 
@@ -307,8 +321,12 @@ class TimeTrace:
         function.
         @param line_par: Dictionary containing the line parameters
         @param normalised: if normalised, plot will be normalised to one.
-        @param, ax: axes where to draw the figure, if none, new figure will be
+        @param ax: axes where to draw the figure, if none, new figure will be
         created
+        @param correct_baseline: str to correct baseline. If 'end' the last
+        mean of the last 15 points of the time trace will be substracted to the
+        tt. (minus the very last one, because some time this points is off for
+        AUG CCDs). If 'ini' the first 15 points. Else, no correction
         """
         # default plotting options
         ax_options = {
@@ -317,41 +335,44 @@ class TimeTrace:
             'xlabel': 't [s]'
         }
         line_options = {
-            'linewidth': 1.5,
-            'color': 'r'
         }
         # --- Select the proper data:
         if data == 'sum':
             y = self.sum_of_roi
-            if 'ylabel' not in ax_par:
+            if 'ylabel' not in ax_params:
                 if normalised:
-                    ax_par['ylabel'] = 'Counts [a.u.]'
+                    ax_params['ylabel'] = 'Counts [a.u.]'
                 else:
-                    ax_par['ylabel'] = 'Counts'
+                    ax_params['ylabel'] = 'Counts'
         elif data == 'std':
             y = self.std_of_roi
-            if 'ylabel' not in ax_par:
+            if 'ylabel' not in ax_params:
                 if normalised:
-                    ax_par['ylabel'] = '$\\sigma [a.u.]$'
+                    ax_params['ylabel'] = '$\\sigma [a.u.]$'
                 else:
-                    ax_par['ylabel'] = '$\\sigma$'
+                    ax_params['ylabel'] = '$\\sigma$'
         else:
             y = self.mean_of_roi
-            if 'ylabel' not in ax_par:
+            if 'ylabel' not in ax_params:
                 if normalised:
-                    ax_par['ylabel'] = 'Mean [a.u.]'
+                    ax_params['ylabel'] = 'Mean [a.u.]'
                 else:
-                    ax_par['ylabel'] = 'Mean'
+                    ax_params['ylabel'] = 'Mean'
         # --- Normalize the data:
+        if correct_baseline == 'end':
+            y += -y[-15:-2].mean()
+        elif correct_baseline == 'ini':
+            y += -y[3:8].mean()
+
         if normalised:
             y /= y.max()
 
         # create and plot the figure
         if ax is None:
             fig, ax = plt.subplots()
-        line_options.update(line_par)
+        line_options.update(line_params)
         ax.plot(self.time_base, y, **line_options)
-        ax_options.update(ax_par)
+        ax_options.update(ax_params)
         ax = ssplt.axis_beauty(ax, ax_options)
         plt.tight_layout()
         return ax

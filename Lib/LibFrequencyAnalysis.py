@@ -4,7 +4,6 @@ Routines to analyse a time signal in the frequency domain
 Include band signal and other filtres aimed to reduce the noise
 """
 import numpy as np
-import pyfftw
 import heapq
 import scipy.signal as signal
 import matplotlib.pyplot as plt
@@ -16,7 +15,14 @@ from multiprocessing import cpu_count
 from scipy.fftpack import next_fast_len
 from scipy.interpolate import interp2d
 from collections import defaultdict
-from LibPlotting import p1D_shaded_error as plot_error_band
+from Lib.LibPlotting import p1D_shaded_error as plot_error_band
+try:
+    import pyfftw
+    pyfftw.interfaces.cache.enable()
+    pyfftw.interfaces.cache.set_keepalive_time(30)
+except ModuleNotFoundError:
+    print('Only partial support for fft')
+    print('Install pyfft for full support')
 
 # -----------------------------------------------------------------------------
 # --- Band filters
@@ -25,10 +31,6 @@ from LibPlotting import p1D_shaded_error as plot_error_band
 # -----------------------------------------------------------------------------
 # --- Fourier analysis. Taken from pyspecview
 # -----------------------------------------------------------------------------
-pyfftw.interfaces.cache.enable()
-pyfftw.interfaces.cache.set_keepalive_time(30)
-
-
 def sfft(tvec, x, nfft, resolution=1000, window='hann', fmin=0, fmax=np.infty,
          tmin=-np.infty, tmax=np.infty, pass_DC=True, complex_spectrum=False):
     """
@@ -717,7 +719,6 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
         im1 = ax.pcolormesh(time, freq2, spec2.T, **plotOpts)
         ax.set_xlabel('Time [s]')
         ax.set_ylabel('Frequency [kHz]')
-        fig.colorbar(im1, ax=ax)
 
         # Plotting the peaks
         for ii in peak_map:

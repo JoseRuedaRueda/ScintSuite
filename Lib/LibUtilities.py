@@ -9,8 +9,7 @@ which will have at the FILD position
 
 import numpy as np
 import math
-from LibMachine import machine
-import LibData as ssdat
+import Lib.LibData as ssdat
 try:
     from shapely.geometry import LineString
 except ModuleNotFoundError:
@@ -177,7 +176,7 @@ def find_nearest_sorted(array, value):
 # -----------------------------------------------------------------------------
 # --- Intersections
 # -----------------------------------------------------------------------------
-def find_2D_intersection(x1, y1, x2, y2):
+def find_2D_intersection(x1, y1, x2, y2, plot=False):
     """
     Get the intersection between curve (x1, y1) and (x2, y2)
 
@@ -194,17 +193,24 @@ def find_2D_intersection(x1, y1, x2, y2):
     @param y1: y coordinate of the first curve, np.array
     @param x2. x coordinate of the second curve, np.array
     @param y2: y coordinate of the second curve, np.array
+    @param plot. If no intersection is found, plot the situation
 
     @return x: x coordinates of the intersection
     @return y: y coordinates of the intersection
+
     """
     first_line = LineString(np.column_stack((x1.flatten(), y1.flatten())))
     second_line = LineString(np.column_stack((x2.flatten(), y2.flatten())))
     intersection = first_line.intersection(second_line)
-    if intersection.length == 0:  # just one point
+    try:  # just one point
         return intersection.xy
-    else:
+    except AssertionError:
         return LineString(intersection).xy
+    except NotImplementedError:
+        return LineString(intersection).xy
+    except AttributeError:
+        print('No intersection found')
+        return None, None
 
 
 # -----------------------------------------------------------------------------

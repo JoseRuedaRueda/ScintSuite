@@ -1,4 +1,3 @@
-
 """
 Remap and compare two frames
 
@@ -6,7 +5,7 @@ Lesson 9 from the FILD experimental analysis. Video files will be loaded,
 noise will be subtracted, a median filter will be applied, two experimental
 frames will be plotted and their remaps compared
 
-Notes: just for simplicity, although we just one two frames, a large nterval
+Notes: just for simplicity, although we just want two frames, a large interval
 of the video video will be loaded (to have the dark frames to subtract the
 noise)
 
@@ -51,7 +50,8 @@ tf1 = 6.8  # time of the first frame to be used [s]
 tf2 = 7.1  # time of the second frame to be used [s]
 
 # - Remapping options:
-calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
+calibration_database = ss.paths.ScintSuite \
+    + '/Data/Calibrations/FILD/calibration_database.txt'
 camera = 'CCD'      # CCD for other FILDs
 par = {
     'rmin': 1.2,      # Minimum gyroradius [in cm]

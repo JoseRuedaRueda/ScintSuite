@@ -18,21 +18,21 @@ def paths_of_the_suite(machine='AUG'):
     SUITE_DIR = os.getcwd()
     Suite_LIBs = {
         'Base': SUITE_DIR,
-        'LIB_DIR': 'Lib',
-        'LIB_iHIBP': 'Lib/iHIBP',
-        'LIB_INPA': 'Lib/INPA',
-        'LIB_INPASIM': 'Lib/INPA/INPASIM',
-        'LIB_FILDSIM': 'Lib/LibFILDSIM',
-        'LIB_OPTICS': 'Lib/Optics',
-        'LIB_GUIs': 'Lib/GUIs',
-        'LIB_DATA': 'Lib/LibData'
+        # 'LIB_DIR': 'Lib',
+        # 'LIB_iHIBP': 'Lib/iHIBP',
+        # 'LIB_INPA': 'Lib/INPA',
+        # 'LIB_INPASIM': 'Lib/INPA/INPASIM',
+        # 'LIB_FILDSIM': 'Lib/LibFILDSIM',
+        # 'LIB_OPTICS': 'Lib/Optics',
+        # 'LIB_GUIs': 'Lib/GUIs',
+        # 'LIB_DATA': 'Lib/LibData'
     }
 
     # -- Machine dependent folders:
     Machine_libs = {
         'AUG': {
             'AUG_Python': '/afs/ipp/aug/ads-diags/common/python/lib',
-            'Suite_AUG': os.path.join(SUITE_DIR, 'Lib/LibData/AUG')
+            # 'Suite_AUG': os.path.join(SUITE_DIR, 'Lib/LibData/AUG')
         }
     }
 
@@ -43,8 +43,9 @@ def paths_of_the_suite(machine='AUG'):
     for lib in Suite_LIBs.keys():
         sys.path.extend([os.path.join(SUITE_DIR, Suite_LIBs[lib])])
     # Machine dependent paths:
-    for lib in Machine_libs[machine].keys():
-        sys.path.extend([os.path.join(SUITE_DIR, Machine_libs[machine][lib])])
+    if machine in Machine_libs:
+        for lib in Machine_libs[machine].keys():
+            sys.path.extend([os.path.join(SUITE_DIR, Machine_libs[machine][lib])])
 
     # Check the cluster where we are working
     if machine == 'AUG':
@@ -53,7 +54,20 @@ def paths_of_the_suite(machine='AUG'):
             print('We are not in toki')
             print('The suite has not been tested outside toki')
             print('Things can go wrong!')
+    else:
+        print('Not recognised tokamak environment')
+        print('We assume you are in your personal PC')
+        print('You will not have access to databases')
 
 
 if __name__ == "__main__":
-    paths_of_the_suite()
+
+    if os.path.isdir('/afs/ipp-garching.mpg.de'):
+        machine = 'AUG'
+    else:
+        machine = 'Generic'
+        print('Not recognised machine')
+        print('Assume that your are using your personal computer')
+        print('Database call will not work')
+
+    paths_of_the_suite(machine)

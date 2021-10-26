@@ -1,8 +1,8 @@
 """
 Plotting a magnetic pick-up spectrogram.
 
-This example shows an example on how to use the frequency tracker as 
-implemented in the LibFrequencyAnalysis.py. It also provides, 
+This example shows an example on how to use the frequency tracker as
+implemented in the LibFrequencyAnalysis.py. It also provides,
 """
 
 import matplotlib
@@ -26,8 +26,8 @@ coilNumber = 31
                         # For the window type, go to:
 windowType = 'hann'     # https://docs.scipy.org/doc/scipy/reference/
                         # generated/scipy.signal.get_window.html
-freqLimit = np.array((14.0, 30.0)) # Frequency limits.
-specType = 'stft2' # Spectogram type:
+freqLimit = np.array((1.0, 350.0)) # Frequency limits.
+specType = 'stft' # Spectogram type:
                   # -> Short-Time Fourier Transform in frequency (sfft)
                   # -> Short-Time Fourier Transform in time (stft)
 resolution = int(1000)
@@ -40,7 +40,7 @@ spec_abstype = 'lin' # linear, sqrt or log
 # --- Reading the data from the database.
 # -----------------------------------------------------------------------------
 if (not ('mhi' in locals())) and (not('mhi' in globals())):
-    mhi = ss.dat.get_magnetics(shotnumber, coilNumber, 
+    mhi = ss.dat.get_magnetics(shotnumber, coilNumber,
                                timeWindow=[tBegin, tEnd])
 
 # -----------------------------------------------------------------------------
@@ -49,33 +49,33 @@ if (not ('mhi' in locals())) and (not('mhi' in globals())):
 # This assumes that the data is uniformly taken in time.
 dt = mhi['time'][1] - mhi['time'][0] # For the sampling time.
 
-nfft = int(lf.get_nfft(timeResolution, specType, 
+nfft = int(lf.get_nfft(timeResolution, specType,
                        len(mhi['time']), windowType, dt))
-    
+
 print('Computing the magnetics spectrogram...')
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 if specType == 'stft':
-    Sxx, freqs, times = lf.stft(mhi['time'],  mhi['data'], nfft, 
+    Sxx, freqs, times = lf.stft(mhi['time'],  mhi['data'], nfft,
                              window=windowType,
                              pass_DC=False, complex_spectrum=True,
                              resolution=resolution)
 elif specType == 'sfft':
-    Sxx, freqs, times = lf.sfft(mhi['time']-tEnd,  mhi['data'], nfft, 
+    Sxx, freqs, times = lf.sfft(mhi['time']-tEnd,  mhi['data'], nfft,
                              window=windowType,
-                             tmin=tBegin-tEnd, tmax=0.00, 
-                             fmin=freqLimit[0]*1000.0, 
+                             tmin=tBegin-tEnd, tmax=0.00,
+                             fmin=freqLimit[0]*1000.0,
                              fmax=freqLimit[-1]*1000.0,
                              pass_DC=False, complex_spectrum=True,
                              resolution=resolution)
-    
+
 elif specType == 'stft2':
-    Sxx, freqs, times = lf.stft2(mhi['time']-tEnd,  mhi['data'], nfft, 
+    Sxx, freqs, times = lf.stft2(mhi['time']-tEnd,  mhi['data'], nfft,
                                  window=windowType,
                                  pass_DC=False, complex_spectrum=True,
                                  resolution=resolution)
 mhi['fft'] = {
                 'freq': freqs/1000.0,
-                'time': times+tEnd, 
+                'time': times+tEnd,
                 'spec': Sxx
              }
 # The MHI data is related to the time variation of the magnetic field.
@@ -89,6 +89,12 @@ for jj in np.arange(Bdot.shape[1]):
 
 Bdot[0, :] = 0.0j
 mhi['fft']['B'] = Bdot
+
+# Applying the correction.
+if 'phase_corr' in mhi:
+    print('Applying phase-correction to the spectrogram.')
+    mhi['fft']['B'] *= np.tile(np.exp(1j*mhi['phase_corr']['interp'](freqs)),
+                               (len(times), 1)).T
 warnings.filterwarnings('default')
 del Bdot
 
@@ -108,22 +114,22 @@ if spec_abstype == 'linear' or spec_abstype == 'lin':
                      aspect='auto', interpolation='nearest', cmap=cmap)
 elif spec_abstype == 'log':
      im1 = ax.imshow(mhiplot, origin='lower',
-                     extent=(mhi['fft']['time'][0], 
+                     extent=(mhi['fft']['time'][0],
                              mhi['fft']['time'][-1],
-                             mhi['fft']['freq'][f0], 
+                             mhi['fft']['freq'][f0],
                              mhi['fft']['freq'][f1]),
-                     aspect='auto', interpolation='nearest', 
+                     aspect='auto', interpolation='nearest',
                      norm=colors.LogNorm(mhiplot.min(), mhiplot.max()),
                      cmap = cmap)
 elif spec_abstype == 'sqrt':
     im1 = ax.imshow(mhiplot, origin='lower',
                      extent=(mhi['fft']['time'][0],
                              mhi['fft']['time'][-1],
-                             mhi['fft']['freq'][f0], 
+                             mhi['fft']['freq'][f0],
                              mhi['fft']['freq'][f1]),
                      aspect='auto', interpolation='nearest', cmap=cmap,
                      norm=colors.PowerNorm(gamma=0.50))
-    
+
 ax.set_title('B-coil:' + str(coilNumber))
 ax.set_xlabel('Time [s]')
 ax.set_ylabel('Frequency [kHz]')

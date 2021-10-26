@@ -6,17 +6,18 @@ example the routine to read the scintillator efficiency files, common for all
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 import time
-import LibTimeTraces as sstt
-import LibParameters as sspar
-import LibMap as ssmapping
+import Lib.LibTimeTraces as sstt
+import Lib.LibParameters as sspar
+import Lib.LibMap as ssmapping
 from scipy.io import netcdf
-from version_suite import version
-from LibPaths import Path
+from Lib.version_suite import version
+from Lib.LibPaths import Path
 import os
 import warnings
 import tkinter as tk                       # To open UI windows
+import pickle
+import f90nml
 paths = Path()
 
 
@@ -110,7 +111,7 @@ def ask_to_open(dir=None, ext=None):
 # -----------------------------------------------------------------------------
 # --- General reading
 # -----------------------------------------------------------------------------
-def read_variable_ncdf(file, varNames, human=True):
+def read_variable_ncdf(file, varNames, human=True, verbose=True):
     """
     Read a variable from a  netCDF file
 
@@ -130,22 +131,23 @@ def read_variable_ncdf(file, varNames, human=True):
     if human:
         file = check_open_file(file)
     # see if the inputs is a list/tupple or not
-    try:
-        varNames.append
-        listNames = varNames.copy()
-    except AttributeError:
+    if isinstance(varNames, list):
+        listNames = varNames
+    else:
         listNames = []
         listNames.append(varNames)
     out = []
     varfile = netcdf.netcdf_file(file, 'r', mmap=False).variables
     for ivar in range(len(listNames)):
+        if verbose:
+            print('Reading: ', listNames[ivar])
         dummy = varfile[listNames[ivar]]
         out.append(dummy)
         del dummy
     return out
 
 
-def print_netCDF_content(file):
+def print_netCDF_content(file, long_name=False):
     """
     Print the list of variables in a netcdf file
 
@@ -154,9 +156,15 @@ def print_netCDF_content(file):
     @param file: full path to the netCDF file
     """
     varfile = netcdf.netcdf_file(file, 'r', mmap=False).variables
-    print('%20s' % ('Var name'),  '|  Description  | Dimensions')
-    for key in sorted(varfile.keys()):
-        print('%20s' % (key), varfile[key].long_name, varfile[key].dimensions)
+    if long_name:
+        print('%20s' % ('Var name'),  '|  Description  | Dimensions')
+        for key in sorted(varfile.keys()):
+            print('%20s' % (key), varfile[key].long_name,
+                  varfile[key].dimensions)
+    else:
+        print('%20s' % ('Var name'),  '| Dimensions')
+        for key in sorted(varfile.keys()):
+            print('%20s' % (key), varfile[key].dimensions)
 
 
 # -----------------------------------------------------------------------------
@@ -286,6 +294,69 @@ def read_calibration(file=None):
 
 
 # -----------------------------------------------------------------------------
+# --- Figures
+# -----------------------------------------------------------------------------
+def save_object_pickle(file, obj):
+    """
+    Just a wrapper to the pickle library to write files
+
+    Jose Rueda: jrrueda@us.es
+    @param file: full path to the file to write the object
+    @param obj: object to be saved, can be a list if you want to save several
+    ones
+    """
+    file = check_save_file(file)
+    print('Saving object in: ', file)
+    with open(file, 'wb') as f:
+        pickle.dump(obj, f, protocol=4)
+    return
+
+
+def load_object_pickle(file):
+    """
+    Just a wrapper to the pickle library to load files
+
+    Jose Rueda: jrrueda@us.es
+    @param file: full path to the file to load the object
+
+    @return: object saved in the file
+    """
+    file = check_open_file(file)
+    print('Reading object from: ', file)
+    with open(file, 'rb') as f:
+        obj = pickle.load(f)
+    return obj
+
+
+# -----------------------------------------------------------------------------
+# --- Camera properties
+# -----------------------------------------------------------------------------
+def read_camera_properties(file: str):
+    """
+    Read namelist with the camera properties
+
+    Jose Rueda Rueda: jrrueda@us.es
+
+    @param file: full path to the file to be loaded, or the name of the camera
+    we want to load
+
+    @return out: dictionary containing camera properties
+    """
+    if os.path.isfile(file):
+        filename = file
+    else:
+        filename = os.path.join(paths.ScintSuite, 'Data',
+                                'CameraGeneralParameters', file + '.txt')
+    if not os.path.isfile(filename):
+        print('Looking for: ', filename)
+        raise Exception('File not found, revise camera name')
+
+    nml = f90nml.read(filename)
+
+    return nml['camera'].todict()
+
+
+# -----------------------------------------------------------------------------
 # --- Tomography
 # -----------------------------------------------------------------------------
 def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
@@ -310,13 +381,13 @@ def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
     if filename is None:
         a = time.localtime()
         name = 'W_FILD_' + str(a.tm_year) + '_' + str(a.tm_mon) + '_' +\
-            str(a.tm_mon) + '_' + str(a.tm_hour) + '_' + str(a.tm_min) +\
+            str(a.tm_mday) + '_' + str(a.tm_hour) + '_' + str(a.tm_min) +\
             '.nc'
         filename = os.path.join(paths.Results, name)
     else:
         filename = check_save_file(filename)
     print('Saving results in: ', filename)
-    with netcdf.netcdf_file(name, 'w') as f:
+    with netcdf.netcdf_file(filename, 'w') as f:
         f.history = 'Done with version ' + version
 
         # --- Save the pinhole grid

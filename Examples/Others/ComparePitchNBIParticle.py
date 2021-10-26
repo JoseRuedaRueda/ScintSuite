@@ -16,11 +16,11 @@ import Lib as ss
 # -----------------------------------------------------------------------------
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
-R0 = 2.182      # Radial position from where we know the pitch
-P0 = 45.        # Pitch angle at that radial position
+R0 = 1.80       # Radial position from where we know the pitch
+P0 = 40.        # Pitch angle at that radial position
 nNBI = 8        # Number of the NBI we want to use to compare
 t = 0.25        # Time in seconds to calculate the pitch profile
-shot = 32312    # Shot to calculate the pitch profile
+shot = 38017    # Shot to calculate the pitch profile
 # -----------------------------------------------------------------------------
 # --- Section 1: Core
 # -----------------------------------------------------------------------------
@@ -36,7 +36,8 @@ nbi.calc_pitch_profile(shot, t, rmin=1.1, deg=True)
 # - Plot the resluts
 fig, ax = plt.subplots()
 ax.plot(R, P, 'k', linewidth=1.5, label='Particle')
-ax.plot(nbi.pitch_profile['R'], nbi.pitch_profile['pitch'], 'r', linewidth=1.5,
+ax.plot(nbi.pitch_profile['R'].squeeze(),
+        nbi.pitch_profile['pitch'].squeeze(), 'r', linewidth=1.5,
         label='NBI#' + str(nNBI))
 param = {'xlabel': 'R [m]', 'ylabel': '$\\lambda [{}^o]$', 'fontsize': 14,
          'grid': 'both'}
