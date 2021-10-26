@@ -15,6 +15,7 @@ from scipy.spatial.transform import Rotation as R
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
 paths = Path(machine)
+import f90nml
 
 
 def calculate_rotation_matrix(n, verbose=True):
@@ -139,6 +140,8 @@ class Geometry:
             if f.startswith('Element'):
                 filename = os.path.join(folder, f)
                 self.elements.append(read_element(filename))
+        dummy = f90nml.read(os.path.join(folder, 'ExtraGeometryParams.txt'))
+        self.ExtraGeometryParams = dummy['ExtraGeometryParams']
 
     @property
     def size(self):
@@ -147,7 +150,7 @@ class Geometry:
 
     def __getitem__(self, idx):
         """
-        Overload of the method to be able to access the data in the orbit data.
+        Overload of the method to be able to access the geometry element.
 
         It returns the whole data of a geometry elements
 
@@ -159,7 +162,8 @@ class Geometry:
         """
         return self.elements[idx]
 
-    def plot3D(self, line_params: dict = {}, ax=None):
+    def plot3D(self, line_params: dict = {}, ax=None,
+               element_to_plot=[0, 1, 2], plot_pinhole: bool = True):
         """
         Plot the geometric elements.
 
@@ -168,15 +172,36 @@ class Geometry:
         @param geom: dictionary created by read_element()
         @param ax: axes where to plot
         @param line_params: parameters for the plt.plot function
+        @param element_to_plot: kind of plates we want to plot:
+            -0: Collimator
+            -1: Ionizers
+            -2: Scintillator
+        @param plot_pinhole: flag to plot a point on the pinhole or not
 
         Note: The use of this routine is not recomended if you use a fine mesh
         with several triangles
 
         @todo: add a flag to plot only a given type of plate
         """
+        # Initialise the plotting parameters:
+        line_options = {
+            'color': 'k'
+        }
+        line_options.update(line_params)
+        line_colors = ['k', 'b', 'r']  # Default color for coll, foil, scint
         if ax is None:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
             plt.tight_layout()
         for ele in self.elements:
-            plot_element(ele, ax=ax, line_params=line_params)
+            if ele['kind'] in element_to_plot:
+                # If the user did not provided a custom color, generate a color
+                # for each tipe of plate
+                if 'color' not in line_params:
+                    line_options['color'] = line_colors[ele['kind']]
+                plot_element(ele, ax=ax, line_params=line_options)
+        # --- Plot pinhole
+        if plot_pinhole:
+            ax.plot([self.ExtraGeometryParams['rpin'][0]],
+                    [self.ExtraGeometryParams['rpin'][1]],
+                    [self.ExtraGeometryParams['rpin'][2]], 'og')

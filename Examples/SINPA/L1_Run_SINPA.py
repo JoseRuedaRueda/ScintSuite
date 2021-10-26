@@ -25,12 +25,12 @@ nml_options = {
         'nGeomElements': 3,
         'nxi': 5,
         'nGyroradius': 2,
-        'nMap': 500000,
+        'nMap': 500,
         'mapping': True,
         'signal': False,
         'resampling': False,
         'nResampling': 4,
-        'saveOrbits': False,
+        'saveOrbits': True,
         'saveRatio': 0.1,
         'SINPA_dir': paths.SINPA,
         'FIDASIMfolder': '/afs/ipp/home/r/ruejo/FIDASIM4/RESULTS/30585inpa_beauty',
@@ -52,13 +52,13 @@ nml_options = {
         'scattering': False
     },
     'inputParams': {
-         'nGyro': 20,
+         'nGyro': 40,
          'minAngle': -0.1,
          'dAngle': 0.2,
          'alphas': [3.0, 3.2, 3.3, 3.4, 3.5],
          # 'alphas': [3.141592],
          'rL': [2.5, 3.0],
-         'maxT': 0.0000001
+         'maxT': 0.0000005
     },
     'nbi_namelist': {            # NBI geometry
         'p0': [220.78, -137.32, -2.1],  # xyz of first point in the NBI
@@ -95,7 +95,7 @@ direction = \
                                       nml_options['config']['geomID'])
 direction = [0., 0.0, -1.8]
 # Get the field
-field = ss.sinpa.Bfield()
+field = ss.sinpa.fieldObject()
 field.createFromSingleB(direction)
 # Write the field
 fieldFileName = os.path.join(inputsDir, 'field.bin')

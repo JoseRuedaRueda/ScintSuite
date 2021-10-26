@@ -8,7 +8,7 @@ Introduced in version 6.0.0
 import os
 import f90nml
 import numpy as np
-import Lib.SINPA.reading as reading
+import Lib.SimulationCodes.SINPA.reading as reading
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
 paths = Path(machine)

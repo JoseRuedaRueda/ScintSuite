@@ -9,7 +9,7 @@ import pickle
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import Lib.LibFILDSIM as ssfildsim
+import Lib.SimulationCodes.FILDSIM as ssfildsim
 import Lib.LibMap as ssmapping
 import Lib.LibIO as ssio
 from scipy import ndimage        # To denoise the frames
