@@ -12,10 +12,12 @@ import tkinter as tk
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - Paths:
-calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
+calibration_database = ss.paths.ScintSuite \
+    + '/Data/Calibrations/FILD/calibration_database.txt'
 # As the strike points are needed and they are not included in the database,
 # for the tomography one should manually select (for now) the strike map)
-smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/tomography_new_geometry2_strike_map.dat'
+smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/' \
+    + 'tomography_new_geometry2_strike_map.dat'
 smap_points = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILDSIM/results/' +\
     'tomography_new_geometry2_strike_points.dat'
 

@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
 import Lib.LibPlotting as ssplt
-import Lib.LibFILDSIM as ssFILDSIM
+import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 import Lib.LibMap.Common as common
 from Lib.LibMachine import machine
 import Lib.LibPaths as p
@@ -38,8 +38,9 @@ class StrikeMap:
         @param phi: phi angle (see FILDSIM doc) (ipsilon for SINPA)
         @param decimals: decimals to look in the database
 
-        Notes: machine, theta and phi options introduced in version 0.4.14.
-        INPA compatibility included in version 0.6.0
+        Notes
+        - Machine, theta and phi options introduced in version 0.4.14.
+        - INPA compatibility included in version 0.6.0
         """
         ## Associated diagnostic
         if flag == 0 or flag == 'FILD':
@@ -62,7 +63,7 @@ class StrikeMap:
         ## Resolution of FILD (INPA) for each strike point
         self.resolution = None
         ## Interpolators (gyr, pitch)-> sigma_r, sigma_p, etc, (or gyr, aplha)
-        self.intepolators = None
+        self.interpolators = None
         ## x coordinates of map points
         self.x = None
         ## y coordinates of map points
@@ -194,13 +195,13 @@ class StrikeMap:
         marker_options = {
             'markersize': 6,
             'fillstyle': 'none',
-            'color': 'w',
+            'color': 'k',
             'marker': 'o',
             'linestyle': 'none'
         }
         marker_options.update(marker_params)
         line_options = {
-            'color': 'w',
+            'color': 'k',
             'marker': ''
         }
         line_options.update(line_params)
@@ -776,6 +777,39 @@ class StrikeMap:
                                                   ZMATRIX.flatten())
         return
 
+    def calculate_mapping_interpolators(self, k=2, s=1):
+        """
+        Calculate interpolators scintillator position -> phase space.
+
+        Jose Rueda: jrrueda@us.es
+
+        @param k: parameter kx and ky for the BivariantSpline
+        """
+        # --- Select the colums to be used
+        if self.diag == 'FILD':
+            self.map_interpolators = {
+                'Gyroradius':
+                    scipy_interp.SmoothBivariateSpline(self.y, self.z,
+                                                       self.gyroradius,
+                                                       kx=k, ky=k, s=s),
+                'Pitch':
+                    scipy_interp.SmoothBivariateSpline(self.y, self.z,
+                                                       self.pitch, kx=k, ky=k,
+                                                       s=s)
+            }
+        elif self.diag == 'INPA':
+            self.map_interpolators = {
+                'Gyroradius':
+                    scipy_interp.SmoothBivariateSpline(self.y, self.z,
+                                                       self.gyroradius,
+                                                       kx=k, ky=k),
+                'Alpha':
+                    scipy_interp.SmoothBivariateSpline(self.y, self.z,
+                                                       self.alpha, kx=k, ky=k)
+            }
+        else:
+            raise Exception('Diagnostic not understood')
+
     def plot_resolutions(self, ax_param: dict = {}, cMap=None, nlev: int = 20):
         """
         Plot the resolutions.
@@ -821,7 +855,8 @@ class StrikeMap:
             fig.colorbar(a, ax=ax[1], label='$\\sigma_\\lambda$')
             ax[1] = ssplt.axis_beauty(ax[1], ax_options)
             plt.tight_layout()
-            return
+        fig.show()
+        return
 
     def plot_collimator_factor(self, ax_param: dict = {}, cMap=None,
                                nlev: int = 20):

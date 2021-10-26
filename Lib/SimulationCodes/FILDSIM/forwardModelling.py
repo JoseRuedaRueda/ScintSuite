@@ -1,8 +1,8 @@
-"""Calculate and plot synthetic signals with FILDSIM"""
+"""Calculate and plot synthetic signals with FILDSIM."""
 import numpy as np
 import matplotlib.pyplot as plt
 import Lib.LibMap as ssmapping
-import Lib.LibFILDSIM.FILDSIMexecution as ssfildsimA
+import Lib.SimulationCodes.FILDSIM.execution as ssfildsimA
 import Lib.LibPlotting as ssplt
 import Lib.LibData as ssdat
 import Lib.LibNoise as ssnoise
@@ -263,15 +263,15 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
         g_parameters = {}
         for k in parameters_to_consider[smap.resolution['gyroradius_model']]:
             g_parameters[k] = \
-                smap.interpolators['gyroradius'][k]\
-                (distro_gyr[i], distro_pitch[i])
+                smap.interpolators['gyroradius'][k](
+                    distro_gyr[i], distro_pitch[i])
         p_parameters = {}
         for k in parameters_to_consider[smap.resolution['pitch_model']]:
             p_parameters[k] = \
                 smap.interpolators['pitch'][k](distro_gyr[i], distro_pitch[i])
 
-        col_factor = smap.interpolators['collimator_factor']\
-            (distro_gyr[i], distro_pitch[i]) / 100.0
+        col_factor = smap.interpolators['collimator_factor'](
+            distro_gyr[i], distro_pitch[i]) / 100.0
 
         if eff:
             signal += col_factor * g_func(g_grid.flatten(), **g_parameters) \
@@ -726,8 +726,8 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
                 p_parameters[k] = \
                     smap.interpolators['pitch'][k](rpin[kk], ppin[ll])
 
-            col_factor = smap.interpolators['collimator_factor']\
-                (rpin[kk], ppin[ll]) / 100.0
+            col_factor = smap.interpolators['collimator_factor'](
+                rpin[kk], ppin[ll]) / 100.0
             if col_factor > 0.0:
                 # Calculate the contribution:
                 dummy = col_factor * g_func(Rscint.flatten(), **g_parameters) \
