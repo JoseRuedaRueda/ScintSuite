@@ -1,3 +1,179 @@
+** 0.6.0 SINPA Support and new Tomography
+*** Simulation codes
+- Libraries to interact with the different simulation codes (FIDASIM, FILDSIM, iHIBPsim, and SINPA) are now located in the SimulationCodes library
+
+*** FIDASIM
+- Included routines to read the npa data
+- Library subdivided in read and plot
+*** FILDSIM
+- a new FILDSIMmarkers library was created. It contain the new object to load and plot the strike maps
+- *Note*: This library imply a small change of phylosophy against previous versions. Yuo can still load and use the strike points as before from the strike map, but they are now a part from the FILDSIM library, with their own object and ploting routines.
+This change was made for an earier integration of INPA and for an easier analysis of FILDSIM strike points for FILD optimization
+- Function to plot any variable of the FILDSIM strike points was added: see LibFILDSIM.Strikes.plot1D()
+- Direct and easy calculation of the histogram of strike points in the scintillator was added: see LibFILDSIM.Strike.calculate_scintillator_histogram() and LibFILDSIM.Strike.plot_scintillator_histogram()
+- When the FILDSIM markers are loaded, they are no longer treated like a single matrix, they are splits by pairs (gyroradius, pitch). This save memory (we do not need to save the first 2 colums of the matrix) and simplify routines as the calculation of the resolution
+- The function to read the orbits was removed from the FILDSIMexecution library and moved to the FILDSIMmarkers one, inside the new orbtis object
+- The same happeded with the plot orbits, which is now a part from the orbit object
+*** Mapping library
+- Support for SINPA strike maps was included in the mapping library
+- calculate_transformation_factors was deprecated
+- get_points was deprecated
+- append_to_database from the database object was deprecated
+- The strike points variable of the StrikeMap was completely changed, see the FILDSIM part of the changelog for a full documentation
+*** SINPA
+- the new Synthetic INPA code is supported
+*** Tomography
+- Mono dimensional tomography can be performed, examples can be found in L15
+*** PC compatibility
+- Included a dummy LibData in order to be able to import the suite in your personal PC. Minor modifications here and there in the import statements were done to support this
+*** Others
+- function Lib.LibData.AUG.plot_FILD4_trajectory(shot) renamed to Lib.LibData.AUG.plot_FILD4_trajectory(shot)
+- Solved a bug in Video.find_orientation when the function was called with the remap not calculated
+- Solve small bug in the plot_real routine of the strike map, before pitch label was 'Pitch [0])' and in the gyroradius one, there were () instead of []
+- Vid.plot_orientation no longer set by default the font size, as that is don now when initializing the suite
+- Lib.Libfildsim.plot_geometry(). Dummy bug corrected, in the title of the 3 subplot it said 'Y-Z' instead of 'X-Z'
+- Default colormap in the GUIS to plot the videos is now grey scale
+- Added update_case_insensitive to the Utilities library to compare dictionaries in a case insensitive way
+- Added a custom path file so the user can define its own paths
+- Improvements in comments + PEP8 checking
+- change 'Pablo Oyola:' to 'Pablo Oyola - ' beause Pablo likes more the ' - ' notation to introduce his email
+- NBI object includes now an option to plot in 3D
+- Solved minor details for the first installation (regarding plotting settings initialization and AUG path)
+
+** 0.5.8 Minor improvements
+- The guess_shot of the video class will no longer give an error if the shot number can't be deduced from the file name, it will just return none
+- TimeTrace.export_to_ascii() now allows to select the number of digits you want for the output. By default, just 4 digits are used.
+
+** 0.5.7 Minor improvements
+- The print netCDF routine of the io is now compatible with netCDF saved without the long _name field
+- Upgraded plot_profiles in time, now the labels re-adapt when the user makes zoom
+
+** 0.5.6 i-HIBP namelists and ELM sync routines.
+- Added new sublibrary in LibData/AUG names Misc, containing FILD4 trajectories, ELM shotfile...
+- Basic namelist generation for i-HIBP simulation codes library included.
+- Basic library for i-HIBP beam plotting and marker generator.
+- Update in the library BPZ to read and plot BEP fitting data.
+- L6 example now uses the MC method
+- *Bug solved* related with the single strikemap remap. Before, if you asked the single map remapping, it failed at the end when it tries to save the data, as the variable theta_used was not created, as the theta angle was not evaluated. Now it just save theta_used=0 and solved!
+
+** 0.5.5: Minor improvements and examples
+- added an example to plot a discharge overview in AUG
+- calculate spectrograms of the fast channel now uses as default the scipy spectrogram function
+
+** 0.5.4: Minor improvements
+- plot_single of the TimeTrace object now no longer have default color red, so is not a problem to compare different shots. Line_par and ax_par entries of that functions were renamed to line_params and ax_params to be coherent with the rest of the suite
+- new examples to analyse FILD data
+
+** 0.5.3: Minor improvements
+- Now the scan of the tomography library saves the data in each interaction (can be deactivate via inputs)
+- Label can be set in the plotting of the fast channel via line_params dictionary
+- *Bug solved* now the get_fast_signal() will not fail if the requested channel is a component of a numpy array
+- Lib.LibData.AUG.plot_FILD4_trayectory(shot) and Lib.LibData.AUG.load_FILD4_trayectory(shot) added to load FILD4 data. First step of FILD4 disclosure
+- Plotting style sheet updated, now you can choose default colors for line plotting
+
+** 0.5.2: Minor improvements
+- synthetic_signal_remap() will output the signal as a matrix [npitch, nradius] to be consistent with the remap (before it was [nradius, npitch])
+- The fast channel options allows now to calculate spectrograms and plot them
+
+** 0.5.1: Fast Channel analysis v1
+- synthetic_signal_remap() inputs changed, now gmin, gmax, dg is now renamed as rmin, rmax, dr, to be consistent with the rest of the ScintillatorSuite
+- *Bug solved* solves a bug in the synthetic_signal_remap() method, nan where appearing if the markers were outside the map range
+- get_fast_channel() from the LibData now also returns the number of the loaded channel
+
+** 0.5.0: New FILD remap
+- The 'nearest' method of the interp_grid was deprecated
+- The interp_grid method of the StrikeMap class was completely rewritten, please see the new function
+- The remap method will call interp_grid of the smap object instead of failing if the grid was not interpolated before calling this function
+- inputs for remap method of the mapping library was changed, now the edges of the histogram should be calculated outside (improve efficiency and easily allows for MC or standard remap switch)
+- New MC remap based in the 'Translation Tensor' developed. See documentation PDF for a full description of the method
+
+** 0.4.15 Profile routines and EHO tracker.
+- Toroidal rotation reading routines has been included: from PED, IDI or make a smoothing spline to the CXRS raw data.
+- Routines to read the profiles (electron temperature and density) from PED.
+- EHO tracker with and without diamagnetic corrections has been included in Examples.
+- Phase correction for the magnetic pick-up coils in AUG is now included.
+- The phase correction files are automatically downloaded at the first time that the magnetic routines from AUG are run.
+
+
+** 0.4.14: Smap and plotting improvements
+- The StrikeMap object can now be initialised with the theta and phi angle, no longer need the full path to the file (although of course you can still use the file)
+- If no file is given to the StrikeMap.load_strike_points() the code will look for the strike points file in the same folder than the strike map
+- The substract noise function include now an option to make a copy of the frames or not (to save memory, dafult: True)
+- Default plotting options now available via configurable namelist (Data/MyData)
+- Minor ToDos solved
+- Upgraded Readme
+
+
+** 0.4.13: FILDSIM forward modeling
+- Camera parameters no longer in LibParams but in separate txt files in the Data folders
+- f90mnl is now a fundamental module, the suite will not work without it
+- Added function in the LibIO to read the camera properties
+- Current synthetic_signal and plot_synthetic signal function of the FILDSIM library renamed to synthetic_remap and plot_synthetic_remap
+- *Note*: The weight function calculation does no longer include  * dr_scint * dp_scint, so the W has dimension of one over dgyr and dpitch of the scintillator grid used for the calculus
+- Several plotting plotting capabilities added (credit to Ajvv)
+- Routines to model basic camera noise added
+
+
+** 0.4.12: Small improvements
+- New examples for the tracker were added
+- *Note*: The order of the inputs in the function write_markers for the tracker was changed, to follow the same logical order of the rest of the suite, now is: write_markers(markers: dict, filename: str)
+- Small PEP8 stile corrections
+- functions to save and read objects with pickles were added, this allows to save and load figures more or less as .fig from matlab (see save_object_pickle and load_object_pickle)
+- Update run_paths.py to the new system to import modules
+- function to read the deposition markers was added
+- old method to write tracker namelist recoverd for legacy compatibility
+- *Note*: the input of the LibIHIBPorbits, for the plot, is now 'ax_params' and 'line_params' instead of 'ax_options' and 'line_options', to be consistent with the rest of the suite
+- *Note*: the input of the LibIHIBfields, to read the magnetic field from the database, now requiers shot and time instead of time and shot, to be consistend with the rest of the suite
+- *Note*: same with readPsiPolfromDB
+- *Note*: vt renamed to vphi in the properties of the markers
+
+** 0.4.11: HotFix
+- Fix an issue while importing library of BEB
+- change '()' on the plot strike map for '[]' (all the rest of the plots of the suite indicate the units between [])
+
+** 0.4.10: Tomography improvements
+*** Tomography improvements
+- Solved a bug in the process to W2D to W4D, last gyroradii was being ignored
+- Now fildsim.build_weight_matrix() gives also the W2D matrix
+- Lib.Tomography.prepare_X_y_FILD now can apply a median filter to the remap frame
+- Forward modeled frame and profiles included in the Tomography GUI
+*** NBI improvements
+- Renamed _NBI_diaggeom_cordinates to NBI_diaggeom_cordinates
+- The function NBI_diaggeom_coordinates include now the 'length' of the NBI line as well as the tangency point
+- Included 'calculate_intersection' method in the NBI class to calculate the intersection points of the NBI line with the flux surfaces
+- Included generate_tarcker_markers in the NBI class to generate markers for the tracer
+*** Tracker changes
+- The write namelist for the tracker was updated to the new f90mnl format adapted in the rest of the suite
+- Duplicated tracker routines were eliminated, now only the iHIBPsim library should be used for the fields and orbits reading
+- *DEPRECATED* The flag grid on the plotTimeTraces() of the orbit class was deprecated, if you want to plot the grid pass grid:'both' or 'major' to the ax_options dictionary
+- plotTimeTraces() now has a flag to plot the R,Z,phi temporal evolution
+- The routines to plot the orbits now admit a flag (default: True) to plot the vessel or not
+- Added routine in the orbit class to calculate the gyrocenter coordinates
+- Added the possibility of calculating the magnetic moment with the gyrocenter Bfield
+*** Forward modeling improvements:
+- Include check to avoid the forward modeling routine to give Nan when some points of the distribution are outside the range of the Strike map, these points will be ignored
+
+** 0.4.8: Toroidal rotation fitting and hotfix for magnetic spectograms:
+*** LibData
+- Introduction of routines to read the toroidal rotation velocity from AUG database. Available profiles from IDI, PED and spline-regression to several CXRS diagnostics (CUZ, COZ, CMZ & CEZ).
+*** Magnetics
+- Ballooning coils phase correction for the FFT taken from pyspecview.
+- All examples in FreqAnalysis corrected with the phase.
+
+** 0.4.7: Support for BEP plotting:
+- Added initial library for reading the calibrated and uncalibrated signal from BEP shotfiles.
+- Simple GUI to plot interactively see the spectra for shots.
+- Added few examples to plot the BEP in a non-interactive way.
+
+** 0.4.6: FILDSIM orbit plotting:
+- Orbit plotting included to plot FILDSIM calculated orbits
+
+** 0.4.5: Bug solved:
+- Solved a bug in the diaggeom coordinates for NBI8. NBI8 end was off by almost 10 cm
+
+** 0.4.4: Import changes:
+- Routes to libraries were change such that you can import the library just setting your environment variable in the path
+
 ** 0.4.3: i-HIBPsim strike line reader & Frequency tracking.
 *** LibHIBPstrikes
 - Adding support read and plot the strikelines from i-HIBPsim code.
@@ -14,7 +190,7 @@
 *** Movement of LibDataAUG
 - LibDataAUG is now moved inside the folder LibData, to allow for a smother integration of future machines
 
-** 0.4.2: FILDSIM foward modelling
+** 0.4.2: FILDSIM forward modeling
 - Now the StrikeMap.calculate_resolutions() also calculate the interpolators so one can just call smap.interpolators['pitch']['sigma'](gyr0, pitch0) and you will have the interpolated value of sigma of the pitch for gyr0, pitch0.
 - The StrikeMap object for FILD now include the fields: unique_gyroradius, unique_pitch and collimator_factor_matrix.
 - *Included requested feature*: Issue #58: read_ASCOT_distribution implemented, only valid for ASCOT4

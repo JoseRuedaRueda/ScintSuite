@@ -9,26 +9,27 @@ PNG files as the old FILD_GUI and will be able to work with tiff files
 import os
 import re
 import warnings
-import time
 import numpy as np
 import matplotlib.pyplot as plt
 import tkinter as tk                       # To open UI windows
-import LibPlotting as ssplt
-import LibMap as ssmap
-import LibFILDSIM as ssfildsim
-import LibPaths as p
-import LibUtilities as ssutilities
-import LibIO as ssio
-import GUIs as ssGUI             # For GUI element
-from LibMachine import machine
-from version_suite import version
+import Lib.LibPlotting as ssplt
+import Lib.LibMap as ssmap
+import Lib.SimulationCodes.FILDSIM as ssfildsim
+import Lib.LibPaths as p
+import Lib.LibUtilities as ssutilities
+import Lib.LibIO as ssio
+import Lib.GUIs as ssGUI             # For GUI elements
+import Lib.LibData as ssdat
+import Lib.SimulationCodes.FILDSIM as ssFILDSIM
+from Lib.LibMachine import machine
+from Lib.version_suite import version
 from scipy.io import netcdf                # To export remap data
 from scipy import ndimage                  # To filter the images
 from skimage import io                     # To load images
 from tqdm import tqdm                      # For waitbars
 pa = p.Path(machine)
 del p
-import LibData as ssdat
+
 try:
     import cv2
 except ImportError:
@@ -1337,8 +1338,7 @@ class Video:
             self.guess_shot(file, ssdat.shot_number_length)
 
         # Fill the object depending if we have a .cin file or not
-        print('Looking for the file')
-        print(file)
+        print('Looking for the file: ', file)
         if os.path.isfile(file):
             ## Path to the file and filename
             self.path, self.file_name = os.path.split(file)
@@ -1411,6 +1411,7 @@ class Video:
         Guess the shot number from the name of the file
 
         Jose Rueda Rueda: jrrueda@us.es
+
         @param file: Name of the file or folder containing the data. In that
         name it is assumed to be the shot number in the proper format
         @param shot_number_length: Number of characters expected from the shot
@@ -1433,18 +1434,19 @@ class Video:
             if options[0] == options[1]:
                 self.shot = int(options[0])
         elif ntrues == 0:
-            er = 'No shot number found in the name of the file\n'
-            er2 = 'Give the shot number as input when loading the file'
-            raise Exception(er + er2)
+            print('No shot number found in the name of the file')
+            print('Give the shot number as input when loading the file')
+            self.shot = None
         else:
-            er = 'Several possibles shot number were found\n'
-            er2 = 'Give the shot number as input when loading the file'
+            print('Several possibles shot number were found')
+            print('Give the shot number as input when loading the file')
             print('Possible shot numbers ', list[flags])
-            raise Exception(er + er2)
+            self.shot = None
 
     def read_frame(self, frames_number=None, limitation: bool = True,
                    limit: int = 2048, internal: bool = True, t1: float = None,
-                   t2: float = None, threshold_saturation=0.95):
+                   t2: float = None, threshold_saturation=0.95,
+                   read_from_loaded: bool = False):
         """
         Call the read_frame function
 
@@ -1464,63 +1466,74 @@ class Video:
         @param t1: Initial time to load frames (alternative to frames number)
         @param t2: Final time to load frames (alternative to frames number), if
         just t1 is given , only one frame will be loaded
+        @param read_from_loaded: If true, it will return the frame closer to t1
+        , independently of the flag 'internal' (usefull to extract noise
+        corrected frames from the video object :-)
         @return M: 3D numpy array with the frames M[px,py,nframes]
         """
         # --- Select frames to load
-        if (frames_number is not None) and (t1 is not None):
-            raise Exception('You cannot give frames number and time')
-        elif (t1 is not None) and (t2 is None):
-            frames_number = np.array([np.argmin(abs(self.timebase-t1))])
-        elif (t1 is not None) and (t2 is not None):
-            it1 = np.argmin(abs(self.timebase-t1))
-            it2 = np.argmin(abs(self.timebase-t2))
-            frames_number = np.arange(start=it1, stop=it2+1, step=1)
-        # else:
-        #     raise Exception('Something went wrong, check inputs')
+        if not read_from_loaded:
+            if (frames_number is not None) and (t1 is not None):
+                raise Exception('You cannot give frames number and time')
+            elif (t1 is not None) and (t2 is None):
+                frames_number = np.array([np.argmin(abs(self.timebase-t1))])
+            elif (t1 is not None) and (t2 is not None):
+                it1 = np.argmin(abs(self.timebase-t1))
+                it2 = np.argmin(abs(self.timebase-t2))
+                frames_number = np.arange(start=it1, stop=it2+1, step=1)
+            # else:
+            #     raise Exception('Something went wrong, check inputs')
 
-        if self.type_of_file == '.cin':
-            if internal:
-                self.exp_dat['frames'] = \
-                    read_frame_cin(self, frames_number, limitation=limitation,
-                                   limit=limit)
-                self.exp_dat['tframes'] = self.timebase[frames_number]
-                self.exp_dat['nframes'] = frames_number
-                self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
+            if self.type_of_file == '.cin':
+                if internal:
+                    self.exp_dat['frames'] = \
+                        read_frame_cin(self, frames_number,
+                                       limitation=limitation, limit=limit)
+                    self.exp_dat['tframes'] = self.timebase[frames_number]
+                    self.exp_dat['nframes'] = frames_number
+                    self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
+                else:
+                    M = read_frame_cin(self, frames_number,
+                                       limitation=limitation, limit=limit)
+                    return M.squeeze()
+            elif self.type_of_file == '.png':
+                if internal:
+                    self.exp_dat['frames'] = \
+                        read_frame_png(self, frames_number,
+                                       limitation=limitation, limit=limit)
+                    self.exp_dat['tframes'] = \
+                        self.timebase[frames_number].flatten()
+                    self.exp_dat['nframes'] = frames_number
+                    self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
+                else:
+                    M = read_frame_png(self, frames_number,
+                                       limitation=limitation, limit=limit)
+                    return M.squeeze()
             else:
-                M = read_frame_cin(self, frames_number, limitation=limitation,
-                                   limit=limit)
-                return M.squeeze()
-        elif self.type_of_file == '.png':
-            if internal:
-                self.exp_dat['frames'] = \
-                    read_frame_png(self, frames_number, limitation=limitation,
-                                   limit=limit)
-                self.exp_dat['tframes'] = \
-                    self.timebase[frames_number].flatten()
-                self.exp_dat['nframes'] = frames_number
-                self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
-            else:
-                M = read_frame_png(self, frames_number, limitation=limitation,
-                                   limit=limit)
-                return M.squeeze()
+                raise Exception('Not initialised file type?')
+            # Count saturated pixels
+            max_scale_frames = 2 ** self.settings['RealBPP'] - 1
+            threshold = threshold_saturation * max_scale_frames
+            print('Counting "saturated" pixels')
+            print('The threshold is set to: ', threshold, ' counts')
+            number_of_frames = len(self.exp_dat['tframes'])
+            n_pixels_saturated = np.zeros(number_of_frames)
+            for i in tqdm(range(number_of_frames)):
+                n_pixels_saturated[i] = \
+                    (self.exp_dat['frames'][:, :, i] >= threshold).sum()
+            self.exp_dat['n_pixels_gt_threshold'] = \
+                n_pixels_saturated.astype('int32')
+            self.exp_dat['threshold_for_counts'] = threshold_saturation
+            print('Maximum number of saturated pixels in a frame: '
+                  + str(self.exp_dat['n_pixels_gt_threshold'].max()))
         else:
-            raise Exception('Not initialised file type?')
-        # Count saturated pixels
-        max_scale_frames = 2 ** self.settings['RealBPP'] - 1
-        threshold = threshold_saturation * max_scale_frames
-        print('Counting "saturated" pixels')
-        print('The threshold is set to: ', threshold, ' counts')
-        number_of_frames = len(self.exp_dat['tframes'])
-        n_pixels_saturated = np.zeros(number_of_frames)
-        for i in range(number_of_frames):
-            n_pixels_saturated[i] = \
-                (self.exp_dat['frames'][:, :, i] >= threshold).sum()
-        self.exp_dat['n_pixels_gt_threshold'] = \
-            n_pixels_saturated.astype('int32')
-        self.exp_dat['threshold_for_counts'] = threshold_saturation
+            it = np.argmin(abs(self.exp_dat['tframes'] - t1))
+            M = self.exp_dat['frames'][:, :, it].squeeze()
+            return M
         return
 
-    def subtract_noise(self, t1: float = None, t2: float = None, frame=None):
+    def subtract_noise(self, t1: float = None, t2: float = None, frame=None,
+                       flag_copy: bool = False, return_noise: bool = False):
         """
         Subtract noise from camera frames
 
@@ -1538,6 +1551,9 @@ class Video:
         @param t1: Minimum time to average the noise
         @param t2: Maximum time to average the noise
         @param frame: Optional, frame containing the noise to be subtracted
+        @param flag_copy: If true, a copy of the frame will be stored
+        @param  return_noise: If True, the average frame used for the noise
+        will be returned
         """
         print('.--. ... ..-. -')
         print('Substracting noise')
@@ -1584,12 +1600,10 @@ class Video:
                 raise Exception('The noise frame has not the correct shape')
             self.exp_dat['frame_noise'] = frame
         # Create the original frame array:
-        if 'original_frames' not in self.exp_dat:
+        if 'original_frames' not in self.exp_dat and flag_copy:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
-        else:
-            print('original frames already present, not making new copy')
         # Subtract the noise
-        for i in range(nt):
+        for i in tqdm(range(nt)):
             # Perform the subtraction in float to avoid negative values in uint
             dummy = \
                 self.exp_dat['frames'][:, :, i].squeeze().astype(np.float64) -\
@@ -1598,6 +1612,8 @@ class Video:
             dummy[dummy < 0] = 0.
             self.exp_dat['frames'][:, :, i] = dummy.astype(original_dtype)
         print('-... -.-- . / -... -.-- .')
+        if return_noise:
+            return frame
         return
 
     def return_to_original_frames(self):
@@ -1889,37 +1905,84 @@ class Video:
         ax.set_ylim(ylim)
         return ax
 
-    def find_orientation(self, t, verbose: bool = True):
+    def find_orientation(self, t, verbose: bool = True, R=None, z=None):
         """
         find the orientation of FILD for a given time
 
         José Rueda: jrrueda@us.es
 
-        ToDo: Now it only load data from the remap_structure, if remap does not
-        exist, it should calculate the angles
-
-        @param t: time point where we want the angles [s]
+        @param t: time point where we want the angles [s]. It can be 'all' in
+        that case, the orientation will be calculated for all time points
         @param verbose: flag to print information or not
+        @param R: R coordinate of the detector (in meters) for B calculation
+        @param z: z coordinate of the detector (in meters) for B calculation
+
         @return theta: theta angle [º]
         @return phi: phi angle [º]
         """
-        if self.remap_dat is None:
-            raise Exception('Remap not done!!!')
         if self.diag == 'FILD':
-            tmin = self.remap_dat['tframes'][0]
-            tmax = self.remap_dat['tframes'][-1]
-            if t < tmin or t > tmax:
-                raise Exception('Time not present in the remap')
+            if self.remap_dat is None:
+                alpha = ssdat.FILD[self.diag_ID-1]['alpha']
+                beta = ssdat.FILD[self.diag_ID-1]['beta']
+                print('Remap not done, calculating angles')
+
+                if t == 'all':
+                    nframes = self.exp_dat['tframes'].size
+                    if machine == 'AUG':
+                        print('Opening shotfile from magnetic field')
+                        import map_equ as meq
+                        equ = meq.equ_map(self.shot, diag='EQH')
+                        br = np.zeros(nframes)
+                        bz = np.zeros(nframes)
+                        bt = np.zeros(nframes)
+                    theta = np.zeros(nframes)
+                    phi = np.zeros(nframes)
+                    for iframe in tqdm(range(nframes)):
+                        # To avoid stupid bugs in the python library of AUG to
+                        # read the magnetic field
+                        if machine == 'AUG':
+                            tframe = self.exp_dat['tframes'][iframe]
+                            br[iframe], bz[iframe], bt[iframe], bp =\
+                                ssdat.get_mag_field(self.shot, R, z,
+                                                    time=tframe,
+                                                    equ=equ)
+                        phi[iframe], theta[iframe] = \
+                            ssFILDSIM.calculate_fild_orientation(br[iframe],
+                                                                 bz[iframe],
+                                                                 bt[iframe],
+                                                                 alpha, beta)
+                    time = 'all'
+                else:
+                    br, bz, bt, bp =\
+                        ssdat.get_mag_field(self.shot, R, z, time=t)
+
+                    phi, theta = \
+                        ssfildsim.calculate_fild_orientation(br, bz, bt,
+                                                             alpha, beta)
+                    time = t
+
             else:
-                it = np.argmin(abs(self.remap_dat['tframes'] - t))
-                theta = self.remap_dat['theta'][it]
-                phi = self.remap_dat['phi'][it]
-                time = self.remap_dat['tframes'][it]
+                tmin = self.remap_dat['tframes'][0]
+                tmax = self.remap_dat['tframes'][-1]
+                if t < tmin or t > tmax:
+                    raise Exception('Time not present in the remap')
+                else:
+                    it = np.argmin(abs(self.remap_dat['tframes'] - t))
+                    theta = self.remap_dat['theta'][it]
+                    phi = self.remap_dat['phi'][it]
+                    time = self.remap_dat['tframes'][it]
         if verbose:
+            # I include these 'np.array' in order to be compatible with the
+            # case of just one time point and multiple ones. It is not the most
+            # elegant way to proceed, but it works ;)
             print('Requested time:', t)
-            print('Found time: ', time)
-            print('theta:', theta)
-            print('phi:', phi)
+            if self.remap_dat is None:
+                print('Found time: ', time)
+            print('Average theta:', np.array(theta).mean())
+            print('Average phi:', np.array(phi).mean())
+            if self.remap_dat is None:
+                print('Average B field: ',
+                      np.array(np.sqrt(bt**2 + bp**2)[0]).mean())
         return phi, theta
 
     def GUI_frames(self):
@@ -1927,7 +1990,9 @@ class Video:
         text = 'Press TAB until the time slider is highlighted in red.'\
             + ' Once that happend, you can move the time with the arrows'\
             + ' of the keyboard, frame by frame'
+        print('-------------------')
         print(text)
+        print('-------------------')
         root = tk.Tk()
         root.resizable(height=None, width=None)
         ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat)
@@ -1946,10 +2011,23 @@ class Video:
         root.mainloop()
         root.destroy()
 
+    def GUI_profiles(self):
+        """Small GUI to explore camera and remapped frames"""
+        text = 'Press TAB until the time slider is highlighted in red.'\
+            + ' Once that happend, you can move the time with the arrows'\
+            + ' of the keyboard, frame by frame'
+        print(text)
+        root = tk.Tk()
+        root.resizable(height=None, width=None)
+        ssGUI.ApplicationShowProfiles(root, self.exp_dat, self.remap_dat)
+        root.mainloop()
+        root.destroy()
+
     def plot_profiles_in_time(self, ccmap=None, plt_params: dict = {}, t=None,
                               nlev: int = 50, cbar_tick_format: str = '%.1E',
                               normalise=False, max_gyr=None, min_gyr=None,
-                              max_pitch=None, min_pitch=None):
+                              max_pitch=None, min_pitch=None, ax=None,
+                              line_params={}):
         """
         Creates a plot with the evolution of the profiles
 
@@ -1973,70 +2051,63 @@ class Video:
         else:
             cmap = ccmap
 
-        if 'fontsize' not in plt_params:
-            plt_params['fontsize'] = 16
+        # if 'fontsize' not in plt_params:
+        #     plt_params['fontsize'] = 16
 
         if t is None:  # 2d plots
-            # Gyroradius profiles
-            fig1, ax1 = plt.subplots()
+            # --- Gyroradius profiles
+            fig1, ax1 = plt.subplots()   # Open figure and plot
             cont = ax1.contourf(self.remap_dat['tframes'],
                                 self.remap_dat['yaxis'],
                                 self.remap_dat['sprofy'], nlev, cmap=cmap,
                                 vmin=min_gyr, vmax=max_gyr)
             cbar = plt.colorbar(cont, format=cbar_tick_format)
-            cbar.set_label('Counts [a.u.]', fontsize=plt_params['fontsize'])
-            cbar.ax.tick_params(labelsize=plt_params['fontsize'] * .8)
-            # Write the shot number and detector id
-            gyr_level = self.remap_dat['yaxis'][-1] -\
-                0.1*(self.remap_dat['yaxis'][-1]
-                     - self.remap_dat['yaxis'][0])  # Jut a nice position
-            tpos1 = self.remap_dat['tframes'][0] + 0.05 * \
-                (self.remap_dat['tframes'][-1] - self.remap_dat['tframes'][0])
-            tpos2 = self.remap_dat['tframes'][0] + 0.95 * \
-                (self.remap_dat['tframes'][-1] - self.remap_dat['tframes'][0])
-            FS = plt_params['fontsize']
+            cbar.set_label('Counts [a.u.]')
+            # Write the shot number and detector id.
             if self.diag == 'FILD':
-                plt.text(tpos1, gyr_level, '#' + str(self.shot),
-                         horizontalalignment='left', fontsize=0.9*FS,
-                         color='w', verticalalignment='bottom')
-                plt.text(tpos1, gyr_level,
+                plt.text(0.05, 0.9, '#' + str(self.shot),
+                         horizontalalignment='left',
+                         color='w', verticalalignment='bottom',
+                         transform=ax1.transAxes)
+                plt.text(0.05, 0.9,
                          str(self.remap_dat['options']['pprofmin']) + 'º to '
                          + str(self.remap_dat['options']['pprofmax']) + 'º',
-                         horizontalalignment='left', fontsize=0.9*FS,
-                         color='w', verticalalignment='top')
-                plt.text(tpos2, gyr_level, self.diag + str(self.diag_ID),
-                         horizontalalignment='right', fontsize=0.9*FS,
-                         color='w', verticalalignment='bottom')
+                         horizontalalignment='left',
+                         color='w', verticalalignment='top',
+                         transform=ax1.transAxes)
+                plt.text(0.95, 0.9, self.diag + str(self.diag_ID),
+                         horizontalalignment='right',
+                         color='w', verticalalignment='bottom',
+                         transform=ax1.transAxes)
                 plt_params['xlabel'] = 'Time [s]'
                 plt_params['ylabel'] = self.remap_dat['ylabel'] + ' [' +\
                     self.remap_dat['yunits'] + ']'
             ax1 = ssplt.axis_beauty(ax1, plt_params)
             plt.tight_layout()
-            # Pitch profiles in time
-            fig2, ax2 = plt.subplots()
+            # --- Pitch profiles in time
+            fig2, ax2 = plt.subplots()   # Open figure and draw contour
             cont = ax2.contourf(self.remap_dat['tframes'],
                                 self.remap_dat['xaxis'],
                                 self.remap_dat['sprofx'], nlev, cmap=cmap,
                                 vmin=min_gyr, vmax=max_gyr)
             cbar = plt.colorbar(cont, format=cbar_tick_format)
-            cbar.set_label('Counts [a.u.]', fontsize=plt_params['fontsize'])
-            cbar.ax.tick_params(labelsize=plt_params['fontsize'] * .8)
+            cbar.set_label('Counts [a.u.]')
             # Write the shot number and detector id
-            level = self.remap_dat['xaxis'][-1] -\
-                0.1*(self.remap_dat['xaxis'][-1]
-                     - self.remap_dat['xaxis'][0])  # Jut a nice position
             if self.diag == 'FILD':  # Add a labal with the integration range
-                plt.text(tpos1, level, '#' + str(self.shot),
-                         horizontalalignment='left', fontsize=0.9*FS,
-                         color='w', verticalalignment='bottom')
-                plt.text(tpos1, level,
+                plt.text(0.05, 0.9, '#' + str(self.shot),
+                         horizontalalignment='left',
+                         color='w', verticalalignment='bottom',
+                         transform=ax2.transAxes)
+                plt.text(0.05, 0.9,
                          str(self.remap_dat['options']['rprofmin']) + 'cm to '
                          + str(self.remap_dat['options']['rprofmax']) + 'cm',
-                         horizontalalignment='left', fontsize=0.9*FS,
-                         color='w', verticalalignment='top')
-                plt.text(tpos2, level, self.diag + str(self.diag_ID),
-                         horizontalalignment='right', fontsize=0.9*FS,
-                         color='w', verticalalignment='bottom')
+                         horizontalalignment='left',
+                         color='w', verticalalignment='top',
+                         transform=ax2.transAxes)
+                plt.text(0.95, 0.9, self.diag + str(self.diag_ID),
+                         horizontalalignment='right',
+                         color='w', verticalalignment='bottom',
+                         transform=ax2.transAxes)
                 plt_params['xlabel'] = 'Time [s]'
                 plt_params['ylabel'] = self.remap_dat['xlabel'] + ' [' +\
                     self.remap_dat['xunits'] + ']'
@@ -2047,16 +2118,11 @@ class Video:
             if 'grid' not in plt_params:
                 plt_params['grid'] = 'both'
             # see if the input time is an array:
-            try:
-                t.size
-            except AttributeError:
-                try:
-                    len(t)
-                    t = np.array(t)
-                except TypeError:
-                    t = np.array([t])
+            if not isinstance(t, (list, np.ndarray)):
+                t = np.array([t])
             # Open the figure
-            fig, (ax1, ax2) = plt.subplots(1, 2)
+            if ax is None:
+                fig, ax = plt.subplots(1, 2)
             for tf in t:
                 # find the frame we want to plot
                 it = np.argmin(abs(self.remap_dat['tframes'] - tf))
@@ -2066,18 +2132,20 @@ class Video:
                     y /= y.max()
                 else:
                     y = self.remap_dat['sprofy'][:, it]
-                ax1.plot(self.remap_dat['yaxis'], y,
-                         label='t = {0:.3f}s'.format(
-                            self.remap_dat['tframes'][it]))
+                ax[0].plot(self.remap_dat['yaxis'], y,
+                           label='t = {0:.3f}s'.format(
+                           self.remap_dat['tframes'][it]),
+                           **line_params)
                 # Plot the pitch profile
                 if normalise:
                     y = self.remap_dat['sprofx'][:, it]
                     y /= y.max()
                 else:
                     y = self.remap_dat['sprofx'][:, it]
-                ax2.plot(self.remap_dat['xaxis'], y,
-                         label='t = {0:.3f}s'.format(
-                            self.remap_dat['tframes'][it]))
+                ax[1].plot(self.remap_dat['xaxis'], y,
+                           label='t = {0:.3f}s'.format(
+                           self.remap_dat['tframes'][it]),
+                           **line_params)
             if self.diag == 'FILD':
                 title = '#' + str(self.shot) + ' ' +\
                     str(self.remap_dat['options']['pprofmin']) + 'º to ' +\
@@ -2085,9 +2153,9 @@ class Video:
                 plt_params['xlabel'] = self.remap_dat['ylabel'] + ' [' +\
                     self.remap_dat['yunits'] + ']'
                 plt_params['ylabel'] = 'Counts [a.u.]'
-                ax1.set_title(title, fontsize=plt_params['fontsize'])
-            ax1 = ssplt.axis_beauty(ax1, plt_params)
-            ax1.legend()
+                ax[0].set_title(title)
+            ax[0] = ssplt.axis_beauty(ax[0], plt_params)
+            ax[0].legend()
             if self.diag == 'FILD':
                 title = '#' + str(self.shot) + ' ' +\
                     str(self.remap_dat['options']['rprofmin']) + 'cm to ' +\
@@ -2095,9 +2163,9 @@ class Video:
                 plt_params['xlabel'] = self.remap_dat['xlabel'] + ' [' +\
                     self.remap_dat['xunits'] + ']'
                 plt_params['ylabel'] = 'Counts [a.u.]'
-                ax2.set_title(title, fontsize=plt_params['fontsize'])
-            ax2.legend()
-            ax2 = ssplt.axis_beauty(ax2, plt_params)
+                ax[1].set_title(title)
+            ax[1].legend()
+            ax[1] = ssplt.axis_beauty(ax[1], plt_params)
             plt.tight_layout()
         plt.show()
         return
@@ -2112,7 +2180,6 @@ class Video:
         """
         # Set plotting options:
         ax_options = {
-            'fontsize': 14,
             'grid': 'both'
         }
         ax_options.update(ax_params)

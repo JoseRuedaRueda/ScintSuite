@@ -5,12 +5,13 @@ NOTICE: I consider the creatation of the transfer matrix as an issue of the
 synthetic codes (INPASIM, FILDSIM, i/HIBPSIM) therefore the routines which
 create these matries are placed are their corresponding libraries
 """
-
+import pickle
+import os
 import numpy as np
 import matplotlib.pyplot as plt
-import LibFILDSIM as ssfildsim
-import LibMap as ssmapping
-import LibIO as ssio
+import Lib.SimulationCodes.FILDSIM as ssfildsim
+import Lib.LibMap as ssmapping
+import Lib.LibIO as ssio
 from scipy import ndimage        # To denoise the frames
 from scipy.io import netcdf                # To export remap data
 from tqdm import tqdm            # For waitbars
@@ -19,7 +20,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
 from scipy.optimize import nnls     # Non negative least squares
 from sklearn.linear_model import ElasticNet  # ElaticNet
-from version_suite import version
+from Lib.version_suite import version
 try:
     import lmfit as lm
 except ModuleNotFoundError:
@@ -109,7 +110,7 @@ def Ridge_inversion(X, y, alpha):
 def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
                log_spaced: bool = True, plot: bool = True,
                line_param: dict = {'linewidth': 1.5},
-               FS: float = 14):
+               FS: float = 14, folder_to_save: str = None):
     """
     Scan the slpha parameters to find the best hyper-parameter
 
@@ -123,6 +124,9 @@ def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
     @param log_spaced: if true, points will be logspaced
     @param line_param: dictionary with the line plotting parameters
     @param FS: FontSize
+    @param folder_to_save: if not None, in each iteration the calculated
+           inversion will be saved, in pickle format, inside the folder
+
     @return out: Dictionay with fields:
         -# beta: array of coefficients [nfeatures, nalphas]
         -# MSE: arrays of MSEs
@@ -149,7 +153,9 @@ def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
     print('Performing regression')
     for i in tqdm(range(n_alpha)):
         beta[:, i], MSE[i], res[i], r2[i] = Ridge_inversion(X, y, alpha[i])
-
+        if folder_to_save is not None:
+            file = os.path.join(folder_to_save, str(i) + '.pck')
+            ssio.save_object_pickle(file, [beta[:, i], MSE[i], res[i], r2[i]])
     # --- Plot if needed:
     if plot:
         fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
@@ -227,7 +233,7 @@ def nnRidge(X, y, alpha, param: dict = {}):
 def nnRidge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
                  log_spaced: bool = True, plot: bool = True,
                  line_param: dict = {'linewidth': 1.5},
-                 FS: float = 14):
+                 FS: float = 14, folder_to_save: str = None):
     """
     Scan the alpha parameters to find the best hyper-parameter (nnRidge)
 
@@ -241,6 +247,9 @@ def nnRidge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
     @param log_spaced: if true, points will be logspaced
     @param line_param: dictionary with the line plotting parameters
     @param FS: FontSize
+    @param folder_to_save: if not None, in each iteration the calculated
+       inversion will be saved, in pickle format, inside the folder
+
     @return out: Dictionay with fields:
         -# beta: array of coefficients [nfeatures, nalphas]
         -# MSE: arrays of MSEs
@@ -267,6 +276,9 @@ def nnRidge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
     print('Performing regression')
     for i in tqdm(range(n_alpha)):
         beta[:, i], MSE[i], res[i], r2[i] = nnRidge(X, y, alpha[i])
+        if folder_to_save is not None:
+            file = os.path.join(folder_to_save, str(i) + '.pck')
+            ssio.save_object_pickle(file, [beta[:, i], MSE[i], res[i], r2[i]])
 
     # --- Plot if needed:
     if plot:
@@ -528,12 +540,15 @@ def L_curve_fit(norm, residual, a1_min=-1000, a1_max=0,
 def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
                      verbose: bool = True, plt_frame: bool = False,
                      LIMIT_REGION_FCOL: bool = True,
-                     efficiency=None):
+                     efficiency=None, median_filter=False,
+                     filter_option: dict = {'size': 0},
+                     remap_method: str = 'MC',
+                     is_remap: bool = False,
+                     B=1.8, Z=1.0, A=2.0, only_gyroradius=False):
     """
     Prepare the arrays to perform the tomographic inversion in FILD
 
     Jose Rueda: jrrueda@us.es
-
 
     @param    frame: camera frame (in photons /s) you can put directly the
     camera frame if you want a.u
@@ -543,59 +558,92 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
     @param    verbose: Print some notes on the console
     @param    plt_frame: Plot the frame and noise suppressed frame (todo)
     @param    LIMIT_REGION_FCOL: Limit the pinhole grid to points with fcol>0
-    @param    efficiency: efficiency dictionary
-    @return   signal1D:  Signal filtered and reduced in 1D array
-    @return   W2D: Weight function compressed as 2D
+    @param    efficiency: efficiency dictionary, or path to the efficiency file
+    @param    median_filter: apply median filter to the remap frame
+    @param    filter options: options for the median filter, for the remap
+    @param    remap_method: Method to perform the remap, center or MC, MC is
+              hihgly recomended to avoid remap noise
+    @param    is_remap: if true, it will means that the frame input is not the
+              camer frame but the (r pitch) distribution at the pinhole,
+              in this case, no remap will be done here and 'frame' will be
+              directly consider as signal for the tomography (useful if we are
+              dealing with shyntetic data). In this case, frame should be
+              [npitch, nradius], as in the remap
+    @param B: Magnetic field, used to translate between radius and energy, for
+    the efficiency evaluation
+    @param A: Mass in amu, used to translate between radius and energy, for the
+    efficiency evaluation
+    @param Z: charge in elecrton charges, used to translate between radius and
+    energy, for the efficiency evaluation
+    @param only_gyroradius: flag to decide if the output will be the matrix
+    just relating giroradius in the pinhole and the scintillator, ie, pitch
+    integrated
+
+    @return s1D: The 2D remapped ordered in a 1D array, (for the inversion)
+    @return W2D: The weight function, ordered just in 2D [scint, pinhole]
+    @return W4D: The W, in its 4 dimmensions
+    @return scint_grid: Grid used in the scintillator
+    @return pgrid: Grid used in the pinhole, can be different from the input if
+    LIMIT_REGION_FCOL is activated
+    @return rep_frame: Remapped frame (signal)
     """
     print('.--. ... ..-. -')
     print('Preparing W and the measurement')
     # --- create the grids
     nr = int((s_opt['rmax'] - s_opt['rmin']) / s_opt['dr'])
     nnp = int((s_opt['pmax'] - s_opt['pmin']) / s_opt['dp'])
-    redges = s_opt['rmin'] - s_opt['dr']/2 + np.arange(nr+2) * s_opt['dr']
-    pedges = s_opt['pmin'] - s_opt['dp']/2 + np.arange(nnp+2) * s_opt['dp']
+    sredges = s_opt['rmin'] - s_opt['dr']/2 + np.arange(nr+2) * s_opt['dr']
+    spedges = s_opt['pmin'] - s_opt['dp']/2 + np.arange(nnp+2) * s_opt['dp']
 
-    scint_grid = {'nr': nr, 'np': nnp,
-                  'r': 0.5 * (redges[:-1] + redges[1:]),
-                  'p': 0.5 * (pedges[:-1] + pedges[1:])}
+    scint_grid = {'nr': nr + 1, 'np': nnp + 1,
+                  'r': 0.5 * (sredges[:-1] + sredges[1:]),
+                  'p': 0.5 * (spedges[:-1] + spedges[1:])}
 
     nr = int((p_opt['rmax'] - p_opt['rmin']) / p_opt['dr'])
     nnp = int((p_opt['pmax'] - p_opt['pmin']) / p_opt['dp'])
     redges = p_opt['rmin'] - p_opt['dr']/2 + np.arange(nr+2) * p_opt['dr']
     pedges = p_opt['pmin'] - p_opt['dp']/2 + np.arange(nnp+2) * p_opt['dp']
-    pin_grid = {'nr': nr, 'np': nnp,
+    pin_grid = {'nr': nr + 1, 'np': nnp + 1,
                 'r': 0.5 * (redges[:-1] + redges[1:]),
                 'p': 0.5 * (pedges[:-1] + pedges[1:])}
     # Note: In the original IDL implementation, the frame was denoised with the
-    # median filter at thi point of the routine. Here the frame it supposed to
+    # median filter at this point of the routine. Here the frame it supposed to
     # be filtered and denoised with the routines of the video class BEFORE
     # calling the tomography reconstruction. In this way routines are not
     # duplicated and all the new implementations of filters can be used
 
     # --- Remap the frame
-    rep_frame, r, p = ssmapping.remap(smap, frame, x_min=s_opt['pmin'],
-                                      x_max=s_opt['pmax'],
-                                      delta_x=s_opt['dp'],
-                                      y_min=s_opt['rmin'],
-                                      y_max=s_opt['rmax'],
-                                      delta_y=s_opt['dr'])
-    # Just transpose the frame. (To have the W in the same ijkl order of the
-    # old IDL-MATLAB implementation)
-    rep_frame = rep_frame.T
+    if not is_remap:
+        rep_frame = ssmapping.remap(smap, frame, x_edges=spedges,
+                                    y_edges=sredges, method=remap_method)
+        # Just transpose the frame. (To have the W in the same ijkl order of
+        # old IDL-MATLAB implementation)
+        rep_frame = rep_frame.T
+    else:
+        rep_frame = frame.T
+        n_g_remap, n_p_remap = rep_frame.shape
+        if n_g_remap != scint_grid['nr'] or n_p_remap != scint_grid['np']:
+            print('nr in frame', n_g_remap)
+            print('nr in grid', scint_grid['nr'])
+            print('np in frame', n_p_remap)
+            print('np in grid', scint_grid['np'])
+            raise Exception('Remap frame not in the proper grid')
+
+        rep_frame = frame.T
+    if median_filter:
+        print('..-. .. .-.. - . .-. .. -. --.')
+        'Applying median filter to remap frame'
+        rep_frame = ndimage.median_filter(rep_frame, **filter_option)
 
     # --- Limit the grid
     if LIMIT_REGION_FCOL:
         print('Grid Definition --> Limiting to regions where FCOL>0')
-        # Find gyr and pitch with fcol>0
-        flags = smap.collimator_factor > 0.
-        dummy_r = smap.gyroradius[flags]
-        dummy_p = smap.pitch[flags]
-        unique_r = np.unique(dummy_r)
-        unique_p = np.unique(dummy_p)
-        minr = unique_r.min()
-        maxr = unique_r.max()
-        minp = unique_p.min()
-        maxp = unique_p.max()
+        # Find gyr and pitch with fcol>0: Only the ones presents in the
+        # strike points file has fcol>0
+        minr = smap.strike_points['gyroradius'].min()
+        maxr = smap.strike_points['gyroradius'].max()
+        minp = smap.strike_points['pitch'].min()
+        maxp = smap.strike_points['pitch'].max()
         # Select only those values on the scint grid
         flags_r = (pin_grid['r'] > minr) * (pin_grid['r'] < maxr)
         flags_p = (pin_grid['p'] > minp) * (pin_grid['p'] < maxp)
@@ -620,25 +668,20 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
         print('---')
 
     # --- Build transfer function
-    W4D = ssfildsim.build_weight_matrix(smap, scint_grid['r'], scint_grid['p'],
-                                        pgrid['r'], pgrid['p'], efficiency)
+    W4D, W2D = ssfildsim.build_weight_matrix(smap, scint_grid['r'],
+                                             scint_grid['p'], pgrid['r'],
+                                             pgrid['p'], efficiency,
+                                             B=B, Z=Z, A=A,
+                                             only_gyroradius=only_gyroradius)
 
-    # --- Collapse Weight function
-    W2D = np.zeros((scint_grid['nr'] * scint_grid['np'],
-                   pgrid['nr'] * pgrid['np']))
-    ## todo make this with an elegant numpy reshape, not manually
-    print('Reshaping W: ')
-    for irs in tqdm(range(scint_grid['nr'])):
-        for ips in range(scint_grid['np']):
-            for irp in range(pgrid['nr']):
-                for ipp in range(pgrid['np']):
-                    W2D[irs * scint_grid['np'] + ips, irp * pgrid['np'] + ipp]\
-                        = W4D[irs, ips, irp, ipp]
     # --- Collapse signal into 1D
-    signal1D = np.zeros(scint_grid['nr'] * scint_grid['np'])
-    for irs in range(scint_grid['nr']):
-        for ips in range(scint_grid['np']):
-            signal1D[irs * scint_grid['np'] + ips] = rep_frame[irs, ips]
+    if not only_gyroradius:
+        signal1D = np.zeros(scint_grid['nr'] * scint_grid['np'])
+        for irs in range(scint_grid['nr']):
+            for ips in range(scint_grid['np']):
+                signal1D[irs * scint_grid['np'] + ips] = rep_frame[irs, ips]
+    else:
+        signal1D = np.sum(rep_frame, axis=1)
 
     return signal1D, W2D, W4D, scint_grid, pgrid, rep_frame
 
@@ -646,88 +689,108 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
 # -----------------------------------------------------------------------------
 # --- Import/Export tomography
 # -----------------------------------------------------------------------------
-def export_tomography(name, data):
+def export_tomography(name, data, file_format='pickle'):
     """
-    Function in beta phase
-    
+    Function in beta phase, netCDF not fully implemented
+
     """
     if name is None:
         name = ssio.ask_to_save()
     print('Saving results in: ', name)
-    with netcdf.netcdf_file(name, 'w') as f:
-        f.history = 'Done with version ' + version
-        # --- Create the dimenssions:
-        pxf, pyf = data['frame'].shape
-        nr_scint = data['sg']['nr']
-        np_scint = data['sg']['np']
-        nr_pin = data['sg']['nr_pin']
-        np_pin = data['sg']['np_pin']
-        nalpha = len(data['MSE'])
-        f.createDimension('pxf', pxf)
-        f.createDimension('pyf', pyf)
-        f.createDimension('nr_scint', nr_scint)
-        f.createDimension('np_scint', np_scint)
-        f.createDimension('nr_pin', nr_pin)
-        f.createDimension('np_pin', np_pin)
-        f.createDimension('nalpha', nalpha)
+    if file_format == 'netCDF':
+        with netcdf.netcdf_file(name, 'w') as f:
+            f.history = 'Done with version ' + version
+            # --- Create the dimenssions:
+            pxf, pyf = data['frame'].shape
+            nr_scint = data['sg']['nr']
+            np_scint = data['sg']['np']
+            nr_pin = data['sg']['nr_pin']
+            np_pin = data['sg']['np_pin']
+            nalpha = len(data['MSE'])
+            f.createDimension('pxf', pxf)
+            f.createDimension('pyf', pyf)
+            f.createDimension('nr_scint', nr_scint)
+            f.createDimension('np_scint', np_scint)
+            f.createDimension('nr_pin', nr_pin)
+            f.createDimension('np_pin', np_pin)
+            f.createDimension('nalpha', nalpha)
 
-        # --- Save the camera frame:
-        var = f.createVariable('frame', 'float64', ('pxf', 'pyf'))
-        var[:] = data['frame']
-        var.units = '#'
-        var.long_name = 'Camera frame'
-        var.short_name = 'Counts'
+            # --- Save the camera frame:
+            var = f.createVariable('frame', 'float64', ('pxf', 'pyf'))
+            var[:] = data['frame']
+            var.units = '#'
+            var.long_name = 'Camera frame'
+            var.short_name = 'Counts'
 
-        # --- Remap
-        var = f.createVariable('remap', 'float64', ('nr_scint', 'np_scint'))
-        var[:] = data['remap']
-        var.units = 'a.u.'
-        var.long_name = 'Remaped frame'
-        var.short_name = 'Remap'
+            # --- Remap
+            var = f.createVariable('remap', 'float64',
+                                   ('nr_scint', 'np_scint'))
+            var[:] = data['remap']
+            var.units = 'a.u.'
+            var.long_name = 'Remaped frame'
+            var.short_name = 'Remap'
 
-        # --- Inverted frames:
-        var = f.createVariable('tomoFrames', 'float64', ('nr_pin', 'np_pin',
-                                                         'nalpha'))
-        var[:] = data['tomoFrames']
-        var.units = 'a.u.'
-        var.long_name = 'Tomographic inversion frame'
-        var.short_name = 'Pinhole frames'
+            # --- Inverted frames:
+            var = f.createVariable('tomoFrames', 'float64',
+                                   ('nr_pin', 'np_pin', 'nalpha'))
+            var[:] = data['tomoFrames']
+            var.units = 'a.u.'
+            var.long_name = 'Tomographic inversion frame'
+            var.short_name = 'Pinhole frames'
 
-        # --- figures of merit:
-        var = f.createVariable('norm', 'float64', ('nalpha'))
-        var[:] = data['norm']
-        var.units = 'a.u.'
-        var.long_name = 'Norm of the pinhole distribution'
-        var.short_name = '|F|'
+            # --- figures of merit:
+            var = f.createVariable('norm', 'float64', ('nalpha'))
+            var[:] = data['norm']
+            var.units = 'a.u.'
+            var.long_name = 'Norm of the pinhole distribution'
+            var.short_name = '|F|'
 
-        # --- MSE:
-        var = f.createVariable('MSE', 'float64', ('nalpha'))
-        var[:] = data['MSE']
-        var.units = 'a.u.'
-        var.long_name = 'Mean Squared Error'
-        var.short_name = 'MSE'
+            # --- MSE:
+            var = f.createVariable('MSE', 'float64', ('nalpha'))
+            var[:] = data['MSE']
+            var.units = 'a.u.'
+            var.long_name = 'Mean Squared Error'
+            var.short_name = 'MSE'
 
-        # --- grid:
-        var = f.createVariable('rpin', 'float64', ('nr_pin'))
-        var[:] = data['sg']['r']
-        var.units = 'cm'
-        var.long_name = 'Gyroradius at pinhole'
-        var.short_name = '$r_l$'
+            # --- grid:
+            var = f.createVariable('rpin', 'float64', ('nr_pin'))
+            var[:] = data['sg']['r']
+            var.units = 'cm'
+            var.long_name = 'Gyroradius at pinhole'
+            var.short_name = '$r_l$'
 
-        var = f.createVariable('ppin', 'float64', ('np_pin'))
-        var[:] = data['sg']['p']
-        var.units = ' '
-        var.long_name = 'Pitch at pinhole'
-        var.short_name = 'Pitch'
+            var = f.createVariable('ppin', 'float64', ('np_pin'))
+            var[:] = data['sg']['p']
+            var.units = ' '
+            var.long_name = 'Pitch at pinhole'
+            var.short_name = 'Pitch'
 
-        var = f.createVariable('rscint', 'float64', ('nr_scint'))
-        var[:] = data['sg']['r']
-        var.units = 'cm'
-        var.long_name = 'Gyroradius at scintillator'
-        var.short_name = '$r_l$'
+            var = f.createVariable('rscint', 'float64', ('nr_scint'))
+            var[:] = data['sg']['r']
+            var.units = 'cm'
+            var.long_name = 'Gyroradius at scintillator'
+            var.short_name = '$r_l$'
 
-        var = f.createVariable('pscint', 'float64', ('nr_scint'))
-        var[:] = data['sg']['r']
-        var.units = ' '
-        var.long_name = 'Pitch at scintillator'
-        var.short_name = 'Pitch'
+            var = f.createVariable('pscint', 'float64', ('nr_scint'))
+            var[:] = data['sg']['r']
+            var.units = ' '
+            var.long_name = 'Pitch at scintillator'
+            var.short_name = 'Pitch'
+    elif file_format == 'pickle':
+        f = open(name, 'wb')
+        pickle.dump(data, f, protocol=4)
+        f.close()
+
+
+def load_tomography(name, file_format='pickle'):
+    """
+    Function to load the tomography, netCDF not fully implemented
+    """
+    if name is None:
+        name = ssio.ask_to_open()
+    print('Reading data from: ', name)
+    if file_format == 'pickle':
+        f = open(name, 'rb')
+        output = pickle.load(name)
+        f.close()
+    return output

@@ -3,11 +3,17 @@ import get_gc            # Module to load vessel components
 import dd                # Module to load shotfiles
 import numpy as np
 import os
-from LibPaths import Path
-import Equilibrium as equil
-import DiagParam as params
+import math
+# import warnings
+from Lib.LibPaths import Path
+import Lib.LibData.AUG.Equilibrium as equil
+import Lib.LibData.AUG.DiagParam as params
 import matplotlib.pyplot as plt
-import LibPlotting as ssplt
+import Lib.LibPlotting as ssplt
+import Lib.LibUtilities as ssextra
+import Lib.LibParameters as sspar
+import Lib.LibTracker as sstracker
+
 pa = Path()
 
 
@@ -86,7 +92,7 @@ def toroidal_vessel(rot: float = -np.pi/8.0*3.0):
 # -----------------------------------------------------------------------------
 # --- NBI coordinates
 # -----------------------------------------------------------------------------
-def _NBI_diaggeom_coordinates(nnbi):
+def NBI_diaggeom_coordinates(nnbi):
     """
     Just the coordinates manually extracted for shot 32312
 
@@ -94,11 +100,12 @@ def _NBI_diaggeom_coordinates(nnbi):
     @return coords: dictionary containing the coordinates of the initial and
     final points. '0' are near the source, '1' are near the central column
     """
+    # --- Diaggeom parameters
     r0 = np.array([2.6, 2.6, 2.6, 2.6, 2.6, 2.6, 2.6, 2.6])
     r1 = np.array([1.046, 1.046, 1.046, 1.046, 1.048, 2.04, 2.04, 1.048])
 
     z0 = np.array([0.022, 0.021, -0.021, -0.022,
-                   -0.019, -0.149, 0.149, 0.19])
+                   -0.019, -0.149, 0.149, 0.019])
     z1 = np.array([-0.12, -0.145, 0.145, 0.12, -0.180, -0.6, 0.6, 0.180])
 
     phi0 = np.array([-32.725, -31.88, -31.88, -32.725,
@@ -106,16 +113,36 @@ def _NBI_diaggeom_coordinates(nnbi):
     phi1 = np.array([-13.81, 10.07, 10.07, -13.81,
                      -180.0, -99.43, -99.43, -180.0]) * np.pi / 180.0
 
+    # --- Cartesian coordinates
     x0 = r0 * np.cos(phi0)
     x1 = r1 * np.cos(phi1)
 
     y0 = r0 * np.sin(phi0)
     y1 = r1 * np.sin(phi1)
 
+    # --- Distance final-point source
+    length = np.sqrt((x1-x0)**2 + (y1-y0)**2 + (z1-z0)**2)
+
+    # --- Tangency radius:
+    u = np.array((x1[nnbi-1] - x0[nnbi-1], y1[nnbi-1] - y0[nnbi-1],
+                  z1[nnbi-1] - z0[nnbi-1]))
+    u /= math.sqrt(np.sum(u ** 2))
+    p0 = np.array((x0[nnbi-1], y0[nnbi-1], z0[nnbi-1]))
+    t = - (p0[1] * u[1] + p0[0] * u[0]) / (u[0]**2 + u[1]**2)
+    xt = p0[0] + u[0] * t
+    yt = p0[1] + u[1] * t
+    zt = p0[2] + u[2] * t
+    rt = np.sqrt(xt**2 + yt**2)
+
     coords = {'phi0': phi0[nnbi-1], 'phi1': phi1[nnbi-1],
+              'r0': r0[nnbi-1], 'r1': r1[nnbi-1],
               'x0': x0[nnbi-1], 'y0': y0[nnbi-1],
               'z0': z0[nnbi-1], 'x1': x1[nnbi-1],
-              'y1': y1[nnbi-1], 'z1': z1[nnbi-1]}
+              'y1': y1[nnbi-1], 'z1': z1[nnbi-1],
+              'u': u,   # director vector
+              'rt': rt,  # tangency radius
+              'xt': xt, 'yt': yt, 'zt': zt,  # tangency point
+              'length': length[nnbi-1]}
     return coords
 
 
@@ -144,6 +171,10 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
     elif np.mod(len(timeWindow), 2) != 0:
         timeWindow[len(timeWindow)] = np.inf
 
+    # Transforming the nbi inputs into ndarrays.
+    nbion = np.array(nbion)
+    nbioff = np.array(nbioff)
+
     # --- Opening the NBIs shotfile.
     try:
         sf = dd.shotfile(diagnostic='NIS', pulseNumber=shotnumber,
@@ -152,8 +183,8 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
         raise Exception('Could not open NIS shotfile for #$05d' % shotnumber)
 
     # --- Transforming the indices of the NBIs into the AUG system (BOX, Beam)
-    nbion_box = np.asarray(np.floor(nbion/4), dtype=int)
-    nbion_idx = np.asarray(nbion - (nbion_box+1)*4 - 1, dtype=int)
+    nbion_box = np.asarray(np.floor((nbion-1)/4), dtype=int)
+    nbion_idx = np.asarray(nbion - (nbion_box)*4 - 1, dtype=int)
     if nbioff is not None:
         nbioff_box = np.asarray(np.floor(nbioff/4), dtype=int)
         nbioff_idx = np.asarray(nbioff - (nbioff_box+1)*4 - 1, dtype=int)
@@ -221,6 +252,37 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
     return output
 
 
+def getNBI_timeTraces(shotnumber: int, nbilist: int=None):
+    if nbilist is None:
+        nbilist = (1, 2, 3, 4, 5, 6, 7, 8)
+
+
+    nbilist = np.atleast_1d(nbilist)
+    nbi_box = np.asarray(np.floor((nbilist-1)/4), dtype=int)
+    nbi_idx = np.asarray(nbilist - (nbi_box)*4 - 1, dtype=int)
+
+    try:
+        sf = dd.shotfile(diagnostic='NIS', pulseNumber=shotnumber,
+                            edition=0, experiment='AUGD')
+
+    except:
+        raise Exception('NBI shotfile cannot be opened for #%05d'%shotnumber)
+
+    output = dict()
+
+    pniq = np.transpose(sf.getObjectData(b'PNIQ'), (2, 0, 1))*1.0e-6
+    timebase = sf.getTimeBase(b'PNIQ')
+    sf.close()
+
+
+    for ii, nbinum in enumerate(nbilist):
+        output[nbinum] = pniq[:, nbi_box[ii], nbi_idx[ii]]
+
+    output['time']  = timebase
+    output['total'] = np.sum(pniq, axis=(1,2))
+
+    return output
+
 class NBI:
     """Class with the information and data from an NBI"""
 
@@ -244,11 +306,11 @@ class NBI:
         ## Pitch information (injection pitch in each radial position)
         self.pitch_profile = None
         if diaggeom:
-            self.coords = _NBI_diaggeom_coordinates(nnbi)
+            self.coords = NBI_diaggeom_coordinates(nnbi)
         else:
             raise Exception('Sorry, option not yet implemented')
 
-    def calc_pitch_profile(self, shot: int, time: float, rmin: float = 1.1,
+    def calc_pitch_profile(self, shot: int, time: float, rmin: float = 1.3,
                            rmax: float = 2.2, delta: float = 0.04,
                            BtIp: float = params.IB_sign, deg: bool = False,
                            rho_string: str = 'rho_pol'):
@@ -307,6 +369,8 @@ class NBI:
                 Z[istep] = point[2]
                 phi[istep] = np.arctan2(point[1], point[0])
                 flags[istep] = True
+            if Rdum < rmin:
+                break
             point += v
         # calculate the magnetic field
         R = R[flags]
@@ -344,15 +408,168 @@ class NBI:
             # insert the date where it should be
             self.pitch_profile['t'] = \
                 np.concatenate((self.pitch_profile['t'], t))
-            # We assume the user hs not change the grid
-            # self.pitch_profile['z'] = \
-            #     np.vstack((self.pitch_profile['z'], Z))
-            # self.pitch_profile['R'] = \
-            #     np.vstack((self.pitch_profile['R'], R))
+            # We assume the user has not change the grid
             self.pitch_profile['pitch'] = \
                 np.vstack((self.pitch_profile['pitch'], pitch))
             self.pitch_profile['rho'] = \
                 np.vstack((self.pitch_profile['rho'], rho))
+
+    def calculate_intersection(self, R=None, Z=None, shot=None, t=None, rho=1,
+                               precision=0.01, plot=False):
+        """
+        Calculate the intersection point(s) of the NBI line with a surface
+
+        Note the calculation will be done in R,z projection. The surface to
+        intersect can be defined directly by the set of points R,z (np.arrays)
+        or shot number, time and desired rho (still to be implemented)
+
+        @param R: Arrays of R coordinates of the surface (option 1)
+        @param z: Arrays of R coordinates of the surface (option 1)
+        @param shot: shot number (option 2)
+        @param t: time to make the calculation (option 2)
+        @param rho: rho position to make the calculation (option 2)
+        @param precision: precision for the intersection calcualtion
+        @param plot: plot flag for the function find_2D_intersection()
+
+        @return out: dict containing:
+            -# 'x': x coordinates of the cut
+            -# 'y': y coordinates of the cut
+            -# 'z': z coordinates of the cut
+            -# 'r': coordiantes of the cut
+            -# 'phi': phi coordinates of the cut, in radians
+            -# 'd': distance of the intersections to the NBI initial point
+            -# 'n': number of intersections
+        """
+        npoints = int(self.coords['length'] / precision)
+        xnbi = np.linspace(self.coords['x0'], self.coords['x1'], npoints)
+        ynbi = np.linspace(self.coords['y0'], self.coords['y1'], npoints)
+        znbi = np.linspace(self.coords['z0'], self.coords['z1'], npoints)
+        rnbi = np.sqrt(xnbi**2 + ynbi**2)
+        phinbi = np.arctan2(ynbi, xnbi)
+        if (R is not None) and (Z is not None):
+            rintersec, zintersec = \
+                ssextra.find_2D_intersection(rnbi, znbi, R, Z, plot=plot)
+            if rintersec is None:
+                return None
+            phic = np.zeros(len(rintersec))
+            for i in range(phic.size):
+                phic[i] = phinbi[np.argmin(abs(znbi - zintersec[i]))]
+            xc = rintersec * np.cos(phic)
+            yc = rintersec * np.sin(phic)
+            d = np.zeros(len(rintersec))
+            for i in range(d.size):
+                d[i] = math.sqrt((xc[i] - xnbi[0])**2 + (yc[i] - ynbi[0])**2
+                                 + (zintersec[i] - znbi[0])**2)
+        out = {
+            'x': xc,
+            'y': yc,
+            'z': zintersec,
+            'r': rintersec,
+            'phi': phic,
+            'd': d,
+            'n': d.size
+        }
+        return out
+
+    def generate_tarcker_markers(self, Nions, E: float = 93000., sE=2000.,
+                                 Rmin: float = 1.25, Rmax: float = 2.1, A=2.,
+                                 rc=None, lambda0: float = 2.5,
+                                 max_trials=2000):
+        """
+        Prepare markers along the NBI line
+
+        Jose Rueda: jrrueda@us.es
+
+        Gaussian distribution will be assumed for the energies
+
+        @param Nions: Number of markers to generate
+        @param E: energy of the markers [eV]
+        @param sE: standard deviation of the energy of the markers [eV]
+        @param Rmin: minimum radius to launch the markers
+        @param Rmax: maximum radius to launch the markers
+        @param A: Mass number of the ions
+        @param rc: intersection coords of the NBI with the separatrix [x,y,z]
+        @param lambda0: decay length of the NBI weight in the plasma
+        """
+        unit = self.coords['u']
+        p0 = np.array([self.coords['x0'], self.coords['y0'],
+                       self.coords['z0']])
+        # Initialise the random generator:
+        rand = np.random.default_rng()
+        gauss = rand.standard_normal
+        # Initialise the arrays
+        c = 0   # counter of good ions
+        trials = 0  # Number of trials
+        R = np.zeros(Nions, dtype=np.float64)
+        z = np.zeros(Nions, dtype=np.float64)
+        phi = np.zeros(Nions, dtype=np.float64)
+        vR = np.zeros(Nions, dtype=np.float64)
+        vz = np.zeros(Nions, dtype=np.float64)
+        vt = np.zeros(Nions, dtype=np.float64)
+        m = np.zeros(Nions, dtype=np.float64)
+        q = np.zeros(Nions, dtype=np.float64)
+        logw = np.zeros(Nions, dtype=np.float64)
+        t = np.zeros(Nions, dtype=np.float64)
+        if (rc is not None) and (lambda0 is not None):
+            weight_markers = True
+            d0 = math.sqrt((self.coords['x0'] - rc[0])**2
+                           + (self.coords['y0'] - rc[1])**2
+                           + (self.coords['z0'] - rc[2])**2)
+        else:
+            weight_markers = False
+            d0 = 1.
+
+        while c < Nions:
+            trials += 1
+            a = np.random.random()
+            p1 = p0 + a * unit * self.coords['length']
+            R1 = np.sqrt(p1[0]**2 + p1[1]**2)
+
+            if weight_markers:  # to discard markers outside the sep
+                d1 = math.sqrt((self.coords['x0'] - p1[0])**2
+                               + (self.coords['y0'] - p1[1])**2
+                               + (self.coords['z0'] - p1[2])**2)
+                d_plasma = math.sqrt((rc[0] - p1[0])**2
+                                     + (rc[1] - p1[1])**2
+                                     + (rc[2] - p1[2])**2)
+            else:
+                d1 = 2.0 * d0  # to ensure we always enter the next if
+
+            if (R1 > Rmin) and (R1 < Rmax) and (d1 > d0):
+                rand_E = E + sE * gauss()
+                v = np.sqrt(2. * rand_E / A / sspar.mp) * sspar.c * unit
+                R[c] = R1
+                z[c] = p1[2]
+                phi[c] = np.arctan2(p1[1], p1[0])
+                vv = sstracker.cart2pol(p1, v)
+                vR[c] = vv[0]
+                vz[c] = vv[1]
+                vt[c] = vv[2]
+                m[c] = A
+                q[c] = 1
+                if weight_markers:
+                    logw[c] = lambda0 * d_plasma
+                else:
+                    logw[c] = 0.
+                t[c] = 0.0
+                c += 1
+            if trials > max_trials:
+                print('All markers could not be generated')
+                print('Maximum trials reached')
+                c = Nions
+        marker = {
+            'R': R[:c],
+            'z': z[:c],
+            'phi': phi[:c],
+            'vR': vR[:c],
+            'vphi': vt[:c],
+            'vz': vz[:c],
+            'm': m[:c],
+            'q': q[:c],
+            'logw': logw[:c],
+            't': t[:c]
+        }
+        return marker
 
     def plot_pitch_profile(self, line_params: dict = {},
                            ax_param={},
@@ -370,7 +587,7 @@ class NBI:
         ax_parameters = {
             'grid': 'both',
             'ylabel': '$\\lambda$',
-            'fontsize': 14
+            # 'fontsize': 14
         }
         if x_axis == 'R':
             ax_parameters['xlabel'] = 'R [m]'
@@ -409,12 +626,12 @@ class NBI:
                 ax.plot(x,
                         self.pitch_profile['pitch'][i, :],
                         **line_options,
-                        label=line_options['label'] + ', t = ' \
+                        label=line_options['label'] + ', t = '
                         + str(self.pitch_profile['t'][i]))
         if ax_created:
             ax = ssplt.axis_beauty(ax, ax_parameters)
 
-        plt.legend(fontsize=ax_parameters['fontsize'])
+        plt.legend()
 
     def plot_central_line(self, projection: str = 'Poloidal', ax=None,
                           line_params: dict = {}, units: str = 'm'):
@@ -424,7 +641,7 @@ class NBI:
         Jose Rueda: jrrueda@us.es
 
         @param projection: 'Poloidal' (or 'pol') will plot the poloidal
-        projection, 'Toroidal' (or 'tor') the toroidal one
+        projection, 'Toroidal' (or 'tor') the toroidal one. Also, 3D supported
         @param ax: ax where to plot the NBI line
         @param line_params: line parameters for the function plt.plot()
         @param units: Units to plot, m or cm supportted
@@ -444,14 +661,19 @@ class NBI:
         # Open the axis
         created = False
         if ax is None:
-            fig, ax = plt.subplots()
-            created = True
+            if projection.lower() != '3d':
+                fig, ax = plt.subplots()
+                created = True
+            else:
+                fig = plt.figure()
+                ax = fig.add_subplot(projection='3d')
+                created = True
 
         # Plot the NBI:
-        if (projection == 'Poloidal') or (projection == 'pol'):
-            xx = np.linspace(self.coords['x0'], self.coords['x1'], 100)
-            yy = np.linspace(self.coords['y0'], self.coords['y1'], 100)
-            zz = np.linspace(self.coords['z0'], self.coords['z1'], 100)
+        xx = np.linspace(self.coords['x0'], self.coords['x1'], 100)
+        yy = np.linspace(self.coords['y0'], self.coords['y1'], 100)
+        zz = np.linspace(self.coords['z0'], self.coords['z1'], 100)
+        if (projection.lower() == 'poloidal') or (projection == 'pol'):
             rr = np.sqrt(xx**2 + yy**2)
             # If the plot was already there, do not change its axis limits to
             # plot this:
@@ -464,9 +686,7 @@ class NBI:
             if not created:
                 ax.set_xlim(xlim)
                 ax.set_ylim(ylim)
-        elif (projection == 'Toroidal') or (projection == 'tor'):
-            xx = np.array((self.coords['x0'], self.coords['x1']))
-            yy = np.array((self.coords['y0'], self.coords['y1']))
+        elif (projection.lower() == 'toroidal') or (projection == 'tor'):
             # If the plot was already there, do not change its axis limits to
             # plot this:
             if not created:
@@ -478,6 +698,9 @@ class NBI:
             if not created:
                 ax.set_xlim(xlim)
                 ax.set_ylim(ylim)
+        elif projection.lower() == '3d':
+            ax.plot(scales[units] * xx, scales[units] * yy,
+                    scales[units] * zz, **line_options)
         else:
             print('Projection: ', projection)
             raise Exception('Projection not understood!')

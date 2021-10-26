@@ -2,8 +2,9 @@
 import tkinter as tk                       # To open UI windows
 import matplotlib.backends.backend_tkagg as tkagg
 import matplotlib.pyplot as plt
-import LibPlotting as ssplt
+import Lib.LibPlotting as ssplt
 from matplotlib.figure import Figure
+import numpy as np
 
 
 class ApplicationShowTomography:
@@ -39,6 +40,8 @@ class ApplicationShowTomography:
             'remap': tk.Label(master, text='Remaped frame'),
             'inversion': tk.Label(master, text='Inversion'),
             'L_curve': tk.Label(master, text='L curve'),
+            'forward': tk.Label(master, text='Forward'),
+            'profile': tk.Label(master, text='Gyroradius profile'),
             'MSE': tk.Label(master, text='MSE'),
             'residual': tk.Label(master, text='Residual'),
             'Hyper param': tk.Label(master, text='Hyperparam')
@@ -48,9 +51,11 @@ class ApplicationShowTomography:
             'remap': [0, 1],
             'inversion': [4, 1],
             'L_curve': [4, 0],
-            'MSE': [1, 3],
-            'residual': [2, 3],
-            'Hyper param': [3, 3]
+            'forward': [0, 2],
+            'profile': [4, 2],
+            'MSE': [4, 3],
+            'residual': [5, 3],
+            'Hyper param': [6, 3]
         }
         for i in self.labels.keys():
             self.labels[i].grid(row=positions_labels[i][0],
@@ -70,9 +75,9 @@ class ApplicationShowTomography:
                                  textvariable=self.boxes_var['HypParam']),
         }
         positions_entries = {
-            'MSE': [1, 4],
-            'residual': [2, 4],
-            'HypParam': [3, 4]
+            'MSE': [4, 4],
+            'residual': [5, 4],
+            'HypParam': [6, 4]
         }
         for i in self.boxes.keys():
             self.boxes[i].grid(row=positions_entries[i][0],
@@ -85,11 +90,10 @@ class ApplicationShowTomography:
                                resolution=dt,
                                command=self.plot,
                                highlightcolor='red',
-                               length=400,
                                takefocus=1,
                                label='# param')
         # Put the slider in place
-        self.Slider.grid(row=1, column=2, rowspan=6)
+        self.Slider.grid(row=1, column=3, rowspan=3)
         # --- Scintillator figure
         # Create the figure
         fig_scint = Figure()
@@ -139,6 +143,8 @@ class ApplicationShowTomography:
         # Create the figure
         fig_Lcurve = Figure()
         ax = fig_Lcurve.add_subplot(111)
+        ax.set_xlabel('Residual')
+        ax.set_ylabel('|F|')
         self.Lcurve = ax.plot(data['residual'], data['norm'], 'k',
                               linewidth=2.)
         [self.point_selected] = ax.plot(data['residual'][0], data['norm'][0],
@@ -183,9 +189,71 @@ class ApplicationShowTomography:
         self.toolbarTomo = \
             tkagg.NavigationToolbar2Tk(self.CaTomo, self.toolbarTomo)
         self.toolbarTomo.update()
+
+        # --- Forward modelling figure
+        # Create the figure
+        fig_for = Figure()
+        ax = fig_for.add_subplot(111)
+        ax.set_xlabel('Pitch [º]')
+        ax.set_ylabel('Gyroradius [cm]')
+        self.forwa = ax.imshow(data['forwardFrames'][:, :, 0].squeeze(),
+                               origin='lower',
+                               extent=[self.data['sg']['p'][0],
+                                       self.data['sg']['p'][-1],
+                                       self.data['sg']['r'][0],
+                                       self.data['sg']['r'][-1]],
+                               aspect='auto',
+                               cmap=self.cmaps[defalut_cmap])
+        # Place the figure in a canvas
+        self.canvasforwa = tkagg.FigureCanvasTkAgg(fig_for, master=master)
+        # Draw and show
+        self.canvasforwa.draw()
+        self.canvasforwa.get_tk_widget().grid(row=1, column=2, rowspan=2,
+                                              sticky=tk.N+tk.S+tk.E+tk.W)
+        # Include the tool bar to zoom and export
+        self.toolbarforwaFram = tk.Frame(master=master)
+        self.toolbarforwaFram.grid(row=3, column=2)
+        self.toolbarforwa = \
+            tkagg.NavigationToolbar2Tk(self.canvasforwa, self.toolbarforwaFram)
+        self.toolbarforwa.update()
+
+        # --- Profiles figure
+        # Create the figure
+        fig_prof = Figure()
+        ax = fig_prof.add_subplot(111)
+        ax.set_xlabel('Gyroradius')
+        ax.set_ylabel('Signal')
+        # plot the foward profile
+        [self.profile] = ax.plot(self.data['sg']['r'],
+                                 self.data['profiles'][:, 0] /
+                                 self.data['profiles'][:, 0].max(), 'r',
+                                 linewidth=1.5,
+                                 label='Foward modelling')
+        # plot the inversion
+        ax.plot(self.data['sg']['r'], np.sum(self.data['remap'], axis=1) /
+                np.sum(self.data['remap'], axis=1).max(),
+                '--k', linewidth=1.5, label='Remap')
+        [self.profile_pinhole] = \
+            ax.plot(self.data['pg']['r'], self.data['profiles_pinhole'][:, 0] /
+                    self.data['profiles_pinhole'][:, 0].max(),
+                    '--b', linewidth=1.5, label='Remap')
+        # Place the figure in a canvas
+        self.Caprof = tkagg.FigureCanvasTkAgg(fig_prof, master=master)
+        # Draw and show
+        self.Caprof.draw()
+        self.Caprof.get_tk_widget().grid(row=5, column=2, rowspan=2,
+                                         sticky=tk.N+tk.S+tk.E+tk.W)
+        # Include the tool bar to zoom and export
+        self.toolbarprofFram = tk.Frame(master=master)
+        self.toolbarprofFram.grid(row=7, column=2)
+        self.toolbarprof = \
+            tkagg.NavigationToolbar2Tk(self.Caprof,
+                                       self.toolbarprofFram)
+        self.toolbarprof.update()
+
         # --- Quit button
         self.qButton = tk.Button(master, text="Quit", command=master.quit)
-        self.qButton.grid(row=3, column=5)
+        self.qButton.grid(row=0, column=4)
         frame.grid()
 
     def plot(self, i):
@@ -197,6 +265,21 @@ class ApplicationShowTomography:
         cmin = tomo_frame.min()
         cmax = tomo_frame.max() * 1.1
         self.tomog.set_clim(cmin, cmax)
+        # Plot the foward scintillator:
+        for_frame = self.data['forwardFrames'][:, :, ii].squeeze()
+        self.forwa.set_data(for_frame)
+        cmin = for_frame.min()
+        cmax = for_frame.max() * 1.1
+        self.forwa.set_clim(cmin, cmax)
+        # plot the profile:
+        self.profile.set_data(self.data['sg']['r'],
+                              self.data['profiles'][:, ii] /
+                              self.data['profiles'][:, ii].max())
+        self.profile_pinhole.set_data(
+            self.data['pg']['r'],
+            self.data['profiles_pinhole'][:, ii] /
+            self.data['profiles_pinhole'][:, ii].max()
+        )
         # Plot the selected point in the L curve
         self.point_selected.set_data(self.data['residual'][ii],
                                      self.data['norm'][ii])
@@ -210,3 +293,5 @@ class ApplicationShowTomography:
         )
         self.CaTomo.draw()
         self.CaLcurve.draw()
+        self.Caprof.draw()
+        self.canvasforwa.draw()

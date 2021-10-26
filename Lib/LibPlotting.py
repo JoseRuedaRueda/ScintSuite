@@ -4,21 +4,114 @@ Methods to enhance plots or to plot auxiliar elements (ie vessel)
 Jose Ruea Rueda (jrrueda@us.es) and Pablo Oyola (pablo.oyola@ipp.mpg.de)
 
 """
-
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.colors as colors
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
-from LibMachine import machine
-import LibData as ssdat
+import Lib.LibData as ssdat
+import os
+import matplotlib as mpl
+from Lib.LibPaths import Path
+import f90nml
+try:
+    from cycler import cycler
+except ImportError:
+    print("Not cycler module, default color of lines can't be changed")
+paths = Path()
+
+
+# -----------------------------------------------------------------------------
+# --- Plot settings
+# -----------------------------------------------------------------------------
+def plotSettings(plot_mode='software', usetex=False):
+    """
+    Set default options for matplotlib
+
+    Anton J. van Vuuren ft. Jose Rueda
+
+    @param plot_mode: set of options to load: software, article or presentation
+    @param usetex: flag to use tex formating or not
+    """
+    # Load default plotting options
+    filename = os.path.join(paths.ScintSuite, 'Data', 'MyData',
+                            'plotting_default_param.cfg')
+    nml = f90nml.read(filename)
+
+    # Add font directories
+    try:
+        font_files = mpl.font_manager.findSystemFonts(fontpaths=paths.fonts)
+        font_list = mpl.font_manager.createFontList(font_files)
+        mpl.font_manager.fontManager.ttflist.extend(font_list)
+    except:
+        Warning('No fonts founds. Using matplotlib default')
+
+    # Set some matplotlib parameters
+    mpl.rcParams["savefig.transparent"] = \
+        nml['default']['transparent_background']
+
+    mpl.rcParams['xtick.direction'] = nml['default']['tick_direction']
+    mpl.rcParams['ytick.direction'] = nml['default']['tick_direction']
+
+    mpl.rcParams['svg.fonttype'] = 'none'  # to edit fonts in inkscape
+
+    # Latex formating
+    mpl.rcParams['text.latex.preamble'] = [
+        r'\usepackage{siunitx}',
+        r'\sisetup{detect-all}',
+        r'\usepackage{sansmath}',
+        r'\usepackage{amsmath}',
+        r'\usepackage{amsfonts}',
+        r'\usepackage{amssymb}',
+        r'\usepackage{braket}',
+        r'\sisetup{detect-all}'
+    ]
+    mpl.rc('text', usetex=usetex)
+
+    # Default plotting color
+    try:
+        mpl.rcParams['axes.prop_cycle'] = \
+            cycler(color=nml['default']['default_line_colors'])
+    except NameError:
+        print("Not cycler module, default color of lines can't be changed")
+
+    # from: https://stackoverflow.com/questions/21321670/
+    #   how-to-change-fonts-in-matplotlib-python
+    # https://www.w3schools.com/css/css_font.asp
+
+    mode = plot_mode.lower()
+    opt = {
+        'family': nml[mode]['font_family'],
+        'serif': [nml[mode]['font_name']],
+        'size': nml[mode]['axis_font_size']
+    }
+    mpl.rc('font', **opt)
+    mpl.rcParams['legend.fontsize'] = nml[mode]['legend_font_size']
+    mpl.rcParams['axes.titlesize'] = nml[mode]['title_font_size']
+    mpl.rcParams['axes.labelsize'] = nml[mode]['axis_font_size']
+
+    mpl.rcParams['lines.linewidth'] = nml[mode]['line_width']
+    mpl.rcParams['lines.markersize'] = nml[mode]['marker_size']
+
+    mpl.rcParams['xtick.major.size'] = nml[mode]['Major_tick_length']
+    mpl.rcParams['xtick.major.width'] = nml[mode]['Major_tick_width']
+    mpl.rcParams['xtick.minor.size'] = nml[mode]['minor_tick_length']
+    mpl.rcParams['xtick.minor.width'] = nml[mode]['minor_tick_width']
+    mpl.rcParams['ytick.major.size'] = nml[mode]['Major_tick_length']
+    mpl.rcParams['ytick.major.width'] = nml[mode]['Major_tick_width']
+    mpl.rcParams['ytick.minor.size'] = nml[mode]['minor_tick_length']
+    mpl.rcParams['ytick.minor.width'] = nml[mode]['minor_tick_width']
+
+    # Print and return
+    print('Plotting options initialised')
+    return
 
 
 # -----------------------------------------------------------------------------
 # --- 1D Plotting
 # -----------------------------------------------------------------------------
-def p1D(ax, x, y, param_dict: dict = None):
+def p1D(ax, x, y, param_dict={}):
     """
     Create basic 1D plot
 
@@ -30,8 +123,6 @@ def p1D(ax, x, y, param_dict: dict = None):
     @param param_dict: dict. Dictionary of kwargs to pass to ax.plot
     @return out: ax.plot with the applied settings
     """
-    if param_dict is None:
-        param_dict = {}
     ax.plot(x, y, **param_dict)
     return ax
 
@@ -63,6 +154,8 @@ def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=None,
 
     ax.fill_between(x, (y - u_down), (y + u_up), color=color, alpha=alpha)
     if line:
+        if 'color' not in line_param:
+            line_param['color'] = color
         ax.plot(x, y, **line_param)
     return ax
 
@@ -83,6 +176,33 @@ def remove_lines(ax):
     """
     for i in range(len(ax.lines)):
         ax.lines[-1].remove()
+
+
+def overplot_trace(ax, x, y, line_params={}, ymin=0., ymax=0.95):
+    """
+    Over plot a time traces over figure
+
+    Jose Rueda Rueda: jrreda@us.es
+
+    Notice, we will just plot the trace x,y on top of the current figure. y
+    will be normalise such that its minimum is ymin * axis yscale and its max
+    is ymax * axis y scale
+
+    @param ax: ax where to plot
+    @param x: x of the line to plot
+    @param y: y of the line to plot
+    @param line_params: dictionary for plt.plot with the line parameters
+    @param ymin: minimum normalization percentage
+    @param ymax: maximum normalization percentage
+    """
+    # --- Create the transformation
+    # the x coords of this transformation are data, and the y coord are axes
+    trans = \
+        matplotlib.transforms.blended_transform_factory(
+            ax.transData, ax.transAxes)
+    # --- Normalise the y data
+    ydummy = (y - y.min()) / (y.max() - y.min()) * (ymax - ymin) + ymin
+    ax.plot(x, ydummy, transform=trans, **line_params)
 
 
 # -----------------------------------------------------------------------------
@@ -279,7 +399,7 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
                        axis_ratio: str = 'auto',
                        units: str = 'm', color=None):
     """
-    Plots the flux surfaces of a given shot in AUG for a given time point.
+    Plot the flux surfaces of a given shot in AUG for a given time point.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
@@ -350,10 +470,10 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
 # --- Plotting ECE
 # -----------------------------------------------------------------------------
 def plot2D_ECE(ecedata: dict, rType: str = 'rho_pol', downsample: int = 2,
-               ax = None, fig = None, cmap = None, which: str='norm',
+               ax=None, fig=None, cmap=None, which: str = 'norm',
                cm_norm: str = 'linear'):
     """
-    Plots the ECE data into a contour 2D plot.
+    Plot the ECE data into a contour 2D plot.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
@@ -370,9 +490,8 @@ def plot2D_ECE(ecedata: dict, rType: str = 'rho_pol', downsample: int = 2,
     @param cm_norm: colormap normalization. Optional to be chosen between
     linear, sqrt and log.
 
-    @return ax: return the axis used.
+    @return ax: The used axis.
     """
-
     if ax is None:
         fig, ax = plt.subplots(1)
 

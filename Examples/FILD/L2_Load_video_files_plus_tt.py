@@ -92,3 +92,4 @@ if plt_TT:
 #
 # time_trace.calculate_spectrogram()
 # time_trace.plot_spectrogram()
+plt.show()

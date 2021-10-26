@@ -4,12 +4,12 @@ import numpy as np
 import tkinter as tk                       # To open UI windows
 import matplotlib.backends.backend_tkagg as tkagg
 import matplotlib.pyplot as plt
-import LibPlotting as ssplt
-import LibFILDSIM as ssfildsim
-import LibMap as ssmap
+import Lib.LibPlotting as ssplt
+import Lib.SimulationCodes.FILDSIM as ssfildsim
+import Lib.LibMap as ssmap
 from matplotlib.figure import Figure
 from tkinter import ttk
-from LibMachine import machine
+from Lib.LibMachine import machine
 
 
 class ApplicationShowVid:
@@ -25,12 +25,13 @@ class ApplicationShowVid:
         """
         # --- List of supported colormaps
         self.cmaps = {
+            'Cai': ssplt.Cai(),
+            'Greys': plt.get_cmap('Greys_r'),
             'Gamma_II': ssplt.Gamma_II(),
             'Plasma': plt.get_cmap('plasma'),
-            'Cai': ssplt.Cai()
         }
-        names_cmaps = ['Gamma_II', 'Plasma', 'Cai']
-        defalut_cmap = 'Plasma'
+        names_cmaps = ['Cai', 'Gamma_II', 'Greys', 'Plasma']
+        defalut_cmap = 'Greys'
         # --- Initialise the data container
         self.data = data
         self.remap_dat = remap_dat

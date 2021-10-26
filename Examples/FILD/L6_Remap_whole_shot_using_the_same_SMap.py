@@ -3,11 +3,12 @@ Remap video from FILD cameras
 
 Lesson 6 from the FILD experimental analysis. Video files will be loaded,
 possibility to subtract noise and timetraces remap of the whole video, but
-this time using a given strike map
+this time using a given strike map. As just one Smap will be used, the MC
+remapping will be employed
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.3.0. Before running this script, please do:
+Note; Written for version 0.5.3. Before running this script, please do:
 plt.show(), if not, bug due to spyder 4.0 may arise
 """
 import Lib as ss
@@ -17,17 +18,17 @@ from time import time
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 32312
-diag_ID = 1  # 6 for rFILD (DLIF)
-t1 = 1.0     # Initial time to be loaded, [s]
+shot = 39612
+diag_ID = 1  # 6 for rFILD
+t1 = 0.1     # Initial time to be loaded, [s]
 t2 = 3.2     # Final time to be loaded [s]
-limitation = True  # If true, the suite will not allow to load more than
-limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
+limitation = False  # If true, the suite will not allow to load more than
+limit = 2048        # 'limit' Mb of data. To avoid overloading the resources
 
 # - Noise subtraction settings:
-subtract_noise = False   # Flag to apply noise subtraction
-tn1 = 0.9     # Initial time to average the frames for noise subtraction [s]
-tn2 = 1.0     # Final time to average the frames for noise subtraction [s]
+subtract_noise = True   # Flag to apply noise subtraction
+tn1 = 0.1     # Initial time to average the frames for noise subtraction [s]
+tn2 = 0.15     # Final time to average the frames for noise subtraction [s]
 
 # - TimeTrace options:
 calculate_TT = False  # Whether to calculate or not the TT
@@ -36,16 +37,19 @@ save_TT = True   # Export the TT and the ROI used
 plt_TT = True  # Plot the TT
 
 # - Remapping options:
-calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
-Smap_file = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILD_Strike_maps2/'\
-    + 'AUG_map_000.00000_000.00000_strike_map.dat'
+calibration_database = ss.paths.ScintSuite \
+    + '/Data/Calibrations/FILD/calibration_database.txt'
+Smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/39612_1p99s_strike_map.dat'
 camera = ss.dat.FILD[diag_ID-1]['camera']
+insertion = 1820  # In manipulator units (except for FILD4 that needs m)
+R, z = ss.dat.FILD_position(insertion, fild_number=diag_ID)
+
 save_remap = False
 par = {
     'rmin': 1.2,      # Minimum gyroradius [in cm]
     'rmax': 10.5,     # Maximum gyroradius [in cm]
     'dr': 0.05,        # Interval of the gyroradius [in cm]
-    'pmin': 20.0,     # Minimum pitch angle [in degrees]
+    'pmin': 15.0,     # Minimum pitch angle [in degrees]
     'pmax': 90.0,     # Maximum pitch angle [in degrees]
     'dp': 1.0,    # Pitch angle interval
     # Parameters for the pitch-gryroradius profiles
@@ -54,14 +58,16 @@ par = {
     'pprofmin': 20.0,    # Minimum pitch for the gyroradius profile calculation
     'pprofmax': 90.0,    # Maximum pitch for the gyroradius profile calculation
     # Position of the FILD
-    'rfild': 2.190,   # 2.196 for shot 32326, 2.186 for shot 32312
-    'zfild': ss.dat.FILD[diag_ID-1]['z'],
+    'rfild': R,
+    'zfild': z,
     'alpha': ss.dat.FILD[diag_ID-1]['alpha'],
     'beta': ss.dat.FILD[diag_ID-1]['beta'],
-    # method for the interpolation
-    'method': 2,  # 2 Spline, 1 Linear
-    'decimals': 1}  # Precision for the strike map (1 is more than enough)
-
+    # methods for the interpolation
+    'method': 2,    # 2 Spline, 1 Linear (smap interpolation)
+    'decimals': 1,  # Precision for the strike map (1 is more than enough)
+    'remap_method': 'MC',  # Remap algorithm
+    }
+MC_number = 150  # number of MC markers per pixel
 # - Plotting options:
 plot_profiles_in_time = True   # Plot the time evolution of pitch and r
 # -----------------------------------------------------------------------------
@@ -125,8 +131,11 @@ smap = ss.mapping.StrikeMap('FILD', Smap_file)
 # Calculate pixel coordinates of the map
 smap.calculate_pixel_coordinates(cal)
 # Calculate the relation pixel - gyr and pitch
+grid = {'ymin': par['rmin'], 'ymax': par['rmax'], 'dy': par['dr'],
+        'xmin': par['pmin'], 'xmax': par['pmax'], 'dx': par['dp']}
 smap.interp_grid(vid.exp_dat['frames'].shape[0:2], plot=False,
-                 method=par['method'])
+                 method=par['method'], MC_number=MC_number,
+                 grid_params=grid)
 # Include this map in the remapping parameters:
 par['map'] = smap
 

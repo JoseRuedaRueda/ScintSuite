@@ -12,41 +12,41 @@ import matplotlib.colors as colors
 import warnings
 import numpy as np
 import Lib as ss
-import time
-from LibFrequencyAnalysis import stft, sfft, get_nfft, myCPSD
+from LibFrequencyAnalysis import stft, sfft, get_nfft, myCPSD, stft2
 from tqdm import tqdm
 
 # -----------------------------------------------------------------------------
 # --- Scripts parameter definition.
 # -----------------------------------------------------------------------------
 # Shot data and timing.
-shotnumber = 38663
-coilNumber = 31
-tBegin = 1.6
-tEnd   = 1.9
+shotnumber = 38023
+coilNumber = 1
+tBegin = 1.60
+tEnd   = 1.90
 
 # FFT options.
 #                        # For the window type, go to:
-windowType = 'hamming'     # https://docs.scipy.org/doc/scipy/reference/
+windowType = 'hann'     # https://docs.scipy.org/doc/scipy/reference/
 #                        # generated/scipy.signal.get_window.html
-freqLims = np.array((1.0, 20.0))  # Frequency limits.
-freq1d = np.array((5.0, 10.0))  # Frequency limits for the plot in 1D.
+freqLims = np.array((80.0, 120.0))  # Frequency limits.
+freq1d = np.array((6.0, 8.0))  # Frequency limits for the plot in 1D.
 specType = 'stft'  # Spectogram type:
 #                  # -> Short-Time Fourier Transform in frequency (sfft)
 #                  # -> Short-Time Fourier Transform in time (stft)
-timeResolution = 0.70  # Frequency resolution.
+resolution = int(1000)
+timeResolution = 0.80  # Frequency resolution.
 cmap = matplotlib.cm.plasma # Colormap
 
 # Diagnostic for the electron gradient reading.
 diag_Te = 'IDA'
-exp_Te = 'AUGD'
-ed_Te = 0
+exp_Te  = 'AUGD'
+ed_Te   = 0
 
 # Plotting flags:
 plot_spectrograms   = True # Plot the spectrogram for MHI and ECE and the
 #                          # sample CPSD for cross-checking.
 plot_Te_sample      = False   # Plots the Te data as taken from the RMD.
-plot_profiles       = True    # Plot the rhopol vs. f spectrogram.
+plot_profiles       = False    # Plot the rhopol vs. f spectrogram.
 plot_vessel_flag    = False    # Plots the vessel and the separatrix
 #                              # with the ECE and pick up coil position.
 
@@ -68,10 +68,10 @@ ece = ss.dat.get_ECE(shotnumber, timeWindow=[tBegin, tEnd], fast=True)
 dt = mhi['time'][1] - mhi['time'][0]  # For the sampling time.
 
 nfft = get_nfft(timeResolution, specType, len(mhi['time']), windowType, dt)
+nfft = int(nfft)
 
 print('Computing the magnetics spectrogram...')
 warnings.filterwarnings('ignore', category=DeprecationWarning)
-timeStart = time.perf_counter()
 if specType == 'stft':
     Sxx, freqs, times = stft(mhi['time']-tEnd,  mhi['data'], nfft,
                              window=windowType,
@@ -86,33 +86,47 @@ elif specType == 'sfft':
                              fmin=freqLims[0]*1000.0,
                              fmax=freqLims[-1]*1000.0,
                              pass_DC=False, complex_spectrum=True)
+elif specType == 'stft2':
+    Sxx, freqs, times = stft2(mhi['time']-tEnd,  mhi['data'], nfft, 
+                              window=windowType,
+                              pass_DC=False, complex_spectrum=True,
+                              resolution=resolution)
+    f0, f1 = np.searchsorted(freqs, freqLims.copy()*1000.0)
+    freqs = freqs[f0:f1]
+    Sxx = Sxx[:, f0:f1]
 
-timeEnd = time.perf_counter()
-
-print(str(timeEnd-timeStart) + ' seconds elapsed')
 mhi['fft'] = {
-                'freq': freqs/1000.0,
+                'freq': freqs.copy()/1000.0,
                 'time': times+tEnd,
-                'spec': Sxx
+                'spec': Sxx.T
              }
 # The MHI data is related to the time variation of the magnetic field.
 # In Fourier space, the derivative is Bdot ~ \omega · B
-Bdot = mhi['fft']['spec'].T
+Bdot = mhi['fft']['spec'].copy()
 for jj in np.arange(Bdot.shape[1]):
-    Bdot[:, jj] = Bdot[:, jj]/(mhi['fft']['freq']*1000.0)
+    Bdot[1:, jj] = Bdot[1:, jj]/(mhi['fft']['freq'][1:]*1000.0)
 
-mhi['fft']['B'] = Bdot/Bdot.flatten().max()
+#mhi['fft']['freq'] = mhi['fft']['freq'][1:]
+mhi['fft']['B'] = Bdot/Bdot.max()
+# Applying the correction.
+if 'phase_corr' in mhi:
+    print('Applying phase-correction to the spectrogram.')
+    mhi['fft']['B'] *= np.tile(np.exp(1j*mhi['phase_corr']['interp'](freqs/1000.)),
+                               (len(times), 1)).T
+    mhi['fft']['spec'] *= np.tile(np.exp(1j*mhi['phase_corr']['interp'](freqs/1000.)),
+                               (len(times), 1)).T
 del Bdot
-# -----------------------------------------------------------------------------
+#%% -----------------------------------------------------------------------------
 # --- ECE spectrogram - Calculation
 # -----------------------------------------------------------------------------
 dt = ece['time'][1] - ece['time'][0]
 
 print('Building spectrograms for the ECE...')
-timeStart = time.perf_counter()
-nfft = get_nfft(timeResolution, specType, len(ece['time']), windowType, dt)
 
-del Sxx
+nfft = get_nfft(timeResolution, specType, len(ece['time']), windowType, dt)
+nfft = int(nfft)
+
+#del Sxx
 for ii in tqdm(np.arange(ece['Trad_norm'].shape[1])):
     if specType == 'stft':
         Syy, freqs, times = stft(ece['time']-tEnd,
@@ -132,26 +146,36 @@ for ii in tqdm(np.arange(ece['Trad_norm'].shape[1])):
                                  fmin=freqLims[0]*1000.0,
                                  fmax=freqLims[1]*1000.0,
                                  pass_DC=False, complex_spectrum=True)
-    if ii == 0:
+    elif specType == 'stft2':
+        Syy, freqs, times = stft2(ece['time']-tEnd,  
+                                  ece['Trad_norm'][:, ii].T,
+                                  nfft,
+                                  window=windowType,
+                                  pass_DC=False, complex_spectrum=True,
+                                  resolution=resolution)
+        f0, f1 = np.searchsorted(freqs, freqLims.copy()*1000.0)
+        freqs = freqs[f0:f1]
+        Syy = Syy[:, f0:f1]
+        Syy /= Syy.max()
+    if ii == 0: 
         Sxx = Syy
     else:
         Sxx = np.dstack((Sxx, Syy))
+    del Syy
 
 ece['fft'] = {
-                'freq': freqs/1000.0,
-                'time': times+tEnd,
+                'freq': freqs.copy()/1000.0,
+                'time': times.copy()+tEnd,
                 'spec': Sxx
               }
 
 # Correct the spectra with the dTe_dr (derivative wrt the major radius!)
 ece = ss.dat.correctShineThroughECE(ece, diag=diag_Te,
                                     exp=exp_Te, edition=ed_Te)
-timeEnd = time.perf_counter()
-print(str(timeEnd-timeStart) + ' seconds elapsed')
 warnings.filterwarnings('default')
 
 
-# -----------------------------------------------------------------------------
+#%% -----------------------------------------------------------------------------
 # --- Spectrogram plotting.
 # -----------------------------------------------------------------------------
 if plot_spectrograms:
@@ -159,7 +183,7 @@ if plot_spectrograms:
 
     # --- Plotting the Magnetic spectrogram.
     fig, ax = plt.subplots(nrows=2, ncols=2)
-    mhiplot = np.abs(mhi['fft']['B'])
+    mhiplot = np.abs(mhi['fft']['spec'])
     if spec_abstype == 'linear':
         im1 = ax[0][0].imshow(mhiplot, origin='lower',
                               extent=(mhi['fft']['time'][0],
@@ -281,7 +305,7 @@ if plot_spectrograms:
     del eceplot
     del mhiplot
 
-# -----------------------------------------------------------------------------
+#%% -----------------------------------------------------------------------------
 # --- ECE data plotting.
 # -----------------------------------------------------------------------------
 if plot_Te_sample:
@@ -301,11 +325,11 @@ if plot_Te_sample:
 
     plt.tight_layout()
 
-# -----------------------------------------------------------------------------
+#%% -----------------------------------------------------------------------------
 # --- Computing the radial correlation.
 # -----------------------------------------------------------------------------
 for ii in tqdm(np.arange(ece['rhop'].shape[0])):
-    A = myCPSD(mhi['fft']['B'],
+    A = myCPSD(mhi['fft']['spec'],
                ece['fft']['spec'][:, :, ii].T,
                mhi['fft']['time'], mhi['fft']['freq'],
                ece['fft']['time'], ece['fft']['freq'])[2]
