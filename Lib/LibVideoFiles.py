@@ -1798,7 +1798,8 @@ class Video:
     def plot_frame(self, frame_number=None, ax=None, ccmap=None,
                    strike_map='off', t: float = None, verbose=True,
                    smap_marker_params: dict = {},
-                   smap_line_params: dict = {}):
+                   smap_line_params: dict = {}, vmin=0, vmax=None,
+                   xlim=None, ylim=None):
         """
         Plot a frame from the loaded frames
 
@@ -1862,7 +1863,22 @@ class Video:
         # --- Check the axes to plot
         if ax is None:
             fig, ax = plt.subplots()
-        ax.imshow(dummy, origin='lower', cmap=cmap)
+            created = True
+        else:
+            created = False
+        if vmax is None:
+            vmax = dummy.max()
+        img = ax.imshow(dummy, origin='lower', cmap=cmap, vmin=vmin, vmax=vmax)
+        # --- trick to make the colorbar of the correct size
+        # cax = fig.add_axes([ax.get_position().x1 + 0.01,
+        #                     ax.get_position().y0, 0.02,
+        #                     ax.get_position().height])
+        if xlim is not None:
+            ax.set_xlim(xlim)
+        if ylim is not None:
+            ax.set_ylim(ylim)
+        im_ratio = dummy.shape[0]/dummy.shape[1]
+        plt.colorbar(img, label='Counts', fraction=0.042*im_ratio, pad=0.04)
         ax.set_title('t = ' + str(round(tf, 4)) + (' s'))
         # Save axis limits, if not, if the strike map is larger than
         # the frame (FILD4,5) the output plot will be horrible
@@ -1903,6 +1919,10 @@ class Video:
         # Set 'original' limits:
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
+        # Arrange the axes:
+        if created:
+            fig.show()
+            plt.tight_layout()
         return ax
 
     def find_orientation(self, t, verbose: bool = True, R=None, z=None):

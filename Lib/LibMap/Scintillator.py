@@ -71,15 +71,16 @@ class Scintillator:
         @param plt_par: dictionary with the parameters to plot
         @return: Nothing, just update the plot
         """
-        if 'color' not in plt_par:
-            plt_par['color'] = 'r'
-        if 'markerstyle' not in plt_par:
-            plt_par['marker'] = ''
-        if 'linestyle' not in plt_par:
-            plt_par['linestyle'] = '--'
+        plt_options = {
+            'color': 'w',
+            'marker': '',
+        }
+        plt_options.update(plt_par)
         if ax is None:
             fig, ax = plt.subplots()
-        ax.plot(self.xpixel, self.ypixel, **plt_par)
+        ax.plot(self.xpixel, self.ypixel, **plt_options)
+        ax.plot([self.xpixel[-1], self.xpixel[0]],
+                [self.ypixel[-1], self.ypixel[0]], **plt_options)
 
     def plot_real(self, ax=None, plt_par: dict = {}):
         """

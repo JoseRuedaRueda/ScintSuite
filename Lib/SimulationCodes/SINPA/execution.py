@@ -49,6 +49,8 @@ def check_files(runID: str):
     Note that this function will not check the files itself, just it will look
     that the files exist
 
+    @ToDo: Clean all binary files
+
     @param runID: RunID of the simulation
 
     @return go: Flag to say if we are ready to launch SINPA
