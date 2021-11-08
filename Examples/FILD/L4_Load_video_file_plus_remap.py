@@ -16,10 +16,10 @@ from time import time
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 33127
+shot = 39612
 diag_ID = 1  # 6 for rFILD
-t1 = 0.5     # Initial time to be loaded, [s]
-t2 = 4.8     # Final time to be loaded [s]
+t1 = 0.3     # Initial time to be loaded, [s]
+t2 = 1.0     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
@@ -41,15 +41,16 @@ options_filter = {
 #     'sigma': 1        # sigma of the gaussian for the convolution (in pixels)
 # }
 # - TimeTrace options:
-calculate_TT = True  # Wheter to calculate or not the TT
+calculate_TT = False  # Wheter to calculate or not the TT
 t0 = 0.4        # time points to define the ROI
 save_TT = True   # Export the TT and the ROI used
 plt_TT = True  # Plot the TT
 
 # - Remapping options:
-calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
+calibration_database = ss.paths.ScintSuite \
+    + '/Data/Calibrations/FILD/calibration_database.txt'
 camera = ss.dat.FILD[diag_ID-1]['camera']
-save_remap = True
+save_remap = False
 par = {
     'rmin': 1.2,      # Minimum gyroradius [in cm]
     'rmax': 10.5,     # Maximum gyroradius [in cm]

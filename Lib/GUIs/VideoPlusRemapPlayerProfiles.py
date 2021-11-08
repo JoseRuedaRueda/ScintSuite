@@ -1,18 +1,18 @@
-"""Graphical elements to explore the remap"""
-import os
+"""
+Graphical elements to explore the remap
+
+Under development, use under your own risk
+"""
 import numpy as np
 import tkinter as tk                       # To open UI windows
 import matplotlib.backends.backend_tkagg as tkagg
 import matplotlib.pyplot as plt
 import Lib.LibPlotting as ssplt
-import Lib.SimulationCodes.FILDSIM as ssfildsim
-import Lib.LibMap as ssmap
 from matplotlib.figure import Figure
 from tkinter import ttk
-from Lib.LibMachine import machine
 
 
-class ApplicationShowVidRemap:
+class ApplicationShowProfiles:
     """Class to show the camera frames and the remap"""
 
     def __init__(self, master, data, remap_dat):
@@ -23,15 +23,15 @@ class ApplicationShowVidRemap:
         @param data: the dictionary of experimental frames
         @param remap_dat: the dictionary containing the remap_dat
         """
+        print('This GUI is under development')
         # --- List of supported colormaps
         self.cmaps = {
-            'Cai': ssplt.Cai(),
-            'Greys': plt.get_cmap('Greys_r'),
             'Gamma_II': ssplt.Gamma_II(),
             'Plasma': plt.get_cmap('plasma'),
+            'Cai': ssplt.Cai()
         }
-        names_cmaps = ['Cai', 'Gamma_II', 'Greys', 'Plasma']
-        defalut_cmap = 'Greys'
+        names_cmaps = ['Gamma_II', 'Plasma', 'Cai']
+        defalut_cmap = 'Plasma'
         # --- List of supported interpolators for the remap
         self.interpolators = [
             'none', 'nearest', 'bilinear',
@@ -65,9 +65,12 @@ class ApplicationShowVidRemap:
         # --- Open the figure and show the camera frame
         fig = Figure()
         ax = fig.add_subplot(111)
-        self.image = ax.imshow(data['frames'][:, :, 0].squeeze(),
-                               origin='lower', cmap=self.cmaps[defalut_cmap],
-                               aspect='equal', interpolation=None)
+        ax.set_ylabel('Signal')
+        ax.set_xlabel('Gyroradius [cm]')
+        self.ax_gyr = ax
+        self.gyr, = \
+            ax.plot(remap_dat['yaxis'], remap_dat['sprofy'][:, 0].squeeze())
+        self.ax_gyr.set_ylim(0.0, remap_dat['sprofy'].max())
         # Place the figure in a canvas
         self.canvas = tkagg.FigureCanvasTkAgg(fig, master=master)
         # --- Include the tool bar to zoom and export
@@ -79,33 +82,33 @@ class ApplicationShowVidRemap:
             tkagg.NavigationToolbar2Tk(self.canvas, self.toolbarFrame)
         self.toolbar.update()
         # --- Include the list with colormaps
-        self.selected_cmap = defalut_cmap
-        self.cmaps_list = ttk.Combobox(master, values=names_cmaps,
-                                       textvariable=self.selected_cmap,
-                                       state='readonly')
-        self.cmaps_list.set(defalut_cmap)
-        self.cmaps_list.bind("<<ComboboxSelected>>",
-                             self.change_cmap)
-        self.cmaps_list.grid(row=3, column=2)
-        self.cmap_list_label = tk.Label(master, text='Camera CMap')
-        self.cmap_list_label.grid(row=3, column=1)
+        # self.selected_cmap = defalut_cmap
+        # self.cmaps_list = ttk.Combobox(master, values=names_cmaps,
+        #                                textvariable=self.selected_cmap,
+        #                                state='readonly')
+        # self.cmaps_list.set(defalut_cmap)
+        # self.cmaps_list.bind("<<ComboboxSelected>>",
+        #                      self.change_cmap)
+        # self.cmaps_list.grid(row=3, column=2)
+        # self.cmap_list_label = tk.Label(master, text='Camera CMap')
+        # self.cmap_list_label.grid(row=3, column=1)
         # --- Include the boxes for minimum and maximum of the colormap
-        clim = self.image.get_clim()
-        self.cmap_min_label = tk.Label(master, text='Min CMap')
-        self.cmap_min_label.grid(row=2, column=1)
-        self.cmap_min = tk.Entry(master)
-        self.cmap_min.insert(0, str(round(clim[0])))
-        self.cmap_min.grid(row=2, column=2)
-
-        self.cmap_max_label = tk.Label(master, text='Max CMap')
-        self.cmap_max_label.grid(row=2, column=3)
-        self.cmap_max = tk.Entry(master)
-        self.cmap_max.insert(0, str(round(clim[1])))
-        self.cmap_max.grid(row=2, column=4)
-        # --- Include the button for minimum and maximum of the colormap
-        self.cmap_scale_button = tk.Button(master, text='Set Scale',
-                                           command=self.set_scale)
-        self.cmap_scale_button.grid(row=2, column=5)
+        # clim = self.image.get_clim()
+        # self.cmap_min_label = tk.Label(master, text='Min CMap')
+        # self.cmap_min_label.grid(row=2, column=1)
+        # self.cmap_min = tk.Entry(master)
+        # self.cmap_min.insert(0, str(round(clim[0])))
+        # self.cmap_min.grid(row=2, column=2)
+        #
+        # self.cmap_max_label = tk.Label(master, text='Max CMap')
+        # self.cmap_max_label.grid(row=2, column=3)
+        # self.cmap_max = tk.Entry(master)
+        # self.cmap_max.insert(0, str(round(clim[1])))
+        # self.cmap_max.grid(row=2, column=4)
+        # # --- Include the button for minimum and maximum of the colormap
+        # self.cmap_scale_button = tk.Button(master, text='Set Scale',
+        #                                    command=self.set_scale)
+        # self.cmap_scale_button.grid(row=2, column=5)
         # --- Button for the strike map:
         # If there is not remap data, deactivate the button
         if self.remap_dat is None:
@@ -116,10 +119,10 @@ class ApplicationShowVidRemap:
         self.checkVar1 = tk.BooleanVar()
         self.checkVar1.set(False)
         # Create the button
-        self.smap_button = tk.Button(master, text="Draw SMap",
-                                     command=self.smap_Button_change,
-                                     takefocus=0, state=state)
-        self.smap_button.grid(row=3, column=3)
+        # self.smap_button = tk.Button(master, text="Draw SMap",
+        #                              command=self.smap_Button_change,
+        #                              takefocus=0, state=state)
+        # self.smap_button.grid(row=3, column=3)
         # Draw and show
         self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=0, column=0, columnspan=5,
@@ -133,18 +136,14 @@ class ApplicationShowVidRemap:
         # --- Open the figure and show the remap
         fig2 = Figure()
         ax2 = fig2.add_subplot(111)
+        ax2.set_ylabel('Signal')
+        ax2.set_xlabel('Pitch [$\\degree$]')
         # --- Draw the second image
-        vmax = remap_dat['frames'].max() * 0.8
-        self.image2 = ax2.imshow(remap_dat['frames'][:, :, 0].squeeze().T,
-                                 origin='lower',
-                                 extent=[remap_dat['xaxis'][0],
-                                         remap_dat['xaxis'][-1],
-                                         remap_dat['yaxis'][0],
-                                         remap_dat['yaxis'][-1]],
-                                 vmax=vmax, vmin=0,
-                                 aspect='auto',
-                                 cmap=self.cmaps[defalut_cmap],
-                                 interpolation='bilinear')
+        # vmax = remap_dat['frames'].max() * 0.8
+        self.ax_pitch = ax2
+        self.ax_pitch.set_ylim(0.0, remap_dat['sprofx'].max())
+        self.pitch, = \
+            ax2.plot(remap_dat['xaxis'], remap_dat['sprofx'][:, 0].squeeze())
         # Place the figure in a canvas
         self.canvas2 = tkagg.FigureCanvasTkAgg(fig2, master=master)
         # --- Include the tool bar to zoom and export
@@ -156,44 +155,44 @@ class ApplicationShowVidRemap:
             tkagg.NavigationToolbar2Tk(self.canvas2, self.toolbarFrame2)
         self.toolbar2.update()
         # --- Include the list with colormaps
-        self.selected_cmap2 = defalut_cmap
-        self.cmaps_list2 = ttk.Combobox(master, values=names_cmaps,
-                                        textvariable=self.selected_cmap2,
-                                        state='readonly')
-        self.cmaps_list2.set(defalut_cmap)
-        self.cmaps_list2.bind("<<ComboboxSelected>>",
-                              self.change_cmap2)
-        self.cmaps_list2.grid(row=3, column=7)
-        self.cmap_list_label2 = tk.Label(master, text='Remap CMap')
-        self.cmap_list_label2.grid(row=3, column=6)
-        # --- Include the boxes for minimum and maximum of the colormap
-        clim2 = self.image2.get_clim()
-        self.cmap_min_label2 = tk.Label(master, text='Min CMap')
-        self.cmap_min_label2.grid(row=2, column=6)
-        self.cmap_min2 = tk.Entry(master)
-        self.cmap_min2.insert(0, str(int(clim2[0])))
-        self.cmap_min2.grid(row=2, column=7)
-
-        self.cmap_max_label2 = tk.Label(master, text='Max CMap')
-        self.cmap_max_label2.grid(row=2, column=8)
-        self.cmap_max2 = tk.Entry(master)
-        self.cmap_max2.insert(0, str(int(clim2[1])))
-        self.cmap_max2.grid(row=2, column=9)
-        # --- Include the button for minimum and maximum of the colormap
-        self.cmap_scale_button2 = tk.Button(master, text='Set Scale',
-                                            command=self.set_scale2)
-        self.cmap_scale_button2.grid(row=2, column=10)
-        # --- Include the list with interpolators
-        self.selected_interpolator = default_interpolator
-        self.inter_list = ttk.Combobox(master, values=self.interpolators,
-                                       state='readonly',
-                                       textvariable=self.selected_interpolator)
-        self.inter_list.set(default_interpolator)
-        self.inter_list.bind("<<ComboboxSelected>>",
-                             self.change_interpolator)
-        self.inter_list.grid(row=3, column=9)
-        self.inter_list_label = tk.Label(master, text='Interp Remap')
-        self.inter_list_label.grid(row=3, column=8)
+        # self.selected_cmap2 = defalut_cmap
+        # self.cmaps_list2 = ttk.Combobox(master, values=names_cmaps,
+        #                                 textvariable=self.selected_cmap2,
+        #                                 state='readonly')
+        # self.cmaps_list2.set(defalut_cmap)
+        # self.cmaps_list2.bind("<<ComboboxSelected>>",
+        #                       self.change_cmap2)
+        # self.cmaps_list2.grid(row=3, column=7)
+        # self.cmap_list_label2 = tk.Label(master, text='Remap CMap')
+        # self.cmap_list_label2.grid(row=3, column=6)
+        # # --- Include the boxes for minimum and maximum of the colormap
+        # clim2 = self.image2.get_clim()
+        # self.cmap_min_label2 = tk.Label(master, text='Min CMap')
+        # self.cmap_min_label2.grid(row=2, column=6)
+        # self.cmap_min2 = tk.Entry(master)
+        # self.cmap_min2.insert(0, str(int(clim2[0])))
+        # self.cmap_min2.grid(row=2, column=7)
+        #
+        # self.cmap_max_label2 = tk.Label(master, text='Max CMap')
+        # self.cmap_max_label2.grid(row=2, column=8)
+        # self.cmap_max2 = tk.Entry(master)
+        # self.cmap_max2.insert(0, str(int(clim2[1])))
+        # self.cmap_max2.grid(row=2, column=9)
+        # # --- Include the button for minimum and maximum of the colormap
+        # self.cmap_scale_button2 = tk.Button(master, text='Set Scale',
+        #                                     command=self.set_scale2)
+        # self.cmap_scale_button2.grid(row=2, column=10)
+        # # --- Include the list with interpolators
+        # self.selected_interpolator = default_interpolator
+        # self.inter_list = ttk.Combobox(master, values=self.interpolators,
+        #                                state='readonly',
+        #                                textvariable=self.selected_interpolator)
+        # self.inter_list.set(default_interpolator)
+        # self.inter_list.bind("<<ComboboxSelected>>",
+        #                      self.change_interpolator)
+        # self.inter_list.grid(row=3, column=9)
+        # self.inter_list_label = tk.Label(master, text='Interp Remap')
+        # self.inter_list_label.grid(row=3, column=8)
         # --- Draw and show the canvas
         self.canvas2.draw()
         self.canvas2.get_tk_widget().grid(row=0, column=6, columnspan=5,
@@ -201,6 +200,7 @@ class ApplicationShowVidRemap:
         # In the last line, the sticky argument, combined with the
         # Grid.columnconfiguration and Grid.rowconfiguration from above
         # allows to the canvas to resize when I resize the window
+
         # --- Quit button
         self.qButton = tk.Button(master, text="Quit", command=master.quit)
         self.qButton.grid(row=3, column=5)
@@ -225,40 +225,11 @@ class ApplicationShowVidRemap:
         """Plot the new frame"""
         t0 = np.float64(t)
         it = np.argmin(abs(self.data['tframes'] - t0))
-        dummy = self.data['frames'][:, :, it].squeeze().copy()
-        self.image.set_data(dummy)
+        self.gyr.set_ydata(self.remap_dat['sprofy'][:, it].squeeze())
         # If needed, plot the smap
-        if self.checkVar1.get():
-            # remove the old one
-            ssplt.remove_lines(self.canvas.figure.axes[0])
-            # choose the new one:
-            # get parameters of the map
-            theta_used = self.remap_dat['theta_used'][it]
-            phi_used = self.remap_dat['phi_used'][it]
-
-            # Get the full name of the file
-            name__smap = ssfildsim.guess_strike_map_name_FILD(
-                phi_used, theta_used, machine=machine,
-                decimals=self.remap_dat['options']['decimals']
-            )
-            smap_folder = self.remap_dat['options']['smap_folder']
-            full_name_smap = os.path.join(smap_folder, name__smap)
-            # Load the map:
-            smap = ssmap.StrikeMap(0, full_name_smap)
-            # Calculate pixel coordinates
-            smap.calculate_pixel_coordinates(
-                self.remap_dat['options']['calibration']
-            )
-            # Plot the map
-            self.xlim = self.canvas.figure.axes[0].get_xlim()
-            self.ylim = self.canvas.figure.axes[0].get_ylim()
-            smap.plot_pix(ax=self.canvas.figure.axes[0])
-            self.canvas.figure.axes[0].set_xlim(self.xlim[0], self.xlim[1])
-            self.canvas.figure.axes[0].set_ylim(self.ylim[0], self.ylim[1])
         self.canvas.draw()
         # Now chane the remap
-        dummy = self.remap_dat['frames'][:, :, it].squeeze().T.copy()
-        self.image2.set_data(dummy)
+        self.pitch.set_ydata(self.remap_dat['sprofx'][:, it].squeeze())
         self.canvas2.draw()
 
     def set_scale(self):

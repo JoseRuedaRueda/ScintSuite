@@ -8,7 +8,7 @@ Introduced in version 6.0.0
 import os
 import f90nml
 import numpy as np
-import Lib.SINPA.reading as reading
+import Lib.SimulationCodes.SINPA.reading as reading
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
 paths = Path(machine)
@@ -48,6 +48,8 @@ def check_files(runID: str):
 
     Note that this function will not check the files itself, just it will look
     that the files exist
+
+    @ToDo: Clean all binary files
 
     @param runID: RunID of the simulation
 

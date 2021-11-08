@@ -12,6 +12,7 @@ import os
 import Lib as ss
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
+import numpy as np
 paths = Path(machine)
 
 # -----------------------------------------------------------------------------
@@ -19,12 +20,12 @@ paths = Path(machine)
 # -----------------------------------------------------------------------------
 nml_options = {
     'config':  {            # General parameters
-        'runid': 'test',
+        'runid': 'hope_no_field',
         'geomID': 'Test0',
         'FILDSIMmode': False,
         'nGeomElements': 3,
-        'nxi': 7,
-        'nGyroradius': 2,
+        'nxi': 1,
+        'nGyroradius': 1,
         'nMap': 500,
         'mapping': True,
         'signal': False,
@@ -32,15 +33,15 @@ nml_options = {
         'nResampling': 4,
         'saveOrbits': True,
         'saveRatio': 0.1,
-        'saveOrbitLongMode': False,
         'SINPA_dir': paths.SINPA,
-        'FIDASIMfolder': '/afs/ipp/home/r/ruejo/FIDASIM4/RESULTS/30585inpa_beauty',
+        'FIDASIMfolder': 'kiwi',
         'verbose': True,
         'M': 2.0,         # Mass of the particle (in uma)
         'Zin': 0.0,         # Charge before the ionization in the foil
         'Zout': 1.0,        # Charge after the ionization in the foil
         'IpBt': 1,        # Sign of toroidal current vs field (for pitch)
-        'flag_efield_on': False,  # Add or not electric field
+        'flag_efield_on': True,  # Add or not electric field
+
     },
     'markerinteractions': {    # Particles and foil modelling
         'energyLoss': True,
@@ -57,10 +58,10 @@ nml_options = {
          'nGyro': 40,
          'minAngle': -0.1,
          'dAngle': 0.2,
-         'XI': [2.9, 3.0, 3.2, 3.3, 3.4, 3.5, 3.6],
+         'XI': [3.3],
          # 'alphas': [3.141592],
-         'rL': [2.5, 3.0],
-         'maxT': 0.0000005
+         'rL': [3.0],
+         'maxT': 0.0000001
     },
     'nbi_namelist': {            # NBI geometry
         'p0': [220.78, -137.32, -2.1],  # xyz of first point in the NBI
@@ -71,8 +72,8 @@ nml_options = {
 }
 
 # Magnetic field
-zita = 65.90115304686239
-ipsilon = 36.08595339878833
+B = np.array([0.0575, -2.1532, -0.1291])
+E = 0.0 * np.array([0.5792, -0.0603, 0.8129])
 
 # -----------------------------------------------------------------------------
 # --- Section 0: Create the directories
@@ -91,18 +92,19 @@ ss.sinpa.execution.write_namelist(nml_options)
 # -----------------------------------------------------------------------------
 # --- Section 2: Prepare the magnetic field
 # -----------------------------------------------------------------------------
-# Get the direction of the field
-direction = \
-    ss.sinpa.field.constructDirection(zita, ipsilon,
-                                      nml_options['config']['geomID'])
-direction = [0., 0.0, -1.8]
 # Get the field
 field = ss.sinpa.fieldObject()
-field.createFromSingleB(direction)
+field.createHomogeneousField(B, field='B')
+field.createHomogeneousField(E, field='E')
+
 # Write the field
 fieldFileName = os.path.join(inputsDir, 'field.bin')
 fid = open(fieldFileName, 'wb')
 field.tofile(fid)
+fid.close()
+fieldFileName = os.path.join(inputsDir, 'Efield.bin')
+fid = open(fieldFileName, 'wb')
+field.tofile(fid, bflag=False, eflag=True)
 fid.close()
 
 

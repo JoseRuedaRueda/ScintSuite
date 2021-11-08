@@ -6,27 +6,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Lib.LibPlotting as ssplt
 from scipy.interpolate import interp1d, interp2d
-import Lib.iHIBP.LibHIBPattenuation as alkali
 import netCDF4 as nc4
+
 
 # --------------------------------------------------------
 # --- Functions to read the tables.
 # --------------------------------------------------------
-
 def loadTable1D(filename: str):
     """
-    Load a reaction-rate table that is based in (T, sigma(T))
+    Load a reaction-rate table that is based in (T, sigma(T)).
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
     @param filename: Filename containing the table.
 
     """
-
-    output = {} # Empty dictionary.
+    output = {}  # Empty dictionary.
     with open(filename, 'rb') as fid:
         nT = np.fromfile(fid, 'int32', 1)[0]
-        T  = np.fromfile(fid, 'float64', nT)
+        T = np.fromfile(fid, 'float64', nT)
         sigma = np.fromfile(fid, 'float64', nT)
 
         output['table_type'] = 1
@@ -40,30 +38,29 @@ def loadTable1D(filename: str):
         # --- Creating the interpolating object.
         output['interp'] = interp1d(np.log(output['base']),
                                     np.log(output['sigma']),
-                                    kind = 'linear',
+                                    kind='linear',
                                     fill_value='extrapolate',
                                     assume_sorted=True,
                                     bounds_error=False)
 
     return output
 
+
 def loadTable2D(filename: str):
     """
-    Load a reaction-rate table that is based in (T,v, sigma(v,T))
+    Load a reaction-rate table that is based in (T,v, sigma(v,T)).
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
     @param filename: Filename containing the table.
-
     """
-
-    output = {} # Empty dictionary.
+    output = {}  # Empty dictionary.
     with open(filename, 'rb') as fid:
         nT = np.fromfile(fid, 'int32', 1)[0]
         nv = np.fromfile(fid, 'int32', 1)[0]
-        T  = np.fromfile(fid, 'float64', nT)
-        v  = np.fromfile(fid, 'float64', nv)
-        sigma = np.fromfile(fid, 'float64', nT*nv).reshape((nv, nT),\
+        T = np.fromfile(fid, 'float64', nT)
+        v = np.fromfile(fid, 'float64', nv)
+        sigma = np.fromfile(fid, 'float64', nT*nv).reshape((nv, nT),
                                                            order='F').T
         output['table_type'] = 2
         output['nBase'] = []
@@ -84,43 +81,40 @@ def loadTable2D(filename: str):
         output['base_shortname'].append('v')
         output['units'] = '$m^3/s$'
 
-
         # --- Creating the interpolating object.
         output['interp'] = interp2d(np.log(output['base'][0]),
                                     output['base'][1],
                                     np.log(output['sigma']),
-                                    kind = 'linear',
-                                    bounds_error = False,
+                                    kind='linear',
+                                    bounds_error=False,
                                     fill_value='extrapolate')
 
-
     return output
+
 
 # --------------------------------------------------------
 # --- Functions to plot the tables.
 # --------------------------------------------------------
-def plotTable1D(table: dict, ax = None, ax_options: dict = {},
+def plotTable1D(table: dict, ax=None, ax_options: dict = {},
                 line_options: dict = {}, grid: bool = True,
                 label: str = None, loglog: bool = True):
     """
-    Plotting the ionization table. The input is provides as the output
+    Plotting the ionization table. The input is provides as the output.
     of 'loadTable1D'.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
     @param table: dictionary with the data to be plotted.
-
     """
-
     # --- Creating axis and checking the plotting inputs.
     axis_was_none = False
     if ax is None:
         axis_was_none = True
-        fig, ax = plt.subplots(1,1)
+        fig, ax = plt.subplots(1, 1)
 
     # --- Initialise the plotting parameters
-    if 'fontsize' not in ax_options:
-        ax_options['fontsize'] = 16
+    # if 'fontsize' not in ax_options:  # Deprecated, is not done via the
+    #     ax_options['fontsize'] = 16   # default plotting settings
     if 'grid' not in ax_options:
         ax_options['grid'] = 'both'
     if 'linewidth' not in line_options:
@@ -137,9 +131,9 @@ def plotTable1D(table: dict, ax = None, ax_options: dict = {},
 
     ax_options['ylabel'] = ''
     if 'short_name' in table:
-         ax_options['ylabel'] += table['short_name']
+        ax_options['ylabel'] += table['short_name']
     if 'units' in table:
-         ax_options['ylabel'] += ' ['+table['units']+']'
+        ax_options['ylabel'] += ' ['+table['units']+']'
 
     if loglog and axis_was_none:
         ax_options['xscale'] = 'log'
@@ -158,28 +152,28 @@ def plotTable1D(table: dict, ax = None, ax_options: dict = {},
 
     return ax
 
-def plotTable2D(table: dict, v: float = None, ax = None, ax_options: dict = {},
+
+def plotTable2D(table: dict, v: float = None, ax=None, ax_options: dict = {},
                 line_options: dict = {}, grid: bool = True,
                 loglog: bool = True):
     """
-    Plotting the ionization table. The input is provides as the output
-    of 'loadTable1D'.
+    Plot the ionization table.
+
+    The input is provides as the output of 'loadTable1D'.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
     @param table: dictionary with the data to be plotted.
-
     """
-
     # --- Creating axis and checking the plotting inputs.
     axis_was_none = False
     if ax is None:
         axis_was_none = True
-        fig, ax = plt.subplots(1,1)
+        fig, ax = plt.subplots(1, 1)
 
     # --- Initialise the plotting parameters
-    if 'fontsize' not in ax_options:
-        ax_options['fontsize'] = 16
+    # if 'fontsize' not in ax_options:  # Deprecated, is not done via the
+    #     ax_options['fontsize'] = 16   # default plotting settings
     if 'grid' not in ax_options:
         ax_options['grid'] = 'both'
     if 'linewidth' not in line_options:
@@ -196,9 +190,9 @@ def plotTable2D(table: dict, v: float = None, ax = None, ax_options: dict = {},
 
     ax_options['ylabel'] = ''
     if 'short_name' in table:
-         ax_options['ylabel'] += table['short_name']
+        ax_options['ylabel'] += table['short_name']
     if 'units' in table:
-         ax_options['ylabel'] += ' ['+table['units']+']'
+        ax_options['ylabel'] += ' ['+table['units']+']'
 
     if loglog:
         ax_options['xscale'] = 'log'
@@ -230,6 +224,7 @@ def plotTable2D(table: dict, v: float = None, ax = None, ax_options: dict = {},
 
     return ax
 
+
 # --------------------------------------------------------
 # --- Functions to read from the database in Python.
 # --------------------------------------------------------
@@ -243,7 +238,6 @@ def read_rates_Database(name: str = 'Cs',
     @param name: name of the species to be read from the database.
     @param filename: name of the netCDF4 file containing the data.
     """
-
     try:
         fid = nc4.Dataset(filename, mode='r')
     except:
@@ -261,7 +255,7 @@ def read_rates_Database(name: str = 'Cs',
         # We get the number of rates stored into the database.
         num_reactions = rate_group['num_reactions']
 
-        #--- Opening the dictionary:
+        # --- Opening the dictionary:
         output = dict()
 
         output['species'] = rate_group.species
@@ -269,10 +263,10 @@ def read_rates_Database(name: str = 'Cs',
         output['species_symbol'] = rate_group.symbol
         output['rates'] = []
 
-        #--- Getting the reactions:
+        # --- Getting the reactions:
         for ii in range(num_reactions):
             reaction_g = rate_group.groups['reaction_'+str(ii)]
-            rate  = dict()
+            rate = dict()
             rate['atom'] = dict()
             rate['base'] = []
 
@@ -302,17 +296,17 @@ def read_rates_Database(name: str = 'Cs',
 
             output.append(rate)
             del rate
-
     except:
         raise Exception('Error while reading the data')
 
     fid.close()
     return output
 
+
 def write_rates_Database(rates: dict, name: str = 'Cs',
                          filename: str = 'Data/Tables/iHIBP/rates.cdf'):
     """
-    Writes to a netCDF4 file the DB of reaction rates.
+    Write to a netCDF4 file the DB of reaction rates.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
@@ -322,12 +316,11 @@ def write_rates_Database(rates: dict, name: str = 'Cs',
     @param filename: location of the datafile to write the file. If the file
     does not exist, this routine will try to create one.
     """
-
-    #--- Checking if the file exists:
+    # --- Checking if the file exists:
     if not os.path.isfile(filename):
-        fid = nc4.Dataset(filename, 'w') # Creating a new file
+        fid = nc4.Dataset(filename, 'w')  # Creating a new file
     else:
-        fid = nc4.Dataset(filename, 'a') # Appending to the file
+        fid = nc4.Dataset(filename, 'a')  # Appending to the file
 
     rate_g = fid.createGroup('/'+name.lower()+'/')
 
@@ -357,7 +350,7 @@ def write_rates_Database(rates: dict, name: str = 'Cs',
 
             # Creating the dimension variable
             reaction_g.createDimension(base_name+'_size',
-                                       size = base_size)
+                                       size=base_size)
 
             base = reaction_g.createVariable(base_name, np.float64,
                                              dimensions=(base_name+'_size',))

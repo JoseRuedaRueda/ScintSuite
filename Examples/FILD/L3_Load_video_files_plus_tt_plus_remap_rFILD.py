@@ -58,7 +58,8 @@ FILDSIM_namelist = {
                        'aug_rfildb_slit_lateral_1.pl',
                        'aug_rfildb_slit_lateral_2.pl']}}
 # - Remapping options:
-calibration_database = './Data/Calibrations/FILD/calibration_database.txt'
+calibration_database = ss.paths.ScintSuite \
+    + '/Data/Calibrations/FILD/calibration_database.txt'
 camera = 'PHANTOM'      # CCD for other FILDs
 par = {
     'rmin': 1.2,      # Minimum gyroradius [in cm]

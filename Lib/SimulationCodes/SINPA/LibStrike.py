@@ -10,11 +10,16 @@ import numpy as np
 # import Lib.LibParameters as sspar
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
+from Lib.SimulationCodes.SINPA.StrikesHeader import order as info
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import Lib.LibPlotting as ssplt
 paths = Path(machine)
 
+
+# -----------------------------------------------------------------------------
+# --- Colum order for the strikes files
+# -----------------------------------------------------------------------------
 
 class Strikes:
     """
@@ -38,10 +43,14 @@ class Strikes:
         """
         # --- Load the strike points
         if file is None:
-            if plate == 'Scintillator' or plate == 'scintillator':
+            if plate.lower() == 'scintillator':
                 name = 'StrikePoints.bin'
-            elif plate == 'Collimator' or plate == 'collimator':
+            elif plate.lower() == 'collimator':
                 name = 'CollimatorStrikePoints.bin'
+            elif plate.lower() == 'signalscintillator':
+                name = 'SignalStrikePoints.bin'
+            elif plate.lower() == 'signalcollimator':
+                name = 'SignalCollimatorStrikePoints.bin'
             else:
                 raise Exception('Plate not understood, revise inputs')
 
@@ -68,120 +77,12 @@ class Strikes:
             'versionID1': np.fromfile(fid, 'int32', 1)[0],
             'versionID2': np.fromfile(fid, 'int32', 1)[0],
         }
+        header['info'] = {}
+        if plate.lower() == 'signalcollimator':
+            plate = 'collimator'
+        header['info'].update(info[header['versionID1']][plate.lower()])
         if header['versionID1'] < 1:
             # Keys of what we have in the file:
-            header['info'] = {
-                'x': {
-                    'i': 0, # Column index in the file
-                    'units': ' [cm]', # Units
-                    'longName': 'X Strike position tokamak system',
-                    'shortName': 'x',
-                },
-                'y': {
-                    'i': 1,  # Column index in the file
-                    'units': ' [cm]', # Units
-                    'longName': 'Y Strike position tokamak system',
-                    'shortName': 'y',
-                },
-                'z': {
-                    'i': 2, # Column index in the file
-                    'units': ' [cm]', # Units
-                    'longName': 'Z Strike position tokamak system',
-                    'shortName': 'z'
-                },
-                'w': {
-                    'i': 3,  # Column index in the file
-                    'units': ' [au]', # Units
-                    'longName': 'Weight',
-                    'shortName': 'Weight',
-                },
-            }
-            if plate == 'Scintillator' or plate == 'scintillator':
-                header['info']['xnbi'] = {
-                    'i': 4,  # Column index in the file
-                    'units': ' [cm]', # Units
-                    'longName': 'X position of the closest point to NBI line',
-                    'shortName': '$x_{NBI}$',
-                }
-                header['info']['ynbi'] = {
-                    'i': 5,  # Column index in the file
-                    'units': ' [cm]', # Units
-                    'longName': 'Y position of the closest point to NBI line',
-                    'shortName': '$y_{NBI}$',
-                }
-                header['info']['znbi'] = {
-                    'i': 6,  # Column index in the file
-                    'units': ' [cm]', # Units
-                    'longName': 'Z position of the closest point to NBI line',
-                    'shortName': '$z_{NBI}$',
-                }
-                header['info']['vx0'] = {
-                    'i': 7,  # Column index in the file
-                    'units': ' [cm/s]', # Units
-                    'longName': 'vx at pinhole',
-                    'shortName': '$v_{x0}$',
-                }
-                header['info']['vy0'] = {
-                    'i': 8,  # Column index in the file
-                    'units': ' [cm/s]', # Units
-                    'longName': 'vy at pinhole',
-                    'shortName': '$v_{y0}$',
-                }
-                header['info']['vz0'] = {
-                    'i': 9,  # Column index in the file
-                    'units': ' [cm/s]', # Units
-                    'longName': 'vz at pinhole',
-                    'shortName': '$v_{z0}$',
-                }
-                header['info']['dmin'] = {
-                    'i': 10,  # Column index in the file
-                    'units': ' [cm]', # Units
-                    'longName': 'Minimum distance to NBI',
-                    'shortName': '$d_{min}$',
-                }
-                header['info']['beta'] = {
-                    'i': 11,  # Column index in the file
-                    'units': ' [rad]', # Units
-                    'longName': 'beta at pinhole',
-                    'shortName': '$\\beta$',
-                }
-                header['info']['xi0'] = {
-                    'i': 12,  # Column index in the file
-                    'units': ' [cm]', # Units
-                    'longName': 'X ionization tokamak system',
-                    'shortName': '$x_{i}$',
-                }
-                header['info']['yi0'] = {
-                    'i': 13,  # Column index in the file
-                    'units': ' [cm]', # Units
-                    'longName': 'Y ionization tokamak system',
-                    'shortName': '$y_{i}$',
-                }
-                header['info']['zi0'] = {
-                    'i': 14,  # Column index in the file
-                    'units': ' [cm]', # Units
-                    'longName': 'Z ionization tokamak system',
-                    'shortName': '$z_{i}$',
-                }
-                header['info']['xs'] = {
-                    'i': 15,  # Column index in the file
-                    'units': ' [cm]', # Units
-                    'longName': 'X strike scintillator system',
-                    'shortName': '$x_{s}$',
-                }
-                header['info']['ys'] = {
-                    'i': 16,  # Column index in the file
-                    'units': ' [cm]', # Units
-                    'longName': 'Y strike scintillator system',
-                    'shortName': '$y_{s}$',
-                }
-                header['info']['zs'] = {
-                    'i': 17,  # Column index in the file
-                    'units': ' [cm]', # Units
-                    'longName': 'Z strike scintillator system',
-                    'shortName': '$z_{s}$',
-                }
-
             header['runID'] = np.fromfile(fid, 'S50', 1)[:]
             header['ngyr'] = np.fromfile(fid, 'int32', 1)[0]
             header['Gyroradius'] = np.fromfile(fid, 'float64', header['ngyr'])
@@ -198,6 +99,10 @@ class Strikes:
                 'ymin': 300.,
                 'ymax': -300.
             }
+            scints = ['scintillator',  'signalscintillator']
+            if plate.lower() in scints:
+                ycolum = header['info']['ys']['i']
+                zcolum = header['info']['zs']['i']
             for ig in range(header['ngyr']):
                 for ia in range(header['nalpha']):
                     header['counters'][ia, ig] = \
@@ -210,19 +115,19 @@ class Strikes:
                                        (header['counters'][ia, ig],
                                         header['ncolumns']),
                                        order='F')
-                        if plate == 'Scintillator':
+                        if plate.lower() in scints:
                             header['scint_limits']['xmin'] = \
                                 min(header['scint_limits']['xmin'],
-                                    data[ia, ig][:, 16].min())
+                                    data[ia, ig][:, ycolum].min())
                             header['scint_limits']['xmax'] = \
                                 max(header['scint_limits']['xmax'],
-                                    data[ia, ig][:, 16].max())
+                                    data[ia, ig][:, ycolum].max())
                             header['scint_limits']['ymin'] = \
                                 min(header['scint_limits']['ymin'],
-                                    data[ia, ig][:, 17].min())
+                                    data[ia, ig][:, zcolum].min())
                             header['scint_limits']['ymax'] = \
                                 max(header['scint_limits']['ymax'],
-                                    data[ia, ig][:, 17].max())
+                                    data[ia, ig][:, zcolum].max())
         self.header = header
         self.data = data
         if verbose:
@@ -233,16 +138,22 @@ class Strikes:
         fid.close()
 
     def calculate_scintillator_histogram(self, delta: float = 0.1,
-                                         includeW: bool = True):
+                                         includeW: bool = True,
+                                         kind_separation: bool = False):
         """
         Calculate the spatial histograms (x,y)Scintillator
 
         Jose Rueda: jrrueda@us.es
 
         @param delta: bin width for the histogram
-        @param includeW: flag to include weight or consider all markers as equal
+        @param includeW: flag to include weight
+        @param kind_separation: To separate between different kinds (if we have
+        the markers coming from FIDASIM). Notice that in the results, k=0 will
+        mean the total signal, or the mapping signal
         """
         colum_pos = self.header['info']['xs']['i']  # column of the x position
+        if kind_separation:
+            column_kind = self.header['info']['kind']['i']
         if includeW:
             weight_column = self.header['info']['w']['i']
         # --- define the grid for the histogram
@@ -253,28 +164,63 @@ class Strikes:
                           self.header['scint_limits']['ymax'],
                           delta)
         data = np.zeros((xbins.size-1, ybins.size-1))
-        for ig in range(self.header['ngyr']):
-            for ia in range(self.header['nalpha']):
-                if self.header['counters'][ia, ig] > 0:
-                    if includeW:
-                        w = self.data[ia, ig][:, weight_column]
-                    else:
-                        w = np.ones(self.header['counters'][ia, ig])
-                    H, xedges, yedges = \
-                        np.histogram2d(self.data[ia, ig][:, colum_pos + 1],
-                                       self.data[ia, ig][:, colum_pos + 2],
-                                       bins=(xbins, ybins), weights=w)
-                    data += H
-        xcen = 0.5 * (xedges[1:] + xedges[:-1])
-        ycen = 0.5 * (yedges[1:] + yedges[:-1])
-        data /= delta**2
-        self.ScintHistogram = {
-            'xcen': xcen,
-            'ycen': ycen,
-            'xedges': xedges,
-            'yedges': yedges,
-            'H': data
-        }
+        if kind_separation:
+            if includeW:
+                w = self.data[0, 0][:, weight_column]
+            else:
+                w = np.ones(self.header['counters'][0, 0])
+            self.ScintHistogram = {5: {}, 6: {}, 7: {}, 8: {}}
+            for k in [5, 6, 7, 8]:
+                f = self.data[0, 0][:, column_kind].astype(np.int) == k
+                H, xedges, yedges = \
+                    np.histogram2d(self.data[0, 0][f, colum_pos + 1],
+                                   self.data[0, 0][f, colum_pos + 2],
+                                   bins=(xbins, ybins), weights=w[f])
+                xcen = 0.5 * (xedges[1:] + xedges[:-1])
+                ycen = 0.5 * (yedges[1:] + yedges[:-1])
+                H /= delta**2
+                data += H
+                # Save the value of the counts for each kind
+                self.ScintHistogram[k] = {
+                    'xcen': xcen,
+                    'ycen': ycen,
+                    'xedges': xedges,
+                    'yedges': yedges,
+                    'H': H
+                }
+            # Save the total values
+            self.ScintHistogram[0] = {
+                'xcen': xcen,
+                'ycen': ycen,
+                'xedges': xedges,
+                'yedges': yedges,
+                'H': data
+            }
+        else:   # mapping tipe
+            for ig in range(self.header['ngyr']):
+                for ia in range(self.header['nalpha']):
+                    if self.header['counters'][ia, ig] > 0:
+                        if includeW:
+                            w = self.data[ia, ig][:, weight_column]
+                        else:
+                            w = np.ones(self.header['counters'][ia, ig])
+                        H, xedges, yedges = \
+                            np.histogram2d(self.data[ia, ig][:, colum_pos + 1],
+                                           self.data[ia, ig][:, colum_pos + 2],
+                                           bins=(xbins, ybins), weights=w)
+                        data += H
+            xcen = 0.5 * (xedges[1:] + xedges[:-1])
+            ycen = 0.5 * (yedges[1:] + yedges[:-1])
+            data /= delta**2
+            self.ScintHistogram = {
+                0: {
+                    'xcen': xcen,
+                    'ycen': ycen,
+                    'xedges': xedges,
+                    'yedges': yedges,
+                    'H': data
+                }
+            }
 
     def plot3D(self, per=0.1, ax=None, mar_params={},
                gyr_index=None, alpha_index=None,
@@ -314,7 +260,7 @@ class Strikes:
         if where == 'Head' or where == 'head':
             column_to_plot = self.header['info']['x']['i']
         elif where == 'NBI':
-            column_to_plot = self.header['info']['NBI']['i']
+            column_to_plot = self.header['info']['xnbi']['i']
         elif where == 'ScintillatorLocalSystem':
             column_to_plot = self.header['info']['xs']['i']
         else:
@@ -458,6 +404,7 @@ class Strikes:
         # axis beauty:
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
+            fig.show()
 
     def plot1D(self, var='beta', gyr_index=None, alpha_index=None, ax=None,
                ax_params: dict = {}, nbins: int = 20, includeW: bool = False):
@@ -469,12 +416,13 @@ class Strikes:
         @param var: variable to plot
         """
         # --- Get the index:
-        self.header['info'][var]['i']
+        column_to_plot = self.header['info'][var]['i']
+        column_of_W = self.header['info']['w']['i']
         # --- Default plotting options
         ax_options = {
             'grid': 'both',
-            'xlabel': self.header['info'][var]['shortName'] +\
-                        self.header['info'][var]['units'],
+            'xlabel': self.header['info'][var]['shortName']
+            + self.header['info'][var]['units'],
             'ylabel': '',
         }
         ax_options.update(ax_params)
@@ -484,10 +432,6 @@ class Strikes:
             created = True
         else:
             created = False
-        # --- Chose the variable we want to plot
-        column_to_plot = self.header['info'][var]['i']
-        column_of_W = self.header['info']['w']['i']
-
         # --- Plot the markers:
         nalpha, ngyr = self.header['counters'].shape
 
@@ -514,7 +458,7 @@ class Strikes:
                 if self.header['counters'][ia, ig] > 0:
                     dat = self.data[ia, ig][:, column_to_plot]
                     if includeW:
-                        w = self.data[ia, ig][:, column_of_w]
+                        w = self.data[ia, ig][:, column_of_W]
                     else:
                         w = np.ones(self.header['counters'][ia, ig])
                     H, xe = np.histogram(dat, weights=w, bins=nbins)
@@ -526,7 +470,8 @@ class Strikes:
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
 
-    def plot_scintillator_histogram(self, ax=None, ax_params: dict = {}):
+    def plot_scintillator_histogram(self, ax=None, ax_params: dict = {},
+                                    cmap=None, kind=0):
         """
         Plot the histogram of the scintillator strikes
 
@@ -541,6 +486,8 @@ class Strikes:
             'ylabel': '$y_{s}$ [cm]',
         }
         ax_options.update(ax_params)
+        if cmap is None:
+            cmap = ssplt.Gamma_II()
         # --- Open the figure (if needed)
         if ax is None:
             fig, ax = plt.subplots()
@@ -548,11 +495,75 @@ class Strikes:
         else:
             created = False
         # --- Plot the matrix
-        ax.imshow(self.ScintHistogram['H'].T,
-                  extent=[self.ScintHistogram['xcen'][0],
-                          self.ScintHistogram['xcen'][-1],
-                          self.ScintHistogram['ycen'][0],
-                          self.ScintHistogram['ycen'][-1]],
-                  origin='lower')
+        ax.imshow(self.ScintHistogram[kind]['H'].T,
+                  extent=[self.ScintHistogram[kind]['xcen'][0],
+                          self.ScintHistogram[kind]['xcen'][-1],
+                          self.ScintHistogram[kind]['ycen'][0],
+                          self.ScintHistogram[kind]['ycen'][-1]],
+                  origin='lower', cmap=cmap)
+        if created:
+            ax = ssplt.axis_beauty(ax, ax_options)
+
+    def scatter(self, varx='beta', vary='dmin', gyr_index=None,
+                alpha_index=None, ax=None, ax_params: dict = {},
+                includeW: bool = False):
+        """
+        Scatter plot of two variables of the strike points
+
+        Jose Rueda: jrrueda@us.es
+
+        @param var: variable to plot
+        """
+        # --- Get the index:
+        xcolumn_to_plot = self.header['info'][varx]['i']
+        ycolumn_to_plot = self.header['info'][vary]['i']
+        column_of_W = self.header['info']['w']['i']
+        # --- Default plotting options
+        ax_options = {
+            'grid': 'both',
+            'xlabel': self.header['info'][varx]['shortName']
+            + self.header['info'][varx]['units'],
+            'ylabel': self.header['info'][vary]['shortName']
+            + self.header['info'][vary]['units']
+        }
+        ax_options.update(ax_params)
+        # --- Create the axes
+        if ax is None:
+            fig, ax = plt.subplots()
+            created = True
+        else:
+            created = False
+        # --- Plot the markers:
+        nalpha, ngyr = self.header['counters'].shape
+
+        # See which gyroradius / pitch we need
+        if gyr_index is None:  # if None, use all gyroradii
+            index_gyr = range(ngyr)
+        else:
+            # Test if it is a list or array
+            if isinstance(gyr_index, (list, np.ndarray)):
+                index_gyr = gyr_index
+            else:  # it should be just a number
+                index_gyr = np.array([gyr_index])
+        if alpha_index is None:  # if None, use all gyroradii
+            index_alpha = range(nalpha)
+        else:
+            # Test if it is a list or array
+            if isinstance(alpha_index, (list, np.ndarray)):
+                index_alpha = alpha_index
+            else:  # it should be just a number
+                index_alpha = np.array([alpha_index])
+        # Proceed to plot
+        for ig in index_gyr:
+            for ia in index_alpha:
+                if self.header['counters'][ia, ig] > 0:
+                    x = self.data[ia, ig][:, xcolumn_to_plot]
+                    y = self.data[ia, ig][:, ycolumn_to_plot]
+                    if includeW:
+                        w = self.data[ia, ig][:, column_of_W]
+                    else:
+                        w = np.ones(self.header['counters'][ia, ig])
+                    ax.scatter(x, y, w)
+        # axis beauty:
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
