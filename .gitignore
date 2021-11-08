@@ -28,6 +28,7 @@ temp_data/*
 FILD_calibration/*
 Data/StrikeMaps/*
 Data/BEP/spectra/*
+Data/Magnetics/*
 MyRoutines/*
 Results/*
 doc/*
