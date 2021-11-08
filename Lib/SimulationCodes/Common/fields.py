@@ -29,7 +29,9 @@ class fields:
         self.psipol_on = False
         self.Bfield = {
             'R': np.array((0), dtype=np.float64),
+            'nR': np.array((1), dtype=np.int32),
             'z': np.array((0), dtype=np.float64),
+            'nZ': np.array((1), dtype=np.int32),
             'fr': np.array((0), dtype=np.float64),
             'fz': np.array((0), dtype=np.float64),
             'ft': np.array((0), dtype=np.float64),
@@ -43,7 +45,9 @@ class fields:
 
         self.Efield = {
             'R': np.array((0), dtype=np.float64),
+            'nR': np.array((1), dtype=np.int32),
             'z': np.array((0), dtype=np.float64),
+            'nZ': np.array((1), dtype=np.int32),
             'fr': np.array((0), dtype=np.float64),
             'fz': np.array((0), dtype=np.float64),
             'ft': np.array((0), dtype=np.float64),
@@ -569,24 +573,24 @@ class fields:
         del Bt
 
         # Creating the interpolating functions.
-        self.Brinterp = lambda r, z, phi: \
+        self.Brinterp = lambda r, z, phi, time: \
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['fr'],
                     (r.flatten(), z.flatten()))
 
-        self.Bzinterp = lambda r, z, phi: \
+        self.Bzinterp = lambda r, z, phi, time: \
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['fz'],
                     (r.flatten(), z.flatten()))
 
-        self.Bphiinterp = lambda r, z, phi: \
+        self.Bphiinterp = lambda r, z, phi, time: \
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['ft'],
                     (r.flatten(), z.flatten()))
 
         # Calculate the value of the field in the desired point
         rr0 = np.array(R0)
         zz0 = np.array(z0)
-        bbr = self.Brinterp(rr0, zz0, 0.0)
-        bbz = self.Bzinterp(rr0, zz0, 0.0)
-        bbphi = self.Bphiinterp(rr0, zz0, 0.0)
+        bbr = self.Brinterp(rr0, zz0, 0.0, 0.0)
+        bbz = self.Bzinterp(rr0, zz0, 0.0, 0.0)
+        bbphi = self.Bphiinterp(rr0, zz0, 0.0, 0.0)
 
         # Impose this value in all the grid points:
         self.Bfield['fr'][:] = bbr
@@ -594,15 +598,15 @@ class fields:
         self.Bfield['ft'][:] = bbphi
 
         # Re-create the interpolators
-        self.Brinterp = lambda r, z, phi: \
+        self.Brinterp = lambda r, z, phi, time: \
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['fr'],
                     (r.flatten(), z.flatten()))
 
-        self.Bzinterp = lambda r, z, phi: \
+        self.Bzinterp = lambda r, z, phi, time: \
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['fz'],
                     (r.flatten(), z.flatten()))
 
-        self.Bphiinterp = lambda r, z, phi: \
+        self.Bphiinterp = lambda r, z, phi, time: \
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['ft'],
                     (r.flatten(), z.flatten()))
 
@@ -614,9 +618,9 @@ class fields:
         self.diag = diag
         self.exp = exp
 
-    def createFromSingleB(self, B: np.ndarray, Rmin: float = 160.0,
-                          Rmax: float = 220.0,
-                          zmin: float = 80.0, zmax: float = 120.0,
+    def createFromSingleB(self, B: np.ndarray, Rmin: float = 1.6,
+                          Rmax: float = 2.2,
+                          zmin: float = 0.8, zmax: float = 1.2,
                           nR: int = 40, nZ: int = 80):
         """
         Create a field for SINPA from a given B vector
@@ -680,20 +684,55 @@ class fields:
         del Bt
 
         # Creating the interpolating functions.
-        self.Brinterp = lambda r, z, phi: \
+        self.Brinterp = lambda r, z, phi, time: \
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['fr'],
                     (r.flatten(), z.flatten()))
 
-        self.Bzinterp = lambda r, z, phi: \
+        self.Bzinterp = lambda r, z, phi, time: \
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['fz'],
                     (r.flatten(), z.flatten()))
 
-        self.Bphiinterp = lambda r, z, phi: \
+        self.Bphiinterp = lambda r, z, phi, time: \
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['ft'],
                     (r.flatten(), z.flatten()))
 
         # Saving the input data to the class.
         self.Bfield_from_shot_flag = False
+
+    def createHomogeneousField(self, F: np.ndarray, field='B'):
+        """
+        Create a field for SINPA from a given B vector
+
+        Jose Rueda: jrrueda@us.es
+
+        Create an homogenous field for SINPA
+
+        @todo: include interpolators, maybe translation to polar??
+
+        @param F: array with field, [fx, fy, fz]
+        """
+        if field.lower() == 'b':
+            self.bdims = 0
+            key = 'Bfield'
+            self.Bfield_from_shot_flag = False
+
+        elif field.lower() == 'e':
+            self.edims = 0
+            key = 'Efield'
+        else:
+            raise Exception('Field not understood!')
+        # Store the field
+        self.__dict__[key]['R'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['z'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['Rmin'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['Rmax'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['Zmin'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['Zmax'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['nR'] = np.array([1], dtype=np.int32)
+        self.__dict__[key]['nZ'] = np.array([1], dtype=np.int32)
+        self.__dict__[key]['fx'] = np.array(F[0]).astype(dtype=np.float64)
+        self.__dict__[key]['fy'] = np.array(F[1]).astype(dtype=np.float64)
+        self.__dict__[key]['fz'] = np.array(F[2]).astype(dtype=np.float64)
 
     def readPsiPolfromDB(self, shotnumber: int = 34570, time: float = 2.5,
                          exp: str = 'AUGD', diag: str = 'EQI',
@@ -859,9 +898,14 @@ class fields:
             self.Bfield['Timemax'].tofile(fid)
 
             # Write fields
-            self.Bfield['fr'].T.tofile(fid)
-            self.Bfield['ft'].T.tofile(fid)
-            self.Bfield['fz'].T.tofile(fid)
+            if self.bdims > 0:
+                self.Bfield['fr'].T.tofile(fid)
+                self.Bfield['ft'].T.tofile(fid)
+                self.Bfield['fz'].T.tofile(fid)
+            else:
+                self.Bfield['fx'].T.tofile(fid)
+                self.Bfield['fy'].T.tofile(fid)
+                self.Bfield['fz'].T.tofile(fid)
         elif eflag:
             # Write header with grid size information:
             self.Efield['nR'].tofile(fid)
@@ -876,13 +920,18 @@ class fields:
             self.Efield['Zmax'].tofile(fid)
             self.Efield['Phimin'].tofile(fid)
             self.Efield['Phimax'].tofile(fid)
-            self.Efield['tmin'].tofile(fid)
-            self.Efield['tmax'].tofile(fid)
+            self.Efield['Timemin'].tofile(fid)
+            self.Efield['Timemin'].tofile(fid)
 
             # Write fields
-            self.Efield['fr'].T.tofile(fid)
-            self.Efield['ft'].T.tofile(fid)
-            self.Efield['fz'].T.tofile(fid)
+            if self.edims > 0:
+                self.Efield['fr'].T.tofile(fid)
+                self.Efield['ft'].T.tofile(fid)
+                self.Efield['fz'].T.tofile(fid)
+            else:
+                self.Efield['fx'].T.tofile(fid)
+                self.Efield['fy'].T.tofile(fid)
+                self.Efield['fz'].T.tofile(fid)
 
         else:
             raise Exception('Not a valid combination of inputs')

@@ -8,7 +8,7 @@ Done to explain how to run a SINPA simulation
 Created for version 6.0.0 of the Suite and version 0.0 of SINPA
 """
 import os
-import numpy as np
+# import numpy as np
 import Lib as ss
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
@@ -23,7 +23,7 @@ nml_options = {
         'geomID': 'Test0',
         'FILDSIMmode': False,
         'nGeomElements': 3,
-        'nxi': 5,
+        'nxi': 7,
         'nGyroradius': 2,
         'nMap': 500,
         'mapping': True,
@@ -32,6 +32,7 @@ nml_options = {
         'nResampling': 4,
         'saveOrbits': True,
         'saveRatio': 0.1,
+        'saveOrbitLongMode': False,
         'SINPA_dir': paths.SINPA,
         'FIDASIMfolder': '/afs/ipp/home/r/ruejo/FIDASIM4/RESULTS/30585inpa_beauty',
         'verbose': True,
@@ -39,6 +40,7 @@ nml_options = {
         'Zin': 0.0,         # Charge before the ionization in the foil
         'Zout': 1.0,        # Charge after the ionization in the foil
         'IpBt': 1,        # Sign of toroidal current vs field (for pitch)
+        'flag_efield_on': False,  # Add or not electric field
     },
     'markerinteractions': {    # Particles and foil modelling
         'energyLoss': True,
@@ -55,7 +57,7 @@ nml_options = {
          'nGyro': 40,
          'minAngle': -0.1,
          'dAngle': 0.2,
-         'alphas': [3.0, 3.2, 3.3, 3.4, 3.5],
+         'XI': [2.9, 3.0, 3.2, 3.3, 3.4, 3.5, 3.6],
          # 'alphas': [3.141592],
          'rL': [2.5, 3.0],
          'maxT': 0.0000005

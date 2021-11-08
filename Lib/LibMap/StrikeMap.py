@@ -810,7 +810,8 @@ class StrikeMap:
         else:
             raise Exception('Diagnostic not understood')
 
-    def plot_resolutions(self, ax_param: dict = {}, cMap=None, nlev: int = 20):
+    def plot_resolutions(self, ax_param: dict = {}, cMap=None, nlev: int = 20,
+                         index_gyr=None):
         """
         Plot the resolutions.
 
@@ -823,6 +824,8 @@ class StrikeMap:
         would need to draw the plot on your own
         @param cMap: is None, Gamma_II will be used
         @param nlev: number of levels for the contour
+        @param index_gyr: if present, reslution would be plotted along
+        gyroradius given by gyroradius[index_gyr]
         """
         # --- Initialise the settings:
         if cMap is None:
@@ -840,21 +843,35 @@ class StrikeMap:
                                facecolor='w', edgecolor='k')
 
         if self.diag == 'FILD':
-            # Plot the gyroradius resolution
-            a1 = ax[0].contourf(self.strike_points.header['pitch'],
-                                self.strike_points.header['gyroradius'],
-                                self.resolution['Gyroradius']['sigma'],
-                                levels=nlev, cmap=cmap)
-            fig.colorbar(a1, ax=ax[0], label='$\\sigma_r [cm]$')
-            ax[0] = ssplt.axis_beauty(ax[0], ax_param)
-            # plot the pitch resolution
-            a = ax[1].contourf(self.strike_points.header['pitch'],
-                               self.strike_points.header['gyroradius'],
-                               self.resolution['Pitch']['sigma'],
-                               levels=nlev, cmap=cmap)
-            fig.colorbar(a, ax=ax[1], label='$\\sigma_\\lambda$')
-            ax[1] = ssplt.axis_beauty(ax[1], ax_options)
-            plt.tight_layout()
+            if index_gyr is None:
+                # Plot the gyroradius resolution
+                a1 = ax[0].contourf(self.strike_points.header['pitch'],
+                                    self.strike_points.header['gyroradius'],
+                                    self.resolution['Gyroradius']['sigma'],
+                                    levels=nlev, cmap=cmap)
+                fig.colorbar(a1, ax=ax[0], label='$\\sigma_r [cm]$')
+                ax[0] = ssplt.axis_beauty(ax[0], ax_options)
+                # plot the pitch resolution
+                a = ax[1].contourf(self.strike_points.header['pitch'],
+                                   self.strike_points.header['gyroradius'],
+                                   self.resolution['Pitch']['sigma'],
+                                   levels=nlev, cmap=cmap)
+                fig.colorbar(a, ax=ax[1], label='$\\sigma_\\lambda$')
+                ax[1] = ssplt.axis_beauty(ax[1], ax_options)
+                plt.tight_layout()
+            else:
+                ax_options = {
+                    'xlabel': '$\\lambda [\\degree]$',
+                    'ylabel': '$\\sigma_l [cm]$'
+                }
+                ax[0].plot(self.strike_points.header['pitch'],
+                           self.resolution['Gyroradius']['sigma'][index_gyr,:])
+                ax[0] = ssplt.axis_beauty(ax[0], ax_options)
+
+                ax[1].plot(self.strike_points.header['pitch'],
+                           self.resolution['Pitch']['sigma'][index_gyr, :])
+                ax[1] = ssplt.axis_beauty(ax[1], ax_options)
+
         fig.show()
         return
 

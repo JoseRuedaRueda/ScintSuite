@@ -1,3 +1,14 @@
+** 0.6.1
+*** Mapping library
+- plot_resolution allows to plot just the resolution along a given gyroradii, avoiding the 2D contour which is difficult to follow. Check index_gyr new optional variable
+- plot_pix of the Scintillator object was upgraded, now 'the scintillator is closed'. Default line style is continuous and color is white
+*** Video Object
+- plot_frame now include by default a colorbar
+*** SINPA Library
+- Solved a bug when the scintillator histogram wanted to be calculated for FILD data
+*** Enhance plotting
+- Lib.Plotting include a function to plot a collection of lines with colors given by a colormap (collection is mapable so you can then include a colorbar)
+
 ** 0.6.0 SINPA Support and new Tomography
 *** Simulation codes
 - Libraries to interact with the different simulation codes (FIDASIM, FILDSIM, iHIBPsim, and SINPA) are now located in the SimulationCodes library
@@ -8,7 +19,7 @@
 *** FILDSIM
 - a new FILDSIMmarkers library was created. It contain the new object to load and plot the strike maps
 - *Note*: This library imply a small change of phylosophy against previous versions. Yuo can still load and use the strike points as before from the strike map, but they are now a part from the FILDSIM library, with their own object and ploting routines.
-This change was made for an earier integration of INPA and for an easier analysis of FILDSIM strike points for FILD optimization
+- This change was made for an earier integration of INPA and for an easier analysis of FILDSIM strike points for FILD optimization
 - Function to plot any variable of the FILDSIM strike points was added: see LibFILDSIM.Strikes.plot1D()
 - Direct and easy calculation of the histogram of strike points in the scintillator was added: see LibFILDSIM.Strike.calculate_scintillator_histogram() and LibFILDSIM.Strike.plot_scintillator_histogram()
 - When the FILDSIM markers are loaded, they are no longer treated like a single matrix, they are splits by pairs (gyroradius, pitch). This save memory (we do not need to save the first 2 colums of the matrix) and simplify routines as the calculation of the resolution

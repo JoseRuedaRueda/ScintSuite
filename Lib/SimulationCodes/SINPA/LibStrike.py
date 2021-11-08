@@ -152,7 +152,7 @@ class Strikes:
         mean the total signal, or the mapping signal
         """
         colum_pos = self.header['info']['xs']['i']  # column of the x position
-        if kind_separation is not None:
+        if kind_separation:
             column_kind = self.header['info']['kind']['i']
         if includeW:
             weight_column = self.header['info']['w']['i']
