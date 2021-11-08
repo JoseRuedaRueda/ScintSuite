@@ -1,6 +1,6 @@
 """Detect in which machine are we (AUG, SMART...)"""
 import os
-if os.path.isdir('/afs/ipp-garching.mpg.de'):
+if os.path.isdir('/afs/ipp/aug/ads-diags/common/python/lib'):
     machine = 'AUG'
 else:
     machine = 'Generic'

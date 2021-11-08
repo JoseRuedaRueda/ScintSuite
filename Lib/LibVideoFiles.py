@@ -14,13 +14,13 @@ import matplotlib.pyplot as plt
 import tkinter as tk                       # To open UI windows
 import Lib.LibPlotting as ssplt
 import Lib.LibMap as ssmap
-import Lib.LibFILDSIM as ssfildsim
+import Lib.SimulationCodes.FILDSIM as ssfildsim
 import Lib.LibPaths as p
 import Lib.LibUtilities as ssutilities
 import Lib.LibIO as ssio
 import Lib.GUIs as ssGUI             # For GUI elements
 import Lib.LibData as ssdat
-import Lib.LibFILDSIM as ssFILDSIM
+import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 from Lib.LibMachine import machine
 from Lib.version_suite import version
 from scipy.io import netcdf                # To export remap data
@@ -1798,7 +1798,8 @@ class Video:
     def plot_frame(self, frame_number=None, ax=None, ccmap=None,
                    strike_map='off', t: float = None, verbose=True,
                    smap_marker_params: dict = {},
-                   smap_line_params: dict = {}):
+                   smap_line_params: dict = {}, vmin=0, vmax=None,
+                   xlim=None, ylim=None):
         """
         Plot a frame from the loaded frames
 
@@ -1862,7 +1863,22 @@ class Video:
         # --- Check the axes to plot
         if ax is None:
             fig, ax = plt.subplots()
-        ax.imshow(dummy, origin='lower', cmap=cmap)
+            created = True
+        else:
+            created = False
+        if vmax is None:
+            vmax = dummy.max()
+        img = ax.imshow(dummy, origin='lower', cmap=cmap, vmin=vmin, vmax=vmax)
+        # --- trick to make the colorbar of the correct size
+        # cax = fig.add_axes([ax.get_position().x1 + 0.01,
+        #                     ax.get_position().y0, 0.02,
+        #                     ax.get_position().height])
+        if xlim is not None:
+            ax.set_xlim(xlim)
+        if ylim is not None:
+            ax.set_ylim(ylim)
+        im_ratio = dummy.shape[0]/dummy.shape[1]
+        plt.colorbar(img, label='Counts', fraction=0.042*im_ratio, pad=0.04)
         ax.set_title('t = ' + str(round(tf, 4)) + (' s'))
         # Save axis limits, if not, if the strike map is larger than
         # the frame (FILD4,5) the output plot will be horrible
@@ -1903,6 +1919,10 @@ class Video:
         # Set 'original' limits:
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
+        # Arrange the axes:
+        if created:
+            fig.show()
+            plt.tight_layout()
         return ax
 
     def find_orientation(self, t, verbose: bool = True, R=None, z=None):
@@ -2026,7 +2046,8 @@ class Video:
     def plot_profiles_in_time(self, ccmap=None, plt_params: dict = {}, t=None,
                               nlev: int = 50, cbar_tick_format: str = '%.1E',
                               normalise=False, max_gyr=None, min_gyr=None,
-                              max_pitch=None, min_pitch=None):
+                              max_pitch=None, min_pitch=None, ax=None,
+                              line_params={}):
         """
         Creates a plot with the evolution of the profiles
 
@@ -2117,16 +2138,11 @@ class Video:
             if 'grid' not in plt_params:
                 plt_params['grid'] = 'both'
             # see if the input time is an array:
-            try:
-                t.size
-            except AttributeError:
-                try:
-                    len(t)
-                    t = np.array(t)
-                except TypeError:
-                    t = np.array([t])
+            if not isinstance(t, (list, np.ndarray)):
+                t = np.array([t])
             # Open the figure
-            fig, (ax1, ax2) = plt.subplots(1, 2)
+            if ax is None:
+                fig, ax = plt.subplots(1, 2)
             for tf in t:
                 # find the frame we want to plot
                 it = np.argmin(abs(self.remap_dat['tframes'] - tf))
@@ -2136,18 +2152,20 @@ class Video:
                     y /= y.max()
                 else:
                     y = self.remap_dat['sprofy'][:, it]
-                ax1.plot(self.remap_dat['yaxis'], y,
-                         label='t = {0:.3f}s'.format(
-                            self.remap_dat['tframes'][it]))
+                ax[0].plot(self.remap_dat['yaxis'], y,
+                           label='t = {0:.3f}s'.format(
+                           self.remap_dat['tframes'][it]),
+                           **line_params)
                 # Plot the pitch profile
                 if normalise:
                     y = self.remap_dat['sprofx'][:, it]
                     y /= y.max()
                 else:
                     y = self.remap_dat['sprofx'][:, it]
-                ax2.plot(self.remap_dat['xaxis'], y,
-                         label='t = {0:.3f}s'.format(
-                            self.remap_dat['tframes'][it]))
+                ax[1].plot(self.remap_dat['xaxis'], y,
+                           label='t = {0:.3f}s'.format(
+                           self.remap_dat['tframes'][it]),
+                           **line_params)
             if self.diag == 'FILD':
                 title = '#' + str(self.shot) + ' ' +\
                     str(self.remap_dat['options']['pprofmin']) + 'º to ' +\
@@ -2155,9 +2173,9 @@ class Video:
                 plt_params['xlabel'] = self.remap_dat['ylabel'] + ' [' +\
                     self.remap_dat['yunits'] + ']'
                 plt_params['ylabel'] = 'Counts [a.u.]'
-                ax1.set_title(title)
-            ax1 = ssplt.axis_beauty(ax1, plt_params)
-            ax1.legend()
+                ax[0].set_title(title)
+            ax[0] = ssplt.axis_beauty(ax[0], plt_params)
+            ax[0].legend()
             if self.diag == 'FILD':
                 title = '#' + str(self.shot) + ' ' +\
                     str(self.remap_dat['options']['rprofmin']) + 'cm to ' +\
@@ -2165,9 +2183,9 @@ class Video:
                 plt_params['xlabel'] = self.remap_dat['xlabel'] + ' [' +\
                     self.remap_dat['xunits'] + ']'
                 plt_params['ylabel'] = 'Counts [a.u.]'
-                ax2.set_title(title)
-            ax2.legend()
-            ax2 = ssplt.axis_beauty(ax2, plt_params)
+                ax[1].set_title(title)
+            ax[1].legend()
+            ax[1] = ssplt.axis_beauty(ax[1], plt_params)
             plt.tight_layout()
         plt.show()
         return

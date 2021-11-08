@@ -107,18 +107,6 @@ class Strikes:
             raise Exception('Error loading file, not recognised columns')
         # Write some help
         self.header['info'] = {
-            # 'rl': {
-            #     'i': 0, # Column index in the file
-            #     'units': ' [cm]', # Units
-            #     'longName': 'Larmor radius',
-            #     'shorthName': '$r_l$',
-            # },
-            # 'pitch': {
-            #     'i': 1, # Column index in the file
-            #     'units': ' [$\\degree$]', # Units
-            #     'longName': 'Pitch angle',
-            #     'shorthName': '$\\lambda$',
-            # },
             'gyrophase': {
                 'i': 0,  # Column index in the file
                 'units': ' [$\\degree$]',  # Units
@@ -147,7 +135,7 @@ class Strikes:
                 'i': 4,  # Column index in the file
                 'units': ' [cm]',  # Units
                 'longName': 'Remapped Larmor radius',
-                'shorthName': '$r_l$',
+                'shortName': '$r_l$',
             },
             'remap_pitch': {
                 'i': 5,  # Column index in the file

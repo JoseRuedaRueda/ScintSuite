@@ -2,7 +2,7 @@
 import time
 import os
 import numpy as np
-import Lib.LibFILDSIM as ssFILDSIM
+import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 import Lib.LibUtilities as ssextra
 from Lib.LibMachine import machine
 from Lib.LibMap.StrikeMap import StrikeMap

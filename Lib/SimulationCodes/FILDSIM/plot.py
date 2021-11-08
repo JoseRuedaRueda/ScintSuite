@@ -1,5 +1,5 @@
 """Plot FILDSIM geometry and results from FILDSIM fortran."""
-import Lib.LibFILDSIM.FILDSIMexecution as ssfildsimA
+import Lib.SimulationCodes.FILDSIM.execution as ssfildsimA
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D

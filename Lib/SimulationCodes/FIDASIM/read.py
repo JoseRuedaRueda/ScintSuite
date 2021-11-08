@@ -546,105 +546,32 @@ def read_settings(filename):
     return data
 
 
-def plt_spec(filename):
+def read_npa(filename):
     """
-    Plot FIDASIM spectra
+    Read (I)NPA output files.
 
-    @param filename: name of the folder with FIDASIM the results
+    Jose Rueda: jrrueda@us.es
+
+    @param filenam: name of the file to be read
     """
-    spec = read_spec(filename)
-    plt.plot(spec['lambda'], np.sum(spec['halo'], axis=2)[0, :])
-    plt.show()
-    return
-
-
-def plt_neutrals(filename):
-    """
-    Plot FIDASIM neutral density
-
-    @param filename: name of the folder with FIDASIM the results
-    """
-    neutrals = read_neutrals(filename)
-    grid = read_grid(filename)
-    plt.contour(grid['xx'][0], grid['yy'][0],
-                np.sum(neutrals['fdens'], axis=1)[3, :, :])
-    diag = read_diag(filename)
-    for i in range(diag['nchan']):
-        plt.plot([diag['xyzlos'][0, i], diag['xyzhead'][0, i]],
-                 [[diag['xyzlos'][1, i]], [diag['xyzhead'][1, i]]])
-    # field = read_field(filename)
-    # ii = np.argmin(np.abs(grid['zz'][0]))
-    # IPython.embed()
-    # # convert from r,z to x,y
-    # plt.contour(grid['xx'], grid['yy'], field['rho_grid'])
-    plt.show()
-    return
-
-
-def plt_profiles(filename, clr='k', label=''):
-    """
-    Plot FIDASIM profiles
-
-    @param filename: name of the folder with FIDASIM the results
-    @param clr: the color
-    @param label: The label for the line plot
-    """
-    profiles = read_profiles(filename)
-    # Temperature
-    plt.subplot(221)
-    plt.plot(profiles['rho'], profiles['te'], color=clr, label=label)
-    plt.plot(profiles['rho'], profiles['ti'], ls='--', color=clr)
-    plt.ylabel('Temperature')
-    # Density
-    plt.subplot(222)
-    plt.plot(profiles['rho'], profiles['dene'], color=clr)
-    plt.plot(profiles['rho'], profiles['denp'], ls='--', color=clr)
-    plt.ylabel('Density')
-    # Vtor
-    plt.subplot(223)
-    plt.plot(profiles['rho'], profiles['vtor'], ls='--', color=clr)
-    plt.ylabel('v_tor')
-    # Zeff
-    plt.subplot(224)
-    plt.plot(profiles['rho'], profiles['zeff'], ls='--', color=clr)
-    plt.ylabel('z_eff')
-    return
-
-
-def plt_fida(filename):
-    """
-    Plot FIDA spectrum
-
-    @param filename: name of the folder with FIDASIM the results
-    """
-    fida = read_fida(filename)
-    plt.plot(fida['lambda'], np.sum(fida['afida'], axis=2)[0, :])
-    plt.show()
-    return
-
-
-def plt_grid(filename, view='tor', clr='red', alpha=1.0):
-    """
-    Plot FIDASIM grid
-
-    @param filename: name of the folder with FIDASIM the results
-    """
-    grid = read_grid(filename)
-
-    if view == 'tor':
-        (xmin, xmax, ymin, ymax) =\
-            (grid['xmin'], grid['xmax'], grid['ymin'], grid['ymax'])
-        (xmin, xmax, ymin, ymax) = (xmin*0.01, xmax*0.01, ymin*0.01, ymax*0.01)
-        plt.plot([xmin, xmin], [ymin, ymax], color=clr, alpha=alpha)
-        plt.plot([xmax, xmax], [ymin, ymax], color=clr, alpha=alpha)
-        plt.plot([xmin, xmax], [ymin, ymin], color=clr, alpha=alpha)
-        plt.plot([xmin, xmax], [ymax, ymax], color=clr, alpha=alpha)
-    if view == 'pol':
-        (rmin, rmax, zmin, zmax) =\
-            (grid['rmin'], grid['rmax'], grid['zmin'], grid['zmax'])
-        (rmin, rmax, zmin, zmax) = (rmin*0.01, rmax*0.01, zmin*0.01, zmax*0.01)
-        plt.plot([rmin, rmin], [zmin, zmax], color=clr, alpha=alpha)
-        plt.plot([rmax, rmax], [zmin, zmax], color=clr, alpha=alpha)
-        plt.plot([rmin, rmax], [zmin, zmin], color=clr, alpha=alpha)
-        plt.plot([rmin, rmax], [zmax, zmax], color=clr, alpha=alpha)
-    return
+    print('Reading file: ', filename)
+    with open(filename, 'rb') as fid:
+        shot = int(np.fromfile(fid, 'int32', 1)[:])
+        time = int(np.fromfile(fid, 'float32', 1)[:])
+        nr_npa = int(np.fromfile(fid, 'int32', 1)[:])
+        counter = int(np.fromfile(fid, 'int32', 1)[:])
+        data = {
+            'shot': shot,
+            'time':  time,
+            'nr_npa': nr_npa,
+            'counter': counter,
+            'ipos': np.reshape(np.fromfile(fid, 'float32', counter * 3),
+                               (counter, 3), order='F'),
+            'fpos': np.reshape(np.fromfile(fid, 'float32', counter * 3),
+                               (counter, 3), order='F'),
+            'v': np.reshape(np.fromfile(fid, 'float32', counter * 3),
+                            (counter, 3), order='F'),
+            'wght': np.fromfile(fid, 'float32', counter * 3),
+            'kind': np.fromfile(fid, 'float32', counter * 3),
+        }
+    return data
