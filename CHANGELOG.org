@@ -1,3 +1,10 @@
+** 0.6.3 Small improvements
+- line_fit_3D was moved from the INPASIM library to the SideFuncitons one
+
+** 0.6.2 Small improvements
+*** TimeTrace
+- TimeTrace.plot_single() now shows the axis and include a print for the base line correction done
+
 ** 0.6.1
 *** Mapping library
 - plot_resolution allows to plot just the resolution along a given gyroradii, avoiding the 2D contour which is difficult to follow. Check index_gyr new optional variable

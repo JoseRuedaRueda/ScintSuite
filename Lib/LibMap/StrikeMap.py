@@ -151,17 +151,21 @@ class StrikeMap:
             # z coordinates of map points (common)
             self.z = dummy[ind, 4]
             ## x coordinates of closest point to NBI
-            self.x0 = dummy[ind, 5]
+            self.x0 = dummy[ind, 9]
             ## y coordinates of closest point to NBI
-            self.y0 = dummy[ind, 6]
+            self.y0 = dummy[ind, 10]
             ## z coordinates of closest point to NBI
-            self.z0 = dummy[ind, 7]
+            self.z0 = dummy[ind, 11]
             ## distance to the NBI central line
-            self.d0 = dummy[ind, 8]
+            self.d0 = dummy[ind, 12]
             ## Collimator factor as defined in FILDSIM
-            self.collimator_factor = dummy[ind, 9]
+            self.collimator_factor = dummy[ind, 7]
             ## Number of markers striking in this area
-            self.n_strike_points = dummy[ind, 10]
+            self.n_strike_points = dummy[ind, 6]
+            ## Number of markers striking in this area
+            self.avg_beta_ini = dummy[ind, 5]
+            ## Number of markers striking in this area
+            self.avg_incident_angle = dummy[ind, 8]
             ## Colimator facror as a matrix
             # This simplify a lot W calculation and forward modelling:
             self.ngyr = len(self.unique_gyroradius)
