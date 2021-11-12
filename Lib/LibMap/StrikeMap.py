@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
 import Lib.LibPlotting as ssplt
 import Lib.SimulationCodes.FILDSIM as ssFILDSIM
+import Lib.SimulationCodes.SINPA as ssSINPA
 import Lib.LibMap.Common as common
 from Lib.LibMachine import machine
 import Lib.LibPaths as p
@@ -43,12 +44,13 @@ class StrikeMap:
         - INPA compatibility included in version 0.6.0
         """
         ## Associated diagnostic
-        if flag == 0 or flag == 'FILD':
+        if flag == 0 or str(flag).lower() == 'fild':
             self.diag = 'FILD'
-        elif flag == 1 or flag == 'INPA':
+        elif flag == 1 or str(flag).lower() == 'inpa':
             self.diag = 'INPA'
-        elif flag == 2 or flag == 'iHIBP':
+        elif flag == 2 or str(flag).lower() == 'ihibp':
             self.diag = 'iHIBP'
+            raise Exception('Diagnostic not implemented: Talk with Pablo')
         else:
             print('Flag: ', flag)
             raise Exception('Diagnostic not implemented')
@@ -85,7 +87,7 @@ class StrikeMap:
                 file = os.path.join(smap_folder, dumm)
                 self.file = file
             if not os.path.isfile(file):
-                print('Strike map no fpun in the database')
+                raise Exception('Strike map no found in the database')
             dummy = np.loadtxt(file, skiprows=3)
             # See which rows has collimator factor larger than zero (ie see for
             # which combination of gyroradius and pitch some markers arrived)
@@ -129,10 +131,10 @@ class StrikeMap:
                         self.collimator_factor_matrix[ir, ip] = \
                             self.collimator_factor[flags]
         elif self.diag == 'INPA':
-            dummy = np.loadtxt(file, skiprows=2)
+            dummy = np.loadtxt(file, skiprows=3)
             # See which rows has collimator factor larger than zero (ie see for
             # which combination of rl and alpha some markers arrived)
-            ind = dummy[:, 9] > 0
+            ind = dummy[:, 7] > 0
             # Initialise the class
             ## Gyroradius of map points
             self.gyroradius = dummy[ind, 0]
@@ -194,6 +196,14 @@ class StrikeMap:
         @param markers_params: parameters for plt.plot() to plot the markers
         @param line_params: parameters for plt.plot() to plot the markers
         @param labels: flag to add the labes (gyroradius, pitch) on the plot
+        @param rotation_for_gyr_label: Rotation angle for the gyroradius label
+        @param rotation_for_pitch_label: Rotation angle for the pitch label
+
+        Note:
+            - The rotation_for_pitch_label should be called in a different way
+            (for example ..._xi_label using SINPA notation), but we will keep
+            it like this to do not disturb FILD users which as this variable
+            alrea
         """
         # Default plot parameters:
         marker_options = {
@@ -212,86 +222,65 @@ class StrikeMap:
 
         if ax is None:
             fig, ax = plt.subplots()
-
-        if self.diag == 'FILD':
-            # Draw the lines of constant gyroradius (energy). These are the
-            # 'horizontal' lines]
-            uniq = np.unique(self.gyroradius)
-            n = len(uniq)
-            for i in range(n):
-                flags = self.gyroradius == uniq[i]
-                ax.plot(self.y[flags], self.z[flags], **line_options)
-
-                if (i % 2 == 0):  # add gyro radius labels
-                    ax.text((self.y[flags])[0]-0.2,
-                            (self.z[flags])[0], f'{float(uniq[i]):g}',
-                            horizontalalignment='right',
-                            verticalalignment='center')
-
-            ax.annotate('Gyroradius [cm]',
-                        xy=(min(self.y) - 0.5,
-                            (max(self.z) - min(self.z))/2 + min(self.z)),
-                        rotation=rotation_for_gyr_label,
-                        horizontalalignment='center',
+        # Draw the line of constant Gyroradius (energy). 'Horizontal'
+        for i in range(self.ngyr):
+            flags = self.gyroradius == self.unique_gyroradius[i]
+            ax.plot(self.y[flags], self.z[flags], **line_options)
+            # Add the gyroradius label, but just each 2 entries so the plot
+            # does not get messy
+            if i == 0:
+                delta = abs(self.y[flags][1] - self.y[flags][0])
+            if (i % 2 == 0):  # add gyro radius labels
+                # Delta variable just to adust nicelly the distance (as old
+                # fildsim is in cm and new in m)
+                ax.text((self.y[flags]).min()-0.5 * delta,
+                        (self.z[flags]).min(),
+                        f'{float(self.unique_gyroradius[i]):g}',
+                        horizontalalignment='right',
                         verticalalignment='center')
-
+        ax.annotate('Gyroradius [cm]',
+                    xy=(min(self.y) - delta,
+                        (max(self.z) - min(self.z))/2 + min(self.z)),
+                    rotation=rotation_for_gyr_label,
+                    horizontalalignment='center',
+                    verticalalignment='center')
+        if self.diag == 'FILD':
             # Draw the lines of constant pitch. 'Vertical' lines
-            uniq = np.unique(self.pitch)
-            n = len(uniq)
-            for i in range(n):
-                flags = self.pitch == uniq[i]
+            for i in range(self.npitch):
+                flags = self.pitch == self.unique_pitch[i]
                 ax.plot(self.y[flags], self.z[flags], **line_options)
-
+                if i == 0:
+                    delta = abs(self.z[flags][-1] - self.z[flags][-2])
                 ax.text((self.y[flags])[-1],
-                        (self.z[flags])[-1] - 0.1,
-                        f'{float(uniq[i]):g}',
+                        (self.z[flags])[-1] - delta,
+                        f'{float(self.unique_pitch[i]):g}',
                         horizontalalignment='center',
                         verticalalignment='top')
 
             ax.annotate('Pitch [$\\degree$]',
                         xy=((max(self.y) - min(self.y))/2 + min(self.y),
-                            min(self.z) - 0.1),
+                            min(self.z) - 1.5 * delta),
                         rotation=rotation_for_pitch_label,
                         horizontalalignment='center',
                         verticalalignment='center')
         elif self.diag == 'INPA':
-            # Draw the lines of constant gyroradius (energy). These are the
-            # 'horizontal' lines]
-            uniq = np.unique(self.gyroradius)
-            n = len(uniq)
-            for i in range(n):
-                flags = self.gyroradius == uniq[i]
-                ax.plot(self.y[flags], self.z[flags], **line_options)
-
-                if (i % 2 == 0):  # add gyro radius labels
-                    ax.text((self.y[flags])[0]-0.2,
-                            (self.z[flags])[0], f'{float(uniq[i]):g}',
-                            horizontalalignment='right',
-                            verticalalignment='center')
-
-            ax.annotate('Gyroradius [cm]',
-                        xy=(min(self.y) - 0.5,
-                            (max(self.z) - min(self.z))/2 + min(self.z)),
-                        rotation=rotation_for_gyr_label,
-                        horizontalalignment='center',
-                        verticalalignment='center')
-
             # Draw the lines of constant alpha. 'Vertical' lines
-            uniq = np.unique(self.alpha)
-            n = len(uniq)
-            for i in range(n):
-                flags = self.alpha == uniq[i]
+            for i in range(self.nalpha):
+                flags = self.alpha == self.unique_alpha[i]
+                if i == 0:
+                    delta = abs(self.y[flags][1] - self.y[flags][0])
+
                 ax.plot(self.y[flags], self.z[flags], **line_options)
 
                 ax.text((self.y[flags])[-1],
-                        (self.z[flags])[-1] - 0.1,
-                        f'{float(uniq[i]):g}',
+                        (self.z[flags])[-1] - delta,
+                        f'{float(self.unique_alpha[i]):g}',
                         horizontalalignment='center',
                         verticalalignment='top')
 
             ax.annotate('Alpha [rad]',
                         xy=((max(self.y) - min(self.y))/2 + min(self.y),
-                            min(self.z) - 0.1),
+                            min(self.z) - 1.5*delta),
                         rotation=rotation_for_pitch_label,
                         horizontalalignment='center',
                         verticalalignment='center')
@@ -300,7 +289,6 @@ class StrikeMap:
 
         # Plot some markers in the grid position
         ax.plot(self.y, self.z, **marker_options)
-        return
 
     def plot_pix(self, ax=None, marker_params: dict = {},
                  line_params: dict = {}):
@@ -312,7 +300,6 @@ class StrikeMap:
         @param ax: Axes where to plot
         @param marker_params: parameters for the centroid plotting
         @param line_params: parameters for the lines plotting
-        @return: Strike maps over-plotted in the axis
         """
         # Default plot parameters:
         marker_options = {
@@ -379,6 +366,18 @@ class StrikeMap:
         @param grid_params: grid options for the transformationn matrix grid
         @param MC_number: Number of MC markers for the transformation matrix,
         if this number < 0, the transformation matrix will not be calculated
+
+        Info on the dictionary self.grid_interp:
+            'gyroradius': gyroradius values of each pixel
+            'pitch': pitch values of each pixel
+            'collimator_factor': Collimator values of each pixel
+            'interpolators': {
+                'gyroradius': interpolator pixel -> rl
+                'pitch': interpolator pixel-> pitch [only for FILD]
+                'alpha': interpolator pixel-> alpha [only for INPA]
+                'collimator_factor': interpolator pixel to fcol [only for FILD]
+            },
+            'transformation_matrix': 4D tensor for the remap
         """
         # --- 0: Check inputs
         if self.xpixel is None:
@@ -393,6 +392,7 @@ class StrikeMap:
             'dx': 1.0
         }
         grid_options.update(grid_params)
+
         # --- 1: Create grid for the interpolation
         # Note, it seems transposed, but the reason is that the calibration
         # paramters were adjusted with the frame transposed (to agree with old
@@ -403,10 +403,10 @@ class StrikeMap:
         # Prepare the grid for te griddata method:
         dummy = np.column_stack((self.xpixel, self.ypixel))
         # Prepare the options and interpolators for later
-        if method == 1 or method == 'linear':
+        if method == 1 or str(method).lower() == 'linear':
             met = 'linear'
             interpolator = scipy_interp.LinearNDInterpolator
-        elif method == 2 or method == 'cubic':
+        elif method == 2 or str(method).lower == 'cubic':
             met = 'cubic'
             interpolator = scipy_interp.CloughTocher2DInterpolator
         else:
@@ -487,8 +487,6 @@ class StrikeMap:
                 # Normalise the transformation matrix
                 transform /= MC_number
                 transform /= (grid_options['dx'] * grid_options['dy'])
-                # This last normalization will be removed once we include the
-                # jacobian somehow
                 self.grid_interp['transformation_matrix'] = transform
 
         # --- Plot
@@ -521,13 +519,14 @@ class StrikeMap:
 
         @param B0: Magnetic field [in T]
         @param Z: the charge [in e units]
-        @param A: the mass number
+        @param A: the mass in amu
         """
         if self.diag == 'FILD':
             self.energy = ssFILDSIM.get_energy(self.gyroradius, B0, A=A, Z=Z)
         return
 
-    def load_strike_points(self, file=None, verbose: bool = True):
+    def load_strike_points(self, file=None, verbose: bool = True,
+                           newFILDSIM=False):
         """
         Load the strike points used to calculate the map.
 
@@ -537,15 +536,28 @@ class StrikeMap:
         FILDSIM format (if we are loading FILD). If none, name will be deduced
         from the self.file variable, so the strike points are supposed to be in
         the same folder than the strike map
+        @param verbose: Flag to plot some information about the strike points
+        @param newFILDSIM: Flag to decide if we are using the new FILDSIM or
+        the old one
         """
+        # Get the object we need to fill and the file to be load
         if self.diag == 'FILD':
             if file is None:
-                file = self.file[:-14] + 'strike_points.dat'
-            # if verbose:
-            #     print('Reading strike points: ', file)
-            self.strike_points = ssFILDSIM.Strikes(file=file, verbose=verbose)
+                if newFILDSIM:
+                    path, filename = os.path.split(self.file)
+                    file = os.path.join(path, 'StrikePoints.bin')
+                    Object = ssSINPA.Strikes
+                else:
+                    file = self.file[:-14] + 'strike_points.dat'
+                    Object = ssFILDSIM.Strikes
+        elif self.diag == 'INPA':
+            if file is None:
+                path, filename = os.path.split(self.file)
+                file = os.path.join(path, 'StrikePoints.bin')
+                Object = ssSINPA.Strikes
 
-        return
+        self.fileStrikePoints = file
+        self.strike_points = Object(file=file, verbose=verbose)
 
     def plot_strike_points(self, ax=None, plt_param={}):
         """
