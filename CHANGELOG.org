@@ -1,5 +1,13 @@
+** 0.6.4 New interpolators for SINPA
+*** StrikeMap
+- StrikeMap can now be initialize with fild instead of FILD (actually the comparison is lower case, so you can initialize it as FiLd if you are crazy)
+- StrikeMap now is able to load strike points from the new FILDSIM format
+- Plot real updated to show properly the labels if the inputs are in m or cm. Labels are now a bit messy, need a bit more work in future versions
+*** Others
+- improved comments and documentations
 ** 0.6.3 Small improvements
 - line_fit_3D was moved from the INPASIM library to the SideFuncitons one
+- Change in the SINPA.Strike to accommodate the order changes in SINPA (just a couple of index changed in the header)
 
 ** 0.6.2 Small improvements
 *** TimeTrace
