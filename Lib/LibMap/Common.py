@@ -55,12 +55,19 @@ def _fit_to_model_(data, bins=20, model='Gauss', normalize=True):
 
     @param bins: Can be the desired number of bins or the edges
     @param model: 'Gauss' Pure Gaussian, 'sGauss' Screw Gaussian
+
+    @return par: Dictionary containing the fit parameters
+    @return results: the lmfit model object with the results
+    @return normalization: The used normalization for the histogram
     """
     # --- Make the histogram of the data
     hist, edges = np.histogram(data, bins=bins)
     hist = hist.astype(np.float64)
     if normalize:
-        hist /= hist.max()  # Normalise to  have the data between 0 and 1
+        normalization = hist.max()
+        hist /= normalization  # Normalise to  have the data between 0 and 1
+    else:
+        normalization = 1.0
     cent = 0.5 * (edges[1:] + edges[:-1])
     # --- Make the fit
     if model == 'Gauss':
@@ -79,7 +86,7 @@ def _fit_to_model_(data, bins=20, model='Gauss', normalize=True):
                'sigma': result.params['sigma'].value,
                'gamma': result.params['gamma'].value}
 
-    return par, result
+    return par, result, normalization
 
 
 # -----------------------------------------------------------------------------
@@ -193,7 +200,7 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
                 'Counts                        '
             length = len(gyr)
             np.savetxt(name, np.hstack((gyr.reshape(length, 1),
-                       profile.reshape(length, 1))),
+                                        profile.reshape(length, 1))),
                        delimiter='   ,   ', header=line)
         else:
             raise Exception('You want to export but no gyr axis was given')
@@ -265,7 +272,7 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
                 'Counts                        '
             length = len(pitch)
             np.savetxt(name, np.hstack((pitch.reshape(length, 1),
-                       profile.reshape(length, 1))),
+                                        profile.reshape(length, 1))),
                        delimiter='   ,   ', header=line)
         else:
             raise Exception('You want to export but no pitch was given')
