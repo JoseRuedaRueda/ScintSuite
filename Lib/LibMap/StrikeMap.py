@@ -5,6 +5,7 @@ Jose Rueda: jrrueda@us.es
 """
 import os
 import numpy as np
+import warnings
 import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
 import Lib.LibPlotting as ssplt
@@ -76,6 +77,8 @@ class StrikeMap:
         self.grid_interp = None
         ## Strike points used to calculate the map
         self.strike_points = None
+        ## from strike position to phase space
+        self.map_interpolators = None
         if self.diag == 'FILD':
             # Read the file
             if file is None:
@@ -475,10 +478,10 @@ class StrikeMap:
                         x_markers = j + generator(size=MC_number)
                         y_markers = i + generator(size=MC_number)
                         # Calculate the r-pitch coordinates
-                        r_markers = self.grid_interp['interpolators']\
-                            ['gyroradius'](x_markers, y_markers)
-                        p_markers = self.grid_interp['interpolators']\
-                            ['pitch'](x_markers, y_markers)
+                        r_markers = self.grid_interp['interpolators']['gyroradius'](
+                            x_markers, y_markers)
+                        p_markers = self.grid_interp['interpolators']['pitch'](
+                            x_markers, y_markers)
                         # make the histogram in the r-pitch space
                         H, xedges, yedges = \
                             np.histogram2d(p_markers, r_markers,
@@ -579,7 +582,8 @@ class StrikeMap:
         # Open the figure if needed:
         if ax is None:
             fig, ax = plt.subplots()
-        print('This function will be removed in future versions.')
+        Warning('This function will be removed in future versions.',
+                DeprecationWarning)
         print('Please use smap.strike_points.plot2D() instead')
         self.strike_points.plot2D(ax=ax, mar_params=plt_param)
 
@@ -592,8 +596,13 @@ class StrikeMap:
         Jose Rueda Rueda: jrrueda@us.es
 
         @param diag_options: Dictionary with the diagnostic specific parameters
-        like for example the method used to fit the pitch
-        @param min_statistics: Minimum number of points for a given r p to make
+        like for example the method used to fit the pitch. It contains:
+            FOR FILD:
+                -dpitch: pitch space used by default in the fit. 1.0 default
+                -dgyr: giroradius space used by default in the fit. 0.1 default
+                -p_method: Function to use in the pitch fit, default Gauss
+                -g_method: Function to use in the gyroradius fit, default sGauss
+        @param min_statistics: Minimum number of points for a given r, p to make
         the fit (if we have less markers, this point will be ignored)
         @param min_statistics: Minimum number of counts to perform the fit
         @param adaptative: If true, the bin width will be adapted such that the
@@ -601,7 +610,12 @@ class StrikeMap:
         case, dpitch, dgyr, will no longer have an impact
         """
         if self.strike_points is None:
-            raise Exception('You should load the strike points first!!')
+            print('Trying to load the strike points')
+            try:
+                self.load_strike_points()
+            except:
+                print('Loading of the strike points failled.')
+                raise Exception('You should load the strike points first!!')
         if self.diag == 'FILD':
             # --- Prepare options:
             diag_options = {
@@ -617,21 +631,34 @@ class StrikeMap:
             g_method = diag_options['g_method']
             npitch = self.strike_points.header['npitch']
             nr = self.strike_points.header['ngyr']
+            # --- See which columns we need to consider
+            if 'remap_rl' not in self.strike_points.header['info'].keys():
+                raise Exception('Non remap data in the strike points options')
+            else:
+                iir = self.strike_points.header['info']['remap_rl']['i']
+                iip = self.strike_points.header['info']['remap_pitch']['i']
             # --- Pre-allocate variables
-            npoints = np.zeros((nr, npitch))
-            parameters_pitch = {'amplitude': np.zeros((nr, npitch)),
-                                'center': np.zeros((nr, npitch)),
-                                'sigma': np.zeros((nr, npitch)),
-                                'gamma': np.zeros((nr, npitch))}
-            parameters_gyr = {'amplitude': np.zeros((nr, npitch)),
-                              'center': np.zeros((nr, npitch)),
-                              'sigma': np.zeros((nr, npitch)),
-                              'gamma': np.zeros((nr, npitch))}
-            fitg = []
-            fitp = []
-            gyr_array = []
-            pitch_array = []
-            print('Calculating FILD resolutions')
+            npoints = np.zeros((nr, npitch))  # Numer of strike points
+            parameters_pitch = {
+                'amplitude': np.zeros((nr, npitch)),
+                'center': np.zeros((nr, npitch)),
+                'sigma': np.zeros((nr, npitch)),
+                'gamma': np.zeros((nr, npitch))
+            }   # Parameters of the instrument function
+            parameters_gyr = {
+                'amplitude': np.zeros((nr, npitch)),
+                'center': np.zeros((nr, npitch)),
+                'sigma': np.zeros((nr, npitch)),
+                'gamma': np.zeros((nr, npitch))
+            }   # Parameters of the instrument function
+
+            # To store the fits
+            fitg = np.empty((nr, npitch), dtype=np.ndarray)
+            fitp = np.empty((nr, npitch), dtype=np.ndarray)
+            normalization_g = np.zeros((nr, npitch))
+            normalization_p = np.zeros((nr, npitch))
+
+            print('Calculating resolutions ...')
             for ir in tqdm(range(nr)):
                 for ip in range(npitch):
                     # --- Select the data
@@ -639,6 +666,7 @@ class StrikeMap:
 
                     # --- See if there is enough points:
                     if self.strike_points.header['counters'][ip, ir] < min_statistics:
+                        # Set paramters to NaN if there is no enough statistis
                         parameters_gyr['amplitude'][ir, ip] = np.nan
                         parameters_gyr['center'][ir, ip] = np.nan
                         parameters_gyr['sigma'][ir, ip] = np.nan
@@ -648,43 +676,45 @@ class StrikeMap:
                         parameters_pitch['center'][ir, ip] = np.nan
                         parameters_pitch['sigma'][ir, ip] = np.nan
                         parameters_pitch['gamma'][ir, ip] = np.nan
+
+                        # Set the fits to None
+                        fitp[ir, ip] = None
+                        fitg[ir, ip] = None
                     else:  # If we have enough points, make the fit
                         # Prepare the bin edges according to the desired width
                         edges_pitch = \
-                            np.arange(start=data[:, 5].min() - dpitch,
-                                      stop=data[:, 5].max() + dpitch,
+                            np.arange(start=data[:, iip].min() - dpitch,
+                                      stop=data[:, iip].max() + dpitch,
                                       step=dpitch)
                         edges_gyr = \
-                            np.arange(start=data[:, 4].min() - dgyr,
-                                      stop=data[:, 4].max() + dgyr,
+                            np.arange(start=data[:, iir].min() - dgyr,
+                                      stop=data[:, iir].max() + dgyr,
                                       step=dgyr)
                         # --- Reduce (if needed) the bin width, we will set the
                         # bin width as 1/4 of the std, to ensure a good fitting
                         if adaptative:
                             n_bins_in_sigma = 4
-                            sigma_r = np.std(data[:, 4])
+                            sigma_r = np.std(data[:, iir])
                             new_dgyr = sigma_r / n_bins_in_sigma
                             edges_gyr = \
-                                np.arange(start=data[:, 4].min() - new_dgyr,
-                                          stop=data[:, 4].max() + new_dgyr,
+                                np.arange(start=data[:, iir].min() - new_dgyr,
+                                          stop=data[:, iir].max() + new_dgyr,
                                           step=new_dgyr)
-                            sigma_p = np.std(data[:, 5])
+                            sigma_p = np.std(data[:, iip])
                             new_dpitch = sigma_p / n_bins_in_sigma
                             edges_pitch = \
-                                np.arange(start=data[:, 5].min() - dpitch,
-                                          stop=data[:, 5].max() + dpitch,
+                                np.arange(start=data[:, iip].min() - dpitch,
+                                          stop=data[:, iip].max() + dpitch,
                                           step=new_dpitch)
                         # --- Proceed to fit
-                        par_p, resultp = common._fit_to_model_(data[:, 5],
-                                                               bins=edges_pitch,
-                                                               model=p_method)
-                        par_g, resultg = common._fit_to_model_(data[:, 4],
-                                                               bins=edges_gyr,
-                                                               model=g_method)
-                        fitp.append(resultp)
-                        fitg.append(resultg)
-                        gyr_array.append(self.strike_points.header['gyroradius'][ir])
-                        pitch_array.append(self.strike_points.header['pitch'][ip])
+                        par_p, fitp[ir, ip], normalization_p[ir, ip] = \
+                            common._fit_to_model_(data[:, iip],
+                                                  bins=edges_pitch,
+                                                  model=p_method)
+                        par_g, fitg[ir, ip], normalization_g[ir, ip] = \
+                            common._fit_to_model_(data[:, iir],
+                                                  bins=edges_gyr,
+                                                  model=g_method)
                         # --- Save the data in the matrices:
                         # pitch parameters:
                         parameters_pitch['amplitude'][ir, ip] = \
@@ -710,17 +740,18 @@ class StrikeMap:
                 'Pitch': parameters_pitch,
                 'nmarkers': npoints,
                 'fits': {
-                    'Gyroradius': fitg,
-                    'Pitch': fitp,
-                    'FILDSIM_gyroradius': np.array(gyr_array),
-                    'FILDSIM_pitch': np.array(pitch_array),
+                    'gyroradius': fitg,
+                    'pitch': fitp,
+                    'normalization_gyroradius': normalization_g,
+                    'normalization_pitch': normalization_p
                 },
                 'gyroradius_model': g_method,
                 'pitch_model': p_method
                 }
             # --- Prepare the interpolators:
             self.calculate_interpolators()
-        return
+        else:
+            raise Exception('Diagnostic still not implemented')
 
     def calculate_interpolators(self):
         """
@@ -826,7 +857,66 @@ class StrikeMap:
         else:
             raise Exception('Diagnostic not understood')
 
-    def plot_resolutions(self, ax_param: dict = {}, cMap=None, nlev: int = 20,
+    def remap_strike_points(self):
+        """
+        Remap the StrikePoints
+
+        Jose Rueda: jrrueda@us.es
+        """
+        # --- See if the interpolators are defined
+        if self.map_interpolators is None:
+            print('Interpolators not calcualted. Calculating them')
+            self.calculate_mapping_interpolators()
+        # ---
+        if self.diag == 'FILD':
+            # --- See if the remap already exist in the strikes:
+            if 'remap_rl' in self.strike_points.header['info'].keys():
+                print('The remapped values are already in the strikes object')
+                print('Nothing to do here')
+                return
+            iix = self.strike_points.header['info']['ys']['i']
+            iiy = self.strike_points.header['info']['zs']['i']
+            for ir in range(self.ngyr):
+                for ip in range(self.npitch):
+                    if self.strike_points.data[ip, ir] is not None:
+                        n_strikes = self.strike_points.data[ip,
+                                                            ir][:, iix].size
+                    else:
+                        n_strikes = 0
+                    if n_strikes > 0:
+                        remap_data = np.zeros((n_strikes, 2))
+                        remap_data[:, 0] = \
+                            self.map_interpolators['Gyroradius'].ev(
+                                self.strike_points.data[ip, ir][:, iix],
+                                self.strike_points.data[ip, ir][:, iiy])
+                        remap_data[:, 1] = \
+                            self.map_interpolators['Pitch'].ev(
+                                self.strike_points.data[ip, ir][:, iix],
+                                self.strike_points.data[ip, ir][:, iiy])
+                        # append the remapped data to the object
+                        self.strike_points.data[ip, ir] = \
+                            np.append(self.strike_points.data[ip, ir],
+                                      remap_data, axis=1)
+            # Update the headers.
+            Old_number_colums = len(self.strike_points.header['info'])
+            extra_column = {
+                'remap_rl': {
+                    'i': Old_number_colums,  # Column index in the file
+                    'units': ' [cm]',  # Units
+                    'longName': 'Remapped Larmor radius',
+                    'shortName': '$r_l$',
+                },
+                'remap_pitch': {
+                    'i': Old_number_colums + 1,  # Column index in the file
+                    'units': ' [$\\degree$]',  # Units
+                    'longName': 'Remapped pitch angle',
+                    'shortName': '$\\lambda$',
+                },
+            }
+            # Update the header
+            self.strike_points.header['info'].update(extra_column)
+
+    def plot_resolutions(self, ax_params: dict = {}, cMap=None, nlev: int = 20,
                          index_gyr=None):
         """
         Plot the resolutions.
@@ -852,7 +942,7 @@ class StrikeMap:
             'xlabel': '$\\lambda [\\degree]$',
             'ylabel': '$r_l [cm]$'
         }
-        ax_options.update(ax_param)
+        ax_options.update(ax_params)
 
         # --- Open the figure and prepare the map:
         fig, ax = plt.subplots(1, 2, figsize=(12, 10),
@@ -881,7 +971,7 @@ class StrikeMap:
                     'ylabel': '$\\sigma_l [cm]$'
                 }
                 ax[0].plot(self.strike_points.header['pitch'],
-                           self.resolution['Gyroradius']['sigma'][index_gyr,:])
+                           self.resolution['Gyroradius']['sigma'][index_gyr, :])
                 ax[0] = ssplt.axis_beauty(ax[0], ax_options)
 
                 ax[1].plot(self.strike_points.header['pitch'],
@@ -933,52 +1023,154 @@ class StrikeMap:
             plt.tight_layout()
         return
 
-    def sanity_check_resolutions(self):
+    def plot_resolution_fits(self, var: str = 'Gyroradius', ax_params: dict = {},
+                             ax=None, gyr_index=None, pitch_index=None,
+                             gyroradius=None, pitch=None,
+                             kind_of_plot: str = 'normal',
+                             include_legend: bool = False):
         """
-        Plot basic quantities of the resolution calculation as a test.
+        Plot the fits done to calculate the resolution
 
-        Jose Rueda: jrrueda@us.es
-
-        Designed to quickly see some figures of merit of the resolution
-        calculation, ie, compare the centroids of the fits with the actual
-        values the particles were iniciated in FILDSIM
+        @param var: variable to plot, Gyroradius or Pitch for FILD. Capital
+        letters will be ignored
+        @param ax_param: dictoniary with the axis parameters axis_beauty()
+        @param ax: axis where to plot
+        @param gyr_index: index, or arrays of indeces, of gyroradius to plot
+        @param pitch_index: index, or arrays of indeces, of gyroradius to plot
+        @param gyroradius: gyroradius value of array of then to plot. If
+        present, gyr_index will be ignored
+        @param pitch: idem to gyroradius bu for the pitch
+        @param kind_of_plot: kind of plot to make:
+            - normal: scatter plot of the data and fit like a line
+            - bar: bar plot of the data and file like a line
+            - uncertainty: scatter plot of the data and shading area for the fit
+             (3 sigmas)
+            - just_fit: Just a line plot as the fit
+        @param include_legend: flag to include a legend
         """
-        if self.diag == 'FILD':
-            axis_param = {'grid': 'both', 'ratio': 'equal'}
-            # Centroids comparison:
-            cen_g = []
-            cen_p = []
-            fild_g = []
-            # Arange centroids by pitch (gyroradius)
-            for p in np.unique(self.resolution['fits']['FILDSIM_pitch']):
-                dummy = []
-                dummy_FILDSIM = []
-                print(p)
-                nfits = len(self.resolution['fits']['FILDSIM_gyroradius'])
-                for i in range(nfits):
-                    if self.resolution['fits']['FILDSIM_pitch'][i] == p:
-                        dummy.append(self.resolution['fits']['Gyroradius'][i]\
-                                     .params['center'].value)
-                        dummy_FILDSIM.append(self.resolution['fits']\
-                                             ['FILDSIM_gyroradius'][i])
+        # --- Initialise plotting options and axis:
+        default_labels = {
+            'gyroradius': {
+                'xlabel': 'Gyroradius [cm]',
+                'ylabel': '$\\sigma_r [cm]$'
+            },
+            'pitch': {
+                'xlabel': 'Pitch [$\\degree$]',
+                'ylabel': '$\\sigma_p [$\\degree$]'
+            }
+        }
+        ax_options = {
+            'grid': 'both',
+        }
+        ax_options.update(default_labels[var.lower()])
+        ax_options.update(ax_params)
+        if ax is None:
+            fig, ax = plt.subplots()
+            created = True
+        # --- Localise the values to plot
+        if gyroradius is not None:
+            # test if it is a number or an array of them
+            if isinstance(gyroradius, (list, np.ndarray)):
+                gyroradius = gyroradius
+            else:
+                gyroradius = np.array([gyroradius])
+            index_gyr = np.zeros(gyroradius.size)
+            for i in range(index_gyr.size):
+                index_gyr[i] = \
+                    np.argmin(np.abs(self.unique_gyroradius - gyroradius[ir]))
+            print('Found gyroradius: ', self.unique_gyroradius[index_gyr])
+        else:
+            # test if it is a number or an array of them
+            if gyr_index is not None:
+                if isinstance(gyr_index, (list, np.ndarray)):
+                    index_gyr = gyr_index
+                else:
+                    index_gyr = np.array([gyr_index])
+            else:
+                index_gyr = np.arange(self.ngyr, dtype=np.int)
 
-                cen_g.append(dummy.copy())
-                fild_g.append(dummy_FILDSIM.copy())
-            for i in range(len(self.resolution['fits']['FILDSIM_pitch'])):
-                cen_p.append(self.resolution['fits']['Pitch'][i]\
-                             .params['center'].value)
-            figc, axc = plt.subplots(1, 2)
-            for i in range(len(fild_g)):
-                label_plot = \
-                    str(np.unique(self.resolution['fits']['FILDSIM_pitch'])[i])
-                axc[0].plot(fild_g[i], cen_g[i], 'o', label=label_plot)
-            axc[0].set_xlabel('FILDSIM')
-            axc[0].legend()
-            axc[0] = ssplt.axis_beauty(axc[0], axis_param)
-            axc[1].plot(self.resolution['fits']['FILDSIM_pitch'],
-                        cen_p, 'o')
-            axc[1].set_xlabel('FILDSIM')
-            axc[1] = ssplt.axis_beauty(axc[1], axis_param)
+        if pitch is not None:
+            # test if it is a number or an array of them
+            if isinstance(pitch, (list, np.ndarray)):
+                pitch = pitch
+            else:
+                pitch = np.array([pitch])
+            index_pitch = np.zeros(pitch.size)
+            for i in range(index_pitch.size):
+                index_pitch[i] = \
+                    np.argmin(np.abs(self.unique_pitch - pitch[ir]))
+            print('Found pitches: ', self.unique_pitch[index_pitch])
+        else:
+            # test if it is a number or an array of them
+            if pitch_index is not None:
+                if isinstance(pitch_index, (list, np.ndarray)):
+                    index_pitch = pitch_index
+                else:
+                    index_pitch = np.array([pitch_index])
+            else:
+                index_pitch = np.arange(self.npitch, dtype=np.int)
+        # --- Plot the desired data
+        # This is just to allow the user to ask the variable with capitals
+        # letters or not
+
+        for ir in index_gyr:
+            for ip in index_pitch:
+                # The lmfit model has included a plot function, but is slightly
+                # not optimal so we will plot it 'manually'
+                if self.resolution['fits'][var.lower()][ir, ip] is not None:
+                    x = self.resolution['fits'][var.lower()
+                                                ][ir, ip].userkws['x']
+                    deltax = x.max() - x.min()
+                    x_fine = np.linspace(x.min() - 0.1 * deltax,
+                                         x.max() + 0.1 * deltax)
+                    name = 'rl: ' + str(round(self.unique_gyroradius[ir], 1))\
+                        + ' $\\lambda$: ' + \
+                        str(round(self.unique_pitch[ip], 1))
+                    normalization = \
+                        self.resolution['fits']['normalization_'
+                                                + var.lower()][ir, ip]
+                    y = self.resolution['fits'][var.lower()][ir, ip].eval(
+                        x=x_fine) * normalization
+                    if kind_of_plot.lower() == 'normal':
+                        # plot the data as scatter plot
+                        scatter = ax.scatter(x,
+                                             normalization * self.resolution['fits'][var.lower(
+                                             )][ir, ip].data,
+                                             label='__noname__')
+                        # plot the fit as a line
+                        ax.plot(x_fine, y, color=scatter.get_facecolor()[0, :3],
+                                label=name)
+                    elif kind_of_plot.lower() == 'bar':
+                        bar = ax.bar(x,
+                                     normalization * self.resolution['fits'][var.lower()
+                                                                             ][ir, ip].data,
+                                     label='__noname__', width=x[1]-x[0],
+                                     alpha=0.25)
+                        ax.plot(x_fine, y, color=bar.patches[0].get_facecolor()[
+                                :3], label=name)
+                    elif kind_of_plot.lower() == 'just_fit':
+                        ax.plot(x_fine, y, label=name)
+                    elif kind_of_plot.lower() == 'uncertainty':
+                        scatter = ax.scatter(x,
+                                             normalization * self.resolution['fits'][var.lower(
+                                             )][ir, ip].data,
+                                             label='__noname__')
+                        dely = normalization * self.resolution['fits'][var.lower(
+                            )][ir, ip].eval_uncertainty(sigma=3, x=x_fine)
+                        ax.fill_between(x_fine, y-dely, y+dely, alpha=0.25,
+                                        label='3-$\sigma$ uncertainty band',
+                                        color=scatter.get_facecolor()[0, :3])
+                    else:
+                        raise Exception('Not kind of plot not understood')
+                else:
+                    print('Not fits for rl: '
+                          + str(round(self.unique_gyroradius[ir], 1))
+                          + '$\\lambda$: '
+                          + str(round(self.unique_pitch[ip], 1)))
+        if include_legend:
+            ax.legend()
+        if created:
+            ax = ssplt.axis_beauty(ax, ax_options)
 
     def plot_pitch_histograms(self, diag_params: dict = {},
                               adaptative: bool = True,
@@ -1044,9 +1236,9 @@ class StrikeMap:
                                   step=new_dpitch)
                 # --- Proceed to fit
                 par_p, resultp = common._fit_to_model_(data[:, 5],
-                                                bins=edges_pitch,
-                                                model=p_method,
-                                                normalize=False)
+                                                       bins=edges_pitch,
+                                                       model=p_method,
+                                                       normalize=False)
 
                 if axarr is None:
                     fig, axarr = plt.subplots(nrows=1, ncols=1,
@@ -1058,8 +1250,8 @@ class StrikeMap:
                     ax_pitch.set_ylabel('Counts')
                     ax_pitch.set_title(
                         'Pitch resolution at gyroradius '
-                        + str(self.strike_points.header['gyroradius'][ir])\
-                        +' cm')
+                        + str(self.strike_points.header['gyroradius'][ir])
+                        + ' cm')
 
                     created_ax = True
 
@@ -1178,4 +1370,9 @@ class StrikeMap:
             fig.tight_layout()
             fig.show()
 
+        return
+        fig.tight_layout()
+        fig.show()
+
+        return
         return

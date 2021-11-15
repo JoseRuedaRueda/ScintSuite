@@ -1,8 +1,13 @@
-** 0.6.4 New interpolators for SINPA
+** 0.6.4 New interpolators for SINPA and SMap upgrades
 *** StrikeMap
 - StrikeMap can now be initialize with fild instead of FILD (actually the comparison is lower case, so you can initialize it as FiLd if you are crazy)
 - StrikeMap now is able to load strike points from the new FILDSIM format
+- If there are not strike points loaded, the function StrikeMap.calculate_resolutions will try to load them
 - Plot real updated to show properly the labels if the inputs are in m or cm. Labels are now a bit messy, need a bit more work in future versions
+- Smap.sanity_check_resolutions() was deprecated and eliminated
+- Smap.plot_resolution_fits() released. This is the new and complete way of plotting the fits performed during the resolution calculation
+- Smap.calculate_resolution no longer use predefined indeces but the header object, so it will not be an issue for future changes of strike object files
+- _fit_to_model__() now return also de used normalization
 *** Others
 - improved comments and documentations
 ** 0.6.3 Small improvements
