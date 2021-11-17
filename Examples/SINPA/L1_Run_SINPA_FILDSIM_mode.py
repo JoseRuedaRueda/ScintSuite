@@ -24,14 +24,15 @@ nml_options = {
         'FILDSIMmode': True,
         'nGeomElements': 2,
         'nxi': 7,
-        'nGyroradius': 2,
+        'nGyroradius': 7,
         'nMap': 50000,
         'mapping': True,
         'signal': False,
         'resampling': False,
         'nResampling': 4,
-        'saveOrbits': True,
+        'saveOrbits': False,
         'saveRatio': 0.1,
+        'saveOrbitLongMode': False,
         'SINPA_dir': paths.SINPA,
         'FIDASIMfolder': '',
         'verbose': True,
@@ -39,20 +40,17 @@ nml_options = {
         'Zin': 1.0,         # Charge before the ionization in the foil
         'Zout': 1.0,        # Charge after the ionization in the foil
         'IpBt': -1,        # Sign of toroidal current vs field (for pitch)
+        'flag_efield_on': False,  # Add or not electric field
     },
     'inputParams': {
          'nGyro': 100,
          'minAngle': -1.8,
          'dAngle': 1.0,
-         'XI': [30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0],
-         'rL': [2.5, 3.0],
+         'XI': [80., 70., 60., 50., 40., 30., 20.],
+         'rL': [2., 3., 4., 5., 6., 7., 8.],
          'maxT': 0.0000005
     },
 }
-
-# Magnetic field
-zita = 65.90115304686239
-ipsilon = 36.08595339878833
 
 # -----------------------------------------------------------------------------
 # --- Section 0: Create the directories
@@ -72,13 +70,11 @@ ss.sinpa.execution.write_namelist(nml_options)
 # --- Section 2: Prepare the magnetic field
 # -----------------------------------------------------------------------------
 # Get the direction of the field
-direction = \
-    ss.sinpa.field.constructDirection(zita, ipsilon,
-                                      nml_options['config']['geomID'])
-direction = [0., 0.0, -1.8]
+direction = [0., -1.8, 0.0]
 # Get the field
 field = ss.sinpa.fieldObject()
-field.createFromSingleB(direction, Rmin=0.01, Rmax=25.0, zmin=-10.0, zmax=10.0)
+field.createHomogeneousField(direction, field='B')
+# field.createFromSingleB(direction, Rmin=0.01, Rmax=25.0, zmin=-10.0, zmax=10.0)
 # Write the field
 fieldFileName = os.path.join(inputsDir, 'field.bin')
 fid = open(fieldFileName, 'wb')

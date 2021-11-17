@@ -108,7 +108,7 @@ def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
     equ.read_pfm()
     i = np.argmin(np.abs(equ.t_eq - time))
     PFM = equ.pfm[:, :, i].squeeze()
-    psipol = interpn((equ.Rmesh, equ.Zmesh), PFM, (Rin, zin))
+    psipol = interpn((equ.Rmesh, equ.Zmesh), PFM, (Rin, zin), fill_value=0.0)
 
     # If we opened the equilibrium object, let's close it
     if created:

@@ -448,7 +448,7 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
                        diag: str = 'EQH', exp: str = 'AUGD', ed: int = 0,
                        levels: float = None, label_surf: bool = True,
                        coord_type: str = 'rho_pol',
-                       axis_ratio: str = 'auto',
+                       axis_ratio: str = 'equal',
                        units: str = 'm', color=None):
     """
     Plot the flux surfaces of a given shot in AUG for a given time point.

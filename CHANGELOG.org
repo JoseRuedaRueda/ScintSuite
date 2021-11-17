@@ -1,3 +1,28 @@
+** 0.6.4 New interpolators for SINPA and SMap upgrades
+*** StrikeMap
+- StrikeMap can now be initialize with fild instead of FILD (actually the comparison is lower case, so you can initialize it as FiLd if you are crazy)
+- StrikeMap now is able to load strike points from the new FILDSIM format
+- If there are not strike points loaded, the function StrikeMap.calculate_resolutions will try to load them
+- Plot real updated to show properly the labels if the inputs are in m or cm. Labels are now a bit messy, need a bit more work in future versions
+- Smap.sanity_check_resolutions() was deprecated and eliminated
+- Smap.plot_resolution_fits() released. This is the new and complete way of plotting the fits performed during the resolution calculation
+- Smap.calculate_resolution no longer use predefined indeces but the header object, so it will not be an issue for future changes of strike object files
+- _fit_to_model__() now return also de used normalization
+*** Video
+- Video.subtract_noise() was upgrade, loop was eliminated, now is much faster
+- Video.subtract_noise() now always return the frame used, the flag return_frame was deprecated
+*** IO
+- IO.save_object_pickle() was corrected. Now it does not fail when user click cancel
+*** Others
+- improved comments and documentations
+** 0.6.3 Small improvements
+- line_fit_3D was moved from the INPASIM library to the SideFuncitons one
+- Change in the SINPA.Strike to accommodate the order changes in SINPA (just a couple of index changed in the header)
+
+** 0.6.2 Small improvements
+*** TimeTrace
+- TimeTrace.plot_single() now shows the axis and include a print for the base line correction done
+
 ** 0.6.1
 *** Mapping library
 - plot_resolution allows to plot just the resolution along a given gyroradii, avoiding the 2D contour which is difficult to follow. Check index_gyr new optional variable

@@ -10,7 +10,8 @@ import numpy as np
 # import Lib.LibParameters as sspar
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
-from Lib.SimulationCodes.SINPA.StrikesHeader import order as info
+from Lib.SimulationCodes.SINPA.StrikesHeader import order_INPA as infoINPA
+from Lib.SimulationCodes.SINPA.StrikesHeader import order_FILD as infoFILD
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import Lib.LibPlotting as ssplt
@@ -78,9 +79,7 @@ class Strikes:
             'versionID2': np.fromfile(fid, 'int32', 1)[0],
         }
         header['info'] = {}
-        if plate.lower() == 'signalcollimator':
-            plate = 'collimator'
-        header['info'].update(info[header['versionID1']][plate.lower()])
+
         if header['versionID1'] < 1:
             # Keys of what we have in the file:
             header['runID'] = np.fromfile(fid, 'S50', 1)[:]
@@ -88,6 +87,8 @@ class Strikes:
             header['Gyroradius'] = np.fromfile(fid, 'float64', header['ngyr'])
             header['nalpha'] = np.fromfile(fid, 'int32', 1)[0]
             header['Alphas'] = np.fromfile(fid, 'float64', header['nalpha'])
+            header['FILDSIMmode'] = \
+                np.fromfile(fid, 'int32', 1)[0].astype(np.bool)
             header['ncolumns'] = np.fromfile(fid, 'int32', 1)[0]
             header['counters'] = \
                 np.zeros((header['nalpha'], header['ngyr']), np.int)
@@ -99,7 +100,16 @@ class Strikes:
                 'ymin': 300.,
                 'ymax': -300.
             }
+            # get the information
             scints = ['scintillator',  'signalscintillator']
+            if plate.lower() == 'signalcollimator':
+                plate = 'collimator'
+            if header['FILDSIMmode']:
+                header['info'].update(infoFILD[header['versionID1']]
+                                      [plate.lower()])
+            else:
+                header['info'].update(infoINPA[header['versionID1']]
+                                      [plate.lower()])
             if plate.lower() in scints:
                 ycolum = header['info']['ys']['i']
                 zcolum = header['info']['zs']['i']
