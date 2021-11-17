@@ -63,7 +63,7 @@ nml_options = {
          'maxT': 0.0000005
     },
     'nbi_namelist': {            # NBI geometry
-        'p0': [220.78, -137.32, -2.1],  # xyz of first point in the NBI
+        'p0': [2.2078, -1.3732, -0.021],  # xyz of first point in the NBI
         'u': [-0.6013878,  0.79444944,  0.08475143],  # vector of the NBI
         'd': 0.5,                # Distance between points
         'npoints': 400,          # Number of points

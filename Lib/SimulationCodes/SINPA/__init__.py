@@ -13,6 +13,6 @@ import Lib.SimulationCodes.SINPA.geometry as geometry
 import Lib.SimulationCodes.SINPA.reading as read
 # import Lib.SimulationCodes.SINPA.Plot as plt
 import Lib.SimulationCodes.SINPA.execution as execution
-from Lib.SimulationCodes.SINPA.LibStrike import Strikes as strikes
+from Lib.SimulationCodes.SINPA.LibStrike import Strikes 
 from Lib.SimulationCodes.SINPA.Orbits import OrbitClass as orbits
 from Lib.SimulationCodes.Common.fields import fields as fieldObject
