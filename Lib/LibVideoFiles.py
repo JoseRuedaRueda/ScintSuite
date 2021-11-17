@@ -27,6 +27,7 @@ from scipy.io import netcdf                # To export remap data
 from scipy import ndimage                  # To filter the images
 from skimage import io                     # To load images
 from tqdm import tqdm                      # For waitbars
+import imageio                             # To create GIFs
 pa = p.Path(machine)
 del p
 
@@ -1255,7 +1256,7 @@ def check_timebase(timebase):
     @param timebase: time base of the frames (np.array)
     @return corrupt: flag to say if the timebase is corrupt or not
     """
-    if np.sum(np.diff(timebase)<0) > 0:
+    if np.sum(np.diff(timebase) < 0) > 0:
         corrupt = True
     else:
         corrupt = False
@@ -1533,7 +1534,7 @@ class Video:
         return
 
     def subtract_noise(self, t1: float = None, t2: float = None, frame=None,
-                       flag_copy: bool = False, return_noise: bool = False):
+                       flag_copy: bool = False):
         """
         Subtract noise from camera frames
 
@@ -1603,18 +1604,15 @@ class Video:
         if 'original_frames' not in self.exp_dat and flag_copy:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
         # Subtract the noise
-        for i in tqdm(range(nt)):
-            # Perform the subtraction in float to avoid negative values in uint
-            dummy = \
-                self.exp_dat['frames'][:, :, i].squeeze().astype(np.float64) -\
-                frame.astype(np.float64)
-            # Set negative counts to zero:
-            dummy[dummy < 0] = 0.
-            self.exp_dat['frames'][:, :, i] = dummy.astype(original_dtype)
+        frame = frame.astype(np.float)  # Get the average as float to later
+        #                                 subtract and not have issues with < 0
+        self.exp_dat['frames'] = (self.exp_dat['frames'].astype(np.float)
+                                  - frame[..., None])
+        self.exp_dat['frames'][self.exp_dat['frames'] < 0] = 0.0
+        self.exp_dat['frames'] = self.exp_dat['frames'].astype(original_dtype)
         print('-... -.-- . / -... -.-- .')
-        if return_noise:
-            return frame
-        return
+
+        return frame.astype(original_dtype)
 
     def return_to_original_frames(self):
         """
@@ -1709,6 +1707,7 @@ class Video:
         else:
             output = {'mask': mask}
         output['trace'] = trace
+        output['t'] = self.exp_dat['tframes']
         return output
 
     def filter_frames(self, method='median', options={}, make_copy=True):
