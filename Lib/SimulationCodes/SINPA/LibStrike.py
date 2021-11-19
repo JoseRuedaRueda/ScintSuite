@@ -84,9 +84,9 @@ class Strikes:
             # Keys of what we have in the file:
             header['runID'] = np.fromfile(fid, 'S50', 1)[:]
             header['ngyr'] = np.fromfile(fid, 'int32', 1)[0]
-            header['Gyroradius'] = np.fromfile(fid, 'float64', header['ngyr'])
+            header['gyroradius'] = np.fromfile(fid, 'float64', header['ngyr'])
             header['nalpha'] = np.fromfile(fid, 'int32', 1)[0]
-            header['Alphas'] = np.fromfile(fid, 'float64', header['nalpha'])
+            header['alphas'] = np.fromfile(fid, 'float64', header['nalpha'])
             header['FILDSIMmode'] = \
                 np.fromfile(fid, 'int32', 1)[0].astype(np.bool)
             header['ncolumns'] = np.fromfile(fid, 'int32', 1)[0]
