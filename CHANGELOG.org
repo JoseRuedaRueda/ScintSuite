@@ -1,3 +1,7 @@
+** 0.6.5 Interpolators and synthetic signals
+- Changed to RBFInterpolator, which seems to be more stable thatn BivariateSpline (*Scipy 1.7.0 or larger is required now*)
+- Most robust calculation of the synthetic signal for FILD (no bugs for fcol almost zero)
+
 ** 0.6.4 New interpolators for SINPA and SMap upgrades
 *** StrikeMap
 - StrikeMap can now be initialize with fild instead of FILD (actually the comparison is lower case, so you can initialize it as FiLd if you are crazy)

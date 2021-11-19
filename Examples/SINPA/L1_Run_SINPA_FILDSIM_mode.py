@@ -44,8 +44,8 @@ nml_options = {
     },
     'inputParams': {
          'nGyro': 100,
-         'minAngle': -1.8,
-         'dAngle': 1.0,
+         'minAngle': -1.5,
+         'dAngle': 0.6,
          'XI': [80., 70., 60., 50., 40., 30., 20.],
          'rL': [2., 3., 4., 5., 6., 7., 8.],
          'maxT': 0.0000005
