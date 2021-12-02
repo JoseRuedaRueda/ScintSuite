@@ -14,12 +14,19 @@ Pablo Oyola - pablo.oyola@ipp.mpg.de
 import numpy as np
 import warnings
 import Lib
+import os
+from Lib.LibMachine import machine
+from Lib.LibPaths import Path
 
 try:
     import f90nml
 except ImportError:
     warnings.warn('You cannot read FILDSIM namelist nor remap',
                   category=UserWarning)
+    
+IHIBPSIM_ACTION_NAMES = ('tracker', 'ihibpsim', 'shot_remap')
+paths = Path(machine)
+
 
 #-----------------------------------------------------------------------------
 # Routines to make namelists to run iHIBPsim.
@@ -332,10 +339,9 @@ def generate_beta_scan_shotmapper(beta_start: float, beta_end: float,
         
     return nml_list
 
-#-----------------------------------------------------------------------------
-# Routines to check the namelist consistency.
-#-----------------------------------------------------------------------------
-def check_namelist(params:dict, codename: str='ihibpsim'):
+
+def check_namelist(params:dict, codename: str='ihibpsim',
+                   forceConvention: bool=True):
     """
     Wrapper around the internal routines that checks whether the data inside
     the dictionary "params" would appropriately correspond to a proper made
@@ -350,13 +356,14 @@ def check_namelist(params:dict, codename: str='ihibpsim'):
     """
     
     if codename == 'tracker':
-        return __check_tracker_namelist(params)
+        return __check_tracker_namelist(params, forceConvention)
     elif codename == 'ihibpsim':
-        return __check_ihibpsim_namelist(params)
+        return __check_ihibpsim_namelist(params, forceConvention)
     elif codename == 'shot_mapper':
-        return __check_shotmapper_namelist(params)
+        return __check_shotmapper_namelist(params, forceConvention)
     else:
         raise ValueError('The code %s is not a valid code name'%codename)
+       
         
 def __check_tracker_namelist(params: dict, forceConvention: bool=True):
     """
@@ -502,59 +509,6 @@ def __check_tracker_namelist(params: dict, forceConvention: bool=True):
                     return (-19, 'ForceConvention: the scintillator file'+\
                             ' must end with the extension .3d')
 
-def __check_ihibpsim_namelist(params: dict, forceConvention: bool=True):
-    """
-    Internal routine that checks the consistency of the namelist before
-    launching a simulation with the iHIPBsim tracker.
-    
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-    
-    @param params: namelist as a dictionary to be checked.
-    @param forceConvention: this flag will ensure that all files end with 
-    an appropriate extension that can be easily recognized by this suite.
-    """
-    
-    # The first part of the namelist for tracker and the ihibpsim code
-    # are identical.
-    err, msg = __check_tracker_namelist(params=params,
-                                        forceConvention=forceConvention)
-    if (err != 0) and (err  != -17):
-        return err, msg
-    
-    # Checking the particular modules of ihibpsim:
-    # 1. The deposition.
-    nparticles = params['deposition']['Nbeamdir'] *\
-                 params['deposition']['Ndisk']
-                 
-    if nparticles < 1:
-        return (-22, 'The number of particles to launch in iHIBPsim must be '+\
-                'at least 1.')
-    
-    if params['deposition']['Rmin'] <= 0.0:
-        return (-23, 'The deposition minimum radius must be positive')
-    
-    if params['deposition']['Rmin'] <= 0.0:
-        return (-24, 'The deposition maximum radius must be positive')
-    
-    if params['deposition']['Rmin'] > params['deposition']['Rmax']:
-        warnings.warn('Min/max values of the deposition radii seem to be '+\
-                      'exchanged. Setting the appropriate order.')
-        
-        tmp = params['deposition']['Rmin']
-        params['deposition']['Rmin'] = params['deposition']['Rmax']
-        params['deposition']['Rmax'] = tmp
-    
-    if params['deposition']['Rmin'] == params['deposition']['Rmax']:
-        if params['deposition']['Nbeamdir'] != 0:
-            return (-25, 'Rmin=Rmax, but more than one point along'+\
-                    ' the injection line are considered')
-    
-    # Checking the geometry part of the namelist.
-    return __check_ihipbsim_geometry(params['geom'])
-
-def __check_shotmapper_namelist(params: dict):
-    pass
-
 
 def  __check_ihipbsim_geometry(geom: dict):
     """
@@ -629,3 +583,291 @@ def  __check_ihipbsim_geometry(geom: dict):
     
     if len(geom['origin_point']) != 3:
         return (-36, 'The origin point must be 3 cartesian coordinates!')
+
+
+def __check_ihibpsim_namelist(params: dict, forceConvention: bool=True):
+    """
+    Internal routine that checks the consistency of the namelist before
+    launching a simulation with the iHIPBsim tracker.
+    
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    
+    @param params: namelist as a dictionary to be checked.
+    @param forceConvention: this flag will ensure that all files end with 
+    an appropriate extension that can be easily recognized by this suite.
+    """
+    
+    # The first part of the namelist for tracker and the ihibpsim code
+    # are identical.
+    err, msg = __check_tracker_namelist(params=params,
+                                        forceConvention=forceConvention)
+    if (err != 0) and (err  != -17):
+        return err, msg
+    
+    # Checking the particular modules of ihibpsim:
+    # 1. The deposition.
+    nparticles = params['deposition']['Nbeamdir'] *\
+                 params['deposition']['Ndisk']
+                 
+    if nparticles < 1:
+        return (-22, 'The number of particles to launch in iHIBPsim must be '+\
+                'at least 1.')
+    
+    if params['deposition']['Rmin'] <= 0.0:
+        return (-23, 'The deposition minimum radius must be positive')
+    
+    if params['deposition']['Rmin'] <= 0.0:
+        return (-24, 'The deposition maximum radius must be positive')
+    
+    if params['deposition']['Rmin'] > params['deposition']['Rmax']:
+        warnings.warn('Min/max values of the deposition radii seem to be '+\
+                      'exchanged. Setting the appropriate order.')
+        
+        tmp = params['deposition']['Rmin']
+        params['deposition']['Rmin'] = params['deposition']['Rmax']
+        params['deposition']['Rmax'] = tmp
+    
+    if params['deposition']['Rmin'] == params['deposition']['Rmax']:
+        if params['deposition']['Nbeamdir'] != 0:
+            return (-25, 'Rmin=Rmax, but more than one point along'+\
+                    ' the injection line are considered')
+    
+    # Checking the geometry part of the namelist.
+    return __check_ihipbsim_geometry(params['geometry'])
+
+
+def __check_shotmapper_namelist(params: dict, forceConvention: bool=True):
+    """
+    Internal routine to check the namelist to run the shotmapper namelist
+    prior to a run.
+    
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    
+    @param params: namelist as a dictionary to be checked.
+    @param forceConvention: this flag will ensure that all files end with 
+    an appropriate extension that can be easily recognized by this suite.
+    """
+    
+    # Checking that the namelist has the elements neccessary.
+    minimal_names = ('shot', 'tables', 'integration', 'orbits_conf',
+                     'deposition', 'scit3d', 'strikemapconf', 'geometry')
+    
+    if np.any([ii not in params for ii in minimal_names]):
+        return (-37, 'Namelist uncomplete for shot mapping binary.')
+    
+    # 1. Checking the shot data.
+    if (params['shot']['shotnumber'] < 0) and\
+       (params['shot']['shotnumber'] < 100000):
+           return (-38, 'The shotnumber must be positive and in range')
+    
+    if len(params['shot']['expMagn']) > 10:
+        return (-39, 'Experiment name for magnetics cannot be that large')
+    if len(params['shot']['diagMagn']) > 3:
+        return (-40, 'Diagnostic name for magnetics cannot be that large')
+    if len(params['shot']['expProf']) > 10:
+        return (-41, 'Experiment name for profiles cannot be that large')
+    if len(params['shot']['diagProf']) > 3:
+        return (-42, 'Diagnostic name for profiles cannot be that large')
+        
+    if params['shot']['timemin'] > params['shot']['timemax']:
+        warnings.warn('The shot min/max times are exchanged! Reversing them',
+                      category=UserWarning)
+        tmp = params['shot']['timemin']
+        params['shot']['timemin'] = params['shot']['timemax']
+        params['shot']['timemax'] = tmp
+    
+    dtparse = params['shot']['timemax'] - params['shot']['timemin']
+    if params['shot']['dt_shot'] > dtparse:
+        warnings.warn('The time step for parsing is larger '+\
+                      'than the time window. Adjusting the time to the limits',
+                      category=UserWarning)
+            
+        params['shot']['dt_shot'] = dtparse
+    
+    if params['shot']['nr'] < 1:
+        return (-43, 'The number of radial points must be positive!')
+    if params['shot']['nz'] < 1:
+        return (-44, 'The number of vertical points must be positive!')
+    
+    # Checking the grid limits.
+    rmin, rmax, zmin, zmax = params['shot']['limits']
+    if rmin > rmax:
+        warnings.warn('The grid radial limits min/max times are exchanged!'+\
+                      'Reversing them', category=UserWarning)
+        
+        tmp = rmin
+        rmin = rmax
+        rmax = tmp
+        
+    if zmin > zmax:
+        warnings.warn('The grid vertical limits min/max times are exchanged!'+\
+                      'Reversing them', category=UserWarning)
+        
+        tmp = zmin
+        zmin = zmax
+        zmax = tmp
+        
+    if (rmin < 0) or (rmax < 0):
+        return (-45, 'The limits in the radial direction cannot be negative')
+
+    params['shot']['limits'] = (rmin, rmax, zmin, zmax)
+    
+    # 2. Checking the ionization tables.
+    if params['tables']['beamattenuationmodule']:
+        if (params['tables']['elec_name'] == '') and\
+           (params['tables']['CX_name'] == '') and\
+           (params['tables']['prm_name'] == ''):
+               warnings.warn('The beam attenuation module is set, but none '+\
+                             'of the tables are loaded. Disabling...',
+                             category=UserWarning)
+                  
+               params['tables']['beamattenuationmodule'] = False
+    
+    # 3. checking the integration step and the orbits configuration.
+    if params['integration']['dt'] < 0:
+        return (-46, 'Integration time step has to be larger than 0')
+    
+    
+    if params['integration']['max_step'] < 1:
+        return (-47, 'The number of steps has be 1 or larger')
+    
+    # Checking the orbits configuration.
+    if params['orbits_conf']['save_orbits']:
+        params['orbits_conf']['num_orbits'] = min(1.0, 
+                                              params['orbits_conf']\
+                                                    ['num_orbits'])
+        if params['orbits_conf']['num_orbits'] <= 0:
+            warnings.warn('The number of orbits to store is set to 0 by the '+\
+                          'user. Setting the orbits flag to False.',
+                          category=UserWarning)
+            
+            params['orbits_conf']['save_orbit'] = False
+        else:
+            if params['orbits_conf']['file_orbits'] == '':
+                return(-48, 'The orbits module is set, '+\
+                       'but the filename is empty')
+            
+            # Checking the time integration for the orbit storage.
+            if params['orbits_conf']['dt_orbit'] < params['integration']['dt']:
+                params['orbits_conf']['dt_orbit'] = params['integration']['dt']
+                warnings.warn('The time step for orbit saving is smaller'+\
+                              ' than the integration time. Setting them equal',
+                              category=UserWarning)
+    
+    # 4. Checking the beam deposition profile.
+    nparticles = params['deposition']['Nbeamdir'] *\
+                 params['deposition']['Ndisk']
+                 
+    if nparticles < 1:
+        return (-49, 'The number of particles to launch in iHIBPsim must be '+\
+                'at least 1.')
+            
+    # 5. Checking the scintillator triangle file.
+    if params['scint3d']['triangle_file'] == '':
+        return (-50, 'A file containing the triangularization of the '+
+                'stopping points of the ions must be provided!')
+    else:
+        if forceConvention and\
+              (not params['depostion']['depos_file'].endswith('.3d')):
+                return (-51, 'ForceConvention: the scintillator file'+\
+                            ' must end with the extension .3d')
+                    
+    # 6. Checking the strike map configuration.
+    if params['strikemapconf']['scint_vertex_file'] == '':
+        return (-52, 'The scintillator file cannot be empty.')
+    
+    if params['strikemapconf']['mode'] not in (0, 1, 2):
+        return (-53, 'The mode number must be 0, 1, 2')
+    
+    if params['strikemapconf']['startR'] < 0:
+        return (-54, 'Initial mapping point must be positive')
+    
+    if params['strikemapconf']['endR'] < 0:
+        return (-55, 'Ending mapping point must be positive')
+    
+    if params['strikemapconf']['startR'] > params['strikemapconf']['endR']:
+        warnings.warn('The mapped striked points min/max times '+\
+                       'are exchanged! Reversing them', category=UserWarning)
+             
+        tmp = params['strikemapconf']['startR']
+        params['strikemapconf']['startR'] = params['strikemapconf']['endR']
+        params['strikemapconf']['endR']   = tmp
+    
+    if params['strikemapconf']['save_striking_points']:
+        if params['strikemapconf']['file_strikes'] == '':
+            return (-56, 'The filename of the strike files must be filled!')
+            
+        
+    # 7. Check the geometry.
+    return __check_ihipbsim_geometry(params['geometry'])
+
+#-----------------------------------------------------------------------------
+# Routines to check the namelist consistency.
+#-----------------------------------------------------------------------------
+
+
+def check_files(runID: str, action: str='shot_remap'):
+    """
+    Check if the needed files for the execution of the codes are properly
+    stored in the corresponding folders.
+    
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    
+    @param runID: identifier of the run.
+    @param action: code to run. To be chosen among IHIBPSIM_ACTION_NAMES
+    """
+    
+    # Cheking if the corresponding folder exists.
+    path = os.path.join(paths.ihibp_res, runID)
+    if not os.path.isdir(path):
+        raise NotADirectoryError('The directory corresponding to the  '+\
+                                 ' run ID = %s does not exist'%runID)
+    
+    nmls = [ii for ii in os.listdir(path) if ii.endswith('.cfg')]
+    
+    ret_flags = np.zeros((len(nmls), ), dtype=bool)
+    for ii, nml in enumerate(nmls):
+        flags = True
+        # For each code, we need to verify that the 
+        # corresponding files are there.
+        if action == 'tracker':
+            flags &= os.path.isfile(nml['field_files']['bfield_name'])
+            if nml['field_files']['efield_on']:
+                flags &= os.path.isfile(nml['field_files']['efield_name'])
+            if nml['tables']['beamattenuationmodule']:
+                flags &= os.path.isfile(nml['field_files']['te_name'])
+                flags &= os.path.isfile(nml['field_files']['ne_name'])
+                flags &= os.path.isfile(nml['field_files']['n0_name'])
+                flags &= os.path.isfile(nml['field_files']['elec_name'])
+                flags &= os.path.isfile(nml['field_files']['CX_name'])
+            
+            flags &= os.path.isfile(nml['scintillator']['triangle_file'])
+            flags &= os.path.isfile(nml['deposition']['depos_file'])
+                
+        elif action == 'ihibpsim':
+            flags =  os.path.isfile(nml['field_files']['bfield_name'])
+            if nml['field_files']['efield_on']:
+                flags &= os.path.isfile(nml['field_files']['efield_name'])
+            if nml['tables']['beamattenuationmodule']:
+                flags &= os.path.isfile(nml['field_files']['te_name'])
+                flags &= os.path.isfile(nml['field_files']['ne_name'])
+                flags &= os.path.isfile(nml['field_files']['n0_name'])
+                flags &= os.path.isfile(nml['field_files']['elec_name'])
+                flags &= os.path.isfile(nml['field_files']['CX_name'])
+                flags &= os.path.isfile(nml['field_files']['prm_name'])
+            
+            flags &= os.path.isfile(nml['scint3d']['triangle_file'])
+            flags &= os.path.isfile(nml['strikemapconf']['triangle_file'])
+        
+        elif action == 'shot_mapper':
+            if nml['tables']['beamattenuationmodule']:
+                flags &= os.path.isfile(nml['field_files']['elec_name'])
+                flags &= os.path.isfile(nml['field_files']['CX_name'])
+                flags &= os.path.isfile(nml['field_files']['prm_name'])
+            
+            flags &= os.path.isfile(nml['scint3d']['triangle_file'])
+            flags &= os.path.isfile(nml['strikemapconf']['triangle_file'])
+    
+        ret_flags[ii] = flags
+    return flags
+
