@@ -31,6 +31,24 @@ paths = Path(machine)
 #-----------------------------------------------------------------------------
 # Routines to make namelists to run iHIBPsim.
 #-----------------------------------------------------------------------------
+def make_namelist(codename: str, user_nml: dict):
+    """
+    Wrapper to call the generators of namelists contained in this library.
+    
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    
+    @param codename: name of the code to run. @see IHIBPSIM_ACTION_NAMES.
+    @param user_nml: user provided namelist.
+    """
+    
+    if codename == 'tracker':
+        return make_tracker_namelist(user_nml)
+    elif codename == 'ihibpsim':
+        return make_ihibpsim1_namelist(user_nml)
+    elif codename == 'shot_mapper':
+        return make_shotmapper_namelist(user_nml)
+
+
 def make_tracker_namelist(user_nml: dict):
     """
     Write fortran namelist
@@ -49,40 +67,40 @@ def make_tracker_namelist(user_nml: dict):
     """
     # Default namelist:
     nml = {
-        'FIELD_FILES': {
-            'Bfield_name': '',
-            'Efield_name': '',
-            'Efield_on': False,
+        'field_files': {
+            'bfield_name': '',
+            'efield_name': '',
+            'efield_on': False,
             'equ_file': '',
         },
-        'PROFILES': {
-            'Te_name': '',
+        'profiles': {
+            'te_name': '',
             'ne_name': '',
             'n0_name': '',
-            'Zeff': 1.0
+            'zeff': 1.0
         },
-        'TABLES': {
-            'beamAttenuationModule': False,
+        'tables': {
+            'beamattenuationmodule': False,
             'elec_name': '',
-            'CX_name': '',
+            'cx_name': '',
         },
-        'INTEGRATION': {
+        'integration': {
             'dt': 1.0e-9,
             'max_step': 20000000,
             'file_out': 'strikes.bin',
         },
-        'ORBITS_CONF': {
+        'orbits_conf': {
             'save_orbits': False,
             'num_orbits': 1.0,
             'file_orbits': 'orbit.bin',
             'dt_orbit': 1.0e-8,
         },
-        'DEPOSITION': {
-            'markerNumber': 1,
+        'deposition': {
+            'markernumber': 1,
             'depos_file': 'markers.bin',
             'verbose': True
         },
-        'SCINTILLATOR': {
+        'scintillator': {
             'triangle_file':'scintillator.dat'
         }
     }
@@ -113,54 +131,54 @@ def make_ihibpsim1_namelist(user_nml: dict):
     """
     # Default namelist:
     nml = {
-        'FIELD_FILES': {
-            'Bfield_name': '',
-            'Efield_name': '',
-            'Efield_on': False,
+        'field_files': {
+            'bfield_name': '',
+            'efield_name': '',
+            'efield_on': False,
             'equ_file': '',
         },
-        'PROFILES': {
-            'Te_name': '',
+        'profiles': {
+            'te_name': '',
             'ne_name': '',
             'n0_name': '',
-            'Zeff': 1.0
+            'zeff': 1.0
         },
-        'TABLES': {
-            'beamAttenuationModule': False,
+        'tables': {
+            'beamattenuationmodule': False,
             'elec_name': '',
-            'CX_name': '',
+            'cx_name': '',
             'prm_name': ''
         },
-        'INTEGRATION': {
+        'integration': {
             'dt': 1.0e-11,
             'max_step': 100000,
-            'file_out': 'strikes.bin',
+            'file_out': 'output.strikes',
             'verbose': True
         },
-        'ORBITS_CONF': {
+        'orbits_conf': {
             'save_orbits': False,
             'num_orbits': 1.0,
-            'file_orbits': 'orbit.bin',
+            'file_orbits': 'output.orbits',
             'dt_orbit': 1.0e-8,
         },
-        'DEPOSITION': {
-            'NbeamDir': 128,
-            'Ndisk': 1,
-            'Rmin': 1.75,
-            'Rmax': 2.20,
-            'depos_file': 'markers.bin',
+        'deposition': {
+            'nbeamdir': 128,
+            'ndisk': 1,
+            'rmin': 1.75,
+            'rmax': 2.20,
+            'depos_file': 'output.beam',
         },
         
-        'GEOMETRY': {
+        'geometry': {
             'origin_point': Lib.dat.iHIBP['port_center'],
             'tilting_beta': Lib.dat.iHIBP['beta_std'],
             'tilting_theta': Lib.dat.iHIBP['theta_std'],
-            'beamModelOrder': 0,
+            'beammodelorder': 0,
             'radius': Lib.dat.iHIBP['source_radius'],
-            'sourceRadius': Lib.dat.iHIBP['source_radius'],
+            'sourceradius': Lib.dat.iHIBP['source_radius'],
             'divergency': 0.0,
             'mean_energy': 50.0,
-            'std_E': 0.0,
+            'std_e': 0.0,
             'mass': 87.0,
             'intensity': 1.0e-3
             
@@ -196,66 +214,66 @@ def make_shotmapper_namelist(user_nml: dict):
     """
     # Default namelist:
     nml = {
-        'SHOT': {
+        'shot': {
             'shotnumber': 0,     # Setting this will retrieve the last shot.
-            'expMagn': 'AUGD',
-            'diagMagn': 'EQI',
-            'expProf': 'AUGD',
-            'diagProf': 'IDA',
+            'expmagn': 'AUGD',
+            'diagmagn': 'EQI',
+            'expprof': 'AUGD',
+            'diagprof': 'IDA',
             'timemin': 0.10,
             'timemax': 10.0,
             'dt_shot': 0.50,
             'limits': np.array((1.65, 2.65, -1.0, 1.0)),
-            'Nr': 512,
-            'Nz': 256
+            'nr': 512,
+            'nz': 256
         },
-        'TABLES': {
-            'beamAttenuationFlag': False,
+        'tables': {
+            'beamattenuationflag': False,
             'elec_name': '',
-            'CX_name': '',
+            'cx_name': '',
             'prm_name': '',
-            'Zeff1': 1.0e0
+            'zeff1': 1.0e0
         },
-        'INTEGRATION': {
+        'integration': {
             'dt': 1.0e-11,
             'max_step': 100000,
             'verbose': True
         },
-        'ORBITS_CONF': {
+        'orbits_conf': {
             'save_orbits': False,
             'num_orbits': 1.0,
             'file_orbits': 'orbits',
             'dt_orbit': 1.0e-8,
         },
-        'DEPOSITION': {
-            'NbeamDir': 128,
-            'Ndisk': 1,
-            'storeDeposition': True,
+        'deposition': {
+            'nbeamDir': 128,
+            'ndisk': 1,
+            'storedeposition': True,
         },
-        'SCINT3D': {
-            'triangle_file': 'scintillator.dat'
+        'scint3d': {
+            'triangle_file': 'scintillator.3d'
         },
         
-        'STRIKEMAPCONF': {
+        'strikemapconf': {
             'scint_vertex_file': 'scintmapfile.dat',
             'mode': 2,
-            'startR': 0.85,
-            'endR': 1.20,
+            'startr': 0.85,
+            'endr': 1.20,
             'strikemap_file': 'strikemap.map',
             'save_striking_points': False,
             'file_strikes': 'strikes'
         },
         
-        'GEOMETRY': {
+        'geometry': {
             'origin_point': Lib.dat.iHIBP['port_center'],
             'tilting_beta': Lib.dat.iHIBP['beta_std'],
             'tilting_theta': Lib.dat.iHIBP['theta_std'],
-            'beamModelOrder': 0,
+            'beammodelrrder': 0,
             'radius': Lib.dat.iHIBP['source_radius'],
-            'sourceRadius': Lib.dat.iHIBP['source_radius'],
+            'sourceradius': Lib.dat.iHIBP['source_radius'],
             'divergency': 0.0,
             'mean_energy': 50.0,
-            'std_E': 0.0,
+            'std_e': 0.0,
             'mass': 87.0,
             'intensity': 1.0e-3
             
@@ -272,7 +290,9 @@ def make_shotmapper_namelist(user_nml: dict):
     
     return nml
 
-
+#-----------------------------------------------------------------------------
+# Routines to generate scans.
+#-----------------------------------------------------------------------------
 def generate_energy_scan_shotmapper(E_start: float, E_end: float, nE: int,
                                     base_nml: dict={}, code='shotmapper'):
     
@@ -339,7 +359,9 @@ def generate_beta_scan_shotmapper(beta_start: float, beta_end: float,
         
     return nml_list
 
-
+#-----------------------------------------------------------------------------
+# Routines to check the namelist consistency.
+#-----------------------------------------------------------------------------
 def check_namelist(params:dict, codename: str='ihibpsim',
                    forceConvention: bool=True):
     """
@@ -802,11 +824,62 @@ def __check_shotmapper_namelist(params: dict, forceConvention: bool=True):
     return __check_ihipbsim_geometry(params['geometry'])
 
 #-----------------------------------------------------------------------------
-# Routines to check the namelist consistency.
+# Routines to check the files as set in the namelist
 #-----------------------------------------------------------------------------
+def check_files(nml: dict, action: str='shot_remap'):
+    """
+    Check if the needed files for the execution of the codes are properly
+    stored in the corresponding folders.
+    
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    
+    @param params: dictionary with the namelist to run iHIBPsim.
+    @param action: code to run. To be chosen among IHIBPSIM_ACTION_NAMES
+    """
+    flags = True
+    # For each code, we need to verify that the 
+    # corresponding files are there.
+    if action == 'tracker':
+        flags &= os.path.isfile(nml['field_files']['bfield_name'])
+        if nml['field_files']['efield_on']:
+            flags &= os.path.isfile(nml['field_files']['efield_name'])
+        if nml['tables']['beamattenuationmodule']:
+            flags &= os.path.isfile(nml['field_files']['te_name'])
+            flags &= os.path.isfile(nml['field_files']['ne_name'])
+            flags &= os.path.isfile(nml['field_files']['n0_name'])
+            flags &= os.path.isfile(nml['field_files']['elec_name'])
+            flags &= os.path.isfile(nml['field_files']['CX_name'])
+        
+        flags &= os.path.isfile(nml['scintillator']['triangle_file'])
+        flags &= os.path.isfile(nml['deposition']['depos_file'])
+            
+    elif action == 'ihibpsim':
+        flags =  os.path.isfile(nml['field_files']['bfield_name'])
+        if nml['field_files']['efield_on']:
+            flags &= os.path.isfile(nml['field_files']['efield_name'])
+        if nml['tables']['beamattenuationmodule']:
+            flags &= os.path.isfile(nml['field_files']['te_name'])
+            flags &= os.path.isfile(nml['field_files']['ne_name'])
+            flags &= os.path.isfile(nml['field_files']['n0_name'])
+            flags &= os.path.isfile(nml['field_files']['elec_name'])
+            flags &= os.path.isfile(nml['field_files']['CX_name'])
+            flags &= os.path.isfile(nml['field_files']['prm_name'])
+        
+        flags &= os.path.isfile(nml['scint3d']['triangle_file'])
+        flags &= os.path.isfile(nml['strikemapconf']['triangle_file'])
+    
+    elif action == 'shot_mapper':
+        if nml['tables']['beamattenuationmodule']:
+            flags &= os.path.isfile(nml['field_files']['elec_name'])
+            flags &= os.path.isfile(nml['field_files']['CX_name'])
+            flags &= os.path.isfile(nml['field_files']['prm_name'])
+        
+        flags &= os.path.isfile(nml['scint3d']['triangle_file'])
+        flags &= os.path.isfile(nml['strikemapconf']['triangle_file'])
+    return flags
+    
 
-
-def check_files(runID: str, action: str='shot_remap'):
+def check_files_many(runID: str, action: str='shot_remap'):
     """
     Check if the needed files for the execution of the codes are properly
     stored in the corresponding folders.
@@ -827,47 +900,6 @@ def check_files(runID: str, action: str='shot_remap'):
     
     ret_flags = np.zeros((len(nmls), ), dtype=bool)
     for ii, nml in enumerate(nmls):
-        flags = True
-        # For each code, we need to verify that the 
-        # corresponding files are there.
-        if action == 'tracker':
-            flags &= os.path.isfile(nml['field_files']['bfield_name'])
-            if nml['field_files']['efield_on']:
-                flags &= os.path.isfile(nml['field_files']['efield_name'])
-            if nml['tables']['beamattenuationmodule']:
-                flags &= os.path.isfile(nml['field_files']['te_name'])
-                flags &= os.path.isfile(nml['field_files']['ne_name'])
-                flags &= os.path.isfile(nml['field_files']['n0_name'])
-                flags &= os.path.isfile(nml['field_files']['elec_name'])
-                flags &= os.path.isfile(nml['field_files']['CX_name'])
-            
-            flags &= os.path.isfile(nml['scintillator']['triangle_file'])
-            flags &= os.path.isfile(nml['deposition']['depos_file'])
-                
-        elif action == 'ihibpsim':
-            flags =  os.path.isfile(nml['field_files']['bfield_name'])
-            if nml['field_files']['efield_on']:
-                flags &= os.path.isfile(nml['field_files']['efield_name'])
-            if nml['tables']['beamattenuationmodule']:
-                flags &= os.path.isfile(nml['field_files']['te_name'])
-                flags &= os.path.isfile(nml['field_files']['ne_name'])
-                flags &= os.path.isfile(nml['field_files']['n0_name'])
-                flags &= os.path.isfile(nml['field_files']['elec_name'])
-                flags &= os.path.isfile(nml['field_files']['CX_name'])
-                flags &= os.path.isfile(nml['field_files']['prm_name'])
-            
-            flags &= os.path.isfile(nml['scint3d']['triangle_file'])
-            flags &= os.path.isfile(nml['strikemapconf']['triangle_file'])
-        
-        elif action == 'shot_mapper':
-            if nml['tables']['beamattenuationmodule']:
-                flags &= os.path.isfile(nml['field_files']['elec_name'])
-                flags &= os.path.isfile(nml['field_files']['CX_name'])
-                flags &= os.path.isfile(nml['field_files']['prm_name'])
-            
-            flags &= os.path.isfile(nml['scint3d']['triangle_file'])
-            flags &= os.path.isfile(nml['strikemapconf']['triangle_file'])
-    
-        ret_flags[ii] = flags
-    return flags
+        ret_flags[ii] = check_files(nml, action=action)
+    return ret_flags
 
