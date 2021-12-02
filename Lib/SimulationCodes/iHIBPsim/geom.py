@@ -11,11 +11,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Lib
 import random
+from typing import Union
+import Lib.LibParameters as libparms
 
 BEAM_INF_SMALL = 0
 BEAM_ANGULAR_DIVERGENCY = 1
 BEAM_ENERGY_DISPERSION = 2
 BEAM_FULLWIDTH = 3
+
+# ----------------------------------------------------------------------------
+# --- Beam geometry modules.
+# ----------------------------------------------------------------------------
 
 def R2beam(u: float, origin: float, R: float):
     """
@@ -155,8 +161,11 @@ def plotBeam_poloidal(beam_data: dict, ax=None, fig=None,
     
     if plotDiv:
         color = line_hndl[-1]._color
-        ax.fill_between(pol_up['Rbeam'], pol_up['zbeam'], pol_down['zbeam'],
-                        linewidth=0.0, color=color, alpha=0.1)
+        div_hndl = ax.fill_between(pol_up['Rbeam'], 
+                                   pol_up['zbeam'], pol_down['zbeam'],
+                                   linewidth=0.0, color=color, alpha=0.1)
+    else:
+        div_hndl = None
         
     
     if drawvessel:
@@ -171,7 +180,7 @@ def plotBeam_poloidal(beam_data: dict, ax=None, fig=None,
         
         ax = Lib.plt.axis_beauty(ax, ax_options)
         
-    return ax
+    return ax, line_hndl, div_hndl
 
 
 def plotBeam_toroidal(beam_data: dict, ax=None, fig=None, 
@@ -384,6 +393,95 @@ class gaussian_beam:
         self.energyDispersion = False
         if self.stdE == 0.0:
             self.energyDispersion = True
+           
+            
+    def update(self, origin: float=None, beta: float=None, theta: float=None,
+               meanE: float=None, stdE: float=None, mass: float=None,
+               divergency: float=None, pinhole_size: float=None):
+        """
+        Updates the beam data according to the input.
+        
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+        
+        @param origin: cartesian origin (X, Y, Z) from which the beam is
+        started.
+        @param beta: toroidal tilting angle defined from the injection point.
+        @param theta: poloidal tilting angle, defined from the injection point.
+        @param meanE: average beam energy. Beam is modelled as a Gaussian.
+        @param stdE: standard deviation of the energy in the Gaussian model.
+        @param mass: mass of the beam species. By default, the Rb85.
+        @param divergency: beam divergency.
+        """
+        
+        recompute_flag = False
+        
+        if origin is not None:
+            self.origin = np.atleast_1d(origin)
+            recompute_flag = True
+        
+        if beta is not None:
+            self.beta   = beta
+            recompute_flag = True
+        if theta is not None:
+            self.beta   = theta
+            recompute_flag = True
+        
+        if meanE is not None:
+            self.meanE  = meanE
+        
+        if stdE is not None:
+            self.stdE   = stdE
+            
+        if mass is not None:
+            self.mass   = mass
+            self.mass_si = mass * Lib.par.amu2kg
+            
+        if pinhole_size is not None:
+            self.pinsize = pinhole_size
+            recompute_flag = True
+        
+        if divergency is not None:
+            self.div    = divergency
+        
+        # Computing the beam line.
+        if recompute_flag:
+            self._beam_data = generateBeamTrajectory(start=origin, 
+                                                     beta=beta,
+                                                     theta=theta)
+            # Setting up some flags.
+            self.infsmall = False
+            if self.div == 0.0:
+                self.infsmall = True
+            else:
+                z_shift = np.array((0.0, 0.0, self.pinsize))
+                self._beam_pol_up = generateBeamTrajectory(start=origin+z_shift, 
+                                                           beta=beta,
+                                                           theta=theta+self.div)
+                self._beam_pol_down = generateBeamTrajectory(start=origin-z_shift, 
+                                                             beta=beta,
+                                                             theta=theta-self.div)
+                
+                u_perp = np.array((+self._beam_data['u_inj'][1], 
+                                   -self._beam_data['u_inj'][2], 0.0))
+                
+                u_perp = u_perp/np.linalg.norm(u_perp)
+                
+                tor_shift = u_perp*self.pinsize
+                self._beam_tor1 = generateBeamTrajectory(start=origin+tor_shift, 
+                                                         beta=beta+self.div,
+                                                         theta=theta)
+                self._beam_tor2 = generateBeamTrajectory(start=origin-tor_shift, 
+                                                         beta=beta-self.div,
+                                                         theta=theta)
+                
+                # For plotting the beam in 3D.
+                self._u1_perp = u_perp
+                self._u2_perp = np.cross(self._u1_perp, 
+                                         self._beam_data['u_inj'])
+            
+        self.energyDispersion = False
+        if self.stdE == 0.0:
+            self.energyDispersion = True
         
     def plot(self, view: str='pol', ax=None, fig=None,
              **kwargs):
@@ -437,6 +535,7 @@ class gaussian_beam:
             raise ValueError('View %s not available!'%view)
             
         return ax
+    
     
     def change(self, xin: float, inptype: str='cyl', outtype: str='beam_sRt'):
         """
@@ -632,7 +731,7 @@ class gaussian_beam:
         xout = np.moveaxis(xout, 0, axis_3)
         
         return xout
-     
+
         
     def change_vel(self, vin: float, inptype: str='cyl', 
                    outtype: str='beam', **kwargs):
@@ -753,7 +852,8 @@ class gaussian_beam:
         vout = np.moveaxis(vout, 0, axis_3)
         
         return vout
-        
+    
+    
     def makebeam(self, model: int=BEAM_INF_SMALL, Nbeam = 100, Ndisk=1,
                  Rmin: float=None, Rmax: float=None):
         """
@@ -846,3 +946,170 @@ class gaussian_beam:
         db[idx_sorting_beta] = dbbeam_sorted
         
         return beta, db
+    
+
+# ----------------------------------------------------------------------------
+# --- Scintillator and head geometry functions and classes.
+# ----------------------------------------------------------------------------
+class geom:
+    """
+    Class containing all the relevant geometric data information for the
+    i-HIBP diagnostic.
+    
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    """
+    
+    def __init__(self, model3d: Union[str, float]=None, 
+                 scint: Union[str, float]=None,
+                 **beam_args):
+        """
+        Constructor of the geometry class. This will set up all the variables
+        and internal functions to easily plot and manipulate the geometry
+        of the system.
+        
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+        @param model3d: path to the 3d file of the head model or triangle
+        structure as a vertex structure.
+        @param scint: 2d model of the scintillator where the strikes will
+        be recorded. Can be either the path to the file or a 2d structure.
+        @param beam_args: beam keyword arguments to initialize the 
+        corresponding beam class.
+        """
+        
+        # Storing the data from the 3D scintillator.
+        # Waiting for Jose to upload stuff.
+        
+        # Storing the data of the 2D scintillator.
+        if isinstance(scint, str):
+            data = np.loadtxt(scint, comments='!')
+        else:
+            if scint.shape[1] != 3:
+                raise ValueError('The scintillator must have'+\
+                                 ' 3 Cartesian coordinates!')
+            data = scint
+            
+        # Separaring the points.
+        self.x0 = data[0, :]
+        self.x1 = data[1, :]
+        self.x2 = data[2, :]
+        
+        # Computing the associated with the scintillator.
+        self.v0 = self.x1 - self.x0
+        self.v1 = self.x2 - self.x0
+        
+        self.x4 = self.x0 + self.v0 + self.v1
+        # Loading the beam parameters.
+        std_beam = { 'beam_type': 'gaussian',
+                     'origin': libparms.iHIBP['port_center'],
+                     'beta': libparms.iHIBP['beta_std'],
+                     'theta': libparms.iHIBP['theta_std']
+                   }
+        
+        std_beam.update(beam_args)
+        
+        if std_beam['beam_type'] == 'gaussian':
+            self.beam = gaussian_beam(**std_beam)
+        else:
+            raise NotImplementedError('The beam type %s not implemented'%\
+                                      std_beam['beam_type'])
+    
+    
+    def __plot_scintillator(self, view: str='3d', ax=None, fig=None, 
+                            **kwargs):
+        """
+        Internal routine that plots the 2d scintillator as a surface.
+        
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+        """
+        if view == '3d':
+            if ax is None:
+                fig = plt.figure()
+                fig.add_subplots(projection='3d')
+            
+            # Use Jose's function...
+            raise NotImplementedError('Waiting for Jose push')
+        elif view == 'pol':
+            if ax is None:
+                fig, ax = plt.subplots()
+                
+            # Coordinate change from cartesian to cylindrical coordinates
+            # for the elements of the scintillator.
+            xc0 = [np.sqrt(self.x0[0]**2 + self.x0[1]**2),
+                   self.x0[3]]
+            xc1 = [np.sqrt(self.x1[0]**2 + self.x1[1]**2),
+                   self.x1[3]]
+            xc2 = [np.sqrt(self.x2[0]**2 + self.x2[1]**2),
+                   self.x2[3]]
+            xc3 = [np.sqrt(self.x3[0]**2 + self.x3[1]**2),
+                   self.x3[3]]
+            
+            R = [xc0[0], xc1[0], xc2[0], xc3[0]]
+            z = [xc0[1], xc1[1], xc2[1], xc3[1]]
+            
+            ax.fill(R, z)
+        else:
+            if ax is None:
+                fig, ax = plt.subplots()
+            
+            x = [self.x0[0], self.x1[0], self.x2[0], self.x3[0]]
+            y = [self.x0[1], self.x1[1], self.x2[1], self.x3[1]]
+            
+            ax.fill(x, y)
+             
+        
+        
+    def __plot_head(self, view: str='3d', ax=None, fig=None, **kwargs):
+        """
+        Internal routine that plots the 3d mode of the diagnostic head.
+        
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+        """
+        raise NotImplementedError('Waiting for Jose push')
+        
+    def plot(self, view: str='3d', elements: str = 'all', ax=None, fig=None,
+             colors=None):
+        """
+        Plots the iHIBP geometry, including the head, the scintillator plate 
+        and the beam injection geometry, or a part of these.
+        
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+        
+        @param view: way of representing the geometry: 3d or 'pol', 'tor' are
+        available to plot.
+        @param elements: elements to plot, a combination of 'head', 'scint',
+        'beam', 'all' as a list.
+        @param ax: axis to plot the figure.
+        @param fig: figure associated to the axis where the data is being
+        plot.
+        @param colors: colors to plot.
+        """
+        
+        # Checking the inputs.
+        if view not in ('3d', 'pol', 'tor'):
+            raise ValueError('The view can only be 3d, pol or tor.')
+        
+        if isinstance(elements, str):
+            elements = (elements,)
+        
+        toplot = list()
+        for iele in elements:
+            if iele == 'all':
+                toplot = ('head', 'scint', 'beam')
+                break
+            elif iele not in ('head', 'scint', 'beam'):
+                raise ValueError('Element %s not recognized'%iele)
+            else:
+                toplot.append(iele)
+                
+        # Plotting each elements.
+        if 'beam' in toplot:
+            ax = self.beam.plot(view=view, ax=ax, fig=fig)
+        
+        if 'scint' in toplot:
+            ax = self.__plot_scintillator(view=view, ax=ax, fig=fig)
+        
+        if 'head' in toplot:
+            ax = self.__plot_head(view=view, ax=ax, fig=fig)
+            
+        return ax
+        
