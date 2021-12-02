@@ -6,9 +6,23 @@ import numpy as np
 import os
 from tqdm import tqdm
 from scipy.interpolate import interp1d
-import requests
-import re
-import shutil
+import warnings
+try:
+    import requests
+except:
+    warnings.warn('request package is not installed. Install it to read '+\
+                  'the magnetic phase corrections.')
+
+try:
+    import re
+except:
+    warnings.warn('re package is not installed. Install it to read '+\
+                  'the magnetic phase corrections.')
+try:
+    import shutil
+except:
+    warnings.warn('shutil package is not installed. Install it to read '+\
+                  'the magnetic phase corrections.')
 
 paths = Path(machine='AUG')
 

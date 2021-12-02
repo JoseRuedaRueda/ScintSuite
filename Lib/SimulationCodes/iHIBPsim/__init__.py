@@ -11,3 +11,4 @@ import Lib.SimulationCodes.iHIBPsim.attenuation as att
 import Lib.SimulationCodes.iHIBPsim.strikes as strikes
 import Lib.SimulationCodes.iHIBPsim.execute as exe
 import Lib.SimulationCodes.iHIBPsim.nml as nmllib
+import Lib.SimulationCodes.iHIBPsim.geom as geom
