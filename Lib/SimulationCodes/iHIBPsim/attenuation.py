@@ -6,7 +6,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Lib.LibPlotting as ssplt
 from scipy.interpolate import interp1d, interp2d
-import netCDF4 as nc4
+import warnings
+try:
+    import netCDF4 as nc4
+except:
+    warnings.warn('netCDF4 library not found. Install it to use iHIBPsim.')
 
 
 # --------------------------------------------------------

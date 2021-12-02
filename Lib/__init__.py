@@ -13,6 +13,7 @@ import Lib.LibMap as mapping
 import Lib.SimulationCodes.FILDSIM as fildsim
 import Lib.SimulationCodes.FIDASIM as fidasim
 import Lib.SimulationCodes.SINPA as sinpa
+import Lib.SimulationCodes.iHIBPsim as ihibpsim
 
 # Reconstructions
 import Lib.LibTomography as tomo
