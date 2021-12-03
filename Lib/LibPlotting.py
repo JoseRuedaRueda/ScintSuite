@@ -112,22 +112,6 @@ def plotSettings(plot_mode='software', usetex=False):
 # -----------------------------------------------------------------------------
 # --- 1D Plotting
 # -----------------------------------------------------------------------------
-def p1D(ax, x, y, param_dict={}):
-    """
-    Create basic 1D plot
-
-    Jose Rueda: jrrueda@us.es
-
-    @param ax: Axes. The axes to draw to
-    @param x: The x data
-    @param y: The y data
-    @param param_dict: dict. Dictionary of kwargs to pass to ax.plot
-    @return out: ax.plot with the applied settings
-    """
-    ax.plot(x, y, **param_dict)
-    return ax
-
-
 def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=None,
                      line_param={}, line=True):
     """
@@ -234,7 +218,6 @@ def multiline(xs, ys, c, ax=None, line_params: dict = {},
     -------
     lc : LineCollection instance.
     """
-
     # find axes
     if ax is None:
         fig, ax = plt.subplots()
@@ -255,11 +238,10 @@ def multiline(xs, ys, c, ax=None, line_params: dict = {},
     ax.autoscale()
     return lc
 
+
 # -----------------------------------------------------------------------------
 # --- Axis tuning and colormaps
 # -----------------------------------------------------------------------------
-
-
 def axis_beauty(ax, param_dict: dict):
     """
     Modify axis labels, title, ....
@@ -376,9 +358,55 @@ def plot_3D_revolution(r, z, phi_min: float = 0.0, phi_max: float = 1.57,
     return ax
 
 
+def axisEqual3D(ax):
+    """
+    Set aspect ratio to equal in a 3D plot.
+
+    Taken from:
+
+    https://stackoverflow.com/questions/8130823/
+    set-matplotlib-3d-plot-aspect-ratio
+
+    @param ax: axes to be changed
+    """
+    extents = np.array([getattr(ax, 'get_{}lim'.format(dim))()
+                       for dim in 'xyz'])
+    sz = extents[:, 1] - extents[:, 0]
+    centers = np.mean(extents, axis=1)
+    maxsize = max(abs(sz))
+    r = maxsize/2
+    for ctr, dim in zip(centers, 'xyz'):
+        getattr(ax, 'set_{}lim'.format(dim))(ctr - r, ctr + r)
+
+
+def clean3Daxis(ax):
+    """
+    Get rid of colored axes planes and grid placed in 3D matplotlib plots
+
+    (https://stackoverflow.com/questions/11448972/
+    changing-the-background-color-of-the-axes-planes-of
+    -a-matplotlib-3d-plot)
+
+    @param ax: axes to be 'cleaned'
+    """
+
+    # First remove fill
+    ax.xaxis.pane.fill = False
+    ax.yaxis.pane.fill = False
+    ax.zaxis.pane.fill = False
+
+    # Now set color to white (or whatever is "invisible")
+    ax.xaxis.pane.set_edgecolor('w')
+    ax.yaxis.pane.set_edgecolor('w')
+    ax.zaxis.pane.set_edgecolor('w')
+
+    # Bonus: To get rid of the grid as well:
+    ax.grid(False)
 # -----------------------------------------------------------------------------
 # --- Vessel plot
 # -----------------------------------------------------------------------------
+
+
 def plot_vessel(projection: str = 'pol', units: str = 'm', h: float = None,
                 color='k', linewidth=0.5, ax=None, shot: int = 30585,
                 params3d: dict = {},
@@ -415,20 +443,20 @@ def plot_vessel(projection: str = 'pol', units: str = 'm', h: float = None,
         # get the data
         vessel = ssdat.toroidal_vessel(rot=tor_rot) * fact
     else:
-        if projection != '3D':
+        if projection.lower() != '3d':
             vessel = ssdat.poloidal_vessel(shot=shot) * fact
         else:
             vessel = ssdat.poloidal_vessel(simplified=True) * fact
     # --- Section 1: Plot the vessel
     # open the figure if needed:
     if ax is None:
-        if (h is None) and (projection != '3D'):
+        if (h is None) and (projection.lower() != '3d'):
             fig, ax = plt.subplots()
         else:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
     # Plot the vessel:
-    if (h is None) and (projection != '3D'):
+    if (h is None) and (projection.lower() != '3d'):
         ax.plot(vessel[:, 0], vessel[:, 1], color=color, linewidth=linewidth)
     elif h is not None:
         height = h * np.ones(len(vessel[:, 1]))
@@ -465,7 +493,7 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
     @param diag: equilibrium diagnostic for the equilibrium. EQH by default.
     @param exp: experiment in AUG where the EQ is stored. AUGD by default
     @param ed: Edition of the equilibrium. The latest is taken by default.
-    @param levels: number of flux surfaces to plot.
+    @param levels: rho values to plot. If none, from 0 to 1
     @param label_surf: states whether the flux surfaces should be labeled by
     their value.
     @param coord_type: type of coordinate to be used for the map. rho_pol by
@@ -490,10 +518,10 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
         heredado = True
 
     if levels is None:
-        if coord_type == 'rho_pol':
-            levels = np.arange(start=0.2, stop=1.2, step=0.2)
+        if coord_type.lower() == 'rho_pol':
+            levels = np.arange(start=0.2, stop=1.25, step=0.2)
         else:
-            levels = np.arange(start=0.2, stop=1.0, step=0.2)
+            levels = np.arange(start=0.2, stop=1.05, step=0.2)
 
     # --- Getting the equilibrium
     R = np.linspace(1.03, 2.65, 128)

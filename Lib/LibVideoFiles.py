@@ -11,6 +11,7 @@ import re
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import tkinter as tk                       # To open UI windows
 import Lib.LibPlotting as ssplt
 import Lib.LibMap as ssmap
@@ -918,8 +919,8 @@ def read_frame_cin(cin_object, frames_number, limitation: bool = True,
     M = np.zeros((int(cin_object.imageheader['biHeight']),
                   int(cin_object.imageheader['biWidth']), nframe),
                  dtype=data_type)
-    img_size_header = int(cin_object.imageheader['biWidth'] *
-                          cin_object.imageheader['biHeight'] * BPP / 8)  # byte
+    img_size_header = int(cin_object.imageheader['biWidth']
+                          * cin_object.imageheader['biHeight'] * BPP / 8)  # byte
     npixels = cin_object.imageheader['biWidth'] * \
         cin_object.imageheader['biHeight']
     # Read the frames
@@ -2046,7 +2047,7 @@ class Video:
                               nlev: int = 50, cbar_tick_format: str = '%.1E',
                               normalise=False, max_gyr=None, min_gyr=None,
                               max_pitch=None, min_pitch=None, ax=None,
-                              line_params={}):
+                              line_params={}, scale='linear'):
         """
         Creates a plot with the evolution of the profiles
 
@@ -2062,24 +2063,46 @@ class Video:
         @param min_gyr: minimum value for colorbar plot in gyroradius
         @param max_pitch: maximum value for colorbar plot in pitch
         @param min_pitch: minimum value for colorbar plot in pitch
+        @param scale: Color scale to plot, up to know only implemeneted for
+               the gyroradius plot. it accept 'linear' and 'log'
         @todo: substitute pprofmin and max, also with rl or we will have a
         future bug
         """
+        # --- Initialise the plotting options
+        # Color map
         if ccmap is None:
             cmap = ssplt.Gamma_II()
         else:
             cmap = ccmap
-
-        # if 'fontsize' not in plt_params:
-        #     plt_params['fontsize'] = 16
-
+        # scale
+        if scale.lower() == 'linear':
+            extra_options_plot = {}
+        elif scale.lower() == 'log':
+            extra_options_plot = {
+                'norm': colors.LogNorm()
+            }
         if t is None:  # 2d plots
             # --- Gyroradius profiles
             fig1, ax1 = plt.subplots()   # Open figure and plot
-            cont = ax1.contourf(self.remap_dat['tframes'],
-                                self.remap_dat['yaxis'],
-                                self.remap_dat['sprofy'], nlev, cmap=cmap,
-                                vmin=min_gyr, vmax=max_gyr)
+            # cont = ax1.contourf(self.remap_dat['tframes'],
+            #                     self.remap_dat['yaxis'],
+            #                     self.remap_dat['sprofy'], nlev, cmap=cmap,
+            #                     vmin=min_gyr, vmax=max_gyr)
+            # cont = ax1.pcolormesh(self.remap_dat['tframes'],
+            #                  self.remap_dat['yaxis'],
+            #                  self.remap_dat['sprofy']+1e-2,
+            #                  norm=colors.LogNorm(vmin=self.remap_dat['sprofy'].min(
+            #                  )+1e-2, vmax=self.remap_dat['sprofy'].max()),
+            #                  cmap=cmap, shading='gouraud')
+            dummy = self.remap_dat['sprofy'] / self.remap_dat['sprofy'].max()
+            cont = ax1.imshow(dummy, cmap=cmap,
+                              vmin=min_gyr, vmax=max_gyr,
+                              extent=[self.remap_dat['tframes'][0],
+                                      self.remap_dat['tframes'][-1],
+                                      self.remap_dat['yaxis'][0],
+                                      self.remap_dat['yaxis'][-1]],
+                              aspect='auto', origin='lower',
+                              **extra_options_plot)
             cbar = plt.colorbar(cont, format=cbar_tick_format)
             cbar.set_label('Counts [a.u.]')
             # Write the shot number and detector id.
@@ -2108,7 +2131,7 @@ class Video:
             cont = ax2.contourf(self.remap_dat['tframes'],
                                 self.remap_dat['xaxis'],
                                 self.remap_dat['sprofx'], nlev, cmap=cmap,
-                                vmin=min_gyr, vmax=max_gyr)
+                                vmin=min_pitch, vmax=max_pitch)
             cbar = plt.colorbar(cont, format=cbar_tick_format)
             cbar.set_label('Counts [a.u.]')
             # Write the shot number and detector id
