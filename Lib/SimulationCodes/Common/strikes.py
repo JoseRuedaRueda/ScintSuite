@@ -1,92 +1,64 @@
 """
-Contains the class to read and interact with the strikes
+Strike object for SINPA and FILDSIM codes.
 
-Jose Rueda Rueda: jrrueda@us.es
+Maintaned by Jose Rueda: jrrueda@us.es
 
-Introduced in version 0.6.0
+Contains the Strike object, which stores the information of the strike points
+calculated by the code and plot the different information on it
 """
 import os
+import warnings
 import numpy as np
 # import Lib.LibParameters as sspar
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
-from Lib.SimulationCodes.SINPA.StrikesHeader import order_INPA as infoINPA
-from Lib.SimulationCodes.SINPA.StrikesHeader import order_FILD as infoFILD
+from Lib.SimulationCodes.Common.strikesHeader import orderStrikes as order
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from Lib.LibPlotting import axis_beauty, axisEqual3D, clean3Daxis
 import Lib.LibPlotting as ssplt
 paths = Path(machine)
 
 
-# -----------------------------------------------------------------------------
-# --- Colum order for the strikes files
-# -----------------------------------------------------------------------------
-
-class Strikes:
+def readSINPAstrikes(filename: str, verbose: bool = False):
     """
-    StrikePoint class.
+    Read the strike points from a SINPA simulation
 
     Jose Rueda: jrrueda@us.es
+
+    @param filename: filename of the file
+    @param verbose: flag to print information on the file
+
+    Note: in order to load the proper header (with information on which
+    variables are stored in the file), the code will guess which kind of file
+    it is by the name of the file. Therefore, official name of the SINPA files
+    should not be changed, if not, this routine does no longer work
     """
+    # --- Identify which can of file we are dealing with:
+    if filename.endswith('spmap'):
+        plate = 'scintillator'
+    elif filename.endswith('spcmap'):
+        plate = 'collimator'
+    elif filename.endswith('spsignal'):
+        plate = 'signalscintillator'
+    elif filename.endswith('spcsignal'):
+        plate = 'collimator'
+    else:
+        raise Exception('File not understood. Has you chenged the ext???')
 
-    def __init__(self, runID: str = None, plate: str = 'Scintillator',
-                 file: str = None, verbose: bool = True):
-        """
-        Initialise the object reading data from a SINPA file.
-
-        Jose Rueda: jrrueda@us.es
-
-        @param runID: runID of the SINPA simulation
-        @param plate: plate to collide with (Collimator or Scintillator)
-        @param file: if a filename is provided, data will be loaded from this
-        file, ignoring the SINPA folder structure (and runID)
-        @param verbose. flag to print some info in the command line
-        """
-        # --- Load the strike points
-        if file is None:
-            if plate.lower() == 'scintillator':
-                name = 'StrikePoints.bin'
-            elif plate.lower() == 'collimator':
-                name = 'CollimatorStrikePoints.bin'
-            elif plate.lower() == 'signalscintillator':
-                name = 'SignalStrikePoints.bin'
-            elif plate.lower() == 'signalcollimator':
-                name = 'SignalCollimatorStrikePoints.bin'
-            else:
-                raise Exception('Plate not understood, revise inputs')
-
-            file = os.path.join(paths.SINPA, 'runs', runID, 'results', name)
-        self.file = file
-        if verbose:
-            print('Reading file: ', file)
-        self.read_file(verbose=verbose, plate=plate)
-        # --- Initialise the rest of the object
-        ## Histogram of Scintillator strikes
-        self.ScintHistogram = None
-
-    def read_file(self, verbose=False, plate: str = 'Scintillator'):
-        """
-        Read the strike points from a SINPA simulation
-
-        Jose Rueda: jrrueda@us.es
-
-        @param filename: filename of the file
-        @param verbose: flag to print information on the file
-        """
-        fid = open(self.file, 'rb')
+    # --- Open the file and read
+    with open(filename, 'rb') as fid:
         header = {
             'versionID1': np.fromfile(fid, 'int32', 1)[0],
             'versionID2': np.fromfile(fid, 'int32', 1)[0],
         }
-        header['info'] = {}
-
         if header['versionID1'] < 1:
             # Keys of what we have in the file:
             header['runID'] = np.fromfile(fid, 'S50', 1)[:]
             header['ngyr'] = np.fromfile(fid, 'int32', 1)[0]
             header['gyroradius'] = np.fromfile(fid, 'float64', header['ngyr'])
             header['nalpha'] = np.fromfile(fid, 'int32', 1)[0]
-            header['alphas'] = np.fromfile(fid, 'float64', header['nalpha'])
+            header['alpha'] = np.fromfile(fid, 'float64', header['nalpha'])
             header['FILDSIMmode'] = \
                 np.fromfile(fid, 'int32', 1)[0].astype(np.bool)
             header['ncolumns'] = np.fromfile(fid, 'int32', 1)[0]
@@ -102,14 +74,12 @@ class Strikes:
             }
             # get the information
             scints = ['scintillator',  'signalscintillator']
-            if plate.lower() == 'signalcollimator':
-                plate = 'collimator'
             if header['FILDSIMmode']:
-                header['info'].update(infoFILD[header['versionID1']]
-                                      [plate.lower()])
+                header['info'] = order['sinpa_FILD'][header['versionID1']
+                                                     ][plate.lower()]
             else:
-                header['info'].update(infoINPA[header['versionID1']]
-                                      [plate.lower()])
+                header['info'] = order['sinpa_INPA'][header['versionID1']
+                                                     ][plate.lower()]
             if plate.lower() in scints:
                 ycolum = header['info']['ys']['i']
                 zcolum = header['info']['zs']['i']
@@ -118,13 +88,12 @@ class Strikes:
                     header['counters'][ia, ig] = \
                         np.fromfile(fid, 'int32', 1)[0]
                     if header['counters'][ia, ig] > 0:
-                        data[ia, ig] = \
-                            np.reshape(np.fromfile(fid, 'float64',
-                                                   header['ncolumns'] *
-                                                   header['counters'][ia, ig]),
-                                       (header['counters'][ia, ig],
-                                        header['ncolumns']),
-                                       order='F')
+                        data[ia, ig] = np.reshape(
+                            np.fromfile(fid, 'float64',
+                                        header['ncolumns']
+                                        * header['counters'][ia, ig]),
+                            (header['counters'][ia, ig],
+                             header['ncolumns']), order='F')
                         if plate.lower() in scints:
                             header['scint_limits']['xmin'] = \
                                 min(header['scint_limits']['xmin'],
@@ -138,43 +107,205 @@ class Strikes:
                             header['scint_limits']['ymax'] = \
                                 max(header['scint_limits']['ymax'],
                                     data[ia, ig][:, zcolum].max())
-        self.header = header
-        self.data = data
         if verbose:
             print('Total number of strike points: ',
                   np.sum(header['counters']))
             print('SINPA version: ', header['versionID1'], '.',
                   header['versionID2'])
-        fid.close()
+    return header, data
+
+
+def readFILDSIMstrikes(filename: str, verbose: bool = False):
+    """
+    Load the strike points from a FILDSIM simulation.
+
+    Jose Rueda: ruejo@ipp.mpg.de
+
+    @param runID: runID of the FILDSIM simulation
+    @param plate: plate to collide with (Collimator or Scintillator)
+    @param file: if a filename is provided, data will be loaded from this
+    file, ignoring the SINPA folder structure (and runID)
+    @param verbose. flag to print some info in the command line
+    """
+    if verbose:
+        print('Reading strike points: ', filename)
+    dummy = np.loadtxt(filename, skiprows=3)
+    header = {
+        'alpha': np.unique(dummy[:, 1]),
+        'gyroradius': np.unique(dummy[:, 0])
+    }
+    header['nalpha'] = header['alpha'].size
+    header['ngyr'] = header['gyroradius'].size
+    # --- Order the strike points in gyroradius and pitch angle
+    data = np.empty((header['nalpha'], header['ngyr']), dtype=np.ndarray)
+    header['counters'] = np.zeros((header['nalpha'], header['ngyr']),
+                                  dtype=np.int)
+    header['scint_limits'] = {  # for later histogram making
+        'xmin': 300.,
+        'xmax': -300.,
+        'ymin': 300.,
+        'ymax': -300.
+    }
+    nmarkers, ncolum = dummy.shape
+    for ir in range(header['ngyr']):
+        for ip in range(header['nalpha']):
+            data[ip, ir] = dummy[
+                (dummy[:, 0] == header['gyroradius'][ir])
+                * (dummy[:, 1] == header['pitch'][ip]), 2:]
+            header['counters'][ip, ir], ncolums = data[ip, ir].shape
+            # Update the scintillator limit for the histogram
+            if header['counters'][ip, ir] > 0:
+                header['scint_limits']['xmin'] = \
+                    min(header['scint_limits']['xmin'],
+                        data[ip, ir][:, 2].min())
+                header['scint_limits']['xmax'] = \
+                    max(header['scint_limits']['xmax'],
+                        data[ip, ir][:, 2].max())
+                header['scint_limits']['ymin'] = \
+                    min(header['scint_limits']['ymin'],
+                        data[ip, ir][:, 3].min())
+                header['scint_limits']['ymax'] = \
+                    max(header['scint_limits']['ymax'],
+                        data[ip, ir][:, 3].max())
+    # Check with version of FILDSIM was used
+    if ncolum == 7:
+        print('Old FILDSIM format, initial position NOT included')
+        versionID = 0
+    elif ncolum == 10:
+        print('New FILDSIM format, initial position included')
+        versionID = 1
+    else:
+        print('Detected number of columns: ', ncolum)
+        raise Exception('Error loading file, not recognised columns')
+    # Write some help
+    header['info'] = order['fildsim_FILD'][versionID]
+    # Check number of markers
+    total_counter = np.sum(header['counters'])
+    if nmarkers != total_counter:
+        warnings.warn('Total number of markers not matching!!!')
+        print('Total number of strike points: ', nmarkers)
+        print('Total number of counters: ', total_counter)
+    if verbose:
+        print('Total number of strike points: ', total_counter)
+
+
+# -----------------------------------------------------------------------------
+# --- Main Object
+# -----------------------------------------------------------------------------
+class Strikes:
+    """
+    StrikePoint class.
+
+    Jose Rueda: jrrueda@us.es
+
+    Stores the information of the strike points calculated by the code and plot
+    the different information on it
+    """
+
+    def __init__(self, runID: str = None, type: str = 'Scintillator',
+                 file: str = None, verbose: bool = True, code: str = 'SINPA'):
+        """
+        Initialise the object reading data from a SINPA file.
+
+        Jose Rueda: jrrueda@us.es
+
+        @param runID: runID of the simulation
+        @param type: file to load (mapcollimator, mapscintillator,
+            signalcollimator or signalscintillator).Not used if code=='FILDSIM'
+        @param file: if a filename is provided, data will be loaded from this
+            file, ignoring the code folder structure (and runID)
+        @param verbose. flag to print some info in the command line
+        @param code: name of the code where the data is coming from
+        """
+        # --- Get the name of the file
+        if file is None:
+            if code.lower() == 'sinpa':
+                # Guess the name of the file
+                if type.lower() == 'mapscintillator':
+                    name = runID + '.spmap'
+                elif type.lower() == 'mapcollimator':
+                    name = runID + '.spcmap'
+                elif type.lower() == 'signalscintillator':
+                    name = runID + '.spsignal'
+                elif type.lower() == 'signalcollimator':
+                    name = runID + '.spcsignal'
+                else:
+                    raise Exception('Type not understood, revise inputs')
+                file = os.path.join(paths.SINPA, 'runs', runID, 'results',
+                                    name)
+            elif code.lower() == 'fildsim':
+                name = '_strike_points.dat'
+                file = os.path.join(paths.FILDSIM, 'results',
+                                    runID + name)
+        self.file = file
+        # --- read the file
+        if verbose:
+            print('Reading file: ', file)
+        if code.lower() == 'sinpa':
+            self.header, self.data = readSINPAstrikes(file, verbose)
+        elif code.lower() == 'fildsim':
+            self.header, self.data = readFILDSIMstrikes(file, verbose)
+        else:
+            raise Exception('Code not understood')
+        # --- Initialise the rest of the object
+        ## Histogram of Scintillator strikes
+        self.ScintHistogram = None
+        ## Code used
+        self.code = code
 
     def calculate_scintillator_histogram(self, delta: float = 0.1,
                                          includeW: bool = True,
-                                         kind_separation: bool = False):
+                                         kind_separation: bool = False,
+                                         xmin: float = None,
+                                         xmax: float = None,
+                                         ymin: float = None,
+                                         ymax: float = None):
         """
         Calculate the spatial histograms (x,y)Scintillator
 
         Jose Rueda: jrrueda@us.es
 
-        @param delta: bin width for the histogram
+        @param delta: bin width for the histogram.
         @param includeW: flag to include weight
         @param kind_separation: To separate between different kinds (if we have
-        the markers coming from FIDASIM). Notice that in the results, k=0 will
-        mean the total signal, or the mapping signal
+            the markers coming from FIDASIM). Notice that in the results, k=0
+            will mean the total signal, or the mapping signal
+        @param xmin: minimum value for the xaxis of the histogram.
+        @param ymin: minimum value for the yaxis of the histogram.
+        @param xmax: maximum value for the xaxis of the histogram.
+        @param ymax: maximum value for the yaxis of the histogram.
+
+        Note: in principle, xmin, xmax, ymin, ymax whould not be given, as
+        they will be taken from the strike point data. This variables are here
+        just in case you want to manually define some grid to compare different
+        sims.
+
+        Note2: in the codes y,z are the variables which define the scintillator
+        plane. Here y is renamed as x and y as z to be coherent with the FILD
+        calibration database.
         """
-        colum_pos = self.header['info']['xs']['i']  # column of the x position
-        if kind_separation:
-            column_kind = self.header['info']['kind']['i']
-        if includeW:
-            weight_column = self.header['info']['w']['i']
+        if self.code.lower() == 'sinpa':
+            colum_pos = self.header['info']['xs']['i']  # column of the x
+        else:
+            colum_pos = self.header['info']['xs']['i']  # column of the x
+            if kind_separation:
+                column_kind = self.header['info']['kind']['i']
+            if includeW:
+                weight_column = self.header['info']['w']['i']
         # --- define the grid for the histogram
-        xbins = np.arange(self.header['scint_limits']['xmin'],
-                          self.header['scint_limits']['xmax'],
-                          delta)
-        ybins = np.arange(self.header['scint_limits']['ymin'],
-                          self.header['scint_limits']['ymax'],
-                          delta)
+        if xmin is None:
+            xmin = self.header['scint_limits']['xmin']
+        if xmax is None:
+            xmax = self.header['scint_limits']['xmax']
+        if ymin is None:
+            ymin = self.header['scint_limits']['ymin']
+        if ymax is None:
+            ymax = self.header['scint_limits']['ymax']
+
+        xbins = np.arange(xmin, xmax, delta)
+        ybins = np.arange(ymin, ymax, delta)
         data = np.zeros((xbins.size-1, ybins.size-1))
-        if kind_separation:
+        if kind_separation:  # Only for FIDASIM strike points
             if includeW:
                 w = self.data[0, 0][:, weight_column]
             else:
@@ -206,7 +337,7 @@ class Strikes:
                 'yedges': yedges,
                 'H': data
             }
-        else:   # mapping tipe
+        else:   # mapping type, FILDSIM compatible
             for ig in range(self.header['ngyr']):
                 for ia in range(self.header['nalpha']):
                     if self.header['counters'][ia, ig] > 0:
@@ -251,7 +382,7 @@ class Strikes:
         'ScintillatorLocalSystem'. First two are in absolute
         coordinates, last one in the scintillator coordinates (see SINPA
         documentation) [Head will plot the strikes in the collimator or
-        scintillator]
+        scintillator]. For oldFILDSIM, use just head
         """
         # --- Default markers
         mar_options = {
@@ -267,24 +398,24 @@ class Strikes:
         else:
             created = False
         # --- Chose the variable we want to plot
-        if where == 'Head' or where == 'head':
+        if where.lower() == 'head':
             column_to_plot = self.header['info']['x']['i']
-        elif where == 'NBI':
+        elif where.lower() == 'nbi':
             column_to_plot = self.header['info']['xnbi']['i']
-        elif where == 'ScintillatorLocalSystem':
+        elif where.lower() == 'scintillatorlocalsystem':
             column_to_plot = self.header['info']['xs']['i']
         else:
             raise Exception('Not understood what do you want to plot')
 
         # --- Plot the markers:
         nalpha, ngyr = self.header['counters'].shape
-        minx = +100.  # Dummy variables to set a decent axis limit
+        minx = +100.0  # Dummy variables to set a decent axis limit
         miny = +100.0
         minz = +100.0
         maxx = -300.0
         maxy = -300.0
         maxz = -300.0
-        # See which gyroradius / pitch we need
+        # See which gyroradius / pitch (R) we need
         if gyr_index is None:  # if None, use all gyroradii
             index_gyr = range(ngyr)
         else:
@@ -322,22 +453,10 @@ class Strikes:
             ax.set_xlim(minx, maxx)
             ax.set_ylim(miny, maxy)
             ax.set_zlim(minz, maxz)
-            # Get rid of colored axes planes
-            # (https://stackoverflow.com/questions/11448972/
-            #  changing-the-background-color-of-the-axes-planes-of-a-
-            #  matplotlib-3d-plot)
-            # First remove fill
-            ax.xaxis.pane.fill = False
-            ax.yaxis.pane.fill = False
-            ax.zaxis.pane.fill = False
-
-            # Now set color to white (or whatever is "invisible")
-            ax.xaxis.pane.set_edgecolor('w')
-            ax.yaxis.pane.set_edgecolor('w')
-            ax.zaxis.pane.set_edgecolor('w')
-
-            # Bonus: To get rid of the grid as well:
-            ax.grid(False)
+            # Set the aspect ratio to equal
+            axisEqual3D(ax)
+            # Get rid of the colored panes
+            clean3Daxis(ax)
 
     def plot2D(self, per=0.1, ax=None, mar_params: dict = {},
                gyr_index=None, alpha_index=None,
@@ -350,6 +469,11 @@ class Strikes:
         Note: This is only defined for the scintillator strike points, which
         are in a plane, not for the 3D collimator strike points. It will
         rise an exception if you try to use it for the collimator points
+
+        Note2: It will only work for SINPA data, as oldFILDSIM does not include
+        the 'scintillator sytem'. In the case of oldFILDIM, we will just plot
+        the scatter of y and z, which could be not the scintillator plane if
+        it is tilted
 
         @param per: ratio of markers to be plotted (1=all of them)
         @param ax: axes where to plot
@@ -367,12 +491,8 @@ class Strikes:
             'color': 'k'
         }
         mar_options.update(mar_params)
-        ax_options = {
-            'grid': 'both',
-            'xlabel': '$x_{s}$ [cm]',
-            'ylabel': '$y_{s}$ [cm]',
-        }
-        ax_options.update(ax_params)
+        # Note axis options are initialised below, as the units for the labels
+        # are different depending on the code
         # --- Create the axes
         if ax is None:
             fig, ax = plt.subplots()
@@ -380,8 +500,21 @@ class Strikes:
         else:
             created = False
         # --- Chose the variable we want to plot
-        column_to_plot = self.header['info']['xs']['i']
-
+        if self.code.lower() == 'sinpa':
+            column_to_plot = self.header['info']['xs']['i']
+            ax_options = {
+                'grid': 'both',
+                'xlabel': 'x' + self.header['info']['xs']['units'],
+                'ylabel': 'y' + self.header['info']['xs']['units'],
+            }
+        else:
+            column_to_plot = self.header['info']['x']['i']
+            ax_options = {
+                'grid': 'both',
+                'xlabel': 'x' + self.header['info']['x']['units'],
+                'ylabel': 'y' + self.header['info']['x']['units'],
+            }
+        ax_options.update(ax_params)
         # --- Plot the markers:
         nalpha, ngyr = self.header['counters'].shape
 
@@ -514,15 +647,26 @@ class Strikes:
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
 
-    def scatter(self, varx='beta', vary='dmin', gyr_index=None,
+    def scatter(self, varx='x', vary='y', gyr_index=None,
                 alpha_index=None, ax=None, ax_params: dict = {},
+                mar_params: dict = {}, per: float = 0.5,
                 includeW: bool = False):
         """
         Scatter plot of two variables of the strike points
 
         Jose Rueda: jrrueda@us.es
 
-        @param var: variable to plot
+        @param varx: variable to plot in the x axis
+        @param vary: variable to plot in the y axis
+        @param per: ratio of markers to be plotted (1=all of them)
+        @param ax: axes where to plot
+        @param mar_params: Dictionary with the parameters for the markers
+        @param gyr_index: index (or indeces if given as an np.array) of
+        gyroradii to plot
+        @param alpha_index: index (or indeces if given as an np.array) of
+        alphas to plot
+        @param ax_params: parameters for the axis beauty routine. Only applied
+        if the axis was created inside the routine
         """
         # --- Get the index:
         xcolumn_to_plot = self.header['info'][varx]['i']
@@ -537,6 +681,11 @@ class Strikes:
             + self.header['info'][vary]['units']
         }
         ax_options.update(ax_params)
+        mar_options = {
+            'marker': '.',
+            'color': 'k'
+        }
+        mar_options.update(mar_params)
         # --- Create the axes
         if ax is None:
             fig, ax = plt.subplots()
@@ -567,13 +716,15 @@ class Strikes:
         for ig in index_gyr:
             for ia in index_alpha:
                 if self.header['counters'][ia, ig] > 0:
-                    x = self.data[ia, ig][:, xcolumn_to_plot]
-                    y = self.data[ia, ig][:, ycolumn_to_plot]
+                    flags = np.random.rand(
+                        self.header['counters'][ia, ig]) < per
+                    x = self.data[ia, ig][flags, xcolumn_to_plot]
+                    y = self.data[ia, ig][flags, ycolumn_to_plot]
                     if includeW:
-                        w = self.data[ia, ig][:, column_of_W]
+                        w = self.data[ia, ig][flags, column_of_W]
                     else:
                         w = np.ones(self.header['counters'][ia, ig])
-                    ax.scatter(x, y, w)
+                    ax.scatter(x, y, w, **mar_options)
         # axis beauty:
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)

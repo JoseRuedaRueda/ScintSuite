@@ -161,7 +161,7 @@ def distribution_tomography_frame(g_grid, p_grid, coefficients,
 # --- Synthetic signals
 # -----------------------------------------------------------------------------
 def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
-                           rmin=1.5, rmax=10.0, dr=0.1, pmin=20.0, pmax=90.0,
+                           rmin=None, rmax=None, dr=0.1, pmin=None, pmax=None,
                            dp=1.0, efficiency=None):
     """
     Generate FILD synthetic signal
@@ -204,11 +204,12 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
     diag_parameters.update(diag_params)
     # Check / load the strike map
     if isinstance(smap, str):  # if it is string, load the file.
-        if spoints is None:
-            raise Exception('StrikePoints file needed!!')
         print('Reading strike map: ', smap)
         smap = ssmapping.StrikeMap(file=smap)
-        smap.load_strike_points(spoints)
+        if spoints is None:
+            smap.load_strike_points()
+        else:
+            smap.load_strike_points(spoints)
     if smap.resolution is None:
         smap.calculate_resolutions(diag_params=diag_parameters)
 
@@ -225,7 +226,35 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
     elif smap.resolution['gyroradius_model'] == 'sGauss':
         g_func = lmfit.models.SkewedGaussianModel().func
     # --- Calculate the signal:
+    # Make the comparison if efficiency is None or not, to avoid doing it
+    # inside the loop:
+    if efficiency is not None:
+        eff = True
+    else:
+        eff = False
+    # Remove all the values outside the Smap, to avoid NaN:
+    gmax = smap.unique_gyroradius.max()
+    gmin = smap.unique_gyroradius.min()
+    ppmax = smap.unique_pitch.max()
+    ppmin = smap.unique_pitch.min()
+    flags = (distro['gyroradius'] > gmin) * (distro['gyroradius'] < gmax) \
+        * (distro['pitch'] > ppmin) * (distro['pitch'] < ppmax)
+    flags = flags.astype(np.bool)
+    distro_gyr = distro['gyroradius'][flags]
+    distro_pitch = distro['pitch'][flags]
+    distro_energy = distro['energy'][flags]
+    distro_w = distro['weight'][flags]
+    lost_weight_outside = np.sum(distro['weight'][~flags])
+    lost_weight_inside = 0
     # Prepare the grid
+    if rmax is None:
+        rmax = gmax
+    if rmin is None:
+        rmin = gmin
+    if pmin is None:
+        pmin = ppmin
+    if pmax is None:
+        pmax = ppmax
     ng = int((rmax-rmin)/dr)
     npitch = int((pmax-pmin)/dp)
     g_array = rmin + np.arange(ng+1) * dr
@@ -237,24 +266,6 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
         'sGauss': ['sigma', 'gamma', 'center']
     }
     signal = np.zeros(g_grid.size)
-    # Make the comparison if efficiency is None or not, to avoid doing it
-    # inside the loop:
-    if efficiency is not None:
-        eff = True
-    else:
-        eff = False
-    # Remove all the values outside the Smap, to avoid NaN:
-    gmax = smap.unique_gyroradius.max()
-    gmin = smap.unique_gyroradius.min()
-    pmax = smap.unique_pitch.max()
-    pmin = smap.unique_pitch.min()
-    flags = (distro['gyroradius'] > gmin) * (distro['gyroradius'] < gmax) \
-        * (distro['pitch'] > pmin) * (distro['pitch'] < pmax)
-    flags = flags.astype(np.bool)
-    distro_gyr = distro['gyroradius'][flags]
-    distro_pitch = distro['pitch'][flags]
-    distro_energy = distro['energy'][flags]
-    distro_w = distro['weight'][flags]
     if np.sum(flags) < distro['n']:
         print('Some markers were outside the strike map!')
         print('We neglected ', str(distro['n'] - np.sum(flags)), ' markers')
@@ -278,16 +289,27 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
                 * pitch_func(p_grid.flatten(), **p_parameters)\
                 * distro_w[i] * efficiency.interpolator(distro_energy[i])
         else:
-            signal = col_factor * g_func(g_grid.flatten(), **g_parameters) \
-                * pitch_func(p_grid.flatten(), **p_parameters)\
-                * distro_w[i]
+            dummy = col_factor * g_func(g_grid.flatten(), **g_parameters) \
+                    * pitch_func(p_grid.flatten(), **p_parameters)\
+                    * distro_w[i]
+            if np.isnan(np.sum(dummy)):
+                lost_weight_inside += distro_w[i]
+
+            else:
+                signal += dummy
+    print('We lost:', 100 * lost_weight_outside/np.sum(distro['weight']),
+          'percent due to the limit of the smap')
+    print('We lost:', 100 * lost_weight_inside/np.sum(distro['weight']),
+          'due to fcol too low to fit resolutiosn')
     signal = np.reshape(signal, g_grid.shape)
     output = {
         'gyroradius': g_array,
         'pitch': p_array,
         'dgyr': g_array[1] - g_array[0],
         'dp': p_array[1] - p_array[0],
-        'signal': signal
+        'signal': signal,
+        'lost_weight_inside': lost_weight_inside,
+        'lost_weight_outside': lost_weight_outside
     }
 
     return output
