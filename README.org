@@ -15,6 +15,7 @@ Needed packages(Only listed 'non-standard' packages):
     - cycler: To set default plotting color
     - pyfft: To have extra capabilities in the spectrogram calculation.
     - netCDF4: To load and save files from the BEB database
+    - scipy 1.7.0 or newer, to have the interpolators for the strike points
 *Automatic install*: Execute First_Run.py in the machine where you want to run the suite, it should check what is missing in order to run the suite and explain you how to install it (you need to run module load git before if you are in toki)
 *** Paths
 There are two files containing the paths and routes for the suite:

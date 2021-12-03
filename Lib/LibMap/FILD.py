@@ -36,7 +36,6 @@ def remap_all_loaded_frames(video, calibration, shot, rmin: float = 1.0,
     Remap all loaded frames from a FILD video.
 
     Jose Rueda Rueda: jrrueda@us.es
-    @todo finish documentation of this function
 
     @param    video: Video object (see LibVideoFiles)
     @param    calibration: Calibation object (see Calibration class)
@@ -55,18 +54,29 @@ def remap_all_loaded_frames(video, calibration, shot, rmin: float = 1.0,
     @param    zfild: height avobe the mid plane of FILD head [m]
     @param    alpha: Alpha orientation of FILD head [º]
     @param    beta: beta orientation of FILD head [º]
+    @param    fildsim_options: namelist dictionary with the fildsim options
+              just in case we need to run FILDSIM. See FILDSIM library and
+              FILDSIM gitlab for the necesary options. It is recomended to
+              leave this like {}, as the code will load the options used to
+              generate the library, so the new calculated strike maps will be
+              consistent with the old ones
+    @param    verbose: Print the elapsed time
+    @param    machine: name of the machine, to guess the name of the strike map
+              to be used. Notice that this option will be deprecated in a near
+              future, in the new versions, each FILD will have its database
     @param    method: method to interpolate the strike maps, default 1: linear
     @param    decimals: Number of decimals to look for the strike map
     @param    smap_folder: folder where to look for strike maps, if none, the
-    code will use the indicated by LibPaths
+              code will use the indicated by LibPaths. This will change in
+              future versions. As the folder will be indicated in the FILD info
     @param    map: Strike map to be used, if none, we will look in the folder
-    for the right strike map
+              for the right strike map
     @param    mask: binary mask defining the region of the scintillator we want
-    to map. If it is a string pointing to a file, the mask saved in that file
-    will be loaded
+              to map. If it is a string pointing to a file, the mask saved in
+              that file will be loaded
     @param    remap_method: 'MC' or 'centers', the method to be used for the
-    remapping of the frames (MC recomended for tomography, but it needs 3
-    minutes per new strike map...)
+              remapping of the frames (MC recomended for tomography, but it
+              needs 3 minutes per new strike map...)
     @param    number of MC markers for the MC remap
 
     @return   output: dictionary containing all the outputs:
