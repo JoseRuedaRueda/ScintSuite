@@ -549,15 +549,17 @@ class StrikeMap:
                 if newFILDSIM:
                     path, filename = os.path.split(self.file)
                     file = os.path.join(path, 'StrikePoints.bin')
-                    Object = ssSINPA.Strikes
                 else:
                     file = self.file[:-14] + 'strike_points.dat'
-                    Object = ssFILDSIM.Strikes
+            if newFILDSIM:
+                Object = ssSINPA.Strikes
+            else:
+                Object = ssFILDSIM.Strikes
         elif self.diag == 'INPA':
             if file is None:
                 path, filename = os.path.split(self.file)
                 file = os.path.join(path, 'StrikePoints.bin')
-                Object = ssSINPA.Strikes
+            Object = ssSINPA.Strikes
 
         self.fileStrikePoints = file
         self.strike_points = Object(file=file, verbose=verbose)
@@ -629,7 +631,10 @@ class StrikeMap:
             dgyr = diag_options['dgyr']
             p_method = diag_options['p_method']
             g_method = diag_options['g_method']
-            npitch = self.strike_points.header['npitch']
+            try:
+                npitch = self.strike_points.header['npitch']
+            except KeyError:
+                npitch = self.strike_points.header['nalpha']
             nr = self.strike_points.header['ngyr']
             # --- See which columns we need to consider
             if 'remap_rl' not in self.strike_points.header['info'].keys():
@@ -762,8 +767,12 @@ class StrikeMap:
         if self.diag == 'FILD':
             # --- Prepare the interpolators:
             # Prepare grid
-            xx, yy = np.meshgrid(self.strike_points.header['gyroradius'],
-                                 self.strike_points.header['pitch'])
+            try:
+                xx, yy = np.meshgrid(self.strike_points.header['gyroradius'],
+                                     self.strike_points.header['pitch'])
+            except KeyError:
+                xx, yy = np.meshgrid(self.strike_points.header['gyroradius'],
+                                     self.strike_points.header['alphas'])
             xxx = xx.flatten()
             yyy = yy.flatten()
             self.interpolators = {'pitch': {}, 'gyroradius': {}}
@@ -824,7 +833,7 @@ class StrikeMap:
                                                   ZMATRIX.flatten())
         return
 
-    def calculate_mapping_interpolators(self, k=2, s=1):
+    def calculate_mapping_interpolators(self, k=3, s=1):
         """
         Calculate interpolators scintillator position -> phase space.
 
@@ -834,15 +843,27 @@ class StrikeMap:
         """
         # --- Select the colums to be used
         if self.diag == 'FILD':
+            # temporal solution to save the coordinates in the array
+            coords = np.zeros((self.y.size, 2))
+            coords[:, 0] = self.y
+            coords[:, 1] = self.z
+
             self.map_interpolators = {
+                # 'Gyroradius':
+                #     scipy_interp.SmoothBivariateSpline(self.y, self.z,
+                #                                        self.gyroradius,
+                #                                        kx=k, ky=k, s=s),
+                # 'Pitch':
+                #     scipy_interp.SmoothBivariateSpline(self.y, self.z,
+                #                                        self.pitch, kx=k, ky=k,
+                #                                        s=s)
                 'Gyroradius':
-                    scipy_interp.SmoothBivariateSpline(self.y, self.z,
-                                                       self.gyroradius,
-                                                       kx=k, ky=k, s=s),
+                    scipy_interp.RBFInterpolator(coords,
+                                                 self.gyroradius),
                 'Pitch':
-                    scipy_interp.SmoothBivariateSpline(self.y, self.z,
-                                                       self.pitch, kx=k, ky=k,
-                                                       s=s)
+                    scipy_interp.RBFInterpolator(coords,
+                                                 self.pitch)
+
             }
         elif self.diag == 'INPA':
             self.map_interpolators = {
@@ -886,13 +907,13 @@ class StrikeMap:
                     if n_strikes > 0:
                         remap_data = np.zeros((n_strikes, 2))
                         remap_data[:, 0] = \
-                            self.map_interpolators['Gyroradius'].ev(
-                                self.strike_points.data[ip, ir][:, iix],
-                                self.strike_points.data[ip, ir][:, iiy])
+                            self.map_interpolators['Gyroradius'](
+                                self.strike_points.data[ip, ir][:, [iix, iiy]])
+                        # self.strike_points.data[ip, ir][:, iiy])
                         remap_data[:, 1] = \
-                            self.map_interpolators['Pitch'].ev(
-                                self.strike_points.data[ip, ir][:, iix],
-                                self.strike_points.data[ip, ir][:, iiy])
+                            self.map_interpolators['Pitch'](
+                                self.strike_points.data[ip, ir][:, [iix, iiy]])
+                        # self.strike_points.data[ip, ir][:, iiy])
                         # append the remapped data to the object
                         self.strike_points.data[ip, ir] = \
                             np.append(self.strike_points.data[ip, ir],
@@ -1158,14 +1179,14 @@ class StrikeMap:
                         dely = normalization * self.resolution['fits'][var.lower(
                             )][ir, ip].eval_uncertainty(sigma=3, x=x_fine)
                         ax.fill_between(x_fine, y-dely, y+dely, alpha=0.25,
-                                        label='3-$\sigma$ uncertainty band',
+                                        label='3-$\\sigma$ uncertainty band',
                                         color=scatter.get_facecolor()[0, :3])
                     else:
                         raise Exception('Not kind of plot not understood')
                 else:
                     print('Not fits for rl: '
                           + str(round(self.unique_gyroradius[ir], 1))
-                          + '$\\lambda$: '
+                          + 'pitch: '
                           + str(round(self.unique_pitch[ip], 1)))
         if include_legend:
             ax.legend()

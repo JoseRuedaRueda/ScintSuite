@@ -164,7 +164,7 @@ class Strikes:
                 'longName': 'Y initial position',
                 'shortName': '$y_{i}$',
             }
-            self.header['info']['yi'] = {
+            self.header['info']['zi'] = {
                 'i': 9,  # Column index in the file
                 'units': ' [cm]',  # Units
                 'longName': 'Z initial position',
@@ -378,6 +378,67 @@ class Strikes:
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
 
+    def scatter(self, varx='y', vary='z', gyr_index=None,
+                alpha_index=None, ax=None, ax_params: dict = {},
+                includeW: bool = False):
+        """
+        Scatter plot of two variables of the strike points
+
+        Jose Rueda: jrrueda@us.es
+
+        @param var: variable to plot
+        """
+        # --- Get the index:
+        xcolumn_to_plot = self.header['info'][varx]['i']
+        ycolumn_to_plot = self.header['info'][vary]['i']
+        # --- Default plotting options
+        ax_options = {
+            'grid': 'both',
+            'xlabel': self.header['info'][varx]['shortName']
+            + self.header['info'][varx]['units'],
+            'ylabel': self.header['info'][vary]['shortName']
+            + self.header['info'][vary]['units']
+        }
+        ax_options.update(ax_params)
+        # --- Create the axes
+        if ax is None:
+            fig, ax = plt.subplots()
+            created = True
+        else:
+            created = False
+        # --- Plot the markers:
+        nalpha, ngyr = self.header['counters'].shape
+
+        # See which gyroradius / pitch we need
+        if gyr_index is None:  # if None, use all gyroradii
+            index_gyr = range(ngyr)
+        else:
+            # Test if it is a list or array
+            if isinstance(gyr_index, (list, np.ndarray)):
+                index_gyr = gyr_index
+            else:  # it should be just a number
+                index_gyr = np.array([gyr_index])
+        if alpha_index is None:  # if None, use all gyroradii
+            index_alpha = range(nalpha)
+        else:
+            # Test if it is a list or array
+            if isinstance(alpha_index, (list, np.ndarray)):
+                index_alpha = alpha_index
+            else:  # it should be just a number
+                index_alpha = np.array([alpha_index])
+        # Proceed to plot
+        for ig in index_gyr:
+            for ia in index_alpha:
+                if self.header['counters'][ia, ig] > 0:
+                    x = self.data[ia, ig][:, xcolumn_to_plot]
+                    y = self.data[ia, ig][:, ycolumn_to_plot]
+                    w = np.ones(self.header['counters'][ia, ig])
+                    ax.scatter(x, y, w)
+        # axis beauty:
+        if created:
+            ax = ssplt.axis_beauty(ax, ax_options)
+
+
 class Orbits:
     """
     Class to interact with the FILDSIM orbits.
@@ -396,7 +457,8 @@ class Orbits:
         @param orbits_index_file: full path to the orbits_index file, if None,
         the name will be deducedd from the orbits file
             eg. /path/to/runid_example_orbits_index.dat
-        @return orbit: list with orbit trajectories where each tracetory
+
+        create self.data: list with orbit trajectories where each tracetory
                        is given as an array with shape:
                        (number of trajectory points, 3).
                        The second index refers to the x, y and z coordinates
@@ -408,7 +470,9 @@ class Orbits:
         orbits_index_data = np.loadtxt(orbits_index_file)
         orbits_data = np.loadtxt(orbits_file)
 
-        ## Todo check if there are no orbits
+        # Check if there are no orbits
+        if orbits_data.size == 0:
+            raise Exception('No Orbits found in the file')
         if len(orbits_index_data) == 1:
             orbits_index_data = [orbits_index_data]
 
@@ -448,9 +512,9 @@ class Orbits:
         }
         marker_options.update(marker_params)
         line_options = {
-                        'color': 'red',
-                        'marker': ''
-                        }
+            'color': 'red',
+            'marker': ''
+        }
         line_options.update(line_params)
 
         # --- Open the figure

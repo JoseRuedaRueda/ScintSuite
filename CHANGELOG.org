@@ -1,3 +1,24 @@
+** 0.6.6 Common libraries for simulation codes (Pre-release)
+*** LibVideo
+- Plotting frames and remaps allows for the possibility of using log scale in the colorbar. Just set scale='log'
+*** LibPlotting
+- clean3Daxis() included: It removes the ugly panes that matplotlib puts by default in 3d plots
+- axisEqual3D() set aspect ratio to equal in the 3D plot
+*** Simulation codes
+- A new Geometry library was added, it can read geometries from FILDSIM and SINPA code. It can plot in 3D and 2D, shaded and not shared, apply the rotation and translation to the vertex... read the documentation of the library for full detail
+*** Deprecation
+- The object Geometry from the SINPA library was deprecated. The one from the Common library for the simulations codes should be used!
+*** Others
+- Improved comments and documentation
+- The function which read FILDSIM orbits now raise an exception if there were no orbits in the file
+
+** 0.6.5 Interpolators and synthetic signals
+- Changed to RBFInterpolator, which seems to be more stable thatn BivariateSpline (*Scipy 1.7.0 or larger is required now*)
+- Most robust calculation of the synthetic signal for FILD (no bugs for fcol almost zero)
+- Solve a bug in the loading of the strike map. If a StrikePointsFile was passed as argument, the code failed. (Bug introduced in version 0.6.4)
+*** Deprecations
+- p1D() from the plotting library was deprecated
+
 ** 0.6.4 New interpolators for SINPA and SMap upgrades
 *** StrikeMap
 - StrikeMap can now be initialize with fild instead of FILD (actually the comparison is lower case, so you can initialize it as FiLd if you are crazy)

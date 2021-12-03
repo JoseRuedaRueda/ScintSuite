@@ -1,2 +1,2 @@
 """Just the version of the suite, to label outputs"""
-version = '0.6.4'
+version = '0.6.6'
