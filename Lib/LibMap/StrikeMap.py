@@ -549,15 +549,17 @@ class StrikeMap:
                 if newFILDSIM:
                     path, filename = os.path.split(self.file)
                     file = os.path.join(path, 'StrikePoints.bin')
-                    Object = ssSINPA.Strikes
                 else:
                     file = self.file[:-14] + 'strike_points.dat'
-                    Object = ssFILDSIM.Strikes
+            if newFILDSIM:
+                Object = ssSINPA.Strikes
+            else:
+                Object = ssFILDSIM.Strikes
         elif self.diag == 'INPA':
             if file is None:
                 path, filename = os.path.split(self.file)
                 file = os.path.join(path, 'StrikePoints.bin')
-                Object = ssSINPA.Strikes
+            Object = ssSINPA.Strikes
 
         self.fileStrikePoints = file
         self.strike_points = Object(file=file, verbose=verbose)
@@ -907,11 +909,11 @@ class StrikeMap:
                         remap_data[:, 0] = \
                             self.map_interpolators['Gyroradius'](
                                 self.strike_points.data[ip, ir][:, [iix, iiy]])
-                                # self.strike_points.data[ip, ir][:, iiy])
+                        # self.strike_points.data[ip, ir][:, iiy])
                         remap_data[:, 1] = \
                             self.map_interpolators['Pitch'](
                                 self.strike_points.data[ip, ir][:, [iix, iiy]])
-                                # self.strike_points.data[ip, ir][:, iiy])
+                        # self.strike_points.data[ip, ir][:, iiy])
                         # append the remapped data to the object
                         self.strike_points.data[ip, ir] = \
                             np.append(self.strike_points.data[ip, ir],

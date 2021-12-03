@@ -1,5 +1,6 @@
 """Routines to interact with FILDSIM"""
 import os
+import warnings
 import numpy as np
 import math as ma
 import Lib.LibParameters as ssp
@@ -307,6 +308,9 @@ def read_plate(filename):
         'vertices': vertices
     }
     f.close()
+    warnings.warn('This function will be deprecated in version 0.7.0.'
+                  + 'Use the new Geometry object!!!',
+                  category=UserWarning)
     return plate
 
 
