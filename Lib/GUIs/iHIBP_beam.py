@@ -13,6 +13,12 @@ import matplotlib.pyplot as plt
 import Lib
 from Lib.SimulationCodes.iHIBPsim.crossSections import alkMasses
 from Lib.SimulationCodes.iHIBPsim.geom import gaussian_beam
+from skimage import measure
+
+try:
+    import map_equ as meq    # Module to map the equilibrium
+except:
+    print('When using iHIBPsim, shotfiles will not loaded. ')
 
 class appHIBP_beam:
     """
@@ -46,12 +52,20 @@ class appHIBP_beam:
 
         # Adding the separatrix.
         if shotnumber is not None:
-            Lib.plt.plot_flux_surfaces(shotnumber=shotnumber,
-                                       time=time, linewidth=1.0,
-                                       diag=diag, exp=exp, ed=ed, levels=[1.0],
-                                       label_surf=False, color= 'r',
-                                       ax=self.ax)
+            self.equ = meq.equ_map(shotnumber, diag=diag, exp=exp, ed=ed)
+            self.equ.read_pfm()
+            self.Rsep, self.zsep = self.equ.rho2rz([1.0])
 
+            [self.sepline] = self.ax.plot(self.Rsep[0][0],
+                                        self.zsep[0][0], 'r-',
+                                        linewidth=1.0)
+            self.t0 = self.equ.t_eq[0]
+            self.t1 = self.equ.t_eq[-1]
+            self.dt = self.equ.t_eq[1] - self.equ.t_eq[0]
+        else:
+            self.t0 = 0.0
+            self.t1 = 1.0
+            self.dt = 0.0
 
         self.fig = plt.gcf()
         self.canvas = tkagg.FigureCanvasTkAgg(self.fig, master=self.TKwindow)
@@ -95,17 +109,17 @@ class appHIBP_beam:
                                      highlightcolor='green', length=400,
                                      takefocus=1, label='alpha [º]',
                                      orient=tk.HORIZONTAL)
+        self.slider_alpha.grid(row=3, column=0)
 
-
-        # Divergency angle.
-        self.slider_time = tk.Scale(self.TKwindow, from_=0.0,
-                                    to=40., resolution = 0.5,
-                                    command=self.update_alpha,
-                                    highlightcolor='m', length=400,
+        # Time slider.
+        self.slider_time = tk.Scale(self.TKwindow, from_=self.t0,
+                                    to=self.t1, resolution = self.dt,
+                                    command=self.update_shot,
+                                    highlightcolor='blue', length=400,
                                     takefocus=1, label='Shot time [s]',
                                     orient=tk.HORIZONTAL)
+        self.slider_time.grid(row=4, column=0)
 
-        self.slider_alpha.grid(row=3, column=0)
 
         # Adding boxes for the origin point.
         self.Label_Origin_title = tk.Label(tkwindow, text='Origin coordinates')
@@ -242,4 +256,16 @@ class appHIBP_beam:
             a = [np.vstack((xpoly, ypoly)).T]
 
             self.div.set_verts(a)
+        self.canvas.draw()
+
+    def update_shot(self, time: str):
+        """
+        Function to update the separatrix plot to the time set.
+        """
+        ttime = float(time)
+        itime = min(self.equ.t_eq.size-1,
+                    np.searchsorted(self.equ.t_eq, ttime))
+
+        self.sepline.set_xdata(self.Rsep[itime][0])
+        self.sepline.set_ydata(self.zsep[itime][0])
         self.canvas.draw()
