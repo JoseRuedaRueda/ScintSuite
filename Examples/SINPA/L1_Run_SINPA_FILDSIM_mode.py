@@ -19,7 +19,7 @@ paths = Path(machine)
 # -----------------------------------------------------------------------------
 nml_options = {
     'config':  {            # General parameters
-        'runid': 'FILD1',
+        'runid': 'Aligned',
         'geomID': 'FILD1',
         'FILDSIMmode': True,
         'nGeomElements': 2,
@@ -43,9 +43,9 @@ nml_options = {
         'flag_efield_on': False,  # Add or not electric field
     },
     'inputParams': {
-         'nGyro': 100,
-         'minAngle': -1.8,
-         'dAngle': 1.0,
+         'nGyro': 30,
+         'minAngle': -1.6,
+         'dAngle': 0.4,
          'XI': [80., 70., 60., 50., 40., 30., 20.],
          'rL': [2., 3., 4., 5., 6., 7., 8.],
          'maxT': 0.0000005
