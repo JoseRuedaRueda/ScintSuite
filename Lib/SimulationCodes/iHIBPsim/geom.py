@@ -84,6 +84,7 @@ def generateBeamTrajectory(start: float, beta: float, theta: float=0.0,
     @param Rmin: Minimum major radius. Set to the geometrical center of AUG.
     @param Rmax: Maximum major radius. If None, it will be chosen to be the
     Rmajor corresponding to the starting.
+    @param Ns: number of points along the beam to compute.
     """
 
     beta = beta/180.0*np.pi
@@ -139,7 +140,7 @@ def generateBeamTrajectory(start: float, beta: float, theta: float=0.0,
 def plotBeam_poloidal(beam_data: dict, ax=None, fig=None,
                       pol_up: dict={}, pol_down: dict={}, plotDiv: bool=False,
                       drawvessel: bool=True, line_opts: dict={},
-                      ax_options: dict={}, units: str='m'):
+                      ax_options: dict={}):
     """
     Projects onto the poloidal plane the beam line.
 
@@ -148,8 +149,15 @@ def plotBeam_poloidal(beam_data: dict, ax=None, fig=None,
     @param beam_data: beam data as obtained from the generateBeamTrajectory.
     @param ax: axis to plot. If None, new ones are created.
     @param fig: figure handler. If None, gcf is used to retrieve them.
+    @param pol_up: same dictionary type as beam data, but for the upper limit
+    (in poloidal) of the beam.
+    @param pol_down: same dictionary type as beam data, but for the lower limit
+    (in poloidal) of the beam.
+    @param plotDiv: flag to plot the divergency of the beam.
     @param drawvessel: Plots the vessel into the axis. True by default.
-    @param line_opts: options to send down to plt.plot.
+    @param line_opts: options to send down to plt.plot
+    @param ax_options: options to decorate the axis.
+    Send down to Lib.plt.axis_beauty.
     """
 
     ax_was_none = False
@@ -173,7 +181,7 @@ def plotBeam_poloidal(beam_data: dict, ax=None, fig=None,
 
 
     if drawvessel:
-        ax=Lib.plt.plot_vessel(projection='pol', units=units,
+        ax=Lib.plt.plot_vessel(projection='pol', units='m',
                                color='k', linewidth=0.75, ax=ax)
 
     if ax_was_none:
@@ -190,7 +198,7 @@ def plotBeam_poloidal(beam_data: dict, ax=None, fig=None,
 def plotBeam_toroidal(beam_data: dict, ax=None, fig=None,
                       tor_up: dict={}, tor_down: dict={}, plotDiv: bool=False,
                       drawvessel: bool=True, line_opts: dict={},
-                      ax_options: dict={}, units: str='m'):
+                      ax_options: dict={}):
     """
     Projects onto the toroidal plane the beam line.
 
@@ -199,8 +207,15 @@ def plotBeam_toroidal(beam_data: dict, ax=None, fig=None,
     @param beam_data: beam data as obtained from the generateBeamTrajectory.
     @param ax: axis to plot. If None, new ones are created.
     @param fig: figure handler. If None, gcf is used to retrieve them.
+    @param tor_up: same dictionary type as beam data, but for the upper limit
+    (in toroidal) of the beam.
+    @param tor_down: same dictionary type as beam data, but for the lower limit
+    (in toroidal) of the beam.
+    @param plotDiv: flag to plot the divergency of the beam.
     @param drawvessel: Plots the vessel into the axis. True by default.
-    @param line_opts: options to send down to plt.plot.
+    @param line_opts: options to send down to plt.plot
+    @param ax_options: options to decorate the axis.
+    Send down to Lib.plt.axis_beauty.
     """
 
     ax_was_none = False
@@ -226,7 +241,7 @@ def plotBeam_toroidal(beam_data: dict, ax=None, fig=None,
         div_hndl = None
 
     if drawvessel:
-        ax=Lib.plt.plot_vessel(projection='tor', units=units,
+        ax=Lib.plt.plot_vessel(projection='tor', units='m',
                                color='k', linewidth=0.75, ax=ax)
 
     if ax_was_none:
@@ -242,7 +257,7 @@ def plotBeam_toroidal(beam_data: dict, ax=None, fig=None,
 
 def plotBeam_3D(beam_data: dict, ax=None, fig=None,
                 drawvessel: bool=True, diverg: dict= {}, line_opts: dict={},
-                ax_options: dict={}, params3d: dict={}, units: str='m'):
+                ax_options: dict={}, params3d: dict={}):
     """
     Plots the 3D vessel and the beam line in 3D.
 
@@ -251,8 +266,12 @@ def plotBeam_3D(beam_data: dict, ax=None, fig=None,
     @param beam_data: beam data as obtained from the generateBeamTrajectory.
     @param ax: axis to plot. If None, new ones are created.
     @param fig: figure handler. If None, gcf is used to retrieve them.
+    @param diverg: dictionary containing the data to plot the divergence.
     @param drawvessel: Plots the vessel into the axis. True by default.
-    @param line_opts: options to send down to plt.plot.
+    @param line_opts: options to send down to plt.plot
+    @param ax_options: options to decorate the axis.
+    Send down to Lib.plt.axis_beauty.
+    @param params3d: parameters to plot 3D surfaces.
     """
 
     if not 'plotDiv' in diverg:
@@ -312,7 +331,7 @@ def plotBeam_3D(beam_data: dict, ax=None, fig=None,
         ax.plot_wireframe(x, y, z, color=color, alpha=0.1)
 
     if drawvessel:
-        ax=Lib.plt.plot_vessel(projection='3D', units=units,
+        ax=Lib.plt.plot_vessel(projection='3D', units='m',
                                ax=ax, params3d=params3d)
 
     if ax_was_none:
@@ -348,6 +367,8 @@ class gaussian_beam:
         @param stdE: standard deviation of the energy in the Gaussian model.
         @param mass: mass of the beam species. By default, the Rb85.
         @param divergency: beam divergency.
+        @param pinhole_size: this allows to set a given size initial size of
+        the beam. This is the initial radius of the beam.
         """
 
         # Storing the input data into the class.
@@ -417,6 +438,8 @@ class gaussian_beam:
         @param stdE: standard deviation of the energy in the Gaussian model.
         @param mass: mass of the beam species. By default, the Rb85.
         @param divergency: beam divergency.
+        @param pinhole_size: this allows to set a given size initial size of
+        the beam. This is the initial radius of the beam.
         """
 
         recompute_flag = False
@@ -502,41 +525,26 @@ class gaussian_beam:
         """
 
         if view.lower() == 'pol':
-            if not self.infsmall:
-                divDict = { 'pol_up': self._beam_pol_up,
-                            'pol_down': self._beam_pol_down,
-                            'plotDiv': True
-                          }
-            else:
-                divDict = {'pol_up': self._beam_pol_up,
-                           'pol_down': self._beam_pol_down,
-                           'plotDiv': True}
+            divDict = {'pol_up': self._beam_pol_up,
+                       'pol_down': self._beam_pol_down,
+                       'plotDiv': True}
             ax = plotBeam_poloidal(beam_data=self._beam_data, ax=ax, fig=fig,
                                    **divDict, **kwargs)
         elif view.lower() == 'tor':
-            if not self.infsmall:
-                divDict = { 'tor_up': self._beam_tor1,
-                            'tor_down': self._beam_tor2,
-                            'plotDiv': True
-                          }
-            else:
-                divDict = { 'tor_up': self._beam_tor1,
-                            'tor_down': self._beam_tor2,
-                            'plotDiv': True
-                          }
+            divDict = { 'tor_up': self._beam_tor1,
+                        'tor_down': self._beam_tor2,
+                        'plotDiv': True
+                      }
             ax = plotBeam_toroidal(beam_data=self._beam_data, ax=ax, fig=fig,
                                    **divDict, **kwargs)
         elif view.lower() == '3d':
-            if not self.infsmall:
-                divDict = { 'u_inj': self._beam_data['u_inj'],
-                            'u_1': self._u1_perp,
-                            'u_2': self._u2_perp,
-                            'alpha': self.div/2.0,
-                            'R0': self.pinsize,
-                            'plotDiv': True
-                          }
-            else:
-                divDict = {}
+            divDict = { 'u_inj': self._beam_data['u_inj'],
+                        'u_1': self._u1_perp,
+                        'u_2': self._u2_perp,
+                        'alpha': self.div/2.0,
+                        'R0': self.pinsize,
+                        'plotDiv': True
+                      }
 
             ax = plotBeam_3D(beam_data=self._beam_data, ax=ax, fig=fig,
                              diverg=divDict, **kwargs)
@@ -553,8 +561,9 @@ class gaussian_beam:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param inp: string with the type of input coordinates.
-        @param out: string with the type of output coordinates.
+        @param xin: coordinates in (inptype) to be transformed.
+        @param inptype: string with the type of input coordinates.
+        @param outtype: string with the type of output coordinates.
         """
 
 
@@ -745,9 +754,14 @@ class gaussian_beam:
     def change_vel(self, vin: float, inptype: str='cyl',
                    outtype: str='beam', **kwargs):
         """
-        Transformation of coordinates for the velocity.
+        Transformation of coordinates for the velocity using the beam
+        coordinates.
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+        @param vin: velocities to transform.
+        @param inptype: string with the type of input coordinates.
+        @param outtype: string with the type of output coordinates.
         """
 
         vin = np.atleast_2d(vin)
@@ -888,9 +902,12 @@ class gaussian_beam:
         smin = slimits.min()
         smax = slimits.max()
 
-        s_data = np.atleast_1d([random.random() \
-                                    for ii in np.arange(Ndisk*Nbeam)])
-        s_data = smin + (smax-smin)*s_data
+        if model == BEAM_INF_SMALL:
+            s_data = np.linspace(smin, smax, Nbeam)
+        else:
+            s_data = np.atleast_1d([random.random() \
+                                        for ii in np.arange(Ndisk*Nbeam)])
+            s_data = smin + (smax-smin)*s_data
 
         # --- Generating random points in the injection port.
         if Ndisk != 1:
@@ -924,7 +941,6 @@ class gaussian_beam:
             vbeam = np.sqrt(2.*Ebeam*Lib.par.ec*1e3/self.mass_si)
         else:
             vbeam = np.sqrt(2.*self.meanE*Lib.par.ec*1e3/self.mass_si)
-
         # Transforming the velocities into the cartesian coordinates.
         vin = np.zeros((3, len(s_data)))
         vin[0, :] = vbeam
@@ -932,30 +948,12 @@ class gaussian_beam:
         vin[2, :] = theta_vel
 
         vout = self.change_vel(vin, 'beam', 'cart')
-
         vout_cyl = self.change_vel(vout, 'cart', 'cyl', phi=xout_cyl[1, :])
 
         # We finally need the time coordinate:
         time = s_data/(vbeam*np.cos(beta))
 
-        # --- Computing the velocity-space volume:
-        idx_sorting_beta = np.argsort(beta)
-        bbeam_sorted = beta[idx_sorting_beta]
-        print(bbeam_sorted.shape)
-
-        dbbeam_sorted = np.zeros(beta.shape)
-        db = np.zeros(beta.shape)
-
-        dbbeam = bbeam_sorted[2:] - bbeam_sorted[:-2]
-        dbbeam_idx0 = bbeam_sorted[1] - bbeam_sorted[0]
-        dbbeam_idx_end = bbeam_sorted[-1] - bbeam_sorted[-2]
-        dbbeam_sorted[0] = dbbeam_idx0
-        dbbeam_sorted[-1] = dbbeam_idx_end
-        dbbeam_sorted[1:-1] = dbbeam
-        db[idx_sorting_beta] = dbbeam_sorted
-
-        return beta, db
-
+        return xout_cyl, vout_cyl, time
 
 # ----------------------------------------------------------------------------
 # --- Scintillator and head geometry functions and classes.
@@ -976,10 +974,11 @@ class geom:
         of the system.
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
-        @param model3d: path to the 3d file of the head model or triangle
-        structure as a vertex structure.
+        @param model3d: path to the 3d file of the head model.
         @param scint: 2d model of the scintillator where the strikes will
         be recorded. Can be either the path to the file or a 2d structure.
+        @param shot_params: dictionary containing shot data to retrieve
+        magnetic equilibrium from a database.
         @param beam_args: beam keyword arguments to initialize the
         corresponding beam class.
         """
@@ -1087,6 +1086,17 @@ class geom:
         toroidal and 3D (axisymmetric) version.
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+        @param view: way of representing the geometry: '3d' or 'pol', 'tor' are
+        available to plot.
+        @param ax: axis to plot the figure.
+        @param fig: figure associated to the axis where the data is being
+        plot.
+        @param timepoint: in case separatrix is loaded, corresponding timepoint
+        can be loaded.
+        @param parms: parameters for the plotting. If the 2D options are chose,
+        then the options are related to the Line Object. Instead, the options
+        would correspond to 3D surface plot.
         """
 
         if self.Rsep is None:
@@ -1142,6 +1152,16 @@ class geom:
         Internal routine that plots the 2d scintillator as a surface.
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+        @param view: way of representing the geometry: '3d' or 'pol', 'tor' are
+        available to plot.
+        @param ax: axis to plot the figure.
+        @param fig: figure associated to the axis where the data is being
+        plot.
+        @param kwargs: keyword arguments for the plotting subroutines. If a 2D
+        plot view is chosen, then these would correspond to the Line
+        characteristics. Otherwise, it will be properties of the 3D surface to
+        plot.
         """
         if view == '3d':
             if ax is None:
@@ -1151,6 +1171,13 @@ class geom:
             # Use Jose's function...
             raise NotImplementedError('Waiting for Jose push')
         elif view == 'pol':
+            options = { 'color': 'g',
+                        'alpha': 0.5
+                      }
+
+            options.update(kwargs)
+
+
             if ax is None:
                 fig, ax = plt.subplots()
 
@@ -1168,8 +1195,14 @@ class geom:
             R = [xc2[0], xc3[0], xc1[0], xc0[0]]
             z = [xc2[1], xc3[1], xc1[1], xc0[1]]
 
-            ax.fill(R, z, 'g', alpha=0.5)
+            ax.fill(R, z, **options)
         else:
+            options = { 'color': 'g',
+                        'alpha': 0.5
+                      }
+
+            options.update(kwargs)
+
             if ax is None:
                 fig, ax = plt.subplots()
 
@@ -1185,10 +1218,20 @@ class geom:
         Internal routine that plots the 3d mode of the diagnostic head.
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+        @param view: way of representing the geometry: only '3D' can be used.
+        @param ax: axis to plot the figure.
+        @param fig: figure associated to the axis where the data is being
+        plot.
+        @param kwargs: keyword arguments for the plotting subroutines. If a 2D
+        plot view is chosen, then these would correspond to the Line
+        characteristics. Otherwise, it will be properties of the 3D surface to
+        plot.
         """
         if view == '3d':
-            ax = self.head.plot3Dfilled(ax=ax, units='m', surface_params=kwargs,
-                                        plot_pinhole=False,)
+            ax = self.head.plot3Dfilled(ax=ax, units='m',
+                                        surface_params=kwargs,
+                                        plot_pinhole=False)
         else:
             warnings.warn('Head is not plot in non-3D plots.')
 
@@ -1196,21 +1239,22 @@ class geom:
 
 
     def plot(self, view: str='3d', elements: str = 'all', ax=None, fig=None,
-             colors=None, timepoint: float=None):
+             timepoint: float=None):
         """
         Plots the iHIBP geometry, including the head, the scintillator plate
         and the beam injection geometry, or a part of these.
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param view: way of representing the geometry: 3d or 'pol', 'tor' are
+        @param view: way of representing the geometry: '3d' or 'pol', 'tor' are
         available to plot.
         @param elements: elements to plot, a combination of 'head', 'scint',
-        'beam', 'all' as a list.
+        'beam', 'separatrix', 'all' as a list.
         @param ax: axis to plot the figure.
         @param fig: figure associated to the axis where the data is being
         plot.
-        @param colors: colors to plot.
+        @param timepoint: in case separatrix is loaded, corresponding timepoint
+        can be loaded.
         """
 
         elements_plottable = ('head', 'scint', 'beam',
@@ -1246,3 +1290,14 @@ class geom:
                                      timepoint=timepoint)
 
         return ax
+
+    # -------------
+    # Routines to get beam characteristics.
+    # -------------
+    def compute_sepcross(self):
+        """
+        This routine will compute the cross between the beam and the separatrix
+        for all the time points stored in the class for the LFS part.
+
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+        """
