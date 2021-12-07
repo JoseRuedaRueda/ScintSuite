@@ -17,6 +17,7 @@ import Lib.SimulationCodes.iHIBPsim as libhipsim
 import Lib.SimulationCodes.Common.geometry as common_geom
 import warnings
 from copy import deepcopy
+from Lib.LibUtilities import find_2D_intersection
 
 BEAM_INF_SMALL = 0
 BEAM_ANGULAR_DIVERGENCY = 1
@@ -69,7 +70,7 @@ def R2beam(u: float, origin: float, R: float):
 
 
 def generateBeamTrajectory(start: float, beta: float, theta: float=0.0,
-                           Rmin: float=1.65, Rmax: float=None, Ns: int = 128):
+                           Rmin: float=1.03, Rmax: float=None, Ns: int = 128):
     """
     Provided the port origin, this routine will generate the beam line
     (assuming it infinitely small) that would follow into the plasma.
@@ -1301,3 +1302,26 @@ class geom:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
         """
+
+        if self.Rsep is None:
+            raise Exception('The separatrix is not loaded. '+\
+                            'Cannot compute the cross w/ separatrix')
+
+        # Allocating space.
+        rcross = np.zeros((self.t_eq.size,))
+        zcross = np.zeros((self.t_eq.size,))
+        for ii in range(rcross.size):
+            tmp = find_2D_intersection(self.Rsep[ii][0],
+                                       self.zsep[ii][0],
+                                       self.beam._beam_data['Rbeam'],
+                                       self.beam._beam_data['zbeam'])
+            tmp = np.array(tmp)
+
+            if tmp.shape[1] > 1:
+                Rmaxidx = tmp[0,:].argmax()
+                tmp = tmp[:, Rmaxidx]
+
+            rcross[ii] = tmp[0]
+            zcross[ii] = tmp[1]
+
+        return self.t_eq, rcross, zcross
