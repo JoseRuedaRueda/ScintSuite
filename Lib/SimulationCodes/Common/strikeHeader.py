@@ -364,9 +364,9 @@ orderStrikes = {
         0: {
             'beta': {
                 'i': 0,  # Column index in the file
-                'units': ' [$\\degree$]',  # Units
+                'units': ' [$\\rad$]',  # Units
                 'longName': 'Initial gyrophase',
-                'shortName': '$\\alpha$',
+                'shortName': '$\\beta$',
             },
             'x': {
                 'i': 1,  # Column index in the file
@@ -408,9 +408,9 @@ orderStrikes = {
         1: {
             'beta': {
                 'i': 0,  # Column index in the file
-                'units': ' [$\\degree$]',  # Units
+                'units': ' [$\\rad$]',  # Units
                 'longName': 'Initial gyrophase',
-                'shortName': '$\\alpha$',
+                'shortName': '$\\beta$',
             },
             'x': {
                 'i': 1,  # Column index in the file
