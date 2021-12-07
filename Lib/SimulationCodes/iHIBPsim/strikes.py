@@ -12,8 +12,15 @@ import Lib.LibParameters as sspar
 import Lib.LibPlotting as ssplt
 import Lib.LibData as aug
 from Lib.LibPaths import Path
-import netCDF4 as nc4
-import dd
+from Lib.LibMachine import machine
+import warnings
+try:
+    import netCDF4 as nc4
+except:
+    warnings.warn('netCDF4 library not found. Install it to use iHIBPsim.')
+
+if machine == 'AUG':
+    import dd
 import os
 # from Lib.LibIO import getFileSize
 from os import listdir
