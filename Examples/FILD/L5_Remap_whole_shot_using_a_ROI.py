@@ -75,7 +75,7 @@ filename = ss.vid.guess_filename(shot, ss.dat.FILD[diag_ID-1]['path'],
                                  ss.dat.FILD[diag_ID-1]['extension'])
 
 # - open the video file:
-vid = ss.vid.Video(filename, diag_ID=diag_ID)
+vid = ss.vid.FILDVideo(filename, diag_ID=diag_ID)
 # - read the frames:
 tdummy = time()
 print('Reading camera frames: ', shot, '...')

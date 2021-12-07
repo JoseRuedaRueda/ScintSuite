@@ -1,4 +1,5 @@
-** 0.6.7 Geometry library for iHIBPsim.
+
+** 0.7.0 Common libraries for simulation codes
 *** Equilibrium
 - Included routine to retrieve the flux surface coordinates (R, z).
 *** i-HIBPsim namelists [iHIBPsim/nml.py]
@@ -16,15 +17,19 @@
 *** i-HIBPsim beam GUI [GUIs/i-HIBP_beam.py]
 - First GUI app for plotting the beam geometry. To be improved with Qt version.
 - GUI has to be run by : "run Examples/Others/ihibp_beam_gui.py"
-
-** 0.6.6 Common libraries for simulation codes (Pre-release)
 *** LibVideo
 - Plotting frames and remaps allows for the possibility of using log scale in the colorbar. Just set scale='log'
+- Improved efficiency of the counting of saturated frames thanks to build in methods
+- flag 'make_copy' from the filter method of the video file was rename to 'flag_copy' to be consistent with the noise subtraction case
+- LibVideo split in individual libraries. The complete library was almost 3k lines of code. Now individual libraries are written for each type of archive
+- BasicVideoObject created. This object is now the parent class for the INPA, FILD and iHIBP videos. IT just contain the skeleton to read frames, filter them and subtract noise (which is common for all diagnostics). In the future, it will include distortion correction
+- FILDVideo object created. Is just the child class of BasicVideoObject with all FILD routines
 *** LibPlotting
 - clean3Daxis() included: It removes the ugly panes that matplotlib puts by default in 3d plots
 - axisEqual3D() set aspect ratio to equal in the 3D plot
 *** Simulation codes
 - A new Geometry library was added, it can read geometries from FILDSIM and SINPA code. It can plot in 3D and 2D, shaded and not shared, apply the rotation and translation to the vertex... read the documentation of the library for full detail
+- A new StrikePoints object was added. Now is it exactly the same for SINPA and FILDSIM codes!. So from the end user point of veiw, post process the data from both codes is equivalent.  Old FILDSIM strike object left there as for compatibility with all users, but is not recommended
 *** Deprecation
 - The object Geometry from the SINPA library was deprecated. The one from the Common library for the simulations codes should be used!
 *** Others

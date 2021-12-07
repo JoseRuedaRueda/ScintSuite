@@ -483,7 +483,7 @@ class Orbits:
 
         self.data = orbits
 
-    def plot(self, per=0.5, ax3D=None, axarr=None, dpi=100,
+    def plot(self, per: float = 0.5, ax3D=None, axarr=None, dpi: int = 100,
              marker_params: dict = {}, line_params: dict = {},
              plot2D: bool = True, plot3D: bool = True):
         '''
@@ -495,8 +495,8 @@ class Orbits:
         @param per: percentaje of orbits to plot
         @param ax3D: 3D axis to plot the orbits, if None, new will be made
         @param axarr: array of axis to plot projections, if None, will be made
-        @param dpi: dpi to render the figures, only used if the axis are created
-        by this function
+        @param dpi: dpi to render the figures, only used if the axis are
+            createdby this function
         @param line_params: Parameters for plot orbit lines,
                             Default: linestyle = 'solid' or color = 'red'
         @param marker_params: Parameters for plot orbit end points,
