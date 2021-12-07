@@ -78,6 +78,45 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     return rho
 
 
+def get_rho2rz(shot: int, flxlabel: float, diag: str='EQH', exp: str='AUGD',
+               ed: int=0, time: float=None, coord_out: str = 'rho_pol',
+               equ=None):
+    """
+    Gets the curves (R, z) associated to a given flux surface.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shot: Shot number
+    @param flxlabel: flux surface label.
+    @param diag: Diag for AUG database, default EQH
+    @param exp: experiment, default AUGD
+    @param ed: edition, default 0 (last)
+    @param time: Array of times where we want to calculate the field (the
+    field would be calculated in a time as close as possible to this
+    @param equ: equilibrium object from the library map_equ
+    @param coord_out: the desired rho coordinate, default rho_pol
+    """
+    # If the equilibrium object is not an input, let create it
+    created = False
+    if equ is None:
+        equ = meq.equ_map(shot, diag=diag, exp=exp, ed=ed)
+        created = True
+
+    R, z = equ.rho2rz(t_in=time, rho_in=flxlabel, coord_in=coord_out,
+                      all_lines=False)
+
+    if time is None:
+        tout = equ.t_eq
+    else:
+        tout = time
+
+    if created:
+        equ.Close()
+
+    return R, z, tout
+
+
+
 def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
                ed: int = 0, time: float = None, equ=None):
     """
