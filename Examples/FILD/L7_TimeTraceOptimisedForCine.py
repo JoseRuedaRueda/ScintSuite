@@ -36,7 +36,7 @@ dummy = str(shot)
 file = ss.vid.guess_filename(shot, ss.dat.FILD[0]['path'],
                              ss.dat.FILD[0]['extension'])
 
-video = ss.vid.Video(file)
+video = ss.vid.FILDVideo(file)
 # --- Plot a frame to select the roi on it
 # - Load the frame
 frame_index = np.array([np.argmin(abs(video.timebase-t0))])

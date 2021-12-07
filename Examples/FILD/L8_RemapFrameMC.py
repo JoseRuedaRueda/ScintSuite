@@ -63,7 +63,7 @@ cal = database.get_calibration(shot, camera, cal_type, diag_ID)
 # -----------------------------------------------------------------------------
 
 # Open the video object
-cin = ss.vid.Video(cin_file_name)
+cin = ss.vid.FILDVideo(cin_file_name)
 # Load the frames for the noise calculation
 cin.read_frame(t1=tn1, t2=tn2)
 # get the noise frame
