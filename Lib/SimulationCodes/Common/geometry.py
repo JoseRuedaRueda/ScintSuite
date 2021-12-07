@@ -345,6 +345,7 @@ class Geometry:
                 'rpin': np.array([0.0, 0.0, 0.0]),
                 'ps': np.array([0.0, 0.0, 0.0]),
             }
+            folder = ''
         if files is None:
             files = os.listdir(folder)
         self.elements = []
@@ -615,3 +616,4 @@ class Geometry:
             ax.set_zlim((zmin - 0.1 * dz) * factor, (zmax + 0.1 * dz) * factor)
             axisEqual3D(ax)
             clean3Daxis(ax)
+        return ax

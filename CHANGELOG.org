@@ -1,4 +1,22 @@
+
 ** 0.7.0 Common libraries for simulation codes
+*** Equilibrium
+- Included routine to retrieve the flux surface coordinates (R, z).
+*** i-HIBPsim namelists [iHIBPsim/nml.py]
+- Routines to generate generic namelists for the iHIBPsim code [make_namelist]
+- Routines to check consistency of namelists [check_namelist].
+- Routine to check if the files needed for a run of iHIBPsim are available [check_files]
+*** i-HIBPsim execution wrapper [iHIBPsim/execute.py]
+- prepareRun() wrapper to generate a simple run for iHIBPsim.
+- run_ihibpsim() wrapper to run the code properly. No cluster version available.
+*** i-HIBPsim geometry library [iHIBPsim/geom.py]
+- Included particularities of the i-HIBPsim beam model in the library.
+- Routines to generate beam lines, divergencies limits...
+- gaussian_beam class to handle and contain all the data for a i-HIBPsim beam and plot it.
+- geom class contains all the i-HIBPsim geometry: beam, head and scintillator plate and routines to plot it.
+*** i-HIBPsim beam GUI [GUIs/i-HIBP_beam.py]
+- First GUI app for plotting the beam geometry. To be improved with Qt version.
+- GUI has to be run by : "run Examples/Others/ihibp_beam_gui.py"
 *** LibVideo
 - Plotting frames and remaps allows for the possibility of using log scale in the colorbar. Just set scale='log'
 - Improved efficiency of the counting of saturated frames thanks to build in methods
