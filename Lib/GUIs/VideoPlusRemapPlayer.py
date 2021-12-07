@@ -4,6 +4,7 @@ import numpy as np
 import tkinter as tk                       # To open UI windows
 import matplotlib.backends.backend_tkagg as tkagg
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import Lib.LibPlotting as ssplt
 import Lib.SimulationCodes.FILDSIM as ssfildsim
 import Lib.LibMap as ssmap
@@ -40,6 +41,9 @@ class ApplicationShowVidRemap:
             'sinc', 'lanczos', 'blackman'
         ]
         default_interpolator = 'bilinear'
+        # --- List of supported scales for the remap
+        self.scales = ['linear', 'log']
+        default_scale = 'linear'
         # --- Initialise the data container
         self.data = data
         self.remap_dat = remap_dat
@@ -166,6 +170,14 @@ class ApplicationShowVidRemap:
         self.cmaps_list2.grid(row=3, column=7)
         self.cmap_list_label2 = tk.Label(master, text='Remap CMap')
         self.cmap_list_label2.grid(row=3, column=6)
+        # --- Include the list with the scales
+        self.selected_scale = default_scale
+        self.scales = ttk.Combobox(master, values=self.scales,
+                                   textvariable=self.selected_scale,
+                                   state='readonly')
+        self.scales.set(default_scale)
+        self.scales.bind("<<ComboboxSelected>>", self.change_scale)
+        self.scales.grid(row=3, column=10)
         # --- Include the boxes for minimum and maximum of the colormap
         clim2 = self.image2.get_clim()
         self.cmap_min_label2 = tk.Label(master, text='Min CMap')
@@ -215,6 +227,14 @@ class ApplicationShowVidRemap:
         """Change remap cmap"""
         self.image2.set_cmap(self.cmaps[self.cmaps_list2.get()])
         self.canvas2.draw()
+
+    def change_scale(self, scale):
+        """Change remap cmap"""
+        if scale == 'linear':
+            self.scale_options = {}
+        else:
+            self.image2.set_norm(colors.LogNorm(
+                self.cmap_min.get(), self.cmap_max.get()))
 
     def change_interpolator(self, interp_name):
         """Change interpolator of the remap plot"""

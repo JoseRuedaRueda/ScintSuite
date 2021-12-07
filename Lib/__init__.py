@@ -19,7 +19,7 @@ import Lib.LibTomography as tomo
 
 # Load data
 import Lib.LibData as dat
-import Lib.LibVideoFiles as vid
+import Lib.LibVideo as vid
 
 
 import Lib.LibParameters as par

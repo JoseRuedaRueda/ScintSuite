@@ -12,7 +12,7 @@ import numpy as np
 # import Lib.LibParameters as sspar
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
-from Lib.SimulationCodes.Common.strikesHeader import orderStrikes as order
+from Lib.SimulationCodes.Common.strikeHeader import orderStrikes as order
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from Lib.LibPlotting import axis_beauty, axisEqual3D, clean3Daxis
@@ -57,14 +57,14 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             header['runID'] = np.fromfile(fid, 'S50', 1)[:]
             header['ngyr'] = np.fromfile(fid, 'int32', 1)[0]
             header['gyroradius'] = np.fromfile(fid, 'float64', header['ngyr'])
-            header['nalpha'] = np.fromfile(fid, 'int32', 1)[0]
-            header['alpha'] = np.fromfile(fid, 'float64', header['nalpha'])
+            header['nXI'] = np.fromfile(fid, 'int32', 1)[0]
+            header['XI'] = np.fromfile(fid, 'float64', header['nXI'])
             header['FILDSIMmode'] = \
                 np.fromfile(fid, 'int32', 1)[0].astype(np.bool)
             header['ncolumns'] = np.fromfile(fid, 'int32', 1)[0]
             header['counters'] = \
-                np.zeros((header['nalpha'], header['ngyr']), np.int)
-            data = np.empty((header['nalpha'], header['ngyr']),
+                np.zeros((header['nXI'], header['ngyr']), np.int)
+            data = np.empty((header['nXI'], header['ngyr']),
                             dtype=np.ndarray)
             header['scint_limits'] = {
                 'xmin': 300.,
@@ -84,7 +84,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
                 ycolum = header['info']['ys']['i']
                 zcolum = header['info']['zs']['i']
             for ig in range(header['ngyr']):
-                for ia in range(header['nalpha']):
+                for ia in range(header['nXI']):
                     header['counters'][ia, ig] = \
                         np.fromfile(fid, 'int32', 1)[0]
                     if header['counters'][ia, ig] > 0:
@@ -112,6 +112,8 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
                   np.sum(header['counters']))
             print('SINPA version: ', header['versionID1'], '.',
                   header['versionID2'])
+            print('Average number of strike points per centroid: ',
+                  int(header['counters'].mean()))
     return header, data
 
 
@@ -131,14 +133,14 @@ def readFILDSIMstrikes(filename: str, verbose: bool = False):
         print('Reading strike points: ', filename)
     dummy = np.loadtxt(filename, skiprows=3)
     header = {
-        'alpha': np.unique(dummy[:, 1]),
+        'XI': np.unique(dummy[:, 1]),
         'gyroradius': np.unique(dummy[:, 0])
     }
-    header['nalpha'] = header['alpha'].size
+    header['nXI'] = header['XI'].size
     header['ngyr'] = header['gyroradius'].size
     # --- Order the strike points in gyroradius and pitch angle
-    data = np.empty((header['nalpha'], header['ngyr']), dtype=np.ndarray)
-    header['counters'] = np.zeros((header['nalpha'], header['ngyr']),
+    data = np.empty((header['nXI'], header['ngyr']), dtype=np.ndarray)
+    header['counters'] = np.zeros((header['nXI'], header['ngyr']),
                                   dtype=np.int)
     header['scint_limits'] = {  # for later histogram making
         'xmin': 300.,
@@ -148,10 +150,10 @@ def readFILDSIMstrikes(filename: str, verbose: bool = False):
     }
     nmarkers, ncolum = dummy.shape
     for ir in range(header['ngyr']):
-        for ip in range(header['nalpha']):
+        for ip in range(header['nXI']):
             data[ip, ir] = dummy[
                 (dummy[:, 0] == header['gyroradius'][ir])
-                * (dummy[:, 1] == header['pitch'][ip]), 2:]
+                * (dummy[:, 1] == header['XI'][ip]), 2:]
             header['counters'][ip, ir], ncolums = data[ip, ir].shape
             # Update the scintillator limit for the histogram
             if header['counters'][ip, ir] > 0:
@@ -168,10 +170,10 @@ def readFILDSIMstrikes(filename: str, verbose: bool = False):
                     max(header['scint_limits']['ymax'],
                         data[ip, ir][:, 3].max())
     # Check with version of FILDSIM was used
-    if ncolum == 7:
+    if ncolum == 9:
         print('Old FILDSIM format, initial position NOT included')
         versionID = 0
-    elif ncolum == 10:
+    elif ncolum == 12:
         print('New FILDSIM format, initial position included')
         versionID = 1
     else:
@@ -187,6 +189,16 @@ def readFILDSIMstrikes(filename: str, verbose: bool = False):
         print('Total number of counters: ', total_counter)
     if verbose:
         print('Total number of strike points: ', total_counter)
+        print('Average number of strike points per centroid: ',
+              int(header['counters'].mean()))
+    # Small retrocompatibility part
+    # Just for old FILDSIM user which may have their routines based on the
+    # Strike map points object, make a copy of the XI values as in the old
+    # notation (they are just 10 numbers, so it will not be the end of the
+    # world)
+    header['npitch'] = header['nXI']
+    header['pitch'] = header['XI']
+    return header, data
 
 
 # -----------------------------------------------------------------------------
@@ -202,7 +214,7 @@ class Strikes:
     the different information on it
     """
 
-    def __init__(self, runID: str = None, type: str = 'Scintillator',
+    def __init__(self, runID: str = None, type: str = 'MapScintillator',
                  file: str = None, verbose: bool = True, code: str = 'SINPA'):
         """
         Initialise the object reading data from a SINPA file.
@@ -254,7 +266,7 @@ class Strikes:
         self.code = code
 
     def calculate_scintillator_histogram(self, delta: float = 0.1,
-                                         includeW: bool = True,
+                                         includeW: bool = False,
                                          kind_separation: bool = False,
                                          xmin: float = None,
                                          xmax: float = None,
@@ -287,11 +299,11 @@ class Strikes:
         if self.code.lower() == 'sinpa':
             colum_pos = self.header['info']['xs']['i']  # column of the x
         else:
-            colum_pos = self.header['info']['xs']['i']  # column of the x
-            if kind_separation:
-                column_kind = self.header['info']['kind']['i']
-            if includeW:
-                weight_column = self.header['info']['w']['i']
+            colum_pos = self.header['info']['x']['i']  # column of the x
+        if kind_separation:
+            column_kind = self.header['info']['kind']['i']
+        if includeW:
+            weight_column = self.header['info']['w']['i']
         # --- define the grid for the histogram
         if xmin is None:
             xmin = self.header['scint_limits']['xmin']
@@ -339,7 +351,7 @@ class Strikes:
             }
         else:   # mapping type, FILDSIM compatible
             for ig in range(self.header['ngyr']):
-                for ia in range(self.header['nalpha']):
+                for ia in range(self.header['nXI']):
                     if self.header['counters'][ia, ig] > 0:
                         if includeW:
                             w = self.data[ia, ig][:, weight_column]
@@ -364,7 +376,7 @@ class Strikes:
             }
 
     def plot3D(self, per=0.1, ax=None, mar_params={},
-               gyr_index=None, alpha_index=None,
+               gyr_index=None, XI_index=None,
                where: str = 'Head'):
         """
         Plot the strike points in a 3D axis as scatter points
@@ -375,9 +387,9 @@ class Strikes:
         @param ax: axes where to plot
         @param mar_params: Dictionary with the parameters for the markers
         @param gyr_index: index (or indeces if given as an np.array) of
-        gyroradii to plot
-        @param alpha_index: index (or indeces if given as an np.array) of
-        alphas to plot
+            gyroradii to plot
+        @param XI_index: index (or indeces if given as an np.array) of
+            XIs (pitch or R) to plot
         @param where: string indicating where to plot: 'head', 'NBI',
         'ScintillatorLocalSystem'. First two are in absolute
         coordinates, last one in the scintillator coordinates (see SINPA
@@ -408,7 +420,7 @@ class Strikes:
             raise Exception('Not understood what do you want to plot')
 
         # --- Plot the markers:
-        nalpha, ngyr = self.header['counters'].shape
+        nXI, ngyr = self.header['counters'].shape
         minx = +100.0  # Dummy variables to set a decent axis limit
         miny = +100.0
         minz = +100.0
@@ -424,17 +436,17 @@ class Strikes:
                 index_gyr = gyr_index
             else:  # it should be just a number
                 index_gyr = np.array([gyr_index])
-        if alpha_index is None:  # if None, use all gyroradii
-            index_alpha = range(nalpha)
+        if XI_index is None:  # if None, use all gyroradii
+            index_XI = range(nXI)
         else:
             # Test if it is a list or array
-            if isinstance(alpha_index, (list, np.ndarray)):
-                index_alpha = alpha_index
+            if isinstance(XI_index, (list, np.ndarray)):
+                index_XI = XI_index
             else:  # it should be just a number
-                index_alpha = np.array([alpha_index])
+                index_XI = np.array([XI_index])
         # Proceed to plot
         for ig in index_gyr:
-            for ia in index_alpha:
+            for ia in index_XI:
                 if self.header['counters'][ia, ig] > 0:
                     flags = np.random.rand(
                         self.header['counters'][ia, ig]) < per
@@ -458,98 +470,7 @@ class Strikes:
             # Get rid of the colored panes
             clean3Daxis(ax)
 
-    def plot2D(self, per=0.1, ax=None, mar_params: dict = {},
-               gyr_index=None, alpha_index=None,
-               ax_params: dict = {}):
-        """
-        Plot the strike points in a 2D axis as scatter points
-
-        Jose Rueda: jrrueda@us.es
-
-        Note: This is only defined for the scintillator strike points, which
-        are in a plane, not for the 3D collimator strike points. It will
-        rise an exception if you try to use it for the collimator points
-
-        Note2: It will only work for SINPA data, as oldFILDSIM does not include
-        the 'scintillator sytem'. In the case of oldFILDIM, we will just plot
-        the scatter of y and z, which could be not the scintillator plane if
-        it is tilted
-
-        @param per: ratio of markers to be plotted (1=all of them)
-        @param ax: axes where to plot
-        @param mar_params: Dictionary with the parameters for the markers
-        @param gyr_index: index (or indeces if given as an np.array) of
-        gyroradii to plot
-        @param alpha_index: index (or indeces if given as an np.array) of
-        alphas to plot
-        @param ax_params: parameters for the axis beauty routine. Only applied
-        if the axis was created inside the routine
-        """
-        # --- Default plotting options
-        mar_options = {
-            'marker': '.',
-            'color': 'k'
-        }
-        mar_options.update(mar_params)
-        # Note axis options are initialised below, as the units for the labels
-        # are different depending on the code
-        # --- Create the axes
-        if ax is None:
-            fig, ax = plt.subplots()
-            created = True
-        else:
-            created = False
-        # --- Chose the variable we want to plot
-        if self.code.lower() == 'sinpa':
-            column_to_plot = self.header['info']['xs']['i']
-            ax_options = {
-                'grid': 'both',
-                'xlabel': 'x' + self.header['info']['xs']['units'],
-                'ylabel': 'y' + self.header['info']['xs']['units'],
-            }
-        else:
-            column_to_plot = self.header['info']['x']['i']
-            ax_options = {
-                'grid': 'both',
-                'xlabel': 'x' + self.header['info']['x']['units'],
-                'ylabel': 'y' + self.header['info']['x']['units'],
-            }
-        ax_options.update(ax_params)
-        # --- Plot the markers:
-        nalpha, ngyr = self.header['counters'].shape
-
-        # See which gyroradius / pitch we need
-        if gyr_index is None:  # if None, use all gyroradii
-            index_gyr = range(ngyr)
-        else:
-            # Test if it is a list or array
-            if isinstance(gyr_index, (list, np.ndarray)):
-                index_gyr = gyr_index
-            else:  # it should be just a number
-                index_gyr = np.array([gyr_index])
-        if alpha_index is None:  # if None, use all gyroradii
-            index_alpha = range(nalpha)
-        else:
-            # Test if it is a list or array
-            if isinstance(alpha_index, (list, np.ndarray)):
-                index_alpha = alpha_index
-            else:  # it should be just a number
-                index_alpha = np.array([alpha_index])
-        # Proceed to plot
-        for ig in index_gyr:
-            for ia in index_alpha:
-                if self.header['counters'][ia, ig] > 0:
-                    flags = np.random.rand(
-                        self.header['counters'][ia, ig]) < per
-                    x = self.data[ia, ig][flags, column_to_plot + 1]
-                    y = self.data[ia, ig][flags, column_to_plot + 2]
-                    ax.scatter(x, y, **mar_options)
-        # axis beauty:
-        if created:
-            ax = ssplt.axis_beauty(ax, ax_options)
-            fig.show()
-
-    def plot1D(self, var='beta', gyr_index=None, alpha_index=None, ax=None,
+    def plot1D(self, var='beta', gyr_index=None, XI_index=None, ax=None,
                ax_params: dict = {}, nbins: int = 20, includeW: bool = False):
         """
         Plot (and calculate) the histogram of the selected variable
@@ -557,10 +478,19 @@ class Strikes:
         Jose Rueda: jrrueda@us.es
 
         @param var: variable to plot
+        @param gyr_index: index (or indeces if given as an np.array) of
+            gyroradii to plot
+        @param XI_index: index (or indeces if given as an np.array) of
+            XIs (pitch or R) to plot
+        @param ax: axes where to plot
+        @param ax_params: parameters for the axis beauty
+        @param nbins: number of bins for the 1D histogram
+        @param includeW: include weight for the histogram
         """
         # --- Get the index:
         column_to_plot = self.header['info'][var]['i']
-        column_of_W = self.header['info']['w']['i']
+        if includeW:
+            column_of_W = self.header['info']['w']['i']
         # --- Default plotting options
         ax_options = {
             'grid': 'both',
@@ -576,7 +506,7 @@ class Strikes:
         else:
             created = False
         # --- Plot the markers:
-        nalpha, ngyr = self.header['counters'].shape
+        nXI, ngyr = self.header['counters'].shape
 
         # See which gyroradius / pitch we need
         if gyr_index is None:  # if None, use all gyroradii
@@ -587,17 +517,17 @@ class Strikes:
                 index_gyr = gyr_index
             else:  # it should be just a number
                 index_gyr = np.array([gyr_index])
-        if alpha_index is None:  # if None, use all gyroradii
-            index_alpha = range(nalpha)
+        if XI_index is None:  # if None, use all gyroradii
+            index_XI = range(nXI)
         else:
             # Test if it is a list or array
-            if isinstance(alpha_index, (list, np.ndarray)):
-                index_alpha = alpha_index
+            if isinstance(XI_index, (list, np.ndarray)):
+                index_XI = XI_index
             else:  # it should be just a number
-                index_alpha = np.array([alpha_index])
+                index_XI = np.array([XI_index])
         # Proceed to plot
         for ig in index_gyr:
-            for ia in index_alpha:
+            for ia in index_XI:
                 if self.header['counters'][ia, ig] > 0:
                     dat = self.data[ia, ig][:, column_to_plot]
                     if includeW:
@@ -619,6 +549,11 @@ class Strikes:
         Plot the histogram of the scintillator strikes
 
         Jose Rueda: jrrueda@us.es
+        @param ax: axes where to plot
+        @param ax_params: parameters for the axis beauty
+        @param cmap: color map to be used, if none -> Gamma_II()
+        @param nbins: number of bins for the 1D histogram
+        @param kind: kind of markers to consider (for FILDSIM just 0, default)
         """
         # --- Check inputs
         if self.ScintHistogram is None:
@@ -647,10 +582,10 @@ class Strikes:
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
 
-    def scatter(self, varx='x', vary='y', gyr_index=None,
-                alpha_index=None, ax=None, ax_params: dict = {},
+    def scatter(self, varx='y', vary='z', gyr_index=None,
+                XI_index=None, ax=None, ax_params: dict = {},
                 mar_params: dict = {}, per: float = 0.5,
-                includeW: bool = False):
+                includeW: bool = False, xscale=1.0, yscale=1.0):
         """
         Scatter plot of two variables of the strike points
 
@@ -661,17 +596,23 @@ class Strikes:
         @param per: ratio of markers to be plotted (1=all of them)
         @param ax: axes where to plot
         @param mar_params: Dictionary with the parameters for the markers
-        @param gyr_index: index (or indeces if given as an np.array) of
-        gyroradii to plot
-        @param alpha_index: index (or indeces if given as an np.array) of
-        alphas to plot
+        @param gyr_index: index (or indeces if given as an array) of
+            gyroradii to plot
+        @param XI_index: index (or indeces if given as an array) of
+            XIs (so pitch or R) to plot
         @param ax_params: parameters for the axis beauty routine. Only applied
-        if the axis was created inside the routine
+            if the axis was created inside the routine
+        @param xscale: Scale to multiply the variable plotted in the xaxis
+        @param yscale: Scale to multiply the variable plotted in the yaxis
+
+        Note: The units will not be updates adter the scaling, so you will need
+        to change manually the labels via the ax_params()
         """
         # --- Get the index:
         xcolumn_to_plot = self.header['info'][varx]['i']
         ycolumn_to_plot = self.header['info'][vary]['i']
-        column_of_W = self.header['info']['w']['i']
+        if includeW:
+            column_of_W = self.header['info']['w']['i']
         # --- Default plotting options
         ax_options = {
             'grid': 'both',
@@ -693,7 +634,7 @@ class Strikes:
         else:
             created = False
         # --- Plot the markers:
-        nalpha, ngyr = self.header['counters'].shape
+        nXI, ngyr = self.header['counters'].shape
 
         # See which gyroradius / pitch we need
         if gyr_index is None:  # if None, use all gyroradii
@@ -704,17 +645,17 @@ class Strikes:
                 index_gyr = gyr_index
             else:  # it should be just a number
                 index_gyr = np.array([gyr_index])
-        if alpha_index is None:  # if None, use all gyroradii
-            index_alpha = range(nalpha)
+        if XI_index is None:  # if None, use all gyroradii
+            index_XI = range(nXI)
         else:
             # Test if it is a list or array
-            if isinstance(alpha_index, (list, np.ndarray)):
-                index_alpha = alpha_index
+            if isinstance(XI_index, (list, np.ndarray)):
+                index_XI = XI_index
             else:  # it should be just a number
-                index_alpha = np.array([alpha_index])
+                index_XI = np.array([XI_index])
         # Proceed to plot
         for ig in index_gyr:
-            for ia in index_alpha:
+            for ia in index_XI:
                 if self.header['counters'][ia, ig] > 0:
                     flags = np.random.rand(
                         self.header['counters'][ia, ig]) < per
@@ -724,7 +665,7 @@ class Strikes:
                         w = self.data[ia, ig][flags, column_of_W]
                     else:
                         w = np.ones(self.header['counters'][ia, ig])
-                    ax.scatter(x, y, w, **mar_options)
+                    ax.scatter(x * xscale, y * yscale, w, **mar_options)
         # axis beauty:
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
