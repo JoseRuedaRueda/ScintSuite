@@ -613,6 +613,51 @@ class strikeLine:
         for ii in np.arange(len(self.maps)):
             self.time[ii] = self.maps[ii]['timestamp']
 
+    def plotStrikeLine(self, timeStamp: float = None, ax=None,
+                       ax_options: dict = {}, line_options: dict = {},
+                       legendText: str = None):
+        """
+        With an input list of maps for a given shot, this routine will plot the
+        strikemap in the given axis.
+
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+        @param timeStamp: time to plot the strike line. The nearest strike
+        line will be used. If None, all the strike maps are plotted.
+        @param ax: axis handler to plot the strikeline. If None, new axis
+        will be created.
+        @param ax_options: dictionary with inputs for axis set-up.
+        @param line_options: extra options to plot 1D lines.
+        @param legendText: text to use as legend. If None, the time stamp will
+        be used to label the strikelines.
+        @param legend_on: sets or on/off the legend.
+        @param plot_weigth: plots the weight along the strike line.
+        """
+
+        imap = np.searchsorted(self.time.flatten(), timeStamp)
+        # --- Initialise the plotting parameters
+        ax_options['ratio'] = 'equal'
+        # The ratio must be always equal
+        if 'fontsize' not in ax_options:
+            ax_options['fontsize'] = 16
+        if 'grid' not in ax_options:
+            ax_options['grid'] = 'both'
+        if 'linewidth' not in line_options:
+            line_options['linewidth'] = 2
+
+        legendText = 't = ' + str(self.maps[imap]['timestamp'][0]) + ' [s]'
+        im = ax.plot(self.maps[imap]['x1']*100, self.maps[imap]['x2']*100,
+                     label=legendText, **line_options)
+
+        ax_options['ratio'] = 'equal'
+        ax_options['xlabel'] = 'X [cm]'
+        ax_options['ylabel'] = 'Y [cm]'
+        ax = ssplt.axis_beauty(ax, ax_options)
+        ax.set_xlim(self.Xlims)
+        ax.set_ylim(self.Ylims)
+
+        return im
+
 
     def plotStrikeMap(self, timeStamp: float = None, ax=None,
                       ax_options: dict = {}, line_options: dict = {},
