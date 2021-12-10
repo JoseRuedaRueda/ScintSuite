@@ -88,7 +88,7 @@ def ask_to_save(dir=None, ext=None):
     return out
 
 
-def ask_to_open(dir=None, ext=None):
+def ask_to_open(dir: str=None, ext: str=None, filetype=None):
     """
     Open a dialogue to choose the file to be opened
 
@@ -98,15 +98,35 @@ def ask_to_open(dir=None, ext=None):
     just the current directory will be opened
     @param ext: extension for filter the possible options, if none, no filter
     will be applied
+    @filetype: filetype to search for in the folder. If None, only internal
+    recognized filetypes will be opened. @see{Lib.LibParameters.filetypes}
+
+    @return out: the filename selected by the user
+    """
+    if filetype is None:
+        filetype = sspar.filetypes
+
+    root = tk.Tk()
+    root.withdraw()   # To close the window after the selection
+    out = tk.filedialog.askopenfilename(initialdir=dir, defaultextension=ext,
+                                        filetypes=filetype)
+    return out
+
+def ask_to_open_dir(path: str=None):
+    """
+    Open a dialogue to choose the directory to be opened
+
+    Jose Rueda: jrrueda@us.es
+
+    @param dir: Initial directory to direct the GUI to open the directory,
+    if none, just the current directory will be opened
 
     @return out: the filename selected by the user
     """
     root = tk.Tk()
     root.withdraw()   # To close the window after the selection
-    out = tk.filedialog.askopenfilename(initialdir=dir, defaultextension=ext,
-                                        filetypes=sspar.filetypes)
+    out = tk.filedialog.askdirectory(initialdir=path)
     return out
-
 
 # -----------------------------------------------------------------------------
 # --- General reading
