@@ -19,17 +19,17 @@ paths = Path(machine)
 # -----------------------------------------------------------------------------
 nml_options = {
     'config':  {            # General parameters
-        'runid': 'Aligned',
+        'runid': 'theta9_phi9',
         'geomID': 'FILD1_FILDSIM',
         'FILDSIMmode': True,
         'nGeomElements': 2,
         'nxi': 7,
         'nGyroradius': 7,
-        'nMap': 12000,
+        'nMap': 50000,
         'mapping': True,
         'signal': False,
         'resampling': False,
-        'nResampling': 4,
+        'nResampling': 0,
         'saveOrbits': False,
         'saveRatio': 0.1,
         'saveOrbitLongMode': False,
@@ -45,14 +45,15 @@ nml_options = {
     },
     'inputParams': {
          'nGyro': 500,
-         'minAngle': -2.0,
-         'dAngle': 1.0,
+         'minAngle': -1.6,
+         'dAngle': 0.4,
          'XI': [80., 70., 60., 50., 40., 30., 20.],
          'rL': [2., 3., 4., 5., 6., 7., 8.],
-         'maxT': 0.0000005
+         'maxT': 0.00000025
     },
 }
-
+theta = 9.0
+phi = 9.0
 # -----------------------------------------------------------------------------
 # --- Section 0: Create the directories
 # -----------------------------------------------------------------------------
@@ -70,12 +71,16 @@ ss.sinpa.execution.write_namelist(nml_options)
 # -----------------------------------------------------------------------------
 # --- Section 2: Prepare the magnetic field
 # -----------------------------------------------------------------------------
-# Get the direction of the field
-direction = [-0.15643447,  -0.97552826, 0.1545085]
+# Load the geometry
+Geometry = ss.simcom.Geometry(nml_options['config']['geomID'], code='SINPA')
+u1 = np.array(Geometry.ExtraGeometryParams['u1'])
+u2 = np.array(Geometry.ExtraGeometryParams['u2'])
+u3 = np.array(Geometry.ExtraGeometryParams['u3'])
 # Get the field
 field = ss.sinpa.fieldObject()
-field.createHomogeneousField(direction, field='B')
-# field.createFromSingleB(direction, Rmin=0.01, Rmax=25.0, zmin=-10.0, zmax=10.0)
+field.createHomogeneousFieldThetaPhi(theta, phi, field='B',
+                                     u1=u1, u2=u2, u3=u3)
+
 # Write the field
 fieldFileName = os.path.join(inputsDir, 'field.bin')
 fid = open(fieldFileName, 'wb')
