@@ -1,3 +1,24 @@
+** 0.8.0 Future Version
+This verison was not released, this is just a warning about things which will be deprecated:
+- The Strikes object of the FILDSIM code, use the Common object instead, already available and working better
+- StrikeMap.plot_strike_points() will be deleted. Please use StrikeMap.strike_points.scatter() instead, much better, with more flexibility and options
+
+** 0.7.1 Uncertainties in fits and angles in execution:
+*** LibMap:
+- The fitting routines now return also the uncertainties
+- 'Gyroradius_uncertainty' and 'Pitch_uncertainty' were added to the StrikeMap.resolution dictionary
+- Strike Map object recognizes which code generated the StrikeMap (thanks to a number in the header which SINPA introduces)
+- 'code' and 'version' attributes were added to the Strike Map object
+- XI, nXI and uniqueXI attributes were added to the FILD StrikeMap object, as a starting point for we merging of INPA and FILD processing
+- The StrikeMap object uses now the new strike points object, common of FILD and SINPA
+*** LibVideoFiles:
+- Included plt_frame_remap() to plot remapped frames
+*** SINPA
+- Added a routine in the SINPA execution library to calculate the FILD orientation following the new criteria
+- Recovered the SINPA geometry library which was eliminated by mistake, the calculate rotation matrix is again there
+- field object from the common library of the simulation codes now includes a method to generate the field for SINPA given theta and phi, the same 2 angles defined in FILDSIM
+*** Bug fixed:
+- Fixed bug if an old version of Shapely was installed
 
 ** 0.7.0 Common libraries for simulation codes
 *** Equilibrium

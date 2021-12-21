@@ -259,6 +259,7 @@ def remap_all_loaded_frames(video, calibration, shot, rmin: float = 1.0,
               'sprofylabel': 'Signal integrated in pitch',
               'bfield': b_field, 'phi': phi, 'theta': theta,
               'theta_used': theta_used, 'phi_used': phi_used,
+              'nframes': video.exp_dat['nframes'],
               'tframes': video.exp_dat['tframes'],
               'existing_smaps': exist}
     opt = {'rmin': rmin, 'rmax': rmax, 'dr': dr, 'pmin': pmin, 'pmax': pmax,
