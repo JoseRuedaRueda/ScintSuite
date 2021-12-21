@@ -19,6 +19,7 @@ This verison was not released, this is just a warning about things which will be
 - field object from the common library of the simulation codes now includes a method to generate the field for SINPA given theta and phi, the same 2 angles defined in FILDSIM
 *** Bug fixed:
 - Fixed bug if an old version of Shapely was installed
+- Fixed a small bug in the calculation of FILD orientation
 
 ** 0.7.0 Common libraries for simulation codes
 *** Equilibrium
