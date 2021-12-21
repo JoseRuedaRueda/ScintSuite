@@ -28,8 +28,11 @@ def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
     @param alpha: Poloidal orientation of FILD. Given in deg
     @param beta: Pitch orientation of FILD, given in deg
 
-    @return theta: Euler angle to use as input in fildsim.f90 given in deg
     @return phi: Euler angle to use as input in fildsim.f90 given in deg
+    @return theta: Euler angle to use as input in fildsim.f90 given in deg
+
+    Example of use:
+        phi, theta = calculate_fild_orientation(0.0, 0.0, -1.0, 0.0, 0.0)
     """
     # In AUG the magnetic field orientation is counter current.
     # FILDSIM.f90 works with the co-current reference
@@ -61,10 +64,10 @@ def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
     # BZ2 ---> Z component
     # THEN theta and phi are:
     # PHI --> Euler Angle measured from y(positive) to x(positive)
-    # THETA --> Euler Angle measured from x(positive) to z(negative)
-
-    phi = ma.atan2(br2, bt2) * 180.0 / np.pi
-    theta = ma.atan2(-bz2, bt2) * 180.0 / np.pi
+    # THETA --> Euler Angle measured from y(positive) to z(negative)
+    theta = ma.atan2(-bz2, bt2)
+    phi = ma.atan2(br2 * ma.cos(theta), bt2) * 180.0 / np.pi
+    theta *= 180.0 / np.pi
     if verbose:
         print('Bt, Bz, Br and B: ', bt, bz, br, ma.sqrt(bt**2 + bz**2 + br**2))
         print('FILD orientation is (alpha,beta)= ', alpha * 180.0 / np.pi,

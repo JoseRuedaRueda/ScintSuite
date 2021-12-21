@@ -364,7 +364,7 @@ orderStrikes = {
         0: {
             'beta': {
                 'i': 0,  # Column index in the file
-                'units': ' [$\\rad$]',  # Units
+                'units': ' [rad]',  # Units
                 'longName': 'Initial gyrophase',
                 'shortName': '$\\beta$',
             },
@@ -398,6 +398,12 @@ orderStrikes = {
                 'longName': 'Remapped pitch angle',
                 'shortName': '$\\lambda$',
             },
+            'remap_pitch': {   # Repeated for retrocompatibility
+                'i': 5,  # Column index in the file
+                'units': ' [$\\degree$]',  # Units
+                'longName': 'Remapped pitch angle',
+                'shortName': '$\\lambda$',
+            },
             'theta': {
                 'i': 6,  # Column index in the file
                 'units': ' [$\\degree$]',  # Units
@@ -408,7 +414,7 @@ orderStrikes = {
         1: {
             'beta': {
                 'i': 0,  # Column index in the file
-                'units': ' [$\\rad$]',  # Units
+                'units': ' [rad]',  # Units
                 'longName': 'Initial gyrophase',
                 'shortName': '$\\beta$',
             },
@@ -437,6 +443,12 @@ orderStrikes = {
                 'shortName': '$r_l$',
             },
             'remap_XI': {
+                'i': 5,  # Column index in the file
+                'units': ' [$\\degree$]',  # Units
+                'longName': 'Remapped pitch angle',
+                'shortName': '$\\lambda$',
+            },
+            'remap_pitch': {   # Repeated for retrocompatibility
                 'i': 5,  # Column index in the file
                 'units': ' [$\\degree$]',  # Units
                 'longName': 'Remapped pitch angle',

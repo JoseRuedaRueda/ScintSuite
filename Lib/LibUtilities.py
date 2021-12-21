@@ -14,8 +14,12 @@ import warnings
 try:
     from shapely.geometry import LineString
     from shapely.errors import ShapelyDeprecationWarning
+    warnings.filterwarnings('ignore',
+                            category=ShapelyDeprecationWarning)
 except ModuleNotFoundError:
     print('Shapely not found, you cannot calculate intersections')
+except ImportError:
+    print('Old version of shapelly, but things should work')
 
 
 # -----------------------------------------------------------------------------
@@ -178,7 +182,7 @@ def find_nearest_sorted(array, value):
 # -----------------------------------------------------------------------------
 # --- Intersections
 # -----------------------------------------------------------------------------
-def find_2D_intersection(x1, y1, x2, y2, ignoreWarnings: bool = True):
+def find_2D_intersection(x1, y1, x2, y2):
     """
     Get the intersection between curve (x1, y1) and (x2, y2)
 
@@ -195,17 +199,11 @@ def find_2D_intersection(x1, y1, x2, y2, ignoreWarnings: bool = True):
     @param y1: y coordinate of the first curve, np.array
     @param x2. x coordinate of the second curve, np.array
     @param y2: y coordinate of the second curve, np.array
-    @param ignoreWarnings: ignore deprecation warnings from shapely package.
 
     @return x: x coordinates of the intersection
     @return y: y coordinates of the intersection
 
     """
-    if ignoreWarnings:
-        warnings.filterwarnings('ignore',
-                                category=ShapelyDeprecationWarning)
-
-
     first_line = LineString(np.column_stack((x1.flatten(), y1.flatten())))
     second_line = LineString(np.column_stack((x2.flatten(), y2.flatten())))
     intersection = first_line.intersection(second_line)
