@@ -7,11 +7,51 @@ Introduced in version 6.0.0
 """
 import os
 import f90nml
+import math
 import numpy as np
 import Lib.SimulationCodes.SINPA.reading as reading
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
 paths = Path(machine)
+
+
+def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
+    """
+    Caculate magnetic field orientation in FILD head, SINPA criteria.
+
+    @param br: Magnetic field in the r direction
+    @param bz: Magnetic field in the z direction
+    @param bt: Magnetic field in the toroidal direction
+    @param alpha: Poloidal orientation of FILD. Given in deg
+    @param beta: Pitch orientation of FILD, given in deg
+
+    @return phi: Euler angle to use as input in fildsim.f90 given in deg
+    @return theta: Euler angle to use as input in fildsim.f90 given in deg
+
+    Example of use:
+        phi, theta = calculate_fild_orientation(0.0, 0.0, -1.0, 0.0, 0.0)
+    """
+    # Transform to radians
+    alpha = alpha * np.pi / 180.0
+    beta = beta * np.pi / 180.0
+    # Build the 1st basic rotation matrix:
+    rot_alpha = np.array([[math.cos(alpha), 0, -math.sin(alpha)],
+                          [0, 1, 0],
+                          [math.sin(alpha), 0, math.cos(alpha)]])
+    rot_beta = np.array([[1, 0, 0],
+                         [0, math.cos(beta), -math.sin(beta)],
+                         [0, math.sin(beta), math.cos(beta)]])
+    R = rot_beta @ rot_alpha
+    B = np.array([Br, Bt, Bz])
+    Bfild = R @ B
+    # Todo: revise sign"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # Calculate the theta and pfi angles
+    theta = math.atan2(Bfild[2], Bfild[1])
+    if abs(theta - math.pi/2.0) < 0.25:
+        phi = math.atan2(Bfild[0] * math.cos(theta), -Bfild[1])
+    else:
+        phi = math.atan2(Bfild[0] * math.sin(theta), -Bfild[1])
+    return phi, theta, Bfild
 
 
 def write_namelist(nml, p=None, overwrite=True):

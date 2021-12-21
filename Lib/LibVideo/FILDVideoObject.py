@@ -238,39 +238,137 @@ class FILDVideo(BVO):
         if isinstance(strike_map, ssmap.StrikeMap):
             strike_map.plot_pix(ax=ax)
         elif strike_map == 'auto':
-            if self.diag == 'FILD':
-                # get parameters of the map
-                theta_used = self.remap_dat['theta_used'][frame_index]
-                phi_used = self.remap_dat['phi_used'][frame_index]
+            # get parameters of the map
+            theta_used = self.remap_dat['theta_used'][frame_index]
+            phi_used = self.remap_dat['phi_used'][frame_index]
 
-                # Get the full name of the file
-                name__smap = ssFILDSIM.guess_strike_map_name_FILD(
-                    phi_used, theta_used, machine=machine,
-                    decimals=self.remap_dat['options']['decimals']
-                )
-                smap_folder = self.remap_dat['options']['smap_folder']
-                full_name_smap = os.path.join(smap_folder, name__smap)
-                # Load the map:
-                smap = ssmap.StrikeMap(0, full_name_smap)
-                # Calculate pixel coordinates
-                smap.calculate_pixel_coordinates(
-                    self.remap_dat['options']['calibration']
-                )
-                # Plot the map
-                smap.plot_pix(ax=ax, marker_params=smap_marker_params,
-                              line_params=smap_line_params)
-                if verbose:
-                    theta_calculated = self.remap_dat['theta'][frame_index]
-                    phi_calculated = self.remap_dat['phi'][frame_index]
-                    print('Calculated theta: ', theta_calculated)
-                    print('Used theta: ', theta_used)
-                    print('Calculated phi: ', phi_calculated)
-                    print('Used phi: ', phi_used)
+            # Get the full name of the file
+            name__smap = ssFILDSIM.guess_strike_map_name_FILD(
+                phi_used, theta_used, machine=machine,
+                decimals=self.remap_dat['options']['decimals']
+            )
+            smap_folder = self.remap_dat['options']['smap_folder']
+            full_name_smap = os.path.join(smap_folder, name__smap)
+            # Load the map:
+            smap = ssmap.StrikeMap(0, full_name_smap)
+            # Calculate pixel coordinates
+            smap.calculate_pixel_coordinates(
+                self.remap_dat['options']['calibration']
+            )
+            # Plot the map
+            smap.plot_pix(ax=ax, marker_params=smap_marker_params,
+                          line_params=smap_line_params)
+            if verbose:
+                theta_calculated = self.remap_dat['theta'][frame_index]
+                phi_calculated = self.remap_dat['phi'][frame_index]
+                print('Calculated theta: ', theta_calculated)
+                print('Used theta: ', theta_used)
+                print('Calculated phi: ', phi_calculated)
+                print('Used phi: ', phi_used)
         # Set 'original' limits:
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
         # Arrange the axes:
         if created:
+            fig.show()
+            plt.tight_layout()
+        return ax
+
+    def plot_frame_remap(self, frame_number=None, ax=None, ccmap=None,
+                         t: float = None, vmin: float = 0, vmax: float = None,
+                         xlim: float = None, ylim: float = None,
+                         scale: str = 'linear',
+                         interpolation: str = 'bicubic',
+                         cbar_tick_format: str = '%.1E'):
+        """
+        Plot a frame from the remaped frames
+
+        @param frame_number: Number of the frame to plot, relative to the video
+            file, optional
+        @param ax: Axes where to plot, is none, just a new axes will be created
+        @param ccmap: colormap to be used, if none, Gamma_II from IDL
+        @param vmin: Minimum value for the color scale to plot
+        @param vmax: Maximum value for the color scale to plot
+        @param xlim: tuple with the x-axis limits
+        @param ylim: tuple with the y-axis limits
+        @param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
+        @param interpolation: interpolation method for plt.imshow
+        @param cbar_tick_format: format for the colorbar ticks
+
+        @return ax: the axes where the frame has been drawn
+        """
+        # --- Check inputs:
+        if (frame_number is not None) and (t is not None):
+            raise Exception('Do not give frame number and time!')
+        if (frame_number is None) and (t is None):
+            raise Exception("Didn't you want to plot something?")
+        # --- Prepare the scale:
+        if scale == 'sqrt':
+            extra_options = {'norm': colors.PowerNorm(0.5)}
+        elif scale == 'log':
+            extra_options = {'norm': colors.LogNorm(0.5)}
+        else:
+            extra_options = {}
+        # --- Load the frames
+        # If we use the frame number explicitly
+        if frame_number is not None:
+            if len(self.remap_dat['nframes']) == 1:
+                if self.remap_dat['nframes'] == frame_number:
+                    dummy = self.remap_dat['frames'].squeeze()
+                    tf = float(self.remap_dat['tframes'])
+                    frame_index = 0
+                else:
+                    raise Exception('Frame not loaded')
+            else:
+                frame_index = self.remap_dat['nframes'] == frame_number
+                if np.sum(frame_index) == 0:
+                    raise Exception('Frame not loaded')
+                dummy = self.remap_dat['frames'][:, :, frame_index].squeeze()
+                tf = float(self.remap_dat['tframes'][frame_index])
+        # If we give the time:
+        if t is not None:
+            frame_index = np.argmin(np.abs(self.remap_dat['tframes'] - t))
+            tf = self.remap_dat['tframes'][frame_index]
+            dummy = self.remap_dat['frames'][:, :, frame_index].squeeze()
+        # --- Check the colormap
+        if ccmap is None:
+            cmap = ssplt.Gamma_II()
+        else:
+            cmap = ccmap
+        # --- Check the axes to plot
+        if ax is None:
+            fig, ax = plt.subplots()
+            created = True
+        else:
+            created = False
+        if vmax is None:
+            vmax = dummy.max()
+        img = ax.imshow(dummy.T, extent=[self.remap_dat['xaxis'][0],
+                                         self.remap_dat['xaxis'][-1],
+                                         self.remap_dat['yaxis'][0],
+                                         self.remap_dat['yaxis'][-1]],
+                        origin='lower', cmap=cmap, vmin=vmin, vmax=vmax,
+                        interpolation=interpolation, aspect='auto',
+                        **extra_options)
+        # --- trick to make the colorbar of the correct size
+        # cax = fig.add_axes([ax.get_position().x1 + 0.01,
+        #                     ax.get_position().y0, 0.02,
+        #                     ax.get_position().height])
+        if xlim is not None:
+            ax.set_xlim(xlim)
+        if ylim is not None:
+            ax.set_ylim(ylim)
+        im_ratio = dummy.shape[0]/dummy.shape[1]
+        plt.colorbar(img, label='Counts', fraction=0.042*im_ratio, pad=0.04,
+                     format=cbar_tick_format)
+        ax.set_title('t = ' + str(round(tf, 4)) + (' s'))
+        # Save axis limits, if not, if the strike map is larger than
+        # the frame (FILD4,5) the output plot will be horrible
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+        if created:
+            ax.set_xlabel('$\\lambda \\ [\\degree]$')
+            ax.set_ylabel('$r_l$ [cm]')
             fig.show()
             plt.tight_layout()
         return ax
@@ -638,6 +736,8 @@ class FILDVideo(BVO):
         reading the camera frames (by the function self.read_frames) if it is
         a value [0,1] it willrecalculate this number
         @param ax: axis where to plot, if none, a new figure will pop-up
+
+        @return ax: axis where the data was plotted
         """
         # Default plot parameters:
         ax_options = {
@@ -677,7 +777,7 @@ class FILDVideo(BVO):
         ax.plot([x[0], x[-1]], [npixels, npixels], '--',
                 **line_options)
         ax = ssplt.axis_beauty(ax, ax_options)
-        return
+        return ax
 
     def export_remap(self, name=None):
         """
