@@ -18,9 +18,8 @@ pa = Path()
 # -----------------------------------------------------------------------------
 # --- Electron density and temperature profiles.
 # -----------------------------------------------------------------------------
-def get_ne(shotnumber: int, time: float=None, exp: str = 'AUGD',
-                   diag: str = 'IDA', edition: int = 0, sf=None):
-
+def get_ne(shotnumber: int, time: float = None, exp: str = 'AUGD',
+           diag: str = 'IDA', edition: int = 0, sf=None):
     """
     Wrapper to the different diagnostics to read the electron density profile.
     It supports IDA and PED profiles.
@@ -36,7 +35,6 @@ def get_ne(shotnumber: int, time: float=None, exp: str = 'AUGD',
     @return output: a dictionary containing the electron density evaluated
     in the input times and the corresponding rhopol base.
     """
-
     if diag not in ('IDA', 'PED'):
         raise Exception('Diagnostic non supported!')
 
@@ -48,7 +46,7 @@ def get_ne(shotnumber: int, time: float=None, exp: str = 'AUGD',
                           edition=edition, sf=sf)
 
 
-def get_ne_ped(shotnumber: int, time: float = None, exp: str ='AUGD',
+def get_ne_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
                edition: int = 0, sf=None):
     """
     Reads from the PED shotfile the electron density profile.
@@ -61,9 +59,7 @@ def get_ne_ped(shotnumber: int, time: float = None, exp: str ='AUGD',
     @param edition: edition of the shotfile.
     @param sf: shotfile opened for the PED.
     """
-
     # --- Opening the shotfile.
-
     sf_was_none = False
     if sf is None:
         sf_was_none = True
