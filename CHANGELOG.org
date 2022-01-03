@@ -3,6 +3,16 @@ This verison was not released, this is just a warning about things which will be
 - The Strikes object of the FILDSIM code, use the Common object instead, already available and working better
 - StrikeMap.plot_strike_points() will be deleted. Please use StrikeMap.strike_points.scatter() instead, much better, with more flexibility and options
 
+** 0.7.2 Logbook:
+*** LibDat:
+- A new FILD class was created. This class read directly the FILD logbook (excel on the web) and get the FILD position and orientation for that shot
+- CalibrationDatabase.txt was moved into a folder AUG in the FILD folder inside the Calibration folder of the Data folder. This was made to accommodate future calibrations for other tokamaks
+- Default_positions.txt was added in the FILD calibraation folder. The code will use the positions and orientation of FILD present there if the logbook is not accesible or if that shot is not found on it
+- FILDPosition from the DiagParam library was deprecated, to obtain the FILD position, the new FILD class should be used
+- load_FILD4_trajectory and plot_FILD4_trajectory where moved to the new FILD library inside LibDataAUG
+- load_FILD4_trajectory makes now the conversion between insertion and real R and z. Notice that this is based on CAD and can be non-precise. +- 1 cm can be expected due to failures in the CAD
+- get magnetic field was updated, now sfutils package is used, this new library is faster and written for python3
+
 ** 0.7.1 Uncertainties in fits and angles in execution:
 *** LibMap:
 - The fitting routines now return also the uncertainties
