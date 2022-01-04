@@ -41,7 +41,8 @@ nml_options = {
         'Zout': 1.0,        # Charge after the ionization in the foil
         'IpBt': -1,        # Sign of toroidal current vs field (for pitch)
         'flag_efield_on': False,  # Add or not electric field
-        'save_collimator_strike_points': False  # Save collimator points
+        'save_collimator_strike_points': False,  # Save collimator points,
+        'backtrace': False  # Flag to backtrace the orbits
     },
     'inputParams': {
          'nGyro': 500,
