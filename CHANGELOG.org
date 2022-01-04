@@ -11,7 +11,7 @@ This verison was not released, this is just a warning about things which will be
 - FILDPosition from the DiagParam library was deprecated, to obtain the FILD position, the new FILD class should be used
 - load_FILD4_trajectory and plot_FILD4_trajectory where moved to the new FILD library inside LibDataAUG
 - load_FILD4_trajectory makes now the conversion between insertion and real R and z. Notice that this is based on CAD and can be non-precise. +- 1 cm can be expected due to failures in the CAD
-- get magnetic field was updated, now sfutils package is used, this new library is faster and written for python3
+
 
 ** 0.7.1 Uncertainties in fits and angles in execution:
 *** LibMap:
