@@ -1,4 +1,4 @@
-"""Routines to interact with FILDSIM"""
+"""Routines to interact with FILDSIM."""
 import os
 import warnings
 import numpy as np
