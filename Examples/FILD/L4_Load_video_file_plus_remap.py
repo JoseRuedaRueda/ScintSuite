@@ -2,15 +2,13 @@
 Remap video from FILD cameras
 
 Lesson 4 from the FILD experimental analysis. Video files will be loaded,
-possibility to subtract noise and timetraces remap of the whole video
+possibility to subtract noise
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.3.0 Before running this script, please do:
-plt.show(), if not, bug due to spyder 4.0 may arise
+Note; Written for version 0.3.0. Checked for version 0.7.2
 """
 import Lib as ss
-import matplotlib.pyplot as plt
 from time import time
 # -----------------------------------------------------------------------------
 # --- Section 0: Settings
@@ -18,16 +16,17 @@ from time import time
 # - General settings
 shot = 39612
 diag_ID = 1  # 6 for rFILD
-t1 = 0.3     # Initial time to be loaded, [s]
+t1 = 0.2     # Initial time to be loaded, [s]
 t2 = 1.0     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
 # - Noise subtraction settings:
 subtract_noise = True   # Flag to apply noise subtraction
-tn1 = 0.5     # Initial time to average the frames for noise subtraction [s]
-tn2 = 0.6     # Final time to average the frames for noise subtraction [s]
-flag_copy = False  # If true, a copy of the frame will be done
+tn1 = 0.20     # Initial time to average the frames for noise subtraction [s]
+tn2 = 0.23     # Final time to average the frames for noise subtraction [s]
+flag_copy = False  # If true, a copy of the frames will be done while
+#                  # substracting the noise
 
 # - Filter options:
 apply_filter = True  # Flag to apply filter to the frames
@@ -40,15 +39,10 @@ options_filter = {
 # options_filter = {
 #     'sigma': 1        # sigma of the gaussian for the convolution (in pixels)
 # }
-# - TimeTrace options:
-calculate_TT = False  # Wheter to calculate or not the TT
-t0 = 0.4        # time points to define the ROI
-save_TT = True   # Export the TT and the ROI used
-plt_TT = True  # Plot the TT
 
 # - Remapping options:
 calibration_database = ss.paths.ScintSuite \
-    + '/Data/Calibrations/FILD/calibration_database.txt'
+    + '/Data/Calibrations/FILD/AUG/calibration_database.txt'
 camera = ss.dat.FILD[diag_ID-1]['camera']
 save_remap = False
 par = {
@@ -63,11 +57,6 @@ par = {
     'rprofmax': 4.0,    # Maximum gyroradius for the pitch profile calculation
     'pprofmin': 20.0,    # Minimum pitch for the gyroradius profile calculation
     'pprofmax': 90.0,    # Maximum pitch for the gyroradius profile calculation
-    # Position of the FILD
-    'rfild': 2.211,   # 2.196 for shot 32326, 2.186 for shot 32312
-    'zfild': ss.dat.FILD[diag_ID-1]['z'],
-    'alpha': ss.dat.FILD[diag_ID-1]['alpha'],
-    'beta': ss.dat.FILD[diag_ID-1]['beta'],
     # method for the interpolation
     'method': 2,  # 2 Spline, 1 Linear
     'decimals': 1}  # Precision for the strike map (1 is more than enough)
@@ -98,29 +87,14 @@ if subtract_noise:
 if apply_filter:
     vid.filter_frames(kind_of_filter, options_filter)
 # -----------------------------------------------------------------------------
-# --- Section 3: Calculate the TT
+# --- Section 3: Get FILD position
 # -----------------------------------------------------------------------------
-if calculate_TT:
-    # - Plot the frame
-    ax_ref = vid.plot_frame(t=t0)
-    fig_ref = plt.gcf()
-    # - Define roi
-    # Note: if you want the figure to re-appear after the selection of the roi,
-    # call create roi with the option re_display=True
-    fig_ref, roi = ss.tt.create_roi(fig_ref, re_display=True)
-    # Create the mask
-    mask = roi.get_mask(vid.exp_dat['frames'][:, :, 0].squeeze())
-    # - Calculate the TimeTrace
-    time_trace = ss.tt.TimeTrace(vid, mask)
-    # - Save the timetraces and roi
-    if save_TT:
-        print('Choose the name for the TT file (select .txt!!!): ')
-        time_trace.export_to_ascii()
-        print('Choose the name for the mask file: ')
-        ss.io.save_mask(mask)
-    # - Plot if needed
-    if plt_TT:
-        time_trace.plot_single()
+FILD = ss.dat.FILD_logbook(shot, diag_ID)
+# Add FILD positions to the remap options:
+par['rfild'] = FILD.position['R']
+par['zfild'] = FILD.position['z']
+par['alpha'] = FILD.orientation['alpha']
+par['beta'] = FILD.orientation['beta']
 
 # -----------------------------------------------------------------------------
 # --- Section 4: Remap
