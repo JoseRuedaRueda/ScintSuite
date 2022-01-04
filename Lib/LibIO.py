@@ -233,8 +233,30 @@ def save_mask(mask, filename=None, nframe=None, shot=None, frame=None):
         m[:] = mask
         m.units = ' '
         m.long_name = 'Binary mask'
-
-
+        
+        
+def load_mask(filename):
+    """
+    Load a binary mask to use in timetraces, remaps or VRT images
+    
+    Javier Hidalgo-Salaverri: jhsalaverri@us.es
+    """
+    frame = None; mask = None; nx = None; ny = None; shot = None;
+    file = netcdf.NetCDFFile(filename,'r')
+    if 'frame' in file.variables.keys():
+        frame = file.variables['frame'][:] 
+    if 'mask' in file.variables.keys():
+        mask = file.variables['mask'][:]
+    if 'nx' in file.variables.keys():
+        nx = file.variables['nx'][:]
+    if 'ny' in file.variables.keys():
+        ny = file.variables['ny'][:]
+    if 'shot' in file.variables.keys():
+        shot = file.variables['shot'][:]
+    
+    return {'frame':frame, 'mask': mask, 'nx': nx, 'ny': ny, 'shot': shot}
+    
+    
 # -----------------------------------------------------------------------------
 # --- TimeTraces
 # -----------------------------------------------------------------------------
