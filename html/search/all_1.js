@@ -1,0 +1,25 @@
+var searchData=
+[
+  ['a1_2',['a1',['../namespaceExampleRemapFrame.html#ad3db7f2265b3643c2d811f1f55ee5cde',1,'ExampleRemapFrame']]],
+  ['alpha_3',['alpha',['../namespaceExampleRemapShot.html#a26793b5706ba4302eb96ecdf0affcb97',1,'ExampleRemapShot']]],
+  ['append_5fto_5fdatabase_4',['append_to_database',['../classLib_1_1LibMap_1_1CalibrationDatabase.html#a85419f12468378e2a54271acce14cc07',1,'Lib::LibMap::CalibrationDatabase']]],
+  ['avg_5fincident_5fangle_5',['avg_incident_angle',['../classLib_1_1LibMap_1_1StrikeMap.html#af79e2bc36ca2f0fe0835fcc478ee3451',1,'Lib::LibMap::StrikeMap']]],
+  ['avg_5fini_5fgyrophase_6',['avg_ini_gyrophase',['../classLib_1_1LibMap_1_1StrikeMap.html#abdc5a8f5d3a50d7f75734351847005df',1,'Lib::LibMap::StrikeMap']]],
+  ['ax_7',['ax',['../namespaceExampleRemapFrame.html#adaf8e00b39edb7fa981412c7bad25a73',1,'ExampleRemapFrame.ax()'],['../namespaceExampleRemapShot.html#a95ddf9ff621e227ca9dca98d80177760',1,'ExampleRemapShot.ax()']]],
+  ['ax1_8',['ax1',['../namespaceExampleRemapFrame.html#afcb90f58a55cf81d1625e0f77ac03cbc',1,'ExampleRemapFrame']]],
+  ['ax2_9',['ax2',['../namespaceExampleRemapFrame.html#a34873861e13ab14ce2c95df99a2030f5',1,'ExampleRemapFrame']]],
+  ['ax_5ffft_10',['ax_fft',['../namespaceExampleCalculateTimeTrace.html#aeb114017ef4195d3cb9bfcbab64d9866',1,'ExampleCalculateTimeTrace']]],
+  ['ax_5fref_11',['ax_ref',['../namespaceExampleCalculateTimeTrace.html#a1c6f4d958ffa0f36cc9b7ff887582d6a',1,'ExampleCalculateTimeTrace.ax_ref()'],['../namespaceExampleRemapFrame.html#a3f40467bd7ff1d701d7e096635cb8c87',1,'ExampleRemapFrame.ax_ref()']]],
+  ['ax_5fremap_12',['ax_remap',['../namespaceExampleRemapFrame.html#aff377042cf1ae1e48b99e325830696c1',1,'ExampleRemapFrame']]],
+  ['ax_5fspec_13',['ax_spec',['../namespaceExampleCalculateTimeTrace.html#a3f7ce16896d7a8a84e6ba135cb77dce0',1,'ExampleCalculateTimeTrace']]],
+  ['ax_5ftt1_14',['ax_tt1',['../namespaceExampleCalculateTimeTrace.html#a9edb28c686122cdb9de9dd9d35559e49',1,'ExampleCalculateTimeTrace']]],
+  ['ax_5ftt2_15',['ax_tt2',['../namespaceExampleCalculateTimeTrace.html#aefdfa34079db40d3a907139f9f2fd9c9',1,'ExampleCalculateTimeTrace']]],
+  ['ax_5ftt3_16',['ax_tt3',['../namespaceExampleCalculateTimeTrace.html#a2516c7679b811bb92f8b6fcf8bb34600',1,'ExampleCalculateTimeTrace']]],
+  ['axcolor_17',['axcolor',['../namespaceExampleRemapShot.html#a4599ce487e6e8724f64549e4b6131961',1,'ExampleRemapShot']]],
+  ['axis_5fbeauty_18',['axis_beauty',['../namespaceLib_1_1LibPlotting.html#ac1dbb823135787ca6402488969ea2e33',1,'Lib::LibPlotting']]],
+  ['axmax_5fframe_19',['axmax_frame',['../namespaceExampleRemapShot.html#a80683571d5a2db276d1e35d93e6b482b',1,'ExampleRemapShot']]],
+  ['axmax_5frep_20',['axmax_rep',['../namespaceExampleRemapShot.html#a5b621b14a889b1f38c1413e8f42c23a1',1,'ExampleRemapShot']]],
+  ['axmin_5fframe_21',['axmin_frame',['../namespaceExampleRemapShot.html#adcad53dbd4c3e36fe7e8d269f60df32b',1,'ExampleRemapShot']]],
+  ['axmin_5frep_22',['axmin_rep',['../namespaceExampleRemapShot.html#a903f6441fe1895b48173437c12a73d43',1,'ExampleRemapShot']]],
+  ['axtime_23',['axtime',['../namespaceExampleRemapShot.html#abd9b1cf43ac0a6094c57708e82f473fa',1,'ExampleRemapShot']]]
+];
