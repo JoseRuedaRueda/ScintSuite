@@ -7,6 +7,8 @@ possibility to subtract noise
 jose Rueda: jrrueda@us.es
 
 Note; Written for version 0.1.8
+
+You should run paths_suite.py before runing this example.
 """
 import Lib as ss
 # -----------------------------------------------------------------------------
