@@ -47,7 +47,10 @@ def transform_to_pixel(x, y, grid_param):
 # ------------------------------------------------------------------------------
 # --- Fitting functions
 # ------------------------------------------------------------------------------
-def _fit_to_model_(data, bins=20, model='Gauss', normalize=True):
+def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
+                   normalize: bool = True,
+                   confidence_level: float = 0.9544997,
+                   uncertainties: bool = True):
     """
     Make histogram of input data and fit to a model.
 
@@ -55,12 +58,27 @@ def _fit_to_model_(data, bins=20, model='Gauss', normalize=True):
 
     @param bins: Can be the desired number of bins or the edges
     @param model: 'Gauss' Pure Gaussian, 'sGauss' Screw Gaussian
+    @param normalize: flag to normalise the number of counts in the bins
+        between 0, 1; to improve fit performance
+    @param confidence_level: confidence level for the uncertainty determination
+    @param uncertainties: flag to calcualte the uncertainties of the fit
+
+    @return par: Dictionary containing the fit parameters
+    @return results: the lmfit model object with the results
+    @return normalization: The used normalization for the histogram
+    @return unc_output: The width of the confidence interval. Notice that this
+        is half the average of the upper and lower limits, so symmetric
+        confidence interval is assumed. If you need non symstric conficende
+        intervals you would need to run conf_interval of the fit on your own
     """
     # --- Make the histogram of the data
     hist, edges = np.histogram(data, bins=bins)
     hist = hist.astype(np.float64)
     if normalize:
-        hist /= hist.max()  # Normalise to  have the data between 0 and 1
+        normalization = hist.max()
+        hist /= normalization  # Normalise to  have the data between 0 and 1
+    else:
+        normalization = 1.0
     cent = 0.5 * (edges[1:] + edges[:-1])
     # --- Make the fit
     if model == 'Gauss':
@@ -78,8 +96,20 @@ def _fit_to_model_(data, bins=20, model='Gauss', normalize=True):
                'center': result.params['center'].value,
                'sigma': result.params['sigma'].value,
                'gamma': result.params['gamma'].value}
+    # --- Get the uncertainty
+    if uncertainties:
+        uncertainty = lmfit.conf_interval(result, result,
+                                          sigmas=[confidence_level])
+        unc_output = par.copy()
+        for key in unc_output.keys():
+            unc_output[key] =\
+                0.5 * abs(uncertainty[key][0][1] - uncertainty[key][2][1])
+    else:
+        unc_output = par.copy()
+        for key in unc_output.keys():
+            unc_output[key] = np.nan
 
-    return par, result
+    return par, result, normalization, unc_output
 
 
 # -----------------------------------------------------------------------------
@@ -193,7 +223,7 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
                 'Counts                        '
             length = len(gyr)
             np.savetxt(name, np.hstack((gyr.reshape(length, 1),
-                       profile.reshape(length, 1))),
+                                        profile.reshape(length, 1))),
                        delimiter='   ,   ', header=line)
         else:
             raise Exception('You want to export but no gyr axis was given')
@@ -265,7 +295,7 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
                 'Counts                        '
             length = len(pitch)
             np.savetxt(name, np.hstack((pitch.reshape(length, 1),
-                       profile.reshape(length, 1))),
+                                        profile.reshape(length, 1))),
                        delimiter='   ,   ', header=line)
         else:
             raise Exception('You want to export but no pitch was given')

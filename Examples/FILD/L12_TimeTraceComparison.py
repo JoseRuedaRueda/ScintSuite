@@ -33,7 +33,7 @@ for s in shot:
                                      ss.dat.FILD[diag_ID-1]['extension'])
 
     # - open the video file:
-    vid = ss.vid.Video(filename, diag_ID=diag_ID)
+    vid = ss.vid.FILDVideo(filename, diag_ID=diag_ID)
     # - read the frames:
     print('Reading camera frames: ')
     vid.read_frame(t1=0.0, t2=10.0)

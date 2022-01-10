@@ -1,5 +1,5 @@
 """
-Remap video from FILD cameras
+Remap video from FILD cameras using just one strike map
 
 Lesson 6 from the FILD experimental analysis. Video files will be loaded,
 possibility to subtract noise and timetraces remap of the whole video, but
@@ -8,8 +8,7 @@ remapping will be employed
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.5.3. Before running this script, please do:
-plt.show(), if not, bug due to spyder 4.0 may arise
+Note: Written for version 0.5.3. Revised for version 0.7.2
 """
 import Lib as ss
 import matplotlib.pyplot as plt
@@ -30,19 +29,11 @@ subtract_noise = True   # Flag to apply noise subtraction
 tn1 = 0.1     # Initial time to average the frames for noise subtraction [s]
 tn2 = 0.15     # Final time to average the frames for noise subtraction [s]
 
-# - TimeTrace options:
-calculate_TT = False  # Whether to calculate or not the TT
-t0 = 2.5         # time points to define the ROI
-save_TT = True   # Export the TT and the ROI used
-plt_TT = True  # Plot the TT
-
 # - Remapping options:
 calibration_database = ss.paths.ScintSuite \
     + '/Data/Calibrations/FILD/calibration_database.txt'
 Smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/39612_1p99s_strike_map.dat'
 camera = ss.dat.FILD[diag_ID-1]['camera']
-insertion = 1820  # In manipulator units (except for FILD4 that needs m)
-R, z = ss.dat.FILD_position(insertion, fild_number=diag_ID)
 
 save_remap = False
 par = {
@@ -57,11 +48,6 @@ par = {
     'rprofmax': 4.0,    # Maximum gyroradius for the pitch profile calculation
     'pprofmin': 20.0,    # Minimum pitch for the gyroradius profile calculation
     'pprofmax': 90.0,    # Maximum pitch for the gyroradius profile calculation
-    # Position of the FILD
-    'rfild': R,
-    'zfild': z,
-    'alpha': ss.dat.FILD[diag_ID-1]['alpha'],
-    'beta': ss.dat.FILD[diag_ID-1]['beta'],
     # methods for the interpolation
     'method': 2,    # 2 Spline, 1 Linear (smap interpolation)
     'decimals': 1,  # Precision for the strike map (1 is more than enough)
@@ -78,7 +64,7 @@ filename = ss.vid.guess_filename(shot, ss.dat.FILD[diag_ID-1]['path'],
                                  ss.dat.FILD[diag_ID-1]['extension'])
 
 # - open the video file:
-vid = ss.vid.Video(filename, diag_ID=diag_ID)
+vid = ss.vid.FILDVideo(filename, diag_ID=diag_ID)
 # - read the frames:
 tdummy = time()
 print('Reading camera frames: ', shot, '...')
@@ -91,30 +77,14 @@ if subtract_noise:
     vid.subtract_noise(t1=tn1, t2=tn2)
 
 # -----------------------------------------------------------------------------
-# --- Section 3: Calculate the TT
+# --- Section 3: Read FILD logbook
 # -----------------------------------------------------------------------------
-if calculate_TT:
-    # - Plot the frame
-    ax_ref = vid.plot_frame(t=t0)
-    fig_ref = plt.gcf()
-    # - Define roi
-    # Note: if you want the figure to re-appear after the selection of the roi,
-    # call create roi with the option re_display=Ture
-    fig_ref, roi = ss.tt.create_roi(fig_ref, re_display=True)
-    # Create the mask
-    mask = roi.get_mask(vid.exp_dat['frames'][:, :, 0].squeeze())
-    # - Calculate the TimeTrace
-    time_trace = ss.tt.TimeTrace(vid, mask)
-    # - Save the timetraces and roi
-    if save_TT:
-        print('Choose the name for the TT file (select .txt!!!): ')
-        time_trace.export_to_ascii()
-        print('Choose the name for the mask file: ')
-        ss.io.save_mask(mask)
-    # - Plot if needed
-    if plt_TT:
-        time_trace.plot_single()
-
+FILD = ss.dat.FILD_logbook(shot, diag_ID)
+# Add FILD positions to the remap options:
+par['rfild'] = FILD.position['R']
+par['zfild'] = FILD.position['z']
+par['alpha'] = FILD.orientation['alpha']
+par['beta'] = FILD.orientation['beta']
 # -----------------------------------------------------------------------------
 # --- Section 4: Load the database
 # -----------------------------------------------------------------------------
