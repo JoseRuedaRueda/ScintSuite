@@ -785,7 +785,7 @@ class fields:
         #     - math.sin(t) * u3
         dir = math.sin(p) * u1 + math.cos(p)\
             * (math.cos(t) * u2 - math.sin(t) * u3)
-        F = -1.0 * field_mod * dir
+        F = IpBt_sign * field_mod * dir
         if verbose:
             print('Value of the field is: ', F)
         # --- Store the field

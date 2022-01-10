@@ -1,11 +1,15 @@
 """
-Lecture 1 of the examples to run the SINPA code: Mapping
+Lecture 2 of the examples to run the SINPA code: FILDSIM simulation
 
 Jose Rueda Rueda: jrrueda@us.es
 
 Done to explain how to run a SINPA simulation
 
-Created for version 6.0.0 of the Suite and version 0.0 of SINPA
+Created for version 0.7.3 of the Suite and version 0.1 of SINPA
+
+Note: All saving options, orbits, collimator impacts etc are on, so the code
+run will be slow, don't be afraid, disconnect the saving of the orbits and
+collimator strike points and you will see the nice speed
 """
 import os
 import numpy as np
@@ -17,21 +21,21 @@ paths = Path(machine)
 # -----------------------------------------------------------------------------
 # --- Settings block
 # -----------------------------------------------------------------------------
-nml_options = {
-    'config':  {            # General parameters
-        'runid': 'Aligned',
-        'geomID': 'FILD1_FILDSIM',
+nml_options = {   # Se the PDF documentation for a complete desription of these
+    'config':  {  # parameters
+        'runid': 'Example',
+        'geomID': 'FILD1',
         'FILDSIMmode': True,
         'nGeomElements': 2,
         'nxi': 7,
         'nGyroradius': 7,
-        'nMap': 12000,
+        'nMap': 10000,
         'mapping': True,
         'signal': False,
         'resampling': False,
         'nResampling': 4,
-        'saveOrbits': False,
-        'saveRatio': 0.1,
+        'saveOrbits': True,
+        'saveRatio': 0.01,
         'saveOrbitLongMode': False,
         'SINPA_dir': paths.SINPA,
         'FIDASIMfolder': '',
@@ -41,11 +45,11 @@ nml_options = {
         'Zout': 1.0,        # Charge after the ionization in the foil
         'IpBt': -1,        # Sign of toroidal current vs field (for pitch)
         'flag_efield_on': False,  # Add or not electric field
-        'save_collimator_strike_points': False,  # Save collimator points
+        'save_collimator_strike_points': True,  # Save collimator points
         'backtrace': False  # Flag to backtrace the orbits
     },
     'inputParams': {
-         'nGyro': 500,
+         'nGyro': 350,
          'minAngle': -2.0,
          'dAngle': 1.0,
          'XI': [80., 70., 60., 50., 40., 30., 20.],
@@ -53,6 +57,13 @@ nml_options = {
          'maxT': 0.0000005
     },
 }
+# --- magnetic field definition:
+# Option 1: as FILDSIM
+use_opt1 = True
+theta = 9.0
+phi = 9.0
+# Option 2: directly a field in caterian coordinates
+direction = [-0.15643447,  -0.97552826, 0.1545085]  # Arbitrary field
 
 # -----------------------------------------------------------------------------
 # --- Section 0: Create the directories
@@ -71,12 +82,20 @@ ss.sinpa.execution.write_namelist(nml_options)
 # -----------------------------------------------------------------------------
 # --- Section 2: Prepare the magnetic field
 # -----------------------------------------------------------------------------
-# Get the direction of the field
-direction = [-0.15643447,  -0.97552826, 0.1545085]
 # Get the field
-field = ss.sinpa.fieldObject()
-field.createHomogeneousField(direction, field='B')
-# field.createFromSingleB(direction, Rmin=0.01, Rmax=25.0, zmin=-10.0, zmax=10.0)
+field = ss.simcom.Fields()
+if use_opt1:
+    # Load the geometry
+    Geometry = ss.simcom.Geometry(nml_options['config']['geomID'],
+                                  code='SINPA')
+    u1 = np.array(Geometry.ExtraGeometryParams['u1'])
+    u2 = np.array(Geometry.ExtraGeometryParams['u2'])
+    u3 = np.array(Geometry.ExtraGeometryParams['u3'])
+    # Get the field
+    field.createHomogeneousFieldThetaPhi(theta, phi, field='B',
+                                         u1=u1, u2=u2, u3=u3)
+else:
+    field.createHomogeneousField(direction, field='B')
 # Write the field
 fieldFileName = os.path.join(inputsDir, 'field.bin')
 fid = open(fieldFileName, 'wb')
