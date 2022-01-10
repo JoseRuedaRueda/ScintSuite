@@ -259,6 +259,7 @@ class StrikeMap:
         if ax is None:
             fig, ax = plt.subplots()
         # Draw the line of constant Gyroradius (energy). 'Horizontal'
+        calculated_delta = False
         for i in range(self.ngyr):
             flags = self.gyroradius == self.unique_gyroradius[i]
             ax.plot(self.y[flags] * factor, self.z[flags] * factor,
@@ -267,7 +268,11 @@ class StrikeMap:
             # does not get messy
             if i == 1:
                 delta = abs(self.y[flags][1] - self.y[flags][0]) * factor
+                calculated_delta = True
             if (i % 2 == 0) and labels:  # add gyro radius labels
+                if not calculated_delta:
+                    delta = abs(self.y[flags][1] - self.y[flags][0]) * factor
+                    calculated_delta = True
                 # Delta variable just to adust nicelly the distance (as old
                 # fildsim is in cm and new in m)
                 ax.text((self.y[flags]).min() * factor - 0.5 * delta,
@@ -1059,14 +1064,14 @@ class StrikeMap:
         if self.diag == 'FILD':
             if index_gyr is None:
                 # Plot the gyroradius resolution
-                a1 = ax[0].contourf(self.strike_points.header['pitch'],
+                a1 = ax[0].contourf(self.strike_points.header['XI'],
                                     self.strike_points.header['gyroradius'],
                                     self.resolution['Gyroradius']['sigma'],
                                     levels=nlev, cmap=cmap)
                 fig.colorbar(a1, ax=ax[0], label='$\\sigma_r [cm]$')
                 ax[0] = ssplt.axis_beauty(ax[0], ax_options)
                 # plot the pitch resolution
-                a = ax[1].contourf(self.strike_points.header['pitch'],
+                a = ax[1].contourf(self.strike_points.header['XI'],
                                    self.strike_points.header['gyroradius'],
                                    self.resolution['Pitch']['sigma'],
                                    levels=nlev, cmap=cmap)
@@ -1078,11 +1083,11 @@ class StrikeMap:
                     'xlabel': '$\\lambda [\\degree]$',
                     'ylabel': '$\\sigma_l [cm]$'
                 }
-                ax[0].plot(self.strike_points.header['pitch'],
+                ax[0].plot(self.strike_points.header['XI'],
                            self.resolution['Gyroradius']['sigma'][index_gyr, :])
                 ax[0] = ssplt.axis_beauty(ax[0], ax_options)
 
-                ax[1].plot(self.strike_points.header['pitch'],
+                ax[1].plot(self.strike_points.header['XI'],
                            self.resolution['Pitch']['sigma'][index_gyr, :])
                 ax[1] = ssplt.axis_beauty(ax[1], ax_options)
 
@@ -1136,7 +1141,8 @@ class StrikeMap:
                              ax=None, gyr_index=None, pitch_index=None,
                              gyroradius=None, pitch=None,
                              kind_of_plot: str = 'normal',
-                             include_legend: bool = False):
+                             include_legend: bool = False,
+                             XI_index=None):
         """
         Plot the fits done to calculate the resolution
 
@@ -1145,7 +1151,8 @@ class StrikeMap:
         @param ax_param: dictoniary with the axis parameters axis_beauty()
         @param ax: axis where to plot
         @param gyr_index: index, or arrays of indeces, of gyroradius to plot
-        @param pitch_index: index, or arrays of indeces, of gyroradius to plot
+        @param pitch_index: index, or arrays of indeces, of pitches to plot,
+            this is outdated code, please use XI_index instead
         @param gyroradius: gyroradius value of array of then to plot. If
         present, gyr_index will be ignored
         @param pitch: idem to gyroradius bu for the pitch
@@ -1156,16 +1163,17 @@ class StrikeMap:
              (3 sigmas)
             - just_fit: Just a line plot as the fit
         @param include_legend: flag to include a legend
+        @param XI_index: equivalent to pitch_index, but with the new criteria
         """
         # --- Initialise plotting options and axis:
         default_labels = {
             'gyroradius': {
                 'xlabel': 'Gyroradius [cm]',
-                'ylabel': '$\\sigma_r [cm]$'
+                'ylabel': 'Counts [a.u.]'
             },
             'pitch': {
                 'xlabel': 'Pitch [$\\degree$]',
-                'ylabel': '$\\sigma_p [$\\degree$]'
+                'ylabel': 'Counts [a.u.]'
             }
         }
         ax_options = {
@@ -1176,6 +1184,8 @@ class StrikeMap:
         if ax is None:
             fig, ax = plt.subplots()
             created = True
+        if (pitch_index is None) and (XI_index is not None):
+            pitch_index = XI_index
         # --- Localise the values to plot
         if gyroradius is not None:
             # test if it is a number or an array of them
@@ -1186,7 +1196,7 @@ class StrikeMap:
             index_gyr = np.zeros(gyroradius.size)
             for i in range(index_gyr.size):
                 index_gyr[i] = \
-                    np.argmin(np.abs(self.unique_gyroradius - gyroradius[ir]))
+                    np.argmin(np.abs(self.unique_gyroradius - gyroradius[i]))
             print('Found gyroradius: ', self.unique_gyroradius[index_gyr])
         else:
             # test if it is a number or an array of them
@@ -1207,7 +1217,7 @@ class StrikeMap:
             index_pitch = np.zeros(pitch.size)
             for i in range(index_pitch.size):
                 index_pitch[i] = \
-                    np.argmin(np.abs(self.unique_pitch - pitch[ir]))
+                    np.argmin(np.abs(self.unique_pitch - pitch[i]))
             print('Found pitches: ', self.unique_pitch[index_pitch])
         else:
             # test if it is a number or an array of them
@@ -1247,7 +1257,8 @@ class StrikeMap:
                                              )][ir, ip].data,
                                              label='__noname__')
                         # plot the fit as a line
-                        ax.plot(x_fine, y, color=scatter.get_facecolor()[0, :3],
+                        ax.plot(x_fine, y,
+                                color=scatter.get_facecolor()[0, :3],
                                 label=name)
                     elif kind_of_plot.lower() == 'bar':
                         bar = ax.bar(x,
