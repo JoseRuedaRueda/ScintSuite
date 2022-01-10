@@ -16,3 +16,9 @@ run always paths_suite.py before running these examples
   - L8: Example of remap a single frame, compares MC and 'typical' remap
   - L9: Example of how to compare 2 plots from the camera and their remaps, ideal for MMM
   - L10: Tomographic inversion of a frame
+  - L11: Plot the fast channel signals from FILD
+  - L12: Calculate and compare CCD timetraces
+  - L13: Calculate and compare Phanton timetraces (L12 could also be used, but this one is optimised for long files)
+  - L14: Compare FILD timetraces with heating (under development)
+  - L15: Perform a tomographic inversion, but just for the gyroradius (integrate in pitchangle)
+  - L16: Similar to 14, but assume that the timetrace was already calculated

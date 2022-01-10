@@ -5,6 +5,7 @@ Introduced in version 0.6.0
 """
 import os
 import numpy as np
+import warnings
 import Lib.LibPlotting as ssplt
 import matplotlib.pyplot as plt
 from Lib.LibMachine import machine
@@ -30,6 +31,9 @@ class Strikes:
         file, ignoring the SINPA folder structure (and runID)
         @param verbose. flag to print some info in the command line
         """
+        line = 'This object will be deprecated in version 0.8.0.\n'
+        line2 = 'Plase use the Strike Object from the common library'
+        warnings.warn(line + line2)
         # --- Load the strike points
         if file is None:
             name = '_strike_points.dat'
@@ -164,7 +168,7 @@ class Strikes:
                 'longName': 'Y initial position',
                 'shortName': '$y_{i}$',
             }
-            self.header['info']['yi'] = {
+            self.header['info']['zi'] = {
                 'i': 9,  # Column index in the file
                 'units': ' [cm]',  # Units
                 'longName': 'Z initial position',
@@ -378,6 +382,67 @@ class Strikes:
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
 
+    def scatter(self, varx='y', vary='z', gyr_index=None,
+                alpha_index=None, ax=None, ax_params: dict = {},
+                includeW: bool = False):
+        """
+        Scatter plot of two variables of the strike points
+
+        Jose Rueda: jrrueda@us.es
+
+        @param var: variable to plot
+        """
+        # --- Get the index:
+        xcolumn_to_plot = self.header['info'][varx]['i']
+        ycolumn_to_plot = self.header['info'][vary]['i']
+        # --- Default plotting options
+        ax_options = {
+            'grid': 'both',
+            'xlabel': self.header['info'][varx]['shortName']
+            + self.header['info'][varx]['units'],
+            'ylabel': self.header['info'][vary]['shortName']
+            + self.header['info'][vary]['units']
+        }
+        ax_options.update(ax_params)
+        # --- Create the axes
+        if ax is None:
+            fig, ax = plt.subplots()
+            created = True
+        else:
+            created = False
+        # --- Plot the markers:
+        nalpha, ngyr = self.header['counters'].shape
+
+        # See which gyroradius / pitch we need
+        if gyr_index is None:  # if None, use all gyroradii
+            index_gyr = range(ngyr)
+        else:
+            # Test if it is a list or array
+            if isinstance(gyr_index, (list, np.ndarray)):
+                index_gyr = gyr_index
+            else:  # it should be just a number
+                index_gyr = np.array([gyr_index])
+        if alpha_index is None:  # if None, use all gyroradii
+            index_alpha = range(nalpha)
+        else:
+            # Test if it is a list or array
+            if isinstance(alpha_index, (list, np.ndarray)):
+                index_alpha = alpha_index
+            else:  # it should be just a number
+                index_alpha = np.array([alpha_index])
+        # Proceed to plot
+        for ig in index_gyr:
+            for ia in index_alpha:
+                if self.header['counters'][ia, ig] > 0:
+                    x = self.data[ia, ig][:, xcolumn_to_plot]
+                    y = self.data[ia, ig][:, ycolumn_to_plot]
+                    w = np.ones(self.header['counters'][ia, ig])
+                    ax.scatter(x, y, w)
+        # axis beauty:
+        if created:
+            ax = ssplt.axis_beauty(ax, ax_options)
+
+
 class Orbits:
     """
     Class to interact with the FILDSIM orbits.
@@ -396,7 +461,8 @@ class Orbits:
         @param orbits_index_file: full path to the orbits_index file, if None,
         the name will be deducedd from the orbits file
             eg. /path/to/runid_example_orbits_index.dat
-        @return orbit: list with orbit trajectories where each tracetory
+
+        create self.data: list with orbit trajectories where each tracetory
                        is given as an array with shape:
                        (number of trajectory points, 3).
                        The second index refers to the x, y and z coordinates
@@ -408,7 +474,9 @@ class Orbits:
         orbits_index_data = np.loadtxt(orbits_index_file)
         orbits_data = np.loadtxt(orbits_file)
 
-        ## Todo check if there are no orbits
+        # Check if there are no orbits
+        if orbits_data.size == 0:
+            raise Exception('No Orbits found in the file')
         if len(orbits_index_data) == 1:
             orbits_index_data = [orbits_index_data]
 
@@ -419,7 +487,7 @@ class Orbits:
 
         self.data = orbits
 
-    def plot(self, per=0.5, ax3D=None, axarr=None, dpi=100,
+    def plot(self, per: float = 0.5, ax3D=None, axarr=None, dpi: int = 100,
              marker_params: dict = {}, line_params: dict = {},
              plot2D: bool = True, plot3D: bool = True):
         '''
@@ -431,8 +499,8 @@ class Orbits:
         @param per: percentaje of orbits to plot
         @param ax3D: 3D axis to plot the orbits, if None, new will be made
         @param axarr: array of axis to plot projections, if None, will be made
-        @param dpi: dpi to render the figures, only used if the axis are created
-        by this function
+        @param dpi: dpi to render the figures, only used if the axis are
+            createdby this function
         @param line_params: Parameters for plot orbit lines,
                             Default: linestyle = 'solid' or color = 'red'
         @param marker_params: Parameters for plot orbit end points,
@@ -448,9 +516,9 @@ class Orbits:
         }
         marker_options.update(marker_params)
         line_options = {
-                        'color': 'red',
-                        'marker': ''
-                        }
+            'color': 'red',
+            'marker': ''
+        }
         line_options.update(line_params)
 
         # --- Open the figure

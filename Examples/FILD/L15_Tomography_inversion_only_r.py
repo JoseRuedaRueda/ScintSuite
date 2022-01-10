@@ -105,7 +105,7 @@ cal = database.get_calibration(shot, ss.dat.FILD[diag_ID-1]['camera'],
 file = ss.vid.guess_filename(shot, ss.dat.FILD[diag_ID-1]['path'],
                              ss.dat.FILD[diag_ID-1]['extension'])
 # initialise the video object:
-cin = ss.vid.Video(file)
+cin = ss.vid.FILDVideo(file)
 # Load the frames we need, it is necesary to load some of them to subtract the
 # noise
 cin.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)

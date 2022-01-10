@@ -1,3 +1,114 @@
+** 0.8.0 Future Version
+This verison was not released, this is just a warning about things which will be deprecated:
+- The Strikes object of the FILDSIM code, use the Common object instead, already available and working better
+- StrikeMap.plot_strike_points() will be deleted. Please use StrikeMap.strike_points.scatter() instead, much better, with more flexibility and options
+
+** 0.7.3 SINPA examples:
+*** Examples:
+- Examples to execute the SINPA code polished and more documented.
+*** Bugs:
+- Solved bugs when several smaps of SINPA where loaded, a dictionary was not been properly copied so problems appeared in the header
+- Solved a bug in the Smap.plot_resolution_fits() routine, due to copy/paste, an index in the loop was ir instead of i
+- Solved a bug in the SINPA init module, geometry module was not loaded properly
+- Solved a small bug in the Smap.plot_resolutions(), the old convention 'pitch' instead of 'XI' was used there
+
+** 0.7.2 Logbook:
+*** LibDat:
+- A new FILD class was created. This class read directly the FILD logbook (excel on the web) and get the FILD position and orientation for that shot
+- CalibrationDatabase.txt was moved into a folder AUG in the FILD folder inside the Calibration folder of the Data folder. This was made to accommodate future calibrations for other tokamaks
+- Default_positions.txt was added in the FILD calibraation folder. The code will use the positions and orientation of FILD present there if the logbook is not accesible or if that shot is not found on it
+- FILDPosition from the DiagParam library was deprecated, to obtain the FILD position, the new FILD class should be used
+- load_FILD4_trajectory and plot_FILD4_trajectory where moved to the new FILD library inside LibDataAUG
+- load_FILD4_trajectory makes now the conversion between insertion and real R and z. Notice that this is based on CAD and can be non-precise. +- 1 cm can be expected due to failures in the CAD
+
+
+** 0.7.1 Uncertainties in fits and angles in execution:
+*** LibMap:
+- The fitting routines now return also the uncertainties
+- 'Gyroradius_uncertainty' and 'Pitch_uncertainty' were added to the StrikeMap.resolution dictionary
+- Strike Map object recognizes which code generated the StrikeMap (thanks to a number in the header which SINPA introduces)
+- 'code' and 'version' attributes were added to the Strike Map object
+- XI, nXI and uniqueXI attributes were added to the FILD StrikeMap object, as a starting point for we merging of INPA and FILD processing
+- The StrikeMap object uses now the new strike points object, common of FILD and SINPA
+*** LibVideoFiles:
+- Included plt_frame_remap() to plot remapped frames
+*** SINPA
+- Added a routine in the SINPA execution library to calculate the FILD orientation following the new criteria
+- Recovered the SINPA geometry library which was eliminated by mistake, the calculate rotation matrix is again there
+- field object from the common library of the simulation codes now includes a method to generate the field for SINPA given theta and phi, the same 2 angles defined in FILDSIM
+*** Bug fixed:
+- Fixed bug if an old version of Shapely was installed
+- Fixed a small bug in the calculation of FILD orientation
+
+** 0.7.0 Common libraries for simulation codes
+*** Equilibrium
+- Included routine to retrieve the flux surface coordinates (R, z).
+*** i-HIBPsim namelists [iHIBPsim/nml.py]
+- Routines to generate generic namelists for the iHIBPsim code [make_namelist]
+- Routines to check consistency of namelists [check_namelist].
+- Routine to check if the files needed for a run of iHIBPsim are available [check_files]
+*** i-HIBPsim execution wrapper [iHIBPsim/execute.py]
+- prepareRun() wrapper to generate a simple run for iHIBPsim.
+- run_ihibpsim() wrapper to run the code properly. No cluster version available.
+*** i-HIBPsim geometry library [iHIBPsim/geom.py]
+- Included particularities of the i-HIBPsim beam model in the library.
+- Routines to generate beam lines, divergencies limits...
+- gaussian_beam class to handle and contain all the data for a i-HIBPsim beam and plot it.
+- geom class contains all the i-HIBPsim geometry: beam, head and scintillator plate and routines to plot it.
+*** i-HIBPsim beam GUI [GUIs/i-HIBP_beam.py]
+- First GUI app for plotting the beam geometry. To be improved with Qt version.
+- GUI has to be run by : "run Examples/Others/ihibp_beam_gui.py"
+*** LibVideo
+- Plotting frames and remaps allows for the possibility of using log scale in the colorbar. Just set scale='log'
+- Improved efficiency of the counting of saturated frames thanks to build in methods
+- flag 'make_copy' from the filter method of the video file was rename to 'flag_copy' to be consistent with the noise subtraction case
+- LibVideo split in individual libraries. The complete library was almost 3k lines of code. Now individual libraries are written for each type of archive
+- BasicVideoObject created. This object is now the parent class for the INPA, FILD and iHIBP videos. IT just contain the skeleton to read frames, filter them and subtract noise (which is common for all diagnostics). In the future, it will include distortion correction
+- FILDVideo object created. Is just the child class of BasicVideoObject with all FILD routines
+*** LibPlotting
+- clean3Daxis() included: It removes the ugly panes that matplotlib puts by default in 3d plots
+- axisEqual3D() set aspect ratio to equal in the 3D plot
+*** Simulation codes
+- A new Geometry library was added, it can read geometries from FILDSIM and SINPA code. It can plot in 3D and 2D, shaded and not shared, apply the rotation and translation to the vertex... read the documentation of the library for full detail
+- A new StrikePoints object was added. Now is it exactly the same for SINPA and FILDSIM codes!. So from the end user point of veiw, post process the data from both codes is equivalent.  Old FILDSIM strike object left there as for compatibility with all users, but is not recommended
+*** Deprecation
+- The object Geometry from the SINPA library was deprecated. The one from the Common library for the simulations codes should be used!
+*** Others
+- Improved comments and documentation
+- The function which read FILDSIM orbits now raise an exception if there were no orbits in the file
+
+** 0.6.5 Interpolators and synthetic signals
+- Changed to RBFInterpolator, which seems to be more stable thatn BivariateSpline (*Scipy 1.7.0 or larger is required now*)
+- Most robust calculation of the synthetic signal for FILD (no bugs for fcol almost zero)
+- Solve a bug in the loading of the strike map. If a StrikePointsFile was passed as argument, the code failed. (Bug introduced in version 0.6.4)
+*** Deprecations
+- p1D() from the plotting library was deprecated
+
+** 0.6.4 New interpolators for SINPA and SMap upgrades
+*** StrikeMap
+- StrikeMap can now be initialize with fild instead of FILD (actually the comparison is lower case, so you can initialize it as FiLd if you are crazy)
+- StrikeMap now is able to load strike points from the new FILDSIM format
+- If there are not strike points loaded, the function StrikeMap.calculate_resolutions will try to load them
+- Plot real updated to show properly the labels if the inputs are in m or cm. Labels are now a bit messy, need a bit more work in future versions
+- Smap.sanity_check_resolutions() was deprecated and eliminated
+- Smap.plot_resolution_fits() released. This is the new and complete way of plotting the fits performed during the resolution calculation
+- Smap.calculate_resolution no longer use predefined indeces but the header object, so it will not be an issue for future changes of strike object files
+- _fit_to_model__() now return also de used normalization
+*** Video
+- Video.subtract_noise() was upgrade, loop was eliminated, now is much faster
+- Video.subtract_noise() now always return the frame used, the flag return_frame was deprecated
+*** IO
+- IO.save_object_pickle() was corrected. Now it does not fail when user click cancel
+*** Others
+- improved comments and documentations
+** 0.6.3 Small improvements
+- line_fit_3D was moved from the INPASIM library to the SideFuncitons one
+- Change in the SINPA.Strike to accommodate the order changes in SINPA (just a couple of index changed in the header)
+
+** 0.6.2 Small improvements
+*** TimeTrace
+- TimeTrace.plot_single() now shows the axis and include a print for the base line correction done
+
 ** 0.6.1
 *** Mapping library
 - plot_resolution allows to plot just the resolution along a given gyroradii, avoiding the 2D contour which is difficult to follow. Check index_gyr new optional variable

@@ -13,13 +13,14 @@ import Lib.LibMap as mapping
 import Lib.SimulationCodes.FILDSIM as fildsim
 import Lib.SimulationCodes.FIDASIM as fidasim
 import Lib.SimulationCodes.SINPA as sinpa
+import Lib.SimulationCodes.Common as simcom
 
 # Reconstructions
 import Lib.LibTomography as tomo
 
 # Load data
 import Lib.LibData as dat
-import Lib.LibVideoFiles as vid
+import Lib.LibVideo as vid
 
 
 import Lib.LibParameters as par

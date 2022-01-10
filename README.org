@@ -15,7 +15,8 @@ Needed packages(Only listed 'non-standard' packages):
     - cycler: To set default plotting color
     - pyfft: To have extra capabilities in the spectrogram calculation.
     - netCDF4: To load and save files from the BEB database
-*Automatic install*: Execute First_Run.py in the machine where you want to run the suite, it should check what is missing in order to run the suite and explain you how to install it (you need to run module load git before if you are in toki)
+    - scipy 1.7.0 or newer, to have the interpolators for the strike points
+
 *** Paths
 There are two files containing the paths and routes for the suite:
 - paths_suite.py: Located in the main directory of the suite. This one just contain the routes pointing to the python packages/files needed by the suite. It shall be run one time before running any routine from the suite as it will says to python where to find what it needs. If you need to add something due to the peculiarities of your system, please do it locally in your bash file or open a issue in gitlab, do not modify this file

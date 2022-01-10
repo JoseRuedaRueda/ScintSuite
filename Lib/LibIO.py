@@ -306,6 +306,9 @@ def save_object_pickle(file, obj):
     ones
     """
     file = check_save_file(file)
+    if file == '':
+        print('You cancelled the export')
+        return
     print('Saving object in: ', file)
     with open(file, 'wb') as f:
         pickle.dump(obj, f, protocol=4)
