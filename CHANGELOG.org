@@ -3,6 +3,15 @@ This verison was not released, this is just a warning about things which will be
 - The Strikes object of the FILDSIM code, use the Common object instead, already available and working better
 - StrikeMap.plot_strike_points() will be deleted. Please use StrikeMap.strike_points.scatter() instead, much better, with more flexibility and options
 
+** 0.7.3 SINPA examples:
+*** Examples:
+- Examples to execute the SINPA code polished and more documented.
+*** Bugs:
+- Solved bugs when several smaps of SINPA where loaded, a dictionary was not been properly copied so problems appeared in the header
+- Solved a bug in the Smap.plot_resolution_fits() routine, due to copy/paste, an index in the loop was ir instead of i
+- Solved a bug in the SINPA init module, geometry module was not loaded properly
+- Solved a small bug in the Smap.plot_resolutions(), the old convention 'pitch' instead of 'XI' was used there
+
 ** 0.7.2 Logbook:
 *** LibDat:
 - A new FILD class was created. This class read directly the FILD logbook (excel on the web) and get the FILD position and orientation for that shot

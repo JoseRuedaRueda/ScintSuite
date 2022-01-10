@@ -409,7 +409,7 @@ class Geometry:
         @param line_params: parameters for the plt.plot function
         @param element_to_plot: kind of plates we want to plot:
             -0: Collimator
-            -1: Ionizers
+            -1: Ionizers (INPA carbon foil)
             -2: Scintillator
         @param plot_pinhole: flag to plot a point on the pinhole or not
         @param referenceSystem: if absolute, the absolute coordinates will be
@@ -453,6 +453,7 @@ class Geometry:
         if created:
             axisEqual3D(ax)
             clean3Daxis(ax)
+            fig.show()
 
     def plot2Dlines(self, line_params: dict = {}, ax=None,
                     ax_params: dict = {},
@@ -517,6 +518,7 @@ class Geometry:
                     [self.ExtraGeometryParams['rpinScint'][2] * factor], 'og')
         if created:
             axis_beauty(ax, ax_options)
+            fig.show()
 
     def plot3Dfilled(self, surface_params: dict = {}, ax=None,
                      element_to_plot=[0, 1, 2], plot_pinhole: bool = True,
@@ -616,4 +618,5 @@ class Geometry:
             ax.set_zlim((zmin - 0.1 * dz) * factor, (zmax + 0.1 * dz) * factor)
             axisEqual3D(ax)
             clean3Daxis(ax)
+            fig.show()
         return ax
