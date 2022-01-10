@@ -11,3 +11,4 @@ Introduced in version 0.6.0
 import Lib.SimulationCodes.SINPA.reading as read
 import Lib.SimulationCodes.SINPA.execution as execution
 from Lib.SimulationCodes.SINPA.Orbits import OrbitClass as orbits
+import Lib.SimulationCodes.SINPA.geometry as geometry
