@@ -192,9 +192,8 @@ class FILD_logbook:
         self.database = dummy['FILD'+str(id)].copy()
         self.database['shot'] = dummy.Shot.Number.values.astype(int)
         if shot not in self.database['shot'].values:
-            warnings.warn('Shot not found in the database, do it manually')
-        else:
-            self.position, self.orientation = self._get_coordinates()
+            warnings.warn('Shot not found in the database')
+        self.position, self.orientation = self._get_coordinates()
 
     def _get_coordinates(self):
         """
@@ -205,7 +204,12 @@ class FILD_logbook:
         @param shot: shot number to look in the database
         """
         # Get the shot index in the database
-        i, = np.where(self.database['shot'].values == self.shot)[0]
+        if self.shot in self.database['shot'].values:
+            i, = np.where(self.database['shot'].values == self.shot)[0]
+            flag = True
+        else:
+            flag = False
+            print('Shot not found, we will use the default values')
         # --- Get the postion
         position = {        # Initialise the position
             'R': 0.0,
@@ -213,15 +217,15 @@ class FILD_logbook:
             'phi': 0.0,
         }
         if self.id != 4:
-            if 'R [m]' in self.database.keys():  # Look for R in the database
+            if 'R [m]' in self.database.keys() and flag:  # Look for R
                 position['R'] = self.database['R [m]'].values[i]
             else:  # Take the default approx value
                 position['R'] = default['r'][self.id-1]
-            if 'Z [m]' in self.database.keys():  # Look for Z in the database
+            if 'Z [m]' in self.database.keys() and flag:  # Look for Z
                 position['z'] = self.database['Z [m]'].values[i]
             else:  # Take the default approx value
                 position['z'] = default['z'][self.id-1]
-            if 'Phi [deg]' in self.database.keys():  # Look for phi in the db
+            if 'Phi [deg]' in self.database.keys() and flag:  # Look for phi
                 position['phi'] = self.database['Phi [deg]'].values[i]
             else:  # Take the default approx value
                 position['phi'] = default['phi'][self.id-1]
