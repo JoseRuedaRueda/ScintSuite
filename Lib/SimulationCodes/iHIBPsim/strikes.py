@@ -64,7 +64,7 @@ scintillator_limits_Y = aug.IHIBP_scintillator_Y
 AUG_STRIKELINE_DATABASE = pa.ihibpsim_strline_database
 
 sigma2fwhm = 2.0*np.sqrt(2.0*np.log(2.0))
-j2keV = 1.0/sspar.ec*1.0e-3
+j2keV = 1.0/sspar.ec*1.0e-3 # Jules to keV conversion factor.
 
 def getFileSize(fid):
     """

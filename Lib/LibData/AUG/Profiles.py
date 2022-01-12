@@ -144,11 +144,11 @@ def get_ne_ida(shotnumber: int, time: float=None, exp: str = 'AUGD',
     else:
         output['time'] = time
         output['data'] = interp1d(timebase, ne.data, kind='linear', axis=0,
-                                  bounds_error=False, fill_value=np.nan,
+                                  bounds_error=False, fill_value=0.0,
                                   assume_sorted=True)(time).T
         output['uncertainty'] = interp1d(timebase, ne_unc.data,
                                          kind='linear', axis=0,
-                                         bounds_error=False, fill_value=np.nan,
+                                         bounds_error=False, fill_value=0.0,
                                          assume_sorted=True)(time).T
 
     # --- Closing the shotfile.
@@ -309,6 +309,34 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
 # -----------------------------------------------------------------------------
 # --- Ion temperature
 # -----------------------------------------------------------------------------
+def get_Ti(shot: int, time: float=None, diag: str='IDI', exp: str='AUGD',
+           edition: int=0, sf=None):
+    """"
+    Wrapper to all the routines to read the ion temperature.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shot: Shot number
+    @param time: Time point to read the profile.
+    @param diag: diagnostic to read the ion temperature. By default, IDI.
+    @param exp: Experiment name.
+    @param diag: diagnostic from which 'Te' will extracted.
+    @param edition: edition of the shotfile to be read.
+
+    @return output: a dictionary containing the electron temp. evaluated
+    in the input times and the corresponding rhopol base.
+    """
+
+    if diag not in ('IDI', 'CXRS'):
+        raise Exception('Diagnostic non supported!')
+
+    if diag == 'PED':
+        return get_Ti_idi(shotnumber=shot, time=time, exp=exp,
+                          edition=edition, sf=sf)
+    elif diag == 'IDI':
+        return get_Ti_cxrs(shotnumber=shot, time=time, exp=exp,
+                           edition=edition, sf=sf)
+
 def get_Ti_idi(shot: int, time: float = None, exp: str = 'AUGD',
                edition: int = 0, sf=None):
     """
