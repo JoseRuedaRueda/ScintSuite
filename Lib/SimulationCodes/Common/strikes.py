@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from Lib.LibPlotting import axis_beauty, axisEqual3D, clean3Daxis
 import Lib.LibPlotting as ssplt
+from copy import deepcopy
 paths = Path(machine)
 
 
@@ -75,11 +76,13 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             # get the information
             scints = ['scintillator',  'signalscintillator']
             if header['FILDSIMmode']:
-                header['info'] = order['sinpa_FILD'][header['versionID1']
-                                                     ][plate.lower()]
+                header['info'] = \
+                    deepcopy(order['sinpa_FILD'][header['versionID1']
+                                                 ][plate.lower()])
             else:
-                header['info'] = order['sinpa_INPA'][header['versionID1']
-                                                     ][plate.lower()]
+                header['info'] = \
+                    deepcopy(order['sinpa_INPA'][header['versionID1']
+                                                 ][plate.lower()])
             if plate.lower() in scints:
                 ycolum = header['info']['ys']['i']
                 zcolum = header['info']['zs']['i']

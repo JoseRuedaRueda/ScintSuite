@@ -1,61 +1,69 @@
 """
-Lecture 1 of the examples to run the SINPA code: Mapping
+Lecture 2 of the examples to run the SINPA code: FILDSIM simulation
 
 Jose Rueda Rueda: jrrueda@us.es
 
 Done to explain how to run a SINPA simulation
 
-Created for version 6.0.0 of the Suite and version 0.0 of SINPA
+Created for version 0.7.3 of the Suite and version 0.1 of SINPA
+
+Note: All saving options, orbits, collimator impacts etc are on, so the code
+run will be slow, don't be afraid, disconnect the saving of the orbits and
+collimator strike points and you will see the nice speed
 """
 import os
-# import numpy as np
+import numpy as np
 import Lib as ss
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
-import numpy as np
 paths = Path(machine)
 
 # -----------------------------------------------------------------------------
 # --- Settings block
 # -----------------------------------------------------------------------------
-nml_options = {
-    'config':  {            # General parameters
-        'runid': 'test34',
-        'geomID': 'Jesus',
+nml_options = {   # Se the PDF documentation for a complete desription of these
+    'config':  {  # parameters
+        'runid': 'Example',
+        'geomID': 'FILD1',
         'FILDSIMmode': True,
-        'nGeomElements': 9,
+        'nGeomElements': 2,
         'nxi': 7,
-        'nGyroradius': 2,
-        'nMap': 500,
+        'nGyroradius': 7,
+        'nMap': 10000,
         'mapping': True,
         'signal': False,
         'resampling': False,
         'nResampling': 4,
         'saveOrbits': True,
-        'saveRatio': 0.1,
+        'saveRatio': 0.01,
+        'saveOrbitLongMode': False,
         'SINPA_dir': paths.SINPA,
-        'FIDASIMfolder': 'kiwi',
+        'FIDASIMfolder': '',
         'verbose': True,
         'M': 2.0,         # Mass of the particle (in uma)
         'Zin': 1.0,         # Charge before the ionization in the foil
         'Zout': 1.0,        # Charge after the ionization in the foil
-        'IpBt': 1,        # Sign of toroidal current vs field (for pitch)
-        'flag_efield_on': True,  # Add or not electric field
-
+        'IpBt': -1,        # Sign of toroidal current vs field (for pitch)
+        'flag_efield_on': False,  # Add or not electric field
+        'save_collimator_strike_points': True,  # Save collimator points
+        'backtrace': False  # Flag to backtrace the orbits
     },
     'inputParams': {
-         'nGyro': 50,
-         'minAngle': -3.14,
-         'dAngle': 6.24,
-         'XI': [30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0],
-         'rL': [2.5, 3.0],
-         'maxT': 0.0000001
+         'nGyro': 350,
+         'minAngle': -2.0,
+         'dAngle': 1.0,
+         'XI': [80., 70., 60., 50., 40., 30., 20.],
+         'rL': [2., 3., 4., 5., 6., 7., 8.],
+         'maxT': 0.0000005
     },
 }
-
-# Magnetic field
-B = np.array([0.0, -1.0, 0.0])
-E = 0.0 * np.array([0.5792, -0.0603, 0.8129])
+# --- magnetic field definition:
+# Option 1: as FILDSIM
+use_opt1 = True
+theta = 9.0
+phi = 9.0
+# Option 2: directly a field in caterian coordinates
+direction = [-0.15643447,  -0.97552826, 0.1545085]  # Arbitrary field
 
 # -----------------------------------------------------------------------------
 # --- Section 0: Create the directories
@@ -75,18 +83,23 @@ ss.sinpa.execution.write_namelist(nml_options)
 # --- Section 2: Prepare the magnetic field
 # -----------------------------------------------------------------------------
 # Get the field
-field = ss.sinpa.fieldObject()
-field.createHomogeneousField(B, field='B')
-field.createHomogeneousField(E, field='E')
-
+field = ss.simcom.Fields()
+if use_opt1:
+    # Load the geometry
+    Geometry = ss.simcom.Geometry(nml_options['config']['geomID'],
+                                  code='SINPA')
+    u1 = np.array(Geometry.ExtraGeometryParams['u1'])
+    u2 = np.array(Geometry.ExtraGeometryParams['u2'])
+    u3 = np.array(Geometry.ExtraGeometryParams['u3'])
+    # Get the field
+    field.createHomogeneousFieldThetaPhi(theta, phi, field='B',
+                                         u1=u1, u2=u2, u3=u3)
+else:
+    field.createHomogeneousField(direction, field='B')
 # Write the field
 fieldFileName = os.path.join(inputsDir, 'field.bin')
 fid = open(fieldFileName, 'wb')
 field.tofile(fid)
-fid.close()
-fieldFileName = os.path.join(inputsDir, 'Efield.bin')
-fid = open(fieldFileName, 'wb')
-field.tofile(fid, bflag=False, eflag=True)
 fid.close()
 
 

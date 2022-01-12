@@ -28,7 +28,6 @@ def update_case_insensitive(a, b):
     @params a: Main dictionary
     @params b: Dictionary with the extra information to include in a
     """
-
     keys_a_lower = [key.lower() for key in a.keys()]
     keys_a = [key for key in a.keys()]
     keys_b_lower = [key.lower() for key in b.keys()]

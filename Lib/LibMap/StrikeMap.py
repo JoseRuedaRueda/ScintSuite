@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
 import Lib.LibPlotting as ssplt
 import Lib.SimulationCodes.FILDSIM as ssFILDSIM
-import Lib.SimulationCodes.SINPA as ssSINPA
+# import Lib.SimulationCodes.SINPA as ssSINPA
+from Lib.SimulationCodes.Common.strikes import Strikes
 import Lib.LibMap.Common as common
 from Lib.LibMachine import machine
 import Lib.LibPaths as p
@@ -91,48 +92,75 @@ class StrikeMap:
                 self.file = file
             if not os.path.isfile(file):
                 raise Exception('Strike map no found in the database')
-            dummy = np.loadtxt(file, skiprows=3)
-            # See which rows has collimator factor larger than zero (ie see for
-            # which combination of gyroradius and pitch some markers arrived)
-            ind = dummy[:, 7] > 0
-            # Initialise the class
-            ## Gyroradius of map points
-            self.gyroradius = dummy[ind, 0]
-            ## Simulated gyroradius (unique points of self.gyroradius)
-            self.unique_gyroradius = np.unique(self.gyroradius)
-            ## Energy of map points
-            self.energy = None
-            ## Pitch of map points
-            self.pitch = dummy[ind, 1]
-            ## Simulated pitches (unique points of self.pitch)
-            self.unique_pitch = np.unique(self.pitch)
-            # x coordinates of map points (common)
-            self.x = dummy[ind, 2]
-            # y coordinates of map points (common)
-            self.y = dummy[ind, 3]
-            # z coordinates of map points (common)
-            self.z = dummy[ind, 4]
-            ## Average initial gyrophase of map markers
-            self.avg_ini_gyrophase = dummy[ind, 5]
-            ## Number of markers striking in this area
-            self.n_strike_points = dummy[ind, 6].astype(np.int)
-            ## Collimator factor as defined in FILDSIM
-            self.collimator_factor = dummy[ind, 7]
-            ## Average incident angle of the FILDSIM markers
-            self.avg_incident_angle = dummy[ind, 8]
-            ## Colimator facror as a matrix
-            # This simplify a lot W calculation and forward modelling:
-            self.ngyr = len(self.unique_gyroradius)
-            self.npitch = len(self.unique_pitch)
-            self.collimator_factor_matrix = np.zeros((self.ngyr, self.npitch))
-            for ir in range(self.ngyr):
-                for ip in range(self.npitch):
-                    # By definition, flags can only have one True
-                    flags = (self.gyroradius == self.unique_gyroradius[ir]) \
-                        * (self.pitch == self.unique_pitch[ip])
-                    if np.sum(flags) > 0:
-                        self.collimator_factor_matrix[ir, ip] = \
-                            self.collimator_factor[flags]
+            # Look for the code identifier, the second row of SINPA files start
+            # with a 1:
+            try:
+                identifier = np.loadtxt(file, skiprows=1, max_rows=1)
+                self.code = 'SINPA'
+                self.version = int(identifier)
+            except ValueError:
+                # If this second line did not started with a number, the strike
+                # map was generated with FILDSIM. (yes, it could be that it was
+                # generated with SINPA but the user modified manually the file,
+                # we can't be preared for that)
+                self.code = 'FILDSIM'
+                self.version = 1
+            if self.version == 1:
+                dummy = np.loadtxt(file, skiprows=3)
+                # See which rows has collimator factor larger than zero (ie see
+                # for which combination of gyroradius and pitch some markers
+                # arrived)
+                ind = dummy[:, 7] > 0
+                # Initialise the class
+                ## Gyroradius of map points
+                self.gyroradius = dummy[ind, 0]
+                ## Simulated gyroradius (unique points of self.gyroradius)
+                self.unique_gyroradius = np.unique(self.gyroradius)
+                ## Energy of map points
+                self.energy = None
+                ## Pitch of map points
+                self.pitch = dummy[ind, 1]
+                ## Simulated pitches (unique points of self.pitch)
+                self.unique_pitch = np.unique(self.pitch)
+                # x coordinates of map points (common)
+                self.x = dummy[ind, 2]
+                # y coordinates of map points (common)
+                self.y = dummy[ind, 3]
+                # z coordinates of map points (common)
+                self.z = dummy[ind, 4]
+                ## Average initial gyrophase of map markers
+                self.avg_ini_gyrophase = dummy[ind, 5]
+                ## Number of markers striking in this area
+                self.n_strike_points = dummy[ind, 6].astype(np.int)
+                ## Collimator factor as defined in FILDSIM
+                self.collimator_factor = dummy[ind, 7]
+                ## Average incident angle of the FILDSIM markers
+                self.avg_incident_angle = dummy[ind, 8]
+                ## Colimator facror as a matrix
+                # This simplify a lot W calculation and forward modelling:
+                self.ngyr = len(self.unique_gyroradius)
+                self.npitch = len(self.unique_pitch)
+                self.collimator_factor_matrix = \
+                    np.zeros((self.ngyr, self.npitch))
+                for ir in range(self.ngyr):
+                    for ip in range(self.npitch):
+                        # By definition, flags can only have one True
+                        flags = \
+                            (self.gyroradius == self.unique_gyroradius[ir]) \
+                            * (self.pitch == self.unique_pitch[ip])
+                        if np.sum(flags) > 0:
+                            self.collimator_factor_matrix[ir, ip] = \
+                                self.collimator_factor[flags]
+                # After SINPA arrived, the 'pitch' is named as XI, as basically
+                # INPA and FILD are identical, just different names in this
+                # variable, so a common name was choosen. All FILD user have
+                # their routines constructed with the name of pitch, so I'll
+                # not destroy it, but I'll add the new naming for future users:
+                self.XI = self.pitch
+                self.unique_XI = self.unique_pitch
+                self.nXI = self.npitch
+            else:
+                raise Exception('Not recognised StrikeMap version')
         elif self.diag == 'INPA':
             dummy = np.loadtxt(file, skiprows=3)
             # See which rows has collimator factor larger than zero (ie see for
@@ -189,7 +217,8 @@ class StrikeMap:
                   marker_params: dict = {}, line_params: dict = {},
                   labels: bool = False,
                   rotation_for_gyr_label: float = 90.0,
-                  rotation_for_pitch_label: float = 30.0):
+                  rotation_for_pitch_label: float = 30.0,
+                  factor: float = 1.0):
         """
         Plot the strike map (x,y = dimensions in the scintillator).
 
@@ -201,6 +230,10 @@ class StrikeMap:
         @param labels: flag to add the labes (gyroradius, pitch) on the plot
         @param rotation_for_gyr_label: Rotation angle for the gyroradius label
         @param rotation_for_pitch_label: Rotation angle for the pitch label
+        @param factor: scaling factor to plot the data. Dimensions will be
+            multiplied by this factor. Notice that this is just to compare
+            strike maps from different codes for the situations in which a code
+            operate in cm and the oder in m.
 
         Note:
             - The rotation_for_pitch_label should be called in a different way
@@ -226,64 +259,77 @@ class StrikeMap:
         if ax is None:
             fig, ax = plt.subplots()
         # Draw the line of constant Gyroradius (energy). 'Horizontal'
+        calculated_delta = False
         for i in range(self.ngyr):
             flags = self.gyroradius == self.unique_gyroradius[i]
-            ax.plot(self.y[flags], self.z[flags], **line_options)
+            ax.plot(self.y[flags] * factor, self.z[flags] * factor,
+                    **line_options)
             # Add the gyroradius label, but just each 2 entries so the plot
             # does not get messy
-            if i == 0:
-                delta = abs(self.y[flags][1] - self.y[flags][0])
-            if (i % 2 == 0):  # add gyro radius labels
+            if i == 1:
+                delta = abs(self.y[flags][1] - self.y[flags][0]) * factor
+                calculated_delta = True
+            if (i % 2 == 0) and labels:  # add gyro radius labels
+                if not calculated_delta:
+                    delta = abs(self.y[flags][1] - self.y[flags][0]) * factor
+                    calculated_delta = True
                 # Delta variable just to adust nicelly the distance (as old
                 # fildsim is in cm and new in m)
-                ax.text((self.y[flags]).min()-0.5 * delta,
-                        (self.z[flags]).min(),
+                ax.text((self.y[flags]).min() * factor - 0.5 * delta,
+                        (self.z[flags]).min() * factor,
                         f'{float(self.unique_gyroradius[i]):g}',
                         horizontalalignment='right',
                         verticalalignment='center')
-        ax.annotate('Gyroradius [cm]',
-                    xy=(min(self.y) - delta,
-                        (max(self.z) - min(self.z))/2 + min(self.z)),
-                    rotation=rotation_for_gyr_label,
-                    horizontalalignment='center',
-                    verticalalignment='center')
+        if labels:
+            ax.annotate('Gyroradius [cm]',
+                        xy=(min(self.y) * factor - delta,
+                            ((max(self.z) - min(self.z))/2 + min(self.z))
+                            * factor),
+                        rotation=rotation_for_gyr_label,
+                        horizontalalignment='center',
+                        verticalalignment='center')
         if self.diag == 'FILD':
             # Draw the lines of constant pitch. 'Vertical' lines
             for i in range(self.npitch):
                 flags = self.pitch == self.unique_pitch[i]
-                ax.plot(self.y[flags], self.z[flags], **line_options)
-                if i == 0:
-                    delta = abs(self.z[flags][-1] - self.z[flags][-2])
-                ax.text((self.y[flags])[-1],
-                        (self.z[flags])[-1] - delta,
-                        f'{float(self.unique_pitch[i]):g}',
-                        horizontalalignment='center',
-                        verticalalignment='top')
-
-            ax.annotate('Pitch [$\\degree$]',
-                        xy=((max(self.y) - min(self.y))/2 + min(self.y),
-                            min(self.z) - 1.5 * delta),
-                        rotation=rotation_for_pitch_label,
-                        horizontalalignment='center',
-                        verticalalignment='center')
+                ax.plot(self.y[flags] * factor, self.z[flags] * factor,
+                        **line_options)
+                if i == 1:
+                    delta = abs(self.z[flags][-1] - self.z[flags][-2]) * factor
+                if labels:
+                    ax.text((self.y[flags])[-1] * factor,
+                            (self.z[flags])[-1] * factor - delta,
+                            f'{float(self.unique_pitch[i]):g}',
+                            horizontalalignment='center',
+                            verticalalignment='top')
+            if labels:
+                ax.annotate('Pitch [$\\degree$]',
+                            xy=(((max(self.y) - min(self.y))/2 + min(self.y))
+                                * factor,
+                                min(self.z) * factor - 1.5 * delta),
+                            rotation=rotation_for_pitch_label,
+                            horizontalalignment='center',
+                            verticalalignment='center')
         elif self.diag == 'INPA':
             # Draw the lines of constant alpha. 'Vertical' lines
             for i in range(self.nalpha):
                 flags = self.alpha == self.unique_alpha[i]
                 if i == 0:
-                    delta = abs(self.y[flags][1] - self.y[flags][0])
+                    delta = abs(self.y[flags][1] - self.y[flags][0]) * factor
 
-                ax.plot(self.y[flags], self.z[flags], **line_options)
+                ax.plot(self.y[flags] * factor, self.z[flags] * factor,
+                        **line_options)
 
-                ax.text((self.y[flags])[-1],
-                        (self.z[flags])[-1] - delta,
+                ax.text((self.y[flags])[-1] * factor,
+                        (self.z[flags])[-1] * factor - delta,
                         f'{float(self.unique_alpha[i]):g}',
                         horizontalalignment='center',
                         verticalalignment='top')
 
             ax.annotate('Alpha [rad]',
-                        xy=((max(self.y) - min(self.y))/2 + min(self.y),
-                            min(self.z) - 1.5*delta),
+                        xy=(((max(self.y) - min(self.y))/2 + min(self.y))
+                            * factor,
+                            min(self.z) * factor - 1.5*delta),
                         rotation=rotation_for_pitch_label,
                         horizontalalignment='center',
                         verticalalignment='center')
@@ -291,7 +337,7 @@ class StrikeMap:
             raise Exception('Diagnostic not implemented')
 
         # Plot some markers in the grid position
-        ax.plot(self.y, self.z, **marker_options)
+        ax.plot(self.y * factor, self.z * factor, **marker_options)
 
     def plot_pix(self, ax=None, marker_params: dict = {},
                  line_params: dict = {}):
@@ -528,8 +574,7 @@ class StrikeMap:
             self.energy = ssFILDSIM.get_energy(self.gyroradius, B0, A=A, Z=Z)
         return
 
-    def load_strike_points(self, file=None, verbose: bool = True,
-                           newFILDSIM=False):
+    def load_strike_points(self, file=None, verbose: bool = True):
         """
         Load the strike points used to calculate the map.
 
@@ -546,23 +591,23 @@ class StrikeMap:
         # Get the object we need to fill and the file to be load
         if self.diag == 'FILD':
             if file is None:
-                if newFILDSIM:
-                    path, filename = os.path.split(self.file)
-                    file = os.path.join(path, 'StrikePoints.bin')
+                if self.code.lower() == 'sinpa':
+                    (filename, extension) = self.file.rsplit('.', 1)
+                    file = filename + '.spmap'
                 else:
                     file = self.file[:-14] + 'strike_points.dat'
-            if newFILDSIM:
-                Object = ssSINPA.Strikes
-            else:
-                Object = ssFILDSIM.Strikes
         elif self.diag == 'INPA':
             if file is None:
-                path, filename = os.path.split(self.file)
-                file = os.path.join(path, 'StrikePoints.bin')
-            Object = ssSINPA.Strikes
-
+                (filename, extension) = self.file.rsplit('.', 1)
+                file = filename + '.spmap'
+        # Load the strike points
         self.fileStrikePoints = file
-        self.strike_points = Object(file=file, verbose=verbose)
+        self.strike_points =\
+            Strikes(file=file, verbose=verbose, code=self.code)
+        # If the code was SINPA, perform the remap, as it is not done in
+        # fortran:
+        if self.code.lower() == 'sinpa':
+            self.remap_strike_points()
 
     def plot_strike_points(self, ax=None, plt_param={}):
         """
@@ -584,14 +629,15 @@ class StrikeMap:
         # Open the figure if needed:
         if ax is None:
             fig, ax = plt.subplots()
-        Warning('This function will be removed in future versions.',
-                DeprecationWarning)
+        warnings.warn('This function will be removed in future versions.')
         print('Please use smap.strike_points.plot2D() instead')
-        self.strike_points.plot2D(ax=ax, mar_params=plt_param)
+        self.strike_points.scatter(ax=ax, mar_params=plt_param)
 
     def calculate_resolutions(self, diag_params: dict = {},
                               min_statistics: int = 100,
-                              adaptative: bool = True):
+                              adaptative: bool = True,
+                              calculate_uncertainties: bool = False,
+                              confidence_level: float = 0.9544997):
         """
         Calculate the resolution associated with each point of the map.
 
@@ -610,6 +656,9 @@ class StrikeMap:
         @param adaptative: If true, the bin width will be adapted such that the
         number of bins in a sigma of the distribution is 4. If this is the
         case, dpitch, dgyr, will no longer have an impact
+        @param confidence_level: confidence level for the uncertainty
+            determination
+        @param uncertainties: flag to calcualte the uncertainties of the fit
         """
         if self.strike_points is None:
             print('Trying to load the strike points')
@@ -634,7 +683,7 @@ class StrikeMap:
             try:
                 npitch = self.strike_points.header['npitch']
             except KeyError:
-                npitch = self.strike_points.header['nalpha']
+                npitch = self.strike_points.header['nXI']
             nr = self.strike_points.header['ngyr']
             # --- See which columns we need to consider
             if 'remap_rl' not in self.strike_points.header['info'].keys():
@@ -645,7 +694,7 @@ class StrikeMap:
             # --- Pre-allocate variables
             npoints = np.zeros((nr, npitch))  # Numer of strike points
             parameters_pitch = {
-                'amplitude': np.zeros((nr, npitch)),
+                'amplitude': np.ones((nr, npitch)),
                 'center': np.zeros((nr, npitch)),
                 'sigma': np.zeros((nr, npitch)),
                 'gamma': np.zeros((nr, npitch))
@@ -656,7 +705,18 @@ class StrikeMap:
                 'sigma': np.zeros((nr, npitch)),
                 'gamma': np.zeros((nr, npitch))
             }   # Parameters of the instrument function
-
+            unc_parameters_pitch = {
+                'amplitude': np.zeros((nr, npitch)),
+                'center': np.zeros((nr, npitch)),
+                'sigma': np.zeros((nr, npitch)),
+                'gamma': np.zeros((nr, npitch))
+            }   # Parameters of the instrument function
+            unc_parameters_gyr = {
+                'amplitude': np.zeros((nr, npitch)),
+                'center': np.zeros((nr, npitch)),
+                'sigma': np.zeros((nr, npitch)),
+                'gamma': np.zeros((nr, npitch))
+            }   # Parameters of the instrument function
             # To store the fits
             fitg = np.empty((nr, npitch), dtype=np.ndarray)
             fitp = np.empty((nr, npitch), dtype=np.ndarray)
@@ -712,14 +772,18 @@ class StrikeMap:
                                           stop=data[:, iip].max() + dpitch,
                                           step=new_dpitch)
                         # --- Proceed to fit
-                        par_p, fitp[ir, ip], normalization_p[ir, ip] = \
+                        par_p, fitp[ir, ip], normalization_p[ir, ip], unc_p = \
                             common._fit_to_model_(data[:, iip],
                                                   bins=edges_pitch,
-                                                  model=p_method)
-                        par_g, fitg[ir, ip], normalization_g[ir, ip] = \
+                                                  model=p_method,
+                                                  confidence_level=confidence_level,
+                                                  uncertainties=calculate_uncertainties)
+                        par_g, fitg[ir, ip], normalization_g[ir, ip], unc_g = \
                             common._fit_to_model_(data[:, iir],
                                                   bins=edges_gyr,
-                                                  model=g_method)
+                                                  model=g_method,
+                                                  confidence_level=confidence_level,
+                                                  uncertainties=calculate_uncertainties)
                         # --- Save the data in the matrices:
                         # pitch parameters:
                         parameters_pitch['amplitude'][ir, ip] = \
@@ -730,6 +794,17 @@ class StrikeMap:
                             parameters_pitch['gamma'][ir, ip] = np.nan
                         elif p_method == 'sGauss':
                             parameters_pitch['gamma'][ir, ip] = par_p['gamma']
+                        # pitch uncertainty parameters:
+                        unc_parameters_pitch['amplitude'][ir, ip] = \
+                            unc_p['amplitude']
+                        unc_parameters_pitch['center'][ir, ip] = \
+                            unc_p['center']
+                        unc_parameters_pitch['sigma'][ir, ip] = unc_p['sigma']
+                        if p_method == 'Gauss':
+                            unc_parameters_pitch['gamma'][ir, ip] = np.nan
+                        elif p_method == 'sGauss':
+                            unc_parameters_pitch['gamma'][ir, ip] = \
+                                unc_p['gamma']
                         # gyroradius parameters:
                         parameters_gyr['amplitude'][ir, ip] = \
                             par_g['amplitude']
@@ -739,6 +814,16 @@ class StrikeMap:
                             parameters_gyr['gamma'][ir, ip] = np.nan
                         elif g_method == 'sGauss':
                             parameters_gyr['gamma'][ir, ip] = par_g['gamma']
+                        # gyroradius uncertainty parameters:
+                        unc_parameters_gyr['amplitude'][ir, ip] = \
+                            unc_g['amplitude']
+                        unc_parameters_gyr['center'][ir, ip] = unc_g['center']
+                        unc_parameters_gyr['sigma'][ir, ip] = unc_g['sigma']
+                        if g_method == 'Gauss':
+                            unc_parameters_gyr['gamma'][ir, ip] = np.nan
+                        elif g_method == 'sGauss':
+                            unc_parameters_gyr['gamma'][ir, ip] = \
+                                unc_g['gamma']
 
             self.resolution = {
                 'Gyroradius': parameters_gyr,
@@ -751,7 +836,9 @@ class StrikeMap:
                     'normalization_pitch': normalization_p
                 },
                 'gyroradius_model': g_method,
-                'pitch_model': p_method
+                'pitch_model': p_method,
+                'Gyroradius_uncertainty': unc_parameters_gyr,
+                'Pitch_uncertainty': unc_parameters_pitch
                 }
             # --- Prepare the interpolators:
             self.calculate_interpolators()
@@ -772,7 +859,7 @@ class StrikeMap:
                                      self.strike_points.header['pitch'])
             except KeyError:
                 xx, yy = np.meshgrid(self.strike_points.header['gyroradius'],
-                                     self.strike_points.header['alphas'])
+                                     self.strike_points.header['XI'])
             xxx = xx.flatten()
             yyy = yy.flatten()
             self.interpolators = {'pitch': {}, 'gyroradius': {}}
@@ -833,13 +920,18 @@ class StrikeMap:
                                                   ZMATRIX.flatten())
         return
 
-    def calculate_mapping_interpolators(self, k=3, s=1):
+    def calculate_mapping_interpolators(self,
+                                        kernel: str = 'thin_plate_spline',
+                                        degree=2):
         """
         Calculate interpolators scintillator position -> phase space.
 
         Jose Rueda: jrrueda@us.es
 
-        @param k: parameter kx and ky for the BivariantSpline
+        @param kernel: kernel for the interpolator
+        @param degree: degree for the added polynomial
+
+        See RBFInterpolator of Scipy for full documentation
         """
         # --- Select the colums to be used
         if self.diag == 'FILD':
@@ -849,31 +941,25 @@ class StrikeMap:
             coords[:, 1] = self.z
 
             self.map_interpolators = {
-                # 'Gyroradius':
-                #     scipy_interp.SmoothBivariateSpline(self.y, self.z,
-                #                                        self.gyroradius,
-                #                                        kx=k, ky=k, s=s),
-                # 'Pitch':
-                #     scipy_interp.SmoothBivariateSpline(self.y, self.z,
-                #                                        self.pitch, kx=k, ky=k,
-                #                                        s=s)
                 'Gyroradius':
                     scipy_interp.RBFInterpolator(coords,
-                                                 self.gyroradius),
+                                                 self.gyroradius,
+                                                 kernel=kernel, degree=degree),
                 'Pitch':
                     scipy_interp.RBFInterpolator(coords,
-                                                 self.pitch)
-
+                                                 self.pitch, kernel=kernel,
+                                                 degree=degree),
             }
         elif self.diag == 'INPA':
             self.map_interpolators = {
                 'Gyroradius':
-                    scipy_interp.SmoothBivariateSpline(self.y, self.z,
-                                                       self.gyroradius,
-                                                       kx=k, ky=k),
-                'Alpha':
-                    scipy_interp.SmoothBivariateSpline(self.y, self.z,
-                                                       self.alpha, kx=k, ky=k)
+                    scipy_interp.RBFInterpolator(coords,
+                                                 self.gyroradius,
+                                                 kernel=kernel, degree=degree),
+                'XI':
+                    scipy_interp.RBFInterpolator(coords,
+                                                 self.pitch, kernel=kernel,
+                                                 degree=degree),
             }
         else:
             raise Exception('Diagnostic not understood')
@@ -933,6 +1019,12 @@ class StrikeMap:
                     'longName': 'Remapped pitch angle',
                     'shortName': '$\\lambda$',
                 },
+                'remap_XI': {
+                    'i': Old_number_colums + 1,  # Column index in the file
+                    'units': ' [$\\degree$]',  # Units
+                    'longName': 'Remapped pitch angle',
+                    'shortName': '$\\lambda$',
+                },
             }
             # Update the header
             self.strike_points.header['info'].update(extra_column)
@@ -972,14 +1064,14 @@ class StrikeMap:
         if self.diag == 'FILD':
             if index_gyr is None:
                 # Plot the gyroradius resolution
-                a1 = ax[0].contourf(self.strike_points.header['pitch'],
+                a1 = ax[0].contourf(self.strike_points.header['XI'],
                                     self.strike_points.header['gyroradius'],
                                     self.resolution['Gyroradius']['sigma'],
                                     levels=nlev, cmap=cmap)
                 fig.colorbar(a1, ax=ax[0], label='$\\sigma_r [cm]$')
                 ax[0] = ssplt.axis_beauty(ax[0], ax_options)
                 # plot the pitch resolution
-                a = ax[1].contourf(self.strike_points.header['pitch'],
+                a = ax[1].contourf(self.strike_points.header['XI'],
                                    self.strike_points.header['gyroradius'],
                                    self.resolution['Pitch']['sigma'],
                                    levels=nlev, cmap=cmap)
@@ -991,11 +1083,11 @@ class StrikeMap:
                     'xlabel': '$\\lambda [\\degree]$',
                     'ylabel': '$\\sigma_l [cm]$'
                 }
-                ax[0].plot(self.strike_points.header['pitch'],
+                ax[0].plot(self.strike_points.header['XI'],
                            self.resolution['Gyroradius']['sigma'][index_gyr, :])
                 ax[0] = ssplt.axis_beauty(ax[0], ax_options)
 
-                ax[1].plot(self.strike_points.header['pitch'],
+                ax[1].plot(self.strike_points.header['XI'],
                            self.resolution['Pitch']['sigma'][index_gyr, :])
                 ax[1] = ssplt.axis_beauty(ax[1], ax_options)
 
@@ -1034,8 +1126,8 @@ class StrikeMap:
 
         if self.diag == 'FILD':
             # Plot the gyroradius resolution
-            a1 = ax.contourf(self.strike_points.header['pitch'],
-                             self.strike_points.header['gyroradius'],
+            a1 = ax.contourf(self.unique_pitch,
+                             self.unique_gyroradius,
                              self.collimator_factor_matrix,
                              levels=nlev, cmap=cmap)
             fig.colorbar(a1, ax=ax, label='Collimating factor')
@@ -1044,11 +1136,13 @@ class StrikeMap:
             plt.tight_layout()
         return
 
-    def plot_resolution_fits(self, var: str = 'Gyroradius', ax_params: dict = {},
+    def plot_resolution_fits(self, var: str = 'Gyroradius',
+                             ax_params: dict = {},
                              ax=None, gyr_index=None, pitch_index=None,
                              gyroradius=None, pitch=None,
                              kind_of_plot: str = 'normal',
-                             include_legend: bool = False):
+                             include_legend: bool = False,
+                             XI_index=None):
         """
         Plot the fits done to calculate the resolution
 
@@ -1057,7 +1151,8 @@ class StrikeMap:
         @param ax_param: dictoniary with the axis parameters axis_beauty()
         @param ax: axis where to plot
         @param gyr_index: index, or arrays of indeces, of gyroradius to plot
-        @param pitch_index: index, or arrays of indeces, of gyroradius to plot
+        @param pitch_index: index, or arrays of indeces, of pitches to plot,
+            this is outdated code, please use XI_index instead
         @param gyroradius: gyroradius value of array of then to plot. If
         present, gyr_index will be ignored
         @param pitch: idem to gyroradius bu for the pitch
@@ -1068,16 +1163,17 @@ class StrikeMap:
              (3 sigmas)
             - just_fit: Just a line plot as the fit
         @param include_legend: flag to include a legend
+        @param XI_index: equivalent to pitch_index, but with the new criteria
         """
         # --- Initialise plotting options and axis:
         default_labels = {
             'gyroradius': {
                 'xlabel': 'Gyroradius [cm]',
-                'ylabel': '$\\sigma_r [cm]$'
+                'ylabel': 'Counts [a.u.]'
             },
             'pitch': {
                 'xlabel': 'Pitch [$\\degree$]',
-                'ylabel': '$\\sigma_p [$\\degree$]'
+                'ylabel': 'Counts [a.u.]'
             }
         }
         ax_options = {
@@ -1088,6 +1184,8 @@ class StrikeMap:
         if ax is None:
             fig, ax = plt.subplots()
             created = True
+        if (pitch_index is None) and (XI_index is not None):
+            pitch_index = XI_index
         # --- Localise the values to plot
         if gyroradius is not None:
             # test if it is a number or an array of them
@@ -1098,7 +1196,7 @@ class StrikeMap:
             index_gyr = np.zeros(gyroradius.size)
             for i in range(index_gyr.size):
                 index_gyr[i] = \
-                    np.argmin(np.abs(self.unique_gyroradius - gyroradius[ir]))
+                    np.argmin(np.abs(self.unique_gyroradius - gyroradius[i]))
             print('Found gyroradius: ', self.unique_gyroradius[index_gyr])
         else:
             # test if it is a number or an array of them
@@ -1119,7 +1217,7 @@ class StrikeMap:
             index_pitch = np.zeros(pitch.size)
             for i in range(index_pitch.size):
                 index_pitch[i] = \
-                    np.argmin(np.abs(self.unique_pitch - pitch[ir]))
+                    np.argmin(np.abs(self.unique_pitch - pitch[i]))
             print('Found pitches: ', self.unique_pitch[index_pitch])
         else:
             # test if it is a number or an array of them
@@ -1159,7 +1257,8 @@ class StrikeMap:
                                              )][ir, ip].data,
                                              label='__noname__')
                         # plot the fit as a line
-                        ax.plot(x_fine, y, color=scatter.get_facecolor()[0, :3],
+                        ax.plot(x_fine, y,
+                                color=scatter.get_facecolor()[0, :3],
                                 label=name)
                     elif kind_of_plot.lower() == 'bar':
                         bar = ax.bar(x,
