@@ -1,3 +1,44 @@
+** 0.8.0 Future Version
+This verison was not released, this is just a warning about things which will be deprecated:
+- The Strikes object of the FILDSIM code, use the Common object instead, already available and working better
+- StrikeMap.plot_strike_points() will be deleted. Please use StrikeMap.strike_points.scatter() instead, much better, with more flexibility and options
+
+** 0.7.3 SINPA examples:
+*** Examples:
+- Examples to execute the SINPA code polished and more documented.
+*** Bugs:
+- Solved bugs when several smaps of SINPA where loaded, a dictionary was not been properly copied so problems appeared in the header
+- Solved a bug in the Smap.plot_resolution_fits() routine, due to copy/paste, an index in the loop was ir instead of i
+- Solved a bug in the SINPA init module, geometry module was not loaded properly
+- Solved a small bug in the Smap.plot_resolutions(), the old convention 'pitch' instead of 'XI' was used there
+
+** 0.7.2 Logbook:
+*** LibDat:
+- A new FILD class was created. This class read directly the FILD logbook (excel on the web) and get the FILD position and orientation for that shot
+- CalibrationDatabase.txt was moved into a folder AUG in the FILD folder inside the Calibration folder of the Data folder. This was made to accommodate future calibrations for other tokamaks
+- Default_positions.txt was added in the FILD calibraation folder. The code will use the positions and orientation of FILD present there if the logbook is not accesible or if that shot is not found on it
+- FILDPosition from the DiagParam library was deprecated, to obtain the FILD position, the new FILD class should be used
+- load_FILD4_trajectory and plot_FILD4_trajectory where moved to the new FILD library inside LibDataAUG
+- load_FILD4_trajectory makes now the conversion between insertion and real R and z. Notice that this is based on CAD and can be non-precise. +- 1 cm can be expected due to failures in the CAD
+
+
+** 0.7.1 Uncertainties in fits and angles in execution:
+*** LibMap:
+- The fitting routines now return also the uncertainties
+- 'Gyroradius_uncertainty' and 'Pitch_uncertainty' were added to the StrikeMap.resolution dictionary
+- Strike Map object recognizes which code generated the StrikeMap (thanks to a number in the header which SINPA introduces)
+- 'code' and 'version' attributes were added to the Strike Map object
+- XI, nXI and uniqueXI attributes were added to the FILD StrikeMap object, as a starting point for we merging of INPA and FILD processing
+- The StrikeMap object uses now the new strike points object, common of FILD and SINPA
+*** LibVideoFiles:
+- Included plt_frame_remap() to plot remapped frames
+*** SINPA
+- Added a routine in the SINPA execution library to calculate the FILD orientation following the new criteria
+- Recovered the SINPA geometry library which was eliminated by mistake, the calculate rotation matrix is again there
+- field object from the common library of the simulation codes now includes a method to generate the field for SINPA given theta and phi, the same 2 angles defined in FILDSIM
+*** Bug fixed:
+- Fixed bug if an old version of Shapely was installed
+- Fixed a small bug in the calculation of FILD orientation
 
 ** 0.7.0 Common libraries for simulation codes
 *** Equilibrium

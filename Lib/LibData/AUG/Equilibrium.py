@@ -1,13 +1,53 @@
 """Routines for the magnetic equilibrium"""
-import dd                # Module to load shotfiles
-import numpy as np
-import map_equ as meq    # Module to map the equilibrium
-from scipy.interpolate import interpn, interp1d
 import warnings
-
+import numpy as np
+from scipy.interpolate import interpn, interp1d
+import dd                # Modules to load shotfiles and equilibrium, these
+import map_equ as meq    # will be deleted and only sf used in a future
+# import aug_sfutils as sf
 
 ECRH_POWER_THRESHOLD = 0.05  # Threshold to consider ECRH on [MW]
 
+
+# def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
+#                   ed: int = 0, time: float = None, equ=None, **kwargs):
+#     """
+#     Wrapp to get AUG magnetic field
+#
+#     Jose Rueda: jrrueda@us.es
+#
+#     Note: No extra arguments are expected, **kwargs is just included for
+#     compatibility of the call to this method in other databases (machines)
+#
+#     @param shot: Shot number
+#     @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
+#     @param zin: Array of z positions where to evaluate (in pairs with Rin) [m]
+#     @param diag: Diag for AUG database, default EQH
+#     @param exp: experiment, default AUGD
+#     @param ed: edition, default 0 (last)
+#     @param time: Array of times where we want to calculate the field (the
+#     field would be calculated in a time as close as possible to this
+#     @param equ: equilibrium object from the library aug_sfutils
+#
+#     @return br: Radial magnetic field (nt, nrz_in), [T]
+#     @return bz: z magnetic field (nt, nrz_in), [T]
+#     @return bt: toroidal magnetic field (nt, nrz_in), [T]
+#     @return bp: poloidal magnetic field (nt, nrz_in), [T]
+#     """
+#     # If the equilibrium object is not an input, let create it
+#     # created = False
+#     if equ is None:
+#         equ = sf.EQU(shot, diag='EQI', ed=1)
+#         # equ = meq.equ_map(shot, diag=diag, exp=exp, ed=ed)
+#         # created = True
+#     # Now calculate the field
+#     # br, bz, bt = equ.rz2brzt(Rin, zin, t_in=time)
+#     br, bz, bt = sf.rz2brzt(equ, r_in=Rin, z_in=zin, t_in=time)
+#     bp = np.hypot(br, bz)
+#     # # If we opened the equilibrium object, let's close it
+#     # if created:  # no need with the new library
+#     #     equ.Close()
+#     return br, bz, bt, bp
 def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
                   ed: int = 0, time: float = None, equ=None):
     """
@@ -43,11 +83,12 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
         equ.Close()
     return br, bz, bt, bp
 
+
 def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
             ed: int = 0, time: float = None, equ=None,
             coord_out: str = 'rho_pol'):
     """
-    Wrapper to get AUG normalised radius
+    Wrapp to get AUG normalised radius.
 
     Jose Rueda: jrrueda@us.es
 
@@ -78,8 +119,8 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     return rho
 
 
-def get_rho2rz(shot: int, flxlabel: float, diag: str='EQH', exp: str='AUGD',
-               ed: int=0, time: float=None, coord_out: str = 'rho_pol',
+def get_rho2rz(shot: int, flxlabel: float, diag: str = 'EQH', exp: str = 'AUGD',
+               ed: int = 0, time: float = None, coord_out: str = 'rho_pol',
                equ=None):
     """
     Gets the curves (R, z) associated to a given flux surface.
