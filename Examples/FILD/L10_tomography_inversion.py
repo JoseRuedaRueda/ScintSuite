@@ -13,7 +13,7 @@ import tkinter as tk
 # -----------------------------------------------------------------------------
 # - Paths:
 calibration_database = ss.paths.ScintSuite \
-    + '/Data/Calibrations/FILD/calibration_database.txt'
+    + '/Data/Calibrations/FILD/AUG/calibration_database.txt'
 # As the strike points are needed and they are not included in the database,
 # for the tomography one should manually select (for now) the strike map)
 smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/' \
@@ -56,16 +56,16 @@ scintillator_options = {
     'rmin': 1.2,
     'rmax': 8.0,
     'dr': 0.1,
-    'pmin': 40.0,
-    'pmax': 75.0,
+    'pmin': 20.0,
+    'pmax': 85.0,
     'dp': 1.0
 }
 pin_options = {
     'rmin': 1.2,
     'rmax': 8.0,
     'dr': 0.1,
-    'pmin': 40.0,
-    'pmax': 75.0,
+    'pmin': 20.0,
+    'pmax': 85.0,
     'dp': 1.0
 }
 size_filter = 0  # Size of the median filter to apply to the remap frame
