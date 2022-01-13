@@ -19,7 +19,7 @@ import tkinter as tk
 # -----------------------------------------------------------------------------
 # - Paths:
 calibration_database = ss.paths.ScintSuite \
-    + '/Data/Calibrations/FILD/calibration_database.txt'
+    + '/Data/Calibrations/FILD/AUG/calibration_database.txt'
 # As the strike points are needed and they are not included in the database,
 # for the tomography one should manually select (for now) the strike map)
 smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/09_tomo_strike_map.dat'

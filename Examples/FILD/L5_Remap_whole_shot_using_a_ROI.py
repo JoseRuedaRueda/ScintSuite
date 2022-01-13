@@ -29,7 +29,7 @@ tn2 = 0.17     # Final time to average the frames for noise subtraction [s]
 
 # - Remapping options:
 calibration_database = ss.paths.ScintSuite \
-    + '/Data/Calibrations/FILD/calibration_database.txt'
+    + '/Data/Calibrations/FILD/AUG/calibration_database.txt'
 camera = ss.dat.FILD[diag_ID-1]['camera']
 save_remap = True
 par = {
