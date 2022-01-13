@@ -31,7 +31,7 @@ tn2 = 0.15     # Final time to average the frames for noise subtraction [s]
 
 # - Remapping options:
 calibration_database = ss.paths.ScintSuite \
-    + '/Data/Calibrations/FILD/calibration_database.txt'
+    + '/Data/Calibrations/FILD/AUG/calibration_database.txt'
 Smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/39612_1p99s_strike_map.dat'
 camera = ss.dat.FILD[diag_ID-1]['camera']
 
