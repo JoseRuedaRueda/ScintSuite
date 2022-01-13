@@ -560,15 +560,15 @@ class orbitFile:
         self.initialized = False
         if filename is not None:
             fid = open(filename, 'rb')
-            fid.seek(-2*4, sspar.SEEK_END)
-            self.nOrbits = np.fromfile(fid, 'uint32', 1)[0]
-            self.version_orbits = np.fromfile(fid, 'uint32', 1)[0]
+            fid.seek(-4*4, sspar.SEEK_END)
+            self.nOrbits = np.fromfile(fid, 'int32', 1)[0]
+            self.version = np.fromfile(fid, 'int32', 3)
             self.nCh = 10  # Number of particle characteristics.
 
-            hdr_offset = - (2 * 4 + self.nOrbits * 4 * 2)
+            hdr_offset = - (4 * 4 + self.nOrbits * 4 * 2)
             fid.seek(hdr_offset, sspar.SEEK_END)
-            self.stepsPerOrbit = np.fromfile(fid, 'uint32', self.nOrbits)
-            self.idList = np.fromfile(fid, 'uint32', self.nOrbits)
+            self.stepsPerOrbit = np.fromfile(fid, 'int32', self.nOrbits)-1
+            self.idList = np.fromfile(fid, 'int32', self.nOrbits)
 
             if np.all(self.idList == 1):
                 self.idList = np.arange(len(self.idList))+1
@@ -618,7 +618,8 @@ class orbitFile:
         """
         if id is None:
             return self.loadAllOrbits(full_info=full_info)
-        output = []
+
+        output = {}
         if self.initialized and not self.chainLoadFlag:
             # Getting the ID index location:
             id_location = np.argmin(np.abs(self.idList-id))
@@ -634,9 +635,8 @@ class orbitFile:
 
             orbitData = orbitData.reshape((self.nCh,
                                            self.stepsPerOrbit[id_location]),
-                                          order='F')
+                                          order='F').T
             # Adding to the dictionary:
-            output.append({})
             output['R'] = orbitData[:, 0]
             output['z'] = orbitData[:, 1]
             output['phi'] = orbitData[:, 2]
@@ -652,11 +652,12 @@ class orbitFile:
 
                 # Computing the kinetic energy:
                 output['K'] = orbitData[:, 3] ** 2 + \
-                    orbitData[:, 4] ** 2 + orbitData[:, 5] ** 2
+                              orbitData[:, 4] ** 2 + \
+                              orbitData[:, 5] ** 2
 
                 output['K'] *= output['m']*0.5
 
-        orbOutput = orbit(output, identifiers=id)
+        orbOutput = orbit(output, identifier=id)
         return orbOutput
 
     def loadAllOrbits(self, num_orbits: int = None, full_info: bool = True):
@@ -863,8 +864,8 @@ class orbitFile:
         else:
             orbit = self.loadOrbit(id)
 
-        ax1 = orbit.plot(view=view, ax_options=ax_options, ax=ax,
-                         line_options=line_options,
+        ax1 = orbit.plot(view=view, ax_params=ax_options, ax=ax,
+                         line_params=line_options,
                          shaded3d_options=shaded3d_options,
                          imin=imin, imax=imax)
 
