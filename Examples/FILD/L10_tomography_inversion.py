@@ -56,16 +56,16 @@ scintillator_options = {
     'rmin': 1.2,
     'rmax': 8.0,
     'dr': 0.1,
-    'pmin': 40.0,
-    'pmax': 75.0,
+    'pmin': 20.0,
+    'pmax': 85.0,
     'dp': 1.0
 }
 pin_options = {
     'rmin': 1.2,
     'rmax': 8.0,
     'dr': 0.1,
-    'pmin': 40.0,
-    'pmax': 75.0,
+    'pmin': 20.0,
+    'pmax': 85.0,
     'dp': 1.0
 }
 size_filter = 0  # Size of the median filter to apply to the remap frame

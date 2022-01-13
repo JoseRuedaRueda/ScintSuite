@@ -3,6 +3,10 @@ This verison was not released, this is just a warning about things which will be
 - The Strikes object of the FILDSIM code, use the Common object instead, already available and working better
 - StrikeMap.plot_strike_points() will be deleted. Please use StrikeMap.strike_points.scatter() instead, much better, with more flexibility and options
 
+** 0.7.4 Massive remaps:
+- A flag 'allIn' was included in the function to remap all loaded FILD frames. If this flag is set to true, the code will always take the closer strike maps, without allowing to the user to calculate the strike map. In this way, you can remap 'N' shot automatically, without having to say 'No' to the program if a strike map is missing
+- *Bug_solved*. Bug which make the load of png files not possible is solved (the bug was introduced in version 0.7.0)
+
 ** 0.7.3 SINPA examples:
 *** Examples:
 - Examples to execute the SINPA code polished and more documented.
