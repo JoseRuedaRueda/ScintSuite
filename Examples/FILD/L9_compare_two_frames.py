@@ -11,7 +11,7 @@ noise)
 
 jose Rueda: jrrueda@us.es
 
-Note: Written for version 0.2.6.
+Note: Written for version 0.2.6. Revised for version 0.7.3
 """
 import Lib as ss
 import matplotlib.pyplot as plt
@@ -51,7 +51,7 @@ tf2 = 7.1  # time of the second frame to be used [s]
 
 # - Remapping options:
 calibration_database = ss.paths.ScintSuite \
-    + '/Data/Calibrations/FILD/calibration_database.txt'
+    + '/Data/Calibrations/FILD/AUG/calibration_database.txt'
 camera = 'CCD'      # CCD for other FILDs
 par = {
     'rmin': 1.2,      # Minimum gyroradius [in cm]
