@@ -164,25 +164,25 @@ class ihibpProfiles:
             raise ValueError('The profile %s is not in the class!'%profName)
 
         tmp = {}
-        with open(profName, 'rb') as fid:
-            tmp['nR'] = np.fromfile(fid, 'uint32', 1)
-            tmp['nZ'] = np.fromfile(fid, 'uint32', 1)
-            tmp['nPhi'] = np.fromfile(fid, 'uint32', 1)
-            tmp['nTime'] = np.fromfile(fid, 'uint32', 1)
+        with open(fileName, 'rb') as fid:
+            tmp['nR'] = np.fromfile(fid, 'uint32', 1)[0]
+            tmp['nZ'] = np.fromfile(fid, 'uint32', 1)[0]
+            tmp['nPhi'] = np.fromfile(fid, 'uint32', 1)[0]
+            tmp['nTime'] = np.fromfile(fid, 'uint32', 1)[0]
 
-            tmp['Rmin'] = np.fromfile(fid, 'float64', 1)
-            tmp['Rmax'] = np.fromfile(fid, 'float64', 1)
-            tmp['Zmin'] = np.fromfile(fid, 'float64', 1)
-            tmp['Zmax'] = np.fromfile(fid, 'float64', 1)
-            tmp['Phimin'] = np.fromfile(fid, 'float64', 1)
-            tmp['Phimax'] = np.fromfile(fid, 'float64', 1)
-            tmp['Timemin'] = np.fromfile(fid, 'float64', 1)
-            tmp['Timemax'] = np.fromfile(fid, 'float64', 1)
+            tmp['Rmin'] = np.fromfile(fid, 'float64', 1)[0]
+            tmp['Rmax'] = np.fromfile(fid, 'float64', 1)[0]
+            tmp['Zmin'] = np.fromfile(fid, 'float64', 1)[0]
+            tmp['Zmax'] = np.fromfile(fid, 'float64', 1)[0]
+            tmp['Phimin'] = np.fromfile(fid, 'float64', 1)[0]
+            tmp['Phimax'] = np.fromfile(fid, 'float64', 1)[0]
+            tmp['Timemin'] = np.fromfile(fid, 'float64', 1)[0]
+            tmp['Timemax'] = np.fromfile(fid, 'float64', 1)[0]
 
             size2read = tmp['nR']   * tmp['nZ'] *\
                         tmp['nPhi'] * tmp['nTime']
 
-            data = np.fromfile(fid, 'float64', count=size2read[0])
+            data = np.fromfile(fid, 'float64', count=size2read)
 
             # Generating the grids.
             grr  = np.linspace(tmp['Rmin'], tmp['Rmax'], num=tmp['nR'])
@@ -191,20 +191,24 @@ class ihibpProfiles:
             gtt  = np.linspace(tmp['Timemin'], tmp['Timemax'],
                                num=tmp['nTime'])
 
-            grid = np.array((tmp['nR'][0], tmp['nPhi'][0], tmp['nZ'][0],
-                             tmp['nTime']))
+            tmp['R'] = grr
+            tmp['Z'] = gzz
+            tmp['Phi'] = gphi
+            tmp['Time'] = gtt
+
+            grid = np.array((tmp['nR'], tmp['nPhi'], tmp['nZ'], tmp['nTime']))
 
             tmp['f'] = data.reshape(grid, order='F').squeeze()
             tmp['set'] = True # Variable loaded!
 
-            # --- Dividing by dimensionality.
-            if tmp['nPhi'][0] == 1 and tmp['nTime'][0] == 1:
+            # Dividing by dimensionality.
+            if tmp['nPhi'] == 1 and tmp['nTime'] == 1:
                 tmp['dims'] = 2
                 tmp['interp'] = lambda r, z, phi, time: \
                                 interpn((grr, gzz), tmp['f'],
                                         (r.flatten(), z.flatten()))
 
-            elif tmp['nPhi'][0] != 1 and tmp['nTime'][0] == 1:
+            elif tmp['nPhi'] != 1 and tmp['nTime'] == 1:
                 tmp['dims'] = 3
                 tmp['interp'] = lambda r, z, phi, time: \
                                 interpn((grr, gzz, gphi), tmp['f'],
@@ -247,7 +251,10 @@ class ihibpProfiles:
         tmp = self.__dict__[profName]
 
         if not tmp['set']:
-            raise Exception('The profile %s is not initiated!!'%profName)
+            if profName in self.prof1D:
+                self.__1d_to_nDprofiles((profName,))
+            else:
+                raise Exception('The profile %s is not initiated!!'%profName)
 
         if (not overwrite) and os.path.isfile(filename):
             raise FileExistsError('The file %s already exists!')
@@ -264,7 +271,7 @@ class ihibpProfiles:
             np.array(gridlimits, dtype='float64').tofile(fid)
 
             # Writing the profile data.
-            np.asfortranarray(tmp['f'], dtype='float64').tofile(fid)
+            np.array(tmp['f'].T, dtype='float64', order='F').tofile(fid)
 
         return
     def getfromDB(self, shotnumber: int, profName: str, diag: str=None,
@@ -474,8 +481,8 @@ class ihibpProfiles:
                        'nR':   nR,
                        'R': np.linspace(rmin, rmax, nR),
 
-                       'zmin': rmin,
-                       'zmax': rmax,
+                       'zmin': zmin,
+                       'zmax': zmax,
                        'nZ':   nZ,
                        'Z': np.linspace(zmin, zmax, nZ),
 
