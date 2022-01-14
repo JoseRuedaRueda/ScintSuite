@@ -194,6 +194,7 @@ def readStrikeMapFile(filename: str, flip_y: bool = False, header: bool=True):
             version = np.fromfile(fid, 'int32', 3)
             inj_angles  = np.fromfile(fid, 'float64', 2)*180.0/np.pi # to [º]
             beamModel   = np.fromfile(fid, 'int32', 1)[0]
+            map_method  = np.fromfile(fid, 'int32', 1)[0]
             Einj        = np.fromfile(fid, 'float64', 1)[0]*j2keV # in [keV]
             FWMH_E      = np.fromfile(fid, 'float64', 1)[0]*sigma2fwhm*j2keV
             divergency  = np.fromfile(fid, 'float64', 1)[0]*180.0/np.pi # to [º]
@@ -219,23 +220,24 @@ def readStrikeMapFile(filename: str, flip_y: bool = False, header: bool=True):
             ed_prof     = np.fromfile(fid, 'int32', 1)
             prof_shotn  = np.fromfile(fid, 'int32', 1)
 
+
             # The strings have to be decoded before their use in python.
             tmp = b''.join(expmagn_r).strip()
-            exp_magn = tmp.decode('utf8').ljust(8)
+            exp_magn = tmp.decode('utf8', errors='ignore').ljust(8)
             tmp = b''.join(diagmag_r).strip()
-            diag_magn = tmp.decode('utf8').ljust(3)
+            diag_magn = tmp.decode('utf8', errors='ignore').ljust(3)
 
             tmp = b''.join(bcoilexp_r).strip()
-            exp_bcoil = tmp.decode('utf8').ljust(8)
+            exp_bcoil = tmp.decode('utf8', errors='ignore').ljust(8)
 
             tmp = b''.join(diagbcoil_r).strip()
-            diag_bcoil = tmp.decode('utf8').ljust(3)
+            diag_bcoil = tmp.decode('utf8', errors='ignore').ljust(3)
 
             tmp = b''.join(exprof_r).strip()
-            exp_prof = tmp.decode('utf8').ljust(8)
+            exp_prof = tmp.decode('utf8', errors='ignore').ljust(8)
 
             tmp = b''.join(diagprf_r).strip()
-            diag_prof = tmp.decode('utf8').ljust(3)
+            diag_prof = tmp.decode('utf8', errors='ignore').ljust(3)
 
             # --- Building the dictionary with the run data.
             rundata = { 'version': version,
@@ -250,6 +252,7 @@ def readStrikeMapFile(filename: str, flip_y: bool = False, header: bool=True):
                                   'intensity': beamIntens
                                 },
                         'weighting': strlin_mode,
+                        'map_method': map_method,
                         'fields': { 'electric': elec_model,
                                     'bcoils': bcoils_flg,
                                     'ripple_flag': vacfield_flg
@@ -287,7 +290,7 @@ def readStrikeMapFile(filename: str, flip_y: bool = False, header: bool=True):
             tmp = {}
             tmp['timestamp'] = np.fromfile(fid, 'float64', 1)
             tmp['nStrikes'] = np.fromfile(fid, 'int32', 1)
-            tmp['rhopol'] = np.fromfile(fid, 'float64', nPoints)
+            tmp['map_s'] = np.fromfile(fid, 'float64', nPoints)
             tmp['x1'] = np.fromfile(fid, 'float64', nPoints)
             tmp['x2'] = sign_y*np.fromfile(fid, 'float64', nPoints)
             tmp['dx1'] = np.fromfile(fid, 'float64', nPoints)
@@ -297,7 +300,7 @@ def readStrikeMapFile(filename: str, flip_y: bool = False, header: bool=True):
             # Deleting the NaN channels.
             flags = np.logical_not(np.isnan(tmp['x1']))
 
-            tmp['rhopol'] = tmp['rhopol'][flags]
+            tmp['map_s'] = tmp['map_s'][flags]
             tmp['x1']     = tmp['x1'][flags]
             tmp['x2']     = tmp['x2'][flags]
             tmp['dx1']    = tmp['dx1'][flags]
@@ -311,12 +314,341 @@ def readStrikeMapFile(filename: str, flip_y: bool = False, header: bool=True):
             del tmp
 
     return mapsOut
+
+# -----------------------------------------------------------------------------
+# --- Strikeline object.
+# -----------------------------------------------------------------------------
+class strikeLine:
+    def __init__(self, filename: str, shotnumber: int = None,
+                 diag: str = 'EQH', exp: str = 'AUGD', ed: int = 0,
+                 scint: float = None):
+        """
+        Initializes the object strike line. This can contain several strike
+        lines, as they are written altogether.
+
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+        @param filename: name of the file containing the strikelines.
+
+        """
+
+        self.maps = {}
+        self.time = []
+        self.shot = shotnumber
+        self.equ_diag = diag
+        self.equ_exp  = exp
+        self.edition  = ed
+
+        if filename is not None:
+            self.Open(filename)
+
+        if scint is None:
+            self.Xlims = scintillator_limits_X
+            self.Ylims = scintillator_limits_Y
+        else:
+            self.Xlims = scint[0:2]
+            self.Ylims = scint[2:4]
+
+        if shotnumber is not None:
+            self.shotinfo = {}
+            self.getEqu()
+
+    @property
+    def size(self):
+        """
+        Gets the number of maps stored in the class.
+
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+        """
+
+        return len(self.maps)
+
+    @property
+    def shape(self):
+        """
+        Gets the shape of the stored maps:
+            0 -> Number of maps
+            1 -> Strikepoints per map.
+        """
+
+        return [self.size, len(self.maps[0]['x1'])]
+
+    def Open(self, filename: str):
+        """
+        Reads from file the strikelines computed by i-HIBPsim and stores them
+        into the class data.
+
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+        @param filename: name of the file with the strikelines.
+        @param oldFlag: flag stating whether this is the new or older version
+        of the strikemap file.
+
+        """
+
+        # Reading from the file the raw data.
+        self.maps = readStrikeMapFile(filename, flip_y=True, header=True)
+
+        # Storing the time coordinate
+        self.time = np.zeros((len(self.maps)))
+        for ii in np.arange(len(self.maps)):
+            self.time[ii] = self.maps[ii]['timestamp']
+
+    def plotStrikeLine(self, timeStamp: float = None, ax=None,
+                       ax_options: dict = {}, line_options: dict = {},
+                       legendText: str = None):
+        """
+        With an input list of maps for a given shot, this routine will plot the
+        strikemap in the given axis.
+
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+        @param timeStamp: time to plot the strike line. The nearest strike
+        line will be used. If None, all the strike maps are plotted.
+        @param ax: axis handler to plot the strikeline. If None, new axis
+        will be created.
+        @param ax_options: dictionary with inputs for axis set-up.
+        @param line_options: extra options to plot 1D lines.
+        @param legendText: text to use as legend. If None, the time stamp will
+        be used to label the strikelines.
+        @param legend_on: sets or on/off the legend.
+        @param plot_weigth: plots the weight along the strike line.
+        """
+
+        if timeStamp is None:
+            imap = 0
+        else:
+            imap = np.searchsorted(self.time.flatten(), timeStamp)
+        # --- Initialise the plotting parameters
+        ax_options['ratio'] = 'equal'
+        # The ratio must be always equal
+        if 'fontsize' not in ax_options:
+            ax_options['fontsize'] = 16
+        if 'grid' not in ax_options:
+            ax_options['grid'] = 'both'
+        if 'linewidth' not in line_options:
+            line_options['linewidth'] = 2
+
+        if ax is None:
+            fig, ax = plt.subplots(1)
+
+        legendText = 't = ' + str(self.maps[imap]['timestamp'][0]) + ' [s]'
+        im = ax.plot(self.maps[imap]['x1']*100, self.maps[imap]['x2']*100,
+                     label=legendText, **line_options)
+
+        ax_options['ratio'] = 'equal'
+        ax_options['xlabel'] = 'X [cm]'
+        ax_options['ylabel'] = 'Y [cm]'
+        ax = ssplt.axis_beauty(ax, ax_options)
+        ax.set_xlim(self.Xlims)
+        ax.set_ylim(self.Ylims)
+
+        return im
+
+
+    def plotStrikeMap(self, timeStamp: float = None, ax=None,
+                      ax_options: dict = {}, line_options: dict = {},
+                      legendText: str = None, legend_on: bool = False,
+                      plot_weight: bool = True):
+        """
+        With an input list of maps for a given shot, this routine will plot the
+        strikemap in the given axis.
+
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+        @param timeStamp: time to plot the strike line. The nearest strike
+        line will be used. If None, all the strike maps are plotted.
+        @param ax: axis handler to plot the strikeline. If None, new axis
+        will be created.
+        @param ax_options: dictionary with inputs for axis set-up.
+        @param line_options: extra options to plot 1D lines.
+        @param legendText: text to use as legend. If None, the time stamp will
+        be used to label the strikelines.
+        @param legend_on: sets or on/off the legend.
+        @param plot_weigth: plots the weight along the strike line.
+        """
+
+        if timeStamp is None:
+            plot_all = True
+        else:
+            plot_all = False
+            imap = np.abs(self.time.flatten() - timeStamp).argmin()
+
+        # --- Initialise the plotting parameters
+        ax_options['ratio'] = 'equal'
+        # The ratio must be always equal
+        if 'fontsize' not in ax_options:
+            ax_options['fontsize'] = 16
+        if 'grid' not in ax_options:
+            ax_options['grid'] = 'both'
+        if 'linewidth' not in line_options:
+            line_options['linewidth'] = 2
+
+        legendText_initial = legendText
+        axis_was_none = False
+        if ax is None:
+            if plot_weight:
+                fig, ax = plt.subplots(1, 2)
+            else:
+                fig, ax = plt.subplots()
+            axis_was_none = True
+
+        if plot_all:
+            for ii in np.arange(len(self.maps)):
+                if legendText_initial is None:
+                    legendText = 't = ' + str(self.maps[ii]['timestamp'][0])+\
+                                 ' [s]'
+                else:
+                    legendText = 't = ' + str(self.maps[ii]['timestamp'][0])+\
+                                 ' [s] - ' + legendText_initial
+                if plot_weight:
+                    ax[0].plot(self.maps[ii]['x1']*100,
+                               self.maps[ii]['x2']*100,
+                               label=legendText, **line_options)
+                    ax[1].plot(self.maps[ii]['map_s'],
+                               self.maps[ii]['w']/sspar.ec,
+                               label=legendText, **line_options)
+                else:
+                    ax.plot(self.maps[ii]['x1']*100,
+                            self.maps[ii]['x2']*100,
+                            label=legendText, **line_options)
+
+        else:
+            if legendText is None:
+                legendText = 't = ' + str(self.maps[imap]['timestamp'][0]) + \
+                                 ' [s]'
+
+            if plot_weight:
+                ax[0].plot(self.maps[imap]['x1']*100,
+                           self.maps[imap]['x2']*100,
+                           label=legendText, **line_options)
+                ax[1].plot(self.maps[imap]['map_s'],
+                           self.maps[imap]['w']/sspar.ec,
+                           label=legendText, **line_options)
+            else:
+                ax.plot(self.maps[imap]['x1']*100,
+                        self.maps[imap]['x2']*100,
+                        label=legendText, **line_options)
+
+        if axis_was_none:
+            ax_options['ratio'] = 'equal'
+            ax_options['xlabel'] = 'X [cm]'
+            ax_options['ylabel'] = 'Y [cm]'
+
+            if plot_weight:
+                ax[0] = ssplt.axis_beauty(ax[0], ax_options)
+                ax[0].set_xlim(self.Xlims)
+                ax[0].set_ylim(self.Ylims)
+
+
+                ax_options['ratio'] = 'auto'
+                if self.maps[0]['rundata']['map_method'] == 1:
+                    ax_options['xlabel'] = '$\\rho_{pol}$ [-]'
+                elif self.maps[0]['rundata']['map_method'] == 2:
+                    ax_options['xlabel'] = 'Major radius R [m]'
+                else:
+                    raise Exception('Mode=3 not implemented')
+
+                ax_options['ylabel'] = 'Ion flux [$ion/m^2s$]'
+                ax[1] = ssplt.axis_beauty(ax[1], ax_options)
+                ax[1].yaxis.set_label_position('right')
+                ax[1].yaxis.tick_right()
+            else:
+                ax = ssplt.axis_beauty(ax, ax_options)
+                ax.set_xlim(self.Xlims)
+                ax.set_ylim(self.Ylims)
+
+        if legend_on:
+            if plot_weight:
+                ax[0].legend()
+            else:
+                ax.legend()
+
+        plt.tight_layout()
+
+        return ax
+
+    def getEqu(self):
+        """
+        This routine will get from the AUG database the most important
+        parameters that may affect the strikeline position. By default, all
+        the parameters are taken.
+        By default, Hmode flag, flat_top flag, Bcoils flag, ...
+
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+
+        """
+        rhop4store = [0.0, 0.50, 0.80, 0.90, 0.95, 1.00]
+        rhopNames  = ['0', '50', '80', '90', '95', '100']
+
+        # Check if we have a shotnumber stored.
+        if self.shot is None:
+            raise Exception('No shotfile has been assigned to the object!')
+
+        # Getting the SSQ data from the stored shotfile.
+        ssq = aug.get_shot_basics(shotnumber=self.shot, diag=self.equ_diag,
+                                  exp=self.equ_exp, edition=self.edition)
+
+        # Getting the indices in the EQU timebase.
+        tindx = np.zeros((len(self.time),), dtype = int)
+        tindx_ip = np.zeros((len(self.time),), dtype = int)
+        tindx_bt = np.zeros((len(self.time),), dtype = int)
+        for ii in np.arange(len(tindx)):
+            tindx[ii] = np.abs(ssq['time']-self.time[ii]).argmin()
+            tindx_ip[ii] = np.abs(ssq['iptime']-self.time[ii]).argmin()
+            tindx_bt[ii] = np.abs(ssq['bttime']-self.time[ii]).argmin()
+        try:
+            self.shotinfo['q95'] = - ssq['q95'][tindx]
+            self.shotinfo['q0']  = - ssq['q0'][tindx]
+            self.shotinfo['Rgeom'] = ssq['Rgeo'][tindx]
+            self.shotinfo['Raxis'] = ssq['Rmag'][tindx]
+            self.shotinfo['Raus'] = ssq['Raus'][tindx]
+            self.shotinfo['beta_pol'] = ssq['betpol'][tindx]
+            self.shotinfo['H1'] = ssq['lenH-1'][tindx]
+            self.shotinfo['H5'] = ssq['lenH-5'][tindx]
+            self.shotinfo['elongation'] = ssq['k'][tindx]
+            self.shotinfo['ip'] = ssq['ip'][tindx_ip]
+            self.shotinfo['bt0'] = ssq['bt0'][tindx_bt]
+        except:
+            print('The shotinfo could not be fully read!')
+
+        # --- Temperature and density data.
+        try:
+            print(self.shot)
+            sf_ida = dd.shotfile(pulseNumber=self.shot, diagnostic='IDA',
+                                 experiment='AUGD', edition=0)
+        except:
+            warn('The IDA profile cannot be loaded for #%05d'%self.shot)
+            return
+
+        Te = sf_ida(name='Te')
+        ne = sf_ida(name='ne')
+        tindx_ne = np.zeros((len(self.time),), dtype = int)
+        tindx_te = np.zeros((len(self.time),), dtype = int)
+        for ii in np.arange(len(tindx)):
+            tindx_ne[ii] = np.abs(ne.time.flatten() - self.time[ii]).argmin()
+            tindx_te[ii] = np.abs(Te.time.flatten() - self.time[ii]).argmin()
+
+        rhop = sf_ida(name='rhop').data[0, :]
+        for ii in np.arange(len(rhop4store)):
+            rhop_indx = np.abs(rhop - rhop4store[ii]).argmin()
+
+            name = 'ne'+rhopNames[ii]
+            self.shotinfo[name] = ne.data[tindx_ne, rhop_indx]
+
+            name = 'Te'+rhopNames[ii]
+            self.shotinfo[name] = ne.data[tindx_ne, rhop_indx]
+
+        sf_ida.close()
+
+
 # -----------------------------------------------------------------------------
 # --- Strikes object. Contains the striking points.
 # -----------------------------------------------------------------------------
 class strikes:
     def Open(self, filename: str, compute2nd: bool = True,
-             strikemap: dict = None):
+             strikemap: strikeLine=None):
         """
         Opens and overwrite into the class data the strike data found in the
         strike file.
@@ -351,7 +683,7 @@ class strikes:
             self.mapSet = False
 
     def __init__(self, filename: str, compute2nd: bool = True,
-                 scint: float = None, strikemap: dict = None):
+                 scint: float = None, strikemap: strikeLine = None):
 
         """
         Constructor of the strikes class.
@@ -487,8 +819,8 @@ class strikes:
 
         # --- Plotting the strikemap:
         if self.mapSet and plot_strikemap:
-            rhopolplot = np.linspace(start=self.map['rhopol'].min(),
-                                     stop=self.map['rhopol'].max(),
+            rhopolplot = np.linspace(start=self.map.maps[0]['map_s'].min(),
+                                     stop=self.map.maps[0]['map_s'].max(),
                                      num=10)
 
             drhopol = rhopolplot[1] - rhopolplot[0]
@@ -500,19 +832,23 @@ class strikes:
             x2_plot = np.zeros(len(rhopolplot))
             w_plot = np.zeros(len(rhopolplot))
             for ii in np.arange(len(x1_plot)):
-                irho = np.abs(self.map['rhopol']-rhopolplot[ii]).argmin()
-                x1_plot[ii] = self.map['x1'][irho]
-                x2_plot[ii] = self.map['x2'][irho]
-                w_plot[ii] = self.map['w'][irho]
+                irho = np.abs(self.map.maps[0]['map_s']-rhopolplot[ii]).argmin()
+                x1_plot[ii] = self.map.maps[0]['x1'][irho]
+                x2_plot[ii] = self.map.maps[0]['x2'][irho]
+                w_plot[ii] = self.map.maps[0]['w'][irho]
 
-            # Generating the discrete colormap.
-            cmap2 = cm.get_cmap('tab10', len(rhopolplot))
-            im2 = ax.scatter(x=x1_plot*100.0, y=x2_plot*100.0,
-                             c=rhopolplot, s=20.0,
-                             cmap=cmap2,
-                             vmin=rhopolplot_vmin,
-                             vmax=rhopolplot_vmax,
-                             zorder=5)
+                ax.plot(x1_plot[ii]*100, x2_plot[ii]*100, 'o',
+                        markersize=5., label='%.2f'%rhopolplot[ii],
+                        zorder=25)
+
+            # # Generating the discrete colormap.
+            # cmap2 = cm.get_cmap('tab10', len(rhopolplot))
+            # im2 = ax.scatter(x=x1_plot*100.0, y=x2_plot*100.0,
+            #                  c=rhopolplot, s=20.0,
+            #                  cmap=cmap2,
+            #                  vmin=rhopolplot_vmin,
+            #                  vmax=rhopolplot_vmax,
+            #                  zorder=5)
 
         if axis_was_none:
             ax.set_xlim(self.Xlims)
@@ -534,320 +870,7 @@ class strikes:
         return ax, {'x': xcenter, 'y': ycenter, 'W': h}
 
 
-# -----------------------------------------------------------------------------
-# --- Strikeline object.
-# -----------------------------------------------------------------------------
-class strikeLine:
-    def __init__(self, filename: str, shotnumber: int = None,
-                 diag: str = 'EQH', exp: str = 'AUGD', ed: int = 0,
-                 scint: float = None):
-        """
-        Initializes the object strike line. This can contain several strike
-        lines, as they are written altogether.
 
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-        @param filename: name of the file containing the strikelines.
-
-        """
-
-        self.maps = {}
-        self.time = []
-        self.shot = shotnumber
-        self.equ_diag = diag
-        self.equ_exp  = exp
-        self.edition  = ed
-
-        if filename is not None:
-            self.Open(filename)
-
-        if scint is None:
-            self.Xlims = scintillator_limits_X
-            self.Ylims = scintillator_limits_Y
-        else:
-            self.Xlims = scint[0:2]
-            self.Ylims = scint[2:4]
-
-        if shotnumber is not None:
-            self.shotinfo = {}
-            self.getEqu()
-
-    @property
-    def size(self):
-        """
-        Gets the number of maps stored in the class.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-        """
-
-        return len(self.maps)
-
-    @property
-    def shape(self):
-        """
-        Gets the shape of the stored maps:
-            0 -> Number of maps
-            1 -> Strikepoints per map.
-        """
-
-        return [self.size, len(self.maps[0]['x1'])]
-
-    def Open(self, filename: str):
-        """
-        Reads from file the strikelines computed by i-HIBPsim and stores them
-        into the class data.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-        @param filename: name of the file with the strikelines.
-        @param oldFlag: flag stating whether this is the new or older version
-        of the strikemap file.
-
-        """
-
-        # Reading from the file the raw data.
-        self.maps = readStrikeMapFile(filename, flip_y=True, header=True)
-
-        # Storing the time coordinate
-        self.time = np.zeros((len(self.maps)))
-        for ii in np.arange(len(self.maps)):
-            self.time[ii] = self.maps[ii]['timestamp']
-
-    def plotStrikeLine(self, timeStamp: float = None, ax=None,
-                       ax_options: dict = {}, line_options: dict = {},
-                       legendText: str = None):
-        """
-        With an input list of maps for a given shot, this routine will plot the
-        strikemap in the given axis.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-        @param timeStamp: time to plot the strike line. The nearest strike
-        line will be used. If None, all the strike maps are plotted.
-        @param ax: axis handler to plot the strikeline. If None, new axis
-        will be created.
-        @param ax_options: dictionary with inputs for axis set-up.
-        @param line_options: extra options to plot 1D lines.
-        @param legendText: text to use as legend. If None, the time stamp will
-        be used to label the strikelines.
-        @param legend_on: sets or on/off the legend.
-        @param plot_weigth: plots the weight along the strike line.
-        """
-
-        imap = np.searchsorted(self.time.flatten(), timeStamp)
-        # --- Initialise the plotting parameters
-        ax_options['ratio'] = 'equal'
-        # The ratio must be always equal
-        if 'fontsize' not in ax_options:
-            ax_options['fontsize'] = 16
-        if 'grid' not in ax_options:
-            ax_options['grid'] = 'both'
-        if 'linewidth' not in line_options:
-            line_options['linewidth'] = 2
-
-        legendText = 't = ' + str(self.maps[imap]['timestamp'][0]) + ' [s]'
-        im = ax.plot(self.maps[imap]['x1']*100, self.maps[imap]['x2']*100,
-                     label=legendText, **line_options)
-
-        ax_options['ratio'] = 'equal'
-        ax_options['xlabel'] = 'X [cm]'
-        ax_options['ylabel'] = 'Y [cm]'
-        ax = ssplt.axis_beauty(ax, ax_options)
-        ax.set_xlim(self.Xlims)
-        ax.set_ylim(self.Ylims)
-
-        return im
-
-
-    def plotStrikeMap(self, timeStamp: float = None, ax=None,
-                      ax_options: dict = {}, line_options: dict = {},
-                      legendText: str = None, legend_on: bool = False,
-                      plot_weight: bool = True):
-        """
-        With an input list of maps for a given shot, this routine will plot the
-        strikemap in the given axis.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-        @param timeStamp: time to plot the strike line. The nearest strike
-        line will be used. If None, all the strike maps are plotted.
-        @param ax: axis handler to plot the strikeline. If None, new axis
-        will be created.
-        @param ax_options: dictionary with inputs for axis set-up.
-        @param line_options: extra options to plot 1D lines.
-        @param legendText: text to use as legend. If None, the time stamp will
-        be used to label the strikelines.
-        @param legend_on: sets or on/off the legend.
-        @param plot_weigth: plots the weight along the strike line.
-        """
-
-        if timeStamp is None:
-            plot_all = True
-        else:
-            plot_all = False
-            imap = np.abs(self.time.flatten() - timeStamp).argmin()
-
-        # --- Initialise the plotting parameters
-        ax_options['ratio'] = 'equal'
-        # The ratio must be always equal
-        if 'fontsize' not in ax_options:
-            ax_options['fontsize'] = 16
-        if 'grid' not in ax_options:
-            ax_options['grid'] = 'both'
-        if 'linewidth' not in line_options:
-            line_options['linewidth'] = 2
-
-        legendText_initial = legendText
-        axis_was_none = False
-        if ax is None:
-            if plot_weight:
-                fig, ax = plt.subplots(1, 2)
-            else:
-                fig, ax = plt.subplots()
-            axis_was_none = True
-
-        if plot_all:
-            for ii in np.arange(len(self.maps)):
-                if legendText_initial is None:
-                    legendText = 't = ' + str(self.maps[ii]['timestamp'][0])+\
-                                 ' [s]'
-                else:
-                    legendText = 't = ' + str(self.maps[ii]['timestamp'][0])+\
-                                 ' [s] - ' + legendText_initial
-                if plot_weight:
-                    ax[0].plot(self.maps[ii]['x1']*100,
-                               self.maps[ii]['x2']*100,
-                               label=legendText, **line_options)
-                    ax[1].plot(self.maps[ii]['rhopol'],
-                               self.maps[ii]['w']/sspar.ec,
-                               label=legendText, **line_options)
-                else:
-                    ax.plot(self.maps[ii]['x1']*100,
-                            self.maps[ii]['x2']*100,
-                            label=legendText, **line_options)
-
-        else:
-            if legendText is None:
-                legendText = 't = ' + str(self.maps[imap]['timestamp'][0]) + \
-                                 ' [s]'
-
-            if plot_weight:
-                ax[0].plot(self.maps[imap]['x1']*100,
-                           self.maps[imap]['x2']*100,
-                           label=legendText, **line_options)
-                ax[1].plot(self.maps[imap]['rhopol'],
-                           self.maps[imap]['w']/sspar.ec,
-                           label=legendText, **line_options)
-            else:
-                ax.plot(self.maps[imap]['x1']*100,
-                        self.maps[imap]['x2']*100,
-                        label=legendText, **line_options)
-
-        if axis_was_none:
-            ax_options['ratio'] = 'equal'
-            ax_options['xlabel'] = 'X [cm]'
-            ax_options['ylabel'] = 'Y [cm]'
-
-            if plot_weight:
-                ax[0] = ssplt.axis_beauty(ax[0], ax_options)
-                ax[0].set_xlim(self.Xlims)
-                ax[0].set_ylim(self.Ylims)
-
-
-                ax_options['ratio'] = 'auto'
-                ax_options['xlabel'] = '$\\rho_{pol}$ [-]'
-                ax_options['ylabel'] = 'Ion flux [$ion/m^2s$]'
-                ax[1] = ssplt.axis_beauty(ax[1], ax_options)
-                ax[1].yaxis.set_label_position('right')
-                ax[1].yaxis.tick_right()
-            else:
-                ax = ssplt.axis_beauty(ax, ax_options)
-                ax.set_xlim(self.Xlims)
-                ax.set_ylim(self.Ylims)
-
-        if legend_on:
-            if plot_weight:
-                ax[0].legend()
-            else:
-                ax.legend()
-
-        plt.tight_layout()
-
-        return ax
-
-    def getEqu(self):
-        """
-        This routine will get from the AUG database the most important
-        parameters that may affect the strikeline position. By default, all
-        the parameters are taken.
-        By default, Hmode flag, flat_top flag, Bcoils flag, ...
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-
-        """
-        rhop4store = [0.0, 0.50, 0.80, 0.90, 0.95, 1.00]
-        rhopNames  = ['0', '50', '80', '90', '95', '100']
-
-        # Check if we have a shotnumber stored.
-        if self.shot is None:
-            raise Exception('No shotfile has been assigned to the object!')
-
-        # Getting the SSQ data from the stored shotfile.
-        ssq = aug.get_shot_basics(shotnumber=self.shot, diag=self.equ_diag,
-                                  exp=self.equ_exp, edition=self.edition)
-
-        # Getting the indices in the EQU timebase.
-        tindx = np.zeros((len(self.time),), dtype = int)
-        tindx_ip = np.zeros((len(self.time),), dtype = int)
-        tindx_bt = np.zeros((len(self.time),), dtype = int)
-        for ii in np.arange(len(tindx)):
-            tindx[ii] = np.abs(ssq['time']-self.time[ii]).argmin()
-            tindx_ip[ii] = np.abs(ssq['iptime']-self.time[ii]).argmin()
-            tindx_bt[ii] = np.abs(ssq['bttime']-self.time[ii]).argmin()
-        try:
-            self.shotinfo['q95'] = - ssq['q95'][tindx]
-            self.shotinfo['q0']  = - ssq['q0'][tindx]
-            self.shotinfo['Rgeom'] = ssq['Rgeo'][tindx]
-            self.shotinfo['Raxis'] = ssq['Rmag'][tindx]
-            self.shotinfo['Raus'] = ssq['Raus'][tindx]
-            self.shotinfo['beta_pol'] = ssq['betpol'][tindx]
-            self.shotinfo['H1'] = ssq['lenH-1'][tindx]
-            self.shotinfo['H5'] = ssq['lenH-5'][tindx]
-            self.shotinfo['elongation'] = ssq['k'][tindx]
-            self.shotinfo['ip'] = ssq['ip'][tindx_ip]
-            self.shotinfo['bt0'] = ssq['bt0'][tindx_bt]
-        except:
-            print('The shotinfo could not be fully read!')
-
-        # --- Temperature and density data.
-        try:
-            print(self.shot)
-            sf_ida = dd.shotfile(pulseNumber=self.shot, diagnostic='IDA',
-                                 experiment='AUGD', edition=0)
-        except:
-            warn('The IDA profile cannot be loaded for #%05d'%self.shot)
-            return
-
-        Te = sf_ida(name='Te')
-        ne = sf_ida(name='ne')
-        tindx_ne = np.zeros((len(self.time),), dtype = int)
-        tindx_te = np.zeros((len(self.time),), dtype = int)
-        for ii in np.arange(len(tindx)):
-            tindx_ne[ii] = np.abs(ne.time.flatten() - self.time[ii]).argmin()
-            tindx_te[ii] = np.abs(Te.time.flatten() - self.time[ii]).argmin()
-
-        rhop = sf_ida(name='rhop').data[0, :]
-        for ii in np.arange(len(rhop4store)):
-            rhop_indx = np.abs(rhop - rhop4store[ii]).argmin()
-
-            name = 'ne'+rhopNames[ii]
-            self.shotinfo[name] = ne.data[tindx_ne, rhop_indx]
-
-            name = 'Te'+rhopNames[ii]
-            self.shotinfo[name] = ne.data[tindx_ne, rhop_indx]
-
-        sf_ida.close()
 # -----------------------------------------------------------------------------
 # --- Strikeline database object.
 # -----------------------------------------------------------------------------
