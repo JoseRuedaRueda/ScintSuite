@@ -226,7 +226,6 @@ class VRTVideo(BVO):
                            frame = frame)
         return roi
     
-    # def get_calibration()
         
         
         
