@@ -3,6 +3,14 @@ This verison was not released, this is just a warning about things which will be
 - The Strikes object of the FILDSIM code, use the Common object instead, already available and working better
 - StrikeMap.plot_strike_points() will be deleted. Please use StrikeMap.strike_points.scatter() instead, much better, with more flexibility and options
 
+** 0.7.3 VRT video object and LibVRT
+*** VRTVideoObject
+- Solved a bug where the time trace was not the same as in the loaded video
+*** LibVRT
+- Library to interact with the VRT data
+- Get camera calibration (signal -> temperature) and (some) camera configuration parameters
+
+
 ** 0.7.2 VRT video object and loadMask
 *** VRTVideoObject
 - Object intended for the analysis of the VRT cameras. Children of the BasicVideoObject

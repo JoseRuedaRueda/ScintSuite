@@ -17,6 +17,7 @@ import Lib.LibPlotting as ssplt
 import Lib.LibIO as ssio
 import os
 from Lib.LibMachine import machine
+import Lib.LibVRT as vrt
 
 # import numpy as np
 # import Lib.LibMap as ssmap
@@ -39,36 +40,41 @@ class VRTVideo(BVO):
     Javier Hidalgo-Salaverri (jhsalaverri@us.es)
     
     """
-    def __init__(self, camera: str = None, shot: int = None, roi: str = None):
+    def __init__(self, camera: str = None, shot: int = None):
         """
         Initialise the class
 
         @param camera: Camera name
         @param shot: Shot number
-        @param roi: ROI name. This is only used to get the timebase any ROI
-        related to the desired camera should work
+
         """
         # Initialise the parent class
         folder= '/afs/ipp/u/augd/rawfiles/VRT/'+str(shot)[0:2]+'/S'+str(shot)
         self.path_video = folder+'/S'+str(shot)+'_'+camera+'.mp4'
-        self.path_time = folder+'/Prot/'+roi+'.xml'
+        self.path_time = folder+'/Prot/FrameProt/'+camera+'_FrameProt.xml'
         BVO.__init__(self, file = self.path_video, shot = shot)
         self.exp_dat['frames'] = self.exp_dat['frames'][::-1,:,:]
         # Get the time base and the corresponding frame number
         root = et.parse(self.path_time).getroot()
-        TS6=int(root.attrib['ts6'],0)
+        TS6 = int(root.attrib['ts6Time'],0)
         time = []
         nframe = []
-        for r in root.find('Values').findall('Val'):
+        for r in root.findall('Entry'):
+        #     time.append(int(r.))
+        # for r in root.find('Values').findall('Val'):
             time.append((int(r.attrib['time'],0)-TS6)*1e-9)
-            nframe.append(int(r.attrib['frame']))
-        self.exp_dat['time'] = np.array(time)
-        self.exp_dat['nframe'] = np.array(nframe)
+            nframe.append(int(r.attrib['frameNumber']))
+        self.exp_dat['tframes'] = np.array(time)
+        self.exp_dat['nframes'] = np.array(nframe)
         self.shot = shot
         self.camera = camera
+
     
-    def GUI_frames(self):
-        """Small GUI to explore camera frames"""
+    def GUI_frames(self, calibrated: bool = False):
+        """Small GUI to explore camera frames
+        
+        @param calibrated: return the GUI in terms of temperature
+        """
         text = 'Press TAB until the time slider is highlighted in red.'\
             + ' Once that happend, you can move the time with the arrows'\
             + ' of the keyboard, frame by frame'
@@ -77,7 +83,20 @@ class VRTVideo(BVO):
         print('-------------------')
         root = tk.Tk()
         root.resizable(height=None, width=None)
-        ssGUI.ApplicationShowVid(root, self.exp_dat, None)
+        if calibrated:
+            # Get the gain and shutter position for that shot
+            camrange = 1024
+            camera_list = vrt.get_cameras(self.shot)
+            GA = camera_list[self.camera]['GA']
+            SH = camera_list[self.camera]['SH']
+            Tcal = vrt.get_calibration(self.camera, self.shot, GA, SH)
+            exp_dat = self.exp_dat
+            
+            exp_dat['frames'] = np.interp(exp_dat['frames'], 
+                                          np.arange(camrange), Tcal)
+            ssGUI.ApplicationShowVid(root, exp_dat, None) 
+        else:
+            ssGUI.ApplicationShowVid(root, self.exp_dat, None)
         root.mainloop()
         root.destroy()
         
@@ -206,7 +225,8 @@ class VRTVideo(BVO):
             ssio.save_mask(mask = mask,filename = filename, shot = self.shot,
                            frame = frame)
         return roi
-        
+    
+    # def get_calibration()
         
         
         
