@@ -226,12 +226,3 @@ class VRTVideo(BVO):
                            frame = frame)
         return roi
     
-        
-        
-        
-        
-        
-        
-        
-        
-        
