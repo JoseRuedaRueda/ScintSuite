@@ -8,6 +8,8 @@ import xml.etree.ElementTree as et
 import glob
 import numpy as np
 import os
+from shapely.geometry import Point 
+from shapely.geometry.polygon import Polygon
 
 def get_cameras(shot):
     """
@@ -136,3 +138,37 @@ def get_calibration(cam, shot, GA, SH):
        T[cnts]=np.interp(Lebk,rad[:,1],rad[:,0])
        
     return T 
+
+def ROI2mask(path: str = '', nx: int = None, ny: int = None):
+    """
+    Convert a VRT ROI (or any other ROI defined with a .xml file) to a binary 
+    mask.
+    
+    Javier Hidalgo Salaverri: jhsalaverri@us.es
+    
+    @param path
+    @param nx: x dimension of the frame
+    @param ny: y dimension of the frame
+    """
+    # Load the ROI
+    root = et.parse(path).getroot()
+    y = []; x0 = []; x1 = [];
+    for roi_point in root[0]:
+        y.append(int(roi_point.attrib['y']))
+        x0.append(int(roi_point.attrib['x0']))
+        x1.append(int(roi_point.attrib['x1']))
+    
+    # The ROI is flipped in the x axis
+    y = y[::-1]
+    # Convert it to a single line
+    x = np.concatenate((x1,x0[::-1]))
+    y = np.concatenate((y,y[::-1]))
+    
+    # Create the binary mask
+    mask = np.ones((nx,ny))
+    roi = Polygon(np.column_stack((x,y)))
+    for i in range(mask.shape[0]):
+        for j in range(mask.shape[1]):
+            mask[i][j] = roi.contains(Point(i,j))
+    mask = mask.astype(bool)
+    return {'frame': None, 'mask': mask, 'nx': nx, 'ny': ny, 'shot': None}
