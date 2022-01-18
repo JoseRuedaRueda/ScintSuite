@@ -131,7 +131,10 @@ def read_ASCOT_distribution(file, version: int = 4, IpBt_sign=ssdat.IB_sign):
 def distribution_tomography_frame(g_grid, p_grid, coefficients,
                                   exclude_neg: bool = True):
     """
-    Prepare distribution for foward modelling from tomographic inversions:
+    Prepare distribution for foward modelling from tomographic inversions
+
+    Note: this function is dumm, the foward modelled signal from a tomography
+    is just WF, why this function was created??
 
     Jose Rueda Rueda: jrrueda@us.es
 

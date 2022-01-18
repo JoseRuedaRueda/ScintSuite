@@ -26,11 +26,11 @@ class Path:
         self.FILDStrikeMapsTomography = \
             os.path.join(self.ScintSuite, 'Data',
                          'StrikeMaps', 'FILD', 'Tomography')
-            
-            
+        self.FILDPositionDatabase = ''
+
         self.iHIBPsim = os.path.join(home, 'ihibpsim')
         self.ihibp_bins = os.path.join(self.iHIBPsim, 'bin')
-        self.ihibp_res  = os.path.join(self.iHIBPsim, 'sims')
+        self.ihibp_res = os.path.join(self.iHIBPsim, 'sims')
         self.ihibp_repo = os.path.join(self.ScintSuite, 'Data', 'MyData',
                                        'repository')
         self.tracker = os.path.join(self.ihibp_bins, 'tracker.go')

@@ -8,6 +8,8 @@ jose Rueda: jrrueda@us.es
 
 Note; Written for version 0.3.0. Before running this script, please do:
 plt.show(), if not, bug due to spyder 4.0 may arise
+
+You should run paths_suite.py before runing this example.
 """
 import Lib as ss
 import matplotlib.pyplot as plt
