@@ -120,7 +120,10 @@ def get_calibration(cam, shot, GA, SH):
        if int(sh.attrib['SH'])==SH:
          texp = float(sh.attrib['t_exp'])
     
-    rad=np.array([[float(e.attrib['T']),float(e.attrib['LeW'])] for e in calroot.findall('radiance_table/entry')])
+    rad = []
+    for e in calroot.findall('radiance_table/entry'):
+        rad.append((float(e.attrib['T']),float(e.attrib['LeW'])))
+    rad = np.array(rad)
     ii = np.argsort(rad[:,0]);rad=rad[ii]
      
     T = np.zeros(camrange) 
