@@ -381,6 +381,8 @@ class TimeTrace:
         if ax is None:
             fig, ax = plt.subplots()
             created_ax = True
+        else:
+            created_ax = False
         line_options.update(line_params)
         ax.plot(self.time_base, y, **line_options)
         ax_options.update(ax_params)

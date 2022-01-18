@@ -1,5 +1,5 @@
 """
-Lecture 2 of the FILDSIM course
+Lecture 2 of the FILDSIM course.
 
 Analyse the strike map (resolutions, sigmas, etc)
 

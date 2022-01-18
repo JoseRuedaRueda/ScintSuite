@@ -3,20 +3,41 @@ This verison was not released, this is just a warning about things which will be
 - The Strikes object of the FILDSIM code, use the Common object instead, already available and working better
 - StrikeMap.plot_strike_points() will be deleted. Please use StrikeMap.strike_points.scatter() instead, much better, with more flexibility and options
 
-** 0.7.3 VRT video object and LibVRT
+** 0.7.6 VRT video object and LibVRT
 *** VRTVideoObject
 - Solved a bug where the time trace was not the same as in the loaded video
 *** LibVRT
 - Library to interact with the VRT data
 - Get camera calibration (signal -> temperature) and (some) camera configuration parameters
 
-
-** 0.7.2 VRT video object and loadMask
+** 0.7.5 VRT video object and loadMask
 *** VRTVideoObject
 - Object intended for the analysis of the VRT cameras. Children of the BasicVideoObject
 - Can plot VRT videos and save ROIs
 *** LibIO
 - Added load_mask
+
+** 0.7.4 Massive remaps:
+- A flag 'allIn' was included in the function to remap all loaded FILD frames. If this flag is set to true, the code will always take the closer strike maps, without allowing to the user to calculate the strike map. In this way, you can remap 'N' shot automatically, without having to say 'No' to the program if a strike map is missing
+- *Bug_solved*. Bug which make the load of png files not possible is solved (the bug was introduced in version 0.7.0)
+
+** 0.7.3 SINPA examples:
+*** Examples:
+- Examples to execute the SINPA code polished and more documented.
+*** Bugs:
+- Solved bugs when several smaps of SINPA where loaded, a dictionary was not been properly copied so problems appeared in the header
+- Solved a bug in the Smap.plot_resolution_fits() routine, due to copy/paste, an index in the loop was ir instead of i
+- Solved a bug in the SINPA init module, geometry module was not loaded properly
+- Solved a small bug in the Smap.plot_resolutions(), the old convention 'pitch' instead of 'XI' was used there
+
+** 0.7.2 Logbook:
+*** LibDat:
+- A new FILD class was created. This class read directly the FILD logbook (excel on the web) and get the FILD position and orientation for that shot
+- CalibrationDatabase.txt was moved into a folder AUG in the FILD folder inside the Calibration folder of the Data folder. This was made to accommodate future calibrations for other tokamaks
+- Default_positions.txt was added in the FILD calibraation folder. The code will use the positions and orientation of FILD present there if the logbook is not accesible or if that shot is not found on it
+- FILDPosition from the DiagParam library was deprecated, to obtain the FILD position, the new FILD class should be used
+- load_FILD4_trajectory and plot_FILD4_trajectory where moved to the new FILD library inside LibDataAUG
+- load_FILD4_trajectory makes now the conversion between insertion and real R and z. Notice that this is based on CAD and can be non-precise. +- 1 cm can be expected due to failures in the CAD
 
 ** 0.7.1 Uncertainties in fits and angles in execution:
 *** LibMap:

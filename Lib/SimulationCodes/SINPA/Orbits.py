@@ -27,8 +27,8 @@ class OrbitClass:
         @param file: full file to read (if provided, runID will be ignored)
         """
         if file is None:
-            file = \
-                os.path.join(paths.SINPA, 'runs', runID, 'results/Orbits.bin')
+            file = os.path.join(paths.SINPA, 'runs', runID, 'results',
+                                runID + '.orb')
         self.file = file
         self.read_file(file, verbose=verbose)
 
