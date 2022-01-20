@@ -31,18 +31,11 @@ nml_options = {   # Se the PDF documentation for a complete desription of these
         'nGyroradius': 7,
         'nMap': 10000,
         'mapping': True,
-        'signal': False,
-        'resampling': False,
-        'nResampling': 4,
         'saveOrbits': True,
         'saveRatio': 0.01,
         'saveOrbitLongMode': False,
         'SINPA_dir': paths.SINPA,
-        'FIDASIMfolder': '',
         'verbose': True,
-        'M': 2.0,         # Mass of the particle (in uma)
-        'Zin': 1.0,         # Charge before the ionization in the foil
-        'Zout': 1.0,        # Charge after the ionization in the foil
         'IpBt': -1,        # Sign of toroidal current vs field (for pitch)
         'flag_efield_on': False,  # Add or not electric field
         'save_collimator_strike_points': True,  # Save collimator points
