@@ -25,6 +25,8 @@ There are two files containing the paths and routes for the suite:
 It could happen that you have FILDSIM, SINPA or whatever installed in a route which is not 'the official'. The suite allows you to define these different paths via the namelist 'Paths.txt' inside the MyData folder (inside Data) Please use always this file and do not modify the LibPaths.py file
 *Important* The suite must be installed in your home directory.
 
+VRT related paths are hardcoded. There is a significant number of them and overloading LibPaths seems like a poor solution. Blame Javier Hidalgo for this (jhsalaverri@us.es)
+
 *** FILDSIM notes
 - You need to create an empty folder in the root of FILDSIM code with name 'cfg_files' in order to run the remap routine. The namelist of the new calculated strike maps will be stored here, so we do not create thousands of files in the main FILDSIM paths
 
