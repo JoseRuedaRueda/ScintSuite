@@ -31,7 +31,7 @@ tn2 = 0.25     # Final time to average the frames for noise subtraction [s]
 
 # - TimeTrace options:
 t0 = 0.30         # time points to define the ROI
-save_TT = True   # Export the TT and the ROI used
+save_TT = False   # Export the TT and the ROI used
 
 # - Plotting options:
 FS = 16        # FontSize for plotting
