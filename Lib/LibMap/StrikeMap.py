@@ -15,6 +15,7 @@ from Lib.SimulationCodes.Common.strikes import Strikes
 import Lib.LibMap.Common as common
 from Lib.LibMachine import machine
 import Lib.LibPaths as p
+from Lib.decorators import deprecated
 from tqdm import tqdm   # For waitbars
 pa = p.Path(machine)
 del p
@@ -622,6 +623,7 @@ class StrikeMap:
         if self.code.lower() == 'sinpa':
             self.remap_strike_points()
 
+    @deprecated('Please use smap.strike_points.scatter() instead')
     def plot_strike_points(self, ax=None, plt_param={}):
         """
         Scatter plot of the strik points. DEPRECATED!.
@@ -642,9 +644,8 @@ class StrikeMap:
         # Open the figure if needed:
         if ax is None:
             fig, ax = plt.subplots()
-        warnings.warn('This function will be removed in future versions.')
-        print('Please use smap.strike_points.plot2D() instead')
-        self.strike_points.scatter(ax=ax, mar_params=plt_param)
+
+        self.strike_points.scatter(ax=ax)
 
     def calculate_resolutions(self, diag_params: dict = {},
                               min_statistics: int = 100,

@@ -3,6 +3,12 @@ This verison was not released, this is just a warning about things which will be
 - The Strikes object of the FILDSIM code, use the Common object instead, already available and working better
 - StrikeMap.plot_strike_points() will be deleted. Please use StrikeMap.strike_points.scatter() instead, much better, with more flexibility and options
 
+** 0.7.8 FILD logbook
+- FILD loogbook object was upgraded. Now is a complete database to interact with the object
+- The function to read the optical calibration database was moved into the FILD logbook object. The old one remains, but marked as deprecated
+- Deprecated decorators where included in the suite (thanks to PLEQUE code :)
+- *Note* This is a transitional update, in version 8.0 the FILD logbook will be directly use in the automatic remap
+
 ** 0.7.7 Small improvements in handling SINPA and FILDSIM
 *** Examples:
 - SINPA examples were updated the new SINPA code version (which enables the default parameters in the namelist so FILDSIM user do not need to worry about INPA variables)
