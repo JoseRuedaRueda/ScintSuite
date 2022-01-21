@@ -31,9 +31,9 @@ class Path:
         self.iHIBPsim = os.path.join(home, 'ihibpsim')
         self.ihibp_bins = os.path.join(self.iHIBPsim, 'bin')
         self.ihibp_res = os.path.join(self.iHIBPsim, 'sims')
-        self.ihibp_repo = os.path.join(self.ScintSuite, 'Data', 'MyData',
-                                       'repository')
+        self.ihibp_repo = os.path.join(self.iHIBPsim, 'repo')
         self.tracker = os.path.join(self.ihibp_bins, 'tracker.go')
+
         self.ihibpsim_strline_database = os.path.join(self.ScintSuite,
                                                       'Data',
                                                       'StrikeMaps',
