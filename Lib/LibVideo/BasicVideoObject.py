@@ -21,6 +21,8 @@ import Lib.LibVideo.AuxFunctions as aux
 import Lib.LibData as ssdat
 import Lib.LibUtilities as ssutilities
 import Lib.LibPlotting as ssplt
+import Lib.GUIs as ssGUI
+import tkinter as tk
 
 
 class BVO:
@@ -475,3 +477,17 @@ class BVO:
     def size(self):
         """Get the size of the loaded frames."""
         return self.exp_dat['frames'].size
+
+    def GUI_frames(self):
+        """Small GUI to explore camera frames"""
+        text = 'Press TAB until the time slider is highlighted in red.'\
+            + ' Once that happend, you can move the time with the arrows'\
+            + ' of the keyboard, frame by frame'
+        print('-------------------')
+        print(text)
+        print('-------------------')
+        root = tk.Tk()
+        root.resizable(height=None, width=None)
+        ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat)
+        root.mainloop()
+        root.destroy()

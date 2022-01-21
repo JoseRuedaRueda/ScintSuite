@@ -3,6 +3,20 @@ This verison was not released, this is just a warning about things which will be
 - The Strikes object of the FILDSIM code, use the Common object instead, already available and working better
 - StrikeMap.plot_strike_points() will be deleted. Please use StrikeMap.strike_points.scatter() instead, much better, with more flexibility and options
 
+** 0.7.9 iHIBPsim updated.
+- Minor errors corrected in the iHIBPsim libraries.
+- iHIBPsim namelist: library ready to read and parse the namelists that will be used as inputs for the i-HIBPsim fortran code.
+- iHIBPsim beam: the library has been updated and a simple GUI is introduced (Examples/Others/ihibpsim_beam_gui)
+- iHIBPsim video viewer: included viewer in Examples/Others/ihibpsim_video_gui. No calibrations are yet applied.
+- iHIBPsim paths updated in LibPath
+- Optical calibration of the i-HIBPsim plate added (Data/Calibrations/iHIBP).
+*** Profile library in iHIBPsim.
+- Profiles class to read from the database and save them for the iHIBPsim execution (SimulationCodes/iHIBPsim/profiles.py)
+- Can read from the database.
+- Save/read the binary files.
+- Plotting routines.
+- Possibility to modify the 1D profiles to study perturbations.
+
 ** 0.7.8 FILD logbook
 - FILD loogbook object was upgraded. Now is a complete database to interact with the object
 - The function to read the optical calibration database was moved into the FILD logbook object. The old one remains, but marked as deprecated

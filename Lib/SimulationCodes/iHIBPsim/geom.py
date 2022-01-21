@@ -1108,6 +1108,8 @@ class geom:
             tidx = [0]
         else:
             tidx = np.searchsorted(self.t_eq, timepoint)
+            if not hasattr(tidx, '__iter__'):
+                tidx = [tidx]
 
         options = { 'color': 'r',
                     'linewidth': 1.0
