@@ -7,6 +7,7 @@ import Lib.LibParameters as ssp
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
 import Lib.LibData as ssdat
+from Lib.decorators import deprecated
 import f90nml
 paths = Path(machine)
 
@@ -279,6 +280,7 @@ def find_strike_map(rfild: float, zfild: float,
 # -----------------------------------------------------------------------------
 # --- Read plates
 # -----------------------------------------------------------------------------
+@deprecated('Please use the new Geometry object from the common library')
 def read_plate(filename):
     """
     Read FILDSIM plate
