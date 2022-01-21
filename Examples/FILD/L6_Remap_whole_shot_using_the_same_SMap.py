@@ -31,7 +31,7 @@ tn2 = 0.15     # Final time to average the frames for noise subtraction [s]
 
 # - Remapping options:
 calibration_database = ss.paths.ScintSuite \
-    + '/Data/Calibrations/FILD/calibration_database.txt'
+    + '/Data/Calibrations/FILD/AUG/calibration_database.txt'
 Smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/39612_1p99s_strike_map.dat'
 camera = ss.dat.FILD[diag_ID-1]['camera']
 
@@ -79,12 +79,14 @@ if subtract_noise:
 # -----------------------------------------------------------------------------
 # --- Section 3: Read FILD logbook
 # -----------------------------------------------------------------------------
-FILD = ss.dat.FILD_logbook(shot, diag_ID)
+FILD = ss.dat.FILD_logbook()
+position = FILD.getPosition(shot, diag_ID)
+orientation = FILD.getOrientation(shot, diag_ID)
 # Add FILD positions to the remap options:
-par['rfild'] = FILD.position['R']
-par['zfild'] = FILD.position['z']
-par['alpha'] = FILD.orientation['alpha']
-par['beta'] = FILD.orientation['beta']
+par['rfild'] = position['R']
+par['zfild'] = position['z']
+par['alpha'] = orientation['alpha']
+par['beta'] = orientation['beta']
 # -----------------------------------------------------------------------------
 # --- Section 4: Load the database
 # -----------------------------------------------------------------------------

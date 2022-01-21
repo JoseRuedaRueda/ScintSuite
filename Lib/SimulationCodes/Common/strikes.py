@@ -378,6 +378,61 @@ class Strikes:
                 }
             }
 
+    def get(self, var, gyr_index=None, XI_index=None, includeW: bool = False):
+        """
+        Return an array with the values of 'var' for all strike points
+
+        Jose Rueda - jrrueda@us.es
+
+        @param var: variable to be returned
+        @param gyr_index: index (or indeces if given as an np.array) of
+            gyroradii to plot
+        @param XI_index: index (or indeces if given as an np.array) of
+            XIs (pitch or R) to plot
+
+        @return variable: array of values, all of them will be concatenated
+            in a single 1D array, indepentendly of gyr_index or XI_index
+        """
+        try:
+            column_to_plot = self.header['info'][var]['i']
+        except KeyError:
+            print('Available variables: ')
+            print(self.header['info'].keys())
+            raise Exception()
+
+        if includeW:
+            column_of_W = self.header['info']['w']['i']
+        # --- get the values the markers:
+        nXI, ngyr = self.header['counters'].shape
+
+        # See which gyroradius / pitch we need
+        if gyr_index is None:  # if None, use all gyroradii
+            index_gyr = range(ngyr)
+        else:
+            # Test if it is a list or array
+            if isinstance(gyr_index, (list, np.ndarray)):
+                index_gyr = gyr_index
+            else:  # it should be just a number
+                index_gyr = np.array([gyr_index])
+        if XI_index is None:  # if None, use all gyroradii
+            index_XI = range(nXI)
+        else:
+            # Test if it is a list or array
+            if isinstance(XI_index, (list, np.ndarray)):
+                index_XI = XI_index
+            else:  # it should be just a number
+                index_XI = np.array([XI_index])
+        var = []
+        for ig in index_gyr:
+            for ia in index_XI:
+                if self.header['counters'][ia, ig] > 0:
+                    if includeW:
+                        w = self.data[ia, ig][:, column_of_W]
+                        var.append(self.data[ia, ig][:, column_to_plot] * w)
+                    else:
+                        var.append(self.data[ia, ig][:, column_to_plot])
+        return np.array(var).squeeze()
+
     def plot3D(self, per=0.1, ax=None, mar_params={},
                gyr_index=None, XI_index=None,
                where: str = 'Head'):
@@ -491,7 +546,12 @@ class Strikes:
         @param includeW: include weight for the histogram
         """
         # --- Get the index:
-        column_to_plot = self.header['info'][var]['i']
+        try:
+            column_to_plot = self.header['info'][var]['i']
+        except KeyError:
+            print('Available variables: ')
+            print(self.header['info'].keys())
+            raise Exception()
         if includeW:
             column_of_W = self.header['info']['w']['i']
         # --- Default plotting options

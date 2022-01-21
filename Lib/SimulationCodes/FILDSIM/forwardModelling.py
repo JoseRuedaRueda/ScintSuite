@@ -131,7 +131,10 @@ def read_ASCOT_distribution(file, version: int = 4, IpBt_sign=ssdat.IB_sign):
 def distribution_tomography_frame(g_grid, p_grid, coefficients,
                                   exclude_neg: bool = True):
     """
-    Prepare distribution for foward modelling from tomographic inversions:
+    Prepare distribution for foward modelling from tomographic inversions
+
+    Note: this function is dumm, the foward modelled signal from a tomography
+    is just WF, why this function was created??
 
     Jose Rueda Rueda: jrrueda@us.es
 
@@ -776,7 +779,8 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
     return res_matrix, W2D
 
 
-def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
+def plot_W(W4D, pr, pp, sr, sp, pp0: float = None, pr0: float = None,
+           sp0: float = None, sr0: float = None,
            cmap=None, nlev=20):
     """
     Plot the weight function
@@ -790,8 +794,11 @@ def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
     @param sp: array of pitches at the scintillator used to calculate W
     @param pp0: precise radius wanted at the pinhole to plot the scintillator W
     @param pr0: precise pitch wanted at the pinhole to plot the scintillator W
-    @param sp0: precise radius wanted at the pinhole to plot the scintillator W
-    @param sr0: precise pitch wanted at the pinhole to plot the scintillator W
+    @param sp0: precise radius wanted at the scintillator to plot the pinhole W
+    @param sr0: precise pitch wanted at the scintillator to plot the pinhole W
+
+    Note, the pair (pr0, pp0) or (sr0, sp0) should be given, in this basic
+    function they can't be mixed
     """
     # --- Color map
     if cmap is None:
@@ -815,6 +822,7 @@ def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
         ax2[1].plot(sp, np.sum(W, axis=0))
         ax2[1].set_xlabel('Pitch')
 
+    # Same but with the scintillator point
     if (sp0 is not None) and (sr0 is not None):
         ip = np.argmin(abs(sp - sp0))
         ir = np.argmin(abs(sr - sr0))

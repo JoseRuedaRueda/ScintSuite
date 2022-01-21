@@ -31,7 +31,8 @@ def remap_all_loaded_frames(video, calibration, shot, rmin: float = 1.0,
                             smap_folder: str = None,
                             map=None,
                             remap_method: str = 'centers',
-                            MC_number: int = 100):
+                            MC_number: int = 100,
+                            allIn: bool = False):
     """
     Remap all loaded frames from a FILD video.
 
@@ -78,6 +79,12 @@ def remap_all_loaded_frames(video, calibration, shot, rmin: float = 1.0,
               remapping of the frames (MC recomended for tomography, but it
               needs 3 minutes per new strike map...)
     @param    number of MC markers for the MC remap
+    @param    allIn: boolean flag to disconect the interaction with the user,
+              where looking for the strike map in the database, we will take
+              the closer one available in time, without expecting an answer for
+              the user. This option was implemented to remap large number of
+              shots 'automatically' without interaction from the user needed.
+              Option not used if you give an input strike map
 
     @return   output: dictionary containing all the outputs:
         -# 'frames': remaped_frames [xaxis(pitch), yaxis(r), taxis]
@@ -204,10 +211,13 @@ def remap_all_loaded_frames(video, calibration, shot, rmin: float = 1.0,
         elif nnSmap == nframes:
             print('Non a single strike map, full calculation needed')
         elif nnSmap != 0:
-            print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
-            print('Write 1 to proceed, 0 to take the closer'
-                  + '(in time) existing strikemap')
-            x = int(input('Enter answer:'))
+            if not allIn:
+                print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
+                print('Write 1 to proceed, 0 to take the closer'
+                      + '(in time) existing strikemap')
+                x = int(input('Enter answer:'))
+            else:
+                x = 0
             if x == 0:
                 print('We will not calculate new strike maps')
                 print('Looking for the closer ones')
