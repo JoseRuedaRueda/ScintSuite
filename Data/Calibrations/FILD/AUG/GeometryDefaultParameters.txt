@@ -1,0 +1,67 @@
+! Namelist containing the default information from a geometry
+
+
+
+! Geom name: id1
+! Description: First rFILD installation
+&id1
+  R = 2.18
+  z = 0.3
+  phi = 169.75
+
+  alpha = 0.0
+  beta = 171.3
+  gamma = 0.0
+/
+
+! Geom name: id2
+! Description: Default FILD1 collimator
+
+&id2
+  R = 2.18
+  z = 0.3
+  phi = 169.75
+
+  alpha = 0.0
+  beta = -12.0
+  gamma = 0.0
+/
+
+! Geom name: id3
+! Description: Default FILD2 collimator
+
+&id3
+  R = 2.18
+  z = 0.3
+  phi = 57.25
+
+  alpha = 0.0
+  beta = -12.0
+  gamma = 0.0
+/
+
+! Geom name: id4
+! Description: Default FILD4 collimator
+
+&id4
+  R = 2.035
+  z = -0.462
+  phi = 169.75
+
+  alpha = 0.0
+  beta = -12.0
+  gamma = 0.0
+/
+
+! Geom name: id5
+! Description: Default FILD5 collimator
+
+&id5
+  R = 1.772
+  z = -0.798
+  phi = 147.25
+
+  alpha = 0.0
+  beta = -12.0
+  gamma = 0.0
+/

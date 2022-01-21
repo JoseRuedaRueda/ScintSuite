@@ -1,6 +1,9 @@
 """Calibration and database objects."""
 import numpy as np
+from Lib.decorators import deprecated
 
+
+@deprecated('This is deprecated for FILD, please use the FILD logbook object')
 class CalibrationDatabase:
     """Database of parameter to align the scintillator."""
 

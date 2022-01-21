@@ -15,6 +15,7 @@ from Lib.SimulationCodes.Common.strikes import Strikes
 import Lib.LibMap.Common as common
 from Lib.LibMachine import machine
 import Lib.LibPaths as p
+from Lib.decorators import deprecated
 from tqdm import tqdm   # For waitbars
 pa = p.Path(machine)
 del p
@@ -162,6 +163,12 @@ class StrikeMap:
             else:
                 raise Exception('Not recognised StrikeMap version')
         elif self.diag == 'INPA':
+            try:
+                identifier = np.loadtxt(file, skiprows=1, max_rows=1)
+                self.code = 'SINPA'
+                self.version = int(identifier)
+            except ValueError:
+                raise Exception('Corrupted Strike Map.')
             dummy = np.loadtxt(file, skiprows=3)
             # See which rows has collimator factor larger than zero (ie see for
             # which combination of rl and alpha some markers arrived)
@@ -189,6 +196,8 @@ class StrikeMap:
             self.y0 = dummy[ind, 10]
             ## z coordinates of closest point to NBI
             self.z0 = dummy[ind, 11]
+            ## R position of the closes point to NBI
+            self.R0 = np.sqrt(self.x0**2 + self.y0**2)
             ## distance to the NBI central line
             self.d0 = dummy[ind, 12]
             ## Collimator factor as defined in FILDSIM
@@ -212,6 +221,11 @@ class StrikeMap:
                     if np.sum(flags) > 0:
                         self.collimator_factor_matrix[ir, ip] = \
                             self.collimator_factor[flags]
+            # In the case of INPA, the 'XI' variable, the joker, will be set as
+            # the R0:
+            self.XI = self.R0
+            self.unique_XI = np.unique(self.R0)
+            self.nXI = self.nalpha
 
     def plot_real(self, ax=None,
                   marker_params: dict = {}, line_params: dict = {},
@@ -609,6 +623,7 @@ class StrikeMap:
         if self.code.lower() == 'sinpa':
             self.remap_strike_points()
 
+    @deprecated('Please use smap.strike_points.scatter() instead')
     def plot_strike_points(self, ax=None, plt_param={}):
         """
         Scatter plot of the strik points. DEPRECATED!.
@@ -629,9 +644,8 @@ class StrikeMap:
         # Open the figure if needed:
         if ax is None:
             fig, ax = plt.subplots()
-        warnings.warn('This function will be removed in future versions.')
-        print('Please use smap.strike_points.plot2D() instead')
-        self.strike_points.scatter(ax=ax, mar_params=plt_param)
+
+        self.strike_points.scatter(ax=ax)
 
     def calculate_resolutions(self, diag_params: dict = {},
                               min_statistics: int = 100,
@@ -934,35 +948,23 @@ class StrikeMap:
         See RBFInterpolator of Scipy for full documentation
         """
         # --- Select the colums to be used
+        # temporal solution to save the coordinates in the array
+        coords = np.zeros((self.y.size, 2))
+        coords[:, 0] = self.y
+        coords[:, 1] = self.z
+        self.map_interpolators = {
+            'Gyroradius':
+                scipy_interp.RBFInterpolator(coords,
+                                             self.gyroradius,
+                                             kernel=kernel, degree=degree),
+            'XI':
+                scipy_interp.RBFInterpolator(coords,
+                                             self.XI, kernel=kernel,
+                                             degree=degree),
+        }
         if self.diag == 'FILD':
-            # temporal solution to save the coordinates in the array
-            coords = np.zeros((self.y.size, 2))
-            coords[:, 0] = self.y
-            coords[:, 1] = self.z
-
-            self.map_interpolators = {
-                'Gyroradius':
-                    scipy_interp.RBFInterpolator(coords,
-                                                 self.gyroradius,
-                                                 kernel=kernel, degree=degree),
-                'Pitch':
-                    scipy_interp.RBFInterpolator(coords,
-                                                 self.pitch, kernel=kernel,
-                                                 degree=degree),
-            }
-        elif self.diag == 'INPA':
-            self.map_interpolators = {
-                'Gyroradius':
-                    scipy_interp.RBFInterpolator(coords,
-                                                 self.gyroradius,
-                                                 kernel=kernel, degree=degree),
-                'XI':
-                    scipy_interp.RBFInterpolator(coords,
-                                                 self.pitch, kernel=kernel,
-                                                 degree=degree),
-            }
-        else:
-            raise Exception('Diagnostic not understood')
+            # Keep the old name just as a backwards compatibility
+            self.map_interpolators['Pitch'] = self.map_interpolators['XI']
 
     def remap_strike_points(self):
         """
@@ -974,60 +976,58 @@ class StrikeMap:
         if self.map_interpolators is None:
             print('Interpolators not calcualted. Calculating them')
             self.calculate_mapping_interpolators()
-        # ---
+        # --- See if the remap already exist in the strikes:
+        if 'remap_rl' in self.strike_points.header['info'].keys():
+            print('The remapped values are already in the strikes object')
+            print('Nothing to do here')
+            return
+        iix = self.strike_points.header['info']['ys']['i']
+        iiy = self.strike_points.header['info']['zs']['i']
+        for ir in range(self.ngyr):
+            for ip in range(self.nXI):
+                if self.strike_points.header['counters'][ip, ir] > 0:
+                    n_strikes = self.strike_points.header['counters'][ip, ir]
+                    remap_data = np.zeros((n_strikes, 2))
+                    remap_data[:, 0] = \
+                        self.map_interpolators['Gyroradius'](
+                            self.strike_points.data[ip, ir][:, [iix, iiy]])
+                    # self.strike_points.data[ip, ir][:, iiy])
+                    remap_data[:, 1] = \
+                        self.map_interpolators['XI'](
+                            self.strike_points.data[ip, ir][:, [iix, iiy]])
+                    # self.strike_points.data[ip, ir][:, iiy])
+                    # append the remapped data to the object
+                    self.strike_points.data[ip, ir] = \
+                        np.append(self.strike_points.data[ip, ir],
+                                  remap_data, axis=1)
+        # Update the headers.
+        Old_number_colums = len(self.strike_points.header['info'])
+        extra_column = {
+            'remap_rl': {
+                'i': Old_number_colums,  # Column index in the file
+                'units': ' [cm]',  # Units
+                'longName': 'Remapped Larmor radius',
+                'shortName': '$r_l$',
+            },
+        }
         if self.diag == 'FILD':
-            # --- See if the remap already exist in the strikes:
-            if 'remap_rl' in self.strike_points.header['info'].keys():
-                print('The remapped values are already in the strikes object')
-                print('Nothing to do here')
-                return
-            iix = self.strike_points.header['info']['ys']['i']
-            iiy = self.strike_points.header['info']['zs']['i']
-            for ir in range(self.ngyr):
-                for ip in range(self.npitch):
-                    if self.strike_points.data[ip, ir] is not None:
-                        n_strikes = self.strike_points.data[ip,
-                                                            ir][:, iix].size
-                    else:
-                        n_strikes = 0
-                    if n_strikes > 0:
-                        remap_data = np.zeros((n_strikes, 2))
-                        remap_data[:, 0] = \
-                            self.map_interpolators['Gyroradius'](
-                                self.strike_points.data[ip, ir][:, [iix, iiy]])
-                        # self.strike_points.data[ip, ir][:, iiy])
-                        remap_data[:, 1] = \
-                            self.map_interpolators['Pitch'](
-                                self.strike_points.data[ip, ir][:, [iix, iiy]])
-                        # self.strike_points.data[ip, ir][:, iiy])
-                        # append the remapped data to the object
-                        self.strike_points.data[ip, ir] = \
-                            np.append(self.strike_points.data[ip, ir],
-                                      remap_data, axis=1)
-            # Update the headers.
-            Old_number_colums = len(self.strike_points.header['info'])
-            extra_column = {
-                'remap_rl': {
-                    'i': Old_number_colums,  # Column index in the file
-                    'units': ' [cm]',  # Units
-                    'longName': 'Remapped Larmor radius',
-                    'shortName': '$r_l$',
-                },
-                'remap_pitch': {
-                    'i': Old_number_colums + 1,  # Column index in the file
-                    'units': ' [$\\degree$]',  # Units
-                    'longName': 'Remapped pitch angle',
-                    'shortName': '$\\lambda$',
-                },
-                'remap_XI': {
-                    'i': Old_number_colums + 1,  # Column index in the file
-                    'units': ' [$\\degree$]',  # Units
-                    'longName': 'Remapped pitch angle',
-                    'shortName': '$\\lambda$',
-                },
+            extra_column['remap_XI'] = {
+                'i': Old_number_colums + 1,  # Column index in the file
+                'units': ' [$\\degree$]',  # Units
+                'longName': 'Remapped pitch angle',
+                'shortName': '$\\lambda$',
             }
-            # Update the header
-            self.strike_points.header['info'].update(extra_column)
+            # FILDSIM backwards compatibility:
+            extra_column['remap_pitch'] = extra_column['remap_XI']
+        else:  # INPA case, this is radius
+            extra_column['remap_XI'] = {
+                'i': Old_number_colums + 1,  # Column index in the file
+                'units': ' [m]',  # Units
+                'longName': 'Remapped R',
+                'shortName': '$R$',
+            }
+        # Update the header
+        self.strike_points.header['info'].update(extra_column)
 
     def plot_resolutions(self, ax_params: dict = {}, cMap=None, nlev: int = 20,
                          index_gyr=None):

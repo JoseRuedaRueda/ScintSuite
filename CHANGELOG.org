@@ -17,6 +17,40 @@ This verison was not released, this is just a warning about things which will be
 - Plotting routines.
 - Possibility to modify the 1D profiles to study perturbations.
 
+** 0.7.8 FILD logbook
+- FILD loogbook object was upgraded. Now is a complete database to interact with the object
+- The function to read the optical calibration database was moved into the FILD logbook object. The old one remains, but marked as deprecated
+- Deprecated decorators where included in the suite (thanks to PLEQUE code :)
+- *Note* This is a transitional update, in version 8.0 the FILD logbook will be directly use in the automatic remap
+
+** 0.7.7 Small improvements in handling SINPA and FILDSIM
+*** Examples:
+- SINPA examples were updated the new SINPA code version (which enables the default parameters in the namelist so FILDSIM user do not need to worry about INPA variables)
+*** Mapping:
+- StrikeMap.calculate_resolutions and StrikeMap.remap_strike_points() where updated to ensure INPA compatibility
+*** SimulationCodes:
+- Strikes object now have the method .get() which return the data from the desired variable of the strike points
+*** Others:
+- Small improvements in comments
+
+** 0.7.6 VRT video object and LibVRT
+*** VRTVideoObject
+- Solved a bug where the time trace was not the same as in the loaded video
+*** LibVRT
+- Library to interact with the VRT data
+- Get camera calibration (signal -> temperature) and (some) camera configuration parameters
+
+** 0.7.5 VRT video object and loadMask
+*** VRTVideoObject
+- Object intended for the analysis of the VRT cameras. Children of the BasicVideoObject
+- Can plot VRT videos and save ROIs
+*** LibIO
+- Added load_mask
+
+** 0.7.4 Massive remaps:
+- A flag 'allIn' was included in the function to remap all loaded FILD frames. If this flag is set to true, the code will always take the closer strike maps, without allowing to the user to calculate the strike map. In this way, you can remap 'N' shot automatically, without having to say 'No' to the program if a strike map is missing
+- *Bug_solved*. Bug which make the load of png files not possible is solved (the bug was introduced in version 0.7.0)
+
 ** 0.7.3 SINPA examples:
 *** Examples:
 - Examples to execute the SINPA code polished and more documented.
@@ -34,7 +68,6 @@ This verison was not released, this is just a warning about things which will be
 - FILDPosition from the DiagParam library was deprecated, to obtain the FILD position, the new FILD class should be used
 - load_FILD4_trajectory and plot_FILD4_trajectory where moved to the new FILD library inside LibDataAUG
 - load_FILD4_trajectory makes now the conversion between insertion and real R and z. Notice that this is based on CAD and can be non-precise. +- 1 cm can be expected due to failures in the CAD
-
 
 ** 0.7.1 Uncertainties in fits and angles in execution:
 *** LibMap:

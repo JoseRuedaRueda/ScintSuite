@@ -89,12 +89,14 @@ if apply_filter:
 # -----------------------------------------------------------------------------
 # --- Section 3: Get FILD position
 # -----------------------------------------------------------------------------
-FILD = ss.dat.FILD_logbook(shot, diag_ID)
+FILD = ss.dat.FILD_logbook()
+position = FILD.getPosition(shot, diag_ID)
+orientation = FILD.getOrientation(shot, diag_ID)
 # Add FILD positions to the remap options:
-par['rfild'] = FILD.position['R']
-par['zfild'] = FILD.position['z']
-par['alpha'] = FILD.orientation['alpha']
-par['beta'] = FILD.orientation['beta']
+par['rfild'] = position['R']
+par['zfild'] = position['z']
+par['alpha'] = orientation['alpha']
+par['beta'] = orientation['beta']
 
 # -----------------------------------------------------------------------------
 # --- Section 4: Remap

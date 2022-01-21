@@ -125,17 +125,18 @@ class BVO:
                 break
 
             for i in range(len(f)):
-                if f[i].endswith('.png') == '.png':
+                if f[i].endswith('.png'):
                     self.type_of_file = '.png'
                     print('Found PNG files!')
                     break
-                elif f[i].endswith('.tif') == '.tif':
+                elif f[i].endswith('.tif'):
                     self.type_of_file = '.tif'
                     print('Found tif files!')
                     print('Tif support still not implemented, sorry')
                     break
             # if we do not have .png or tiff, give an error
             if self.type_of_file != '.png' and self.type_of_file != '.tif':
+                print(self.type_of_file)
                 raise Exception('No .pgn ror .tiff files found')
 
             # If we have a .png file, a .txt must be present with the
