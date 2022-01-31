@@ -234,7 +234,7 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
     # --- Loop over the time windows.
     nwindows = np.floor(len(timeWindow)/2)
     flags = np.zeros((pniq_on.shape[0],), dtype=bool)
-    for ii in np.arange(nwindows, dtype=int):
+    for ii in range(nwindows):
         t0 = np.abs(timebase-timeWindow[2*ii]).argmin()
         t1 = np.abs(timebase-timeWindow[2*ii + 1]).argmin()
 

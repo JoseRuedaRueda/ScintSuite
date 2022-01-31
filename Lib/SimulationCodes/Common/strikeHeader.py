@@ -165,73 +165,73 @@ orderStrikes = {
                 },
                 'x': {
                     'i': 1,  # Column index in the file
-                    'units': ' [cm]',  # Units
+                    'units': ' [m]',  # Units
                     'longName': 'X Strike position tokamak system',
                     'shortName': 'x',
                 },
                 'y': {
                     'i': 2,  # Column index in the file
-                    'units': ' [cm]',  # Units
+                    'units': ' [m]',  # Units
                     'longName': 'Y Strike position tokamak system',
                     'shortName': 'y',
                 },
                 'z': {
                     'i': 3,  # Column index in the file
-                    'units': ' [cm]',  # Units
+                    'units': ' [m]',  # Units
                     'longName': 'Z Strike position tokamak system',
                     'shortName': 'z'
                 },
                 'xs': {
                     'i': 4,  # Column index in the file
-                    'units': ' [cm]',  # Units
+                    'units': ' [m]',  # Units
                     'longName': 'X strike scintillator system',
                     'shortName': '$x_{s}$',
                 },
                 'ys': {
                     'i': 5,  # Column index in the file
-                    'units': ' [cm]',  # Units
+                    'units': ' [m]',  # Units
                     'longName': 'Y strike scintillator system',
                     'shortName': '$y_{s}$',
                 },
                 'zs': {
                     'i': 6,  # Column index in the file
-                    'units': ' [cm]',  # Units
+                    'units': ' [m]',  # Units
                     'longName': 'Z strike scintillator system',
                     'shortName': '$z_{s}$',
                 },
-                'xi': {
+                'xcx': {
                     'i': 7,  # Column index in the file
-                    'units': ' [cm]',  # Units
+                    'units': ' [m]',  # Units
                     'longName': 'X of CX reaction',
                     'shortName': '$x_{CX}$',
                 },
-                'yi': {
+                'ycx': {
                     'i': 8,  # Column index in the file
-                    'units': ' [cm]',  # Units
+                    'units': ' [m]',  # Units
                     'longName': 'Y of CX reaction',
                     'shortName': '$y_{CX}$',
                 },
-                'zi': {
+                'zcx': {
                     'i': 9,  # Column index in the file
-                    'units': ' [cm]',  # Units
+                    'units': ' [m]',  # Units
                     'longName': 'Z of CX reaction',
                     'shortName': '$z_{CX}$',
                 },
                 'vx0': {
                     'i': 10,  # Column index in the file
-                    'units': ' [cm/s]',  # Units
+                    'units': ' [m/s]',  # Units
                     'longName': 'vx at pinhole',
                     'shortName': '$v_{x0}$',
                 },
                 'vy0': {
                     'i': 11,  # Column index in the file
-                    'units': ' [cm/s]',  # Units
+                    'units': ' [m/s]',  # Units
                     'longName': 'vy at pinhole',
                     'shortName': '$v_{y0}$',
                 },
                 'vz0': {
                     'i': 12,  # Column index in the file
-                    'units': ' [cm/s]',  # Units
+                    'units': ' [m/s]',  # Units
                     'longName': 'vz at pinhole',
                     'shortName': '$v_{z0}$',
                 },
@@ -246,12 +246,6 @@ orderStrikes = {
                     'units': '',  # Units
                     'longName': 'Marker kind',
                     'shortName': '$k$',
-                },
-                'beta': {
-                    'i': 11,  # Column index in the file
-                    'units': ' [rad]',  # Units
-                    'longName': 'beta at pinhole',
-                    'shortName': '$\\beta$',
                 },
             },   # End of INPA signal version 0
         }

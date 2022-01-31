@@ -391,7 +391,7 @@ class strikeLine:
 
         # Storing the time coordinate
         self.time = np.zeros((len(self.maps)))
-        for ii in np.arange(len(self.maps)):
+        for ii in range(len(self.maps)):
             self.time[ii] = self.maps[ii]['timestamp']
 
     def plotStrikeLine(self, timeStamp: float = None, ax=None,
@@ -494,7 +494,7 @@ class strikeLine:
             axis_was_none = True
 
         if plot_all:
-            for ii in np.arange(len(self.maps)):
+            for ii in range(len(self.maps)):
                 if legendText_initial is None:
                     legendText = 't = ' + str(self.maps[ii]['timestamp'][0])+\
                                  ' [s]'
@@ -594,7 +594,7 @@ class strikeLine:
         tindx = np.zeros((len(self.time),), dtype = int)
         tindx_ip = np.zeros((len(self.time),), dtype = int)
         tindx_bt = np.zeros((len(self.time),), dtype = int)
-        for ii in np.arange(len(tindx)):
+        for ii in range(len(tindx)):
             tindx[ii] = np.abs(ssq['time']-self.time[ii]).argmin()
             tindx_ip[ii] = np.abs(ssq['iptime']-self.time[ii]).argmin()
             tindx_bt[ii] = np.abs(ssq['bttime']-self.time[ii]).argmin()
@@ -626,12 +626,12 @@ class strikeLine:
         ne = sf_ida(name='ne')
         tindx_ne = np.zeros((len(self.time),), dtype = int)
         tindx_te = np.zeros((len(self.time),), dtype = int)
-        for ii in np.arange(len(tindx)):
+        for ii in range(len(tindx)):
             tindx_ne[ii] = np.abs(ne.time.flatten() - self.time[ii]).argmin()
             tindx_te[ii] = np.abs(Te.time.flatten() - self.time[ii]).argmin()
 
         rhop = sf_ida(name='rhop').data[0, :]
-        for ii in np.arange(len(rhop4store)):
+        for ii in range(len(rhop4store)):
             rhop_indx = np.abs(rhop - rhop4store[ii]).argmin()
 
             name = 'ne'+rhopNames[ii]
@@ -831,7 +831,7 @@ class strikes:
             x1_plot = np.zeros(len(rhopolplot))
             x2_plot = np.zeros(len(rhopolplot))
             w_plot = np.zeros(len(rhopolplot))
-            for ii in np.arange(len(x1_plot)):
+            for ii in range(len(x1_plot)):
                 irho = np.abs(self.map.maps[0]['map_s']-rhopolplot[ii]).argmin()
                 x1_plot[ii] = self.map.maps[0]['x1'][irho]
                 x2_plot[ii] = self.map.maps[0]['x2'][irho]
@@ -1076,7 +1076,7 @@ class strikeline_db:
         @param strLine: dictionary with all the data of the strikeline.
         """
 
-        for ii in np.arange(strLine.shape[0]):
+        for ii in range(strLine.shape[0]):
             # Checking that the data is in the class:
             flag = self.check_strikeline_dictionary(strLine.maps[ii],
                                                     strLine.shotinfo)

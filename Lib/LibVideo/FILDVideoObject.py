@@ -20,6 +20,7 @@ import Lib.LibData as ssdat
 import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 from Lib.LibMachine import machine
 from Lib.version_suite import version
+import Lib.LibVideo.AuxFunctions as _aux
 from scipy.io import netcdf                # To export remap data
 from tqdm import tqdm                      # For waitbars
 pa = p.Path(machine)
@@ -30,28 +31,104 @@ class FILDVideo(BVO):
     """
     Video class for the FILD diagnostic.
 
+    Inside there are the necesary routines to load and remapp a FILD video
+
     Jose Rueda: jrrueda@us.es
     """
 
-    def __init__(self, file: str = None, diag: str = 'FILD', shot=None,
-                 diag_ID: int = 1):
+    def __init__(self, file: str = None, shot: int = None,
+                 diag_ID: int = 1, FILDlogbook=None):
         """
         Initialise the class
 
-        @param file: For the initialization, file (full path) to be loaded),
-        if the path point to a .cin file, the .cin file will be loaded. If
-        the path points to a folder, the program will look for png files or
-        tiff files inside (tiff coming soon). If none, a window will be open to
-        select a file
+        There are several ways of initialising this object:
+            1: Give shot number and fild number (diag_ID). The code will
+              predict the filename to load. (not recomended for old AUG shots,
+              where this is a mess)
+            2: Give the file (or folder with pngs). The code will try to infer
+              the shot number from the file name. the FILD number should be
+              necessarily given
+            3: Give the file and the shot number. The code will ignore the shot
+              to load the files and try to load the file. But the shot number
+              will not be guessed from the file name. This given shot number
+              will be used for the magnetic field (remap calculation)
+            +: For all the cases, we need the position, orientation, and
+              collimator geometries, this extracted from the logbook. If no
+              input is given for FILDlogbook, the code will use the default.
+
+        @param file: file or folder (se above)
+
         @param shot: Shot number, if is not given, the program will look for it
-        in the name of the loaded file
+        in the name of the loaded file (see above)
+
+        @param diag_ID: manipulator number for FILD
+
+        @param FILDlogbook: FILD database, if None, the default one will be
+            loaded (see LibData/AUG/FILD.py as an example)
         """
+        # Guess the filename:
+        if file is None:
+            file = ssdat.guessFILDfilename(shot, diag_ID)
+        if shot is None:
+            shot = _aux.guess_shot(file, ssdat.shot_number_length)
         # initialise the parent class
         BVO.__init__(self, file=file, shot=shot)
         ## Diagnostic used to record the data
-        self.diag = diag
-        ## Diagnostic ID (FILD number)
+        self.diag = 'FILD'
+        ## Diagnostic ID (FILD manipulator number)
         self.diag_ID = diag_ID
+        # - Get the position
+        if (FILDlogbook is None) and (shot is not None):
+            FILDlogbook = ssdat.FILD_logbook()
+        ## Logbook position
+        if shot is not None:
+            self.FILDposition = FILDlogbook.getPosition(shot, diag_ID)
+            self.FILDorientation = FILDlogbook.getOrientation(shot, diag_ID)
+            self.FILDgeometry = FILDlogbook.getGeomID(shot, diag_ID)
+            self.CameraCalibration = \
+                FILDlogbook.getCameraCalibration(shot, diag_ID)
+        else:
+            self.FILDposition = None
+            self.FILDorientation = None
+            print('Shot not provided, you need to define FILDposition')
+            print('Shot not provided, you need to define FILDorientation')
+        ## Magnetic field at FILD head
+        self.BField = None
+
+    def _getB(self, extra_options: dict = {}):
+        """
+        Get the magnetic field in the FILD position
+
+        Jose Rueda - jrrueda@us.es
+        """
+        if self.FILDposition is None:
+            raise Exception('FILD position not know')
+        print('Calculating magnetic field (this might take a while): ')
+        br, bz, bt, bp =\
+            ssdat.get_mag_field(self.shot, self.FILDposition['R'],
+                                self.FILDposition['z'],
+                                time=self.exp_dat['tframes'],
+                                **extra_options)
+        self.BField = {
+            'BR': np.array(br).squeeze(),
+            'Bz': np.array(bz).squeeze(),
+            'Bt': np.array(bt).squeeze(),
+            'Bp': np.array(bp).squeeze()
+        }
+
+    def _getBangles(self):
+        """Get the orientation of the field respec to the head"""
+        if self.FILDorientation is None:
+            raise Exception('FILD orientation not know')
+        phi, theta = \
+            ssFILDSIM.calculate_fild_orientation(
+                self.BField['BR'], self.BField['Bz'], self.BField['Bt'],
+                self.FILDorientation['alpha'], self.FILDorientation['beta']
+            )
+        self.Bangles = {'phi': phi, 'theta': theta}
+
+    def _checkStrikeMapDatabase():
+        pass
 
     def remap_loaded_frames(self, calibration, shot, options: dict = {},
                             mask=None):
@@ -373,8 +450,7 @@ class FILDVideo(BVO):
             plt.tight_layout()
         return ax
 
-    def find_orientation(self, t, verbose: bool = True, R: float = None,
-                         z: float = None):
+    def calculateBangles(self, t='all', verbose: bool = True):
         """
         Find the orientation of FILD for a given time.
 
@@ -395,40 +471,21 @@ class FILDVideo(BVO):
             print('Remap not done, calculating angles')
 
             if t == 'all':
-                nframes = self.exp_dat['tframes'].size
-                if machine == 'AUG':
-                    print('Opening shotfile from magnetic field')
-                    import map_equ as meq
-                    equ = meq.equ_map(self.shot, diag='EQH')
-                    br = np.zeros(nframes)
-                    bz = np.zeros(nframes)
-                    bt = np.zeros(nframes)
-                theta = np.zeros(nframes)
-                phi = np.zeros(nframes)
-                for iframe in tqdm(range(nframes)):
-                    # To avoid stupid bugs in the python library of AUG to
-                    # read the magnetic field
-                    if machine == 'AUG':
-                        tframe = self.exp_dat['tframes'][iframe]
-                        br[iframe], bz[iframe], bt[iframe], bp =\
-                            ssdat.get_mag_field(self.shot, R, z,
-                                                time=tframe,
-                                                equ=equ)
-                    phi[iframe], theta[iframe] = \
-                        ssFILDSIM.calculate_fild_orientation(br[iframe],
-                                                             bz[iframe],
-                                                             bt[iframe],
-                                                             alpha, beta)
+                if self.BField is None:
+                    self._getB()
+                self._getBangles()
+                phi = self.Bangles['phi']
+                theta = self.Bangles['theta']
                 time = 'all'
             else:
                 br, bz, bt, bp =\
-                    ssdat.get_mag_field(self.shot, R, z, time=t)
+                    ssdat.get_mag_field(self.shot, self.FILDposition['R'],
+                                        self.FILDposition['z'], time=t)
 
                 phi, theta = \
                     ssFILDSIM.calculate_fild_orientation(br, bz, bt,
                                                          alpha, beta)
                 time = t
-
         else:
             tmin = self.remap_dat['tframes'][0]
             tmax = self.remap_dat['tframes'][-1]
@@ -444,28 +501,11 @@ class FILDVideo(BVO):
             # case of just one time point and multiple ones. It is not the most
             # elegant way to proceed, but it works ;)
             print('Requested time:', t)
-            if self.remap_dat is None:
+            if self.remap_dat is not None:
                 print('Found time: ', time)
             print('Average theta:', np.array(theta).mean())
             print('Average phi:', np.array(phi).mean())
-            if self.remap_dat is None:
-                print('Average B field: ',
-                      np.array(np.sqrt(bt**2 + bp**2)[0]).mean())
         return phi, theta
-
-    def GUI_frames(self):
-        """Small GUI to explore camera frames"""
-        text = 'Press TAB until the time slider is highlighted in red.'\
-            + ' Once that happend, you can move the time with the arrows'\
-            + ' of the keyboard, frame by frame'
-        print('-------------------')
-        print(text)
-        print('-------------------')
-        root = tk.Tk()
-        root.resizable(height=None, width=None)
-        ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat)
-        root.mainloop()
-        root.destroy()
 
     def GUI_frames_and_remap(self):
         """Small GUI to explore camera and remapped frames"""

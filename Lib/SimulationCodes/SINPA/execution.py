@@ -15,43 +15,40 @@ from Lib.LibPaths import Path
 paths = Path(machine)
 
 
-def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
+def guess_strike_map_name_FILD(phi: float, theta: float, geomID: str = 'id2',
+                               decimals: int = 1):
     """
-    Caculate magnetic field orientation in FILD head, SINPA criteria.
+    Give the name of the strike-map file
 
-    @param br: Magnetic field in the r direction
-    @param bz: Magnetic field in the z direction
-    @param bt: Magnetic field in the toroidal direction
-    @param alpha: Poloidal orientation of FILD. Given in deg
-    @param beta: Pitch orientation of FILD, given in deg
+    Jose Rueda Rueda: jrrueda@us.es
 
-    @return phi: Euler angle to use as input in fildsim.f90 given in deg
-    @return theta: Euler angle to use as input in fildsim.f90 given in deg
+    Files are supposed to be named as given in the NamingSM_FILD.py file.
+    The data base is composed by strike maps calculated each 0.1 degree
 
-    Example of use:
-        phi, theta = calculate_fild_orientation(0.0, 0.0, -1.0, 0.0, 0.0)
+    @param phi: phi angle as defined in FILDSIM
+    @param theta: theta angle as defined in FILDSIM
+    @param geomID: ID identifying the geometry
+    @param decimals: number of decimal numbers to round the angles
+
+    @return name: the name of the strike map file
     """
-    # Transform to radians
-    alpha = alpha * np.pi / 180.0
-    beta = beta * np.pi / 180.0
-    # Build the 1st basic rotation matrix:
-    rot_alpha = np.array([[math.cos(alpha), 0, -math.sin(alpha)],
-                          [0, 1, 0],
-                          [math.sin(alpha), 0, math.cos(alpha)]])
-    rot_beta = np.array([[1, 0, 0],
-                         [0, math.cos(beta), -math.sin(beta)],
-                         [0, math.sin(beta), math.cos(beta)]])
-    R = rot_beta @ rot_alpha
-    B = np.array([Br, Bt, Bz])
-    Bfild = R @ B
-    # Todo: revise sign"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # Calculate the theta and pfi angles
-    theta = math.atan2(Bfild[2], Bfild[1])
-    if abs(theta - math.pi/2.0) < 0.25:
-        phi = math.atan2(Bfild[0] * math.cos(theta), -Bfild[1])
+    p = round(phi, ndigits=decimals)
+    t = round(theta, ndigits=decimals)
+    if p < 0:
+        if t < 0:
+            name = geomID +\
+                "_map_{0:010.5f}_{1:010.5f}.map".format(p, t)
+        else:
+            name = geomID +\
+                "_map_{0:010.5f}_{1:09.5f}.map".format(p, t)
     else:
-        phi = math.atan2(Bfild[0] * math.sin(theta), -Bfild[1])
-    return phi, theta, Bfild
+        if t < 0:
+            name = geomID +\
+                "_map_{0:09.5f}_{1:010.5f}.map".format(p, t)
+        else:
+            name = geomID +\
+                "_map_{0:09.5f}_{1:09.5f}.map".format(p, t)
+    return name
 
 
 def write_namelist(nml, p=None, overwrite=True):

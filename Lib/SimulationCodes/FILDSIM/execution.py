@@ -66,8 +66,8 @@ def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
     # THEN theta and phi are:
     # PHI --> Euler Angle measured from y(positive) to x(positive)
     # THETA --> Euler Angle measured from y(positive) to z(negative)
-    theta = ma.atan2(-bz2, bt2)
-    phi = ma.atan2(br2 * ma.cos(theta), bt2) * 180.0 / np.pi
+    theta = np.arctan2(-bz2, bt2)
+    phi = np.arctan2(br2 * np.cos(theta), bt2) * 180.0 / np.pi
     theta *= 180.0 / np.pi
     if verbose:
         print('Bt, Bz, Br and B: ', bt, bz, br, ma.sqrt(bt**2 + bz**2 + br**2))
@@ -166,7 +166,7 @@ def run_FILDSIM(namelist, queue: bool = False):
     return
 
 
-def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
+def guess_strike_map_name_FILD(phi: float, theta: float, geomID: str = 'id2',
                                decimals: int = 1):
     """
     Give the name of the strike-map file
@@ -178,7 +178,7 @@ def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
 
     @param phi: phi angle as defined in FILDSIM
     @param theta: theta angle as defined in FILDSIM
-    @param machine: 3 characters identifying the machine
+    @param geomID: ID identifying the geometry
     @param decimals: number of decimal numbers to round the angles
 
     @return name: the name of the strike map file
@@ -188,24 +188,23 @@ def guess_strike_map_name_FILD(phi: float, theta: float, machine: str = 'AUG',
     t = round(theta, ndigits=decimals)
     if p < 0:
         if t < 0:
-            name = machine +\
+            name = geomID +\
                 "_map_{0:010.5f}_{1:010.5f}_strike_map.dat".format(p, t)
         else:
-            name = machine +\
+            name = geomID +\
                 "_map_{0:010.5f}_{1:09.5f}_strike_map.dat".format(p, t)
     else:
         if t < 0:
-            name = machine +\
+            name = geomID +\
                 "_map_{0:09.5f}_{1:010.5f}_strike_map.dat".format(p, t)
         else:
-            name = machine +\
+            name = geomID +\
                 "_map_{0:09.5f}_{1:09.5f}_strike_map.dat".format(p, t)
     return name
 
 
-def find_strike_map(rfild: float, zfild: float,
-                    phi: float, theta: float, strike_path: str,
-                    machine: str = 'AUG',
+def find_strike_map(phi: float, theta: float, strike_path: str,
+                    geomID: str = 'AUGid1',
                     FILDSIM_options={}, clean: bool = True,
                     decimals: int = 1):
     """
@@ -213,8 +212,6 @@ def find_strike_map(rfild: float, zfild: float,
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param    rfild: radial position of FILD (in m)
-    @param    zfild: Z position of FILD (in m)
     @param    phi: phi angle as defined in FILDSIM
     @param    theta: beta angle as defined in FILDSIM
     @param    strike_path: path of the folder with the strike maps
@@ -229,7 +226,7 @@ def find_strike_map(rfild: float, zfild: float,
     @raises   Exception: If FILDSIM is call but the file is not created.
     """
     # Find the name of the strike map
-    name = guess_strike_map_name_FILD(phi, theta, machine=machine,
+    name = guess_strike_map_name_FILD(phi, theta, geomID=geomID,
                                       decimals=decimals)
     # See if the strike map exist
     if os.path.isfile(os.path.join(strike_path, name)):

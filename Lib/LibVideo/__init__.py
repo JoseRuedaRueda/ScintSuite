@@ -18,5 +18,5 @@ the BVO, FILDVideo, VRTvideo, guess_filename as defined below
 """
 from Lib.LibVideo.BasicVideoObject import BVO
 from Lib.LibVideo.FILDVideoObject import FILDVideo
-from Lib.LibVideo.AuxFunctions import guess_filename
+# from Lib.LibVideo.AuxFunctions import guessFILDfilename
 from Lib.LibVideo.VRTVideoObject import VRTVideo
