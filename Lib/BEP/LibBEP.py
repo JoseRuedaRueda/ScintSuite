@@ -62,7 +62,7 @@ def BEP_readnetcdf(filename: str, varName: str = None):
                 if rootgrp.variables[ii][:].dtype == '|S1':
                     tmp_list = list()
                     datatmp = rootgrp.variables[ii][:].data
-                    for jj in np.arange(datatmp.shape[0]):
+                    for jj in range(datatmp.shape[0]):
                         tmp = (b''.join(datatmp[jj, :])).strip()
                         tmp_list.append(tmp.decode('utf8'))
                     output[ii] = tmp_list
@@ -202,7 +202,7 @@ def plotBEP(bepdata: dict, losname: str = 'BEP-1-3', avg: bool = True,
             ax.plot(lambdaval, data, **line_options)
         else:
             data = bepdata['spectra'][idx_channel, t0:t1, :]
-            for ii in np.arange(data.shape[0]):
+            for ii in range(data.shape[0]):
                 if 'label' not in line_options:
                     line_options['label'] = '%s @ t = %.0f'%\
                         (losname, bepdata['time'][ii])
@@ -303,7 +303,7 @@ def BEPfromSF(shotnumber: int, time: float = None, edition: int=0):
 
     # --- Getting the LOS names
     losname  = dict()
-    for ii in np.arange(nlos):
+    for ii in range(nlos):
         parName = 'CHAN_%02d'%(ii+1)
         losname[ii] = sf_bep.getParameter(setName='PARAM',
                              parName=parName).data.decode('utf8').strip()

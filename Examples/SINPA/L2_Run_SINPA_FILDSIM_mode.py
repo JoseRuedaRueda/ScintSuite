@@ -21,10 +21,12 @@ paths = Path(machine)
 # -----------------------------------------------------------------------------
 # --- Settings block
 # -----------------------------------------------------------------------------
+runid = 'Example_test'
+geomID = 'AUG02'
 nml_options = {   # Se the PDF documentation for a complete desription of these
     'config':  {  # parameters
-        'runid': 'Example',
-        'geomID': 'FILD1',
+        'runid': runid,
+        'geomFolder': os.path.join(paths.SINPA, 'Geometry', geomID),
         'FILDSIMmode': True,
         'nGeomElements': 2,
         'nxi': 7,
@@ -34,7 +36,7 @@ nml_options = {   # Se the PDF documentation for a complete desription of these
         'saveOrbits': True,
         'saveRatio': 0.01,
         'saveOrbitLongMode': False,
-        'SINPA_dir': paths.SINPA,
+        'runFolder': os.path.join(paths.SINPA, 'runs', runid),
         'verbose': True,
         'IpBt': -1,        # Sign of toroidal current vs field (for pitch)
         'flag_efield_on': False,  # Add or not electric field
@@ -79,8 +81,7 @@ ss.sinpa.execution.write_namelist(nml_options)
 field = ss.simcom.Fields()
 if use_opt1:
     # Load the geometry
-    Geometry = ss.simcom.Geometry(nml_options['config']['geomID'],
-                                  code='SINPA')
+    Geometry = ss.simcom.Geometry(geomID, code='SINPA')
     u1 = np.array(Geometry.ExtraGeometryParams['u1'])
     u2 = np.array(Geometry.ExtraGeometryParams['u2'])
     u3 = np.array(Geometry.ExtraGeometryParams['u3'])

@@ -1,6 +1,35 @@
-** 0.8.0 Future Version
+** 0.8.0 SINPA implementation data analysis
+*Notice*: For all the SINPA related implementation, you need version 0.3 of the SINPA code
+*** LibVideo:
+- The function guess_filename from the auxiliary functions of the Video library was moved towards the LibData.AUG.FILD, because at the end this was using AUG criteria. This should simplify MAST-U implementation. Also, it was renamed to guessFILDfilename
+
+*** FILD video object
+- Now fetch FILD position, orientation and geometry from the FILD logbook
+- Now include the magnetic field as an attribute of the object to better handle the remap
+- It can be initialized just with the shot number and the desired FILD ID
+*** Mapping
+- Remap all FILD frames completely rewritten, removed unnecessary parameters/calls
+*** Simulation Codes Common library
+- Geometry object has now a routine to generate files in SINPA format
+*** FILDSIM
+- guess_strike_map_name_FILD change its optional arguments, now it is geomID, not machine, as FILD geometries are now identified by a geometry id
+*** Suite structure
+- StrikeMaps will have to be now included inside the folder RemapStrikeMaps/FILD/<geomID>, where <geomID> is the geometry ID of the FILD head used
+*** Strike Object
+- Functions calculate_2d_histogram and plot_histogram will calculate and plot all histograms you could imagine
+- StrikeHeader updated to match SINPA units (m)
+*** Lib.D
+*** Bugs
+- Solved a bug which caused problems while calculating the resolutions for the cases where no strike points reach the scintillator for a given gyroradius or for a given pitch angle
+- Solved the issue of data from different pitches values not being stored in the proper place of the strike map object.
+*** DEPRECATED
+- The Strikes object of the FILDSIM code, use the Common object instead, already available and working better. You can use it, but it would give you a warning
+*** Others
+- np.arange substitute by range in loops
+- Comments improved
+
+
 This verison was not released, this is just a warning about things which will be deprecated:
-- The Strikes object of the FILDSIM code, use the Common object instead, already available and working better
 - StrikeMap.plot_strike_points() will be deleted. Please use StrikeMap.strike_points.scatter() instead, much better, with more flexibility and options
 
 ** 0.7.9 iHIBPsim updated.

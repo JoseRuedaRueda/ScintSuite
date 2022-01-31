@@ -2,9 +2,9 @@
 
 
 
-! Geom name: id1
+! Geom name: AUG01
 ! Description: First rFILD installation
-&id1
+&AUG01
   R = 2.18
   z = 0.3
   phi = 169.75
@@ -14,10 +14,10 @@
   gamma = 0.0
 /
 
-! Geom name: id2
+! Geom name: AUG02
 ! Description: Default FILD1 collimator
 
-&id2
+&AUG02
   R = 2.18
   z = 0.3
   phi = 169.75
@@ -27,10 +27,10 @@
   gamma = 0.0
 /
 
-! Geom name: id3
+! Geom name: AUG03
 ! Description: Default FILD2 collimator
 
-&id3
+&AUG03
   R = 2.18
   z = 0.3
   phi = 57.25
@@ -43,7 +43,7 @@
 ! Geom name: id4
 ! Description: Default FILD4 collimator
 
-&id4
+&AUG04
   R = 2.035
   z = -0.462
   phi = 169.75
@@ -56,7 +56,7 @@
 ! Geom name: id5
 ! Description: Default FILD5 collimator
 
-&id5
+&AUG05
   R = 1.772
   z = -0.798
   phi = 147.25

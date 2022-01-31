@@ -235,7 +235,8 @@ class FastChannel:
                 bline = self.raw_data['data'][ic - 1][-100:-1].mean()
                 if ptype == 'raw':
                     if normalise:
-                        factor = self.raw_data['data'][ic - 1][flag].max() - bline
+                        factor = self.raw_data['data'][ic - 1][flag].max()\
+                            - bline
                     else:
                         factor = 1.0
                     ax.plot(self.raw_data['time'][flag],
@@ -244,7 +245,9 @@ class FastChannel:
                             alpha=0.5)
                 elif ptype == 'smooth':
                     if normalise:
-                        factor = self.filtered_data['data'][ic - 1][flag].max() - bline
+                        factor =\
+                            self.filtered_data['data'][ic - 1][flag].max()\
+                            - bline
                     else:
                         factor = 1.0
                     ax.plot(self.filtered_data['time'][flag],
