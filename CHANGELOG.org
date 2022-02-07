@@ -3,6 +3,10 @@ This verison was not released, this is just a warning about things which will be
 - The Strikes object of the FILDSIM code, use the Common object instead, already available and working better
 - StrikeMap.plot_strike_points() will be deleted. Please use StrikeMap.strike_points.scatter() instead, much better, with more flexibility and options
 
+** 0.7.8 get_time_traces in LibVRT
+- Added the get_time_traces in LibVRT 
+
+
 ** 0.7.7 VRT ROI to binary mask
 - Added the ROI2mask function to LibVRT
 

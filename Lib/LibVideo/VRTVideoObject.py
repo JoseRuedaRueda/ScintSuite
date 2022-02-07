@@ -1,8 +1,6 @@
 """
 Object to work with the VRT cameras. 
 
-Currently the time base (time and nframe in the exp_dat dictionary) is not
-directly corresponding to the video, proceed with care!
 """
 
 from Lib.LibVideo.BasicVideoObject import BVO
@@ -73,7 +71,9 @@ class VRTVideo(BVO):
     def GUI_frames(self, calibrated: bool = False):
         """Small GUI to explore camera frames
         
-        @param calibrated: return the GUI in terms of temperature
+        @param calibrated: return the GUI in terms of temperature -> currently
+        not working properly
+        Changing colormap scale is also bugged
         """
         text = 'Press TAB until the time slider is highlighted in red.'\
             + ' Once that happend, you can move the time with the arrows'\
@@ -225,4 +225,4 @@ class VRTVideo(BVO):
             ssio.save_mask(mask = mask,filename = filename, shot = self.shot,
                            frame = frame)
         return roi
-    
+     
