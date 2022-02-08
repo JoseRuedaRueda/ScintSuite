@@ -16,6 +16,7 @@ Needed packages(Only listed 'non-standard' packages):
     - pyfft: To have extra capabilities in the spectrogram calculation.
     - netCDF4: To load and save files from the BEB database
     - scipy 1.7.0 or newer, to have the interpolators for the strike points
+    - aug_sfutils > 0.7.0: To load the AUG magnetic field
 
 *** Paths
 There are two files containing the paths and routes for the suite:
@@ -23,13 +24,13 @@ There are two files containing the paths and routes for the suite:
 - LibPaths.py: Located inside the Lb folder, there they are all the paths pointing towards the different codes (FILDSIM, INPASIM etc) and the results/strike maps directories. Be careful, by default the suite directory is there written as ScintillatorSuite, while usually if you make git clone, is cloned as scintillatorsuite, you may have to change manually the name of the folder!
 
 It could happen that you have FILDSIM, SINPA or whatever installed in a route which is not 'the official'. The suite allows you to define these different paths via the namelist 'Paths.txt' inside the MyData folder (inside Data) Please use always this file and do not modify the LibPaths.py file
+
 *Important* The suite must be installed in your home directory.
 
 VRT related paths are hardcoded. There is a significant number of them and overloading LibPaths seems like a poor solution. Blame Javier Hidalgo for this (jhsalaverri@us.es)
 
 *** FILDSIM notes
 - You need to create an empty folder in the root of FILDSIM code with name 'cfg_files' in order to run the remap routine. The namelist of the new calculated strike maps will be stored here, so we do not create thousands of files in the main FILDSIM paths
-
 
 *** Documentation
 - All objects and methods are documented such that the user can understand what is going on
@@ -60,7 +61,9 @@ Each release will be denoted by 3 numbers: a.b.c meaning:
   + PEP8 in spyder: Tools > Preferences > Completion and linting > Code style and activating the option called *Enable code style linting*
 
 *** Issues and new implementations
-If a new implementation is required, open the appropriate issue in the GIT and link it to the milestone if it corresponds (if possible). The following tags are available:
+If you are going to report a bug (or issue) please follow the template in <https://gitlab.mpcdf.mpg.de/ruejo/scintsuite/-/issues/71>
+
+If a new implementation is required, open the appropriate issue in the GIT and link it to the milestone it corresponds (if possible). The following tags are available:
 
 - Documentation: improve the documentation of a given section.
 - Feature request: request to implement a new feature in the code.
@@ -77,7 +80,7 @@ All devices are identified by three letters:
 
 ** Useful links
 - FILDSIM code: <https://gitlab.mpcdf.mpg.de/jgq/FILDSIM.git>
-- INPASIM code: <https://gitlab.mpcdf.mpg.de/ruejo/inpasim.git>
+- SINPA code: <https://gitlab.mpcdf.mpg.de/ruejo/SINPA>
 - i-HIBPSIM code: <https://gitlab.mpcdf.mpg.de/poyo/ihibpsim>
 - SMap library: <https://datashare.mpcdf.mpg.de/s/yyLR7hCKNBqK34W>
 - Phase correction for magnetics: <https://datashare.mpcdf.mpg.de/s/FiqRIixNMb82HTq>
@@ -86,8 +89,8 @@ All devices are identified by three letters:
 The suite is thought to be machine independent, but some work must be done:
 - Create a module equivalent to LibDataAUG with the database methods of your machine
 - Include your paths in paths_suite.py and LibPaths.py
-- Include the calling of your nice module in the 'if' located at the beginning of most Libraries
-- Cry a bit because there are still things which don't work
-- Send an e-mail to jrrueda@us.es
+- Include the calling of your nice module in LibMachine
+- Cry a bit because some thing might still don't work
+- Send an e-mail to jrrueda@us.es (maybe also some chocolate?)
 - Wait a couple of days for him to solve the issues
 - Enjoy!
