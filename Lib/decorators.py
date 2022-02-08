@@ -1,8 +1,5 @@
 """
-This decorator is diractly take from the nice PLEQUE code:
-https://github.com/kripnerl/pleque
-Please visit their repository and contribute to the project if you need to
-handle magnetic equilibrium :)
+Decorators for the Scintillator Suite
 """
 
 import functools
@@ -17,6 +14,11 @@ def deprecated(reason):
     This is a decorator which can be used to mark functions
     as deprecated. It will result in a warning being emitted
     when the function is used.
+
+    This decorator is diractly take from the nice PLEQUE code:
+    https://github.com/kripnerl/pleque
+    Please visit their repository and contribute to the project if you need to
+    handle magnetic equilibrium :)
     """
 
     if isinstance(reason, string_types):

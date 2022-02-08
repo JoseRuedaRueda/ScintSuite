@@ -6,12 +6,13 @@ possibility to subtract noise and timetraces remap of the whole video, but
 this time using a given strike map. As just one Smap will be used, the MC
 remapping will be employed
 
+Please write the proper path to your file in the Smap_file
+
 jose Rueda: jrrueda@us.es
 
-Note: Written for version 0.5.3. Revised for version 0.7.2
+Note: Written for version 0.5.3. Revised for version 0.8.0
 """
 import Lib as ss
-import matplotlib.pyplot as plt
 from time import time
 # -----------------------------------------------------------------------------
 # --- Section 0: Settings
@@ -20,7 +21,7 @@ from time import time
 shot = 39612
 diag_ID = 1  # 6 for rFILD
 t1 = 0.1     # Initial time to be loaded, [s]
-t2 = 3.2     # Final time to be loaded [s]
+t2 = 0.6     # Final time to be loaded [s]
 limitation = False  # If true, the suite will not allow to load more than
 limit = 2048        # 'limit' Mb of data. To avoid overloading the resources
 
@@ -30,10 +31,7 @@ tn1 = 0.1     # Initial time to average the frames for noise subtraction [s]
 tn2 = 0.15     # Final time to average the frames for noise subtraction [s]
 
 # - Remapping options:
-calibration_database = ss.paths.ScintSuite \
-    + '/Data/Calibrations/FILD/AUG/calibration_database.txt'
 Smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/39612_1p99s_strike_map.dat'
-camera = ss.dat.FILD[diag_ID-1]['camera']
 
 save_remap = False
 par = {
@@ -59,12 +57,8 @@ plot_profiles_in_time = True   # Plot the time evolution of pitch and r
 # -----------------------------------------------------------------------------
 # --- Section 1: Load video
 # -----------------------------------------------------------------------------
-# - Get the proper file name
-filename = ss.vid.guess_filename(shot, ss.dat.FILD[diag_ID-1]['path'],
-                                 ss.dat.FILD[diag_ID-1]['extension'])
-
 # - open the video file:
-vid = ss.vid.FILDVideo(filename, diag_ID=diag_ID)
+vid = ss.vid.FILDVideo(shot=shot, diag_ID=diag_ID)
 # - read the frames:
 tdummy = time()
 print('Reading camera frames: ', shot, '...')
@@ -75,33 +69,13 @@ print('Elapsed time [s]: ', time() - tdummy)
 # -----------------------------------------------------------------------------
 if subtract_noise:
     vid.subtract_noise(t1=tn1, t2=tn2)
-
 # -----------------------------------------------------------------------------
-# --- Section 3: Read FILD logbook
-# -----------------------------------------------------------------------------
-FILD = ss.dat.FILD_logbook()
-position = FILD.getPosition(shot, diag_ID)
-orientation = FILD.getOrientation(shot, diag_ID)
-# Add FILD positions to the remap options:
-par['rfild'] = position['R']
-par['zfild'] = position['z']
-par['alpha'] = orientation['alpha']
-par['beta'] = orientation['beta']
-# -----------------------------------------------------------------------------
-# --- Section 4: Load the database
-# -----------------------------------------------------------------------------
-# - Initialize the calibration database object
-database = ss.mapping.CalibrationDatabase(calibration_database)
-# - Get the calibration for our shot
-cal = database.get_calibration(shot, camera, 'PIX', diag_ID)
-
-# -----------------------------------------------------------------------------
-# --- Section 5: Load and prepare the strike map
+# --- Section 3: Load and prepare the strike map
 # -----------------------------------------------------------------------------
 # Load the strike map
 smap = ss.mapping.StrikeMap('FILD', Smap_file)
 # Calculate pixel coordinates of the map
-smap.calculate_pixel_coordinates(cal)
+smap.calculate_pixel_coordinates(vid.CameraCalibration)
 # Calculate the relation pixel - gyr and pitch
 grid = {'ymin': par['rmin'], 'ymax': par['rmax'], 'dy': par['dr'],
         'xmin': par['pmin'], 'xmax': par['pmax'], 'dx': par['dp']}
@@ -115,7 +89,7 @@ par['map'] = smap
 # --- Section 6: Proceed with the remap
 # -----------------------------------------------------------------------------
 # - Remap frames:
-vid.remap_loaded_frames(cal, shot, par)
+vid.remap_loaded_frames(par)
 # - Plot:
 if plot_profiles_in_time:
     vid.plot_profiles_in_time()

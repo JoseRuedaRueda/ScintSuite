@@ -7,7 +7,9 @@ possibility to subtract noise and timetraces will be calculated
 jose Rueda: jrrueda@us.es
 
 Note; Written for version 0.3.0. Before running this script, please do:
-plt.show(), if not, bug due to spyder 4.0 may arise
+plt.close('all'), if not, bug due to spyder 4.0 and roipoly may raise
+
+Revised for version 0.8.0
 
 You should run paths_suite.py before runing this example.
 """
@@ -39,12 +41,8 @@ plt_TT = True  # Plot the TT
 # -----------------------------------------------------------------------------
 # --- Section 1: Load video
 # -----------------------------------------------------------------------------
-# - Get the proper file name
-filename = ss.vid.guess_filename(shot, ss.dat.FILD[diag_ID-1]['path'],
-                                 ss.dat.FILD[diag_ID-1]['extension'])
-
 # - open the video file:
-vid = ss.vid.FILDVideo(filename, diag_ID=diag_ID)
+vid = ss.vid.FILDVideo(shot=shot, diag_ID=diag_ID)
 # - read the frames:
 print('Reading camera frames: ')
 vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
@@ -82,8 +80,9 @@ if save_TT:
 if plt_TT:
     time_trace.plot_single()
 
-# By default the TT.plotsingle() plot the summ of counts on the roi, but
-# mean and std are also calculated and ca be plotted with it
+# By default the time_trace.plotsingle() plot the sum of counts on the roi, but
+# mean and std are also calculated and can be plotted with it, just explore a
+# bit the function
 
 # -----------------------------------------------------------------------------
 # --- Extra

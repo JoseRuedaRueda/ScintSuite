@@ -13,6 +13,8 @@ import warnings
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
 from Lib.LibMap.Calibration import CalParams
+import Lib.LibData.AUG.DiagParam as params
+import Lib.errors as errors
 paths = Path(machine)
 
 
@@ -28,6 +30,28 @@ _geometrdefault = os.path.join(paths.ScintSuite, 'Data',
                                'Calibrations', 'FILD', 'AUG',
                                'GeometryDefaultParameters.txt')
 _defaultFILDdata = f90nml.read(_geometrdefault)
+
+
+# --- Auxiliar routines to find the path towards the camera files
+def guessFILDfilename(shot: int, diag_ID: int = 1):
+    """
+    Guess the filename of a video
+
+    Jose Rueda Rueda: jrrueda@us.es
+
+    Note AUG criteria of organising files is assumed: .../38/38760/...
+
+    @param shot: shot number
+    @param diag_ID: FILD manipulator number
+
+    @return file: the name of the file/folder
+    """
+    base_dir = params.FILD[diag_ID-1]['path']
+    extension = params.FILD[diag_ID-1]['extension']
+    shot_str = str(shot)
+    name = shot_str + extension
+    file = os.path.join(base_dir, shot_str[0:2], name)
+    return file
 
 
 # --- Auxiliar routines to load and plot FILD4 trajectory:
@@ -94,7 +118,9 @@ def load_FILD4_trajectory(shot, path=paths.FILD4_trayectories):
         }
     except OSError:
         print('File with trajectory not found')
+        position = None
         insertion = None
+        PSouput = None
 
     return {'PSouput': PSouput, 'insertion': insertion, 'position': position}
 
@@ -207,6 +233,8 @@ class FILD_logbook:
             url poiting to the internet logbook. It can be a path to a local
             excel)
         """
+        if verbose:
+            print('.-.. --- --. -... --- --- -.-')
         # Load the camera database
         self.CameraCalibrationDatabase = \
             self._readCameraCalibrationDatabase(cameraFile, verbose=verbose)
@@ -219,11 +247,12 @@ class FILD_logbook:
                 self._readPositionDatabase(positionFile, verbose=verbose)
             self.flagPositionDatabase = True
         except FileNotFoundError:
-            self.flagPositionDatabase = True
+            self.flagPositionDatabase = False
             print('Not found position database, we will use the defaults')
         # Load the geometry database
         self.geometryDatabase = \
             self._readGeometryDatabase(geometryFile, verbose=verbose)
+        print('..-. .. -. .- .-.. .-.. -.--')
 
     def _readCameraCalibrationDatabase(self, filename: str, n_header: int = 5,
                                        verbose: bool = True):
@@ -317,35 +346,39 @@ class FILD_logbook:
         database = pd.DataFrame(data)
         return database
 
-    def getCameraCalibration(self, shot: int, camera: str = 'PHANTOM',
-                             diag_ID: int = 1):
+    def getCameraCalibration(self, shot: int,  FILDid: int = 1,
+                             diag_ID: int = None,):
         """
         Get the camera calibration parameters for a shot
 
         @param shot: Shot number for which we want the calibration
-        @param camera: Camera used
         @param cal_type: Type of calibration we want
         @param diag_ID: ID of the diagnostic we want
+        @param FILDid: alias for diag_ID, to be consistent with the rest of the
+            functions in the logbook but also keep retrocompatibility. Notice
+            that if diag_ID is not None, diag_ID value will prevail
 
         @return cal: CalParams() object
-
-        @todo: overcome the need of camera inputs
         """
+        # --- Settings
+        if diag_ID is None:
+            diag_ID = FILDid
+        # --- Select the possible entries
         flags = (self.CameraCalibrationDatabase['shot1'] <= shot) & \
             (self.CameraCalibrationDatabase['shot2'] >= shot) & \
-            (self.CameraCalibrationDatabase['camera'] == camera) & \
             (self.CameraCalibrationDatabase['cal_type'] == 'PIX') & \
             (self.CameraCalibrationDatabase['diag_ID'] == diag_ID)
-
+        # --- Be sure that there is only one entrance
         n_true = sum(flags)
 
         if n_true == 0:
-            raise Exception('No entry find in the database, revise database')
+            raise errors.NotFoundCameraCalibration(
+                'No entry find in the database, revise database')
         elif n_true > 1:
             print('Several entries fulfill the condition')
             print('Possible entries:')
             print(self.data['CalID'][flags])
-            raise Exception()
+            raise errors.FoundSeveralCameraCalibration()
         else:
             cal = CalParams()
             row = self.CameraCalibrationDatabase[flags]
@@ -354,6 +387,7 @@ class FILD_logbook:
             cal.xshift = row.xshift.values[0]
             cal.yshift = row.yshift.values[0]
             cal.deg = row.deg.values[0]
+            cal.camera = row.camera.values[0]
         return cal
 
     def getGeomID(self, shot: int, FILDid: int = 1):
@@ -368,14 +402,15 @@ class FILD_logbook:
             (self.geometryDatabase['diag_ID'] == FILDid)
         n_true = sum(flags)
         if n_true == 0:
-            raise Exception('No entry found in database')
+            raise errors.NotFoundGeomID('No entry found in database')
         elif n_true > 1:
-            raise Exception('More than onw entry found, revise')
+            raise errors.FoundSeveralGeomID(
+                'More than onw entry found, revise')
         else:
             id = self.geometryDatabase[flags].GeomID.values[0]
         return id
 
-    def getPosition(self, shot, FILDid):
+    def getPosition(self, shot: int, FILDid: int = 1):
         """
         Get the position of the FILD detector.
 
@@ -434,13 +469,13 @@ class FILD_logbook:
             # is poor, so a small missalignement will not be noticed.
             # To calculate this average position, I will take the average of
             # the positions at least 5 mm further from the minimum limit
-            try:
-                dummy2 = load_FILD4_trajectory(self.shot)
+            dummy2 = load_FILD4_trajectory(shot)
+            if dummy2['position'] is not None:
                 min = dummy2['position']['R'].min()
                 flags = dummy2['position']['R'] > (min + 0.005)
                 position['R'] = dummy2['position']['R'][flags].mean()
                 position['z'] = dummy2['position']['z'][flags].mean()
-            except OSError:    # Shot not found in the database
+            else:    # Shot not found in the database
                 position['R'] = default['R']
                 position['z'] = default['z']
             # FILD4 phi is always the same:
@@ -461,7 +496,7 @@ class FILD_logbook:
         geomID = self.getGeomID(shot, FILDid)
         return self._getOrientationDefault(geomID)
 
-    def getGeomShots(self, geomID, maxR: float = None):
+    def getGeomShots(self, geomID, maxR: float = None, verbose: bool = True):
         """
         Return all shots in the database position database with a geomID
 
@@ -471,6 +506,8 @@ class FILD_logbook:
                 1: 2.5 m
                 2: 2.2361 m
                 5: 1.795 m
+        @param verbose: flag to print in the console the number of shots found
+            using that geometry
         """
         # Minimum insertion
         minin = {
@@ -482,15 +519,16 @@ class FILD_logbook:
         flags_geometry = self.geometryDatabase['GeomID'] == geomID
         n_instalations = sum(flags_geometry)
         if n_instalations == 0:
-            raise Exception('Not found geometry? revise input')
+            raise errors.NotFoundGeomID('Not found geometry? revise input')
 
         instalations = self.geometryDatabase[flags_geometry]
-        print('This geometry was installed %i times:' % n_instalations)
+        if verbose:
+            print('This geometry was installed %i times:' % n_instalations)
         for i in range(n_instalations):
             print('From shot %i to %i' % (instalations.shot1.values[i],
                                           instalations.shot2.values[i]))
         if instalations.diag_ID.values[0] == 4:
-            raise Exception('This not work for FILD4, sorry')
+            raise errors.NotImplementedError('Not for FILD4, sorry')
 
         # Look in the postition in the database
         shots = np.empty(0, dtype=int)
