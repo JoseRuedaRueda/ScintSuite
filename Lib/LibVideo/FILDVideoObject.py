@@ -907,11 +907,11 @@ class FILDVideo(BVO):
             diag_ID.units = ' '
             diag_ID.long_name = 'FILD number'
 
-            # Save FILD geometry
-            geom_ID = f.createVariable('geom_ID', 's', )
-            geom_ID[:] = self.FILDgeometry
-            geom_ID.units = ' '
-            geom_ID.long_name = 'FILD geomID'
+            # # Save FILD geometry
+            # geom_ID = f.createVariable('geom_ID', 's', )
+            # geom_ID[:] = self.FILDgeometry
+            # geom_ID.units = ' '
+            # geom_ID.long_name = 'FILD geomID'
 
             # Save the flag which indicate if the remap was from average or
             # real frames
@@ -1046,7 +1046,7 @@ class FILDVideo(BVO):
             phi.long_name = 'phi'
 
             phi_used = f.createVariable('phi', 'float64', ('tframes', ))
-            phi_used[:] = self.self.remap_dat['phi_used']
+            phi_used[:] = self.remap_dat['phi_used']
             phi_used.units = '$\\degree$'
             phi_used.long_name = 'phi used'
 
