@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import Lib.LibPlotting as ssplt
 import Lib.LibData as ssdat
 import Lib.LibFrequencyAnalysis as ssfq
+import Lib.errors as errors
 import scipy.signal as sp  # signal processing
 
 
@@ -61,7 +62,7 @@ class FastChannel:
         }
         # --- Perform the filter
         if method not in options_filter.keys():
-            raise Exception('Method not implemented')
+            raise errors.NotImplementedError('Method not implemented')
         filtered_data = self.raw_data['data'].copy()
         options = options_filter[method]
         options.update(params)
@@ -112,7 +113,7 @@ class FastChannel:
             elif method == 'stft2':
                 spec = ssfq.stft2
             else:
-                raise Exception('Method not understood')
+                raise errors.NotImplementedError('Method not understood')
             # --- Perform the spectogram for each channel:
             ch = np.arange(len(self.raw_data['data'])) + 1
             spectra = []
@@ -330,7 +331,7 @@ class FastChannel:
                 elif scale == 'linear':
                     data = self.spectra[ic - 1]['spec']
                 else:
-                    raise Exception('Not understood scale')
+                    raise errors.NotValidInput('Not understood scale')
                 # Limit for the scale
                 tmin = self.spectra[ic - 1]['tvec'][0]
                 tmax = self.spectra[ic - 1]['tvec'][-1]

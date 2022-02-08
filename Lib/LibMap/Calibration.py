@@ -1,5 +1,6 @@
 """Calibration and database objects."""
 import numpy as np
+import Lib.errors as errors
 
 
 class CalibrationDatabase:
@@ -102,12 +103,13 @@ class CalibrationDatabase:
         n_true = sum(flags)
 
         if n_true == 0:
-            raise Exception('No entry find in the database, revise database')
+            raise errors.NotFoundCameraCalibration(
+                'No entry find in the database, revise database')
         elif n_true > 1:
             print('Several entries fulfill the condition')
             print('Possible entries:')
             print(self.data['ID'][flags])
-            raise Exception()
+            raise errors.FoundSeveralCameraCalibration()
         else:
             dummy = np.argmax(np.array(flags))
             cal = CalParams()

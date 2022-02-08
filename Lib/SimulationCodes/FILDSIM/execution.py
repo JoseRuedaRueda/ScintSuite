@@ -8,6 +8,7 @@ from Lib.LibMachine import machine
 from Lib.LibPaths import Path
 import Lib.LibData as ssdat
 from Lib.decorators import deprecated
+import Lib.errors as errors
 import f90nml
 paths = Path(machine)
 
@@ -120,53 +121,57 @@ def read_namelist(filename):
     return f90nml.read(filename)
 
 
-def run_FILDSIM(namelist, queue: bool = False):
+def run_FILDSIM(namelist, queue: bool = False, cluster: str = 'MPCDF'):
     """
     Execute a FILDSIM simulation
 
     Jose Rueda and Anton J. van Vuuren
 
     @param namelist: full path to the namelist
+    @param queue: Flag to launch the FILDSIM simulation into the queue
+    @param cluster: string identifying the cluster. Each cluster may require
+        different submition option. Up to now, only MPCDF ones are supported
     """
     if not queue:
         FILDSIM = os.path.join(paths.FILDSIM, 'bin', 'fildsim.exe')
         os.system(FILDSIM + ' ' + namelist)
     else:
-        '''
-        write batch file to submit
-        '''
-        nml = read_namelist(namelist)
-        f = open(nml['config']['result_dir']+'/Submit.sh', 'w')
-        f.write('#!/bin/bash -l \n')
-        f.write('#SBATCH -J FILDSIM_%s      #Job name \n'
-                % (nml['config']['runid']))
-        f.write('#SBATCH -o ./%x.%j.out        '
-                + '#stdout (%x=jobname, %j=jobid) \n')
-        f.write('#SBATCH -e ./%x.%j.err        '
-                + '#stderr (%x=jobname, %j=jobid) \n')
-        f.write('#SBATCH -D ./                 #Initial working directory \n')
-        f.write('#SBATCH --partition=s.tok     #Queue/Partition \n')
-        f.write('#SBATCH --qos=s.tok.short \n')
-        f.write('#SBATCH --nodes=1             #Total number of nodes \n')
-        f.write('#SBATCH --ntasks-per-node=1   #MPI tasks per node \n')
-        f.write('#SBATCH --cpus-per-task=1     #CPUs per task for OpenMP \n')
-        f.write('#SBATCH --mem 5GB             #Set mem./node requirement \n')
-        f.write('#SBATCH --time=03:59:00       #Wall clock limit \n')
-        f.write('## \n')
-        f.write('#SBATCH --mail-type=end       #Send mail \n')
-        f.write('#SBATCH --mail-user=%s@ipp.mpg.de  #Mail address \n'
-                % (os.getenv("USER")))
+        if cluster == 'MPCDF':
+            # write batch file to submit
+            nml = read_namelist(namelist)
+            f = open(nml['config']['result_dir']+'/Submit.sh', 'w')
+            f.write('#!/bin/bash -l \n')
+            f.write('#SBATCH -J FILDSIM_%s      #Job name \n'
+                    % (nml['config']['runid']))
+            f.write('#SBATCH -o ./%x.%j.out        '
+                    + '#stdout (%x=jobname, %j=jobid) \n')
+            f.write('#SBATCH -e ./%x.%j.err        '
+                    + '#stderr (%x=jobname, %j=jobid) \n')
+            f.write('#SBATCH -D ./              #Initial working directory \n')
+            f.write('#SBATCH --partition=s.tok     #Queue/Partition \n')
+            f.write('#SBATCH --qos=s.tok.short \n')
+            f.write('#SBATCH --nodes=1             #Total number of nodes \n')
+            f.write('#SBATCH --ntasks-per-node=1   #MPI tasks per node \n')
+            f.write('#SBATCH --cpus-per-task=1   #CPUs per task for OpenMP \n')
+            f.write('#SBATCH --mem 5GB          #Set mem./node requirement \n')
+            f.write('#SBATCH --time=03:59:00    #Wall clock limit \n')
+            f.write('## \n')
+            f.write('#SBATCH --mail-type=end       #Send mail \n')
+            f.write('#SBATCH --mail-user=%s@ipp.mpg.de  #Mail address \n'
+                    % (os.getenv("USER")))
 
-        f.write('# Run the program: \n')
-        FILDSIM = os.path.join(paths.FILDSIM, 'bin', 'fildsim.exe')
-        f.write(FILDSIM + ' ' + namelist)
-        f.close()
+            f.write('# Run the program: \n')
+            FILDSIM = os.path.join(paths.FILDSIM, 'bin', 'fildsim.exe')
+            f.write(FILDSIM + ' ' + namelist)
+            f.close()
 
-        os.system('sbatch ' + nml['config']['result_dir'] + '/Submit.sh')
+            os.system('sbatch ' + nml['config']['result_dir'] + '/Submit.sh')
+        else:
+            raise errors.NotImplementedError('Not supportted cluster')
     return
 
 
-def guess_strike_map_name_FILD(phi: float, theta: float, geomID: str = 'id2',
+def guess_strike_map_name_FILD(phi: float, theta: float, geomID: str = 'AUG02',
                                decimals: int = 1):
     """
     Give the name of the strike-map file
@@ -204,7 +209,7 @@ def guess_strike_map_name_FILD(phi: float, theta: float, geomID: str = 'id2',
 
 
 def find_strike_map(phi: float, theta: float, strike_path: str,
-                    geomID: str = 'AUGid1',
+                    geomID: str = 'AUG02',
                     FILDSIM_options={}, clean: bool = True,
                     decimals: int = 1):
     """
@@ -215,8 +220,7 @@ def find_strike_map(phi: float, theta: float, strike_path: str,
     @param    phi: phi angle as defined in FILDSIM
     @param    theta: beta angle as defined in FILDSIM
     @param    strike_path: path of the folder with the strike maps
-    @param    FILDSIM_path: path of the folder with FILDSIM
-    @param    machine: string identifying the machine. Defaults to 'AUG'.
+    @param    geomID: string identifying the geometry. Defaults to 'AUG02'.
     @param    FILDSIM_options: FILDSIM namelist options
     @param    clean: True: eliminate the strike_points.dat when calling FILDSIM
     @param    decimals: Number of decimals for theta and phi angles
@@ -233,25 +237,22 @@ def find_strike_map(phi: float, theta: float, strike_path: str,
         return name
     # If do not exist, create it
     # load reference namelist
-    # Reference namelist
     nml = f90nml.read(os.path.join(strike_path, 'parameters.cfg'))
-    # If a FILDSIM naelist was given, overwrite reference parameters with the
+    # If a FILDSIM namelist was given, overwrite reference parameters with the
     # desired by the user, else set at least the proper geometry directory
+    geom_path = os.path.join(paths.FILDSIM, 'geometry/')
     if FILDSIM_options is not None:
         # Set the geometry directory
         if 'plate_setup_cfg' in FILDSIM_options:
             if 'geometry_dir' not in FILDSIM_options['plate_setup_cfg']:
-                FILDSIM_options['plate_setup_cfg']['geometry_dir'] = \
-                    os.path.join(paths.FILDSIM, 'geometry/')
+                FILDSIM_options['plate_setup_cfg']['geometry_dir'] = geom_path
         else:
-            nml['plate_setup_cfg']['geometry_dir'] = \
-                os.path.join(paths.FILDSIM, 'geometry/')
+            nml['plate_setup_cfg']['geometry_dir'] = geom_path
         # set the rest of user defined options
         for block in FILDSIM_options.keys():
             nml[block].update(FILDSIM_options[block])
     else:
-        nml['plate_setup_cfg']['geometry_dir'] = \
-            os.path.join(paths.FILDSIM, 'geometry/')
+        nml['plate_setup_cfg']['geometry_dir'] = geom_path
 
     # set namelist name, theta and phi
     nml['config']['runid'] = name[:-15]
@@ -270,7 +271,7 @@ def find_strike_map(phi: float, theta: float, strike_path: str,
     if os.path.isfile(os.path.join(strike_path, name)):
         return name
     # If we reach this point, something went wrong
-    a = 'FILDSIM simulation has been done but the strike map can be found'
+    a = 'FILDSIM simulation has been done but the strike map cannot be found'
     raise Exception(a)
 
 

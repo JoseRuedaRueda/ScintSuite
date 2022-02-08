@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm                      # For waitbars
 from scipy import ndimage                  # To filter the images
-from Lib.LibIO import ask_to_open
+import Lib.LibIO as _ssio
 import Lib.LibVideo.CinFiles as cin
 import Lib.LibVideo.PNGfiles as png
 import Lib.LibVideo.MP4files as mp4
@@ -32,25 +32,30 @@ class BVO:
     Just read the frames and filter them
     """
 
-    def __init__(self, file: str = None, shot: int = None):
+    def __init__(self, file: str = None, shot: int = None,
+                 empty: bool = False):
         """
         Initialise the class
 
         @param file: For the initialization, file (full path) to be loaded,
-        if the path point to a .cin or .mp4 file, the .cin file will be loaded.
-        If the path points to a folder, the program will look for png files or
-        tiff files inside (tiff coming soon). You can also point to a png or
-        tiff file. In this case, the folder name will be deduced from the file.
-        If none, a window will be open to select a file
+            if the path point to a .cin or .mp4 file, the .cin file will be
+            loaded. If the path points to a folder, the program will look for
+            png files ortiff files inside (tiff coming soon). You can also
+            point to a png or tiff file. In this case, the folder name will be
+            deduced from the file. If none, a window will be open to select
+            a file
         @param shot: Shot number, if is not given, the program will look for it
-        in the name of the loaded file
+            in the name of the loaded file
+        @param empty: if true, just an empty video object will be created, this
+            is to latter use routines of the child objects such as load_remap.
 
         Note: The shot parameter is important for latter when loading data from
-        the database to remap etc
+        the database to remap, etc. See FILDVideoObject to have an examples of
+        more details.
         """
         # If no file was given, open a graphical user interface to select it.
-        if file is None:
-            filename = ask_to_open()
+        if (file is None) and (not empty):
+            filename = _ssio.ask_to_open()
             if filename == '':
                 raise Exception('You must select a file!!!')
             # If we select a png or tif, we need the folder, not the file
@@ -69,84 +74,87 @@ class BVO:
         }
         ## Remapped data
         self.remap_dat = None
+        ## Averaged data
+        self.avg_dat = None
         ## Time traces: space reservation for the future
         self.time_trace = None
         ## Shot number
         self.shot = shot
-        if shot is None:
-            self.shot = aux.guess_shot(file, ssdat.shot_number_length)
+        if not empty:
+            if shot is None:
+                self.shot = aux.guess_shot(file, ssdat.shot_number_length)
+            # Fill the object depending if we have a .cin file or not
+            if os.path.isfile(file):
+                print('Looking for the file: ', file)
+                ## Path to the file and filename
+                self.path, self.file_name = os.path.split(file)
+                ## Name of the file (full path)
+                self.file = file
 
-        # Fill the object depending if we have a .cin file or not
-        print('Looking for the file: ', file)
-        if os.path.isfile(file):
-            ## Path to the file and filename
-            self.path, self.file_name = os.path.split(file)
-            ## Name of the file (full path)
-            self.file = file
-
-            # Check if the file is actually a .cin file
-            if file.endswith('.cin') or file.endswith('.cine'):
-                ## Header dictionary with the file info
-                self.header = cin.read_header(file)
-                ## Settings dictionary
-                self.settings = cin.read_settings(file,
-                                                  self.header['OffSetup'])
-                ## Image Header dictionary
-                self.imageheader = cin.read_image_header(file, self.header[
-                    'OffImageHeader'])
-                ## Time array
-                self.timebase = cin.read_time_base(file, self.header,
-                                                   self.settings)
-                self.type_of_file = '.cin'
-            elif file.endswith('.png') or file.endswith('.tif'):
-                file, name = os.path.split(file)
-            elif file[-4:] == '.mp4':
-                dummy = mp4.read_file(file, verbose=False)
-                # mp4 files are handle different as they are suppose to be just
-                # a dummy temporal format, not the one to save our real exp
-                # data, so the video will be loaded all from here and not
-                # reading specific frame will be used
-                self.timebase = dummy['tframes']
-                self.exp_dat['frames'] = dummy['frames']
-                self.exp_dat['tframes'] = dummy['tframes']
-                self.exp_dat['nframes'] = np.arange(dummy['nf'])
-                self.type_of_file = '.mp4'
+                # Check if the file is actually a .cin file
+                if file.endswith('.cin') or file.endswith('.cine'):
+                    ## Header dictionary with the file info
+                    self.header = cin.read_header(file)
+                    ## Settings dictionary
+                    self.settings = cin.read_settings(file,
+                                                      self.header['OffSetup'])
+                    ## Image Header dictionary
+                    self.imageheader = cin.read_image_header(file, self.header[
+                        'OffImageHeader'])
+                    ## Time array
+                    self.timebase = cin.read_time_base(file, self.header,
+                                                       self.settings)
+                    self.type_of_file = '.cin'
+                elif file.endswith('.png') or file.endswith('.tif'):
+                    file, name = os.path.split(file)
+                elif file.endswith('.mp4'):
+                    dummy = mp4.read_file(file, verbose=False)
+                    # mp4 files are handle different as they are suppose to be
+                    # just a dummy temporal format, not the one to save our
+                    # real exp data, so the video will be loaded all from here
+                    # and not reading specific frame will be used
+                    self.timebase = dummy['tframes']
+                    self.exp_dat['frames'] = dummy['frames']
+                    self.exp_dat['tframes'] = dummy['tframes']
+                    self.exp_dat['nframes'] = np.arange(dummy['nf'])
+                    self.type_of_file = '.mp4'
+                else:
+                    raise Exception('Not recognised file extension')
             else:
-                raise Exception('Not recognised file extension')
-        else:
-            if not os.path.isdir(file):
-                raise Exception(file + ' not found')
-            ## path to the file
-            self.path = file
-            # Do a quick run for the folder looking of .tiff or .png files
-            f = []
-            for (dirpath, dirnames, filenames) in os.walk(self.path):
-                f.extend(filenames)
-                break
-
-            for i in range(len(f)):
-                if f[i].endswith('.png'):
-                    self.type_of_file = '.png'
-                    print('Found PNG files!')
+                print('Looking in the folder: ', file)
+                if not os.path.isdir(file):
+                    raise Exception(file + ' not found')
+                ## path to the file
+                self.path = file
+                # Do a quick run for the folder looking of .tiff or .png files
+                f = []
+                for (dirpath, dirnames, filenames) in os.walk(self.path):
+                    f.extend(filenames)
                     break
-                elif f[i].endswith('.tif'):
-                    self.type_of_file = '.tif'
-                    print('Found tif files!')
-                    print('Tif support still not implemented, sorry')
-                    break
-            # if we do not have .png or tiff, give an error
-            if self.type_of_file != '.png' and self.type_of_file != '.tif':
-                print(self.type_of_file)
-                raise Exception('No .pgn ror .tiff files found')
 
-            # If we have a .png file, a .txt must be present with the
-            # information of the exposure time and from a basic frame we can
-            # load the file size
-            if self.type_of_file == '.png':
-                self.header, self.imageheader, self.settings,\
-                    self.timebase = png.read_data(self.path)
-        if self.type_of_file is None:
-            raise Exception('Not file found!')
+                for i in range(len(f)):
+                    if f[i].endswith('.png'):
+                        self.type_of_file = '.png'
+                        print('Found PNG files!')
+                        break
+                    elif f[i].endswith('.tif'):
+                        self.type_of_file = '.tif'
+                        print('Found tif files!')
+                        print('Tif support still not implemented, sorry')
+                        break
+                # if we do not have .png or tiff, give an error
+                if self.type_of_file != '.png' and self.type_of_file != '.tif':
+                    print(self.type_of_file)
+                    raise Exception('No .pgn ror .tiff files found')
+
+                # If we have a .png file, a .txt must be present with the
+                # information of the exposure time and from a basic frame we
+                # can load the file size
+                if self.type_of_file == '.png':
+                    self.header, self.imageheader, self.settings,\
+                        self.timebase = png.read_data(self.path)
+            if self.type_of_file is None:
+                raise Exception('Not file found!')
 
     def read_frame(self, frames_number=None, limitation: bool = True,
                    limit: int = 2048, internal: bool = True, t1: float = None,
@@ -186,6 +194,16 @@ class BVO:
             elif (t1 is not None) and (t2 is None):
                 frames_number = np.array([np.argmin(abs(self.timebase-t1))])
             elif (t1 is not None) and (t2 is not None):
+                tmin_video = self.timebase.min()
+                if t1 < tmin_video:
+                    print('T1 was not in the video file:')
+                    warnings.warn('Taking %.3f as initial point' % tmin_video,
+                                  category=UserWarning)
+                tmax_video = self.timebase.max()
+                if t2 > tmax_video:
+                    print('T2 was not in the video file:')
+                    warnings.warn('Taking %.3f as final point' % tmax_video,
+                                  category=UserWarning)
                 it1 = np.argmin(abs(self.timebase-t1))
                 it2 = np.argmin(abs(self.timebase-t2))
                 frames_number = np.arange(start=it1, stop=it2+1, step=1)
