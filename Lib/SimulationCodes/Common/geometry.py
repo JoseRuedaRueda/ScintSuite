@@ -213,7 +213,7 @@ def plotLinesElement(geom: dict, ax=None, line_params: dict = {},
 
 def plotShadedElement(geom: dict, ax=None, surface_params: dict = {},
                       referenceSystem='absolute', plot2D: bool = False,
-                      units: str = 'cm', view: str = 'scint'):
+                      units: str = 'cm', view: str = 'absolute'):
     """
     Plot the geometric elements with a filled contour.
 
@@ -342,7 +342,8 @@ class Geometry:
         @param files: a list with the files to be loaded, if present, GeomID
             will be ignored.
         Notice: the GeomID would be the name of the folder inside the geometry
-        folder of the FILDSIM or SINPA code. If GeomID is an absolute
+        folder of the FILDSIM or SINPA code. If GeomID is an absolute path,
+        files inside that paths will be loaded
 
         @ToDo: allow to pass as input a code namelist
         """

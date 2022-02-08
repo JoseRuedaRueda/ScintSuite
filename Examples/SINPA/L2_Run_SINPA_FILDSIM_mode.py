@@ -22,41 +22,44 @@ paths = Path(machine)
 # --- Settings block
 # -----------------------------------------------------------------------------
 runid = 'Example_test'
-geomID = 'AUG02'
+geomID = 'AUG021'
 nml_options = {   # Se the PDF documentation for a complete desription of these
     'config':  {  # parameters
         'runid': runid,
-        'geomFolder': os.path.join(paths.SINPA, 'Geometry', geomID),
+        'geomfolder': os.path.join(paths.SINPA, 'Geometry', geomID),
         'FILDSIMmode': True,
         'nGeomElements': 2,
-        'nxi': 7,
-        'nGyroradius': 7,
-        'nMap': 10000,
+        'nxi': 8,
+        'nGyroradius': 5,
+        'nMap': 50000,
+        'n1': 1.0,
+        'r1': 1.2,
+        'restrict_mode': True,
         'mapping': True,
-        'saveOrbits': True,
+        'saveOrbits': False,
         'saveRatio': 0.01,
         'saveOrbitLongMode': False,
-        'runFolder': os.path.join(paths.SINPA, 'runs', runid),
+        'runfolder': os.path.join(paths.SINPA, 'runs', runid),
         'verbose': True,
         'IpBt': -1,        # Sign of toroidal current vs field (for pitch)
         'flag_efield_on': False,  # Add or not electric field
-        'save_collimator_strike_points': True,  # Save collimator points
+        'save_collimator_strike_points': False,  # Save collimator points
         'backtrace': False  # Flag to backtrace the orbits
     },
     'inputParams': {
          'nGyro': 350,
-         'minAngle': -2.0,
+         'minAngle': -2.2,
          'dAngle': 1.0,
-         'XI': [80., 70., 60., 50., 40., 30., 20.],
-         'rL': [2., 3., 4., 5., 6., 7., 8.],
-         'maxT': 0.0000005
+         'XI': [85.0, 80.0, 70.0, 60.0, 50.0, 40.0, 30.0, 20.0],
+         'rL': [1.75, 2.0, 3., 4.0, 5.0],
+         'maxT': 0.00000008
     },
 }
 # --- magnetic field definition:
 # Option 1: as FILDSIM
 use_opt1 = True
-theta = 9.0
-phi = 9.0
+theta = 8.2
+phi = -0.5
 # Option 2: directly a field in caterian coordinates
 direction = [-0.15643447,  -0.97552826, 0.1545085]  # Arbitrary field
 
@@ -73,7 +76,9 @@ os.makedirs(resultsDir, exist_ok=True)
 # -----------------------------------------------------------------------------
 # --- Section 1: Prepare the namelist
 # -----------------------------------------------------------------------------
-ss.sinpa.execution.write_namelist(nml_options)
+print('Hello')
+filename = ss.sinpa.execution.write_namelist(nml_options)
+print(filename)
 # -----------------------------------------------------------------------------
 # --- Section 2: Prepare the magnetic field
 # -----------------------------------------------------------------------------
