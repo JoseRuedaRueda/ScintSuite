@@ -15,10 +15,10 @@ ch_to_plot = {  # Select the channels you want to plot
     4: [19],
     5: [],  # FILD 5 APD is broken
 }
-ptype = 'cloud'  # Type of plot: raw, smooth or cloud (this is raw + smooth)
+ptype = 'cloud'    # Type of plot: raw, smooth or cloud (this is raw + smooth)
 
 filter = 'savgol'  # Type of filter, savgol, or median (bandpass coming soon)
-points = 7500  # number of points per channel to plot
+points = 7500      # maximum number of points per channel to plot
 # -----------------------------------------------------------------------------
 # --- Load and plot channels
 # -----------------------------------------------------------------------------

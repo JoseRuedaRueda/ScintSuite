@@ -15,14 +15,17 @@ import numpy as np
 import os
 import Lib.LibData.AUG.DiagParam as params
 from Lib.LibPaths import Path
+import Lib.errors as errors
 import matplotlib.pyplot as plt
 pa = Path()
 
 # -----------------------------------------------------------------------------
 # --- GENERIC SIGNAL RETRIEVING.
 # -----------------------------------------------------------------------------
-def get_signal_generic(shot: int, diag: str, signame: str, exp: str='AUGD',
-                       edition: int=0, tBegin: float=None, tEnd: float=None):
+
+
+def get_signal_generic(shot: int, diag: str, signame: str, exp: str = 'AUGD',
+                       edition: int = 0, tBegin: float = None, tEnd: float = None):
     """
     Function that generically retrieves a signal from the database in AUG.
 
@@ -48,8 +51,9 @@ def get_signal_generic(shot: int, diag: str, signame: str, exp: str='AUGD',
         time = signal_obj.time
 
     except:
-        raise Exception('The signal data cannot be read for #%05d:%s:%s(%d)'\
-                        (shot, diag, signame, edition))
+        raise errors.DatabaseError(
+            'The signal data cannot be read for #%05d:%s:%s(%d)'
+            % (shot, diag, signame, edition))
 
     sf.close()
 
@@ -73,13 +77,13 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int):
     # Check inputs:
     suported_diag = ['FILD']
     if diag not in suported_diag:
-        raise Exception('No understood diagnostic')
+        raise errors.NotValidInput('No understood diagnostic')
 
     # Load diagnostic names:
     if diag == 'FILD':
         if (diag_number > 5) or (diag_number < 1):
             print('You requested: ', diag_number)
-            raise Exception('Wrong fild number')
+            raise errors.NotValidInput('Wrong fild number')
         info = params.FILD[diag_number - 1]
         diag_name = info['diag']
         signal_prefix = info['channel']
@@ -120,8 +124,8 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int):
 # -----------------------------------------------------------------------------
 # --- ELMs
 # -----------------------------------------------------------------------------
-def get_ELM_timebase(shot: int, time: float=None, edition: int=0,
-                     exp: str='AUGD'):
+def get_ELM_timebase(shot: int, time: float = None, edition: int = 0,
+                     exp: str = 'AUGD'):
     """
     Give the ELM onset and duration times
 
@@ -149,29 +153,32 @@ def get_ELM_timebase(shot: int, time: float=None, edition: int=0,
         time = np.atleast_1d(time)
         if len(time) == 1:
             t0 = np.abs(tELM['t_onset'] - time[0]).argmin()
-            tELM = { 't_onset': np.array((tELM['t_onset'][t0],)),
-                     'dt': np.array((tELM['dt'][t0],)),
-                     'energy': np.array((tELM['energy'][t0],)),
-                     'f_ELM': np.array((tELM['f_ELM'][t0],))
-                   }
+            tELM = {
+                't_onset': np.array((tELM['t_onset'][t0],)),
+                'dt': np.array((tELM['dt'][t0],)),
+                'energy': np.array((tELM['energy'][t0],)),
+                'f_ELM': np.array((tELM['f_ELM'][t0],))
+            }
         elif len(time) == 2:
             t0, t1 = np.searchsorted(tELM['t_onset'], time)
             t1 = min(len(tELM['t_onset']), t1+1)
-            tELM = { 't_onset': tELM['t_onset'][t0:t1],
-                     'dt': tELM['dt'][t0:t1],
-                     'energy': tELM['energy'][t0:t1],
-                     'f_ELM': tELM['f_ELM'][t0:t1]
-                   }
+            tELM = {
+                't_onset': tELM['t_onset'][t0:t1],
+                'dt': tELM['dt'][t0:t1],
+                'energy': tELM['energy'][t0:t1],
+                'f_ELM': tELM['f_ELM'][t0:t1]
+            }
 
         else:
-            tidx = [np.abs(tELM['t_onset'] - time_val).argmin()\
+            tidx = [np.abs(tELM['t_onset'] - time_val).argmin()
                     for time_val in time]
 
-            tELM = { 't_onset': tELM['t_onset'][tidx],
-                     'dt': tELM['dt'][tidx],
-                     'energy': tELM['energy'][tidx],
-                     'f_ELM': tELM['f_ELM'][tidx]
-                   }
+            tELM = {
+                't_onset': tELM['t_onset'][tidx],
+                'dt': tELM['dt'][tidx],
+                'energy': tELM['energy'][tidx],
+                'f_ELM': tELM['f_ELM'][tidx]
+            }
 
     tELM['n'] = len(tELM['t_onset'])
     ELM.close()

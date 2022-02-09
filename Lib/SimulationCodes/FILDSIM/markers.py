@@ -9,11 +9,13 @@ import warnings
 import Lib.LibPlotting as ssplt
 import matplotlib.pyplot as plt
 from Lib.LibMachine import machine
+from Lib.decorators import deprecated
 import Lib.LibPaths as p
 paths = p.Path(machine)
 del p
 
 
+@deprecated('Plase use the Strike Object from the common library')
 class Strikes:
     """
     Class to interact with the FILDSIM strike point.
@@ -31,9 +33,6 @@ class Strikes:
         file, ignoring the SINPA folder structure (and runID)
         @param verbose. flag to print some info in the command line
         """
-        line = 'This object will be deprecated in version 0.8.0.\n'
-        line2 = 'Plase use the Strike Object from the common library'
-        warnings.warn(line + line2)
         # --- Load the strike points
         if file is None:
             name = '_strike_points.dat'

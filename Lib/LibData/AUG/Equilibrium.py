@@ -4,56 +4,20 @@ import numpy as np
 from scipy.interpolate import interpn, interp1d
 import dd                # Modules to load shotfiles and equilibrium, these
 import map_equ as meq    # will be deleted and only sf used in a future
-# import aug_sfutils as sf
-
+import aug_sfutils as sf
+import Lib.errors as errors
 ECRH_POWER_THRESHOLD = 0.05  # Threshold to consider ECRH on [MW]
 
 
-# def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
-#                   ed: int = 0, time: float = None, equ=None, **kwargs):
-#     """
-#     Wrapp to get AUG magnetic field
-#
-#     Jose Rueda: jrrueda@us.es
-#
-#     Note: No extra arguments are expected, **kwargs is just included for
-#     compatibility of the call to this method in other databases (machines)
-#
-#     @param shot: Shot number
-#     @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
-#     @param zin: Array of z positions where to evaluate (in pairs with Rin) [m]
-#     @param diag: Diag for AUG database, default EQH
-#     @param exp: experiment, default AUGD
-#     @param ed: edition, default 0 (last)
-#     @param time: Array of times where we want to calculate the field (the
-#     field would be calculated in a time as close as possible to this
-#     @param equ: equilibrium object from the library aug_sfutils
-#
-#     @return br: Radial magnetic field (nt, nrz_in), [T]
-#     @return bz: z magnetic field (nt, nrz_in), [T]
-#     @return bt: toroidal magnetic field (nt, nrz_in), [T]
-#     @return bp: poloidal magnetic field (nt, nrz_in), [T]
-#     """
-#     # If the equilibrium object is not an input, let create it
-#     # created = False
-#     if equ is None:
-#         equ = sf.EQU(shot, diag='EQI', ed=1)
-#         # equ = meq.equ_map(shot, diag=diag, exp=exp, ed=ed)
-#         # created = True
-#     # Now calculate the field
-#     # br, bz, bt = equ.rz2brzt(Rin, zin, t_in=time)
-#     br, bz, bt = sf.rz2brzt(equ, r_in=Rin, z_in=zin, t_in=time)
-#     bp = np.hypot(br, bz)
-#     # # If we opened the equilibrium object, let's close it
-#     # if created:  # no need with the new library
-#     #     equ.Close()
-#     return br, bz, bt, bp
 def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
-                  ed: int = 0, time: float = None, equ=None):
+                  ed: int = 0, time: float = None, equ=None, **kwargs):
     """
     Wrapp to get AUG magnetic field
 
     Jose Rueda: jrrueda@us.es
+
+    Note: No extra arguments are expected, **kwargs is just included for
+    compatibility of the call to this method in other databases (machines)
 
     @param shot: Shot number
     @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
@@ -63,7 +27,7 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     @param ed: edition, default 0 (last)
     @param time: Array of times where we want to calculate the field (the
     field would be calculated in a time as close as possible to this
-    @param equ: equilibrium object from the library map_equ
+    @param equ: equilibrium object from the library aug_sfutils
 
     @return br: Radial magnetic field (nt, nrz_in), [T]
     @return bz: z magnetic field (nt, nrz_in), [T]
@@ -71,16 +35,14 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     @return bp: poloidal magnetic field (nt, nrz_in), [T]
     """
     # If the equilibrium object is not an input, let create it
-    created = False
+    # created = False
     if equ is None:
-        equ = meq.equ_map(shot, diag=diag, exp=exp, ed=ed)
-        created = True
+        equ = sf.EQU(shot, diag=diag, ed=ed)
     # Now calculate the field
-    br, bz, bt = equ.rz2brzt(Rin, zin, t_in=time)
+    # br, bz, bt = equ.rz2brzt(Rin, zin, t_in=time)
+    br, bz, bt = sf.rz2brzt(equ, r_in=Rin, z_in=zin, t_in=time)
     bp = np.hypot(br, bz)
-    # If we opened the equilibrium object, let's close it
-    if created:
-        equ.Close()
+
     return br, bz, bt, bp
 
 
@@ -222,7 +184,7 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
                          experiment=exp, edition=edition)
         new_equ_opened = True
     except:
-        raise Exception('EQU shotfile cannot be opened.')
+        raise errors.DatabaseError('EQU shotfile cannot be opened.')
 
     # Deactivate the nasty warnings for a while.
     warnings.filterwarnings('ignore', category=DeprecationWarning)
@@ -274,7 +236,7 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
         sf = dd.shotfile(pulseNumber=shotnumber, diagnostic='MAG',
                          experiment='AUGD', edition=0)
     except:
-        raise Exception('Error loading the MAG shotfile')
+        raise errors.DatabaseError('Error loading the MAG shotfile')
 
     # Getting the raw data.
     ipa_raw = sf(name='Ipa', tBegin=ssq['time'][0], tEnd=ssq['time'][-1])
@@ -297,7 +259,7 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
         sf = dd.shotfile(pulseNumber=shotnumber, experiment='AUGD',
                          diagnostic='MAI', edition=0)
     except:
-        raise Exception('MAI shotfile could not be loaded!')
+        raise errors.DatabaseError('MAI shotfile could not be loaded!')
 
     # Getting toroidal field.
     btf_sf = sf(name='BTF', tBegin=ssq['time'][0], tEnd=ssq['time'][-1])
@@ -340,12 +302,11 @@ def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
             sf = dd.shotfile(diagnostic=diag, experiment=exp,
                              pulseNumber=shot, edition=ed)
         except:
-            raise Exception('Cannot open %05d:%s.%d to get the q-prof'%(shot,
-                            diag, ed))
-
+            raise errors.DatabaseError(
+                'Cannot open %05d:%s.%d to get the q-prof' % (shot, diag, ed))
 
     qpsi = sf(name='Qpsi').data
-    pfl  = sf(name='PFL').data
+    pfl = sf(name='PFL').data
     timebasis = sf(name='time').data
 
     PFxx = sf.GetSignal('PFxx').T
@@ -424,7 +385,8 @@ def get_ECRH_traces(shot: int, time: float=None, ec_list: list=None):
         sftbm = dd.shotfile(diagnostic='TBM', pulseNumber=shot,
                             edition=0, experiment='AUGD')
     except:
-        raise Exception('EC shotfiles cannot be opened for #%05d' % shot)
+        raise errors.DatabaseError(
+            'EC shotfiles cannot be opened for #%05d' % shot)
 
     output = dict()
     flag_first = False
@@ -433,16 +395,15 @@ def get_ECRH_traces(shot: int, time: float=None, ec_list: list=None):
     warnings.filterwarnings('ignore', category=RuntimeWarning)
     for iecrh, ecrh_num in enumerate(ec_list):
         if ecrh_num <= 4:
-            power_name = 'PG%d'%ecrh_num
+            power_name = 'PG%d' % ecrh_num
         else:
-            power_name = 'PG%dN'%(ecrh_num-4)
+            power_name = 'PG%dN' % (ecrh_num-4)
 
         # Getting the power of the gyrotron.
         power = sfecs(power_name)
 
         if np.all(power.data*1e-6 < ECRH_POWER_THRESHOLD):
             continue
-
 
         poloidal_angle_name = 'thpl-G%d' % ecrh_num
         toroidal_angle_name = 'phtr-G%d' % ecrh_num

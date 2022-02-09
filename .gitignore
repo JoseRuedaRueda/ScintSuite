@@ -20,6 +20,7 @@ Per_*
 *.pkc
 *.pck
 *.pk4
+fort*
 # -----------------------------------------------------------------------------
 # --- Folders to ignore
 # -----------------------------------------------------------------------------
@@ -27,8 +28,10 @@ __pycache__/*
 temp_data/*
 FILD_calibration/*
 Data/StrikeMaps/*
+Data/RemapStrikeMaps/*
 Data/BEP/spectra/*
 Data/Magnetics/*
 MyRoutines/*
 Results/*
 doc/*
+html/*

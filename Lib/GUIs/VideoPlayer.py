@@ -59,6 +59,9 @@ class ApplicationShowVid:
         self.image = ax.imshow(data['frames'][:, :, 0].squeeze(),
                                origin='lower', cmap=self.cmaps[defalut_cmap],
                                aspect='equal')
+        self.time = \
+            ax.text(0.8, 0.9, str(round(data['tframes'][0], 3)) + ' s',
+                    transform=ax.transAxes, color='w')
         # Place the figure in a canvas
         self.canvas = tkagg.FigureCanvasTkAgg(fig, master=master)
         # --- Include the tool bar to zoom and export
@@ -133,6 +136,7 @@ class ApplicationShowVid:
         t0 = np.float64(t)
         it = np.argmin(abs(self.data['tframes'] - t0))
         dummy = self.data['frames'][:, :, it].squeeze().copy()
+        self.time.set_text(str(round(self.data['tframes'][it], 3)) + ' s')
         self.image.set_data(dummy)
         # If needed, plot the smap
         if self.checkVar1.get():

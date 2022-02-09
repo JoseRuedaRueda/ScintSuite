@@ -642,12 +642,12 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     # This will help us mapping the node ID to the peak time-frequency.
     peak_map = defaultdict(list)
     kk = int(0) # Index running for the time ordered list.
-    for ii in np.arange(nwindows, dtype=int):
+    for ii in range(nwindows):
         t0 = np.abs(time - timeLims[2*ii]).argmin()
         t1 = np.abs(time - timeLims[2*ii + 1]).argmin()
 
         nTimes_slices = int((t1-t0+1)/nOverlap)
-        for jj in np.arange(nTimes_slices, dtype=int):
+        for jj in range(nTimes_slices):
             t0_avg = t0 + jj*nOverlap
             t1_avg = np.minimum(t0+(jj+1)*nOverlap, t1+1)
 
@@ -729,13 +729,13 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
         print('#time slices = %d'%ntime_peaks)
     # --- Generating the graph: connecting the vertex
     # The graph will conect the timepoints with the next timepoints peaks only
-    for ii in np.arange(ntime_peaks, dtype=int):
+    for ii in range(ntime_peaks):
         # Loop over the starting nodes.
         for jj, frm in enumerate(peak_data['timeList'][ii]):
             # Loop over the next nodes: we will connect every node all the
             # nodes that are lying after it, given a maximum time distance.
             stop_conn = int(np.minimum(ii+nGraphConne, ntime_peaks+1))
-            for itime in np.arange(start=ii+1, stop=stop_conn, dtype=int):
+            for itime in range(ii+1, stop_conn):
                 # Loop over the time slices after the current one.
                 for kk, to in enumerate(peak_data['timeList'][itime]):
                     # Loop over all the nodes in timeslice 'itime'
@@ -786,7 +786,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                           peak_origin['width'],
                           peak_origin['spec_val'],
                           peak_origin['spec_norm'])
-    for jj in np.arange(start=0, stop=nGraphConne):
+    for jj in range(0, nGraphConne):
         for ii, to in enumerate(peak_data['timeList'][jj]):
             peak_nxt = { 'time': peak_data['time'][jj][ii],
                          'freq': peak_data['freq'][jj][ii],
