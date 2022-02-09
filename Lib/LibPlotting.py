@@ -325,7 +325,7 @@ def Cai(n=256):
 # --- 3D Plotting
 # -----------------------------------------------------------------------------
 def plot_3D_revolution(r, z, phi_min: float = 0.0, phi_max: float = 1.57,
-                       nphi: int = 25, ax=None,
+                       nphi: int = 25, ax=None, label: str=None,
                        color=[0.5, 0.5, 0.5], alpha: float = 0.75):
     """
     Plot a revolution surface with the given cross-section
@@ -353,7 +353,8 @@ def plot_3D_revolution(r, z, phi_min: float = 0.0, phi_max: float = 1.57,
     if ax is None:
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(X, Y, Z, color=color, alpha=alpha)
+    ax.plot_surface(X, Y, Z, color=color, alpha=alpha,
+                    label=label)
 
     return ax
 
@@ -463,7 +464,8 @@ def plot_vessel(projection: str = 'pol', units: str = 'm', h: float = None,
         ax.plot(vessel[:, 0], vessel[:, 1], height, color=color,
                 linewidth=linewidth)
     else:
-        ax = plot_3D_revolution(vessel[:, 0], vessel[:, 1], ax=ax, **params3d)
+        ax = plot_3D_revolution(vessel[:, 0], vessel[:, 1],
+                                ax=ax, **params3d)
 
     return ax
 

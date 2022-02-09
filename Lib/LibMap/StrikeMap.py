@@ -15,6 +15,8 @@ from Lib.SimulationCodes.Common.strikes import Strikes
 import Lib.LibMap.Common as common
 from Lib.LibMachine import machine
 import Lib.LibPaths as p
+from Lib.decorators import deprecated
+import Lib.errors as errors
 from tqdm import tqdm   # For waitbars
 pa = p.Path(machine)
 del p
@@ -52,10 +54,11 @@ class StrikeMap:
             self.diag = 'INPA'
         elif flag == 2 or str(flag).lower() == 'ihibp':
             self.diag = 'iHIBP'
-            raise Exception('Diagnostic not implemented: Talk with Pablo')
+            raise errors.NotImplementedError(
+                'Diagnostic not implemented: Talk with Pablo')
         else:
             print('Flag: ', flag)
-            raise Exception('Diagnostic not implemented')
+            raise errors.NotValidInput('Diagnostic not understood')
         # --- Initialise the part which are commond for the 3 diagnostics:
         ## X-position, in pixels, of the strike map (common)
         self.xpixel = None
@@ -95,17 +98,24 @@ class StrikeMap:
             # Look for the code identifier, the second row of SINPA files start
             # with a 1:
             try:
-                identifier = np.loadtxt(file, skiprows=1, max_rows=1)
+                version = np.loadtxt(file, skiprows=1, max_rows=1)
                 self.code = 'SINPA'
-                self.version = int(identifier)
+                version = version.astype(int)
+                if version.size == 2:  # New strike map from SINPA 0.3
+                    self.versionID1 = int(version[0])
+                    self.versionID2 = int(version[1])
+                else:   # Old SINPA strike map
+                    self.versionID1 = 0
+                    self.versionID2 = int(version)
             except ValueError:
                 # If this second line did not started with a number, the strike
                 # map was generated with FILDSIM. (yes, it could be that it was
                 # generated with SINPA but the user modified manually the file,
                 # we can't be preared for that)
                 self.code = 'FILDSIM'
-                self.version = 1
-            if self.version == 1:
+                self.versionID1 = 0
+                self.versionID2 = 0
+            if self.versionID1 < 1:
                 dummy = np.loadtxt(file, skiprows=3)
                 # See which rows has collimator factor larger than zero (ie see
                 # for which combination of gyroradius and pitch some markers
@@ -162,6 +172,12 @@ class StrikeMap:
             else:
                 raise Exception('Not recognised StrikeMap version')
         elif self.diag == 'INPA':
+            try:
+                identifier = np.loadtxt(file, skiprows=1, max_rows=1)
+                self.code = 'SINPA'
+                self.version = int(identifier)
+            except ValueError:
+                raise Exception('Corrupted Strike Map.')
             dummy = np.loadtxt(file, skiprows=3)
             # See which rows has collimator factor larger than zero (ie see for
             # which combination of rl and alpha some markers arrived)
@@ -189,6 +205,8 @@ class StrikeMap:
             self.y0 = dummy[ind, 10]
             ## z coordinates of closest point to NBI
             self.z0 = dummy[ind, 11]
+            ## R position of the closes point to NBI
+            self.R0 = np.sqrt(self.x0**2 + self.y0**2)
             ## distance to the NBI central line
             self.d0 = dummy[ind, 12]
             ## Collimator factor as defined in FILDSIM
@@ -212,6 +230,11 @@ class StrikeMap:
                     if np.sum(flags) > 0:
                         self.collimator_factor_matrix[ir, ip] = \
                             self.collimator_factor[flags]
+            # In the case of INPA, the 'XI' variable, the joker, will be set as
+            # the R0:
+            self.XI = self.R0
+            self.unique_XI = np.unique(self.R0)
+            self.nXI = self.nalpha
 
     def plot_real(self, ax=None,
                   marker_params: dict = {}, line_params: dict = {},
@@ -334,7 +357,7 @@ class StrikeMap:
                         horizontalalignment='center',
                         verticalalignment='center')
         else:
-            raise Exception('Diagnostic not implemented')
+            raise errors.NotValidInput('Diagnostic not implemented')
 
         # Plot some markers in the grid position
         ax.plot(self.y * factor, self.z * factor, **marker_options)
@@ -384,7 +407,7 @@ class StrikeMap:
                 flags = self.pitch == uniq[i]
                 ax.plot(self.xpixel[flags], self.ypixel[flags], **line_options)
         else:
-            raise Exception('Not implemented diagnostic')
+            raise errors.NotImplementedError('Not implemented diagnostic')
 
         # Plot some markers in the grid position
         ## @todo include labels energy/pitch in the plot
@@ -459,7 +482,7 @@ class StrikeMap:
             met = 'cubic'
             interpolator = scipy_interp.CloughTocher2DInterpolator
         else:
-            raise Exception('Not recognized interpolation method')
+            raise errors.NotValidInput('Not recognized interpolation method')
         if verbose:
             print('Using %s interpolation of the grid' % met)
         if self.diag == 'FILD':
@@ -524,8 +547,9 @@ class StrikeMap:
                         x_markers = j + generator(size=MC_number)
                         y_markers = i + generator(size=MC_number)
                         # Calculate the r-pitch coordinates
-                        r_markers = self.grid_interp['interpolators']['gyroradius'](
-                            x_markers, y_markers)
+                        r_markers = \
+                            self.grid_interp['interpolators']['gyroradius'](
+                                x_markers, y_markers)
                         p_markers = self.grid_interp['interpolators']['pitch'](
                             x_markers, y_markers)
                         # make the histogram in the r-pitch space
@@ -609,6 +633,7 @@ class StrikeMap:
         if self.code.lower() == 'sinpa':
             self.remap_strike_points()
 
+    @deprecated('Please use smap.strike_points.scatter() instead')
     def plot_strike_points(self, ax=None, plt_param={}):
         """
         Scatter plot of the strik points. DEPRECATED!.
@@ -629,9 +654,8 @@ class StrikeMap:
         # Open the figure if needed:
         if ax is None:
             fig, ax = plt.subplots()
-        warnings.warn('This function will be removed in future versions.')
-        print('Please use smap.strike_points.plot2D() instead')
-        self.strike_points.scatter(ax=ax, mar_params=plt_param)
+
+        self.strike_points.scatter(ax=ax)
 
     def calculate_resolutions(self, diag_params: dict = {},
                               min_statistics: int = 100,
@@ -649,8 +673,8 @@ class StrikeMap:
                 -dpitch: pitch space used by default in the fit. 1.0 default
                 -dgyr: giroradius space used by default in the fit. 0.1 default
                 -p_method: Function to use in the pitch fit, default Gauss
-                -g_method: Function to use in the gyroradius fit, default sGauss
-        @param min_statistics: Minimum number of points for a given r, p to make
+                -g_method: Function to use in the gyroradius fit,default sGauss
+        @param min_statistics: Minimum number of points for a given r,p to make
         the fit (if we have less markers, this point will be ignored)
         @param min_statistics: Minimum number of counts to perform the fit
         @param adaptative: If true, the bin width will be adapted such that the
@@ -773,17 +797,15 @@ class StrikeMap:
                                           step=new_dpitch)
                         # --- Proceed to fit
                         par_p, fitp[ir, ip], normalization_p[ir, ip], unc_p = \
-                            common._fit_to_model_(data[:, iip],
-                                                  bins=edges_pitch,
-                                                  model=p_method,
-                                                  confidence_level=confidence_level,
-                                                  uncertainties=calculate_uncertainties)
+                            common._fit_to_model_(
+                                data[:, iip], bins=edges_pitch, model=p_method,
+                                confidence_level=confidence_level,
+                                uncertainties=calculate_uncertainties)
                         par_g, fitg[ir, ip], normalization_g[ir, ip], unc_g = \
-                            common._fit_to_model_(data[:, iir],
-                                                  bins=edges_gyr,
-                                                  model=g_method,
-                                                  confidence_level=confidence_level,
-                                                  uncertainties=calculate_uncertainties)
+                            common._fit_to_model_(
+                                data[:, iir], bins=edges_gyr, model=g_method,
+                                confidence_level=confidence_level,
+                                uncertainties=calculate_uncertainties)
                         # --- Save the data in the matrices:
                         # pitch parameters:
                         parameters_pitch['amplitude'][ir, ip] = \
@@ -843,7 +865,8 @@ class StrikeMap:
             # --- Prepare the interpolators:
             self.calculate_interpolators()
         else:
-            raise Exception('Diagnostic still not implemented')
+            raise errors.NotImplementedError(
+                'Diagnostic still not implemented')
 
     def calculate_interpolators(self):
         """
@@ -934,35 +957,23 @@ class StrikeMap:
         See RBFInterpolator of Scipy for full documentation
         """
         # --- Select the colums to be used
+        # temporal solution to save the coordinates in the array
+        coords = np.zeros((self.y.size, 2))
+        coords[:, 0] = self.y
+        coords[:, 1] = self.z
+        self.map_interpolators = {
+            'Gyroradius':
+                scipy_interp.RBFInterpolator(coords,
+                                             self.gyroradius,
+                                             kernel=kernel, degree=degree),
+            'XI':
+                scipy_interp.RBFInterpolator(coords,
+                                             self.XI, kernel=kernel,
+                                             degree=degree),
+        }
         if self.diag == 'FILD':
-            # temporal solution to save the coordinates in the array
-            coords = np.zeros((self.y.size, 2))
-            coords[:, 0] = self.y
-            coords[:, 1] = self.z
-
-            self.map_interpolators = {
-                'Gyroradius':
-                    scipy_interp.RBFInterpolator(coords,
-                                                 self.gyroradius,
-                                                 kernel=kernel, degree=degree),
-                'Pitch':
-                    scipy_interp.RBFInterpolator(coords,
-                                                 self.pitch, kernel=kernel,
-                                                 degree=degree),
-            }
-        elif self.diag == 'INPA':
-            self.map_interpolators = {
-                'Gyroradius':
-                    scipy_interp.RBFInterpolator(coords,
-                                                 self.gyroradius,
-                                                 kernel=kernel, degree=degree),
-                'XI':
-                    scipy_interp.RBFInterpolator(coords,
-                                                 self.pitch, kernel=kernel,
-                                                 degree=degree),
-            }
-        else:
-            raise Exception('Diagnostic not understood')
+            # Keep the old name just as a backwards compatibility
+            self.map_interpolators['Pitch'] = self.map_interpolators['XI']
 
     def remap_strike_points(self):
         """
@@ -974,60 +985,58 @@ class StrikeMap:
         if self.map_interpolators is None:
             print('Interpolators not calcualted. Calculating them')
             self.calculate_mapping_interpolators()
-        # ---
+        # --- See if the remap already exist in the strikes:
+        if 'remap_rl' in self.strike_points.header['info'].keys():
+            print('The remapped values are already in the strikes object')
+            print('Nothing to do here')
+            return
+        iix = self.strike_points.header['info']['ys']['i']
+        iiy = self.strike_points.header['info']['zs']['i']
+        for ir in range(self.ngyr):
+            for ip in range(self.nXI):
+                if self.strike_points.header['counters'][ip, ir] > 0:
+                    n_strikes = self.strike_points.header['counters'][ip, ir]
+                    remap_data = np.zeros((n_strikes, 2))
+                    remap_data[:, 0] = \
+                        self.map_interpolators['Gyroradius'](
+                            self.strike_points.data[ip, ir][:, [iix, iiy]])
+                    # self.strike_points.data[ip, ir][:, iiy])
+                    remap_data[:, 1] = \
+                        self.map_interpolators['XI'](
+                            self.strike_points.data[ip, ir][:, [iix, iiy]])
+                    # self.strike_points.data[ip, ir][:, iiy])
+                    # append the remapped data to the object
+                    self.strike_points.data[ip, ir] = \
+                        np.append(self.strike_points.data[ip, ir],
+                                  remap_data, axis=1)
+        # Update the headers.
+        Old_number_colums = len(self.strike_points.header['info'])
+        extra_column = {
+            'remap_rl': {
+                'i': Old_number_colums,  # Column index in the file
+                'units': ' [cm]',  # Units
+                'longName': 'Remapped Larmor radius',
+                'shortName': '$r_l$',
+            },
+        }
         if self.diag == 'FILD':
-            # --- See if the remap already exist in the strikes:
-            if 'remap_rl' in self.strike_points.header['info'].keys():
-                print('The remapped values are already in the strikes object')
-                print('Nothing to do here')
-                return
-            iix = self.strike_points.header['info']['ys']['i']
-            iiy = self.strike_points.header['info']['zs']['i']
-            for ir in range(self.ngyr):
-                for ip in range(self.npitch):
-                    if self.strike_points.data[ip, ir] is not None:
-                        n_strikes = self.strike_points.data[ip,
-                                                            ir][:, iix].size
-                    else:
-                        n_strikes = 0
-                    if n_strikes > 0:
-                        remap_data = np.zeros((n_strikes, 2))
-                        remap_data[:, 0] = \
-                            self.map_interpolators['Gyroradius'](
-                                self.strike_points.data[ip, ir][:, [iix, iiy]])
-                        # self.strike_points.data[ip, ir][:, iiy])
-                        remap_data[:, 1] = \
-                            self.map_interpolators['Pitch'](
-                                self.strike_points.data[ip, ir][:, [iix, iiy]])
-                        # self.strike_points.data[ip, ir][:, iiy])
-                        # append the remapped data to the object
-                        self.strike_points.data[ip, ir] = \
-                            np.append(self.strike_points.data[ip, ir],
-                                      remap_data, axis=1)
-            # Update the headers.
-            Old_number_colums = len(self.strike_points.header['info'])
-            extra_column = {
-                'remap_rl': {
-                    'i': Old_number_colums,  # Column index in the file
-                    'units': ' [cm]',  # Units
-                    'longName': 'Remapped Larmor radius',
-                    'shortName': '$r_l$',
-                },
-                'remap_pitch': {
-                    'i': Old_number_colums + 1,  # Column index in the file
-                    'units': ' [$\\degree$]',  # Units
-                    'longName': 'Remapped pitch angle',
-                    'shortName': '$\\lambda$',
-                },
-                'remap_XI': {
-                    'i': Old_number_colums + 1,  # Column index in the file
-                    'units': ' [$\\degree$]',  # Units
-                    'longName': 'Remapped pitch angle',
-                    'shortName': '$\\lambda$',
-                },
+            extra_column['remap_XI'] = {
+                'i': Old_number_colums + 1,  # Column index in the file
+                'units': ' [$\\degree$]',  # Units
+                'longName': 'Remapped pitch angle',
+                'shortName': '$\\lambda$',
             }
-            # Update the header
-            self.strike_points.header['info'].update(extra_column)
+            # FILDSIM backwards compatibility:
+            extra_column['remap_pitch'] = extra_column['remap_XI']
+        else:  # INPA case, this is radius
+            extra_column['remap_XI'] = {
+                'i': Old_number_colums + 1,  # Column index in the file
+                'units': ' [m]',  # Units
+                'longName': 'Remapped R',
+                'shortName': '$R$',
+            }
+        # Update the header
+        self.strike_points.header['info'].update(extra_column)
 
     def plot_resolutions(self, ax_params: dict = {}, cMap=None, nlev: int = 20,
                          index_gyr=None):
@@ -1159,8 +1168,8 @@ class StrikeMap:
         @param kind_of_plot: kind of plot to make:
             - normal: scatter plot of the data and fit like a line
             - bar: bar plot of the data and file like a line
-            - uncertainty: scatter plot of the data and shading area for the fit
-             (3 sigmas)
+            - uncertainty: scatter plot of the data and shading area for the
+                fit (3 sigmas)
             - just_fit: Just a line plot as the fit
         @param include_legend: flag to include a legend
         @param XI_index: equivalent to pitch_index, but with the new criteria
@@ -1193,7 +1202,7 @@ class StrikeMap:
                 gyroradius = gyroradius
             else:
                 gyroradius = np.array([gyroradius])
-            index_gyr = np.zeros(gyroradius.size)
+            index_gyr = np.zeros(gyroradius.size, dtype=int)
             for i in range(index_gyr.size):
                 index_gyr[i] = \
                     np.argmin(np.abs(self.unique_gyroradius - gyroradius[i]))
@@ -1214,7 +1223,7 @@ class StrikeMap:
                 pitch = pitch
             else:
                 pitch = np.array([pitch])
-            index_pitch = np.zeros(pitch.size)
+            index_pitch = np.zeros(pitch.size, dtype=int)
             for i in range(index_pitch.size):
                 index_pitch[i] = \
                     np.argmin(np.abs(self.unique_pitch - pitch[i]))
@@ -1252,36 +1261,42 @@ class StrikeMap:
                         x=x_fine) * normalization
                     if kind_of_plot.lower() == 'normal':
                         # plot the data as scatter plot
-                        scatter = ax.scatter(x,
-                                             normalization * self.resolution['fits'][var.lower(
+                        scatter = ax.scatter(
+                            x,
+                            normalization * self.resolution['fits'][var.lower(
                                              )][ir, ip].data,
-                                             label='__noname__')
+                            label='__noname__')
                         # plot the fit as a line
                         ax.plot(x_fine, y,
                                 color=scatter.get_facecolor()[0, :3],
                                 label=name)
                     elif kind_of_plot.lower() == 'bar':
-                        bar = ax.bar(x,
-                                     normalization * self.resolution['fits'][var.lower()
-                                                                             ][ir, ip].data,
-                                     label='__noname__', width=x[1]-x[0],
-                                     alpha=0.25)
-                        ax.plot(x_fine, y, color=bar.patches[0].get_facecolor()[
-                                :3], label=name)
+                        bar = ax.bar(
+                            x,
+                            normalization * self.resolution['fits'][var.lower(
+                                 )][ir, ip].data,
+                            label='__noname__', width=x[1]-x[0],
+                            alpha=0.25)
+                        ax.plot(x_fine, y,
+                                color=bar.patches[0].get_facecolor()[:3],
+                                label=name)
                     elif kind_of_plot.lower() == 'just_fit':
                         ax.plot(x_fine, y, label=name)
                     elif kind_of_plot.lower() == 'uncertainty':
-                        scatter = ax.scatter(x,
-                                             normalization * self.resolution['fits'][var.lower(
-                                             )][ir, ip].data,
-                                             label='__noname__')
-                        dely = normalization * self.resolution['fits'][var.lower(
+                        scatter = ax.scatter(
+                            x,
+                            normalization * self.resolution['fits'][var.lower(
+                                 )][ir, ip].data,
+                            label='__noname__')
+                        dely = normalization \
+                            * self.resolution['fits'][var.lower(
                             )][ir, ip].eval_uncertainty(sigma=3, x=x_fine)
                         ax.fill_between(x_fine, y-dely, y+dely, alpha=0.25,
                                         label='3-$\\sigma$ uncertainty band',
                                         color=scatter.get_facecolor()[0, :3])
                     else:
-                        raise Exception('Not kind of plot not understood')
+                        raise errors.NotValidInput(
+                            'Not kind of plot not understood')
                 else:
                     print('Not fits for rl: '
                           + str(round(self.unique_gyroradius[ir], 1))

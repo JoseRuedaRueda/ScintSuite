@@ -144,11 +144,11 @@ def get_ne_ida(shotnumber: int, time: float=None, exp: str = 'AUGD',
     else:
         output['time'] = time
         output['data'] = interp1d(timebase, ne.data, kind='linear', axis=0,
-                                  bounds_error=False, fill_value=np.nan,
+                                  bounds_error=False, fill_value=0.0,
                                   assume_sorted=True)(time).T
         output['uncertainty'] = interp1d(timebase, ne_unc.data,
                                          kind='linear', axis=0,
-                                         bounds_error=False, fill_value=np.nan,
+                                         bounds_error=False, fill_value=0.0,
                                          assume_sorted=True)(time).T
 
     # --- Closing the shotfile.
@@ -309,6 +309,34 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
 # -----------------------------------------------------------------------------
 # --- Ion temperature
 # -----------------------------------------------------------------------------
+def get_Ti(shot: int, time: float=None, diag: str='IDI', exp: str='AUGD',
+           edition: int=0, sf=None):
+    """"
+    Wrapper to all the routines to read the ion temperature.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shot: Shot number
+    @param time: Time point to read the profile.
+    @param diag: diagnostic to read the ion temperature. By default, IDI.
+    @param exp: Experiment name.
+    @param diag: diagnostic from which 'Te' will extracted.
+    @param edition: edition of the shotfile to be read.
+
+    @return output: a dictionary containing the electron temp. evaluated
+    in the input times and the corresponding rhopol base.
+    """
+
+    if diag not in ('IDI', 'CXRS'):
+        raise Exception('Diagnostic non supported!')
+
+    if diag == 'PED':
+        return get_Ti_idi(shotnumber=shot, time=time, exp=exp,
+                          edition=edition, sf=sf)
+    elif diag == 'IDI':
+        return get_Ti_cxrs(shotnumber=shot, time=time, exp=exp,
+                           edition=edition, sf=sf)
+
 def get_Ti_idi(shot: int, time: float = None, exp: str = 'AUGD',
                edition: int = 0, sf=None):
     """
@@ -442,7 +470,7 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
     rhopol = list()
     Ti_err = list()
     dt = list()
-    for ii in np.arange(len(sf), dtype=int):
+    for ii in range(len(sf)):
         Ti_data = sf[ii](name=signals[ii])
         zaux = sf[ii](name='z').data.squeeze()
         Raux = sf[ii](name='R').data.squeeze()
@@ -601,13 +629,13 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
     time_out = np.linspace(tBegin, tEnd, nwindows)
     rhop_out = np.linspace(rhop0, rhop1, num=nrho)
     Ti_out = np.zeros((time_out.size, rhop_out.size))
-    for iwin in np.arange(nwindows, dtype=int):
+    for iwin in range(nwindows):
         data = list()
         rhop = list()
         weight = list()
         # Appending to a list all the data points within the time range
         # for all diagnostics.
-        for idiags in np.arange(nshotfiles, dtype=int):
+        for idiags in range(nshotfiles):
             time0 = float(iwin) * tavg + tBegin
             time1 = time0 + tavg
 
@@ -834,7 +862,7 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = False,
     # --- Applying the calibration.
     Trad = np.zeros(Trad_rmc.shape)       # Electron temp [eV]
     Trad_norm = np.zeros(Trad_rmc.shape)  # Norm'd by the maximum.
-    for ii in np.arange(Trad_rmc.shape[1]):
+    for ii in range(Trad_rmc.shape[1]):
         Trad[:, ii] = Trad_rmc[:, ii]*mult_cal[ii] + shift_cal[ii]
         meanTe = np.mean(Trad[:, ii])
         Trad_norm[:, ii] = Trad[:, ii]/meanTe
@@ -929,7 +957,7 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = False,
                              assume_sorted=True, bounds_error=False)(time)
 
             # If R_ECE < R(magnetic axis), then the rhopol is negative.
-            for ii in np.arange(Trad.shape[1]):
+            for ii in range(Trad.shape[1]):
                 sign_array = Rece[:, ii] < Raxis
                 RhoP_ece[sign_array, ii] = - RhoP_ece[sign_array, ii]
 
@@ -1012,8 +1040,8 @@ def correctShineThroughECE(ecedata: dict, diag: str = 'PED', exp: str = 'AUGD',
         ecedata['fft']['dTe_base'] = rhop_c
 
         ecedata['fft']['spec_dte'] = ecedata['fft']['spec']
-        for ii in np.arange(ecedata['fft']['spec_dte'].shape[0]):
-            for jj in np.arange(ecedata['fft']['spec_dte'].shape[1]):
+        for ii in range(ecedata['fft']['spec_dte'].shape[0]):
+            for jj in range(ecedata['fft']['spec_dte'].shape[1]):
                 ecedata['fft']['spec_dte'][ii, jj, :] /= dte_eval
 
     else:
@@ -1045,7 +1073,7 @@ def correctShineThroughECE(ecedata: dict, diag: str = 'PED', exp: str = 'AUGD',
         print(ecedata['fft']['spec_dte'].shape)
         print(dte_eval.shape)
         print(ecedata['fft']['time'].shape, ecedata['rhop'].shape )
-        for ii in np.arange(ecedata['fft']['spec'].shape[1]):
+        for ii in range(ecedata['fft']['spec'].shape[1]):
             ecedata['fft']['spec_dte'][:, ii, :] /= dte_eval
     return ecedata
 
@@ -1192,7 +1220,7 @@ def get_tor_rotation_cxrs(shotnumber: int, time: float = None,
     rhopol = list()
     vt_err = list()
     dt= list()
-    for ii in np.arange(len(sf), dtype=int):
+    for ii in range(len(sf)):
         vtor_data = sf[ii](name=signals[ii])
         zaux = sf[ii](name='z').data.squeeze()
         Raux = sf[ii](name='R').data.squeeze()
@@ -1367,13 +1395,13 @@ def get_tor_rotation_cxrs(shotnumber: int, time: float = None,
     time_out = np.linspace(tBegin, tEnd, nwindows)
     rhop_out = np.linspace(rhop0, rhop1, num=nrho)
     vtor_out = np.zeros((time_out.size, rhop_out.size))
-    for iwin in np.arange(nwindows, dtype=int):
+    for iwin in range(nwindows):
         data = list()
         rhop = list()
         weight = list()
         # Appending to a list all the data points within the time range
         # for all diagnostics.
-        for idiags in np.arange(nshotfiles, dtype=int):
+        for idiags in range(nshotfiles):
             time0 = float(iwin) * tavg + tBegin
             time1 = time0 + tavg
 
@@ -1539,7 +1567,7 @@ def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
     psi_ed = np.zeros(Raus.shape)
 
     # --- Getting the poloidal flux at the separatrix.
-    for itime in np.arange(nt):
+    for itime in range(nt):
         pfm_interp = interp2d(Rpfm, zpfm, pfm[:, :, itime].T, kind='linear')
 
         psi_ax[itime] = pfm_interp(Raxis[itime], zaxis[itime])

@@ -6,7 +6,7 @@ possibility to subtract noise
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.3.0. Checked for version 0.7.2
+Note; Written for version 0.3.0. Checked for version 0.8.0
 """
 import Lib as ss
 from time import time
@@ -41,10 +41,7 @@ options_filter = {
 # }
 
 # - Remapping options:
-calibration_database = ss.paths.ScintSuite \
-    + '/Data/Calibrations/FILD/AUG/calibration_database.txt'
-camera = ss.dat.FILD[diag_ID-1]['camera']
-save_remap = False
+save_remap = False  # If true, the remap will be saved in a netCDF file
 par = {
     'rmin': 1.2,      # Minimum gyroradius [in cm]
     'rmax': 10.5,     # Maximum gyroradius [in cm]
@@ -67,12 +64,8 @@ plot_profiles_in_time = True   # Plot the time evolution of pitch and r
 # -----------------------------------------------------------------------------
 # --- Section 1: Load video
 # -----------------------------------------------------------------------------
-# - Get the proper file name
-filename = ss.vid.guess_filename(shot, ss.dat.FILD[diag_ID-1]['path'],
-                                 ss.dat.FILD[diag_ID-1]['extension'])
-
 # - open the video file:
-vid = ss.vid.FILDVideo(filename, diag_ID=diag_ID)
+vid = ss.vid.FILDVideo(shot=shot, diag_ID=diag_ID)
 # - read the frames:
 tdummy = time()
 print('Reading camera frames: ', shot, '...')
@@ -87,24 +80,10 @@ if subtract_noise:
 if apply_filter:
     vid.filter_frames(kind_of_filter, options_filter)
 # -----------------------------------------------------------------------------
-# --- Section 3: Get FILD position
-# -----------------------------------------------------------------------------
-FILD = ss.dat.FILD_logbook(shot, diag_ID)
-# Add FILD positions to the remap options:
-par['rfild'] = FILD.position['R']
-par['zfild'] = FILD.position['z']
-par['alpha'] = FILD.orientation['alpha']
-par['beta'] = FILD.orientation['beta']
-
-# -----------------------------------------------------------------------------
 # --- Section 4: Remap
 # -----------------------------------------------------------------------------
-# - Initialize the calibration database object
-database = ss.mapping.CalibrationDatabase(calibration_database)
-# - Get the calibration for our shot
-cal = database.get_calibration(shot, camera, 'PIX', diag_ID)
 # - Remap frames:
-vid.remap_loaded_frames(cal, shot, par)
+vid.remap_loaded_frames(par)
 # - Plot:
 if plot_profiles_in_time:
     vid.plot_profiles_in_time()
