@@ -11,3 +11,4 @@ from Lib.LibData.AUG.Profiles import *
 from Lib.LibData.AUG.VesselNBI import *
 from Lib.LibData.AUG.Misc import *
 from Lib.LibData.AUG.Fild import *
+from Lib.LibData.AUG._INPA import *

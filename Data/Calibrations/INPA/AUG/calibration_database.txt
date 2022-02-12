@@ -1,0 +1,6 @@
+# Text file containing information about the camera parameters
+# Last Update: 09/02/2022
+#FORMAT IS:
+#ID CAMERA     PULSE1  PULSE2 XSHIFT YSHIFT XSCALE YSCALE  DEG CAL TYPE FILD_ID
+
+1  PCOpixelfly 42000   99999   530   470  -10100   10100     0.0     PIX   2

@@ -27,6 +27,7 @@ class Path:
             os.path.join(self.ScintSuite, 'Data',
                          'StrikeMaps', 'FILD', 'Tomography')
         self.FILDPositionDatabase = ''
+        self.INPALogbook = ''
 
         self.iHIBPsim = os.path.join(home, 'ihibpsim')
         self.ihibp_bins = os.path.join(self.iHIBPsim, 'bin')

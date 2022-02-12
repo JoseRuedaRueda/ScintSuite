@@ -13,7 +13,7 @@ import Lib.LibMap as ssmapping
 from scipy.io import netcdf
 from Lib.version_suite import version
 from Lib.LibPaths import Path
-from Lib.LibVideo.FILDVideoObject import FILDVideo
+from Lib.LibVideo._FILDVideoObject import FILDVideo
 import os
 import warnings
 import tkinter as tk                       # To open UI windows

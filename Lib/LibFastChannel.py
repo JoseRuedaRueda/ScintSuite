@@ -174,7 +174,7 @@ class FastChannel:
 
     def plot_channels(self, ch_number=None, line_params: dict = {},
                       ax_params: dict = {}, ax=None, normalise=True,
-                      ptype: str = 'cloud', max_to_plot: int = 7500):
+                      ptype: str = 'raw', max_to_plot: int = 7500):
         """
         Plot the fast channel signals
 

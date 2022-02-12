@@ -16,7 +16,8 @@ It contains several subpackages:
 General user should not need each individual function of the package, just use
 the BVO, FILDVideo, VRTvideo, guess_filename as defined below
 """
-from Lib.LibVideo.BasicVideoObject import BVO
-from Lib.LibVideo.FILDVideoObject import FILDVideo
+from Lib.LibVideo._BasicVideoObject import BVO
+from Lib.LibVideo._FILDVideoObject import FILDVideo
+from Lib.LibVideo._INPAVideoObject import INPAVideo
 # from Lib.LibVideo.AuxFunctions import guessFILDfilename
 from Lib.LibVideo.VRTVideoObject import VRTVideo
