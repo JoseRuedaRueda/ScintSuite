@@ -1,6 +1,7 @@
 """Diagnostics and parameters of ASDEX Upgrade"""
 
 import numpy as np
+import Lib.errors as errors
 import warnings
 # -----------------------------------------------------------------------------
 # --- AUG parameters
@@ -19,31 +20,31 @@ IB_sign = Bt_sign * It_sign
 # -----------------------------------------------------------------------------
 #                           FILD PARAMETERS
 # -----------------------------------------------------------------------------
-fild1 = {'path': '/p/IPP/AUG/rawfiles/FIT/',  # Path for the video files
-         'camera': 'PHANTOM',  # Type of used camera
-         'extension': '_v710.cin',  # Extension of the video file, none for png
-         'label': 'FILD1',  # Label for the diagnostic, for FILD6 (rFILD)
-         'diag': 'FHC',  # name of the diagnostic for the fast channel
-         'channel': 'FILD3_',  # prefix of the name of each channel (shotfile)
-         'nch': 20}  # Number of fast channels
+_fild1 = {'path': '/p/IPP/AUG/rawfiles/FIT/',  # Path for the video files
+          'camera': 'PHANTOM',  # Type of used camera
+          'extension': '_v710.cin',  # Extension of the video file, none if png
+          'label': 'FILD1',  # Label for the diagnostic, for FILD6 (rFILD)
+          'diag': 'FHC',  # name of the diagnostic for the fast channel
+          'channel': 'FILD3_',  # prefix of the name of each channel (shotfile)
+          'nch': 20}  # Number of fast channels
 
-fild2 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD2/',
-         'extension': '', 'label': 'FILD2', 'diag': 'FHA', 'channel': 'FIPM_',
-         'nch': 20, 'camera': 'CCD'}
+_fild2 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD2/',
+          'extension': '', 'label': 'FILD2', 'diag': 'FHA', 'channel': 'FIPM_',
+          'nch': 20, 'camera': 'CCD'}
 
-fild3 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD3/',
-         'extension': '', 'label': 'FILD3', 'diag': 'xxx', 'channel': 'xxxxx',
-         'nch': 99, 'camera': 'CCD'}
+_fild3 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD3/',
+          'extension': '', 'label': 'FILD3', 'diag': 'xxx', 'channel': 'xxxxx',
+          'nch': 99, 'camera': 'CCD'}
 
-fild4 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD4/',
-         'extension': '', 'label': 'FILD4', 'diag': 'FHD', 'channel': 'Chan-',
-         'nch': 32, 'camera': 'CCD'}
+_fild4 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD4/',
+          'extension': '', 'label': 'FILD4', 'diag': 'FHD', 'channel': 'Chan-',
+          'nch': 32, 'camera': 'CCD'}
 
-fild5 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD5/',
-         'extension': '', 'label': 'FILD5', 'diag': 'FHE', 'channel': 'Chan-',
-         'nch': 64, 'camera': 'CCD'}
+_fild5 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD5/',
+          'extension': '', 'label': 'FILD5', 'diag': 'FHE', 'channel': 'Chan-',
+          'nch': 64, 'camera': 'CCD'}
 
-FILD = (fild1, fild2, fild3, fild4, fild5)
+FILD = (_fild1, _fild2, _fild3, _fild4, _fild5)
 
 # -----------------------------------------------------------------------------
 # --- IHIBP PARAMETERS
@@ -53,6 +54,47 @@ IHIBP_scintillator_Y = np.array((-17.0, 0.0))  # [cm]
 
 iHIBP = {'port_center': [0.687, -3.454, 0.03], 'sector': 13,
          'beta_std': 4.117, 'theta_std': 0.0, 'source_radius': 7.0e-3}
+
+
+# -----------------------------------------------------------------------------
+# --- INPA
+# -----------------------------------------------------------------------------
+def _INPA1_path(shot=42000):
+    """
+    Contain hardcored paths of were INPA data is stored
+
+    Last update: 09/02/2022
+    """
+    if shot < 99999:
+        path = '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/INPA/INPA1'
+    else:
+        raise errors.NotValidInput('Wrong shot number?')
+    return path
+
+
+def _INPA1_extension(shot=42000):
+    """
+    Contain hardcored extensions of were INPA data is stored
+
+    Last update: 09/02/2022
+    """
+    if shot < 99999:
+        ext = ''
+    else:
+        raise errors.NotValidInput('Wrong shot number?')
+    return ext
+
+
+_inpa1 = {
+    'path': _INPA1_path,  # Path for the video files
+    'extension': _INPA1_extension,  # Extension of the video file, none if png
+    'label': '',  # Label for the diagnostic, for FILD6 (rFILD)
+    'diag': '',  # name of the diagnostic for the fast channel
+    'channel': '',  # prefix of the name of each channel (shotfile)
+    'nch': None  # Number of fast channels
+}
+
+INPA = (_inpa1)
 
 # -----------------------------------------------------------------------------
 # --- Magnetics data.

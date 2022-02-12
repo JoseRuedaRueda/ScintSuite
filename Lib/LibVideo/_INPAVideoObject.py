@@ -9,7 +9,7 @@ Jose Rueda Rueda: jrrueda@us.es
 
 Introduced in version 0.8.0
 """
-from Lib.LibVideo.BasicVideoObject import BVO
+from Lib.LibVideo._BasicVideoObject import BVO
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -93,7 +93,7 @@ class INPAVideo(BVO):
         if not empty:
             # Guess the filename:
             if file is None:
-                file = ssdat.guessFILDfilename(shot, diag_ID)
+                file = ssdat.guessINPAfilename(shot, diag_ID)
             if shot is None:
                 shot = _aux.guess_shot(file, ssdat.shot_number_length)
             # initialise the parent class

@@ -7,7 +7,7 @@ the routines to calculate the remap
 
 Jose Rueda Rueda: jrrueda@us.es
 """
-from Lib.LibVideo.BasicVideoObject import BVO
+from Lib.LibVideo._BasicVideoObject import BVO
 import os
 import numpy as np
 import matplotlib.pyplot as plt

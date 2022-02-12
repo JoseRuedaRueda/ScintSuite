@@ -9,14 +9,12 @@ This library contains:
 - ELM starting points.
 
 """
-
+import aug_sfutils as sf
 import dd                # Module to load shotfiles
 import numpy as np
-import os
 import Lib.LibData.AUG.DiagParam as params
 from Lib.LibPaths import Path
 import Lib.errors as errors
-import matplotlib.pyplot as plt
 pa = Path()
 
 # -----------------------------------------------------------------------------
@@ -63,7 +61,8 @@ def get_signal_generic(shot: int, diag: str, signame: str, exp: str = 'AUGD',
 # -----------------------------------------------------------------------------
 # --- SIGNAL OF FAST CHANNELS.
 # -----------------------------------------------------------------------------
-def get_fast_channel(diag: str, diag_number: int, channels, shot: int):
+def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
+                     ed: int = 0):
     """
     Get the signal for the fast channels (PMT, APD)
 
@@ -103,20 +102,18 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int):
         nch_to_load = ch.size
 
     # Open the shot file
-    fast = dd.shotfile(diag_name, shot)
+    fast = sf.SFREAD(diag_name, shot, ed=ed)
     dummy_name = signal_prefix + "{0:02}".format(ch[0])
-    time = fast.getTimeBase(dummy_name.encode('UTF-8'))
+    time = np.array(fast.gettimebase(dummy_name))
     data = []
     for ic in range(nch):
         real_channel = ic + 1
         if real_channel in ch:
             name_channel = signal_prefix + "{0:02}".format(real_channel)
-            channel_dat = fast.getObjectData(name_channel.encode('UTF-8'))
+            channel_dat = np.array(fast(name_channel))
             data.append(channel_dat[:time.size])
         else:
             data.append(None)
-    # get the time base (we will use last loaded channel)
-
     print('Number of requested channels: ', nch_to_load)
     return {'time': time, 'data': data, 'channels': ch}
 
