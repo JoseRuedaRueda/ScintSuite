@@ -167,10 +167,10 @@ def make_ihibpsim1_namelist(user_nml: dict):
         'deposition': {
             'nbeamdir': 128,
             'ndisk': 1,
-            'rmin': 1.75,
+            'rmin': 2.05,
             'rmax': 2.20,
             'storedeposition': False,
-            'fileDeposition': 'output.beam',
+            'filedeposition': 'output.beam',
         },
 
         'geometry': {
@@ -181,9 +181,9 @@ def make_ihibpsim1_namelist(user_nml: dict):
             'radius': Lib.dat.iHIBP['source_radius'],
             'sourceradius': Lib.dat.iHIBP['source_radius'],
             'divergency': 0.0,
-            'mean_energy': 50.0,
+            'mean_energy': 70.0,
             'std_e': 0.0,
-            'mass': 87.0,
+            'mass': 85.0,
             'intensity': 1.0e-3
         },
 
@@ -191,6 +191,8 @@ def make_ihibpsim1_namelist(user_nml: dict):
             'head3d_fn': 'repo/model3d/scintillator.3d',
             'scint_vertex_file':  'repo/plate/scint_v0.dat',
             'mode': 2,
+            'tol': 1.0e-4,
+            'nstrikemap_points': 32,
             'strikemap_file': 'example.map',
             'save_striking_points': False,
             'file_strikes': 'example.strikes'
@@ -232,7 +234,7 @@ def make_shotmapper_namelist(user_nml: dict):
             'timemin': 0.10,
             'timemax': 10.0,
             'dt_shot': 0.50,
-            'limits': np.array((1.65, 2.65, -1.0, 1.0)),
+            'limits': [1.65, 2.65, -1.0, 1.0],
             'nr': 512,
             'nz': 256
         },
@@ -281,6 +283,8 @@ def make_shotmapper_namelist(user_nml: dict):
             'head3d_fn': 'repo/model3d/scintillator.3d',
             'scint_vertex_file':  'repo/plate/scint_v0.dat',
             'mode': 2,
+            'tol': 1.0e-4,
+            'nstrikemap_points': 32,
             'strikemap_file': 'example.map',
             'save_striking_points': False,
             'file_strikes': 'example.strikes'
