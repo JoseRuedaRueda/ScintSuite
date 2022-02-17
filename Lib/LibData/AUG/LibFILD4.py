@@ -385,16 +385,3 @@ class FILD4_traject:
         plt.show()        
         return fig
             
-                
-        
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
