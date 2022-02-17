@@ -2,6 +2,7 @@
 
 import numpy as np
 import warnings
+from math import pi as pi
 # -----------------------------------------------------------------------------
 # --- AUG parameters
 # -----------------------------------------------------------------------------
@@ -35,15 +36,23 @@ fild3 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD3/',
          'extension': '', 'label': 'FILD3', 'diag': 'xxx', 'channel': 'xxxxx',
          'nch': 99, 'camera': 'CCD'}
 
+# FILD4 coil position from CAD. Coil dimensions in catholic units.
+# Parking position from FARO measurements
 fild4 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD4/',
          'extension': '', 'label': 'FILD4', 'diag': 'FHD', 'channel': 'Chan-',
-         'nch': 32, 'camera': 'CCD'}
+         'nch': 32, 'camera': 'CCD', 'coil': {'R_coil': 2.2252, 
+                                              'Z_coil': -0.3960,
+                                              'l': 0.115, 'A': 0.00554,
+                                              'N': 250, 
+                                              'theta_parking': -21.4/180*pi,
+                                              'R_parking': 2.0160}} 
 
 fild5 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD5/',
          'extension': '', 'label': 'FILD5', 'diag': 'FHE', 'channel': 'Chan-',
          'nch': 64, 'camera': 'CCD'}
 
 FILD = (fild1, fild2, fild3, fild4, fild5)
+
 
 # -----------------------------------------------------------------------------
 # --- IHIBP PARAMETERS
