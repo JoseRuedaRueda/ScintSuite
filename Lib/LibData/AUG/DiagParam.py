@@ -65,8 +65,10 @@ def _INPA1_path(shot=42000):
 
     Last update: 09/02/2022
     """
-    if shot < 99999:
-        path = '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/INPA/INPA1'
+    if shot < 40250:
+        path = '/afs/ipp-garching.mpg.de/f/fild/INPA1'
+    elif shot < 99999:
+        path = '/afs/ipp-garching.mpg.de/home/a/augd/rawfiles/INP'
     else:
         raise errors.NotValidInput('Wrong shot number?')
     return path
