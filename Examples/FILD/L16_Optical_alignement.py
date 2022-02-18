@@ -19,11 +19,12 @@ import Lib as ss
 # -----------------------------------------------------------------------------
 # --- Settings
 # -----------------------------------------------------------------------------
-# File with the scintillator                             ####
-Scint_file = '/afs/ipp/home/r/ruejo/SINPA/Geometry/AUG02/Element2.txt'
+# File with the scintillator
+Scint_file = '/afs/ipp/home/r/ruejo/SINPA/Geometry/AUG02/Element2.txt'   # ####
 format = 'SINPA'  # Code for which the geometry file is written
 # File with the calibration image (png)
-calib_image = '/afs/ipp/home/r/ruejo/FILD_Calibration_images/FILD1/FILD_reference_800x600_2021_07_05_inserted.png'
+calib_image = '/afs/ipp/home/r/ruejo/FILD_Calibration_images/FILD1/' + \
+    'FILD_reference_800x600_2021_07_05_inserted.png'                     # ####
 # modify section 3 if you have a custom format for the calibration image
 # Staring points for the calibration
 xshift = 427
@@ -32,6 +33,19 @@ xscale = -5100
 yscale = 5100
 deg = 20.0
 
+# Scale maximum
+xshiftmax = 1200
+yshiftmax = 800
+xscalemax = 10000
+yscalemax = 10000
+degmax = 45
+
+# Scale minimum
+xshiftmin = -1200
+yshiftmin = -800
+xscalemin = -10000
+yscalemin = -10000
+degmin = -45
 
 # -----------------------------------------------------------------------------
 # --- Scintillator load and first alignement
@@ -69,16 +83,16 @@ axxs = plt.axes([0.4, 0.05, 0.65, 0.03])
 axxs_slider = Slider(
     ax=axxs,
     label='xshift',
-    valmin=0,
-    valmax=1280,
+    valmin=xshiftmin,
+    valmax=xshiftmax,
     valinit=xshift,
 )
 axys = plt.axes([0.4, 0.15, 0.65, 0.03])
 axys_slider = Slider(
     ax=axys,
     label='yshift',
-    valmin=0,
-    valmax=1280,
+    valmin=yshiftmin,
+    valmax=yshiftmax,
     valinit=yshift,
 )
 
@@ -87,8 +101,8 @@ axxsc = plt.axes([0.05, 0.25, 0.0225, 0.63])
 axxsc_slider = Slider(
     ax=axxsc,
     label="xscale",
-    valmin=-10000,
-    valmax=10000,
+    valmin=xscalemin,
+    valmax=xscalemax,
     valinit=xscale,
     orientation="vertical"
 )
@@ -96,8 +110,8 @@ axysc = plt.axes([0.25, 0.25, 0.0225, 0.63])
 axysc_slider = Slider(
     ax=axysc,
     label="yscale",
-    valmin=-10000,
-    valmax=10000,
+    valmin=yscalemin,
+    valmax=yscalemax,
     valinit=yscale,
     orientation="vertical"
 )
@@ -105,8 +119,8 @@ axdeg = plt.axes([0.40, 0.25, 0.0225, 0.63])
 axdeg_slider = Slider(
     ax=axdeg,
     label="deg",
-    valmin=-25,
-    valmax=25,
+    valmin=degmin,
+    valmax=degmax,
     valinit=deg,
     orientation="vertical"
 )
