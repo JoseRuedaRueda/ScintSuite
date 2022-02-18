@@ -1,9 +1,12 @@
-** 0.8.1 INPA implementation (pre-release)
+** 0.8.2 INPA implementation
 *** INPA:
 - Included INPA calibration files in the data folder
 - FILD INPA and Basic Video Object moved to _<name> just to clean a bit the vid object
+- Included INPA paths
 *** LibData:
 - get_fast_channel adapted to use the aug_sfutils instead of the old dd
+*** LibMapping:
+- Updating the Scintillator object to make it compatible with the SINPA format
 *** Plotting:
 - Updated plotSettings() to match new matplotlib. font_manager changed and latex preamble removed
 *** LibFastChannel:

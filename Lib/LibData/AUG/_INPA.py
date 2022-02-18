@@ -39,19 +39,19 @@ def guessINPAfilename(shot: int, diag_ID: int = 1):
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    Note AUG criteria of organising files is assumed: .../38/38760/...
-
     @param shot: shot number
-    @param diag_ID: FILD manipulator number
+    @param diag_ID: INPA number
 
-    @return file: the name of the file/folder
+    @return f: the name of the file/folder
     """
     base_dir = params.INPA[diag_ID-1]['path'](shot)
     extension = params.INPA[diag_ID-1]['extension'](shot)
     shot_str = str(shot)
-    name = shot_str + extension
-    file = os.path.join(base_dir, shot_str[0:2], name)
-    return file
+
+    if shot < 99999:  # PCO camera, stored in AFS
+        name = shot_str + extension
+        f = os.path.join(base_dir, shot_str[0:4], name)
+    return f
 
 
 # --- FILD object
