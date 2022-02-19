@@ -24,7 +24,8 @@ from Lib.version_suite import version
 from Lib.LibMachine import machine
 import Lib.LibVideo.AuxFunctions as _aux
 from scipy.io import netcdf                # To export remap data
-from tqdm import tqdm                      # For waitbars
+from tqdm import tqdm
+import Lib.errors as errors                # For waitbars
 pa = p.Path(machine)
 del p
 
@@ -95,14 +96,21 @@ class FILDVideo(BVO):
                 file = ssdat.guessFILDfilename(shot, diag_ID)
             if shot is None:
                 shot = _aux.guess_shot(file, ssdat.shot_number_length)
+            # Initialise the logbook
+            FILDlogbook = ssdat.FILD_logbook(**logbookOptions)  # Logbook
+            try:
+                AdqFreq = FILDlogbook.getAdqFreq()
+                t_trig = FILDlogbook.gettTrig()
+            except errors.NotFoundAdqFreq_or_ttrig:
+                AdqFreq = None
+                t_trig = None
             # initialise the parent class
-            BVO.__init__(self, file=file, shot=shot, empty=empty)
+            BVO.__init__(self, file=file, shot=shot, empty=empty,
+                         adfreq=AdqFreq, t_trig=t_trig)
             ## Diagnostic used to record the data
             self.diag = 'FILD'
             ## Diagnostic ID (FILD manipulator number)
             self.diag_ID = diag_ID
-            # Initialise the logbook
-            FILDlogbook = ssdat.FILD_logbook(**logbookOptions)  # Logbook
             if shot is not None:
                 self.FILDposition = FILDlogbook.getPosition(shot, diag_ID)
                 self.FILDorientation = \
