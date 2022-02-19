@@ -29,6 +29,8 @@ class NotValidInput(Exception):
 class DatabaseError(Exception):
     """Raised if there is an error accesing the tokamak/stella database."""
 
+    pass
+
 # --- Logbook related exceptions
 
 
@@ -52,5 +54,12 @@ class NotFoundGeomID(Exception):
 
 class FoundSeveralGeomID(Exception):
     """Several GeomID used in a given shot are found."""
+
+    pass
+
+
+class NotFoundAdqFreq_or_ttrig(Exception):
+    """Either the frequency of adquisition function or the time trigger
+    function are not found."""
 
     pass

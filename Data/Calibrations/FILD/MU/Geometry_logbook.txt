@@ -1,0 +1,4 @@
+#Text file containing information about the collimator geometry installed in each manipulator
+# Started in 2022. Old shot geometries are an educated guess
+# CalID shot1 shot1 GeomID ManipulatorNumber
+0 00000 99999 MU01 1

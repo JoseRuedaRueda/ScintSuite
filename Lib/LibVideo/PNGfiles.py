@@ -79,7 +79,7 @@ def read_data(path):
         # Usually in this situation the camera records fine, it just its time
         # module which is broken
         std_time = np.std(time_base)
-        # Test if all the exposue time was the same
+        # Test if all the exposure time was the same
         if std_time < 1e-2 and np.mean(time_base) < 0.1:
             time_base = np.linspace(0, dummy[-1, 0] * dummy[0, 2] / 1000,
                                     int(dummy[-1, 0]))
@@ -187,7 +187,7 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
                       video_object.header['ImageCount']),
                      dtype=video_object.imageheader['framesDtype'])
         counter = 0
-        for file in os.listdir(video_object.path):
+        for file in sorted(os.listdir(video_object.path)):
             if file.endswith('.png'):
                 M[:, :, counter] = load_png(
                     os.path.join(video_object.path, file))
@@ -205,7 +205,7 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
                       len(frames_number)),
                      dtype=video_object.imageheader['framesDtype'])
 
-        for file in os.listdir(video_object.path):
+        for file in sorted(os.listdir(video_object.path)):
             if file.endswith('.png'):
                 current_frame = current_frame + 1
                 if current_frame in frames_number:
