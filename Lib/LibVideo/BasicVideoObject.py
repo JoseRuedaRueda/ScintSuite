@@ -16,6 +16,7 @@ from scipy import ndimage                  # To filter the images
 import Lib.LibIO as _ssio
 import Lib.LibVideo.CinFiles as cin
 import Lib.LibVideo.PNGfiles as png
+import Lib.LibVideo.PCOfiles as pco
 import Lib.LibVideo.MP4files as mp4
 import Lib.LibVideo.AuxFunctions as aux
 import Lib.LibData as ssdat
@@ -33,14 +34,15 @@ class BVO:
     """
 
     def __init__(self, file: str = None, shot: int = None,
-                 empty: bool = False):
+                 empty: bool = False, adfreq: float = None,
+                 t_trig: float = None):
         """
         Initialise the class
 
         @param file: For the initialization, file (full path) to be loaded,
             if the path point to a .cin or .mp4 file, the .cin file will be
             loaded. If the path points to a folder, the program will look for
-            png files ortiff files inside (tiff coming soon). You can also
+            png files or tiff files inside (tiff coming soon). You can also
             point to a png or tiff file. In this case, the folder name will be
             deduced from the file. If none, a window will be open to select
             a file
@@ -132,20 +134,37 @@ class BVO:
                     f.extend(filenames)
                     break
 
+                # To stablish the format, count to 3 to make sure there are not
+                # other types of files randomly inserted in the same folder that
+                # mislead the type_of_file
+                count_png = 0
+                count_tif = 0
+                count_pco = 0
                 for i in range(len(f)):
                     if f[i].endswith('.png'):
-                        self.type_of_file = '.png'
-                        print('Found PNG files!')
-                        break
+                        count_png += 1
+                        if count_png == 3:
+                            self.type_of_file = '.png'
+                            print('Found PNG files!')
+                            break
                     elif f[i].endswith('.tif'):
-                        self.type_of_file = '.tif'
-                        print('Found tif files!')
-                        print('Tif support still not implemented, sorry')
-                        break
-                # if we do not have .png or tiff, give an error
-                if self.type_of_file != '.png' and self.type_of_file != '.tif':
+                        count_tif += 1
+                        if count_tif == 3:
+                            self.type_of_file = '.tif'
+                            print('Found tif files!')
+                            print('Tif support still not implemented, sorry')
+                            break
+                    elif f[i].endswith('.b16'):
+                        count_pco += 1
+                        if count_pco == 3:
+                            self.type_of_file = '.b16'
+                            print('Found PCO files!')
+                            break
+                    # if we do not have .png or tiff, give an error
+                supported_type = ['.png', '.tif', '.b16']
+                if self.type_of_file not in supported_type:
                     print(self.type_of_file)
-                    raise Exception('No .pgn ror .tiff files found')
+                    raise Exception('No .pgn, .tiff nor .b16 files found')
 
                 # If we have a .png file, a .txt must be present with the
                 # information of the exposure time and from a basic frame we
@@ -153,6 +172,9 @@ class BVO:
                 if self.type_of_file == '.png':
                     self.header, self.imageheader, self.settings,\
                         self.timebase = png.read_data(self.path)
+                elif self.type_of_file == '.b16':
+                    self.header, self.imageheader, self.settings,\
+                        self.timebase = pco.read_data(self.path, adfreq, t_trig)
             if self.type_of_file is None:
                 raise Exception('Not file found!')
 
@@ -181,7 +203,7 @@ class BVO:
         just t1 is given , only one frame will be loaded
         @param read_from_loaded: If true, it will return the frame closer to t1
         , independently of the flag 'internal' (usefull to extract noise
-        corrected frames from the video object :-)
+        corrected frames from the video object :-))
         @param verbose: flag to print the numer of saturated frames found
 
         @return M: 3D numpy array with the frames M[px,py,nframes] (if the
@@ -226,6 +248,19 @@ class BVO:
                 if internal:
                     self.exp_dat['frames'] = \
                         png.read_frame(self, frames_number,
+                                       limitation=limitation, limit=limit)
+                    self.exp_dat['tframes'] = \
+                        self.timebase[frames_number].flatten()
+                    self.exp_dat['nframes'] = frames_number
+                    self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
+                else:
+                    M = png.read_frame(self, frames_number,
+                                       limitation=limitation, limit=limit)
+                    return M.squeeze()
+            elif self.type_of_file == '.b16':
+                if internal:
+                    self.exp_dat['frames'] = \
+                        pco.read_frame(self, frames_number,
                                        limitation=limitation, limit=limit)
                     self.exp_dat['tframes'] = \
                         self.timebase[frames_number].flatten()
