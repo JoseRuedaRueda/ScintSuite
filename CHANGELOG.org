@@ -3,10 +3,13 @@
 - Included INPA calibration files in the data folder
 - FILD INPA and Basic Video Object moved to _<name> just to clean a bit the vid object
 - Included INPA paths
+*** Examples:
+- Added Example 16 of the FILD collection to align the scintillator
 *** LibData:
 - get_fast_channel adapted to use the aug_sfutils instead of the old dd
 *** LibMapping:
 - Updating the Scintillator object to make it compatible with the SINPA format
+- readCameraCalibration was extracted from the FILDlogbook and placed to the mapping library, as it will be used for INPA and FILD at the same time
 *** Plotting:
 - Updated plotSettings() to match new matplotlib. font_manager changed and latex preamble removed
 *** LibFastChannel:
@@ -15,8 +18,8 @@
 *** Bug:
 - Solved a bug in plot_frame from the FILD video object. The syntax for the routines to load the strike map was not updated to version 0.8.0
 *** Other changes
-- np.bool replaced with bool to avoid future isues with numpy (np.bool was going to be deprecated)
-
+- np.bool replaced with bool to avoid future issues with numpy (np.bool was going to be deprecated)
+- PEP8 improvements
 
 ** 0.8.0 SINPA implementation data analysis
 *Notice*: For all the SINPA related implementation, you need version 0.3 of the SINPA code
