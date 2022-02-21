@@ -12,7 +12,7 @@ import Lib.LibPlotting as ssplt
 import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 # import Lib.SimulationCodes.SINPA as ssSINPA
 from Lib.SimulationCodes.Common.strikes import Strikes
-import Lib.LibMap.Common as common
+from Lib.LibMap.Common import XYtoPixel, _fit_to_model_
 from Lib.LibMachine import machine
 import Lib.LibPaths as p
 from Lib.decorators import deprecated
@@ -22,7 +22,7 @@ pa = p.Path(machine)
 del p
 
 
-class StrikeMap:
+class StrikeMap(XYtoPixel):
     """Class with the information of the strike map."""
 
     def __init__(self, flag=0, file: str = None, machine='AUG', theta=None,
@@ -47,6 +47,8 @@ class StrikeMap:
         - Machine, theta and phi options introduced in version 0.4.14.
         - INPA compatibility included in version 0.6.0
         """
+        ## Init the parent class
+        XYtoPixel.__init__(self)
         ## Associated diagnostic
         if flag == 0 or str(flag).lower() == 'fild':
             self.diag = 'FILD'
@@ -413,16 +415,16 @@ class StrikeMap:
         ## @todo include labels energy/pitch in the plot
         ax.plot(self.xpixel, self.ypixel, **marker_options)
 
-    def calculate_pixel_coordinates(self, calib):
-        """
-        Transform the real coordinates of the map into pixels.
-
-        Jose Rueda Rueda: jrrueda@us.es
-
-        @param calib: a CalParams() object with the calibration info
-        """
-        self.xpixel, self.ypixel = \
-            common.transform_to_pixel(self.y, self.z, calib)
+    # def calculate_pixel_coordinates(self, calib):
+    #     """
+    #     Transform the real coordinates of the map into pixels.
+    #
+    #     Jose Rueda Rueda: jrrueda@us.es
+    #
+    #     @param calib: a CalParams() object with the calibration info
+    #     """
+    #     self.xpixel, self.ypixel = \
+    #         common.transform_to_pixel(self.y, self.z, calib)
 
     def interp_grid(self, frame_shape, method=2, plot=False, verbose=False,
                     grid_params: dict = {}, MC_number: int = 100):
@@ -797,12 +799,12 @@ class StrikeMap:
                                           step=new_dpitch)
                         # --- Proceed to fit
                         par_p, fitp[ir, ip], normalization_p[ir, ip], unc_p = \
-                            common._fit_to_model_(
+                            _fit_to_model_(
                                 data[:, iip], bins=edges_pitch, model=p_method,
                                 confidence_level=confidence_level,
                                 uncertainties=calculate_uncertainties)
                         par_g, fitg[ir, ip], normalization_g[ir, ip], unc_g = \
-                            common._fit_to_model_(
+                            _fit_to_model_(
                                 data[:, iir], bins=edges_gyr, model=g_method,
                                 confidence_level=confidence_level,
                                 uncertainties=calculate_uncertainties)
@@ -1370,7 +1372,7 @@ class StrikeMap:
                                   stop=data[:, 5].max() + dpitch,
                                   step=new_dpitch)
                 # --- Proceed to fit
-                par_p, resultp = common._fit_to_model_(data[:, 5],
+                par_p, resultp = _fit_to_model_(data[:, 5],
                                                        bins=edges_pitch,
                                                        model=p_method,
                                                        normalize=False)
@@ -1471,7 +1473,7 @@ class StrikeMap:
 
                 # --- Proceed to fit
 
-                par_g, resultg = common._fit_to_model_(data[:, 4],
+                par_g, resultg = _fit_to_model_(data[:, 4],
                                                        bins=edges_gyr,
                                                        model=g_method,
                                                        normalize=False)

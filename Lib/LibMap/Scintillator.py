@@ -1,11 +1,11 @@
 """Scintillator class."""
 import numpy as np
 import matplotlib.pyplot as plt
-import Lib.LibMap.Common as common
+from Lib.LibMap.Common import XYtoPixel
 import Lib.errors as errors
 
 
-class Scintillator:
+class Scintillator(XYtoPixel):
     """
     Class with the scintillator information.
 
@@ -26,6 +26,7 @@ class Scintillator:
         @param    format: Code to which the file belongs, FILDSIM or SINPA
         @param    material: Defaults to 'TG-green'
         """
+        XYtoPixel.__init__(self)
         ## Material used in the scintillator plate
         self.material = material
         ## Code (format) of the plate
@@ -89,8 +90,8 @@ class Scintillator:
         if self.code == 'fildsim':
             # FILDSIM geometry does not close the last line, so we have to add
             # it manually
-            x = np.concatenate((xdum, self.xpixel[0]))
-            y = np.concatenate((ydum, self.ypixel[0]))
+            x = np.concatenate((xdum, np.array([self.xpixel[0]])))
+            y = np.concatenate((ydum, np.array([self.ypixel[0]])))
         else:
             x = np.array([xdum[0], xdum[1], xdum[2], xdum[1],
                           xdum[0], xdum[2]])
@@ -125,18 +126,18 @@ class Scintillator:
             fig, ax = plt.subplots()
         ax.plot(self.coord_real[:, 1], self.coord_real[:, 2], **plt_par)
 
-    def calculate_pixel_coordinates(self, calib):
-        """
-        Transform the real coordinates of the map into pixels.
-
-        Jose Rueda Rueda: jrrueda@us.es
-
-        @param calib: a CalParams() object with the calibration info
-        @return: Nothing, just update the plot
-        """
-        dummyx = self.coord_real[:, 1]
-        dummyy = self.coord_real[:, 2]
-
-        self.xpixel, self.ypixel = \
-            common.transform_to_pixel(dummyx, dummyy, calib)
-        return
+    # def calculate_pixel_coordinates(self, calib):
+    #     """
+    #     Transform the real coordinates of the map into pixels.
+    #
+    #     Jose Rueda Rueda: jrrueda@us.es
+    #
+    #     @param calib: a CalParams() object with the calibration info
+    #     @return: Nothing, just update the plot
+    #     """
+    #     dummyx = self.coord_real[:, 1]
+    #     dummyy = self.coord_real[:, 2]
+    #
+    #     self.xpixel, self.ypixel = \
+    #         common.transform_to_pixel(dummyx, dummyy, calib)
+    #     return

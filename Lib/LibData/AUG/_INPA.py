@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import warnings
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
-from Lib.LibMap.Calibration import CalParams
+from Lib.LibMap.Calibration import CalParams, readCameraCalibrationDatabase
 import Lib.LibData.AUG.DiagParam as params
 import Lib.errors as errors
 paths = Path(machine)
@@ -54,7 +54,7 @@ def guessINPAfilename(shot: int, diag_ID: int = 1):
     return f
 
 
-# --- FILD object
+# --- INPA object
 class INPA_logbook:
     """
     Contain all geometrical parameters and camera calibration for INPA
@@ -90,7 +90,7 @@ class INPA_logbook:
             print('.-.. --- --. -... --- --- -.-')
         # Load the camera database
         self.CameraCalibrationDatabase = \
-            self._readCameraCalibrationDatabase(cameraFile, verbose=verbose)
+            readCameraCalibrationDatabase(cameraFile, verbose=verbose)
         # Load the position database
         # The position database is not distributed with the ScintSuite, so it
         # can happend that it is not available. For that reason, just in case
@@ -104,49 +104,6 @@ class INPA_logbook:
         self.geometryDatabase = \
             self._readGeometryDatabase(geometryFile, verbose=verbose)
         print('..-. .. -. .- .-.. .-.. -.--')
-
-    def _readCameraCalibrationDatabase(self, filename: str, n_header: int = 5,
-                                       verbose: bool = True):
-        """
-        Read the calibration database, to align the strike maps.
-
-        See the help PDF located at the readme file for a full description of
-        each available parameter
-
-        @author Jose Rueda Rueda: jrrueda@us.es
-
-        @param filename: Complete path to the file with the calibrations
-        @param n_header: Number of header lines (5 in the oficial format)
-
-        @return database: Pandas dataframe with the database
-        """
-        data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
-                'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
-                'deg': [], 'cal_type': [], 'diag_ID': []}
-
-        # Read the file
-        if verbose:
-            print('Reading Camera database from: ', filename)
-        with open(filename) as f:
-            for i in range(n_header):
-                dummy = f.readline()
-            # Database itself
-            for line in f:
-                dummy = line.split()
-                data['CalID'].append(int(dummy[0]))
-                data['camera'].append(dummy[1])
-                data['shot1'].append(int(dummy[2]))
-                data['shot2'].append(int(dummy[3]))
-                data['xshift'].append(float(dummy[4]))
-                data['yshift'].append(float(dummy[5]))
-                data['xscale'].append(float(dummy[6]))
-                data['yscale'].append(float(dummy[7]))
-                data['deg'].append(float(dummy[8]))
-                data['cal_type'].append(dummy[9])
-                data['diag_ID'].append(int(dummy[10]))
-        # Transform to pandas
-        database = pd.DataFrame(data)
-        return database
 
     def _readExcelLogbook(self, filename: str, verbose: bool = True):
         """
@@ -237,6 +194,9 @@ class INPA_logbook:
             cal.yshift = row.yshift.values[0]
             cal.deg = row.deg.values[0]
             cal.camera = row.camera.values[0]
+            if 'c1' in self.CameraCalibrationDatabase.keys():
+                cal.c1 = row.c1.values[0]
+                cal.c2 = row.c2.values[0]
         return cal
 
     def getGeomID(self, shot: int, diag_ID: int = 1):

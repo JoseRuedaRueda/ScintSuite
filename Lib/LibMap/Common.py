@@ -15,38 +15,91 @@ except ImportError:
     warnings.warn('lmfit not found, you cannot calculate resolutions')
 
 
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # --- Scintillator to pixels
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # @ToDo: Need to include the case of distortion
-def transform_to_pixel(x, y, grid_param):
+def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
     """
     Transform from X,Y coordinates (scintillator) to pixels in the camera.
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param x: Array of positions to be transformed, x coordinate
-    @param y: Array of positions to be transformed, y coordinate
-    @param grid_param: Object containing all the information for the
+    @param x: np.array of positions to be transformed, x coordinate
+    @param y: np.array of positions to be transformed, y coordinate
+    @param cal: Object containing all the information for the
     transformation, see class CalParams()
 
     @return xpixel: x positions in pixels
     @return ypixel: y position in pixels
-
-    @todo Include a model to take into account the distortion
     """
-    alpha = grid_param.deg * np.pi / 180
-    xpixel = (np.cos(alpha) * x - np.sin(alpha) * y) * grid_param.xscale + \
-        grid_param.xshift
-    ypixel = (np.sin(alpha) * x + np.cos(alpha) * y) * grid_param.yscale + \
-        grid_param.yshift
+    eps = 0.000001  # Level for the distortion coefficient to be considered as
+    #               zero (see below)
+    # Perform the indistorted transformation
+    alpha = cal.deg * np.pi / 180
+    xpixel = (np.cos(alpha) * x - np.sin(alpha) * y) * cal.xscale + \
+        cal.xshift
+    ypixel = (np.sin(alpha) * x + np.cos(alpha) * y) * cal.yscale + \
+        cal.yshift
+    # Apply the distortion
+    if (abs(cal.c1) > eps) or (abs(cal.c2) > eps):
+        # Just to have the C in /m and /m^ 2
+        dummy_scale = (abs(cal.xscale) + abs(cal.yscale)) * 0.5
+        # Get the r array respect to the optical axis
+        xp = xpixel - cal.xcenter
+        yp = ypixel - cal.ycenter
+        rp = np.sqrt(xp**2 + yp**2)
+        D = cal.c1 * rp
+        print('r', rp)
+        print('f', 1+D)
+        xpixel = (1 + D) * xp + cal.xcenter
+        ypixel = (1 + D) * yp + cal.ycenter
 
     return xpixel, ypixel
 
 
-# ------------------------------------------------------------------------------
+class XYtoPixel:
+    """
+    Parent class for object with both coordinates in real and camera space
+
+    For example for Scintillator and strike maps, which contain information of
+    their coordinates in the real space and of their coordinates in the camera
+    (pixel) space
+
+    Jose Rueda: jrrueda@us.es
+
+    Introduced in version 0.8.2
+    """
+
+    def __init__(self):
+        """
+        Initialise the object
+
+        Notice that this is just a parent class, each child (scintillator or
+        strike map), will fill its contents as needed
+        """
+        ## Coordinates of the vertex of the scintillator (X,Y,Z).
+        self.coord_real = None
+        ## Normal vector to the plane containing the element
+        self.normal_vector = None
+        ## Coordinates of the vertex of the scintillator in pixels
+        self.xpixel = None
+        self.ypixel = None
+
+    def calculate_pixel_coordinates(self, cal):
+        """
+        Transfom real coordinates into pixel.
+
+        Just a wrapper to the function transform_to_pixel
+        """
+        self.xpixel, self.ypixel = \
+            transform_to_pixel(self.coord_real[:, 1], self.coord_real[:, 2],
+                               cal)
+
+
+# -----------------------------------------------------------------------------
 # --- Fitting functions
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
                    normalize: bool = True,
                    confidence_level: float = 0.9544997,

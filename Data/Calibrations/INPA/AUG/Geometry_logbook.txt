@@ -1,4 +1,4 @@
 # Text file containing information about the collimator geometry installed in each INPA
 # Last Update 09/02/2022
 # CalID  shot1   shot1   GeomID    INPANumber
-    0    42000   99999    AUG01        1
+    0    42000   99999    iAUG01        1
