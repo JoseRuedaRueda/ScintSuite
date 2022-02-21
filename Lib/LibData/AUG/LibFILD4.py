@@ -19,7 +19,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter as savgol
 import aug_sfutils as sf
-import Lib as ss
+import Lib.LibData.AUG.DiagParam as params
 from Lib.LibPaths import Path
 from Lib.LibMachine import machine
 paths = Path(machine)
@@ -122,8 +122,8 @@ class FILD4_traject:
         # Get the magnetic field in the coil
         if B == None:
             equ = sf.EQU(self.shot, diag = 'EQH')
-            R_coil = ss.LibData.AUG.fild4['coil']['R_coil']
-            Z_coil = ss.LibData.AUG.fild4['coil']['Z_coil']
+            R_coil = params.fild4['coil']['R_coil']
+            Z_coil = params.fild4['coil']['Z_coil']
             br, bz, bt = sf.rz2brzt(equ, r_in = R_coil, z_in = Z_coil,
                                     t_in = self.dat_ps['time_V'])
             B = abs(bt).squeeze()
@@ -164,10 +164,10 @@ class FILD4_traject:
             R_fit = R*np.ones(V.shape)
         
         # Calculate the vel and pos of the probe head
-        l = ss.LibData.AUG.fild4['coil']['l']
-        A = ss.LibData.AUG.fild4['coil']['A']
-        N = ss.LibData.AUG.fild4['coil']['N']
-        theta_parking = ss.LibData.AUG.fild4['coil']['theta_parking']
+        l = params.fild4['coil']['l']
+        A = params.fild4['coil']['A']
+        N = params.fild4['coil']['N']
+        theta_parking = params.fild4['coil']['theta_parking']
         
         # Initial conditions for the integration
         vel = np.empty(time_V.shape)
@@ -221,8 +221,8 @@ class FILD4_traject:
         # Get FILD4 position
         insertion = np.interp(t, self.traject['time'],
                               self.traject['position'])
-        R_pos = ss.LibData.AUG.fild4['coil']['R_parking']-insertion
-        z_pos = ss.LibData.AUG.fild4['coil']['Z_coil']*np.ones(t.shape)
+        R_pos = params.fild4['coil']['R_parking']-insertion
+        z_pos = params.fild4['coil']['Z_coil']*np.ones(t.shape)
         
         # Get the minimum distance between the probe head and the separatrix
         dist_sep = np.zeros(r_sep.shape)
