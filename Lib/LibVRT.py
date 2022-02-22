@@ -33,8 +33,10 @@ def get_cameras(shot):
         # Each camera configuration is under a "grabber" section 
         for grabber in root.findall('Grabber'):
             rois = []
+            lim = []
             for roi in grabber.findall('Area'):
                 rois.append(roi.attrib['name']) 
+                lim.append(float(roi.attrib['limit3']))
             # Get the camera configuration
             enabled = True if grabber.attrib['enabled'] == 'true' else False 
             # Get the camera configuration (SH, GA)
@@ -50,6 +52,7 @@ def get_cameras(shot):
                 if 'SH' in c: SH = int(c.split('=')[1])
                 if 'GA' in c: GA = int(c.split('=')[1]) 
             cameras[grabber.attrib['name']] = {'rois': rois,
+                                               'limits': lim,
                                                'enabled': enabled,
                                                'SH': SH, 
                                                'GA': GA}
@@ -236,12 +239,12 @@ def get_time_trace(shot: int = None, roiname: str = '',
                     for r in root.find('Values'). findall('Val'):
                         val.append(float(r.text))
                     val = np.array(val)
-                    lim=float(area.attrib['limit3'])
+                    lim = float(area.attrib['limit3'])
             	     
-                    lablim=''                  
-                    limcol='blue'
-                    if area.attrib['doVpe'].lower()=='true':
-                        limcol='red' if np.any(val>=lim) else 'green'
+                    lablim = ''                  
+                    limcol = 'blue'
+                    if area.attrib['doVpe'].lower() == 'true':
+                        limcol = 'red' if np.any(val>=lim) else 'green'
                        
                     # Get only the requested ROI. All of them by default
                     if roiname.lower() in protocol.lower():
@@ -295,8 +298,41 @@ def get_time_trace(shot: int = None, roiname: str = '',
         'temp_lim': temp_lim_array}
     return output
 
-
-
+# def get_limit(shot: int = None, camera: str = ''):
+#     """
+#     Get the set limit for a said camera
+    
+#     @param shot
+#     @param camera: camera name
+    
+#     @return dictionary with ROIs and their limits
+#     """
+#     VRT_path = '/afs/ipp/u/augd/rawfiles/VRT/'+str(shot)[0:2]+'/S'+str(shot)
+    
+#     # Get the camera xml configuration files
+#     conf_files = glob.glob(VRT_path+'/Conf/Guggi*.xml')
+#     conf_files += glob.glob(VRT_path+'/Conf/labrt.xml')
+    
+#     cameras = {}
+#     for conf_file_path in conf_files:
+#         root = et.parse(conf_file_path).getroot()
+#         # Each camera configuration is under a "grabber" section 
+#         for grabber in root.findall('Grabber'):
+#             rois = []
+#             for roi in grabber.findall('Area'):
+#                 rois.append(roi.attrib['name']) 
+#             # Get the camera configuration
+#             enabled = True if grabber.attrib['enabled'] == 'true' else False 
+#             # Get the camera configuration (SH, GA)
+#             for cam_conf in grabber.findall('ConfInfo/Entry'):           
+#                 c = cam_conf.attrib['cmd']
+#                 if '?' in c:
+#                     c = cam_conf.attrib['cmd'].split('?')[0]+'='
+#                     if '=' in cam_conf.attrib['reply']:
+#                         c += cam_conf.attrib['reply'].split('=')[1]
+#                     else: 
+#                         c += cam_conf.attrib['reply']
+#     return cameras
 
 
 
