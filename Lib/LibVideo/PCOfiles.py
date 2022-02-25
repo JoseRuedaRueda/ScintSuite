@@ -6,10 +6,13 @@ Adapted by Lina Velarde: lvelarde@us.es
 """
 import os
 import numpy as np
-from skimage import io                     # To load images
 import Lib.LibVideo.AuxFunctions as aux
 import matplotlib.pyplot as plt
-from pco_tools import pco_reader as pco
+try:
+    from pco_tools import pco_reader as pco
+except KeyError:
+    raise Exception('PCO tools not imported. You cannot load pco files.\
+                    To import, run "pip install pco_tools".')
 
 
 def read_data(path: str, adfreq: float, t_trig: float):
@@ -65,27 +68,9 @@ def read_data(path: str, adfreq: float, t_trig: float):
         raise Exception('Expected uint8,16,32,64 in the frames')
     # Generation of time_base
     time_base = np.arange(counter, dtype=float)/adfreq + t_trig
-    #HABRÍA QUE CAMBIAR DONDE PONE FRAM POR UN VECTOR QUE VAYA DE LA PRIMERA
-    #FRAME A LA ÚLTIMA
 
     return header, imageheader, settings, time_base[:].flatten()
 
-
-def load_png(filename: str): #se podría quitar entera?
-    """
-    Load the png with an order compatible with IDL
-
-    IDL load things internally in a way different from python. In order the new
-    suite to be compatible with all FILD calibrations of the last 15 years,
-    an inversion should be done to load png in the same way as IDL
-
-    @param filename: full path pointing to the png
-    """
-    dummy = io.imread(filename)
-    if len(dummy.shape) > 2:     # We have an rgb png, transform it to gray
-        dummy = aux.rgb2gray(dummy)
-
-    return dummy[::-1, :]
 
 
 def read_frame(video_object, frames_number=None, limitation: bool = True,

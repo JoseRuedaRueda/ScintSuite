@@ -1,7 +1,7 @@
 """
 Contain FILD object.
 
-Jose Rueda: jrrueda@us.es
+Jose Rueda: jrrueda@us.es and others
 """
 
 import os
@@ -24,7 +24,7 @@ _cameraDatabase = os.path.join(paths.ScintSuite, 'Data', 'Calibrations',
 _geometryDatabase = os.path.join(paths.ScintSuite, 'Data',
                                  'Calibrations', 'FILD', 'MU',
                                  'Geometry_logbook.txt')
-_positionDatabase = paths.FILDPositionDatabase
+_positionDatabase = '/afs/ipp/home/l/linvel/MAST-U_FILD_logbook_v3.xlsx'
 
 _geometrdefault = os.path.join(paths.ScintSuite, 'Data',
                                'Calibrations', 'FILD', 'MU',
@@ -54,150 +54,6 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
     return file
 
 
-# --- Auxiliar routines to load and plot FILD4 trajectory:
-def load_FILD4_trajectory(shot, path=paths.FILD4_trayectories):
-    """
-    Load FILD4 trayectory
-
-    Jose Rueda: jrrueda@us.es
-
-    Note: This is a temporal function, in the future will be replaced by one to
-    load trayectories from shotfiles
-
-    @param shot: Shot number to load
-    @param path: Path to the main folder with FILD4 trajectories
-    """
-    # --- Load the power supply output data
-    shot_str = str(shot)
-    try:
-        file = os.path.join(path, 'output_raw', shot_str[0:2],
-                            'FILD_MDRS_' + shot_str + '.txt')
-        print('Looking for file: ', file)
-        data = np.loadtxt(file, skiprows=1)
-        # Delete the last line of the data because is always zero
-        dat = np.delete(data, -1, axis=0)
-        # Delete points where PS output is zero. This **** instead of giving
-        # as ouput the points where the trajectory was requested, it always
-        # gives as ouput a given number of rows, and set to zero the non used
-        # ones...
-        fi = dat[:, 2] < 1
-        fv = dat[:, 4] < 1
-        flags = (fv * fi).astype(np.bool)
-        PSouput = {
-            'V_t_obj': dat[~flags, 0] / 1000.0,
-            'V_obj': dat[~flags, 1],
-            'I_t': dat[~flags, 2] * 1.0e-9,
-            'I': dat[~flags, 3],
-            'V_t': dat[~flags, 4] * 1.0e-9,
-            'V': dat[~flags, 5]
-        }
-    except OSError:
-        print('File with power supply outputs not found')
-        PSouput = None
-    # --- Load the reconstructed trajectory
-    R4_lim = [2.082410, 2.015961]    # R min and max of FILD4
-    Z4_lim = [-0.437220, -0.437906]  # z min and max of FILD4
-    ins_lim = [0, 0.066526]          # Maximum insertion
-    try:
-        file = os.path.join(path, 'output_processed', shot_str[0:2],
-                            shot_str + '.txt')
-        print('Looking for file: ', file)
-        data = np.loadtxt(file, skiprows=2, delimiter=',')
-        insertion = {
-            't': data[:, 0],
-            'insertion': data[:, 1],
-        }
-        if data[:, 1].max() > ins_lim[1]:
-            warnings.warn('FILD4 insertion larger than the maximum!!!')
-        position = {
-            't': data[:, 0],
-            'R': R4_lim[0] + (data[:, 1]-ins_lim[0])/(ins_lim[0]-ins_lim[1])
-            * (R4_lim[0]-R4_lim[1]),
-            'z': Z4_lim[0]+(data[:, 1]-ins_lim[0])/(ins_lim[0]-ins_lim[1])
-            * (Z4_lim[0]-Z4_lim[1])
-        }
-    except OSError:
-        print('File with trajectory not found')
-        position = None
-        insertion = None
-        PSouput = None
-
-    return {'PSouput': PSouput, 'insertion': insertion, 'position': position}
-
-
-def plot_FILD4_trajectory(shot, PS_output=False, ax=None, ax_PS=None,
-                          line_params={}, line_params_PS={}, overlay=False,
-                          unit='cm'):
-    """
-    Plot FILD4 trayectory
-
-    Jose Rueda: jrrueda@us.es
-
-    Note: this is in beta phase, improvement suggestions are wellcome
-
-    @param shot: shot you want to plot
-    @param PS_output: flag to plot the output of the power supply
-    @param ax: axes where to plot the trajectory. If none, new axis will be
-               created
-    @param ax_PS: Array of two axes where we want to plot the PS data. ax_PS[0]
-                  will be for the voltaje while ax_PS[1] for the intensity. If
-                  None, new axis  will be created
-    @param line_params: Line parameters for the trajectory plotting
-    @param line_params_PS: Line parameters for the PS plots. Note: same dict
-                           will be used for the Voltaje and intensity plots, be
-                           carefull if you select the 'color'
-    @param overlay: Flag to overlay the trayectory over the current plot. The
-                    insertion will be plotted in arbitrary units on top of it.
-                    ax input is mandatory for this
-    """
-    line_options = {
-        'label': '#' + str(shot),
-    }
-    line_options.update(line_params)
-    # ---
-    factor = {
-        'cm': 100.0,
-        'm': 1.0,
-        'inch': 100.0 / 2.54,
-        'mm': 1000.0
-    }
-    # --- Load the position
-    position = load_FILD4_trajectory(shot)
-
-    # --- Plot the position
-    if ax is None:
-        fig, ax = plt.subplots()
-    if overlay:  # Overlay the trayectory in an existing plot:
-        print('Sorry, still not implemented')
-    else:
-        ax.plot(position['insertion']['t'],
-                factor[unit] * position['insertion']['insertion'],
-                **line_options)
-        ax.set_xlabel('Time [s]')
-        ax.set_ylabel('Insertion [' + unit + ']')
-        ax.set_xlim(0, 1.1 * position['insertion']['t'].max())
-        ymax = 1.1 * factor[unit] * position['insertion']['insertion'].max()
-        ax.set_ylim(0, ymax)
-        ax.legend()
-
-    # --- Plot the PS output
-    if PS_output:
-        if ax_PS is None:
-            fig2, ax_PS = plt.subplots(2, 1, sharex=True)
-        # Plot the voltage
-        ax_PS[0].plot(position['PSouput']['V_t_obj'],
-                      position['PSouput']['V_obj'],
-                      label='Objective')
-        ax_PS[0].plot(position['PSouput']['V_t'],
-                      position['PSouput']['V'],
-                      label='Real')
-        ax_PS[0].set_ylabel('Voltage [V]')
-        ax_PS[0].legend()
-        ax_PS[1].plot(position['PSouput']['I_t'],
-                      position['PSouput']['I'])
-        ax_PS[1].set_ylabel('Intensity [A]')
-    plt.show()
-
 
 # --- FILD object
 class FILD_logbook:
@@ -208,8 +64,7 @@ class FILD_logbook:
     Lina Velarde - linvelgal@alum.us.es
     Juan Rivero - juan.rivero-rodriguez@ukaea.uk
 
-    Introduced in version 0.7.2
-    Re-written in version 0.7.8
+    Introduced in version 0.8.3
 
     Public methods:
         - getCameraCalibration(): find the camera parameters
