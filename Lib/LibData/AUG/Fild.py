@@ -55,22 +55,28 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
 
 
 # --- Auxiliar routines to load and plot FILD4 trajectory:
-def load_FILD4_trajectory(shot, path=paths.FILD4_trayectories):
+def load_FILD4_trajectory(shot, path=paths.FILD4_trajectories):
     """
-    Load FILD4 trayectory
+    Deprecated function. Use the FILD4 object
+    
+    Load FILD4 trajectory
 
     Jose Rueda: jrrueda@us.es
 
     Note: This is a temporal function, in the future will be replaced by one to
-    load trayectories from shotfiles
+    load trajectories from shotfiles
 
     @param shot: Shot number to load
     @param path: Path to the main folder with FILD4 trajectories
     """
+    print('--------------------')
+    print('Deprecated function. Use the FILD4 object in LibData')
+    print('--------------------')
+
     # --- Load the power supply output data
     shot_str = str(shot)
     try:
-        file = os.path.join(path, 'output_raw', shot_str[0:2],
+        file = os.path.join(path, 'output_power_supply', shot_str[0:2],
                             'FILD_MDRS_' + shot_str + '.txt')
         print('Looking for file: ', file)
         data = np.loadtxt(file, skiprows=1)
@@ -129,7 +135,9 @@ def plot_FILD4_trajectory(shot, PS_output=False, ax=None, ax_PS=None,
                           line_params={}, line_params_PS={}, overlay=False,
                           unit='cm'):
     """
-    Plot FILD4 trayectory
+    Deprecated function. Use the FILD4 object
+
+    Plot FILD4 trajectory
 
     Jose Rueda: jrrueda@us.es
 
@@ -146,10 +154,13 @@ def plot_FILD4_trajectory(shot, PS_output=False, ax=None, ax_PS=None,
     @param line_params_PS: Line parameters for the PS plots. Note: same dict
                            will be used for the Voltaje and intensity plots, be
                            carefull if you select the 'color'
-    @param overlay: Flag to overlay the trayectory over the current plot. The
+    @param overlay: Flag to overlay the trajectory over the current plot. The
                     insertion will be plotted in arbitrary units on top of it.
                     ax input is mandatory for this
     """
+    print('--------------------')
+    print('Deprecated function. Use the FILD4 object in LibData')
+    print('--------------------')
     line_options = {
         'label': '#' + str(shot),
     }
@@ -167,7 +178,7 @@ def plot_FILD4_trajectory(shot, PS_output=False, ax=None, ax_PS=None,
     # --- Plot the position
     if ax is None:
         fig, ax = plt.subplots()
-    if overlay:  # Overlay the trayectory in an existing plot:
+    if overlay:  # Overlay the trajectory in an existing plot:
         print('Sorry, still not implemented')
     else:
         ax.plot(position['insertion']['t'],
@@ -459,12 +470,12 @@ class FILD_logbook:
         else:  # We have FILD4, the movable FILD
             # Ideally, we will have an optic calibration database which is
             # position dependent, therefore we should keep all the FILD
-            # trayectory.
+            # trajectory.
             # However, this calibration database was not given by the previous
             # operator of the 'in-shot' movable FILD, neither any details of
             # the optical design which could allow us to create it. So until we
             # dismount and examine the diagnostic piece by piece, this
-            # trayectory is irrelevant, we will just keep the average position,
+            # trajectory is irrelevant, we will just keep the average position,
             # which is indeed 'okeish', as the resolution of this FILD in AUG
             # is poor, so a small missalignement will not be noticed.
             # To calculate this average position, I will take the average of
