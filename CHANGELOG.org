@@ -1,3 +1,7 @@
+** 0.8.2 Added get_pellets_timeTrace and update LibFILD4
+- Routine to get the pellets time trace
+- Included a routine (get_dist2sep) to calculate the distance to the separatrix 
+
 ** 0.8.1 FILD4 object added (LibFILD4)
 - Added routines to load and reconstruct FILD4 trajectories as part of LibData
 - FILD4 database is stored in Javier Hidalgo local machine. Contact him if you cannot access them.
