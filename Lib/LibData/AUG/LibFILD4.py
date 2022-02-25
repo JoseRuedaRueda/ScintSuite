@@ -24,6 +24,68 @@ from Lib.LibPaths import Path
 from Lib.LibMachine import machine
 paths = Path(machine)
 
+def get_dist2sep(shot: int = None, R: float = None, z: float = None,
+             t: float = None, diag: str = 'EQH', plot_sep: bool = True, 
+             plot_dist: bool = True):
+        """
+        Get the distance to the separatrix during a shot.
+        
+        @param shot
+        @param R: R array [m]
+        @param z: z array [m]
+        @param t: time array. If None, entire shot
+        @param diag: diagnostic for equilibrium reconstruction
+        @param plot_sep: plot separatrix position
+        @param plot_dist: plot distance to the separatrix
+        
+        returns distance to the separatrix in m
+        """
+        
+        # Load the separatrix
+        equ = sf.EQU(shot, diag = diag) 
+        r_sep, z_sep = sf.rho2rz(equ, rho_in = 1.0, t_in = t, 
+                                 coord_in = 'rho_pol')
+        if t is None:
+            R = R*np.ones(r_sep.shape)
+            z = z*np.ones(r_sep.shape)
+            t = equ.time        
+        
+        # Get the minimum distance between the probe head and the separatrix
+        dist_sep = np.zeros(r_sep.shape)
+        dist_sep = np.zeros(r_sep.shape)
+        for i in range(len(r_sep)):
+            line_coords = np.transpose(np.array([r_sep[i][0], z_sep[i][0]]))
+            line = geom.LineString(line_coords)
+            point = geom.Point([R[i], z[i]])
+            dist_sep[i] = point.distance(line) # in m
+            
+        if plot_sep:
+            fig, ax = plt.subplots()
+            title = '#'+str(shot)+'\n t = '+\
+                str(t[0])+' - '+str(t[-1])+' s'
+            fig.suptitle(title)
+            plt.grid()
+            plt.axis('equal')
+            for i in range(len(t)):
+                ax.plot(np.array(r_sep[i]).squeeze(),
+                        np.array(z_sep[i]).squeeze(), '-b')
+            ax.plot(R, z, 'xr')
+            plt.show()
+            
+        if plot_dist:
+            fig2, ax2 = plt.subplots(2)
+            title = '#'+str(shot)
+            fig2.suptitle(title)
+            ax2[0].plot(t, R)
+            ax2[0].set_xlabel('Time [s]')
+            ax2[0].set_ylabel('R [m]')
+            ax2[1].plot(t, dist_sep)
+            ax2[1].set_xlabel('Time [s]')
+            ax2[1].set_ylabel('Dist2sep [m]')
+            plt.show()
+        
+        return dist_sep
+
 
 class FILD4_traject:
     
@@ -63,8 +125,6 @@ class FILD4_traject:
         @param smooth: smooth output
         @param win_length: window of the Savgol filter
         @param polyorder: polyorder of the Savgol filter
-        
-        @return dictionary with the power suppy output
         """
         if path_ps == '':
             path_ps = os.path.join(paths.FILD4_trajectories, 
@@ -96,11 +156,12 @@ class FILD4_traject:
                   'V': V, 
                   'time_V': time_V}
         self.dat_ps = output
-        return output
+        return 
 
     def reconstruct_traject(self, B: float = None, get_R: str ='auto', 
                             R: float = 13.5, R_fit_order: int = 0, 
-                            R_coef: tuple =()):
+                            R_coef: tuple =(),
+                            diag = 'EQH'):
         """
         Reconstruct FILD4 trajectory from the power supply output
         
@@ -114,6 +175,7 @@ class FILD4_traject:
         @param R_fit_order: order of the fit (1 or 0). Only for auto
         @param R_coef: R = R_coef[0]*t+R_coef[1]. Only for lineal
         @param R: R single value. Only for manual
+        @param diag: diagnostic for the equilibrium reconstruction
         """
         if not bool(self.dat_ps):
             raise NameError('Power supply not loaded. Run load_power_supply')
@@ -121,7 +183,7 @@ class FILD4_traject:
         max_insertion = 0.067 # m (FARO). Hardcoded
         # Get the magnetic field in the coil
         if B == None:
-            equ = sf.EQU(self.shot, diag = 'EQH')
+            equ = sf.EQU(self.shot, diag = diag)
             R_coil = params.fild4['coil']['R_coil']
             Z_coil = params.fild4['coil']['Z_coil']
             br, bz, bt = sf.rz2brzt(equ, r_in = R_coil, z_in = Z_coil,
@@ -196,68 +258,45 @@ class FILD4_traject:
                         'Resistance': R_fit}
         return
         
-    def dist2sep(self, t: float = None, plot_sep: bool = True, 
+    def get_dist2sep(self, t: float = None, diag = 'EQH', plot_sep: bool = True, 
                  plot_dist: bool = True):
         """
-        Get the distance to the separatrix during a shot.
+        Wrapper for the FILD4 case for the dist2sep routine.
         
         @param t: time array. If None, entire shot
+        @param diag: diagnostic for equilibrium reconstruction
         @param plot_sep: plot separatrix position
         @param plot_dist: plot distance to the separatrix
-        
-        returns distance to the separatrix
         """
         if not bool(self.traject):
-            raise NameError('Trajectorynot loaded. Run reconstruct_traject') 
+            raise NameError('Trajectory not loaded. Run reconstruct_traject') 
         
         if t is None:
             t = self.traject['time']
-        
-        # Load the separatrix
-        equ = sf.EQU(self.shot, diag = 'EQH') 
-        r_sep, z_sep = sf.rho2rz(equ, rho_in = 1.0, t_in = t, 
-                                 coord_in = 'rho_pol')
-        
+            
         # Get FILD4 position
         insertion = np.interp(t, self.traject['time'],
                               self.traject['position'])
         R_pos = params.fild4['coil']['R_parking']-insertion
         z_pos = params.fild4['coil']['Z_coil']*np.ones(t.shape)
+            
+        self.dist2sep = get_dist2sep(shot = self.shot, R = R_pos, z = z_pos,
+                                 t = t, diag = diag, plot_sep = plot_sep,
+                                 plot_dist = False)
         
-        # Get the minimum distance between the probe head and the separatrix
-        dist_sep = np.zeros(r_sep.shape)
-        dist_sep = np.zeros(r_sep.shape)
-        for i in range(len(r_sep)):
-            line_coords = np.transpose(np.array([r_sep[i][0], z_sep[i][0]]))
-            line = geom.LineString(line_coords)
-            point = geom.Point([R_pos[i], z_pos[i]])
-            dist_sep[i] = point.distance(line) # in m
-            
-        if plot_sep:
-            fig, ax = plt.subplots()
-            title = '#'+str(self.shot)+'\n t = '+\
-                str(t[0])+' - '+str(t[-1])+' s'
-            fig.suptitle(title)
-            plt.grid()
-            plt.axis('equal')
-            for i in range(len(t)):
-                ax.plot(np.array(r_sep[i]).squeeze(),
-                        np.array(z_sep[i]).squeeze(), '-b')
-            ax.plot(R_pos, z_pos, 'xr')
-            
+        # Adaptated plot_dist. In terms of insertion instead of absolute pos.
         if plot_dist:
             fig2, ax2 = plt.subplots(2)
             title = '#'+str(self.shot)
+            fig2.suptitle(title)
             ax2[0].plot(t, insertion)
             ax2[0].set_xlabel('Time [s]')
             ax2[0].set_ylabel('Insertion [m]')
-            ax2[1].plot(t, dist_sep)
+            ax2[1].plot(t, self.dist2sep)
             ax2[1].set_xlabel('Time [s]')
             ax2[1].set_ylabel('Dist2sep [m]')
         
-        self.dist_sep = dist_sep
-            
-        return dist_sep
+        return 
     
     def load_trajectory(self, path_traject: str = '', 
                         version: int = -1):
