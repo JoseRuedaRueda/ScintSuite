@@ -6,7 +6,7 @@ import warnings
 # --- MU parameters
 # -----------------------------------------------------------------------------
 ## Length of the shot numbers
-shot_number_length = 5  # In AUG shots numbers are written with 5 numbers 00001
+shot_number_length = 5  # In MU shots numbers are written with 5 numbers 00001
 
 ## Field and current direction
 Bt_sign = -1   # +1 Indicates the positive phi direction (counterclockwise)
@@ -16,10 +16,8 @@ IB_sign = Bt_sign * It_sign
 # -----------------------------------------------------------------------------
 #                           FILD PARAMETERS
 # -----------------------------------------------------------------------------
-# All values except for beta, are extracted from the paper:
-# J. Ayllon-Guerola et al. 2019 JINST14 C10032
-# betas are taken to be -12.0 for AUG
-# fild 5 alpha extracted from FARO measurements
+# All values except for beta, are extracted from XXXXXXXXXXX:
+#
 fild1 = {'path': '/p/IPP/AUG/rawfiles/FIT/',  # Path for the video files
          'extension': '_v710.cin'}  # Extension of the video file, none for png
 

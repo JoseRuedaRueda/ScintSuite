@@ -6,4 +6,4 @@ if machine == 'AUG':
 elif machine == 'MU':
     from Lib.LibData.MU import *
 else:
-    from Lib.LibData.Generic  import *
+    from Lib.LibData.Generic import *

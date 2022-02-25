@@ -6,6 +6,7 @@ FILD experimental data. It allows you to load the video files as well as call
 the routines to calculate the remap
 
 Jose Rueda Rueda: jrrueda@us.es
+Lina Velarde Gallardo: lvelarde@us.es
 """
 from Lib.LibVideo.BasicVideoObject import BVO
 import os
@@ -24,8 +25,8 @@ from Lib.version_suite import version
 from Lib.LibMachine import machine
 import Lib.LibVideo.AuxFunctions as _aux
 from scipy.io import netcdf                # To export remap data
-from tqdm import tqdm
-import Lib.errors as errors                # For waitbars
+from tqdm import tqdm                      # For waitbars
+import Lib.errors as errors
 pa = p.Path(machine)
 del p
 
@@ -101,9 +102,9 @@ class FILDVideo(BVO):
             try:
                 AdqFreq = FILDlogbook.getAdqFreq()
                 t_trig = FILDlogbook.gettTrig()
-            except errors.NotFoundAdqFreq_or_ttrig:
-                AdqFreq = None
-                t_trig = None
+            except AttributeError:
+                AdqFreq = 1/23.0
+                t_trig = -2.5
             # initialise the parent class
             BVO.__init__(self, file=file, shot=shot, empty=empty,
                          adfreq=AdqFreq, t_trig=t_trig)
