@@ -7,6 +7,5 @@
 ! users
 
 &paths
-  FILD4_trayectories = '/afs/ipp/home/j/javih/FILD4/output_processed',
-  FILDPositionDatabase = 'https://datashare.mpcdf.mpg.de/s/xv2C3B6aSDSmtZv/download'
+  kiwi=''
 /
