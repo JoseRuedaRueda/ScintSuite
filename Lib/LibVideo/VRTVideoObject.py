@@ -1,5 +1,5 @@
 """
-Object to work with the VRT cameras. 
+Object to work with the VRT cameras.
 
 """
 
@@ -32,11 +32,11 @@ del p
 class VRTVideo(BVO):
     """
     Video class for the VRT cameras
-    
+
     Heavily based on FILDVideoObject.py by Jose Rueda (jrrueda@us.es)
-    
+
     Javier Hidalgo-Salaverri (jhsalaverri@us.es)
-    
+
     """
     def __init__(self, camera: str = None, shot: int = None):
         """
@@ -67,10 +67,10 @@ class VRTVideo(BVO):
         self.shot = shot
         self.camera = camera
 
-    
+
     def GUI_frames(self, calibrated: bool = False):
         """Small GUI to explore camera frames
-        
+
         @param calibrated: return the GUI in terms of temperature -> currently
         not working properly
         Changing colormap scale is also bugged
@@ -91,15 +91,15 @@ class VRTVideo(BVO):
             SH = camera_list[self.camera]['SH']
             Tcal = vrt.get_calibration(self.camera, self.shot, GA, SH)
             exp_dat = self.exp_dat
-            
-            exp_dat['frames'] = np.interp(exp_dat['frames'], 
+
+            exp_dat['frames'] = np.interp(exp_dat['frames'],
                                           np.arange(camrange), Tcal)
-            ssGUI.ApplicationShowVid(root, exp_dat, None) 
+            ssGUI.ApplicationShowVid(root, exp_dat, None)
         else:
             ssGUI.ApplicationShowVid(root, self.exp_dat, None)
         root.mainloop()
         root.destroy()
-        
+
     def plot_frame(self, frame_number=None, ax=None, ccmap=None,
                    t: float = None,
                    verbose: bool = True,
@@ -111,7 +111,7 @@ class VRTVideo(BVO):
         @param frame_number: Number of the frame to plot, relative to the video
             file, optional
         @param ax: Axes where to plot, is none, just a new axes will be created
-        @param ccmap: colormap to be used, if none, Gamma_II from IDL. To be 
+        @param ccmap: colormap to be used, if none, Gamma_II from IDL. To be
             changed to the Hot colormap
         @param verbose: If true, info of the theta and phi used will be printed
         @param vmin: Minimum value for the color scale to plot
@@ -188,13 +188,13 @@ class VRTVideo(BVO):
             fig.show()
             plt.tight_layout()
         return ax
-        
-    def create_roi(self, time: float = 0.0, save: bool = False, 
+
+    def create_roi(self, time: float = 0.0, save: bool = False,
                    filename: str = ''):
         """
         Define a ROI to be used afterwards. It can be saved
-        
-        This is a wrapper for the create_roi function of the LibTimeTraces 
+
+        This is a wrapper for the create_roi function of the LibTimeTraces
         library by Jose Rueda (joserrueda@us.es)
         @
         """
@@ -202,7 +202,7 @@ class VRTVideo(BVO):
         self.plot_frame(t = time)
         fig = plt.gcf()
         fig,roi = tt.create_roi(fig)
-        
+
         if save:
             if filename == '':
                 folder = os.path.join(pa.Results, 'VRT/masks/')
@@ -214,9 +214,9 @@ class VRTVideo(BVO):
                         file_id += 1
                     else:
                         exists = False
-                
+
                 filename = filename+'_'+str(file_id)+'.nc'
-                            
+
             # Get the corresponding frame
             frame_index = np.argmin(abs(self.exp_dat['tframes'] - time))
             # tf = self.exp_dat['tframes'][frame_index]
@@ -225,4 +225,3 @@ class VRTVideo(BVO):
             ssio.save_mask(mask = mask,filename = filename, shot = self.shot,
                            frame = frame)
         return roi
-     

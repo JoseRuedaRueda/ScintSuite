@@ -11,6 +11,6 @@ if __name__ == '__main__':
     root = tk.Tk()
     root.resizable(height=None, width=None)
     a = appHIBP_beam(root, origin=iHIBP['port_center'],
-                     shotnumber=39810, time=0.50, diag='EQH')
+                     shotnumber=39860, time=0.50, diag='EQH')
     root.mainloop()
     root.destroy()
