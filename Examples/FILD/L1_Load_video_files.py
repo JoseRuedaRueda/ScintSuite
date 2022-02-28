@@ -6,7 +6,7 @@ possibility to subtract noise
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.1.8
+Note; Written for version 0.1.8.  Revised for version 0.8.0
 
 You should run paths_suite.py before runing this example.
 """
@@ -16,7 +16,7 @@ import Lib as ss
 # -----------------------------------------------------------------------------
 # - General settings
 shot = 38686
-diag_ID = 6  # 6 for rFILD
+diag_ID = 1  # FILD manipulator number
 t1 = 0.9     # Initial time to be loaded, [s]
 t2 = 2.5     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
@@ -30,12 +30,8 @@ tn2 = 1.0     # Final time to average the frames for noise subtraction [s]
 # -----------------------------------------------------------------------------
 # --- Section 1: Load video
 # -----------------------------------------------------------------------------
-# - Get the proper file name
-filename = ss.vid.guess_filename(shot, ss.dat.FILD[diag_ID-1]['path'],
-                                 ss.dat.FILD[diag_ID-1]['extension'])
-
 # - open the video file:
-vid = ss.vid.FILDVideo(filename, diag_ID=diag_ID)
+vid = ss.vid.FILDVideo(shot=shot, diag_ID=diag_ID)
 # - read the frames:
 print('Reading camera frames, shot: ', shot)
 vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
@@ -44,8 +40,9 @@ vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
 # --- Section 2: Subtract the noise
 # -----------------------------------------------------------------------------
 if subtract_noise:
-    vid.subtract_noise(t1=tn1, t2=tn2)
-
+    frame = vid.subtract_noise(t1=tn1, t2=tn2)
+# The 'noise frame' used is returned as an output, but also, it is stored in
+# the 'exp_dat' dictionary of the video object
 # -----------------------------------------------------------------------------
 # --- Extra
 # -----------------------------------------------------------------------------
@@ -53,3 +50,6 @@ if subtract_noise:
 #       vid.GUI_frames()  # plot to see all the frames
 #       vid.plot_frame(t=2.5) # Plot a single frame, accept custom color map,
 #                             # Given ax to plot, etc...
+#
+# Of course there are much more, like plotting the number of saturated counts
+# (usefult to see overheating) or other GUIS, just type 'vid?'

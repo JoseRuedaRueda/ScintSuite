@@ -6,6 +6,8 @@ FILD experimental data. It allows you to load the video files as well as call
 the routines to calculate the remap
 
 Jose Rueda Rueda: jrrueda@us.es
+
+Introduced in version 0.8.0
 """
 from Lib.LibVideo.BasicVideoObject import BVO
 import os
@@ -24,14 +26,13 @@ from Lib.version_suite import version
 from Lib.LibMachine import machine
 import Lib.LibVideo.AuxFunctions as _aux
 from scipy.io import netcdf                # To export remap data
-from tqdm import tqdm                      # For waitbars
 pa = p.Path(machine)
 del p
 
 
-class FILDVideo(BVO):
+class INPAVideo(BVO):
     """
-    Video class for the FILD diagnostic.
+    Video class for the INPA diagnostic.
 
     Inside there are the necesary routines to load and remapp a FILD video
 
@@ -98,22 +99,22 @@ class FILDVideo(BVO):
             # initialise the parent class
             BVO.__init__(self, file=file, shot=shot, empty=empty)
             ## Diagnostic used to record the data
-            self.diag = 'FILD'
+            self.diag = 'INPA'
             ## Diagnostic ID (FILD manipulator number)
             self.diag_ID = diag_ID
             # Initialise the logbook
-            FILDlogbook = ssdat.FILD_logbook(**logbookOptions)  # Logbook
+            INPAlogbook = ssdat.INPA_logbook(**logbookOptions)  # Logbook
             if shot is not None:
-                self.FILDposition = FILDlogbook.getPosition(shot, diag_ID)
-                self.FILDorientation = \
-                    FILDlogbook.getOrientation(shot, diag_ID)
-                self.FILDgeometry = FILDlogbook.getGeomID(shot, diag_ID)
+                self.INPAposition = INPAlogbook.getPosition(shot, diag_ID)
+                self.INPAorientation = \
+                    INPAlogbook.getOrientation(shot, diag_ID)
+                self.INPAgeometry = INPAlogbook.getGeomID(shot, diag_ID)
                 self.CameraCalibration = \
-                    FILDlogbook.getCameraCalibration(shot, diag_ID)
+                    INPAlogbook.getCameraCalibration(shot, diag_ID)
             else:
-                self.FILDposition = None
-                self.FILDorientation = None
-                self.FILDgeometry = None
+                self.INPAposition = None
+                self.INPAorientation = None
+                self.INPAgeometry = None
                 self.CameraCalibration = None
                 print('Shot not provided, you need to define FILDposition')
                 print('You need to define FILDorientation')
@@ -141,8 +142,8 @@ class FILDVideo(BVO):
 
         Note: It will overwrite the content of self.Bfield
         """
-        if self.FILDposition is None:
-            raise Exception('FILD position not know')
+        if self.INPAposition is None:
+            raise Exception('INPA position not know')
         # Get the proper timebase
         if use_average:
             time = self.avg_dat['tframes']
@@ -159,117 +160,22 @@ class FILDVideo(BVO):
             'BR': np.array(br).squeeze(),
             'Bz': np.array(bz).squeeze(),
             'Bt': np.array(bt).squeeze(),
-            'Bp': np.array(bp).squeeze(),
+            'Bp': np.array(bp).squeeze()
         }
-        self.BField['B'] = np.sqrt(self.BField['Bt']**2 + self.BField['Bp']**2)
 
     def _getBangles(self):
         """Get the orientation of the field respec to the head"""
-        if self.FILDorientation is None:
-            raise Exception('FILD orientation not know')
-        phi, theta = \
-            ssFILDSIM.calculate_fild_orientation(
-                self.BField['BR'], self.BField['Bz'], self.BField['Bt'],
-                self.FILDorientation['alpha'], self.FILDorientation['beta']
-            )
-        self.Bangles = {'phi': phi, 'theta': theta}
+        pass
 
     def _checkStrikeMapDatabase():
         pass
 
     def remap_loaded_frames(self, options: dict = {}):
-        """
-        Remap all loaded frames in the video object
-
-        Jose Rueda Rueda: jrrueda@us.es
-
-        @param    options: Options for the remapping routine. See
-            remapAllLoadedFrames in the LibMap package for a full description
-
-        @return:  write in the object the remap_dat dictionary containing with:
-            -# options: Options used for the remapping
-            -# frames: Remaped frames
-            -# time: time associated to the remapped points
-            -# xaxis: xaxis of the remapped frames
-            -# xlabel: name of the xaxis of he remaped frame (pitch for FILD)
-            -# yaxis: xaxis of the remapped frames
-            -# ylabel: name of the yaxis of he remaped frame (r for FILD)
-            -# sprofx: signal integrated over the y range given by options
-            -# sprofy: signal integrated over the x range given by options
-        """
-        # Check if the user want to use the average
-        if 'use_average' in options.keys():
-            use_avg = options['use_average']
-            nt = len(self.avg_dat['tframes'])
-        else:
-            use_avg = False
-            nt = len(self.exp_dat['tframes'])
-
-        # Check if the magnetic field and the angles are ready, only if the map
-        # is not given
-        if 'map' not in options.keys():
-            if self.BField is None:
-                self._getB(self.BFieldOptions, use_average=use_avg)
-            if self.Bangles is None:
-                self._getBangles()
-            # Check if we need to recaluculate them because they do not
-            # have the proper length (ie they were calculated for the exp_dat
-            # not the average)
-            if self.BField['BR'].size != nt:
-                print('Need to recalculate the magnetic field')
-                self._getB(self.BFieldOptions, use_average=use_avg)
-            if self.Bangles['phi'].size != nt:
-                self._getBangles()
-        self.remap_dat, opt = \
-            ssmap.remapAllLoadedFrames(self, **options)
-        self.remap_dat['options'] = opt
+        pass
 
     def integrate_remap(self, xmin=20.0, xmax=90.0, ymin=1.0, ymax=10.0,
                         mask=None):
-        """
-        Integrate the remaped frames over a given region of the phase space
-
-        Jose Rueda: jrrueda@us.es
-
-        @param xmin: Minimum value of the x axis to integrate (pitch for FILD)
-        @param xmax: Maximum value of the x axis to integrate (pitch for FILD)
-        @param ymin: Minimum value of the y axis to integrate (radius in FILD)
-        @param ymax: Maximum value of the y axis to integrate (radius in FILD)
-        @param mask: bynary mask denoting the desired pixes of the space to
-        integate
-        @return : Output: Dictionary containing the trace and the settings used
-        to caclualte it
-        """
-        if self.remap_dat is None:
-            raise Exception('Please remap before call this function!!!')
-        # First calculate the dif x and y to integrate
-        dx = self.remap_dat['xaxis'][1] - self.remap_dat['xaxis'][0]
-        dy = self.remap_dat['yaxis'][1] - self.remap_dat['yaxis'][0]
-        # Find the flags:
-        mask_was_none = False
-        if mask is None:
-            flagsx = (xmin < self.remap_dat['xaxis']) *\
-                (self.remap_dat['xaxis'] < xmax)
-            flagsy = (ymin < self.remap_dat['yaxis']) *\
-                (self.remap_dat['yaxis'] < ymax)
-            mask_was_none = True
-        # Perform the integration:
-        nx, ny, nt = self.remap_dat['frames'].shape
-        trace = np.zeros(nt)
-        for iframe in tqdm(range(nt)):
-            dummy = self.remap_dat['frames'][:, :, iframe].copy()
-            dummy = dummy.squeeze()
-            if mask_was_none:
-                trace[iframe] = np.sum(dummy[flagsx, :][:, flagsy]) * dx * dy
-            else:
-                trace[iframe] = np.sum(dummy[mask]) * dx * dy
-        if mask_was_none:
-            output = {'xmin': xmin, 'xmax': xmax, 'ymin': ymin, 'ymax': ymax}
-        else:
-            output = {'mask': mask}
-        output['trace'] = trace
-        output['t'] = self.repmap_dat['tframes']
-        return output
+        pass
 
     def plot_frame(self, frame_number=None, ax=None, ccmap=None,
                    strike_map: str = 'off', t: float = None,
@@ -383,14 +289,17 @@ class FILDVideo(BVO):
 
             # Get the full name of the file
             name__smap = ssFILDSIM.guess_strike_map_name_FILD(
-                phi_used, theta_used, geomID = self.FILDgeometry,
-                decimals = self.remap_dat['options']['decimals'])
+                phi_used, theta_used, machine=machine,
+                decimals=self.remap_dat['options']['decimals']
+            )
             smap_folder = self.remap_dat['options']['smap_folder']
             full_name_smap = os.path.join(smap_folder, name__smap)
             # Load the map:
             smap = ssmap.StrikeMap(0, full_name_smap)
             # Calculate pixel coordinates
-            smap.calculate_pixel_coordinates(self.CameraCalibration)
+            smap.calculate_pixel_coordinates(
+                self.remap_dat['options']['calibration']
+            )
             # Plot the map
             smap.plot_pix(ax=ax, marker_params=smap_marker_params,
                           line_params=smap_line_params)
@@ -511,7 +420,7 @@ class FILDVideo(BVO):
 
     def calculateBangles(self, t='all', verbose: bool = True):
         """
-        Find the orientation of FILD for a given time.
+        Find the orientation of INPA for a given time.
 
         José Rueda: jrrueda@us.es
 
@@ -525,11 +434,8 @@ class FILDVideo(BVO):
         @return phi: phi angle [º]
         """
         if self.remap_dat is None:
-            if self.FILDorientation is None:
-                raise Exception('FILD orientation not know')
-
-            alpha = self.FILDorientation['alpha']
-            beta = self.FILDorientation['beta']
+            alpha = self.INPAorientation['alpha']
+            beta = self.INPAorientation['beta']
             print('Remap not done, calculating angles')
 
             if t == 'all':
@@ -577,23 +483,11 @@ class FILDVideo(BVO):
         print(text)
         root = tk.Tk()
         root.resizable(height=None, width=None)
-        ssGUI.ApplicationShowVidRemap(root, self.exp_dat, self.remap_dat,
-                                      self.CameraCalibration,
-                                      self.FILDgeometry)
+        ssGUI.ApplicationShowVidRemapINPA(root, self.exp_dat, self.remap_dat,
+                                          self.CameraCalibration,
+                                          self.INPAgeometry)
         root.mainloop()
         root.destroy()
-
-    # def GUI_profiles(self):
-    #     """Small GUI to explore camera and remapped frames"""
-    #     text = 'Press TAB until the time slider is highlighted in red.'\
-    #         + ' Once that happend, you can move the time with the arrows'\
-    #         + ' of the keyboard, frame by frame'
-    #     print(text)
-    #     root = tk.Tk()
-    #     root.resizable(height=None, width=None)
-    #     ssGUI.ApplicationShowProfiles(root, self.exp_dat, self.remap_dat)
-    #     root.mainloop()
-    #     root.destroy()
 
     def plot_profiles_in_time(self, ccmap=None, ax_params: dict = {}, t=None,
                               nlev: int = 50, cbar_tick_format: str = '%.1E',
@@ -904,11 +798,11 @@ class FILDVideo(BVO):
             diag_ID.units = ' '
             diag_ID.long_name = 'FILD number'
 
-            # # Save FILD geometry
-            # geom_ID = f.createVariable('geom_ID', 's', )
-            # geom_ID[:] = self.FILDgeometry
-            # geom_ID.units = ' '
-            # geom_ID.long_name = 'FILD geomID'
+            # Save FILD geometry
+            geom_ID = f.createVariable('geom_ID', 's', )
+            geom_ID[:] = self.FILDgeometry
+            geom_ID.units = ' '
+            geom_ID.long_name = 'FILD geomID'
 
             # Save the flag which indicate if the remap was from average or
             # real frames
@@ -944,7 +838,9 @@ class FILDVideo(BVO):
 
             # Save the modulus of the magnetic field at the FILD positon
             bfield = f.createVariable('bfield', 'float64', ('tframes', ))
-            bfield[:] = self.BField['B']
+            b = np.sqrt(self.BField['BR']**2 + self.BField['Bz']**2
+                        + self.BField['Bt']**2)
+            bfield[:] = b
             bfield.units = 'T'
             bfield.long_name = 'Field at detector'
 
@@ -1043,7 +939,7 @@ class FILDVideo(BVO):
             phi.long_name = 'phi'
 
             phi_used = f.createVariable('phi', 'float64', ('tframes', ))
-            phi_used[:] = self.remap_dat['phi_used']
+            phi_used[:] = self.self.remap_dat['phi_used']
             phi_used.units = '$\\degree$'
             phi_used.long_name = 'phi used'
 

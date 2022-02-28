@@ -907,7 +907,7 @@ class gaussian_beam:
             s_data = np.linspace(smin, smax, Nbeam)
         else:
             s_data = np.atleast_1d([random.random() \
-                                        for ii in np.arange(Ndisk*Nbeam)])
+                                        for ii in range(Ndisk*Nbeam)])
             s_data = smin + (smax-smin)*s_data
 
         # --- Generating random points in the injection port.
@@ -1108,6 +1108,8 @@ class geom:
             tidx = [0]
         else:
             tidx = np.searchsorted(self.t_eq, timepoint)
+            if not hasattr(tidx, '__iter__'):
+                tidx = [tidx]
 
         options = { 'color': 'r',
                     'linewidth': 1.0

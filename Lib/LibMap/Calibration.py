@@ -1,5 +1,7 @@
 """Calibration and database objects."""
 import numpy as np
+import Lib.errors as errors
+
 
 class CalibrationDatabase:
     """Database of parameter to align the scintillator."""
@@ -101,12 +103,13 @@ class CalibrationDatabase:
         n_true = sum(flags)
 
         if n_true == 0:
-            raise Exception('No entry find in the database, revise database')
+            raise errors.NotFoundCameraCalibration(
+                'No entry find in the database, revise database')
         elif n_true > 1:
             print('Several entries fulfill the condition')
             print('Possible entries:')
             print(self.data['ID'][flags])
-            raise Exception()
+            raise errors.FoundSeveralCameraCalibration()
         else:
             dummy = np.argmax(np.array(flags))
             cal = CalParams()
@@ -141,6 +144,8 @@ class CalParams:
         self.yshift = 0
         ## Rotation angle to transform from the sensor to the scintillator
         self.deg = 0.0
+        ## Camera type
+        self.camera = ''
 
     def print(self):
         """Print calibration"""

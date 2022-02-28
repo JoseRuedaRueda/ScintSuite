@@ -13,6 +13,7 @@ import Lib.LibMap as ssmapping
 from scipy.io import netcdf
 from Lib.version_suite import version
 from Lib.LibPaths import Path
+from Lib.LibVideo.FILDVideoObject import FILDVideo
 import os
 import warnings
 import tkinter as tk                       # To open UI windows
@@ -88,7 +89,7 @@ def ask_to_save(dir=None, ext=None):
     return out
 
 
-def ask_to_open(dir=None, ext=None):
+def ask_to_open(dir: str = None, ext: str = None, filetype=None):
     """
     Open a dialogue to choose the file to be opened
 
@@ -98,13 +99,35 @@ def ask_to_open(dir=None, ext=None):
     just the current directory will be opened
     @param ext: extension for filter the possible options, if none, no filter
     will be applied
+    @filetype: filetype to search for in the folder. If None, only internal
+    recognized filetypes will be opened. @see{Lib.LibParameters.filetypes}
+
+    @return out: the filename selected by the user
+    """
+    if filetype is None:
+        filetype = sspar.filetypes
+
+    root = tk.Tk()
+    root.withdraw()   # To close the window after the selection
+    out = tk.filedialog.askopenfilename(initialdir=dir, defaultextension=ext,
+                                        filetypes=filetype)
+    return out
+
+
+def ask_to_open_dir(path: str = None):
+    """
+    Open a dialogue to choose the directory to be opened
+
+    Jose Rueda: jrrueda@us.es
+
+    @param dir: Initial directory to direct the GUI to open the directory,
+    if none, just the current directory will be opened
 
     @return out: the filename selected by the user
     """
     root = tk.Tk()
     root.withdraw()   # To close the window after the selection
-    out = tk.filedialog.askopenfilename(initialdir=dir, defaultextension=ext,
-                                        filetypes=sspar.filetypes)
+    out = tk.filedialog.askdirectory(initialdir=path)
     return out
 
 
@@ -233,18 +256,24 @@ def save_mask(mask, filename=None, nframe=None, shot=None, frame=None):
         m[:] = mask
         m.units = ' '
         m.long_name = 'Binary mask'
-        
-        
+
+
 def load_mask(filename):
     """
     Load a binary mask to use in timetraces, remaps or VRT images
-    
+
     Javier Hidalgo-Salaverri: jhsalaverri@us.es
+
+    @param filename: Name of the netcdf file
     """
-    frame = None; mask = None; nx = None; ny = None; shot = None;  
-    file = netcdf.NetCDFFile(filename,'r')
+    frame = None
+    mask = None
+    nx = None
+    ny = None
+    shot = None
+    file = netcdf.NetCDFFile(filename, 'r', mmap=False)
     if 'frame' in file.variables.keys():
-        frame = file.variables['frame'][:] 
+        frame = file.variables['frame'][:]
     if 'mask' in file.variables.keys():
         mask = file.variables['mask'][:]
         mask = mask.astype(bool)
@@ -254,11 +283,11 @@ def load_mask(filename):
         ny = file.variables['ny'][:]
     if 'shot' in file.variables.keys():
         shot = file.variables['shot'][:]
-    file.close
-    
-    return {'frame':frame, 'mask': mask, 'nx': nx, 'ny': ny, 'shot': shot}
-    
-    
+    file.close()
+
+    return {'frame': frame, 'mask': mask, 'nx': nx, 'ny': ny, 'shot': shot}
+
+
 # -----------------------------------------------------------------------------
 # --- TimeTraces
 # -----------------------------------------------------------------------------
@@ -293,7 +322,7 @@ def read_timetrace(file=None):
 # -----------------------------------------------------------------------------
 def read_calibration(file=None):
     """
-    Read a the used calibration from a remap netCDF file
+    Read the used calibration from a remap netCDF file
 
     Jose Rueda: jrrueda@us.es
 
@@ -486,3 +515,151 @@ def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
             eff.units = ' '
             eff.long_name = '1 Means efficiency was activated to calculate W'
     print('-... -.-- . / -... -.-- .')
+
+
+# -----------------------------------------------------------------------------
+# --- Remaped videos
+# -----------------------------------------------------------------------------
+def load_FILD_remap(filename: str = None, verbose=True,
+                    encoding: str = 'utf-8'):
+    """
+    Load all the data in a remap file into a video object.
+
+    Jose Rueda Rueda: jrrueda@us.es
+
+    @param filename: netCDF file to read
+    @param verbose: flag to print information in the console
+    @param encoding: encode to decode the strings
+
+    @return vid: FILDvideoObject with the remap loaded
+
+    Notice: Only the modulus of the field is saved, not the complete field, so
+    the dictionary vid.Bfield will not be initialised, call yoursef getBfield
+    if you need it
+    """
+    if filename is None:
+        filename = ' '
+        filename = check_open_file(filename)
+        if filename == '' or filename == ():
+            raise Exception('You must select a file!!!')
+    vid = FILDVideo(empty=True)  # Open the empty file
+
+    with netcdf.netcdf_file(filename, 'r', mmap=False,) as f:
+        var = f.variables.keys()  # list of all available variables
+        history = f.history.decode(encoding)   # Version used for the remap
+        # Get the version numbers
+        if 'versionIDa' in var:  # @Todo: else reading it from history
+            va = f.variables['versionIDa'][:]
+            vb = f.variables['versionIDb'][:]
+            vc = f.variables['versionIDc'][:]
+        # Initialise the dictionaries for saving the data
+        vid.remap_dat = {'options': {}}
+        vid.exp_dat = {}
+        vid.Bangles = {}
+        vid.BField = {}
+        vid.FILDorientation = {}
+        vid.FILDposition = {}
+        vid.settings = {}
+        # Read and save the 'standard' data
+        vid.shot = f.variables['shot'][0]  # Shot number
+
+        if 'avg_flag' in var:  # this is a don with version 0.8.0 or greater
+            vid.remap_dat['options']['use_average'] = \
+                bool(f.variables['use_average'][0])
+        else:  # This is done with old suite, only exp_remap was possible
+            vid.remap_dat['options']['use_average'] = False
+
+        if 'geom_ID' in var:
+            vid.FILDgeometry = f.variables['geom_ID'][:]
+
+        vid.remap_dat['tframes'] = f.variables['tframes'][:]
+
+        vid.remap_dat['xaxis'] = f.variables['xaxis'][:]
+        vid.remap_dat['xunits'] = f.variables['xaxis'].units.decode(encoding)
+        vid.remap_dat['xlabel'] = \
+            f.variables['xaxis'].long_name.decode(encoding)
+
+        vid.remap_dat['yaxis'] = f.variables['yaxis'][:]
+        vid.remap_dat['yunits'] = f.variables['yaxis'].units.decode(encoding)
+        vid.remap_dat['ylabel'] = \
+            f.variables['yaxis'].long_name.decode(encoding)
+
+        vid.remap_dat['frames'] = f.variables['frames'][:]
+
+        vid.remap_dat['sprofx'] = f.variables['sprofx'][:]
+        vid.remap_dat['sprofxlabel'] = \
+            f.variables['sprofx'].long_name.decode(encoding)
+
+        vid.remap_dat['sprofy'] = f.variables['sprofy'][:]
+        vid.remap_dat['sprofylabel'] = \
+            f.variables['sprofy'].long_name.decode(encoding)
+
+        vid.CameraCalibration = ssmapping.CalParams()
+        vid.CameraCalibration.xshift = f.variables['xshift'][:]
+        vid.CameraCalibration.yshift = f.variables['yshift'][:]
+        vid.CameraCalibration.xscale = f.variables['xscale'][:]
+        vid.CameraCalibration.yscale = f.variables['yscale'][:]
+        vid.CameraCalibration.deg = f.variables['deg'][:]
+
+        if 't1_noise' in var:
+            vid.exp_dat['t1_noise'] = f.variables['t1_noise'][0]
+            vid.exp_dat['t2_noise'] = f.variables['t2_noise'][0]
+        if 'frame_noise' in var:
+            vid.exp_dat['frame_noise'] = f.variables['frame_noise'][:]
+
+        vid.exp_dat['n_pixels_gt_threshold'] = \
+            f.variables['n_pixels_gt_threshold'][:]
+        vid.exp_dat['threshold_for_counts'] = \
+            f.variables['threshold_for_counts'][:]
+
+        vid.Bangles['theta'] = f.variables['theta'][:]
+        vid.Bangles['phi'] = f.variables['phi'][:]
+
+        vid.BField['B'] = f.variables['bfield'][:]
+
+        vid.remap_dat['theta'] = f.variables['theta'][:]
+        vid.remap_dat['phi'] = f.variables['phi'][:]
+        if 'theta_used' in var:
+            vid.remap_dat['theta_used'] = f.variables['theta'][:]
+            vid.remap_dat['phi_used'] = f.variables['phi'][:]
+
+        vid.remap_dat['options']['rmax'] = f.variables['rmax'][0]
+        vid.remap_dat['options']['rmin'] = f.variables['rmin'][0]
+        vid.remap_dat['options']['dr'] = f.variables['dr'][0]
+
+        vid.remap_dat['options']['pmax'] = f.variables['pmax'][0]
+        vid.remap_dat['options']['pmin'] = f.variables['pmin'][0]
+        vid.remap_dat['options']['dp'] = f.variables['dp'][0]
+
+        vid.remap_dat['options']['pprofmax'] = f.variables['pprofmax'][0]
+        vid.remap_dat['options']['pprofmin'] = f.variables['pprofmin'][0]
+        vid.remap_dat['options']['rprofmin'] = f.variables['rprofmin'][0]
+        vid.remap_dat['options']['rprofmax'] = f.variables['rprofmax'][0]
+
+        vid.FILDposition['R'] = f.variables['rfild'][0]
+        vid.FILDposition['z'] = f.variables['zfild'][0]
+        if 'phifild' in var:
+            vid.FILDposition['phi'] = f.variables['phifild'][0]
+        else:  # if phi is not present, old remap file, tokamak. Phi irrelevant
+            vid.FILDposition['phi'] = 0.0
+
+        vid.FILDorientation['alpha'] = f.variables['alpha'][0]
+        vid.FILDorientation['beta'] = f.variables['beta'][0]
+        if 'gamma' in var:
+            vid.FILDorientation['gamma'] = f.variables['gamma'][0]
+        else:  # if phi is not present, old remap file, tokamak. Phi irrelevant
+            vid.FILDorientation['gamma'] = 0.0
+
+        if 'bits' in var:
+            vid.settings['RealBPP'] = f.variables['RealBPP'][0]
+        vid.diag = 'FILD'
+        if 'diag_ID' in var:
+            vid.diag_ID = f.variables['diag_ID'][0]
+        else:
+            print('Assuming FILD1')
+            vid.diag_ID = 1
+
+    if verbose:
+        print(history)
+        print('Shot: ', vid.shot)
+    return vid
