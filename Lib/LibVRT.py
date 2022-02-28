@@ -40,6 +40,7 @@ def get_cameras(shot):
             # Get the camera configuration
             enabled = True if grabber.attrib['enabled'] == 'true' else False 
             # Get the camera configuration (SH, GA)
+            SH = []; GA = []
             for cam_conf in grabber.findall('ConfInfo/Entry'):           
                 c = cam_conf.attrib['cmd']
                 if '?' in c:
@@ -49,13 +50,28 @@ def get_cameras(shot):
                     else: 
                         c += cam_conf.attrib['reply']
                     #  I think this can be changed to c = cam_conf.attrib['reply']. Has this got any use?
-                if 'SH' in c: SH = int(c.split('=')[1])
+                if 'SH' in c: SH = int(c.split('=')[1])  
                 if 'GA' in c: GA = int(c.split('=')[1]) 
-            cameras[grabber.attrib['name']] = {'rois': rois,
-                                               'limits': lim,
-                                               'enabled': enabled,
-                                               'SH': SH, 
-                                               'GA': GA}
+            # The same camera may appear in two file and the info is updated
+            if grabber.attrib['name'] in cameras:
+                if not rois == []: 
+                    cameras[grabber.attrib['name']]['rois'] = rois
+                if not lim == []: 
+                    cameras[grabber.attrib['name']]['limits'] = lim
+                if not enabled == []: 
+                    cameras[grabber.attrib['name']]['enabled'] = enabled
+                if not SH == []: cameras[grabber.attrib['name']]['SH'] = SH
+                if not GA == []: cameras[grabber.attrib['name']]['GA'] = GA
+            else:
+                cameras[grabber.attrib['name']] = {'rois': rois,
+                                                   'limits': lim,
+                                                   'enabled': enabled,
+                                                   'SH': SH,
+                                                   'GA': GA}
+            # print(cameras[grabber.attrib['name']])
+            # if grabber.attrib['name'] == '07Eod1': print('SH = ' +str(SH))
+            # if not SH == []: cameras[grabber.attrib['name']]['SH'] = SH
+            # if not GA == []: cameras[grabber.attrib['name']]['GA'] = GA
     return cameras
             
 
