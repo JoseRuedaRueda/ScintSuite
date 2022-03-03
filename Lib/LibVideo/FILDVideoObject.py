@@ -100,11 +100,10 @@ class FILDVideo(BVO):
             # Initialise the logbook
             FILDlogbook = ssdat.FILD_logbook(**logbookOptions)  # Logbook
             try:
-                AdqFreq = FILDlogbook.getAdqFreq()
-                t_trig = FILDlogbook.gettTrig()
+                AdqFreq = FILDlogbook.getAdqFreq(shot, diag_ID)
+                t_trig = FILDlogbook.gettTrig(shot, diag_ID)
             except AttributeError:
-                AdqFreq = 1/23.0
-                t_trig = -2.5
+                raise Exception('Adquisition frequency or trigger time not found')
             # initialise the parent class
             BVO.__init__(self, file=file, shot=shot, empty=empty,
                          adfreq=AdqFreq, t_trig=t_trig)

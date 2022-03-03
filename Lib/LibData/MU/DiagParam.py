@@ -1,4 +1,4 @@
-"""Diagnostics and parameters of MAST Upgrade"""
+"""Diagnostics and parameters of MAST Upgrade and kiwi"""
 
 import numpy as np
 import warnings
@@ -18,15 +18,11 @@ IB_sign = Bt_sign * It_sign
 # -----------------------------------------------------------------------------
 # All values except for beta, are extracted from XXXXXXXXXXX:
 #
-fild1 = {'path': '/p/IPP/AUG/rawfiles/FIT/',  # Path for the video files
-         'extension': '_v710.cin'}  # Extension of the video file, none for png
+fild1 = {'adqfreq':23, 't_trig':-2.5,
+         'path': '/p/IPP/AUG/rawfiles/FIT/',  # Path for the video files
+         'extension': '_v710.cin',
+         'camera': 'CCD'}  # Extension of the video file, none for png
 
 
-fild2 = {'alpha': 0.0, 'beta': -12.0, 'sector': 3, 'r': 2.180,
-         'z': 0.3, 'phi_tor': 57.25,
-         'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD2/',
-         'extension': '', 'label': 'FILD2', 'diag': 'FHA', 'channel': 'FIPM_',
-         'nch': 20, 'camera': 'CCD'}
 
-
-FILD = (fild1)
+FILD = (fild1,)

@@ -7,8 +7,4 @@ Lina Velarde - linvelgal@alum.us.es and Juan Rivero - juan.rivero-rodriguez@ukae
 
 from Lib.LibData.MU.DiagParam import *
 from Lib.LibData.MU.Equilibrium import *
-from Lib.LibData.MU.Magnetics import *
-from Lib.LibData.MU.Profiles import *
-from Lib.LibData.MU.VesselNBI import *
-from Lib.LibData.MU.Misc import *
 from Lib.LibData.MU.Fild import *
