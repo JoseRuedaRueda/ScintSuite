@@ -345,50 +345,73 @@ class FILD_logbook:
         geomID = self.getGeomID(shot, FILDid)
         return self._getOrientationDefault(geomID)
 
-    def _readTrigerTimeDatabase(self, filename: str, verbose: bool = True):
-        """
-        Read the excel containing the trigger time
 
-        @param filename: path or url pointing to the logbook
-        @param verbose: flag to print some info
+    def getAdqFreq(self, shot: int, diag_ID: int = 1):
         """
-        if verbose:
-            print('Looking for the trigger time database: ', filename)
-        # dummy = pd.read_excel(filename, engine='openpyxl', header=[0, 1])
-        # dummy['ttrig'] = dummy.Shot.Number.values.astype(int)
-        return dummy
+        Get the adquisition frequency from the database
 
-    def _readAdquisitionFrequencyDatabase(self, filename: str, verbose: bool = True):
-        """
-        Read the excel containing the adquisition frequency database
+        Jose Rueda - jrrueda@us.es
+        Lina Velarde - lvelarde@us.es
 
-        @param filename: path or url pointing to the logbook
-        @param verbose: flag to print some info
+        @param shot: shot number to look in the database
+        @param FILDid: manipulator id
         """
-        if verbose:
-            print('Looking for the adquisition frequency database: ', filename)
-        # dummy = pd.read_excel(filename, engine='openpyxl', header=[0, 1])
-        # dummy['shot'] = dummy.Shot.Number.values.astype(int)
-        # return dummy
+        # Get always the default as a reference:
+        default = params.FILD[diag_ID-1]['adqfreq']
+        # First check that we have loaded the position logbook
+        if not self.flagPositionDatabase:
+            print('Logbook not loaded, returning default values')
+            return default
+        # Get the shot index in the database
+        if shot in self.positionDatabase['shot'].values:
+            i, = np.where(self.positionDatabase['shot'].values == shot)[0]
+            flag = True
+        else:
+            print('Shot not found in logbook, returning the default values')
+            return default
+        # --- Get the postion
+        #adqfreq = 23        # Initialise the parameter
+        dummy = self.positionDatabase['FILD'+str(diag_ID)]
+        if 'CCDqe freq [Hz]' in dummy.keys():  # Look for adqfreq
+            adqfreq = dummy['CCDqe freq [Hz]'].values[i]
+        else:  # Take the default approx value
+            print('Adquisition frequency not in the logbook, returning default')
+            adqfreq = default
+        return adqfreq
 
-        def getAdqFreq(self, shot, FILDid):
+    def gettTrig(self, shot: int, diag_ID: int = 1):
         """
-        Get the adquisition frequency
+        Get the triger time from the database
 
-        @param shot:
-        @param FILDid:
-        """
-        return self._readAdquisitionFrequencyDatabase(shot, )
+        Jose Rueda - jrrueda@us.es
+        Lina Velarde - lvelarde@us.es
 
-    def gettTrig(self, shot, FILDid):
+        @param shot: shot number to look in the database
+        @param FILDid: manipulator id
         """
-        Get the trigger time
+        # Get always the default as a reference:
+        default = params.FILD[diag_ID-1]['t_trig']
+        # First check that we have loaded the position logbook
+        if not self.flagPositionDatabase:
+            print('Logbook not loaded, returning default values')
+            return default
+        # Get the shot index in the database
+        if shot in self.positionDatabase['shot'].values:
+            i, = np.where(self.positionDatabase['shot'].values == shot)[0]
+            flag = True
+        else:
+            print('Shot not found in logbook, returning the default values')
+            return default
+        # --- Get the postion
+        #t_trig = 23        # Initialise the parameter
+        dummy = self.positionDatabase['FILD'+str(diag_ID)]
+        if 'CCDqe trigger time [s]' in dummy.keys():  # Look for adqfreq
+            adqfreq = dummy['CCDqe trigger time [s]'].values[i]
+        else:  # Take the default approx value
+            print('Trigger time not in the logbook, returning default')
+            adqfreq = default
+        return adqfreq
 
-        @param shot:
-        @param FILDid:
-        """
-        print('To be coded')
-        return t_trig
 
     def getGeomShots(self, geomID, maxR: float = None):
         """
@@ -397,16 +420,11 @@ class FILD_logbook:
         @param geomID: ID of the geometry we are insterested in. E.g.: MU02.
         @param maxR: if present, only shots for which R < maxR will be
             considered. Default values are, for each manipulator:
-                1: 2.5 m
-                2: 2.2361 m
-                5: 1.795 m
+                1: 1.8 m
         """
         # Minimum insertion
-        minin = {
-            1: 2.5,
-            2: 2.2361,
-            5: 1.795,
-        }
+        minin = {1: 1.8
+                    }
         # get the shot interval for this geometry
         flags_geometry = self.geometryDatabase['GeomID'] == geomID
         n_instalations = sum(flags_geometry)
