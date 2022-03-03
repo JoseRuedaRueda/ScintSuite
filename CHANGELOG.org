@@ -1,3 +1,8 @@
+** 0.8.x MAST-U adaptation:
+In the process of adapting the code to work for the MAST-U FILD, some important changes have been performed:
+- New library to read PCO files (format .b16)
+- Bug fixed in PNG library: the video files were not necessarily read in the correct order
+
 ** 0.8.0 SINPA implementation data analysis
 *Notice*: For all the SINPA related implementation, you need version 0.3 of the SINPA code
 *** Data Folder:
