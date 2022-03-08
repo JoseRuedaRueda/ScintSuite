@@ -43,7 +43,7 @@ def get_dist2sep(shot: int = None, R: float = None, z: float = None,
         
         # Load the separatrix
         equ = sf.EQU(shot, diag = diag) 
-        r_sep, z_sep = sf.rho2rz(equ, rho_in = 1.0, t_in = t, 
+        r_sep, z_sep = sf.rho2rz(equ, rho_in = 1.0, t_in = t,
                                  coord_in = 'rho_pol')
         if t is None:
             R = R*np.ones(r_sep.shape)
@@ -51,7 +51,6 @@ def get_dist2sep(shot: int = None, R: float = None, z: float = None,
             t = equ.time        
         
         # Get the minimum distance between the probe head and the separatrix
-        dist_sep = np.zeros(r_sep.shape)
         dist_sep = np.zeros(r_sep.shape)
         for i in range(len(r_sep)):
             line_coords = np.transpose(np.array([r_sep[i][0], z_sep[i][0]]))
@@ -83,7 +82,7 @@ def get_dist2sep(shot: int = None, R: float = None, z: float = None,
             ax2[1].set_xlabel('Time [s]')
             ax2[1].set_ylabel('Dist2sep [m]')
             plt.show()
-        
+        print(max(dist_sep))
         return dist_sep
 
 
@@ -205,8 +204,9 @@ class FILD4_traject:
             index = abs(V) > 0.5
             R_output = R_output[index]
             time_R = time_V[index]
-            R_output = R_output[(R_output<16)*(R_output>12)]
-            time_R = time_R[(R_output<16)*(R_output>12)]
+            index = (R_output<16)*(R_output>12)
+            R_output = R_output[index]
+            time_R = time_R[index]
             # Filter the values that are above the mean value
             flag = 0
             while flag == 0:
@@ -278,8 +278,8 @@ class FILD4_traject:
         insertion = np.interp(t, self.traject['time'],
                               self.traject['position'])
         R_pos = params.fild4['coil']['R_parking']-insertion
-        z_pos = params.fild4['coil']['Z_coil']*np.ones(t.shape)
-            
+        z_pos = params.fild4['coil']['Z_parking']*np.ones(t.shape)
+        print(R_pos.mean())
         self.dist2sep = get_dist2sep(shot = self.shot, R = R_pos, z = z_pos,
                                  t = t, diag = diag, plot_sep = plot_sep,
                                  plot_dist = False)
@@ -295,6 +295,7 @@ class FILD4_traject:
             ax2[1].plot(t, self.dist2sep)
             ax2[1].set_xlabel('Time [s]')
             ax2[1].set_ylabel('Dist2sep [m]')
+            plt.show()
         
         return 
     
@@ -394,7 +395,6 @@ class FILD4_traject:
                               label = 'V power supply')
             ax[id_plot].plot(self.dat_ps['time_V_goal'], self.dat_ps['V_goal'],
                               '-r', label = 'V goal')
-            ax[id_plot].set_xlabel('Time [s]')
             ax[id_plot].set_ylabel('V [V]')
             ax[id_plot].grid(True)
             ax[id_plot].legend()
