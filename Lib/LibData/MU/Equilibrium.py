@@ -2,9 +2,7 @@
 import warnings
 import numpy as np
 from scipy.interpolate import interpn, interp1d
-import dd                # Modules to load shotfiles and equilibrium, these
-import map_equ as meq    # will be deleted and only sf used in a future
-# import aug_sfutils as sf
+
 
 ECRH_POWER_THRESHOLD = 0.05  # Threshold to consider ECRH on [MW]
 

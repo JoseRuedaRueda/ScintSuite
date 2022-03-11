@@ -10,7 +10,7 @@ import Lib.LibVideo.AuxFunctions as aux
 import matplotlib.pyplot as plt
 try:
     from pco_tools import pco_reader as pco
-except KeyError:
+except ModuleNotFoundError:
     raise Exception('PCO tools not imported. You cannot load pco files.\
                     To import, run "pip install pco_tools".')
 
@@ -111,7 +111,7 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
             if file.endswith('.b16'):
                 M[:, :, counter] = pco.load(
                     os.path.join(video_object.path, file))
-                print(file)
+                # print(file)
                 counter = counter + 1
     else:
         # Load only the selected frames
