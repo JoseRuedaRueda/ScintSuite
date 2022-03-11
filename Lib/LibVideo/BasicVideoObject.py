@@ -5,7 +5,7 @@ Jose Rueda Rueda: jrrueda@us.es
 
 Contain the main class of the video object from where the other video object
 will be derived. Each of these derived video object will contain the individual
-routines to remap iHIBP, FILD or INPA data
+routines to remap iHIBP, FILD or INPA data.
 """
 import os
 import warnings
@@ -251,6 +251,9 @@ class BVO:
                                        limitation=limitation, limit=limit)
                     self.exp_dat['tframes'] = \
                         self.timebase[frames_number].flatten()
+                    if frames_number is None:
+                        nx, ny, nf = self.exp_dat['frames'].shape
+                        frames_number = np.arange(nf) + 1
                     self.exp_dat['nframes'] = frames_number
                     self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
                 else:
@@ -264,6 +267,9 @@ class BVO:
                                        limitation=limitation, limit=limit)
                     self.exp_dat['tframes'] = \
                         self.timebase[frames_number].flatten()
+                    if frames_number is None:
+                        nx, ny, nf = self.exp_dat['frames'].shape
+                        frames_number = np.arange(nf) + 1
                     self.exp_dat['nframes'] = frames_number
                     self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
                 else:

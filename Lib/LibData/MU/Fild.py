@@ -24,7 +24,7 @@ _cameraDatabase = os.path.join(paths.ScintSuite, 'Data', 'Calibrations',
 _geometryDatabase = os.path.join(paths.ScintSuite, 'Data',
                                  'Calibrations', 'FILD', 'MU',
                                  'Geometry_logbook.txt')
-_positionDatabase = '/afs/ipp/home/l/linvel/MAST-U_FILD_logbook_v3.xlsx'
+_positionDatabase = '/home/jqw5960/mastu/MAST-U_FILD_logbook_v3.xlsx'
 
 _geometrdefault = os.path.join(paths.ScintSuite, 'Data',
                                'Calibrations', 'FILD', 'MU',
