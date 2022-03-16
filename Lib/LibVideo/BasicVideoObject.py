@@ -262,9 +262,12 @@ class BVO:
                     return M.squeeze()
             elif self.type_of_file == '.b16':
                 if internal:
-                    self.exp_dat['frames'] = \
-                        pco.read_frame(self, frames_number,
+                    try:
+                        self.exp_dat['frames'] = \
+                            pco.read_frame(self, frames_number,
                                        limitation=limitation, limit=limit)
+                    except TypeError:
+                        raise Exception('Please insert frame number as array')
                     self.exp_dat['tframes'] = \
                         self.timebase[frames_number].flatten()
                     if frames_number is None:
