@@ -38,14 +38,14 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
     Guess the filename of a video
 
     Jose Rueda Rueda: jrrueda@us.es
-
-    Note AUG criteria of organising files is assumed: .../38/38760/...
+    Lina Velarde: lvelarde@us.es
 
     @param shot: shot number
     @param diag_ID: FILD manipulator number. Will always be 1 for now.
 
     @return file: the name of the file/folder
     """
+    raise Exception('MAST-U automatic search for file has not yet been implemented')
     base_dir = params.FILD[diag_ID-1]['path']
     extension = params.FILD[diag_ID-1]['extension']
     shot_str = str(shot)
@@ -336,14 +336,39 @@ class FILD_logbook:
         """
         Get the orientation
 
-        Note that in AUG the orientation of the diagnostic never changes, so
-        this function just return always the default parameters
+        In MU the beta angle can change.
 
         @param shot: shot number to look in the database
         @param FILDid: manipulator id
         """
         geomID = self.getGeomID(shot, FILDid)
-        return self._getOrientationDefault(geomID)
+        default = self._getOrientationDefault(geomID)
+        # First check that we have loaded the position logbook
+        if not self.flagPositionDatabase:
+            print('Logbook not loaded, returning default values')
+            return default
+        # Get the shot index in the database
+        if shot in self.positionDatabase['shot'].values:
+            i, = np.where(self.positionDatabase['shot'].values == shot)[0]
+            flag = True
+        else:
+            print('Shot not found in logbook, returning the default values')
+            return default
+        # --- Get the angle
+        #adqfreq = 23        # Initialise the parameter
+        dummy = self.positionDatabase['FILD'+str(FILDid)]
+        if 'Gamma [deg]' in dummy.keys():  # Look for angle
+            beta = - dummy['Gamma [deg]'].values[i] # Provisional negative sign.
+            # Todo: change sign here and in notebook
+            print('Provisional comments:')
+            print('Please make sure the beta angle in the notebook is contrary to convention')
+            print('Convention is: negative when anticlockwise, looked from outside the vessel')
+        else:  # Take the default approx value
+            print('Beta angle not in the logbook, returning default')
+            return default
+        default['beta'] = beta
+
+        return default
 
 
     def getAdqFreq(self, shot: int, diag_ID: int = 1):

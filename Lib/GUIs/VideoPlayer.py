@@ -43,6 +43,8 @@ class ApplicationShowVid:
         tk.Grid.rowconfigure(master, 0, weight=1)
         # --- Create the time slider
         # dt for the slider
+        if t is None:
+            raise Exception('You might need to run vid.read_frames() first')
         dt = t[1] - t[0]
         # Slider creation
         self.tSlider = tk.Scale(master, from_=t[0], to=t[-1], resolution=dt,

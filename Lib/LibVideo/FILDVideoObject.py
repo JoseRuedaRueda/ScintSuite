@@ -348,6 +348,8 @@ class FILDVideo(BVO):
                 tf = float(self.exp_dat['tframes'][frame_index])
         # If we give the time:
         if t is not None:
+            if self.exp_dat['tframes'] is None:
+                raise Exception('You might need to run vid.read_frame() first')
             frame_index = np.argmin(abs(self.exp_dat['tframes'] - t))
             tf = self.exp_dat['tframes'][frame_index]
             dummy = self.exp_dat['frames'][:, :, frame_index].squeeze()
