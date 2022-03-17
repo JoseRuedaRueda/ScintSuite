@@ -1,7 +1,18 @@
-** 0.8.x MAST-U adaptation:
+
+** 0.8.3 MAST-U adaptation:
 In the process of adapting the code to work for the MAST-U FILD, some important changes have been performed:
 - New library to read PCO files (format .b16)
 - Bug fixed in PNG library: the video files were not necessarily read in the correct order
+
+** 0.8.2 Added get_pellets_timeTrace and update LibFILD4
+- Routine to get the pellets time trace
+- Included a routine (get_dist2sep) to calculate the distance to the separatrix 
+
+** 0.8.1 FILD4 object added (LibFILD4)
+- Added routines to load and reconstruct FILD4 trajectories as part of LibData
+- FILD4 database is stored in Javier Hidalgo local machine. Contact him if you cannot access them.
+- Routines used to load and plot FILD4 trajectories now show as deprecated
+
 
 ** 0.8.0 SINPA implementation data analysis
 *Notice*: For all the SINPA related implementation, you need version 0.3 of the SINPA code

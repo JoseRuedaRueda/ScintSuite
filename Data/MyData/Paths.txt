@@ -9,5 +9,5 @@
 ! Path for the logbook, hardcoded. Needs to be changed when server is working again
 
 &paths
-  FILDPositionDatabase = '/home/jqw5960/mastu/MAST-U_FILD_logbook_v3.xlsx'
+  kiwi=''
 /
