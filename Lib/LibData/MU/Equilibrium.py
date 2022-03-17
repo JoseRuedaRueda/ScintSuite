@@ -5,10 +5,6 @@ from scipy.interpolate import interpn, interp1d
 from pyEquilibrium.equilibrium import equilibrium
 
 
-
-ECRH_POWER_THRESHOLD = 0.05  # Threshold to consider ECRH on [MW]
-
-
 def get_mag_field(shot: int, Rin, zin, time: float, **kwargs):
     """
     Get MU magnetic field

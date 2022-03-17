@@ -19,9 +19,7 @@ IB_sign = Bt_sign * It_sign
 # All values except for beta, are extracted from XXXXXXXXXXX:
 #
 fild1 = {'adqfreq':23, 't_trig':-2.5,
-         'path': '/p/IPP/AUG/rawfiles/FIT/',  # Path for the video files
-         'extension': '_v710.cin',
-         'camera': 'CCD'}  # Extension of the video file, none for png
+         }
 
 
 

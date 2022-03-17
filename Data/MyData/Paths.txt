@@ -6,7 +6,8 @@
 ! the Lib.LibPaths, to avoid merge conflicts or overwriting the paths to other
 ! users
 
+! Path for the logbook, hardcoded. Needs to be changed when server is working again
+
 &paths
-  FILD4_trayectories = '/afs/ipp/home/j/javih/FILD4/output_processed',
-  FILDPositionDatabase = 'https://datashare.mpcdf.mpg.de/s/xv2C3B6aSDSmtZv/download'
+  FILDPositionDatabase = '/home/jqw5960/mastu/MAST-U_FILD_logbook_v3.xlsx'
 /
