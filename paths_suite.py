@@ -33,6 +33,10 @@ def paths_of_the_suite(machine='AUG'):
         'AUG': {
             'AUG_Python': '/afs/ipp/aug/ads-diags/common/python/lib',
             # 'Suite_AUG': os.path.join(SUITE_DIR, 'Lib/LibData/AUG')
+        },
+        'MU': {
+            # 'MU_Python': '/usr/local/modules/default/python',
+            'MU_Python': '/usr/local/depot/Python-3.7/lib'
         }
     }
 
@@ -54,6 +58,9 @@ def paths_of_the_suite(machine='AUG'):
             print('We are not in toki')
             print('The suite has not been tested outside toki')
             print('Things can go wrong!')
+    elif machine == 'MU':
+        print('You are in MU')
+        print('This environment is still being tested')
     else:
         print('Not recognised tokamak environment')
         print('We assume you are in your personal PC')
@@ -62,7 +69,9 @@ def paths_of_the_suite(machine='AUG'):
 
 if __name__ == "__main__":
 
-    if os.path.isdir('/afs/ipp-garching.mpg.de'):
+    if os.path.isdir('/common/uda-scratch'):
+        machine = 'MU'
+    elif os.path.isdir('/afs/ipp-garching.mpg.de'):
         machine = 'AUG'
     else:
         machine = 'Generic'

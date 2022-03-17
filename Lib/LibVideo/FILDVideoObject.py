@@ -6,6 +6,7 @@ FILD experimental data. It allows you to load the video files as well as call
 the routines to calculate the remap
 
 Jose Rueda Rueda: jrrueda@us.es
+Lina Velarde Gallardo: lvelarde@us.es
 """
 from Lib.LibVideo.BasicVideoObject import BVO
 import os
@@ -25,6 +26,7 @@ from Lib.LibMachine import machine
 import Lib.LibVideo.AuxFunctions as _aux
 from scipy.io import netcdf                # To export remap data
 from tqdm import tqdm                      # For waitbars
+import Lib.errors as errors
 pa = p.Path(machine)
 del p
 
@@ -95,14 +97,20 @@ class FILDVideo(BVO):
                 file = ssdat.guessFILDfilename(shot, diag_ID)
             if shot is None:
                 shot = _aux.guess_shot(file, ssdat.shot_number_length)
+            # Initialise the logbook
+            FILDlogbook = ssdat.FILD_logbook(**logbookOptions)  # Logbook
+            try:
+                AdqFreq = FILDlogbook.getAdqFreq(shot, diag_ID)
+                t_trig = FILDlogbook.gettTrig(shot, diag_ID)
+            except AttributeError:
+                raise Exception('Adquisition frequency or trigger time not found')
             # initialise the parent class
-            BVO.__init__(self, file=file, shot=shot, empty=empty)
+            BVO.__init__(self, file=file, shot=shot, empty=empty,
+                         adfreq=AdqFreq, t_trig=t_trig)
             ## Diagnostic used to record the data
             self.diag = 'FILD'
             ## Diagnostic ID (FILD manipulator number)
             self.diag_ID = diag_ID
-            # Initialise the logbook
-            FILDlogbook = ssdat.FILD_logbook(**logbookOptions)  # Logbook
             if shot is not None:
                 self.FILDposition = FILDlogbook.getPosition(shot, diag_ID)
                 self.FILDorientation = \
@@ -340,6 +348,8 @@ class FILDVideo(BVO):
                 tf = float(self.exp_dat['tframes'][frame_index])
         # If we give the time:
         if t is not None:
+            if self.exp_dat['tframes'] is None:
+                raise Exception('You might need to run vid.read_frame() first')
             frame_index = np.argmin(abs(self.exp_dat['tframes'] - t))
             tf = self.exp_dat['tframes'][frame_index]
             dummy = self.exp_dat['frames'][:, :, frame_index].squeeze()

@@ -1,6 +1,9 @@
 """Detect in which machine are we (AUG, SMART...)"""
 import os
-if os.path.isdir('/afs/ipp/aug/ads-diags/common/python/lib'):
+
+if os.path.isdir('/common/uda-scratch'):
+    machine = 'MU'
+elif os.path.isdir('/afs/ipp/aug/ads-diags/common/python/lib'):
     machine = 'AUG'
 else:
     machine = 'Generic'
