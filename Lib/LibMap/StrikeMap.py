@@ -283,19 +283,20 @@ class StrikeMap:
             fig, ax = plt.subplots()
         # Draw the line of constant Gyroradius (energy). 'Horizontal'
         calculated_delta = False
+        j = 1
         for i in range(self.ngyr):
             flags = self.gyroradius == self.unique_gyroradius[i]
             ax.plot(self.y[flags] * factor, self.z[flags] * factor,
                     **line_options)
             # Add the gyroradius label, but just each 2 entries so the plot
             # does not get messy
-            if i == 1:
-                delta = abs(self.y[flags][1] - self.y[flags][0]) * factor
-                calculated_delta = True
-            if (i % 2 == 0) and labels:  # add gyro radius labels
-                if not calculated_delta:
+            if i == j:
+                try:                   
                     delta = abs(self.y[flags][1] - self.y[flags][0]) * factor
                     calculated_delta = True
+                except IndexError:
+                    j += 2
+            if (i % 2 == 0) and labels and calculated_delta:  # add gyro radius labels              
                 # Delta variable just to adust nicelly the distance (as old
                 # fildsim is in cm and new in m)
                 ax.text((self.y[flags]).min() * factor - 0.5 * delta,

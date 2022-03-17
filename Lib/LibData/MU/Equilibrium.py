@@ -1,0 +1,37 @@
+"""Routines for the magnetic equilibrium"""
+import warnings
+import numpy as np
+from scipy.interpolate import interpn, interp1d
+from pyEquilibrium.equilibrium import equilibrium
+
+
+def get_mag_field(shot: int, Rin, zin, time: float, **kwargs):
+    """
+    Get MU magnetic field
+
+    Lina Velarde: lvelarde@us.es
+
+    Note: No extra arguments are expected, **kwargs is just included for
+    compatibility of the call to this method in other databases (machines)
+
+    @param shot: Shot number
+    @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
+    @param zin: Array of z positions where to evaluate (in pairs with Rin) [m]
+    @param time: Array of times where we want to calculate the field (the
+    field would be calculated in a time as close as possible to this
+
+    @return br: Radial magnetic field (nt, nrz_in), [T]
+    @return bz: z magnetic field (nt, nrz_in), [T]
+    @return bt: toroidal magnetic field (nt, nrz_in), [T]
+    @return bp: poloidal magnetic field (nt, nrz_in), [T]
+    """
+    efit_eq = equilibrium(shot = \
+                "/common/uda-scratch/lkogan/efitpp_eshed/epm{:0>6}.nc".\
+                format(shot) if shot<44849 else shot,
+                device='MASTU', time = time)
+    br = efit_eq.BR(Rin, zin)
+    bz = efit_eq.BZ(Rin, zin)
+    bp = efit_eq.Bp(Rin, zin)
+    bt = efit_eq.Bt(Rin, zin)
+
+    return br, bz, bt, bp
