@@ -47,6 +47,8 @@ def make_namelist(codename: str, user_nml: dict):
         return make_ihibpsim1_namelist(user_nml)
     elif codename == 'shot_mapper':
         return make_shotmapper_namelist(user_nml)
+    else:
+        raise NotImplementedError('%s is not implemented!'%codename)
 
 
 def make_tracker_namelist(user_nml: dict):
@@ -110,9 +112,10 @@ def make_tracker_namelist(user_nml: dict):
     # because the user only wants to update that field, it will fail, as all
     # the block 'ORBITS_CONF' would be replaced by one with just that field, so
     # we need to perform the comparison one by one
-    for key in nml.keys():
-        if key in user_nml:
-            nml[key].update(user_nml[key])
+    for inml in nml:
+        for ikey in nml[inml]:
+            if ikey in user_nml:
+                nml[inml][ikey] = user_nml[ikey]
 
     return nml
 
@@ -137,7 +140,8 @@ def make_ihibpsim1_namelist(user_nml: dict):
             'efield_name': '',
             'efield_on': False,
             'equ_file': '',
-        },'profiles': {
+        },
+        'profiles': {
             'te_name': '',
             'ne_name': '',
             'nion_name': ''
@@ -163,10 +167,10 @@ def make_ihibpsim1_namelist(user_nml: dict):
         'deposition': {
             'nbeamdir': 128,
             'ndisk': 1,
-            'rmin': 1.75,
+            'rmin': 2.05,
             'rmax': 2.20,
             'storedeposition': False,
-            'depos_file': 'output.beam',
+            'filedeposition': 'output.beam',
         },
 
         'geometry': {
@@ -177,19 +181,18 @@ def make_ihibpsim1_namelist(user_nml: dict):
             'radius': Lib.dat.iHIBP['source_radius'],
             'sourceradius': Lib.dat.iHIBP['source_radius'],
             'divergency': 0.0,
-            'mean_energy': 50.0,
+            'mean_energy': 70.0,
             'std_e': 0.0,
-            'mass': 87.0,
+            'mass': 85.0,
             'intensity': 1.0e-3
-
         },
 
-        'SCINTILLATOR': {
+        'scintillator': {
             'head3d_fn': 'repo/model3d/scintillator.3d',
             'scint_vertex_file':  'repo/plate/scint_v0.dat',
             'mode': 2,
-            'startr': 0.85,
-            'endr': 1.20,
+            'tol': 1.0e-4,
+            'nstrikemap_points': 32,
             'strikemap_file': 'example.map',
             'save_striking_points': False,
             'file_strikes': 'example.strikes'
@@ -200,10 +203,10 @@ def make_ihibpsim1_namelist(user_nml: dict):
     # because the user only wants to update that field, it will fail, as all
     # the block 'ORBITS_CONF' would be replaced by one with just that field, so
     # we need to perform the comparison one by one
-    for key in nml.keys():
-        if key in user_nml:
-            nml[key].update(user_nml[key])
-
+    for inml in nml:
+        for ikey in nml[inml]:
+            if ikey in user_nml:
+                nml[inml][ikey] = user_nml[ikey]
     return nml
 
 
@@ -222,7 +225,8 @@ def make_shotmapper_namelist(user_nml: dict):
     # Default namelist:
     nml = {
         'shot': {
-            'shotnumber': 0,     # Setting this will retrieve the last shot.
+            'shotnumber': 0,     # Setting this, the code will retrieve
+                                 # the last shot.
             'expmagn': 'AUGD',
             'diagmagn': 'EQI',
             'expprof': 'AUGD',
@@ -230,7 +234,7 @@ def make_shotmapper_namelist(user_nml: dict):
             'timemin': 0.10,
             'timemax': 10.0,
             'dt_shot': 0.50,
-            'limits': np.array((1.65, 2.65, -1.0, 1.0)),
+            'limits': [1.65, 2.65, -1.0, 1.0],
             'nr': 512,
             'nz': 256
         },
@@ -249,30 +253,23 @@ def make_shotmapper_namelist(user_nml: dict):
         'orbits_conf': {
             'save_orbits': False,
             'num_orbits': 1.0,
-            'file_orbits': 'orbits',
-            'dt_orbit': 1.0e-8,
+            'file_orbits': 'example.orbit',
+            'dt_orbit': 1.0e-7,
         },
         'deposition': {
-            'nbeamDir': 128,
+            'nbeamdir': 128,
             'ndisk': 1,
-            'storedeposition': True,
-        },
-        'scint3d': {
-            'triangle_file': 'scintillator.3d',
-            'scint_vertex_file': 'scintmapfile.dat',
-            'mode': 2,
-            'startr': 0.85,
-            'endr': 1.20,
-            'strikemap_file': 'strikemap.map',
-            'save_striking_points': False,
-            'file_strikes': 'strikes'
+            'rmin': 1.75,
+            'rmax': 2.20,
+            'storedeposition': False,
+            'fileDeposition': 'output.beam',
         },
 
         'geometry': {
             'origin_point': Lib.dat.iHIBP['port_center'],
             'tilting_beta': Lib.dat.iHIBP['beta_std'],
             'tilting_theta': Lib.dat.iHIBP['theta_std'],
-            'beammodelrrder': 0,
+            'beammodelorder': 0,
             'radius': Lib.dat.iHIBP['source_radius'],
             'sourceradius': Lib.dat.iHIBP['source_radius'],
             'divergency': 0.0,
@@ -280,6 +277,17 @@ def make_shotmapper_namelist(user_nml: dict):
             'std_e': 0.0,
             'mass': 87.0,
             'intensity': 1.0e-3
+        },
+
+        'scintillator': {
+            'head3d_fn': 'repo/model3d/scintillator.3d',
+            'scint_vertex_file':  'repo/plate/scint_v0.dat',
+            'mode': 2,
+            'tol': 1.0e-4,
+            'nstrikemap_points': 32,
+            'strikemap_file': 'example.map',
+            'save_striking_points': False,
+            'file_strikes': 'example.strikes'
         }
     }
     # Update the fields, if we just use nml.update(user_nml), if user_nml has
@@ -287,9 +295,10 @@ def make_shotmapper_namelist(user_nml: dict):
     # because the user only wants to update that field, it will fail, as all
     # the block 'ORBITS_CONF' would be replaced by one with just that field, so
     # we need to perform the comparison one by one
-    for key in nml.keys():
-        if key in user_nml:
-            nml[key].update(user_nml[key])
+    for inml in nml:
+        for ikey in nml[inml]:
+            if ikey in user_nml:
+                nml[inml][ikey] = user_nml[ikey]
 
     return nml
 

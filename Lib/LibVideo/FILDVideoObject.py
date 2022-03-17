@@ -393,17 +393,14 @@ class FILDVideo(BVO):
 
             # Get the full name of the file
             name__smap = ssFILDSIM.guess_strike_map_name_FILD(
-                phi_used, theta_used, machine=machine,
-                decimals=self.remap_dat['options']['decimals']
-            )
+                phi_used, theta_used, geomID = self.FILDgeometry,
+                decimals = self.remap_dat['options']['decimals'])
             smap_folder = self.remap_dat['options']['smap_folder']
             full_name_smap = os.path.join(smap_folder, name__smap)
             # Load the map:
             smap = ssmap.StrikeMap(0, full_name_smap)
             # Calculate pixel coordinates
-            smap.calculate_pixel_coordinates(
-                self.remap_dat['options']['calibration']
-            )
+            smap.calculate_pixel_coordinates(self.CameraCalibration)
             # Plot the map
             smap.plot_pix(ax=ax, marker_params=smap_marker_params,
                           line_params=smap_line_params)
