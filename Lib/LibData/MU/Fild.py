@@ -24,7 +24,7 @@ _cameraDatabase = os.path.join(paths.ScintSuite, 'Data', 'Calibrations',
 _geometryDatabase = os.path.join(paths.ScintSuite, 'Data',
                                  'Calibrations', 'FILD', 'MU',
                                  'Geometry_logbook.txt')
-_positionDatabase = params.FILD[0]['logbookpath']
+_positionDatabase = paths.FILDPositionDatabase
 _geometrdefault = os.path.join(paths.ScintSuite, 'Data',
                                'Calibrations', 'FILD', 'MU',
                                'GeometryDefaultParameters.txt')
