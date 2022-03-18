@@ -61,7 +61,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             header['nXI'] = np.fromfile(fid, 'int32', 1)[0]
             header['XI'] = np.fromfile(fid, 'float64', header['nXI'])
             header['FILDSIMmode'] = \
-                np.fromfile(fid, 'int32', 1)[0].astype(np.bool)
+                np.fromfile(fid, 'int32', 1)[0].astype(bool)
             header['ncolumns'] = np.fromfile(fid, 'int32', 1)[0]
             header['counters'] = \
                 np.zeros((header['nXI'], header['ngyr']), np.int)

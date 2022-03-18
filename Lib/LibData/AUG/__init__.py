@@ -14,3 +14,4 @@ from Lib.LibData.AUG.Misc import *
 from Lib.LibData.AUG.Fild import *
 from Lib.LibData.AUG.pellets import *
 import Lib.LibData.AUG.LibFILD4 as FILD4
+from Lib.LibData.AUG._INPA import *

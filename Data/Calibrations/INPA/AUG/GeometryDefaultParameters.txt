@@ -1,0 +1,17 @@
+! Namelist containing the default information from a geometry
+
+! Geom name: AUG01
+! Description: First INPA installation
+&AUG01
+  R_pinhole = 1.85
+  z_pinhole = 0.98
+  phi_pinhole = -5.0
+
+  R_scintillator = 1.95
+  z_scintillator = 1.05
+  phi_scintillator = 0.2
+
+  u1 = 0.0,  0.2,  0.3   !u1 in ur, uphi, uz
+  u2 = 0.0, -0.3,  0.5   !u2 in ur, uphi, uz
+  u3 = 0.0,  0.25, 0.36  !u3 in ur, uphi, uz
+/

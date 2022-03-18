@@ -88,7 +88,7 @@ def load_FILD4_trajectory(shot, path=paths.FILD4_trajectories):
         # ones...
         fi = dat[:, 2] < 1
         fv = dat[:, 4] < 1
-        flags = (fv * fi).astype(np.bool)
+        flags = (fv * fi).astype(bool)
         PSouput = {
             'V_t_obj': dat[~flags, 0] / 1000.0,
             'V_obj': dat[~flags, 1],

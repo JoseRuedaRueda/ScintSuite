@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 ** 0.8.3 MAST-U adaptation:
 In the process of adapting the code to work for the MAST-U FILD, some important changes have been performed:
@@ -12,6 +13,23 @@ In the process of adapting the code to work for the MAST-U FILD, some important 
 - Added routines to load and reconstruct FILD4 trajectories as part of LibData
 - FILD4 database is stored in Javier Hidalgo local machine. Contact him if you cannot access them.
 - Routines used to load and plot FILD4 trajectories now show as deprecated
+=======
+** 0.8.1 INPA implementation (pre-release)
+*** INPA:
+- Included INPA calibration files in the data folder
+- FILD INPA and Basic Video Object moved to _<name> just to clean a bit the vid object
+*** LibData:
+- get_fast_channel adapted to use the aug_sfutils instead of the old dd
+*** Plotting:
+- Updated plotSettings() to match new matplotlib. font_manager changed and latex preamble removed
+*** LibFastChannel:
+-Default plotting option changed to raw, to do not fail if the user plot the data just after loading them, so no filtering was done
+
+*** Bug:
+- Solved a bug in plot_frame from the FILD video object. The syntax for the routines to load the strike map was not updated to version 0.8.0
+*** Other changes
+- np.bool replaced with bool to avoid future isues with numpy (np.bool was going to be deprecated)
+>>>>>>> prerelease of version 0.8.1
 
 
 ** 0.8.0 SINPA implementation data analysis
@@ -23,7 +41,7 @@ In the process of adapting the code to work for the MAST-U FILD, some important 
 - SINPA examples updated to the new namelist paraters
 - FILD examples simplified thanks to the direct and easy way of handling now the video files
 - L3 from FILD lectures replaced. There is no longer need for custom options for RFILD. Now L3 shows the new averaging capabilities
-- L14 and L16 from FILD lectures was deprecated (as it was never complete neither machine independent). 
+- L14 and L16 from FILD lectures was deprecated (as it was never complete neither machine independent).
 *** Lib.GUIs:
 - VideoPlusRemapPlayer: Was addapted to the new strike map database structure (still missing some tweaks to be included in version 0.8.1)
 *** Lib.Data.Equilibrium:
