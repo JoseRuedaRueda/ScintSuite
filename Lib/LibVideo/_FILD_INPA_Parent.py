@@ -252,6 +252,89 @@ class FIV(BVO):
             plt.tight_layout()
         return ax
 
+    def plot_orientation(self, ax_params: dict = {}, line_params: dict = {},
+                         ax=None):
+        """
+        Plot the orientaton angles of the diagnostic in each time point
+
+        If the remap is done, it plot the calculated and used orientation
+        of the magnetic field as well as some shaded areas to guide the eye
+
+        Jose Rueda Rueda: jrrueda@us.es
+
+        @param ax_param: axis parameters for the axis beauty routine
+        @param ax: array (with size 2) of axes where to plot
+        """
+        # --- Plotting options:
+        ax_options = {
+            'grid': 'both'
+        }
+        ax_options.update(ax_params)
+        line_options = {
+            'linewidth': 2
+        }
+        line_options.update(line_params)
+        # --- Get the data to plot if remap dat is present
+        if self.remap_dat is not None:
+            time = self.remap_dat['tframes']
+            phi = self.remap_dat['phi']
+            phi_used = self.remap_dat['phi_used']
+            theta = self.remap_dat['theta']
+            theta_used = self.remap_dat['theta_used']
+        else:
+            phi = self.Bangles['phi']
+            phi_used = None
+            theta = self.Bangles['theta']
+            theta_used = None
+            if phi.size == len(self.exp_dat['tframes']):
+                time = self.exp_dat['tframes']
+            else:
+                time = self.avg_dat['tframes']
+        # proceed to plot
+        if ax is None:
+            fig, ax = plt.subplots(2, sharex=True)
+        # Plot the theta angle:
+        # Plot a shaded area indicating the points where only an
+        # aproximate map was used, taken from the solution given here:
+        # https://stackoverflow.com/questions/43233552/
+        # how-do-i-use-axvfill-with-a-boolean-series
+        if theta_used is not None:
+            ax[0].fill_between(time, 0, 1,
+                               where=self.remap_dat['existing_smaps'],
+                               alpha=0.25, color='g',
+                               transform=ax[0].get_xaxis_transform())
+            ax[0].fill_between(time, 0, 1,
+                               where=~self.remap_dat['existing_smaps'],
+                               alpha=0.25, color='r',
+                               transform=ax[0].get_xaxis_transform())
+            ax[0].plot(time, theta_used,
+                       **line_options, label='Used', color='b')
+        # Plot the line
+        ax[0].plot(time, theta,
+                   **line_options, label='Calculated', color='k')
+
+        ax_options['ylabel'] = '$\\Theta$ [degrees]'
+        ax[0] = ssplt.axis_beauty(ax[0], ax_options)
+        # Plot the phi angle
+        if phi_used is not None:
+            ax[1].fill_between(time, 0, 1,
+                               where=self.remap_dat['existing_smaps'],
+                               alpha=0.25, color='g',
+                               transform=ax[1].get_xaxis_transform())
+            ax[1].fill_between(time, 0, 1,
+                               where=~self.remap_dat['existing_smaps'],
+                               alpha=0.25, color='r',
+                               transform=ax[1].get_xaxis_transform())
+            ax[1].plot(time, phi_used,
+                       **line_options, label='Used', color='b')
+
+        ax[1].plot(time, phi,
+                   **line_options, label='Calculated', color='k')
+        ax_options['ylabel'] = '$\\phi$ [degrees]'
+        ax_options['xlabel'] = 't [s]'
+        ax[1] = ssplt.axis_beauty(ax[1], ax_options)
+        plt.legend()
+
     def integrate_remap(self, ximin=20.0, ximax=90.0, rlmin=1.0, rlmax=10.0,
                         pitchmin=None, pitchmax=None,
                         mask=None):
