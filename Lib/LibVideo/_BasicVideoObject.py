@@ -11,6 +11,7 @@ import os
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 from tqdm import tqdm                      # For waitbars
 from scipy import ndimage                  # To filter the images
 import Lib.LibIO as _ssio
@@ -22,6 +23,7 @@ import Lib.LibData as ssdat
 import Lib.LibUtilities as ssutilities
 import Lib.LibPlotting as ssplt
 import Lib.GUIs as ssGUI
+import Lib.errors as errors
 import tkinter as tk
 
 
@@ -29,7 +31,28 @@ class BVO:
     """
     Basic Video Class.
 
-    Just read the frames and filter them
+    Parent class for INPA, FILD, VRT and iHIBP videos. Allows to read the
+    frames, filter them an perform the basic plotting
+
+    Public Methods:
+        - read_frame: Load a given range of frames
+        - subtract noise: Use a range of times to average de noise and subtract
+            it to all frames
+        - filter_frames: apply filters such as median, gaussian, etc
+        - cut frames: cut the frames
+        - average_frames: average frames under certain windows
+        - generate_average_window: generate the windows to average the frames
+        - return to the original frames: remove the noise subtraction etc
+        - plot_number_saturated_counts: plot the total number of saturated
+            counts in each frame
+        - GUI_frames: display a GUI to explore the video
+        - getFrameIndex: get the frame number associated to a given time
+        - getFrame: return the frame associated to a given time
+        - plot_ frame: plot a given frame
+
+    Public Properties:
+        - size: Size (number of elements) of the video
+        - shape: npixelX, npixelY, nframes
     """
 
     def __init__(self, file: str = None, shot: int = None,
@@ -564,6 +587,11 @@ class BVO:
         """Get the size of the loaded frames."""
         return self.exp_dat['frames'].size
 
+    @property
+    def shape(self):
+        """Shape of the loaded frames"""
+        return self.exp_dat['frames'].shape
+
     def GUI_frames(self, flagAverage: bool = False):
         """Small GUI to explore camera frames"""
         text = 'Press TAB until the time slider is highlighted in red.'\
@@ -580,3 +608,136 @@ class BVO:
             ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat)
         root.mainloop()
         root.destroy()
+
+    def getFrameIndex(self, t):
+        """
+        Return the index of the closest frame in time
+
+        Jose Rueda Rueda: jrrueda@us.es
+
+        @param t: desired time (in the same units of the video database)
+
+        @return it: index of the frame in the loaded array
+        """
+        return np.argmin(np.abs(self.timebase - t))
+
+    def getFrame(self, t):
+        """
+        Return the frame of the closest in time to the desired time
+
+        Jose Rueda Rueda: jrrueda@us.es
+
+        @param t: desired time (in the same units of the video database)
+
+        @return it: index of the frame in the loaded array
+        """
+        it = self.getFrameIndex(t)
+
+        return self.exp_dat['frames'][..., it].squeeze()
+
+    def plot_frame(self, frame_number=None, ax=None, ccmap=None,
+                   t: float = None,
+                   verbose: bool = True,
+                   vmin: int = 0, vmax: int = None,
+                   xlim: float = None, ylim: float = None,
+                   scale: str = 'linear',
+                   alpha: float = 1.0, IncludeColorbar: bool = True,
+                   RemoveAxisTicksLabels: bool = False):
+        """
+        Plot a frame from the loaded frames
+
+        Jose Rueda Rueda: jrrueda@us.es
+
+        Notice, you can plot a given frame giving its frame number or giving
+        its time
+
+        @param frame_number: Number of the frame to plot
+        @param ax: Axes where to plot, is none, just a new axes will be created
+        @param ccmap: colormap to be used, if none, Gamma_II from IDL
+        @param verbose: If true, info of the theta and phi used will be printed
+        @param vmin: Minimum value for the color scale to plot
+        @param vmax: Maximum value for the color scale to plot
+        @param xlim: tuple with the x-axis limits
+        @param ylim: tuple with the y-axis limits
+        @param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
+        @param alpha: transparency factor, 0.0 is 100 % transparent
+        @param RemoveAxisTicksLabels: boolean flag to remove the numbers in the
+            axis
+
+        @return ax: the axes where the frame has been drawn
+        """
+        # --- Check inputs:
+        if (frame_number is not None) and (t is not None):
+            raise Exception('Do not give frame number and time!')
+        if (frame_number is None) and (t is None):
+            raise Exception("Didn't you want to plot something?")
+        # --- Prepare the scale:
+        if scale == 'sqrt':
+            extra_options = {'norm': colors.PowerNorm(0.5)}
+        elif scale == 'log':
+            extra_options = {'norm': colors.LogNorm(clip=True)}
+        else:
+            extra_options = {}
+        # --- Load the frames
+        # If we use the frame number explicitly
+        if frame_number is not None:
+            if len(self.exp_dat['nframes']) == 1:
+                if self.exp_dat['nframes'] == frame_number:
+                    dummy = self.exp_dat['frames'].squeeze()
+                    tf = float(self.exp_dat['tframes'])
+                    frame_index = 0
+                else:
+                    raise Exception('Frame not loaded')
+            else:
+                frame_index = self.exp_dat['nframes'] == frame_number
+                if np.sum(frame_index) == 0:
+                    raise Exception('Frame not loaded')
+                dummy = self.exp_dat['frames'][:, :, frame_index].squeeze()
+                tf = float(self.exp_dat['tframes'][frame_index])
+        # If we give the time:
+        if t is not None:
+            frame_index = np.argmin(abs(self.exp_dat['tframes'] - t))
+            tf = self.exp_dat['tframes'][frame_index]
+            dummy = self.exp_dat['frames'][:, :, frame_index].squeeze().copy()
+        # --- Check the colormap
+        if ccmap is None:
+            cmap = ssplt.Gamma_II()
+        else:
+            cmap = ccmap
+        # --- Check the axes to plot
+        if ax is None:
+            fig, ax = plt.subplots()
+            created = True
+        else:
+            created = False
+        if vmax is None:
+            vmax = dummy.max()
+        if scale == 'log':  # If we use log scale, just set to 1 counts the 0s
+            dummy[dummy < 1.0] = 0.0
+
+        img = ax.imshow(dummy, origin='lower', cmap=cmap, vmin=vmin, vmax=vmax,
+                        alpha=alpha, **extra_options)
+        # Set the axis limit
+        if xlim is not None:
+            ax.set_xlim(xlim)
+        if ylim is not None:
+            ax.set_ylim(ylim)
+
+        if IncludeColorbar:
+            plt.colorbar(img, label='Counts', pad=0.04, ax=ax)
+        ax.text(0.05, 0.9, '#' + str(self.shot),
+                horizontalalignment='left',
+                color='w', verticalalignment='bottom',
+                transform=ax.transAxes)
+        plt.text(0.95, 0.9, 't = ' + str(round(tf, 4)) + (' s'),
+                 horizontalalignment='right',
+                 color='w', verticalalignment='bottom',
+                 transform=ax.transAxes)
+        if RemoveAxisTicksLabels:
+            ax.axes.xaxis.set_ticklabels([])
+            ax.axes.yaxis.set_ticklabels([])
+        # Shot the figure
+        if created:
+            fig.show()
+            plt.tight_layout()
+        return ax

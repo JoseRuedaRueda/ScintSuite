@@ -18,15 +18,16 @@ import Lib.errors as errors
 paths = Path(machine)
 
 
-def guess_strike_map_name_FILD(phi: float, theta: float, geomID: str = 'AUG02',
-                               decimals: int = 1):
+def guess_strike_map_name(phi: float, theta: float, geomID: str = 'AUG02',
+                          decimals: int = 1):
     """
     Give the name of the strike-map file
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    Files are supposed to be named as given in the NamingSM_FILD.py file.
-    The data base is composed by strike maps calculated each 0.1 degree
+    Names are supposed to follow the ScintSuite criteria:
+    name = geomID +\
+        "_map_{0:09.5f}_{1:010.5f}_strike_map.dat".format(p, t)
 
     @param phi: phi angle as defined in FILDSIM
     @param theta: theta angle as defined in FILDSIM
@@ -76,8 +77,8 @@ def find_strike_map_FILD(phi: float, theta: float, strike_path: str,
     @raises   Exception: If FILDSIM is call but the file is not created.
     """
     # --- Find the name of the strike map
-    name = guess_strike_map_name_FILD(phi, theta, geomID=geomID,
-                                      decimals=decimals)
+    name = guess_strike_map_name(phi, theta, geomID=geomID,
+                                 decimals=decimals)
     # --- See if the strike map exist
     if os.path.isfile(os.path.join(strike_path, name)):
         return name
@@ -88,7 +89,13 @@ def find_strike_map_FILD(phi: float, theta: float, strike_path: str,
     # load reference namelist
     nml = f90nml.read(os.path.join(strike_path, 'parameters.cfg'))
     # If a SINPA namelist was given, overwrite reference parameters with the
-    # desired by the user, else set at least the proper directories
+    # desired by the user, else just set at least the proper directories
+    # This could be a problem because it can cause the new strike map to be
+    # calculated with a geometry different from the one used for the database
+    # but as the geometry directory will be different between different users
+    # (different absolute paths) this is the simplest way to do it
+    # If the user keeps the folder structure for the remaps, it should not be
+    # an issue (famous last words)
     geom_path = os.path.join(paths.SINPA, 'Geometry', geomID)
     run_path = os.path.join(paths.SINPA, 'runs', runID)
 
@@ -124,7 +131,109 @@ def find_strike_map_FILD(phi: float, theta: float, strike_path: str,
     field = simcomFields.fields()
     field.createHomogeneousFieldThetaPhi(theta, phi, field='B',
                                          u1=u1, u2=u2, u3=u3,
-                                         verbose=False)
+                                         verbose=False, diagnostic='FILD')
+    inputsDir = os.path.join(nml['config']['runfolder'], 'inputs')
+    resultsDir = os.path.join(nml['config']['runfolder'], 'results')
+
+    fieldFileName = os.path.join(inputsDir, 'field.bin')
+    fid = open(fieldFileName, 'wb')
+    field.tofile(fid)
+    fid.close()
+    # run the SINPA simulation
+    bin_file = os.path.join(paths.SINPA, 'bin', 'SINPA.go')
+    print('Executing SINPA')
+    os.system(bin_file + ' ' + conf_file)
+
+    # -- Move and clean
+    smapName = os.path.join(resultsDir, name)
+    command = 'cp ' + smapName + ' ' + strike_path
+    os.system(command)
+
+    if clean:
+        command = 'rm -r ' + nml['config']['runfolder']
+        os.system(command)
+
+    if os.path.isfile(os.path.join(strike_path, name)):
+        return name
+    # If we reach this point, something went wrong
+    a = 'SINPA simulation has been done but the strike map cannot be found'
+    raise Exception(a)
+
+
+def find_strike_map_INPA(phi: float, theta: float, strike_path: str,
+                         s1: np.ndarray, s2: np.ndarray, s3: np.ndarray,
+                         geomID: str = 'iAUG01',
+                         SINPA_options={}, clean: bool = True,
+                         decimals: int = 1):
+    """
+    Find the proper strike map. If not there, create it
+
+    Jose Rueda Rueda: jrrueda@us.es
+
+    @param    phi: phi angle as defined in FILDSIM
+    @param    theta: beta angle as defined in FILDSIM
+    @param    strike_path: path of the folder with the strike maps
+    @param    geomID: string identifying the geometry. Defaults to 'AUG02'.
+    @param    SINPA_options: FILDSIM namelist options
+    @param    clean: True: eliminate the strike_points.dat when calling FILDSIM
+    @param    decimals: Number of decimals for theta and phi angles
+
+    @return   name:  name of the strikemap to load
+
+    @raises   Exception: If FILDSIM is call but the file is not created.
+    """
+    # --- Find the name of the strike map
+    name = guess_strike_map_name(phi, theta, geomID=geomID,
+                                 decimals=decimals)
+    # --- See if the strike map exist
+    if os.path.isfile(os.path.join(strike_path, name)):
+        return name
+    # --- If do not exist, create it:
+    # Guess the runID of the map
+    runID = name[:-4]
+
+    # load reference namelist
+    nml = f90nml.read(os.path.join(strike_path, 'parameters.cfg'))
+    # If a SINPA namelist was given, overwrite reference parameters with the
+    # desired by the user, else just set at least the proper directories
+    # This could be a problem because it can cause the new strike map to be
+    # calculated with a geometry different from the one used for the database
+    # but as the geometry directory will be different between different users
+    # (different absolute paths) this is the simplest way to do it
+    # If the user keeps the folder structure for the remaps, it should not be
+    # an issue (famous last words)
+    geom_path = os.path.join(paths.SINPA, 'Geometry', geomID)
+    run_path = os.path.join(paths.SINPA, 'runs', runID)
+
+    if SINPA_options is not None:
+        # Set the geometry directory
+        if 'config' in SINPA_options:
+            if 'geomfolder' not in SINPA_options['config']:
+                SINPA_options['config']['geomfolder'] = geom_path
+        else:
+            nml['config']['geomfolder'] = geom_path
+        # Set a run directory.
+        if 'config' in SINPA_options:
+            if 'runfolder' not in SINPA_options['config']:
+                SINPA_options['config']['runfolder'] = run_path
+        else:
+            nml['config']['runfolder'] = run_path
+        # set the rest of user defined options
+        for block in SINPA_options.keys():
+            nml[block].update(SINPA_options[block])
+    else:
+        nml['config']['runfolder'] = run_path
+        nml['config']['geomfolder'] = geom_path
+    # set namelist name
+    nml['config']['runid'] = runID
+    # Write the namelist
+    conf_file = write_namelist(nml)
+
+    # Prepare the field
+    field = simcomFields.fields()
+    field.createHomogeneousFieldThetaPhi(theta, phi, field='B',
+                                         u1=s1, u2=s2, u3=s3,
+                                         verbose=False, diagnostic='INPA')
     inputsDir = os.path.join(nml['config']['runfolder'], 'inputs')
     resultsDir = os.path.join(nml['config']['runfolder'], 'results')
 
@@ -169,6 +278,27 @@ def write_namelist(nml, p=None, overwrite=True):
 
     @return file: The path to the written file
     """
+    # --- Check the namelist
+    keys_lower_input = [key.lower() for key in nml['inputParams'].keys()]
+    keys_lower_config = [key.lower() for key in nml['config'].keys()]
+    keys_input = [key for key in nml['inputParams'].keys()]
+    keys_config = [key for key in nml['config'].keys()]
+    # Check gyr and xi
+    for ik, k in enumerate(keys_lower_config):
+        if k == 'ngyroradius':
+            for ik2, k2 in enumerate(keys_lower_input):
+                if k2 == 'rl':
+                    noMecabeFlag = nml['config'][keys_config[ik]] != \
+                        len(nml['inputParams'][keys_input[ik2]])
+                    if noMecabeFlag:
+                        raise errors.WrongNamelist('Revise n of gyroradius')
+        if k == 'nxi':
+            for ik2, k2 in enumerate(keys_lower_input):
+                if k2 == 'xi':
+                    noMecabeFlag = nml['config'][keys_config[ik]] != \
+                        len(nml['inputParams'][keys_input[ik2]])
+                    if noMecabeFlag:
+                        raise errors.WrongNamelist('Revise n of xi')
     # Initialise the path
     if p is None:
         p = nml['config']['runfolder']

@@ -6,6 +6,7 @@ Jose Rueda: jrrueda@us.es
 
 import os
 import f90nml
+import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -196,7 +197,8 @@ class INPA_logbook:
             cal.camera = row.camera.values[0]
             if 'c1' in self.CameraCalibrationDatabase.keys():
                 cal.c1 = row.c1.values[0]
-                cal.c2 = row.c2.values[0]
+                cal.xcenter = row.xcenter.values[0]
+                cal.ycenter = row.ycenter.values[0]
         return cal
 
     def getGeomID(self, shot: int, diag_ID: int = 1):
@@ -233,7 +235,21 @@ class INPA_logbook:
         """
         # Get always the default as a reference:
         geomID = self.getGeomID(shot, diag_ID)
-        default = self._getPositionDefault(geomID)
+        default = self._getPositionOrientationDefault(geomID)
+        # Transform to cylindrical vector in the choosen scintillator point
+        phi = default['phi_scintillator'] * math.pi / 180.0
+        ur = np.array([math.cos(phi), math.sin(phi), 0])
+        uphi = np.array([-math.sin(phi), math.cos(phi), 0])
+        uz = np.array([0, 0, 1])
+        default['s1rzt'] = np.array([(default['s1'] * ur).sum(),
+                                     (default['s1'] * uz).sum(),
+                                     (default['s1'] * uphi).sum()])
+        default['s2rzt'] = np.array([(default['s2'] * ur).sum(),
+                                     (default['s2'] * uz).sum(),
+                                     (default['s2'] * uphi).sum()])
+        default['s3rzt'] = np.array([(default['s3'] * ur).sum(),
+                                     (default['s3'] * uz).sum(),
+                                     (default['s3'] * uphi).sum()])
         return default
 
     def getGeomShots(self, geomID, maxR: float = None, verbose: bool = True):
@@ -290,7 +306,7 @@ class INPA_logbook:
                           self.positionDatabase[flags1].shot.values[flags2][:])
         return shots
 
-    def _getPositionDefault(self, geomID: str):
+    def _getPositionOrientationDefault(self, geomID: str):
         """Get the default postition of an INPA, given the geometry id"""
         dummy = _defaultINPAdata[geomID]
         out = {
@@ -303,8 +319,8 @@ class INPA_logbook:
           'z_scintillator': dummy['z_pinhole'],
           'phi_scintillator': dummy['phi_pinhole'],
           # Reference system in the pinhole
-          'u1': np.array(dummy['u1']),
-          'u2': np.array(dummy['u2']),
-          'u3': np.array(dummy['u3']),
+          's1': np.array(dummy['s1']),
+          's2': np.array(dummy['s2']),
+          's3': np.array(dummy['s3']),
         }
         return out

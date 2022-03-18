@@ -171,15 +171,16 @@ def run_FILDSIM(namelist, queue: bool = False, cluster: str = 'MPCDF'):
     return
 
 
-def guess_strike_map_name_FILD(phi: float, theta: float, geomID: str = 'AUG02',
-                               decimals: int = 1):
+def guess_strike_map_name(phi: float, theta: float, geomID: str = 'AUG02',
+                          decimals: int = 1):
     """
     Give the name of the strike-map file
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    Files are supposed to be named as given in the NamingSM_FILD.py file.
-    The data base is composed by strike maps calculated each 0.1 degree
+    Names are supposed to follow the ScintSuite criteria:
+    name = geomID +\
+        "_map_{0:09.5f}_{1:010.5f}_strike_map.dat".format(p, t)
 
     @param phi: phi angle as defined in FILDSIM
     @param theta: theta angle as defined in FILDSIM
@@ -230,8 +231,8 @@ def find_strike_map(phi: float, theta: float, strike_path: str,
     @raises   Exception: If FILDSIM is call but the file is not created.
     """
     # Find the name of the strike map
-    name = guess_strike_map_name_FILD(phi, theta, geomID=geomID,
-                                      decimals=decimals)
+    name = guess_strike_map_name(phi, theta, geomID=geomID,
+                                 decimals=decimals)
     # See if the strike map exist
     if os.path.isfile(os.path.join(strike_path, name)):
         return name

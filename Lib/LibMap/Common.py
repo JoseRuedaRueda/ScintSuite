@@ -6,6 +6,7 @@ Jose Rueda Rueda - jrrueda@us.es
 Introduced in version 0.6.0
 
 """
+import matplotlib.pyplot as plt
 import numpy as np
 import warnings
 import datetime
@@ -18,7 +19,6 @@ except ImportError:
 # -----------------------------------------------------------------------------
 # --- Scintillator to pixels
 # -----------------------------------------------------------------------------
-# @ToDo: Need to include the case of distortion
 def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
     """
     Transform from X,Y coordinates (scintillator) to pixels in the camera.
@@ -33,8 +33,8 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
     @return xpixel: x positions in pixels
     @return ypixel: y position in pixels
     """
-    eps = 0.000001  # Level for the distortion coefficient to be considered as
-    #               zero (see below)
+    eps = 1e-6  # Level for the distortion coefficient to be considered as
+    #             zero (see below)
     # Perform the indistorted transformation
     alpha = cal.deg * np.pi / 180
     xpixel = (np.cos(alpha) * x - np.sin(alpha) * y) * cal.xscale + \
@@ -42,18 +42,20 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
     ypixel = (np.sin(alpha) * x + np.cos(alpha) * y) * cal.yscale + \
         cal.yshift
     # Apply the distortion
-    if (abs(cal.c1) > eps) or (abs(cal.c2) > eps):
-        # Just to have the C in /m and /m^ 2
-        dummy_scale = (abs(cal.xscale) + abs(cal.yscale)) * 0.5
+    if (abs(cal.c1) > eps):
         # Get the r array respect to the optical axis
         xp = xpixel - cal.xcenter
         yp = ypixel - cal.ycenter
         rp = np.sqrt(xp**2 + yp**2)
         D = cal.c1 * rp
-        print('r', rp)
-        print('f', 1+D)
         xpixel = (1 + D) * xp + cal.xcenter
         ypixel = (1 + D) * yp + cal.ycenter
+        if cal.c1 < 0:
+            rlim = -0.5 / cal.c1
+            rcamera_limit = (1 + cal.c1 * rlim) * rlim
+            flags = rp > rlim
+            xpixel[flags] = rcamera_limit*xp[flags]/rp[flags] + cal.xcenter
+            ypixel[flags] = rcamera_limit*yp[flags]/rp[flags] + cal.ycenter
 
     return xpixel, ypixel
 
@@ -93,8 +95,7 @@ class XYtoPixel:
         Just a wrapper to the function transform_to_pixel
         """
         self.xpixel, self.ypixel = \
-            transform_to_pixel(self.coord_real[:, 1], self.coord_real[:, 2],
-                               cal)
+            transform_to_pixel(self.y, self.z, cal)
 
 
 # -----------------------------------------------------------------------------
@@ -203,14 +204,13 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
 
     else:  # similar to old IDL implementation
         # --- 1: Information of the calibration
-        if smap.diag == 'FILD':
-            # Get the gyroradius and pitch of each pixel
-            if mask is None:
-                x = smap.grid_interp['pitch'].flatten()
-                y = smap.grid_interp['gyroradius'].flatten()
-            else:
-                x = smap.grid_interp['pitch'][mask].flatten()
-                y = smap.grid_interp['gyroradius'][mask].flatten()
+        # Get the gyroradius and pitch of each pixel
+        if mask is None:
+            x = smap.grid_interp['xi'].flatten()
+            y = smap.grid_interp['gyroradius'].flatten()
+        else:
+            x = smap.grid_interp['xi'][mask].flatten()
+            y = smap.grid_interp['gyroradius'][mask].flatten()
 
         # --- 3: Remap (via histogram)
         if mask is None:
