@@ -242,7 +242,7 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
     ppmin = smap.unique_pitch.min()
     flags = (distro['gyroradius'] > gmin) * (distro['gyroradius'] < gmax) \
         * (distro['pitch'] > ppmin) * (distro['pitch'] < ppmax)
-    flags = flags.astype(np.bool)
+    flags = flags.astype(bool)
     distro_gyr = distro['gyroradius'][flags]
     distro_pitch = distro['pitch'][flags]
     distro_energy = distro['energy'][flags]
@@ -541,7 +541,7 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
             # Look for the pixels which cover this region:
             flags = (smap.gyr_interp >= gmin) * (smap.gyr_interp < gmax) \
                 * (smap.pit_interp >= pmin) * (smap.pit_interp < pmax)
-            flags = flags.astype(np.bool)
+            flags = flags.astype(bool)
             # If there are some pixels, just divide the value weight among them
             n = np.sum(flags)
             if n > 0:

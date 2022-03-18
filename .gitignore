@@ -25,6 +25,7 @@ Per_*
 # -----------------------------------------------------------------------------
 __pycache__/*
 temp_data/*
+DoxiDoc/*
 FILD_calibration/*
 Data/StrikeMaps/*
 Data/BEP/spectra/*
