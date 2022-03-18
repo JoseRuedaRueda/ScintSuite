@@ -192,6 +192,8 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
                 M[:, :, counter] = load_png(
                     os.path.join(video_object.path, file))
                 counter = counter + 1
+            if counter == video_object.header['ImageCount']:
+                break
     else:
         # Load only the selected frames
         counter = 0
@@ -213,5 +215,7 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
                     dummy = load_png(pngname)
                     M[:, :, counter] = dummy
                     counter = counter + 1
+                if counter == video_object.header['ImageCount']:
+                    break
         print('Number of loaded frames: ', counter)
     return M

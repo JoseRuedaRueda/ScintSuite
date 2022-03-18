@@ -52,8 +52,9 @@ class Scintillator(XYtoPixel):
                 self.units = dummy[:-1]
 
             ## Coordinates of the vertex of the scintillator (X,Y,Z).
-            self.coord_real = np.loadtxt(file, skiprows=3, delimiter=',',
-                                         max_rows=self.n_vertices)
+            self.x, self.y, self.z =\
+                np.loadtxt(file, skiprows=3, delimiter=',',
+                           max_rows=self.n_vertices, unpack=True)
             ## Normal vector
             self.normal_vector = np.loadtxt(file, skiprows=4 + self.n_vertices,
                                             delimiter=',', max_rows=1)
@@ -63,7 +64,8 @@ class Scintillator(XYtoPixel):
                 self.description = [f.readline().strip(), f.readline().strip()]
                 self.n_vertices = int(np.loadtxt(file, max_rows=1, skiprows=4,
                                       comments='!')) * 3
-                self.coord_real = np.loadtxt(file, skiprows=5, comments='!')
+                self.x, self.y, self.z =\
+                    np.loadtxt(file, skiprows=5, comments='!', unpack=True)
         else:
             raise errors.NotValidInput('Not recognised code')
         ## Coordinates of the vertex of the scintillator in pixels
@@ -124,7 +126,7 @@ class Scintillator(XYtoPixel):
             plt_par['linestyle'] = '--'
         if ax is None:
             fig, ax = plt.subplots()
-        ax.plot(self.coord_real[:, 1], self.coord_real[:, 2], **plt_par)
+        ax.plot(self.y, self.z, **plt_par)
 
     # def calculate_pixel_coordinates(self, calib):
     #     """

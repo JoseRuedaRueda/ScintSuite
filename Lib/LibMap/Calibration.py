@@ -27,7 +27,7 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
     """
     data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
             'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
-            'deg': [], 'cal_type': [], 'diag_ID': [], 'c1': [], 'c2': [],
+            'deg': [], 'cal_type': [], 'diag_ID': [], 'c1': [],
             'xcenter': [], 'ycenter': []}
 
     # Read the file
@@ -52,16 +52,16 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
             data['diag_ID'].append(int(dummy[10]))
             try:  # If there is distortion information, it would be here
                 data['c1'].append(float(dummy[11]))
-                data['c2'].append(float(dummy[12]))
-                data['xcenter'].append(float(dummy[11]))
-                data['ycenter'].append(float(dummy[12]))
+                data['xcenter'].append(float(dummy[12]))
+                data['ycenter'].append(float(dummy[13]))
             except IndexError:
                 continue
     # If the c1 and c2 fields are empty, delete them to avoid issues in the
     # pandas dataframe
-    if (len(data['c1']) == 0) or (len(data['c2']) == 0):
+    if (len(data['c1']) == 0):
         data.pop('c1')
-        data.pop('c2')
+        data.pop('xcenter')
+        data.pop('ycenter')
     # Transform to pandas
     database = pd.DataFrame(data)
     return database
