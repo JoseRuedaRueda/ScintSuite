@@ -20,12 +20,14 @@ Per_*
 *.pkc
 *.pck
 *.pk4
+fort*
+*.avi
+*.mp4
 # -----------------------------------------------------------------------------
 # --- Folders to ignore
 # -----------------------------------------------------------------------------
 __pycache__/*
 temp_data/*
-DoxiDoc/*
 FILD_calibration/*
 Data/StrikeMaps/*
 Data/BEP/spectra/*
@@ -35,3 +37,5 @@ Data/RemapStrikeMaps/*
 MyRoutines/*
 Results/*
 doc/*
+DoxiDoc/*
+html/*

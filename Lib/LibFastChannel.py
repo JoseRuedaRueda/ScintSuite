@@ -20,7 +20,8 @@ import scipy.signal as sp  # signal processing
 class FastChannel:
     """To interact with signals from the fast channel"""
 
-    def __init__(self, diag, diag_ID, channels, shot):
+    def __init__(self, diag: str, diag_ID: int, channels: np.ndarray,
+                 shot: int):
         """Initialize the class, see get_fast_channel for inputs description"""
         ## Experimental data (time and channel signals)
         self.raw_data = \
@@ -36,7 +37,7 @@ class FastChannel:
         ## Shot number
         self.shot = shot
 
-    def filter(self, method='savgol', params: dict = {}):
+    def filter(self, method: str = 'savgol', params: dict = {}):
         """
         Smooth the signal
 
@@ -173,7 +174,7 @@ class FastChannel:
         return
 
     def plot_channels(self, ch_number=None, line_params: dict = {},
-                      ax_params: dict = {}, ax=None, normalise=True,
+                      ax_params: dict = {}, ax=None, normalise: bool = True,
                       ptype: str = 'raw', max_to_plot: int = 7500):
         """
         Plot the fast channel signals
@@ -276,7 +277,7 @@ class FastChannel:
         return
 
     def plot_spectra(self, ch_number=None,
-                     ax_params: dict = {}, scale='log',
+                     ax_params: dict = {}, scale: str = 'log',
                      cmap=None):
         """
         Plot the fast channel spectrograms

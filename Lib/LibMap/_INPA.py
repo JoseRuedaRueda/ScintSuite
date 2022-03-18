@@ -1,9 +1,14 @@
-"""Remapping of FILD frames."""
+"""
+Remap INPA camera Video
+
+Jose Rueda Rueda: jrrueda@us.es
+
+Introduced in version 0.8.2
+"""
 import time
 import os
 import f90nml
 import numpy as np
-import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 import Lib.SimulationCodes.SINPA as ssSINPA
 import Lib.LibUtilities as ssextra
 from Lib.LibMachine import machine
@@ -20,9 +25,10 @@ del p
 
 def remapAllLoadedFrames(video,
                          rmin: float = 1., rmax: float = 10.5, dr: float = 0.1,
-                         pmin: float = 15., pmax: float = 90., dp: float = 1.0,
+                         ximin: float = 15., ximax: float = 90.,
+                         dxi: float = 1.0,
                          rprofmin: float = 1.5, rprofmax: float = 9.0,
-                         pprofmin: float = 20.0, pprofmax: float = 90.0,
+                         xiprofmin: float = 20.0, xiprofmax: float = 90.0,
                          code_options: dict = {},
                          method: int = 1,
                          verbose: bool = False,
@@ -35,7 +41,7 @@ def remapAllLoadedFrames(video,
                          allIn: bool = False,
                          use_average: bool = False):
     """
-    Remap all loaded frames from a FILD video.
+    Remap all loaded frames from an INPA video.
 
     Jose Rueda Rueda: jrrueda@us.es
 
@@ -43,15 +49,15 @@ def remapAllLoadedFrames(video,
     @param    rmin: minimum gyroradius to consider [cm]
     @param    rmax: maximum gyroradius to consider [cm]
     @param    dr: bin width in the radial direction
-    @param    pmin: Minimum pitch to consider [º]
-    @param    pmax: Maximum pitch to consider [º]
-    @param    dp: bin width in pitch [º]
+    @param    ximin: Minimum pitch to consider [º]
+    @param    ximax: Maximum pitch to consider [º]
+    @param    dxi: bin width in pitch [º]
     @param    rprofmin: minimum gyrodarius to calculate pitch profiles [cm]
     @param    rprofmax: maximum gyroradius to calculate pitch profiles [cm]
-    @param    pprofmin: minimum pitch for gyroradius profiles [º]
-    @param    pprofmax: maximum pitch for gyroradius profiles [º]
-    @param    code_options: namelist dictionary with the FILDSIM/SINPA options
-              just in case we need to run the code. See FILDSIM/SINPA library
+    @param    xiprofmin: minimum R for gyroradius profiles [º]
+    @param    xiprofmax: maximum R for gyroradius profiles [º]
+    @param    code_options: namelist dictionary with the SINPA options
+              just in case we need to run the code. See SINPA library
               and their gitlabs for the necesary options. It is recomended to
               leave this like {}, as the code will load the options used to
               generate the library, so the new calculated strike maps will be
@@ -81,7 +87,7 @@ def remapAllLoadedFrames(video,
               raw ones
 
     @return   output: dictionary containing all the outputs:
-        -# 'frames': remaped_frames [xaxis(pitch), yaxis(r), taxis]
+        -# 'frames': remaped_frames [xaxis(R), yaxis(rl), taxis]
         -# 'xaxis': pitch,
         -# 'yaxis': gyr,
         -# 'xlabel': 'Pitch', label to plot
@@ -113,15 +119,7 @@ def remapAllLoadedFrames(video,
 
     if smap_folder is None:
         smap_folder = os.path.join(paths.ScintSuite, 'Data', 'RemapStrikeMaps',
-                                   'FILD', video.FILDgeometry)
-    # -- Check which code generated the library
-    if not got_smap:
-        namelistFile = os.path.join(smap_folder, 'parameters.cfg')
-        nml = f90nml.read(namelistFile)
-        if 'n_pitch' in nml['config']:
-            FILDSIM = True
-        else:
-            FILDSIM = False
+                                   'INPA', video.INPAgeometry)
     # -- Check the mask
     if type(mask) is str:
         # the user gave us a saved mask, not the matrix, so load the matrix:
@@ -144,8 +142,8 @@ def remapAllLoadedFrames(video,
     tic = time.time()
     # -- Prepare the grid
     ngyr = int((rmax-rmin)/dr) + 1
-    npit = int((pmax-pmin)/dp) + 1
-    p_edges = pmin - dp/2 + np.arange(npit+1) * dp
+    npit = int((ximax-ximin)/dxi) + 1
+    p_edges = ximin - dxi/2 + np.arange(npit+1) * dxi
     g_edges = rmin - dr/2 + np.arange(ngyr+1) * dr
     gyr = 0.5 * (g_edges[0:-1] + g_edges[1:])
     pitch = 0.5 * (p_edges[0:-1] + p_edges[1:])
@@ -169,16 +167,10 @@ def remapAllLoadedFrames(video,
         # -- See if the strike map exist in the folder
         print('Looking for strikemaps in: ', smap_folder)
         for iframe in tqdm(range(nframes)):
-            if FILDSIM:
-                name = ssFILDSIM.guess_strike_map_name(
-                    phi[iframe], theta[iframe], geomID=video.FILDgeometry,
-                    decimals=decimals
-                    )
-            else:
-                name = ssSINPA.execution.guess_strike_map_name(
-                    phi[iframe], theta[iframe], geomID=video.FILDgeometry,
-                    decimals=decimals
-                    )
+            name = ssSINPA.execution.guess_strike_map_name(
+                phi[iframe], theta[iframe], geomID=video.INPAgeometry,
+                decimals=decimals
+                )
             # See if the strike map exist
             if os.path.isfile(os.path.join(smap_folder, name)):
                 exist[iframe] = True
@@ -225,27 +217,24 @@ def remapAllLoadedFrames(video,
     print('Remapping frames ...')
     for iframe in tqdm(range(nframes)):
         if not got_smap:
-            if FILDSIM:
-                name = ssFILDSIM.find_strike_map(
-                    phi_used[iframe], theta_used[iframe], smap_folder,
-                    geomID=video.FILDgeometry, FILDSIM_options=code_options,
-                    decimals=decimals, clean=True)
-            else:  # SINPA CODE
-                name = ssSINPA.execution.find_strike_map_FILD(
-                    phi_used[iframe], theta_used[iframe], smap_folder,
-                    geomID=video.FILDgeometry, SINPA_options=code_options,
-                    decimals=decimals, clean=True)
+            name = ssSINPA.execution.find_strike_map_INPA(
+                phi_used[iframe], theta_used[iframe], smap_folder,
+                video.INPApositionOrientation['s1'],
+                video.INPApositionOrientation['s2'],
+                video.INPApositionOrientation['s3'],
+                geomID=video.INPAgeometry, SINPA_options=code_options,
+                decimals=decimals, clean=True)
         # Only reload the strike map if it is needed
         if name != name_old:
-            smap = StrikeMap(0, os.path.join(smap_folder, name))
+            smap = StrikeMap(1, os.path.join(smap_folder, name))
             smap.calculate_pixel_coordinates(video.CameraCalibration)
             # print('Interpolating grid')
             smap.interp_grid(frame_shape, plot=False, method=method,
                              MC_number=MC_number,
                              grid_params={'ymin': rmin, 'ymax': rmax,
                                           'dy': dr,
-                                          'xmin': pmin, 'xmax': pmax,
-                                          'dx': dp})
+                                          'xmin': ximin, 'xmax': ximax,
+                                          'dx': dxi})
         name_old = name
         # remap the frames
         remaped_frames[:, :, iframe] = \
@@ -254,8 +243,8 @@ def remapAllLoadedFrames(video,
                          method=remap_method)
         # Calculate the gyroradius and pitch profiles
         dummy = remaped_frames[:, :, iframe].squeeze()
-        signal_in_gyr[:, iframe] = common.gyr_profile(dummy, pitch, pprofmin,
-                                                      pprofmax)
+        signal_in_gyr[:, iframe] = common.gyr_profile(dummy, pitch, xiprofmin,
+                                                      xiprofmax)
         signal_in_pit[:, iframe] = common.pitch_profile(dummy, gyr, rprofmin,
                                                         rprofmax)
     if verbose:
@@ -266,11 +255,11 @@ def remapAllLoadedFrames(video,
     output = {
         'frames': remaped_frames,
         'xaxis': pitch, 'yaxis': gyr,
-        'xlabel': 'Pitch', 'ylabel': '$r_l$',
-        'xunits': '$\\degree$', 'yunits': 'cm',
+        'xlabel': 'R', 'ylabel': '$r_l$',
+        'xunits': 'm', 'yunits': 'cm',
         'sprofx': signal_in_pit, 'sprofy': signal_in_gyr,
         'sprofxlabel': 'Signal integrated in $r_l$',
-        'sprofylabel': 'Signal integrated in pitch',
+        'sprofylabel': 'Signal integrated in R',
         'phi': phi, 'theta': theta,
         'theta_used': theta_used, 'phi_used': phi_used,
         'nframes': video.exp_dat['nframes'],
@@ -278,12 +267,11 @@ def remapAllLoadedFrames(video,
         'existing_smaps': exist
     }
     opt = {
-        'rmin': rmin, 'rmax': rmax, 'dr': dr, 'pmin': pmin, 'pmax': pmax,
-        'dp': dp, 'rprofmin': rprofmin, 'rprofmax': rprofmax,
-        'pprofmin': pprofmin, 'pprofmax': pprofmax,
+        'rmin': rmin, 'rmax': rmax, 'dr': dr, 'ximin': ximin, 'ximax': ximax,
+        'dxi': dxi, 'rprofmin': rprofmin, 'rprofmax': rprofmax,
+        'xiprofmin': xiprofmin, 'xiprofmax': xiprofmax,
         'decimals': decimals,
         'smap_folder': smap_folder,
         'use_average': use_average,
-        'CodeUsed': smap.code,
     }
     return output, opt

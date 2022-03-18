@@ -46,7 +46,7 @@ _fild4 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD4/',
                                                'l': 0.115, 'A': 0.00554,
                                                'N': 250,
                                                'theta_parking': -21.4/180*pi,
-                                               'R_parking': 2.0160}} 
+                                               'R_parking': 2.0160}}
 
 _fild5 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD5/',
           'extension': '', 'label': 'FILD5', 'diag': 'FHE', 'channel': 'Chan-',
@@ -74,8 +74,10 @@ def _INPA1_path(shot=42000):
 
     Last update: 09/02/2022
     """
-    if shot < 99999:
-        path = '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/INPA/INPA1'
+    if shot < 40260:
+        path = '/afs/ipp-garching.mpg.de/home/f/fild/INPA1'
+    elif shot < 99999:
+        path = '/afs/ipp-garching.mpg.de/home/a/augd/rawfiles/INP'
     else:
         raise errors.NotValidInput('Wrong shot number?')
     return path
@@ -103,7 +105,7 @@ _inpa1 = {
     'nch': None  # Number of fast channels
 }
 
-INPA = (_inpa1)
+INPA = (_inpa1,)
 
 # -----------------------------------------------------------------------------
 # --- Magnetics data.

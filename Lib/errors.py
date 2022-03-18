@@ -61,5 +61,14 @@ class FoundSeveralGeomID(Exception):
 class NotFoundAdqFreq_or_ttrig(Exception):
     """Either the frequency of adquisition function or the time trigger
     function are not found."""
+    pass
 
+    
+# --- SINPA/FILDSIM related exception
+class WrongNamelist(Exception):
+    """
+    Raised when some namelist parameter are not consistent
+
+    For example when you ask for 6 gyroradius but just give 6 of them
+    """
     pass

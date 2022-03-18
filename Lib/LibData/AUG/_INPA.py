@@ -6,13 +6,14 @@ Jose Rueda: jrrueda@us.es
 
 import os
 import f90nml
+import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import warnings
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
-from Lib.LibMap.Calibration import CalParams
+from Lib.LibMap.Calibration import CalParams, readCameraCalibrationDatabase
 import Lib.LibData.AUG.DiagParam as params
 import Lib.errors as errors
 paths = Path(machine)
@@ -39,22 +40,22 @@ def guessINPAfilename(shot: int, diag_ID: int = 1):
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    Note AUG criteria of organising files is assumed: .../38/38760/...
-
     @param shot: shot number
-    @param diag_ID: FILD manipulator number
+    @param diag_ID: INPA number
 
-    @return file: the name of the file/folder
+    @return f: the name of the file/folder
     """
     base_dir = params.INPA[diag_ID-1]['path'](shot)
     extension = params.INPA[diag_ID-1]['extension'](shot)
     shot_str = str(shot)
-    name = shot_str + extension
-    file = os.path.join(base_dir, shot_str[0:2], name)
-    return file
+
+    if shot < 99999:  # PCO camera, stored in AFS
+        name = shot_str + extension
+        f = os.path.join(base_dir, shot_str[0:4], name)
+    return f
 
 
-# --- FILD object
+# --- INPA object
 class INPA_logbook:
     """
     Contain all geometrical parameters and camera calibration for INPA
@@ -90,7 +91,7 @@ class INPA_logbook:
             print('.-.. --- --. -... --- --- -.-')
         # Load the camera database
         self.CameraCalibrationDatabase = \
-            self._readCameraCalibrationDatabase(cameraFile, verbose=verbose)
+            readCameraCalibrationDatabase(cameraFile, verbose=verbose)
         # Load the position database
         # The position database is not distributed with the ScintSuite, so it
         # can happend that it is not available. For that reason, just in case
@@ -104,49 +105,6 @@ class INPA_logbook:
         self.geometryDatabase = \
             self._readGeometryDatabase(geometryFile, verbose=verbose)
         print('..-. .. -. .- .-.. .-.. -.--')
-
-    def _readCameraCalibrationDatabase(self, filename: str, n_header: int = 5,
-                                       verbose: bool = True):
-        """
-        Read the calibration database, to align the strike maps.
-
-        See the help PDF located at the readme file for a full description of
-        each available parameter
-
-        @author Jose Rueda Rueda: jrrueda@us.es
-
-        @param filename: Complete path to the file with the calibrations
-        @param n_header: Number of header lines (5 in the oficial format)
-
-        @return database: Pandas dataframe with the database
-        """
-        data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
-                'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
-                'deg': [], 'cal_type': [], 'diag_ID': []}
-
-        # Read the file
-        if verbose:
-            print('Reading Camera database from: ', filename)
-        with open(filename) as f:
-            for i in range(n_header):
-                dummy = f.readline()
-            # Database itself
-            for line in f:
-                dummy = line.split()
-                data['CalID'].append(int(dummy[0]))
-                data['camera'].append(dummy[1])
-                data['shot1'].append(int(dummy[2]))
-                data['shot2'].append(int(dummy[3]))
-                data['xshift'].append(float(dummy[4]))
-                data['yshift'].append(float(dummy[5]))
-                data['xscale'].append(float(dummy[6]))
-                data['yscale'].append(float(dummy[7]))
-                data['deg'].append(float(dummy[8]))
-                data['cal_type'].append(dummy[9])
-                data['diag_ID'].append(int(dummy[10]))
-        # Transform to pandas
-        database = pd.DataFrame(data)
-        return database
 
     def _readExcelLogbook(self, filename: str, verbose: bool = True):
         """
@@ -237,6 +195,10 @@ class INPA_logbook:
             cal.yshift = row.yshift.values[0]
             cal.deg = row.deg.values[0]
             cal.camera = row.camera.values[0]
+            if 'c1' in self.CameraCalibrationDatabase.keys():
+                cal.c1 = row.c1.values[0]
+                cal.xcenter = row.xcenter.values[0]
+                cal.ycenter = row.ycenter.values[0]
         return cal
 
     def getGeomID(self, shot: int, diag_ID: int = 1):
@@ -273,7 +235,21 @@ class INPA_logbook:
         """
         # Get always the default as a reference:
         geomID = self.getGeomID(shot, diag_ID)
-        default = self._getPositionDefault(geomID)
+        default = self._getPositionOrientationDefault(geomID)
+        # Transform to cylindrical vector in the choosen scintillator point
+        phi = default['phi_scintillator'] * math.pi / 180.0
+        ur = np.array([math.cos(phi), math.sin(phi), 0])
+        uphi = np.array([-math.sin(phi), math.cos(phi), 0])
+        uz = np.array([0, 0, 1])
+        default['s1rzt'] = np.array([(default['s1'] * ur).sum(),
+                                     (default['s1'] * uz).sum(),
+                                     (default['s1'] * uphi).sum()])
+        default['s2rzt'] = np.array([(default['s2'] * ur).sum(),
+                                     (default['s2'] * uz).sum(),
+                                     (default['s2'] * uphi).sum()])
+        default['s3rzt'] = np.array([(default['s3'] * ur).sum(),
+                                     (default['s3'] * uz).sum(),
+                                     (default['s3'] * uphi).sum()])
         return default
 
     def getGeomShots(self, geomID, maxR: float = None, verbose: bool = True):
@@ -330,7 +306,7 @@ class INPA_logbook:
                           self.positionDatabase[flags1].shot.values[flags2][:])
         return shots
 
-    def _getPositionDefault(self, geomID: str):
+    def _getPositionOrientationDefault(self, geomID: str):
         """Get the default postition of an INPA, given the geometry id"""
         dummy = _defaultINPAdata[geomID]
         out = {
@@ -343,8 +319,8 @@ class INPA_logbook:
           'z_scintillator': dummy['z_pinhole'],
           'phi_scintillator': dummy['phi_pinhole'],
           # Reference system in the pinhole
-          'u1': np.array(dummy['u1']),
-          'u2': np.array(dummy['u2']),
-          'u3': np.array(dummy['u3']),
+          's1': np.array(dummy['s1']),
+          's2': np.array(dummy['s2']),
+          's3': np.array(dummy['s3']),
         }
         return out
