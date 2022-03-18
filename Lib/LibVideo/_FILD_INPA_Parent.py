@@ -84,11 +84,12 @@ class FIV(BVO):
         @return ax: the axes where the frame has been drawn
         """
         # --- Call the parent function
-        ax = BVO.plot_frame(frame_number=frame_number, ax=ax, ccmap=ccmap,
-                            t=t, verbose=verbose, vmin=vmin, vmax=vmax,
-                            xlim=xlim, ylim=ylim, scale=scale,
-                            alpha=alpha, IncludeColorbar=IncludeColorbar,
-                            RemoveAxisTicksLabels=RemoveAxisTicksLabels)
+        ax = super(FIV, self).plot_frame(frame_number=frame_number, ax=ax,
+                                         ccmap=ccmap, t=t, verbose=verbose,
+                                         vmin=vmin, vmax=vmax, xlim=xlim,
+                                         ylim=ylim, scale=scale, alpha=alpha,
+                                         IncludeColorbar=IncludeColorbar,
+                                         RemoveAxisTicksLabels=RemoveAxisTicksLabels)
         # Get the frame number
         if t is not None:
             frame_index = np.argmin(abs(self.exp_dat['tframes'] - t))
