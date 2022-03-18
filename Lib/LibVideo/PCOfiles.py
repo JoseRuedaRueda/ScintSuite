@@ -11,8 +11,7 @@ import matplotlib.pyplot as plt
 try:
     from pco_tools import pco_reader as pco
 except ModuleNotFoundError:
-    raise Exception('PCO tools not imported. You cannot load pco files.\
-                    To import, run "pip install pco_tools".')
+    print('PCO tools not imported. You cannot load pco files')
 
 
 def read_data(path: str, adfreq: float, t_trig: float):
@@ -70,7 +69,6 @@ def read_data(path: str, adfreq: float, t_trig: float):
     time_base = np.arange(counter, dtype=float)/adfreq + t_trig
 
     return header, imageheader, settings, time_base[:].flatten()
-
 
 
 def read_frame(video_object, frames_number=None, limitation: bool = True,
