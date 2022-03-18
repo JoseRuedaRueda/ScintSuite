@@ -1,27 +1,15 @@
 """
-Package to calculate time traces
-
-Contains all the routines to calculate time traces. The RoiPoly module must be
-installed. If you use Spyder as Python IDE, please install the RoiPoly version
-which is compatible with Spyder.
-(See the Read-me of the project to get the link)
-
+File with the TimeTrace object
 """
 import numpy as np
 import datetime
 import time
-import warnings
 from scipy.fft import rfft, rfftfreq
 from scipy import signal
 import matplotlib.pyplot as plt
 import Lib.LibPlotting as ssplt
 import Lib.LibIO as ssio
 from tqdm import tqdm
-try:
-    from roipoly import RoiPoly
-except ImportError:
-    warnings.warn('You cannot calculate time traces, roipoly not found',
-                  category=UserWarning)
 
 
 def trace(frames, mask):
@@ -39,45 +27,25 @@ def trace(frames, mask):
     @return tr: numpy array with the sum of the pixels inside the mask
     """
     # Allocate output array
-    n = frames.shape[2]
-    sum_of_roi = np.zeros(n)
-    std_of_roi = np.zeros(n)
-    mean_of_roi = np.zeros(n)
-    # calculate the trace
-    print('Calculating the timetrace... ')
-    for iframe in tqdm(range(n)):
-        dummy = frames[:, :, iframe].squeeze()
-        sum_of_roi[iframe] = np.sum(dummy[mask])
-        mean_of_roi[iframe] = np.mean(dummy[mask])
-        std_of_roi[iframe] = np.std(dummy[mask])
-    return sum_of_roi, std_of_roi, mean_of_roi
-
-
-def create_roi(fig, re_display=False):
-    """
-    Wrap for the RoiPoly features
-
-    Jose Rueda: jrrueda@us.es
-
-    Just a wrapper for the roipoly capabilities which allows for the reopening
-    of the figures
-
-    @param fig: fig object where the image is found
-    @return fig: The figure with the roi plotted
-    @return roi: The PloyRoi object
-    """
-    # Define the roi
-    print('Please select the vertex of the roi in the figure')
-    print('Select each vertex with left click')
-    print('Once you finished, right click')
-    plt.ginput(timeout=0.001)
-    roi = RoiPoly(color='r', fig=fig)
-    print('Thanks')
-    # Show again the image with the roi
-    if re_display:
-        fig.show()
-        roi.display_roi()
-    return fig, roi
+    # n = frames.shape[2]
+    # sum_of_roi = np.zeros(n)
+    # std_of_roi = np.zeros(n)
+    # mean_of_roi = np.zeros(n)
+    # mean2 = np.zeros(n)
+    # # calculate the trace
+    # print('Calculating the timetrace... ')
+    # print(mask.shape)
+    # for iframe in tqdm(range(n)):
+    #     dummy = frames[mask, iframe].copy()
+    #     print(dummy.shape, 'hola')
+    #     mean_of_roi[iframe] = np.mean(dummy)
+    #     sum_of_roi[iframe] = np.sum(dummy)
+    #     mean2[iframe] = np.sum(dummy)/np.sum(mask.astype(float))
+    #     std_of_roi[iframe] = np.std(dummy)
+    sum_of_roi = np.sum(frames[mask, :], axis=0, dtype=float)
+    mean_of_roi = np.mean(frames[mask, :], axis=0, dtype=float)
+    std_of_roi = np.std(frames[mask, :], axis=0, dtype=float)
+    return sum_of_roi, mean_of_roi, std_of_roi
 
 
 def time_trace_cine(cin_object, mask, t1=0, t2=10):
@@ -95,6 +63,7 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
     @param mask: binary mask defining the roi
     @param t1: initial time to calculate the timetrace [in s]
     @param t2: final time to calculate the timetrace [in s]
+
     @return tt: TimeTrace object
     """
     # --- Section 0: Initialise the arrays
@@ -220,7 +189,7 @@ class TimeTrace:
         if video is not None:
             if t1 is None:
                 self.time_base = video.exp_dat['tframes'].squeeze()
-                self.sum_of_roi, self.mean_of_roi, self.std_of_roi\
+                self.sum_of_roi, self.mean_of_roi, self.std_of_roi,\
                     = trace(video.exp_dat['frames'], mask)
             else:
                 if video.type_of_file == '.cin':
@@ -331,7 +300,6 @@ class TimeTrace:
         """
         # default plotting options
         ax_options = {
-            'fontsize': 16.0,
             'grid': 'both',
             'xlabel': 't [s]'
         }
@@ -361,18 +329,18 @@ class TimeTrace:
                     ax_params['ylabel'] = 'Mean'
         # --- Normalize the data:
         if correct_baseline == 'end':
-            baseline_level = y[-15:-2].mean()
+            baseline_level = y[-15:-2].mean().astype(y.dtype)
             y += -baseline_level
             print('Baseline corrected using the last points')
             print('Baseline level: ', round(baseline_level))
 
         elif correct_baseline == 'ini':
-            baseline_level = y[3:8].mean()
+            baseline_level = y[3:8].mean().astype(y.dtype)
             y += -baseline_level
             print('Baseline corrected using the initial points')
             print('Baseline level: ', round(baseline_level))
         else:
-            print('Not applyting any correction')
+            print('Not applying any correction')
 
         if normalised:
             y /= y.max()
@@ -407,7 +375,6 @@ class TimeTrace:
         """
         # Initialise the options for the plotting
         ax_options = {
-            'fontsize': 16.0,
             'grid': 'both'
         }
         ax_options.update(ax_par)
@@ -448,8 +415,6 @@ class TimeTrace:
         @return fig: figure where the fft is plotted
         @return ax: axes where the fft is plotted
         """
-        if 'fontsize' not in options:
-            options['fontsize'] = 16.0
         if 'grid' not in options:
             options['grid'] = 'both'
         if 'xlabel' not in options:
@@ -474,8 +439,6 @@ class TimeTrace:
         @return fig: figure where the fft is plotted
         @return ax: axes where the fft is plotted
         """
-        if 'fontsize' not in options:
-            options['fontsize'] = 16.0
         if 'grid' not in options:
             options['grid'] = 'both'
         if 'ylabel' not in options:

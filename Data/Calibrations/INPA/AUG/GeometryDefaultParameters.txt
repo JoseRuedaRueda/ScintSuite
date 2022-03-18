@@ -1,17 +1,21 @@
-! Namelist containing the default information from a geometry
+! -----------------------------------------------------------------------------
+! --- Namelist with the geometry parameters
+! -----------------------------------------------------------------------------
 
-! Geom name: AUG01
-! Description: First INPA installation
-&AUG01
-  R_pinhole = 1.85
-  z_pinhole = 0.98
-  phi_pinhole = -5.0
-
-  R_scintillator = 1.95
-  z_scintillator = 1.05
-  phi_scintillator = 0.2
-
-  u1 = 0.0,  0.2,  0.3   !u1 in ur, uphi, uz
-  u2 = 0.0, -0.3,  0.5   !u2 in ur, uphi, uz
-  u3 = 0.0,  0.25, 0.36  !u3 in ur, uphi, uz
+! Geom name: iAUG01
+! Description: First INPA installation. Based in FARO measurements done after
+! the final instalation
+&iaug01
+  ! Pinhole position
+  R_pinhole = 1.87662  ! [m]
+  z_pinhole = 0.95393  ! [m]
+  phi_pinhole = -4.49  ! [deg]
+  ! Reference point in the scintillator to calculate the B field
+  R_scintillator = 1.91121    ! [m]
+  z_scintillator = 0.95836    ! [m]
+  phi_scintillator = -2.9236  ! [deg]
+  ! Reference system in the scintillator to define the B angles
+  s1 =  0.027857,  0.999567, -0.009725   !s1 in ux, uy, uz
+  s2 = -0.816590,  0.028300,  0.576519   !s2 in ux, uy, uz
+  s3 =  0.576545, -0.008118,  0.817025   !s3 in ux, uz, uz
 /

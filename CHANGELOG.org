@@ -1,4 +1,42 @@
-<<<<<<< HEAD
+** 0.9.0 INPA implementation
+*** General:
+- Time traces library was re-written to do not depend on external libraries and avoid bugs. Now is also way faster for non-cine videos, as it was re-written to avoid loops
+- run path_suite is no longer needed to import the Suite (see import section in the readme)
+- Subfolders for each diagnostic were created in the folder Data/Plates
+*** INPA and Lib.Video:
+- Included INPA calibration files in the data folder
+- FILD INPA and Basic Video Object moved to _<name> just to clean a bit the vid object
+- FILD and INPA do not depend directly from BVO but from the new object FIV, which contains the common rouitnes from FILD and INPA, as the itegral of the remap signal
+- Included INPA paths
+- Lib.LibVideo.FILDVideo.plot_frame() now include the flag IncludeColorbar to include or not the colorbar (default=True). Also, it includes the parameter alpha to have transparencies
+- Lib.LibVideo.FILDVideo.plot_frame() now includes the time as text inside the box, not as the title
+- Lib.LibVideo.FILDVideo.plot_frame() was moved to the new parent object
+- Lib.LibVideo.FILDVideo.integrate_remap(), now included in the parent object, and return not only the trace but the marginal distributions in rl and pitch (of R for the INPA)
+
+*** Lib.SimulationsCodes:
+- Same naming criteria was adopted for FILDSIM and SINPA, so the routines  guess_strike_map_name_FILD from the SINPA and FILDSIM libraries were renamed just into guess_strike_map_name
+*** Examples:
+- Added Example 16 of the FILD collection to align the scintillator
+*** LibData:
+- get_fast_channel adapted to use the aug_sfutils instead of the old dd
+*** LibMapping:
+- Updating the Scintillator object to make it compatible with the SINPA format
+- readCameraCalibration was extracted from the FILDlogbook and placed to the mapping library, as it will be used for INPA and FILD at the same time
+- Calibration params now include 3 parameters to model distortion (distortion center xc and yc and distortion coefficient). Space for a 4th coefficient was allocated, although not needed for INPA dna iHIBP
+- Scintillator, and strike maps now depend of the parent class XYtoPixel, which contain the basic information of cooridnates and pixel position and the method to translate among them
+*** Plotting:
+- Updated plotSettings() to match new matplotlib. font_manager changed and latex preamble removed
+*** LibFastChannel:
+- Default plotting option changed to raw, to do not fail if the user plot the data just after loading them, so no filtering was done
+*** Bug:
+- Solved a bug in plot_frame from the FILD video object. The syntax for the routines to load the strike map was not updated to version 0.8.0
+- Solved a bug in timetraces object. Mean and std of the ROI were exchanged
+- Solved a bug in the StrikePoints.plot3d(). If the percentage was too low that no marker was selected. Now the code just check that some markers was actually selected
+*** Other changes
+- Some comparison to strings changed to <strin>.lower() == ... to give more flexibility in case the user capitalise the first letter
+- np.bool replaced with bool to avoid future issues with numpy (np.bool was going to be deprecated)
+- PEP8 improvements
+- Comments and documentation (Readme) improved
 
 ** 0.8.3 MAST-U adaptation:
 In the process of adapting the code to work for the MAST-U FILD, some important changes have been performed:
@@ -7,30 +45,12 @@ In the process of adapting the code to work for the MAST-U FILD, some important 
 
 ** 0.8.2 Added get_pellets_timeTrace and update LibFILD4
 - Routine to get the pellets time trace
-- Included a routine (get_dist2sep) to calculate the distance to the separatrix 
+- Included a routine (get_dist2sep) to calculate the distance to the separatrix
 
 ** 0.8.1 FILD4 object added (LibFILD4)
 - Added routines to load and reconstruct FILD4 trajectories as part of LibData
 - FILD4 database is stored in Javier Hidalgo local machine. Contact him if you cannot access them.
 - Routines used to load and plot FILD4 trajectories now show as deprecated
-=======
-** 0.8.1 INPA implementation (pre-release)
-*** INPA:
-- Included INPA calibration files in the data folder
-- FILD INPA and Basic Video Object moved to _<name> just to clean a bit the vid object
-*** LibData:
-- get_fast_channel adapted to use the aug_sfutils instead of the old dd
-*** Plotting:
-- Updated plotSettings() to match new matplotlib. font_manager changed and latex preamble removed
-*** LibFastChannel:
--Default plotting option changed to raw, to do not fail if the user plot the data just after loading them, so no filtering was done
-
-*** Bug:
-- Solved a bug in plot_frame from the FILD video object. The syntax for the routines to load the strike map was not updated to version 0.8.0
-*** Other changes
-- np.bool replaced with bool to avoid future isues with numpy (np.bool was going to be deprecated)
->>>>>>> prerelease of version 0.8.1
-
 
 ** 0.8.0 SINPA implementation data analysis
 *Notice*: For all the SINPA related implementation, you need version 0.3 of the SINPA code

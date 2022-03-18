@@ -135,7 +135,7 @@ class ApplicationShowVid:
 
     def plot_frame(self, t):
         """Update the plot"""
-        t0 = np.float64(t)
+        t0 = float(t)
         it = np.argmin(abs(self.data['tframes'] - t0))
         dummy = self.data['frames'][:, :, it].squeeze().copy()
         self.time.set_text(str(round(self.data['tframes'][it], 3)) + ' s')
