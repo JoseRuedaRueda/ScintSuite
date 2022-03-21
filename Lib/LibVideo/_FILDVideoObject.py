@@ -168,7 +168,7 @@ class FILDVideo(FIV):
             'Bt': np.array(bt).squeeze(),
         }
         self.BField['B'] = np.sqrt(self.BField['Bt']**2 + self.BField['BR']**2
-                                   + self.BField['Bp']**2)
+                                   + self.BField['Bz']**2)
 
     def _getBangles(self):
         """Get the orientation of the field respec to the head"""

@@ -6,12 +6,7 @@ possibility to subtract noise and timetraces will be calculated
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.3.0. Before running this script, please do:
-plt.close('all'), if not, bug due to spyder 4.0 and roipoly may raise
-
-Revised for version 0.8.0
-
-You should run paths_suite.py before runing this example.
+Note; Written for version 0.3.0. Revised for version 0.9.0
 """
 import Lib as ss
 import matplotlib.pyplot as plt
@@ -62,9 +57,9 @@ fig_ref = plt.gcf()
 # - Define roi
 # Note: if you want the figure to re-appear after the selection of the roi,
 # call create roi with the option re_display=True
-fig_ref, roi = ss.tt.create_roi(fig_ref, re_display=True)
+roi = ss.tt.roipoly(fig_ref, ax_ref)
 # Create the mask
-mask = roi.get_mask(vid.exp_dat['frames'][:, :, 0].squeeze())
+mask = roi.getMask(vid.exp_dat['frames'][:, :, 0].squeeze())
 # Calculate the TimeTrace
 time_trace = ss.tt.TimeTrace(vid, mask)
 # Save the timetraces and roi
