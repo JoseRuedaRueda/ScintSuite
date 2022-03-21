@@ -10,7 +10,7 @@ Please write the proper path to your file in the Smap_file
 
 jose Rueda: jrrueda@us.es
 
-Note: Written for version 0.5.3. Revised for version 0.8.0
+Note: Written for version 0.5.3. Revised for version 0.9.0
 """
 import Lib as ss
 from time import time
