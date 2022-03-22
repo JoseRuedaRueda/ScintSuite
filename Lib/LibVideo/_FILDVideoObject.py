@@ -264,7 +264,6 @@ class FILDVideo(FIV):
                                                          alpha, beta)
                 time = t
             else:
-                print('Estoy aquí')
                 if self.BField is None:
                     self._getB()
                 self._getBangles()
