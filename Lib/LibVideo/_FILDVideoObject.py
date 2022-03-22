@@ -243,8 +243,8 @@ class FILDVideo(FIV):
         @param R: R coordinate of the detector (in meters) for B calculation
         @param z: z coordinate of the detector (in meters) for B calculation
 
-        @return theta: theta angle [º]
         @return phi: phi angle [º]
+        @return theta: theta angle [º]
         """
         if self.remap_dat is None:
             if self.FILDorientation is None:
