@@ -8,7 +8,7 @@ import scipy.interpolate as interpolate
 
 def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
                   plates_all_black=False, plate_alpha=0.5, legend = False,
-                  plot_3D = False):
+                  plot_3D = False, aspect_ratio_fixed = False):
     """
     Plot the input FILDSIM geometry, namely the slits and scintillator
 
@@ -54,9 +54,6 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
             ax3D.set_xlabel('X [cm]')
             ax3D.set_ylabel('Y [cm]')
             ax3D.set_zlabel('Z [cm]')
-            
-            #ax3D.set_aspect('equal', adjustable='box')
-            
             created_3D = True
         else:
             created_3D = False
@@ -78,9 +75,10 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
         ax2D_xz.set_title('Side view (X-Z plane)')
         created_2D = True
         
-        #ax2D_xy.set_aspect('equal', adjustable='box')
-        #ax2D_yz.set_aspect('equal', adjustable='box')
-        #ax2D_xz.set_aspect('equal', adjustable='box')
+        if aspect_ratio_fixed:
+            ax2D_xy.set_aspect('equal', adjustable='box')
+            ax2D_yz.set_aspect('equal', adjustable='box')
+            ax2D_xz.set_aspect('equal', adjustable='box')
     else:
         ax2D_xy = axarr[0]  # topdown view, i.e should see pinhole surface
         ax2D_yz = axarr[1]  # front view, i.e. should see scintilator plate
@@ -114,8 +112,6 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
                      label=scintillator_plate['name'])
 
     # -- plot slit plates
-    import IPython
-    #IPython.embed()
     for slit_plate in slit_plates:
         x = slit_plate['vertices'][:, 0]
         y = slit_plate['vertices'][:, 1]
@@ -161,9 +157,6 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
             grid_y, grid_z = np.meshgrid(np.linspace(min(y), max(y), num=50),
                                          np.linspace(min(z), max(z), num=50))
             grid_x = interpolate.griddata((y, z), x, (grid_y, grid_z))
-        #if slit_plate['name'] == 'W7X_slit_lateral_2_scan':
-        #import IPython
-        #IPython.embed()
         
         if plot_3D:
             ax3D.plot_surface(grid_x, grid_y, grid_z, color=plate_color,
