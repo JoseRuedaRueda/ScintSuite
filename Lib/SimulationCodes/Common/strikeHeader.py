@@ -87,19 +87,19 @@ orderStrikes = {
                     'longName': 'Incident angle on the scintillator',
                     'shortName': '$\\phi_i$',
                 },
-                'xnbi': {
+                'x0': {
                     'i': 12,  # Column index in the file
                     'units': ' [m]',  # Units
                     'longName': 'X position of the closest point to NBI line',
                     'shortName': '$x_{NBI}$',
                 },
-                'ynbi': {
+                'y0': {
                     'i': 13,  # Column index in the file
                     'units': ' [m]',  # Units
                     'longName': 'Y position of the closest point to NBI line',
                     'shortName': '$y_{NBI}$',
                 },
-                'znbi': {
+                'z0': {
                     'i': 14,  # Column index in the file
                     'units': ' [cm]',  # Units
                     'longName': 'Z position of the closest point to NBI line',
@@ -199,19 +199,19 @@ orderStrikes = {
                     'longName': 'Z strike scintillator system',
                     'shortName': '$z_{s}$',
                 },
-                'xcx': {
+                'x0': {
                     'i': 7,  # Column index in the file
                     'units': ' [m]',  # Units
                     'longName': 'X of CX reaction',
                     'shortName': '$x_{CX}$',
                 },
-                'ycx': {
+                'y0': {
                     'i': 8,  # Column index in the file
                     'units': ' [m]',  # Units
                     'longName': 'Y of CX reaction',
                     'shortName': '$y_{CX}$',
                 },
-                'zcx': {
+                'z0': {
                     'i': 9,  # Column index in the file
                     'units': ' [m]',  # Units
                     'longName': 'Z of CX reaction',

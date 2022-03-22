@@ -47,8 +47,8 @@ par = {
 
 # Note, if the smap_folder variable is not present, the program will look for
 # the strike maps in the path given by ss.paths.StrikeMaps
-use_roi = True      # Flag to decide if we must use a ROI
-t0 = 2.444         # time points to define the ROI for the remap
+use_roi = True     # Flag to decide if we must use a ROI
+t0 = 5.02         # time points to define the ROI for the remap
 save_ROI = False   # Export the TT and the ROI used
 # - Plotting options:
 plot_profiles_in_time = True   # Plot the time evolution of pitch and r
@@ -76,14 +76,14 @@ if use_roi:
     fig_ref = plt.gcf()
     # - Define roi
     # Note: if you want the figure to re-appear after the selection of the roi,
-    # call create roi with the option re_display=Ture
-    fig_ref, roi = ss.tt.create_roi(fig_ref, re_display=True)
+    # call create roi with the option re_display=True
+    roi = ss.tt.roipoly(fig_ref, ax_ref)
     # Create the mask
-    mask = roi.get_mask(vid.exp_dat['frames'][:, :, 0].squeeze())
+    mask = roi.getMask(vid.exp_dat['frames'][:, :, 0].squeeze())
 else:
     mask = None
 # -----------------------------------------------------------------------------
-# --- Section 5: Remap
+# --- Section 4: Remap
 # -----------------------------------------------------------------------------
 # Store the mask in the parameters dictionary for the remap
 par['mask'] = mask
@@ -94,7 +94,7 @@ if plot_profiles_in_time:
     vid.plot_profiles_in_time()
 
 # -----------------------------------------------------------------------------
-# --- Section 6: Export data
+# --- Section 5: Export data
 # -----------------------------------------------------------------------------
 if save_ROI:
     print('Choose the name for the mask for the frame (select .nc!!!): ')

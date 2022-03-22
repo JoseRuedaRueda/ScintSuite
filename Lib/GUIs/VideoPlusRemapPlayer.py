@@ -176,7 +176,7 @@ class ApplicationShowVidRemap:
         self.selected_scale = default_scale
         self.scales = ttk.Combobox(master, values=self.scales,
                                    textvariable=self.selected_scale,
-                                   state='readonly')
+                                   state=tk.DISABLED)
         self.scales.set(default_scale)
         self.scales.bind("<<ComboboxSelected>>", self.change_scale)
         self.scales.grid(row=3, column=10)

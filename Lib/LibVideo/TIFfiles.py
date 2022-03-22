@@ -23,9 +23,8 @@ def load_tiff(filename: str):
     Load the tiff files
 
     @param filename: full path pointing to the tiff
+    
     @return frame: loaded frame
-
-    @ToDo: Check that the order is the correct one
     """
     dummy = io.imread(filename)
     if len(dummy.shape) > 2:     # We have an rgb tiff, transform it to gray
