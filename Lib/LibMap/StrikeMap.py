@@ -1820,9 +1820,6 @@ class StrikeMap(XYtoPixel):
                     f"{float(self.strike_points.header['gyroradius'][ir]):g}"\
                     + '[cm]'
                 
-                
-                #import IPython
-                #IPython.embed()
                 ax_gyroradius.hist(data[:, 4], bins=edges_gyr,
                                    alpha=alpha, label=label_plot,
                                    color=fit_line[0].get_color())
