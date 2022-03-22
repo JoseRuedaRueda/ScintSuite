@@ -10,7 +10,7 @@ appropiate smap and so on. But this is just a pedestrian way to perform the
 remap directly calling to the remap function, just in case one wants to check
 something
 
-Created for version 0.5.0
+Created for version 0.5.0. Revised for version 0.8.0
 """
 
 # General python packages
@@ -23,17 +23,11 @@ import Lib as ss
 # Section 0: Settings
 # -----------------------------------------------------------------------------
 # -- Paths (change them to your own paths)
-cin_file_name = '/p/IPP/AUG/rawfiles/FIT/32/32312_v710.cin'
-calibration_database = ss.paths.ScintSuite \
-    + '/Data/Calibrations/FILD/calibration_database.txt'
 strike_map = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILDSIM/results/' +\
     'AUG_map_-000.60000_007.50000_strike_map.dat'
-# -- Discharge settings
+# -- Discharge and FILD settings
 shot = 32312
 t0 = 0.29
-# -- FILD settings
-camera = 'PHANTOM'
-cal_type = 'PIX'
 diag_ID = 1     # FILD Number
 # -- Remap settings:
 par = {
@@ -54,20 +48,14 @@ tn2 = 0.19
 p1 = True  # Plot the original frame
 p2 = True  # Plot comparison between both methods
 # -----------------------------------------------------------------------------
-# --- Section 1: Load calibration
-# -----------------------------------------------------------------------------
-database = ss.mapping.CalibrationDatabase(calibration_database)
-cal = database.get_calibration(shot, camera, cal_type, diag_ID)
-# -----------------------------------------------------------------------------
 # --- Section 2: Load the frame
 # -----------------------------------------------------------------------------
-
 # Open the video object
-cin = ss.vid.Video(cin_file_name)
+cin = ss.vid.FILDVideo(shot=shot, diag_ID=diag_ID)
 # Load the frames for the noise calculation
 cin.read_frame(t1=tn1, t2=tn2)
 # get the noise frame
-noise_frame = cin.subtract_noise(t1=tn1, t2=tn2, return_noise=True)
+noise_frame = cin.subtract_noise(t1=tn1, t2=tn2)
 # Extract the frame. Notice, you could also use the read_frame method with the
 # flag: read_from_loaded, if the desired time in the loaded window. In this
 # case the readed frame will already have the noise subtracted!!!
@@ -83,7 +71,7 @@ if p1:
 # --- Section 3: Load and remap strike map
 # -----------------------------------------------------------------------------
 smap = ss.mapping.StrikeMap(0, strike_map)
-smap.calculate_pixel_coordinates(cal)
+smap.calculate_pixel_coordinates(cin.CameraCalibration)
 grid_params = {   # parameters for the montacarlo inversion
     'ymin': par['rmin'],
     'ymax': par['rmax'],
@@ -99,9 +87,10 @@ if p1:
     smap.plot_pix(ax_ref)
     fig_ref.show()
 # -----------------------------------------------------------------------------
-# --- Section 3: Remapping
+# --- Section 4: Remapping
 # -----------------------------------------------------------------------------
-# With the new version, we need to prepare the gyr and pitch profiles outside
+# We need to prepare the gyr and pitch profiles outside, this calculation is
+# done outside to avoid losing time in the remaping of the whole shot
 ngyr = int((par['rmax']-par['rmin'])/par['dr']) + 1
 npit = int((par['pmax']-par['pmin'])/par['dp']) + 1
 p_edges = par['pmin'] - par['dp']/2 + np.arange(npit + 1) * par['dp']

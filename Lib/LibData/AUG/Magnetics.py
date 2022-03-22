@@ -6,9 +6,24 @@ import numpy as np
 import os
 from tqdm import tqdm
 from scipy.interpolate import interp1d
-import requests
-import re
-import shutil
+import warnings
+import Lib.errors as errors
+try:
+    import requests
+except ModuleNotFoundError:
+    warnings.warn('request package is not installed. Install it to read '
+                  + 'the magnetic phase corrections.')
+
+try:
+    import re
+except ModuleNotFoundError:
+    warnings.warn('re package is not installed. Install it to read '
+                  + 'the magnetic phase corrections.')
+try:
+    import shutil
+except ModuleNotFoundError:
+    warnings.warn('shutil package is not installed. Install it to read '
+                  + 'the magnetic phase corrections.')
 
 paths = Path(machine='AUG')
 
@@ -16,10 +31,10 @@ paths = Path(machine='AUG')
 # ----------------------------------------------------------------------------
 # --- Coils corrections routines.
 # ----------------------------------------------------------------------------
-def magneticPhaseCorrection(coilnumber: int, coilgrp:str, freq: float=None,
-                            shotnumber: int=None):
+def magneticPhaseCorrection(coilnumber: int, coilgrp: str, freq: float = None,
+                            shotnumber: int = None):
     """
-    Reads the impedance correction for the phase calculation of the magnetic
+    Read impedance correction for phase calculation of the magnetic
     pick-up coils.
 
     Taken from mode_determinaton.py by
@@ -31,20 +46,15 @@ def magneticPhaseCorrection(coilnumber: int, coilgrp:str, freq: float=None,
     @param shotnumber: shotnumber for the coils. The correction is taken in
     different times.
     """
-
-
-
-
     if freq is None:
         freq = np.linspace(start=0.0, stop=500.0, num=256, dtype=float)
 
     if shotnumber is None:
         shotnumber = 33724 + 1
 
-    imped_phase = np.zeros((len(freq),2))
+    imped_phase = np.zeros((len(freq), 2))
 
     magPath = paths.bcoils_phase_corr
-
 
     if not os.path.isdir(magPath):
         try:
@@ -53,7 +63,7 @@ def magneticPhaseCorrection(coilnumber: int, coilgrp:str, freq: float=None,
             raise Exception('Cannot create folder! Admin privileges needed?!')
         print('Downloading AUG phase corrections')
 
-        url='https://datashare.mpcdf.mpg.de/s/FiqRIixNMb82HTq/download'
+        url = 'https://datashare.mpcdf.mpg.de/s/FiqRIixNMb82HTq/download'
 
         r = requests.get(url, allow_redirects=True)
         filename = re.findall('filename=(.+)',
@@ -70,68 +80,67 @@ def magneticPhaseCorrection(coilnumber: int, coilgrp:str, freq: float=None,
 
     if coilgrp not in ('B31', 'C07', 'B17'):
         print('Coils not supported for phase-correction')
-        output = { 'freq': freq,
-                   'phase': np.ones(np.atleast_1d(freq).shape),
-                   'interp': lambda x: 1.0
-                 }
+        output = {
+            'freq': freq,
+            'phase': np.ones(np.atleast_1d(freq).shape),
+            'interp': lambda x: 1.0
+        }
         return output
 
-    coilfullname = '%s-%02d'%(coilgrp, coilnumber)
+    coilfullname = '%s-%02d' % (coilgrp, coilnumber)
 
     if shotnumber > 33724:
-        path = os.path.join(magPath, 'felix_trans')  + '/' + \
+        path = os.path.join(magPath, 'felix_trans') + '/' + \
                coilfullname + ".txt"
-    elif shotnumber >31776:
-        path = os.path.join(magPath, 'mink')  + '/' + \
+    elif shotnumber > 31776:
+        path = os.path.join(magPath, 'mink') + '/' + \
                coilfullname + ".txt"
     else:
-        path = os.path.join(magPath, 'horvath')  + '/' + \
+        path = os.path.join(magPath, 'horvath') + '/' + \
                coilfullname + ".txt"
-
-
     try:
         with open(path, "r") as ins:
             array = []
             for line in ins:
                 array.append(line)
         entries = len(array[0].split())
-        datas = np.zeros((len(array),entries))
+        datas = np.zeros((len(array), entries))
         for i in range(len(array)):
             split = array[i].split()
             for k in range(entries):
-                datas[i,k] = split[k]
+                datas[i, k] = split[k]
         if entries > 2:
-            imped_phase[:,0] = np.interp(freq,datas[:,0]/1000.0,datas[:,4])
-            imped_phase[:,1] = np.interp(freq,datas[:,0]/1000.0,datas[:,3])
+            imped_phase[:, 0] = np.interp(freq, datas[:, 0]/1000., datas[:, 4])
+            imped_phase[:, 1] = np.interp(freq, datas[:, 0]/1000., datas[:, 3])
 
-            imped_phase[np.where(freq > 500)[0],1] = datas[-1,3]
-            imped_phase[np.where(freq < 0)[0],1] = datas[0,3]
+            imped_phase[np.where(freq > 500)[0], 1] = datas[-1, 3]
+            imped_phase[np.where(freq < 0)[0], 1] = datas[0, 3]
 
-            imped_phase[np.where(freq > 500)[0],0] = 1.0
-            imped_phase[np.where(freq < 0)[0],0] = 1.0
+            imped_phase[np.where(freq > 500)[0], 0] = 1.0
+            imped_phase[np.where(freq < 0)[0], 0] = 1.0
         else:
-            imped_phase[:,0] = np.ones(len(freq))
-            imped_phase[:,1] = np.interp(freq,datas[:,0],datas[:,1])
+            imped_phase[:, 0] = np.ones(len(freq))
+            imped_phase[:, 1] = np.interp(freq, datas[:, 0], datas[:, 1])
 
-            imped_phase[np.where(freq > 500)[0],1] = datas[-1,1]
-            imped_phase[np.where(freq < 0)[0],1] = datas[0,1]
+            imped_phase[np.where(freq > 500)[0], 1] = datas[-1, 1]
+            imped_phase[np.where(freq < 0)[0], 1] = datas[0, 1]
 
     except ValueError:
-        print('Transferfunction valueerror in %s' %coilfullname)
-        imped_phase[:,0] = 1.0
-        imped_phase[:,1] = 0.0
+        print('Transferfunction valueerror in %s' % coilfullname)
+        imped_phase[:, 0] = 1.0
+        imped_phase[:, 1] = 0.0
     except IOError:
-        print('Transferfunction IOerror in %s' %coilfullname)
-        imped_phase[:,0] = 1.0
-        imped_phase[:,1] = 0.0
+        print('Transferfunction IOerror in %s' % coilfullname)
+        imped_phase[:, 0] = 1.0
+        imped_phase[:, 1] = 0.0
 
-
-    output = { 'freq': freq,
-               'phase': imped_phase[:, 1],
-               'interp': interp1d(freq, imped_phase[:, 1], kind='linear',
-                                  bounds_error=False, fill_value=0.0,
-                                  assume_sorted=True)
-             }
+    output = {
+        'freq': freq,
+        'phase': imped_phase[:, 1],
+        'interp': interp1d(freq, imped_phase[:, 1], kind='linear',
+                           bounds_error=False, fill_value=0.0,
+                           assume_sorted=True)
+    }
     return output
 
 
@@ -161,13 +170,14 @@ def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
         sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber,
                          experiment=exp,  edition=0)
     except:
-        raise Exception('Shotfile not existent for '+diag+' #'+str(shotnumber))
+        raise errors.DatabaseError(
+            'Shotfile not existent for ' + diag + ' #' + str(shotnumber))
 
     try:
         # Getting the time base.
         time = sf(name='Time')
     except:
-        raise Exception('Time base not available in shotfile!')
+        raise errors.DatabaseError('Time base not available in shotfile!')
 
     if timeWindow is None:
         timeWindow = [time[0], time[-1]]
@@ -180,7 +190,7 @@ def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
         # Getting the time base.
         mhi = sf(name=name, tBegin=timeWindow[0], tEnd=timeWindow[1])
     except:
-        raise Exception(name+' not available in shotfile.')
+        raise errors.DatabaseError(name+' not available in shotfile.')
         sf.close()
 
     sf.close()
@@ -245,7 +255,8 @@ def get_magnetic_poloidal_grp(shotnumber: int, timeWindow: float,
     """
     # --- Parsing the inputs
     if coilGrp is None:
-        raise Exception('Either the coil-group or the angle must be provided.')
+        raise errors.NotValidInput(
+            'Either the coil-group or the angle must be provided.')
 
     # If the time window is a single float, we will make an array containing
     # at least a 5ms window.
@@ -274,13 +285,14 @@ def get_magnetic_poloidal_grp(shotnumber: int, timeWindow: float,
         sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber,
                          experiment=exp,  edition=0)
     except:
-        raise Exception('Shotfile not existent for '+diag+' #'+str(shotnumber))
+        raise errors.DatabaseError(
+            'Shotfile not existent for ' + diag + ' #' + str(shotnumber))
 
     try:
         # Getting the time base.
         time = sf(name='Time')
     except:
-        raise Exception('Time base not available in shotfile!')
+        raise errors.DatabaseError('Time base not available in shotfile!')
 
     if timeWindow is None:
         timeWindow = [time[0], time[-1]]
@@ -298,7 +310,7 @@ def get_magnetic_poloidal_grp(shotnumber: int, timeWindow: float,
                              experiment='AUGD', edition=0)
     except:
         sf.close()
-        raise Exception('Could not get the calibration data.')
+        raise errors.DatabaseError('Could not get the calibration data.')
 
     # --- Getting the coils data.
     output = {

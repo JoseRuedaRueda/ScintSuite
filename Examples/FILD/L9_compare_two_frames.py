@@ -11,7 +11,7 @@ noise)
 
 jose Rueda: jrrueda@us.es
 
-Note: Written for version 0.2.6.
+Note: Written for version 0.2.6. Revised for version 0.7.3
 """
 import Lib as ss
 import matplotlib.pyplot as plt
@@ -50,9 +50,6 @@ tf1 = 6.8  # time of the first frame to be used [s]
 tf2 = 7.1  # time of the second frame to be used [s]
 
 # - Remapping options:
-calibration_database = ss.paths.ScintSuite \
-    + '/Data/Calibrations/FILD/calibration_database.txt'
-camera = 'CCD'      # CCD for other FILDs
 par = {
     'rmin': 1.2,      # Minimum gyroradius [in cm]
     'rmax': 10.5,     # Maximum gyroradius [in cm]
@@ -65,11 +62,6 @@ par = {
     'rprofmax': 8.0,     # Maximum gyroradius for the pitch profile calculation
     'pprofmin': 20.0,    # Minimum pitch for the gyroradius profile calculation
     'pprofmax': 90.0,    # Maximum pitch for the gyroradius profile calculation
-    # Position of the FILD
-    'rfild': 2.035,   # 2.196 for shot 32326, 2.186 for shot 32312
-    'zfild': ss.dat.FILD[diag_ID-1]['z'],
-    'alpha': ss.dat.FILD[diag_ID-1]['alpha'],
-    'beta': ss.dat.FILD[diag_ID-1]['beta'],
     # method for the interpolation
     'method': 2,  # 2 Spline, 1 Linear
     'decimals': 1}  # Precision for the strike map (1 is more than enough)
@@ -80,12 +72,8 @@ plot_profiles_in_time = True   # Plot the time evolution of pitch and r
 # -----------------------------------------------------------------------------
 # --- Section 1: Load video
 # -----------------------------------------------------------------------------
-# - Get the proper file name
-filename = ss.vid.guess_filename(shot, ss.dat.FILD[diag_ID-1]['path'],
-                                 ss.dat.FILD[diag_ID-1]['extension'])
-
 # - open the video file:
-vid = ss.vid.Video(filename, diag_ID=diag_ID)
+vid = ss.vid.FILDVideo(shot=shot, diag_ID=diag_ID)
 # - read the frames:
 tdummy = time()
 print('Reading camera frames: ', shot, '...')
@@ -102,19 +90,13 @@ if apply_filter:
 # -----------------------------------------------------------------------------
 # --- Section 3: Remap
 # -----------------------------------------------------------------------------
-# - Initialize the calibration database object
-database = ss.mapping.CalibrationDatabase(calibration_database)
-# - Get the calibration for our shot
-cal = database.get_calibration(shot, camera, 'PIX', diag_ID)
-# - Remap frames:
-vid.remap_loaded_frames(cal, shot, par)
+vid.remap_loaded_frames(par)
 # - Plot:
 if plot_profiles_in_time:
     vid.plot_profiles_in_time()
 # -----------------------------------------------------------------------------
 # --- Section 4: Plot the frames
 # -----------------------------------------------------------------------------
-
 fig1, ax1 = plt.subplots(1, 2)
 vid.plot_frame(t=tf1, strike_map='auto', ax=ax1[0])
 

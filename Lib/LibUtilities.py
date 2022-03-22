@@ -10,16 +10,22 @@ which will have at the FILD position
 import numpy as np
 import math
 import Lib.LibData as ssdat
+import warnings
 try:
     from shapely.geometry import LineString
+    from shapely.errors import ShapelyDeprecationWarning
+    warnings.filterwarnings('ignore',
+                            category=ShapelyDeprecationWarning)
 except ModuleNotFoundError:
     print('Shapely not found, you cannot calculate intersections')
+except ImportError:
+    print('Old version of shapelly, but things should work')
 
 
 # -----------------------------------------------------------------------------
 # --- Pitch methods:
 # -----------------------------------------------------------------------------
-def pitch2pitch(P0, def_in: int = 0, def_out: int = 2):
+def pitch2pitch(P0: float, def_in: int = 0, def_out: int = 2):
     """
     Transform between the different pitch definitions
 
@@ -176,7 +182,7 @@ def find_nearest_sorted(array, value):
 # -----------------------------------------------------------------------------
 # --- Intersections
 # -----------------------------------------------------------------------------
-def find_2D_intersection(x1, y1, x2, y2, plot=False):
+def find_2D_intersection(x1, y1, x2, y2):
     """
     Get the intersection between curve (x1, y1) and (x2, y2)
 
@@ -193,7 +199,6 @@ def find_2D_intersection(x1, y1, x2, y2, plot=False):
     @param y1: y coordinate of the first curve, np.array
     @param x2. x coordinate of the second curve, np.array
     @param y2: y coordinate of the second curve, np.array
-    @param plot. If no intersection is found, plot the situation
 
     @return x: x coordinates of the intersection
     @return y: y coordinates of the intersection

@@ -19,7 +19,7 @@ import tkinter as tk
 # -----------------------------------------------------------------------------
 # - Paths:
 calibration_database = ss.paths.ScintSuite \
-    + '/Data/Calibrations/FILD/calibration_database.txt'
+    + '/Data/Calibrations/FILD/AUG/calibration_database.txt'
 # As the strike points are needed and they are not included in the database,
 # for the tomography one should manually select (for now) the strike map)
 smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/09_tomo_strike_map.dat'
@@ -89,23 +89,10 @@ l1 = 0.33
 MC_markers = 600  # Markers for the MC remap
 efficiency = True
 # -----------------------------------------------------------------------------
-# --- Section 1: Load calibration
+# --- Section 1: Load video file and the necessary frames
 # -----------------------------------------------------------------------------
-# Initialize the calibration database object
-database = ss.mapping.CalibrationDatabase(calibration_database)
-# Get the calibration for our shot
-cal = database.get_calibration(shot, ss.dat.FILD[diag_ID-1]['camera'],
-                               'PIX', diag_ID)
-
-# -----------------------------------------------------------------------------
-# --- Section 2: Load video file and the necessary frames
-# -----------------------------------------------------------------------------
-# Prepare the name of the .cin file to be loaded
-
-file = ss.vid.guess_filename(shot, ss.dat.FILD[diag_ID-1]['path'],
-                             ss.dat.FILD[diag_ID-1]['extension'])
 # initialise the video object:
-cin = ss.vid.Video(file)
+cin = ss.vid.FILDVideo(shot=shot, diag_ID=diag_ID)
 # Load the frames we need, it is necesary to load some of them to subtract the
 # noise
 cin.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
@@ -119,11 +106,11 @@ iframe = np.argmin(abs(ttomo-cin.exp_dat['tframes']))
 frame = cin.exp_dat['frames'][:, :, iframe].squeeze()
 
 # -----------------------------------------------------------------------------
-# --- Section 3: Prepare the weight function
+# --- Section 2: Prepare the weight function
 # -----------------------------------------------------------------------------
 # Calculate resolutions
 smap = ss.mapping.StrikeMap('FILD', smap_file)
-smap.calculate_pixel_coordinates(cal)
+smap.calculate_pixel_coordinates(cin.CameraCalibration)
 smap.load_strike_points()
 smap.calculate_resolutions(diag_params=diag_params)
 # Prepare the grid for the remap
@@ -153,7 +140,7 @@ Wmax = W2D.max()
 s1Dnorm = s1D / smax
 W2Dnorm = W2D / Wmax
 # -----------------------------------------------------------------------------
-# --- Section 4: Perform the inversion
+# --- Section 3: Perform the inversion
 # -----------------------------------------------------------------------------
 # Ridge (0th Tiko...) and Elastic Net (Ridge and LASSSO combination) are also
 # available
@@ -167,7 +154,7 @@ else:
                                  n_alpha=nalpha1, l1_ratio=l1, plot=False)
 
 # -----------------------------------------------------------------------------
-# --- Section 5: Representation
+# --- Section 4: Representation
 # -----------------------------------------------------------------------------
 inversions1 = np.zeros((pg['nr'], pg['np'], nalpha1))
 

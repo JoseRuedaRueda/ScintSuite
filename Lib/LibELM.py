@@ -112,7 +112,7 @@ def getELM_times_from_signal_raw(elm_start:dict, time:float, signal:float,
 
     # ax.plot(time_1stELM, fit_objective(time_1stELM, *popt), linewidth=3)
 
-    for ii in np.arange(t0_plus-t0_minus+1):
+    for ii in range(t0_plus-t0_minus+1):
         t0_loop = t0 + ii
         t1_loop = t1 + ii
         timebasis1 = time[t0_loop:t1_loop] - time[t0]
@@ -141,7 +141,7 @@ def getELM_times_from_signal_raw(elm_start:dict, time:float, signal:float,
     yref = signal[tstart_idx[0]:tend_idx[0]]
 
     # --- Loop over the ELMs
-    for ii in np.arange(start=1, stop=elm_start['n']):
+    for ii in range(1, elm_start['n']):
         time0 = elm_start['t_onset'][ii]
 
         time0_start = time0 - dt_start
@@ -155,7 +155,7 @@ def getELM_times_from_signal_raw(elm_start:dict, time:float, signal:float,
         ntrials = t0plus - t0minus + 1
 
         corr_vec = np.zeros((ntrials,))
-        for kk in np.arange(ntrials):
+        for kk in range(ntrials):
             t0_loop = t0 + kk
             t1_loop = t1 + kk
             timebasis1 = time[t0_loop:t1_loop] - time[t0]
@@ -181,7 +181,7 @@ def getELM_times_from_signal_raw(elm_start:dict, time:float, signal:float,
     if buildCorr:
         for ii in tqdm(np.arange(elm_start['n'])):
             data1 = signal[tstart_idx[ii] : tend_idx[ii]]
-            for jj in np.arange(elm_start['n']):
+            for jj in range(elm_start['n']):
                 data2 = signal[tstart_idx[jj] : tend_idx[jj]]
 
                 corr_matrix[ii, jj], _ = scipy.stats.pearsonr(data1, data2)
@@ -211,7 +211,7 @@ def getELM_times_from_signal_raw(elm_start:dict, time:float, signal:float,
     # Adding to the output the cut signal containing only the ELMs.
     new_dt_idx = tend_idx[0]-tstart_idx[0]
     output['ELM'] = np.zeros((elm_start['n'], new_dt_idx))
-    for ii in np.arange(elm_start['n']):
+    for ii in range(elm_start['n']):
         output['ELM'][ii, :] = signal[tstart_idx[ii]:tend_idx[ii]]
 
     return output
@@ -236,8 +236,8 @@ def ELM_buildCorrelation(ELMsignal: float, axis: int=0):
     nELMS = ELMsignal.shape[0]
     corr_matrix = np.zeros((nELMS, nELMS))
 
-    for ii in np.arange(nELMS):
-        for jj in np.arange(nELMS):
+    for ii in range(nELMS):
+        for jj in range(nELMS):
             corr_matrix[ii, jj], _ = scipy.stats.pearsonr(ELMsignal[ii, ...],
                                                           ELMsignal[jj, ...])
 
@@ -313,7 +313,7 @@ def ELM_similarity(elm_dict: dict, threshold: float = 0.96, elm_idx: int=None):
 
     return output
 
-def ELMsync(time: float, signal: float, elm_dict:dict):
+def ELMsync(time: float, signal: float, elm_dict:dict, average = False):
     """
     Using the time synchonization provided by the elm_dict, the (time, signal)
     pair is parsed to return only the ELM synced time and data and be able
@@ -341,10 +341,9 @@ def ELMsync(time: float, signal: float, elm_dict:dict):
 
     new_time = list()
     new_signal = list()
-    for ii in np.arange(len(elm_dict['tstart_val'])):
+    for ii in range(len(elm_dict['tstart_val'])):
         t0, t1 = np.searchsorted(time, (elm_dict['tstart_val'][ii],
                                         elm_dict['tend_val'][ii]))
-        #print(t0, t1)
 
         if t0 == t1:
             continue
@@ -353,67 +352,6 @@ def ELMsync(time: float, signal: float, elm_dict:dict):
         new_signal.append(signal[t0:t1, ...])
     
     
-    new_time = np.concatenate(new_time)#.squeeze()
-    new_signal = np.concatenate(new_signal)#.squeeze()
-
-    return new_time, new_signal
-
-
-def ELMsyncAJVV(time: float, signal: float, elm_dict:dict, average = True):
-    """
-    Using the time synchonization provided by the elm_dict, the (time, signal)
-    pair is parsed to return only the ELM synced time and data and be able
-    to make ELM-averaging.
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    @param time: new time basis to analyze.
-    @param signal: signal to apply the ELM synchronization. The time axis
-    must be the first axis. This enables multiple signals to be synced
-    simultaneously.
-    @param elm_dict: dictionary with the ELM data (output of ELM_similarity.)
-    """
-
-    time   = np.atleast_1d(time)
-    signal = np.atleast_1d(signal)
-
-    if 'ELM' not in elm_dict:
-        raise KeyError('The key ELM must be in the elm_dict input!')
-
-    if 'tstart_val' not in elm_dict:
-        raise KeyError('The key tstart_val must be in the elm_dict input!')
-    if 'tend_val' not in elm_dict:
-        raise KeyError('The key tend_val must be in the elm_dict input!')
-
-    new_time = list()
-    new_signal = list()
-    
-    t0, t1 = np.searchsorted(time, (elm_dict['tstart_val'][0],
-                                elm_dict['tend_val'][0]))
-
-    new_time.append(time[t0:t1]-elm_dict['t_onset'][0])
-    new_signal.append(signal[t0:t1, ...])
-    
-    elm_len = t1 - t0
-    
-    for ii in np.arange(1, len(elm_dict['tstart_val'])):
-        t0, t1 = np.searchsorted(time, (elm_dict['tstart_val'][ii],
-                                        elm_dict['tend_val'][ii]))
-        #print(t0, t1)
-
-        if t0 == t1:
-            continue
-
-        if not ((elm_len +1 >= (t1 - t0) ) and (elm_len - 1 <= (t1 - t0) )):
-            print('warning ELM lenght substantially different')
-            continue
-
-        new_time.append(time[t0:t0 + elm_len]-elm_dict['t_onset'][ii])
-        new_signal.append(signal[t0:t0 + elm_len, ...])
-    
-    import IPython
-    print('in ELM')
-    #IPython.embed()
     if average:
         new_time   = np.array(new_time)
         new_signal = np.array(new_signal)
@@ -426,3 +364,5 @@ def ELMsyncAJVV(time: float, signal: float, elm_dict:dict, average = True):
         new_signal = np.concatenate(new_signal)#.squeeze()
 
     return new_time, new_signal
+
+

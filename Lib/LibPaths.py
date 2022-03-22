@@ -26,7 +26,14 @@ class Path:
         self.FILDStrikeMapsTomography = \
             os.path.join(self.ScintSuite, 'Data',
                          'StrikeMaps', 'FILD', 'Tomography')
-        self.tracker = os.path.join(home, 'ihibpsim', 'bin', 'tracker.go')
+        self.FILDPositionDatabase = ''
+
+        self.iHIBPsim = os.path.join(home, 'ihibpsim')
+        self.ihibp_bins = os.path.join(self.iHIBPsim, 'bin')
+        self.ihibp_res = os.path.join(self.iHIBPsim, 'sims')
+        self.ihibp_repo = os.path.join(self.iHIBPsim, 'repo')
+        self.tracker = os.path.join(self.ihibp_bins, 'tracker.go')
+
         self.ihibpsim_strline_database = os.path.join(self.ScintSuite,
                                                       'Data',
                                                       'StrikeMaps',
@@ -38,8 +45,7 @@ class Path:
             self.bcoils_phase_corr = os.path.join(self.ScintSuite,
                                                   'Data',
                                                   'Magnetics')
-            self.FILD4_trayectories = \
-                '/afs/ipp/home/j/javih/FILD4/'
+            self.FILD4_trajectories = '/afs/ipp/home/j/javih/FILD4/'
             self.fonts = [
                 '/usr/share/fonts/truetype',
                 '/usr/share/fonts/truetype/ms-corefonts',

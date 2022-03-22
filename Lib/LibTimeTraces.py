@@ -70,6 +70,7 @@ def create_roi(fig, re_display=False):
     print('Please select the vertex of the roi in the figure')
     print('Select each vertex with left click')
     print('Once you finished, right click')
+    plt.ginput(timeout=0.001)
     roi = RoiPoly(color='r', fig=fig)
     print('Thanks')
     # Show again the image with the roi
@@ -360,9 +361,18 @@ class TimeTrace:
                     ax_params['ylabel'] = 'Mean'
         # --- Normalize the data:
         if correct_baseline == 'end':
-            y += -y[-15:-2].mean()
+            baseline_level = y[-15:-2].mean()
+            y += -baseline_level
+            print('Baseline corrected using the last points')
+            print('Baseline level: ', round(baseline_level))
+
         elif correct_baseline == 'ini':
-            y += -y[3:8].mean()
+            baseline_level = y[3:8].mean()
+            y += -baseline_level
+            print('Baseline corrected using the initial points')
+            print('Baseline level: ', round(baseline_level))
+        else:
+            print('Not applyting any correction')
 
         if normalised:
             y /= y.max()
@@ -370,11 +380,16 @@ class TimeTrace:
         # create and plot the figure
         if ax is None:
             fig, ax = plt.subplots()
+            created_ax = True
+        else:
+            created_ax = False
         line_options.update(line_params)
         ax.plot(self.time_base, y, **line_options)
         ax_options.update(ax_params)
         ax = ssplt.axis_beauty(ax, ax_options)
         plt.tight_layout()
+        if created_ax:
+            fig.show()
         return ax
 
     def plot_all(self, ax_par: dict = {}, line_par: dict = {}):
