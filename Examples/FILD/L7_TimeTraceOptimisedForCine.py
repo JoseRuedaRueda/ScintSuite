@@ -8,12 +8,11 @@ It is optimised for cin files. In this case the video is not loaded, we just
 read the roi we want and integrate, so almost no RAM memory is consumed and you
 can calculate the TT for the whole shot really fast
 
-@section tt0 0: Settings
-@section tt1 1: Reading video and selecting roi
-@section tt2 2: Calculate and plot the time trace
 
 Note; Written for version 0.3.0 Before running this script, please do:
 plt.show(), if not, bug due to spyder 4.0 may arise
+
+Revised for version 0.8.0
 """
 
 # --- Importing packages
@@ -27,18 +26,15 @@ import Lib as ss
 # Section 0: Settings
 # -----------------------------------------------------------------------------
 shot = 37701     # shot number
+diag_ID = 1      # FILD number
 t0 = 1.08        # Reference time (to select the ROI) in s
 # -----------------------------------------------------------------------------
 # Section 1: Read the video file and create the roi
 # -----------------------------------------------------------------------------
 # --- Load the video
-dummy = str(shot)
-file = ss.vid.guess_filename(shot, ss.dat.FILD[0]['path'],
-                             ss.dat.FILD[0]['extension'])
-
-video = ss.vid.Video(file)
+video = ss.vid.FILDVideo(shot=shot, diag_ID=diag_ID)
 # --- Plot a frame to select the roi on it
-# - Load the frame
+# - Load the just a single frame
 frame_index = np.array([np.argmin(abs(video.timebase-t0))])
 video.read_frame(frame_index)
 # - Plot the frame

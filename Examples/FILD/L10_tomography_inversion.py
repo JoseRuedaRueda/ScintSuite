@@ -2,6 +2,8 @@
 Perform a tomographic inversion of a FILD frame.
 
 Done in 07/08/2021
+
+Revised for version 0.8.0
 """
 
 import Lib as ss
@@ -12,15 +14,10 @@ import tkinter as tk
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - Paths:
-calibration_database = ss.paths.ScintSuite \
-    + '/Data/Calibrations/FILD/calibration_database.txt'
 # As the strike points are needed and they are not included in the database,
 # for the tomography one should manually select (for now) the strike map)
 smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/' \
-    + 'tomography_new_geometry2_strike_map.dat'
-smap_points = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILDSIM/results/' +\
-    'tomography_new_geometry2_strike_points.dat'
-
+    + 'tomography_new_geometry2_strike_map.dat'    # Change this
 # - General options
 diag_ID = 1     # FILD Number
 shot = 39612    # shot number
@@ -56,16 +53,16 @@ scintillator_options = {
     'rmin': 1.2,
     'rmax': 8.0,
     'dr': 0.1,
-    'pmin': 40.0,
-    'pmax': 75.0,
+    'pmin': 20.0,
+    'pmax': 85.0,
     'dp': 1.0
 }
 pin_options = {
     'rmin': 1.2,
     'rmax': 8.0,
     'dr': 0.1,
-    'pmin': 40.0,
-    'pmax': 75.0,
+    'pmin': 20.0,
+    'pmax': 85.0,
     'dp': 1.0
 }
 size_filter = 0  # Size of the median filter to apply to the remap frame
@@ -77,24 +74,13 @@ FS = 16     # Font size
 Ridge = True
 l1 = 1.
 MC_markers = 300  # Markers for the MC remap
-# -----------------------------------------------------------------------------
-# --- Section 1: Load calibration
-# -----------------------------------------------------------------------------
-# Initialize the calibration database object
-database = ss.mapping.CalibrationDatabase(calibration_database)
-# Get the calibration for our shot
-cal = database.get_calibration(shot, ss.dat.FILD[diag_ID-1]['camera'],
-                               'PIX', diag_ID)
 
 # -----------------------------------------------------------------------------
-# --- Section 2: Load video file and the necessary frames
+# --- Section 1: Load video file and the necessary frames
 # -----------------------------------------------------------------------------
 # Prepare the name of the .cin file to be loaded
-
-file = ss.vid.guess_filename(shot, ss.dat.FILD[diag_ID-1]['path'],
-                             ss.dat.FILD[diag_ID-1]['extension'])
 # initialise the video object:
-cin = ss.vid.Video(file)
+cin = ss.vid.FILDVideo(shot=shot, diag_ID=diag_ID)
 # Load the frames we need, it is necesary to load some of them to subtract the
 # noise
 cin.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
@@ -108,12 +94,12 @@ iframe = np.argmin(abs(ttomo-cin.exp_dat['tframes']))
 frame = cin.exp_dat['frames'][:, :, iframe].squeeze()
 
 # -----------------------------------------------------------------------------
-# --- Section 3: Prepare the weight function
+# --- Section 2: Prepare the weight function
 # -----------------------------------------------------------------------------
 # Calculate resolutions
 smap = ss.mapping.StrikeMap('FILD', smap_file)
-smap.calculate_pixel_coordinates(cal)
-smap.load_strike_points(smap_points)
+smap.calculate_pixel_coordinates(cin.CameraCalibration)
+smap.load_strike_points()
 diag_params = {
     'p_method': 'Gauss',
     'g_method': 'Gauss'

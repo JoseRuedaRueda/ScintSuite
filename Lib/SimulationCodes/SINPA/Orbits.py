@@ -10,7 +10,6 @@ import Lib.LibParameters as sspar
 from mpl_toolkits.mplot3d import Axes3D
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
-import Lib.LibParameters as sspar
 import Lib.LibPlotting as ssplt
 paths = Path(machine)
 
@@ -28,8 +27,8 @@ class OrbitClass:
         @param file: full file to read (if provided, runID will be ignored)
         """
         if file is None:
-            file = \
-                os.path.join(paths.SINPA, 'runs', runID, 'results/Orbits.bin')
+            file = os.path.join(paths.SINPA, 'runs', runID, 'results',
+                                runID + '.orb')
         self.file = file
         self.read_file(file, verbose=verbose)
 
@@ -116,7 +115,7 @@ class OrbitClass:
         """
         return self.data[idx]
 
-    def plot3D(self, per=0.1, ax=None, line_params={}, imax=1000, kind=2):
+    def plot3D(self, per=0.1, ax=None, line_params={}, imax=1000, kind=(2,)):
         """
         Plot the strike points in a 3D axis as scatter points
 
@@ -126,17 +125,21 @@ class OrbitClass:
         @param ax: axes where to plot (if none, they are created)
         @param line_params: Parameters for plt.plot()
         @param imax: maximum number of steps to plot
-        @param kindOfCollision: type of orbit to plot:
+        @param kindOfCollision: type of orbit to plot: (tuple or list)
             -0: Collimator colliding
             -1: Foil colliding but not scintillator collision
             -2: Scintillator colliding
             -9: Not colliding
+        @ToDo: Include the rl, xi selector
         """
-        # --- Default markers
+        # --- Default plotting options
         line_options = {
             'color': 'k'
         }
         line_options.update(line_params)
+        # --- ensure we have a list:
+        if not isinstance(kind, (tuple, list, np.ndarray)):
+            kind = (kind,)
         # --- Create the axes
         if ax is None:
             fig = plt.figure()
@@ -146,9 +149,8 @@ class OrbitClass:
             created = False
 
         # --- Plot the markers:
-
         for i in range(self.nOrbits):
-            if self.kindOfCollision[i] == kind:
+            if self.kindOfCollision[i] in kind:
                 random_number = np.random.rand()
                 if random_number < per:
                     imax_plot = min(imax, self.counters[i])
@@ -158,22 +160,8 @@ class OrbitClass:
                             **line_options)
         # --- Set properly the axis
         if created:
-            # Get rid of colored axes planes
-            # (https://stackoverflow.com/questions/11448972/
-            # changing-the-background-color-of-the-axes-planes-of
-            # -a-matplotlib-3d-plot)
-            # First remove fill
-            ax.xaxis.pane.fill = False
-            ax.yaxis.pane.fill = False
-            ax.zaxis.pane.fill = False
-
-            # Now set color to white (or whatever is "invisible")
-            ax.xaxis.pane.set_edgecolor('w')
-            ax.yaxis.pane.set_edgecolor('w')
-            ax.zaxis.pane.set_edgecolor('w')
-
-            # Bonus: To get rid of the grid as well:
-            ax.grid(False)
+            ssplt.clean3Daxis(ax)
+            ssplt.axisEqual3D(ax)
 
     def plotEnergy(self, iorbit, ax=None, line_params: dict = {},
                    ax_params: dict = {}):
@@ -207,3 +195,39 @@ class OrbitClass:
 
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
+
+
+    def save_orbits_to_txt(self, kind=(2,), units: str = 'mm'):
+        """
+        Save each individual orbit in a text file structred with collums for 
+        x y z positions of the orbits, to be easily uplaoded in CAD software
+
+        Anton van Vuuren: avanvuuren@us.es
+
+        @param kindOfCollision: type of orbit to plot: (tuple or list)
+            -0: Collimator colliding
+            -1: Foil colliding but not scintillator collision
+            -2: Scintillator colliding
+            -9: Not colliding
+        @param units: Units in which to savethe orbit positions.
+        """
+        # --- Check the scale
+        if units not in ['m', 'cm', 'mm']:
+            raise Exception('Not understood units?')
+        possible_factors = {'m': 1.0, 'cm': 100.0, 'mm': 1000.0}
+        factor = possible_factors[units]
+            
+        # --- Plot the markers:
+        for i in range(self.nOrbits):
+            if self.kindOfCollision[i] in kind:
+                with open('orb_run_%s_rl_%.2f_xi_%.2f.txt' 
+                          %(self.runID[0].strip().decode("utf-8"), 
+                            self.rl[i], 
+                            np.rad2deg(np.arccos(self.xi[i])) ), 'w' ) as f:
+                    for p in range(len(self.data[i]['position'][:, 0])):
+                        f.write('%f %f %f \n' 
+                                %(self.data[i]['position'][p, 0] * factor,
+                                  self.data[i]['position'][p, 1] * factor,
+                                  self.data[i]['position'][p, 2] * factor )
+                                )
+

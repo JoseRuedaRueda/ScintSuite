@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interpn
 import Lib.LibData as ssdat
 import Lib.LibPlotting as ssplt
+import math
 
 
 class fields:
@@ -81,10 +82,11 @@ class fields:
         Note that its follow the i-HIBPsim/SINPA structure
         (SINPA fields are similar to iHIBPsim fields
         but with no time dependence):
-        --> nR, nZ, nPhi: int32 - Grid size in each direction.
+        --> nR, nZ, nPhi, nTime: int32 - Grid size in each direction.
         --> Rmin, Rmax: float64 - Minimum and maximum major radius.
         --> Zmin, Zmax: float64 - Minimum and maximum vertical pos.
         --> Phimin, Phimax: float64 - Min. and max. toroidal direction.
+        --> Timemin, timemax> float64
         --> Br[nR, nPhi, nZ]: float64
         --> Bphi[nR, nPhi, nZ]: float64
         --> Bz[nR, nPhi, nZ]: float64
@@ -699,7 +701,7 @@ class fields:
         # Saving the input data to the class.
         self.Bfield_from_shot_flag = False
 
-    def createHomogeneousField(self, F: np.ndarray, field='B'):
+    def createHomogeneousField(self, F: np.ndarray, field: str = 'B'):
         """
         Create a field for SINPA from a given B vector
 
@@ -710,6 +712,7 @@ class fields:
         @todo: include interpolators, maybe translation to polar??
 
         @param F: array with field, [fx, fy, fz]
+        @param field: 'B' or 'E', the field you want to generate
         """
         if field.lower() == 'b':
             self.bdims = 0
@@ -722,6 +725,71 @@ class fields:
         else:
             raise Exception('Field not understood!')
         # Store the field
+        self.__dict__[key]['R'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['z'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['Rmin'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['Rmax'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['Zmin'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['Zmax'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['nR'] = np.array([1], dtype=np.int32)
+        self.__dict__[key]['nZ'] = np.array([1], dtype=np.int32)
+        self.__dict__[key]['fx'] = np.array(F[0]).astype(dtype=np.float64)
+        self.__dict__[key]['fy'] = np.array(F[1]).astype(dtype=np.float64)
+        self.__dict__[key]['fz'] = np.array(F[2]).astype(dtype=np.float64)
+
+    def createHomogeneousFieldThetaPhi(self, theta: float, phi: float,
+                                       field_mod: float = 1.0,
+                                       field: str = 'B',
+                                       u1=np.array((1.0, 0.0, 0.0)),
+                                       u2=np.array((0.0, 1.0, 0.0)),
+                                       u3=np.array((0.0, 0.0, 1.0)),
+                                       IpBt_sign: float = ssdat.IB_sign,
+                                       verbose: bool = True):
+        """
+        Create a field for SINPA from a given B vector
+
+        Jose Rueda: jrrueda@us.es
+
+        Create an homogenous field for SINPA, defined by the theta and phi
+        direction angles
+
+        @todo: include interpolators, maybe translation to polar??
+
+        @param theta: Theta angle, in degrees, as defined in FILDSIM. See
+            extended documentation
+        @param phi: Phi angle, in degrees, as defined in FILDSIM. See
+            extended documentation
+        @param field_mod: modulus of the field to generate
+        @param field: 'B' or 'E', the field you want to generate
+        @param u1: u1 vector of the reference system
+        @param u2: u2 vector for the referece system
+        @param u3: u3 vector for the reference system
+
+        Note: Please see SINPA documentation for a nice drawing of the
+        different angles
+        """
+        # --- Set field flags:
+        if field.lower() == 'b':
+            self.bdims = 0
+            key = 'Bfield'
+            self.Bfield_from_shot_flag = False
+
+        elif field.lower() == 'e':
+            self.edims = 0
+            key = 'Efield'
+        else:
+            raise Exception('Field not understood!')
+        # --- Generate the direction
+        t = theta * np.pi / 180.0  # pass to radians
+        p = phi * np.pi / 180.0
+        # dir = math.cos(t) * (math.sin(p) * u1 + math.cos(p) * u2) \
+        #     - math.sin(t) * u3
+        dir = math.sin(p) * u1 + math.cos(p)\
+            * (math.cos(t) * u2 - math.sin(t) * u3)
+        F = IpBt_sign * field_mod * dir
+        if verbose:
+            print('Value of the field is: ', F)
+        # --- Store the field
         self.__dict__[key]['R'] = np.array((0.0), dtype=np.float64)
         self.__dict__[key]['z'] = np.array((0.0), dtype=np.float64)
         self.__dict__[key]['Rmin'] = np.array((0.0), dtype=np.float64)

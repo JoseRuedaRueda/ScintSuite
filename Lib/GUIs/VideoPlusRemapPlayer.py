@@ -4,18 +4,19 @@ import numpy as np
 import tkinter as tk                       # To open UI windows
 import matplotlib.backends.backend_tkagg as tkagg
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import Lib.LibPlotting as ssplt
 import Lib.SimulationCodes.FILDSIM as ssfildsim
+import Lib.SimulationCodes.SINPA as sssinpa
 import Lib.LibMap as ssmap
 from matplotlib.figure import Figure
 from tkinter import ttk
-from Lib.LibMachine import machine
 
 
 class ApplicationShowVidRemap:
     """Class to show the camera frames and the remap"""
 
-    def __init__(self, master, data, remap_dat):
+    def __init__(self, master, data, remap_dat, calibration, FILDGeom='AUG02'):
         """
         Create the window with the sliders
 
@@ -40,9 +41,14 @@ class ApplicationShowVidRemap:
             'sinc', 'lanczos', 'blackman'
         ]
         default_interpolator = 'bilinear'
+        # --- List of supported scales for the remap
+        self.scales = ['linear', 'log']
+        default_scale = 'linear'
         # --- Initialise the data container
         self.data = data
         self.remap_dat = remap_dat
+        self.FILDGeom = FILDGeom
+        self.calibration = calibration
         t = data['tframes']
         # --- Create a tk container
         frame = tk.Frame(master)
@@ -166,6 +172,14 @@ class ApplicationShowVidRemap:
         self.cmaps_list2.grid(row=3, column=7)
         self.cmap_list_label2 = tk.Label(master, text='Remap CMap')
         self.cmap_list_label2.grid(row=3, column=6)
+        # --- Include the list with the scales
+        self.selected_scale = default_scale
+        self.scales = ttk.Combobox(master, values=self.scales,
+                                   textvariable=self.selected_scale,
+                                   state='readonly')
+        self.scales.set(default_scale)
+        self.scales.bind("<<ComboboxSelected>>", self.change_scale)
+        self.scales.grid(row=3, column=10)
         # --- Include the boxes for minimum and maximum of the colormap
         clim2 = self.image2.get_clim()
         self.cmap_min_label2 = tk.Label(master, text='Min CMap')
@@ -216,6 +230,14 @@ class ApplicationShowVidRemap:
         self.image2.set_cmap(self.cmaps[self.cmaps_list2.get()])
         self.canvas2.draw()
 
+    def change_scale(self, scale):
+        """Change remap cmap"""
+        if scale == 'linear':
+            self.scale_options = {}
+        else:
+            self.image2.set_norm(colors.LogNorm(
+                self.cmap_min.get(), self.cmap_max.get()))
+
     def change_interpolator(self, interp_name):
         """Change interpolator of the remap plot"""
         self.image2.set_interpolation(self.inter_list.get())
@@ -237,18 +259,20 @@ class ApplicationShowVidRemap:
             phi_used = self.remap_dat['phi_used'][it]
 
             # Get the full name of the file
-            name__smap = ssfildsim.guess_strike_map_name_FILD(
-                phi_used, theta_used, machine=machine,
-                decimals=self.remap_dat['options']['decimals']
-            )
+            if self.remap_dat['options']['CodeUsed'] == 'SINPA':
+                name__smap = sssinpa.execution.guess_strike_map_name_FILD(
+                    phi_used, theta_used, geomID=self.FILDGeom,
+                    decimals=self.remap_dat['options']['decimals'])
+            else:
+                name__smap = ssfildsim.guess_strike_map_name_FILD(
+                    phi_used, theta_used, geomID=self.FILDGeom,
+                    decimals=self.remap_dat['options']['decimals'])
             smap_folder = self.remap_dat['options']['smap_folder']
             full_name_smap = os.path.join(smap_folder, name__smap)
             # Load the map:
             smap = ssmap.StrikeMap(0, full_name_smap)
             # Calculate pixel coordinates
-            smap.calculate_pixel_coordinates(
-                self.remap_dat['options']['calibration']
-            )
+            smap.calculate_pixel_coordinates(self.calibration)
             # Plot the map
             self.xlim = self.canvas.figure.axes[0].get_xlim()
             self.ylim = self.canvas.figure.axes[0].get_ylim()
