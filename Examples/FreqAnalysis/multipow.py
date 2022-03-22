@@ -12,7 +12,7 @@ import matplotlib.colors as colors
 import warnings
 import numpy as np
 import Lib as ss
-from LibFrequencyAnalysis import stft, sfft, get_nfft, myCPSD, stft2
+from Lib.LibFrequencyAnalysis import stft, sfft, get_nfft, myCPSD, stft2
 from tqdm import tqdm
 
 # -----------------------------------------------------------------------------
