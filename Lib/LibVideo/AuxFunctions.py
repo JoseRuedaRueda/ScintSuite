@@ -63,7 +63,7 @@ def binary_image(frame, threshold, bool_flag: bool = True):
     frame_new = np.zeros(frame.shape, dtype='int8')
     frame_new[frame > threshold] = 1
     if bool_flag:
-        return frame_new.astype(np.bool)
+        return frame_new.astype(bool)
     else:
         return frame_new
 
@@ -82,7 +82,7 @@ def guess_shot(file, shot_number_length):
     list = re.findall(r'\d+', file)
     list = np.array(list)
     n = len(list)
-    flags = np.zeros(n, dtype=np.bool)
+    flags = np.zeros(n, dtype=bool)
     for i in range(n):
         if len(list[i]) == shot_number_length:
             flags[i] = True

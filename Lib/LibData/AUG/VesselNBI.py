@@ -363,7 +363,7 @@ class NBI:
         R = np.zeros(nstep)
         Z = np.zeros(nstep)
         phi = np.zeros(nstep)
-        flags = np.zeros(nstep, dtype=np.bool)
+        flags = np.zeros(nstep, dtype=bool)
         for istep in range(nstep):
             Rdum = np.sqrt(point[0]**2 + point[1]**2)
             if (Rdum < rmax) and (Rdum > rmin):

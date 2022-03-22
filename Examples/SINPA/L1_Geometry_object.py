@@ -34,4 +34,4 @@ Geometry.plot3Dlines(element_to_plot=[0, 2], units='m')
 # Now in 3D with shaded object (as before you can select the plate you want to
 # to plot)
 
-Geometry.plot3Dfilled(element_to_plot=[2])
+Geometry.plot3Dfilled(element_to_plot=[0, 2])

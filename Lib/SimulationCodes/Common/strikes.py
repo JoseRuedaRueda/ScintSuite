@@ -61,7 +61,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             header['nXI'] = np.fromfile(fid, 'int32', 1)[0]
             header['XI'] = np.fromfile(fid, 'float64', header['nXI'])
             header['FILDSIMmode'] = \
-                np.fromfile(fid, 'int32', 1)[0].astype(np.bool)
+                np.fromfile(fid, 'int32', 1)[0].astype(bool)
             header['ncolumns'] = np.fromfile(fid, 'int32', 1)[0]
             header['counters'] = \
                 np.zeros((header['nXI'], header['ngyr']), np.int)
@@ -112,20 +112,18 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
                                     data[ia, ig][:, zcolum].max())
         # Calculate the radial position if it is a INPA simulation
         if not header['FILDSIMmode']:
-            iix = header['info']['xcx']['i']
-            iiy = header['info']['ycx']['i']
+            iix = header['info']['x0']['i']
+            iiy = header['info']['x0']['i']
             for ig in range(header['ngyr']):
                 for ia in range(header['nXI']):
                     if header['counters'][ia, ig] > 0:
                         R = np.atleast_2d(np.sqrt(data[ia, ig][:, iix]**2
                                                   + data[ia, ig][:, iiy]**2)).T
-                        print(data[ia, ig].shape, R.shape)
-
                         data[ia, ig] = np.append(data[ia, ig], R, axis=1)
             # Update the headers.
             Old_number_colums = len(header['info'])
             extra_column = {
-                'Rcx': {
+                'R0': {
                     'i': Old_number_colums,  # Column index in the file
                     'units': ' [m]',  # Units
                     'longName': 'Radial position of the CX event',
@@ -635,7 +633,7 @@ class Strikes:
         if where.lower() == 'head':
             column_to_plot = self.header['info']['x']['i']
         elif where.lower() == 'nbi':
-            column_to_plot = self.header['info']['xnbi']['i']
+            column_to_plot = self.header['info']['x0']['i']
         elif where.lower() == 'scintillatorlocalsystem':
             column_to_plot = self.header['info']['xs']['i']
         else:
@@ -672,16 +670,17 @@ class Strikes:
                 if self.header['counters'][ia, ig] > 0:
                     flags = np.random.rand(
                         self.header['counters'][ia, ig]) < per
-                    x = self.data[ia, ig][flags, column_to_plot]
-                    minx = min(minx, x.min())
-                    maxx = max(maxx, x.max())
-                    y = self.data[ia, ig][flags, column_to_plot + 1]
-                    miny = min(miny, y.min())
-                    maxy = max(maxy, y.max())
-                    z = self.data[ia, ig][flags, column_to_plot + 2]
-                    minz = min(minz, z.min())
-                    maxz = max(maxz, z.max())
-                    ax.scatter(x, y, z, **mar_options)
+                    if flags.sum() > 0:
+                        x = self.data[ia, ig][flags, column_to_plot]
+                        minx = min(minx, x.min())
+                        maxx = max(maxx, x.max())
+                        y = self.data[ia, ig][flags, column_to_plot + 1]
+                        miny = min(miny, y.min())
+                        maxy = max(maxy, y.max())
+                        z = self.data[ia, ig][flags, column_to_plot + 2]
+                        minz = min(minz, z.min())
+                        maxz = max(maxz, z.max())
+                        ax.scatter(x, y, z, **mar_options)
         # Set axis limits and beuty paramters
         if created:
             ax.set_xlim(minx, maxx)
