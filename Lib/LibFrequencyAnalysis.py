@@ -59,9 +59,12 @@ def sfft(tvec, x, nfft, resolution=1000, window='hann', fmin=0, fmax=np.infty,
 
     iimin = tvec.searchsorted(tmin)
     iimax = tvec.searchsorted(tmax)
+    
 
     tmin = tvec[iimin]
+    
     tmax = tvec[iimax-1]
+        
     dt = (tmax-tmin)/(iimax-iimin)
 
     fmax = min(fmax, 1./dt/2)
