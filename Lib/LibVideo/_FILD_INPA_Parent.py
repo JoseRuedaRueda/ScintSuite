@@ -253,8 +253,8 @@ class FIV(BVO):
             plt.tight_layout()
         return ax
 
-    def plot_orientation(self, ax_params: dict = {}, line_params: dict = {},
-                         ax=None):
+    def plotBangles(self, ax_params: dict = {}, line_params: dict = {},
+                    ax=None):
         """
         Plot the orientaton angles of the diagnostic in each time point
 

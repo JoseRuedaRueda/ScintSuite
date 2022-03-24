@@ -53,7 +53,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             'versionID1': np.fromfile(fid, 'int32', 1)[0],
             'versionID2': np.fromfile(fid, 'int32', 1)[0],
         }
-        if header['versionID1'] < 1:
+        if header['versionID1'] <= 1:
             # Keys of what we have in the file:
             header['runID'] = np.fromfile(fid, 'S50', 1)[:]
             header['ngyr'] = np.fromfile(fid, 'int32', 1)[0]
@@ -73,16 +73,31 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
                 'ymin': 300.,
                 'ymax': -300.
             }
-            # get the information
-            scints = ['scintillator',  'signalscintillator']
+            # get the information. Notice that from one SINPA version to the
+            # following, it could happen that the strikes files was unchanged,
+            # So there is no a different strike header, therefore, we need to
+            # try backwards until we find the proper one
+            found_header = False
+            id_version = header['versionID1']
             if header['FILDSIMmode']:
-                header['info'] = \
-                    deepcopy(order['sinpa_FILD'][header['versionID1']
-                                                 ][plate.lower()])
+                key_to_look = 'sinpa_FILD'
             else:
-                header['info'] = \
-                    deepcopy(order['sinpa_INPA'][header['versionID1']
-                                                 ][plate.lower()])
+                key_to_look = 'sinpa_INPA'
+            while not found_header:
+                try:
+                    header['info'] = deepcopy(
+                        order[key_to_look][id_version][plate.lower()])
+                    found_header = True
+                except KeyError:
+                    id_version -= 1
+                # if the id_version is already -1, just stop, something
+                # went wrong
+                if id_version < 0:
+                    raise Exception('Not undestood SINPA version')
+            # Load the data from each gyroradius and xi values. If the loaded
+            # plate is scintillator, get the edge of the markers distribution,
+            # for the latter histogram calculation
+            scints = ['scintillator',  'signalscintillator']
             if plate.lower() in scints:
                 ycolum = header['info']['ys']['i']
                 zcolum = header['info']['zs']['i']
