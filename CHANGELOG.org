@@ -1,3 +1,11 @@
+** 0.9.1 Minor bug fix and upgrades
+*** SimulationCodes Lib
+- Now the strikes object will look backwards in the strike header file, ie, if the used SINPA version is X.y, and there is no specific header in the StrikeHeader file for version X, the code will assume that there was no changes in the file structure between version X and version X-1 and use the header of version X-1
+- Added a function to read the fast-ion distribution function use in FIDASIM
+- solved the bug in the FIDASIM library init file, which make the FIDASIM library to be loaded in loo
+*** FILD-INPA object
+- function plot_orientation() renamed to plotBangles() to avoid confusion between the FILD orientation (alpha, beta, gamma defined in the machine system) with the magnetic field orientation (theta and phi)
+
 ** 0.9.0 INPA implementation
 *** General:
 - Time traces library was re-written to do not depend on external libraries and avoid bugs. Now is also way faster for non-cine videos, as it was re-written to avoid loops
@@ -12,7 +20,6 @@
 - Lib.LibVideo.FILDVideo.plot_frame() now includes the time as text inside the box, not as the title
 - Lib.LibVideo.FILDVideo.plot_frame() was moved to the new parent object
 - Lib.LibVideo.FILDVideo.integrate_remap(), now included in the parent object, and return not only the trace but the marginal distributions in rl and pitch (of R for the INPA)
-
 *** Lib.SimulationsCodes:
 - Same naming criteria was adopted for FILDSIM and SINPA, so the routines  guess_strike_map_name_FILD from the SINPA and FILDSIM libraries were renamed just into guess_strike_map_name
 *** Examples:
