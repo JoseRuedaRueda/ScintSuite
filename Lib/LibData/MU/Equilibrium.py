@@ -25,13 +25,23 @@ def get_mag_field(shot: int, Rin, zin, time: float, **kwargs):
     @return bt: toroidal magnetic field (nt, nrz_in), [T]
     @return bp: poloidal magnetic field (nt, nrz_in), [T]
     """
-    efit_eq = equilibrium(shot = \
-                "/common/uda-scratch/lkogan/efitpp_eshed/epm{:0>6}.nc".\
-                format(shot) if shot<44849 else shot,
-                device='MASTU', time = time)
-    br = efit_eq.BR(Rin, zin)
-    bz = efit_eq.BZ(Rin, zin)
-    bp = efit_eq.Bp(Rin, zin)
-    bt = efit_eq.Bt(Rin, zin)
+    if isinstance(time, (list, np.ndarray)):
+        pass
+    else:  # it should be just a number
+        time = np.array([time])
+    br = np.zeros(time.shape)
+    bz = np.zeros(time.shape)
+    bp = np.zeros(time.shape)
+    bt = np.zeros(time.shape)
+
+    for ii in range(len(time)):
+        efit_eq = equilibrium(shot = \
+                    "/common/uda-scratch/lkogan/efitpp_eshed/epm{:0>6}.nc".\
+                    format(shot) if shot<44849 else shot,
+                    device='MASTU', time = time[ii])
+        br[ii] = efit_eq.BR(Rin, zin)
+        bz[ii] = efit_eq.BZ(Rin, zin)
+        bp[ii] = efit_eq.Bp(Rin, zin)
+        bt[ii] = efit_eq.Bt(Rin, zin)
 
     return br, bz, bt, bp

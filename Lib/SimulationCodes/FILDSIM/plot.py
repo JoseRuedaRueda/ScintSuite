@@ -7,7 +7,8 @@ import scipy.interpolate as interpolate
 
 
 def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
-                  plates_all_black=False, plate_alpha=0.5):
+                  plates_all_black=False, plate_alpha=0.5, legend = False,
+                  plot_3D = False, aspect_ratio_fixed = False):
     """
     Plot the input FILDSIM geometry, namely the slits and scintillator
 
@@ -45,16 +46,18 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
         slit_plates.append(ssfildsimA.read_plate(file))
 
     # --- Open the figure
-    if ax3D is None:
-        fig = plt.figure(figsize=(6, 10), facecolor='w', edgecolor='k',
-                         dpi=dpi)
-        ax3D = fig.add_subplot(111, projection='3d')
-        ax3D.set_xlabel('X [cm]')
-        ax3D.set_ylabel('Y [cm]')
-        ax3D.set_zlabel('Z [cm]')
-        created_3D = True
-    else:
-        created_3D = False
+    if plot_3D:
+        if ax3D is None:
+            fig = plt.figure(figsize=(6, 10), facecolor='w', edgecolor='k',
+                             dpi=dpi)
+            ax3D = fig.add_subplot(111, projection='3d')
+            ax3D.set_xlabel('X [cm]')
+            ax3D.set_ylabel('Y [cm]')
+            ax3D.set_zlabel('Z [cm]')
+            created_3D = True
+        else:
+            created_3D = False
+        
     if axarr is None:
         fig2, axarr = plt.subplots(nrows=1, ncols=3, figsize=(18, 10),
                                    facecolor='w', edgecolor='k', dpi=dpi)
@@ -71,6 +74,11 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
         ax2D_xz.set_ylabel('Z [cm]')
         ax2D_xz.set_title('Side view (X-Z plane)')
         created_2D = True
+        
+        if aspect_ratio_fixed:
+            ax2D_xy.set_aspect('equal', adjustable='box')
+            ax2D_yz.set_aspect('equal', adjustable='box')
+            ax2D_xz.set_aspect('equal', adjustable='box')
     else:
         ax2D_xy = axarr[0]  # topdown view, i.e should see pinhole surface
         ax2D_yz = axarr[1]  # front view, i.e. should see scintilator plate
@@ -87,12 +95,14 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
                                      np.linspace(min(z), max(z), num=50))
         grid_x = interpolate.griddata((y, z), x, (grid_y, grid_z))
         # 3D view
-        ax3D.plot_surface(grid_x, grid_y, grid_z, color='green', alpha=plate_alpha,
-                          label=scintillator_plate['name'])
+        if plot_3D:
+            ax3D.plot_surface(grid_x, grid_y, grid_z, color='green', alpha=plate_alpha,
+                              label=scintillator_plate['name'])
         # 2D view
         # planer view
         ax2D_yz.plot(np.append(y, y[0]), np.append(z, z[0]), ls='solid',
-                     marker='', color='green', label=scintillator_plate['name'])
+                     marker='', color='green', label=scintillator_plate['name'],
+                     zorder = 0)
         ax2D_yz.fill(np.append(y, y[0]), np.append(z, z[0]), color='green')
 
         # line views
@@ -109,7 +119,7 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
 
         slit_line = ax2D_xy.plot(np.append(x, x[0]), np.append(y, y[0]),
                                  ls='solid', marker='',
-                                 label=slit_plate['name'])
+                                 label=slit_plate['name'], zorder = 0)
         ax2D_yz.plot(np.append(y, y[0]), np.append(z, z[0]),
                      color=slit_line[0].get_color(), ls='solid', marker='',
                      label=slit_plate['name'])
@@ -142,15 +152,24 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
             grid_z = interpolate.griddata((x, y), z, (grid_x, grid_y))
             ax2D_xy.fill(np.append(x, x[0]), np.append(y, y[0]),
                          color=plate_color, alpha=plate_alpha)
-
-        ax3D.plot_surface(grid_x, grid_y, grid_z, color=plate_color,
-                          alpha=plate_alpha,
-                          label=scintillator_plate['name'])
-    ax2D_xz.legend(loc='best')
+        
+        else:
+            grid_y, grid_z = np.meshgrid(np.linspace(min(y), max(y), num=50),
+                                         np.linspace(min(z), max(z), num=50))
+            grid_x = interpolate.griddata((y, z), x, (grid_y, grid_z))
+        
+        if plot_3D:
+            ax3D.plot_surface(grid_x, grid_y, grid_z, color=plate_color,
+                              alpha=plate_alpha,
+                              label=scintillator_plate['name'])
+    if legend:
+        ax2D_xz.legend(loc='best')
+        
     if created_2D:
         fig2.tight_layout()
         fig2.show()
-    if created_3D:
-        fig.tight_layout()
-        fig.show()
+    if plot_3D:
+        if created_3D:
+            fig.tight_layout()
+            fig.show()
     return

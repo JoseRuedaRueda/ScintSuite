@@ -231,20 +231,20 @@ class FILDVideo(FIV):
             ssmap.remapAllLoadedFrames(self, **options)
         self.remap_dat['options'] = opt
 
-    def calculateBangles(self, t='all', verbose: bool = True):
+    def calculateBangles(self, t=None, verbose: bool = True):
         """
         Find the orientation of FILD for a given time.
 
         José Rueda: jrrueda@us.es
 
-        @param t: time point where we want the angles [s]. It can be 'all' in
-        that case, the orientation will be calculated for all time points
+        @param t: time point where we want the angles [s]. if None the
+            orientation will be calculated for all time points
         @param verbose: flag to print information or not
         @param R: R coordinate of the detector (in meters) for B calculation
         @param z: z coordinate of the detector (in meters) for B calculation
 
-        @return theta: theta angle [º]
         @return phi: phi angle [º]
+        @return theta: theta angle [º]
         """
         if self.remap_dat is None:
             if self.FILDorientation is None:
@@ -254,14 +254,7 @@ class FILDVideo(FIV):
             beta = self.FILDorientation['beta']
             print('Remap not done, calculating angles')
 
-            if t == 'all':
-                if self.BField is None:
-                    self._getB()
-                self._getBangles()
-                phi = self.Bangles['phi']
-                theta = self.Bangles['theta']
-                time = 'all'
-            else:
+            if t is not None:
                 br, bz, bt, bp =\
                     ssdat.get_mag_field(self.shot, self.FILDposition['R'],
                                         self.FILDposition['z'], time=t)
@@ -270,6 +263,13 @@ class FILDVideo(FIV):
                     ssFILDSIM.calculate_fild_orientation(br, bz, bt,
                                                          alpha, beta)
                 time = t
+            else:
+                if self.BField is None:
+                    self._getB()
+                self._getBangles()
+                phi = self.Bangles['phi']
+                theta = self.Bangles['theta']
+                time = 'all'
         else:
             tmin = self.remap_dat['tframes'][0]
             tmax = self.remap_dat['tframes'][-1]
