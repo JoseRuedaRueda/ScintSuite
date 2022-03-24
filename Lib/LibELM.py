@@ -313,7 +313,7 @@ def ELM_similarity(elm_dict: dict, threshold: float = 0.96, elm_idx: int=None):
 
     return output
 
-def ELMsync(time: float, signal: float, elm_dict:dict):
+def ELMsync(time: float, signal: float, elm_dict:dict, average = False):
     """
     Using the time synchonization provided by the elm_dict, the (time, signal)
     pair is parsed to return only the ELM synced time and data and be able
@@ -344,15 +344,25 @@ def ELMsync(time: float, signal: float, elm_dict:dict):
     for ii in range(len(elm_dict['tstart_val'])):
         t0, t1 = np.searchsorted(time, (elm_dict['tstart_val'][ii],
                                         elm_dict['tend_val'][ii]))
-        print(t0, t1)
 
         if t0 == t1:
             continue
 
         new_time.append(time[t0:t1]-elm_dict['t_onset'][ii])
         new_signal.append(signal[t0:t1, ...])
-
-    new_time = np.concatenate(new_time).squeeze()
-    new_signal = np.concatenate(new_signal).squeeze()
+    
+    
+    if average:
+        new_time   = np.array(new_time)
+        new_signal = np.array(new_signal)
+        
+        new_time = np.mean(new_time, axis = 0)
+        new_signal = np.mean(new_signal, axis = 0)
+    
+    else:
+        new_time = np.concatenate(new_time)#.squeeze()
+        new_signal = np.concatenate(new_signal)#.squeeze()
 
     return new_time, new_signal
+
+

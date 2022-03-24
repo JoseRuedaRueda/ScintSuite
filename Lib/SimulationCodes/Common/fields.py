@@ -83,10 +83,11 @@ class fields:
         Note that its follow the i-HIBPsim/SINPA structure
         (SINPA fields are similar to iHIBPsim fields
         but with no time dependence):
-        --> nR, nZ, nPhi: int32 - Grid size in each direction.
+        --> nR, nZ, nPhi, nTime: int32 - Grid size in each direction.
         --> Rmin, Rmax: float64 - Minimum and maximum major radius.
         --> Zmin, Zmax: float64 - Minimum and maximum vertical pos.
         --> Phimin, Phimax: float64 - Min. and max. toroidal direction.
+        --> Timemin, timemax> float64
         --> Br[nR, nPhi, nZ]: float64
         --> Bphi[nR, nPhi, nZ]: float64
         --> Bz[nR, nPhi, nZ]: float64
