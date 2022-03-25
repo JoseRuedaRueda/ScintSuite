@@ -355,7 +355,8 @@ def ELMsync(time: float, signal: float, elm_dict:dict, average = False):
     if average:
         new_time   = np.array(new_time)
         new_signal = np.array(new_signal)
-        
+        #import IPython
+        #IPython.embed()
         new_time = np.mean(new_time, axis = 0)
         new_signal = np.mean(new_signal, axis = 0)
     
