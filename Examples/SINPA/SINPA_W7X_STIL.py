@@ -114,7 +114,7 @@ def write_stl_geometry_files(root_dir
                        vertices[index[itriang, j], 2]) ) * 0.001 #convert mm to m
         
 
-        scint_norm = get_normal_vector(p1, p2, p3)
+        scint_norm = -get_normal_vector(p1, p2, p3)
         # To do: Make sure normal vector points away from plasma
         # need a plasma point to test
         
@@ -122,7 +122,7 @@ def write_stl_geometry_files(root_dir
         u1_scint = p3 - p1
         u1_scint /= np.linalg.norm(u1_scint) #Only needed to align the scintilattor
         
-        rot = ss.sinpa.geometry.calculate_rotation_matrix(scint_norm, u1 = u1_scint
+        rot = ss.sinpa.geometry.calculate_rotation_matrix(scint_norm, u1 = -u1_scint
                                                           ,verbose=False)[0]
 
    
@@ -203,8 +203,8 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------
     Test = False  #if true don't submit run
     
-    run_code = False
-    geom_name = 'W7X_stl_QHS' # Only used if running a single iteration
+    run_code = True
+    geom_name = 'W7X_stl_QHS_counter' # Only used if running a single iteration
     
     save_orbits = True
     plot_plate_geometry = True
@@ -239,14 +239,15 @@ if __name__ == '__main__':
     mar_params = {'zorder':3,'color':'k'}
     
 
-    n_markers = int(1e3)
+    n_markers = int(1e6)
 
     gyro_array = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2., 3., 4.]
 
     pitch_array = [85., 75., 65., 55., 45., 35., 25., 15., 5.]
+    pitch_array = [95., 105., 115., 125., 135., 145., 155., 165., 175.]
     #pitch_arrays = [[160., 140., 120., 100., -80., -60., -40., -20.],
     #                [160., 140., 120., 100., 80., 60., 40., 20.]]
-    gyrophase_range = np.array([0,2*np.pi-0.1])
+    gyrophase_range = np.array([0,2*np.pi])
 
     # Set n1 and r1 for the namelist, 0 and 0 are defaults, setting to 0.02 and 0.4 gives ~300,000 particles for rl = 0.25 
     # and ~400,000 for 0.5
@@ -280,7 +281,7 @@ if __name__ == '__main__':
                                    [-612.243, 5759.764, 714.652],
                                    [-607.793, 5761.976, 715.197] ] )
     
-    stl_files = {#'collimator': 'BOTTON_HEAD_WITH_HOLES.stl',
+    stl_files = {'collimator': 'BOTTON_HEAD_WITH_HOLES.stl',
                  'scintillator': 'SCINTILLATOR_PLATE.stl'}
 
     pinhole['pinholeCentre'] = np.array([-738.196, 5807.961, 350.292 ] ) #co- going slit opening
