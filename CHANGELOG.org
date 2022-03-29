@@ -1,3 +1,7 @@
+** 0.9.2 Added functions to the VRT library
+- Added the get_time_traces in LibVRT 
+- Added the ROI2mask function to LibVRT
+
 ** 0.9.1 Minor bug fix and upgrades
 *** SimulationCodes Lib
 - Now the strikes object will look backwards in the strike header file, ie, if the used SINPA version is X.y, and there is no specific header in the StrikeHeader file for version X, the code will assume that there was no changes in the file structure between version X and version X-1 and use the header of version X-1
@@ -152,13 +156,6 @@ In the process of adapting the code to work for the MAST-U FILD, some important 
 - Strikes object now have the method .get() which return the data from the desired variable of the strike points
 *** Others:
 - Small improvements in comments
-
-** 0.7.8 get_time_traces in LibVRT
-- Added the get_time_traces in LibVRT 
-
-
-** 0.7.7 VRT ROI to binary mask
-- Added the ROI2mask function to LibVRT
 
 ** 0.7.6 VRT video object and LibVRT
 *** VRTVideoObject
