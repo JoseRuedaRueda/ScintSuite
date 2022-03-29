@@ -1,6 +1,7 @@
 ** 0.9.2 Added functions to the VRT library
 - Added the get_time_traces in LibVRT 
 - Added the ROI2mask function to LibVRT
+- Fixed a bug on the getdist2sep of FILD4
 
 ** 0.9.1 Minor bug fix and upgrades
 *** SimulationCodes Lib

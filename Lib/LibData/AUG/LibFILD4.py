@@ -82,7 +82,6 @@ def get_dist2sep(shot: int = None, R: float = None, z: float = None,
             ax2[1].set_xlabel('Time [s]')
             ax2[1].set_ylabel('Dist2sep [m]')
             plt.show()
-        print(max(dist_sep))
         return dist_sep
 
 
@@ -96,9 +95,6 @@ class FILD4_traject:
         self.shot = shot
         self.dat_ps = {}
         self.traject = {}
-        
-        # self.power_supply = self.get_power_supply(path_ps)
-        # self.trajectory = self.get_traject(path_traject)
         
     def _linear_reg(x,y):
         n = np.size(x)
@@ -279,7 +275,6 @@ class FILD4_traject:
                               self.traject['position'])
         R_pos = params.fild4['coil']['R_parking']-insertion
         z_pos = params.fild4['coil']['Z_parking']*np.ones(t.shape)
-        print(R_pos.mean())
         self.dist2sep = get_dist2sep(shot = self.shot, R = R_pos, z = z_pos,
                                  t = t, diag = diag, plot_sep = plot_sep,
                                  plot_dist = False)
