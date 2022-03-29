@@ -6,7 +6,7 @@ possibility to subtract noise
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.3.0. Checked for version 0.8.0
+Note; Written for version 0.3.0. Checked for version 0.9.0
 """
 import Lib as ss
 from time import time

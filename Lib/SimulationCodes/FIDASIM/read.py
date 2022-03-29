@@ -575,3 +575,57 @@ def read_npa(filename):
             'kind': np.fromfile(fid, 'float32', counter * 3),
         }
     return data
+
+
+def read_fbm(filename):
+    """
+    Read (I)NPA output files.
+
+    Jose Rueda: jrrueda@us.es
+
+    @param filenam: name of the file to be read
+    """
+    print('Reading file: ', filename)
+    with open(filename, 'rb') as fid:
+        data = {
+            'cdf_file': np.fromfile(fid, 'S1', 17)[:],
+            'cdf_time': np.fromfile(fid, 'float64', 1)[:],
+            'fbm_gc': int(np.fromfile(fid, 'int32', 1)[:]),
+            'afbm': np.fromfile(fid, 'float64', 1)[:],
+            # --- r grid
+            'nr': int(np.fromfile(fid, 'int32', 1)[:]),
+            'rmin': np.fromfile(fid, 'float64', 1)[:],
+            'dr': np.fromfile(fid, 'float64', 1)[:],
+        }
+        data['rgrid'] = np.fromfile(fid, 'float64', data['nr'])[:]
+        # --- z grid
+        data['nz'] = int(np.fromfile(fid, 'int32', 1)[:])
+        data['zmin'] = int(np.fromfile(fid, 'float64', 1)[:])
+        data['dz'] = int(np.fromfile(fid, 'float64', 1)[:])
+        data['zgrid'] = np.fromfile(fid, 'float64', data['nz'])[:]
+        # --- fast-ion density
+        data['denf'] = \
+            np.reshape(np.fromfile(fid, 'float64', data['nr']*data['nz'])[:],
+                       (data['nr'], data['nz']), order='F')
+        # --- Energy grid
+        data['nenergy'] = int(np.fromfile(fid, 'int32', 1)[:])
+        data['emax'] = int(np.fromfile(fid, 'float64', 1)[:])
+        data['emin'] = int(np.fromfile(fid, 'float64', 1)[:])
+        data['dE'] = int(np.fromfile(fid, 'float64', 1)[:])
+        data['energy'] = np.fromfile(fid, 'float64', data['nenergy'])[:]
+        # --- Pitch grid
+        data['npitch'] = int(np.fromfile(fid, 'int32', 1)[:])
+        data['pmax'] = int(np.fromfile(fid, 'float64', 1)[:])
+        data['pmin'] = int(np.fromfile(fid, 'float64', 1)[:])
+        data['dP'] = int(np.fromfile(fid, 'float64', 1)[:])
+        data['energy'] = np.fromfile(fid, 'float64', data['npitch'])[:]
+        # --- 4D Fast-ion distribution
+        data['fbm'] = \
+            np.reshape(np.fromfile(fid, 'float32',
+                                   data['nenergy'] * data['npitch']
+                                   * data['nr'] * data['nz'])[:],
+                       (data['nenergy'], data['npitch'],
+                        data['nr'], data['nz']),
+                       order='F')
+
+    return data
