@@ -394,6 +394,10 @@ class strikeLine:
         for ii in range(len(self.maps)):
             self.time[ii] = self.maps[ii]['timestamp']
 
+        ## We dump the header content into the class dictionary.
+        for ikey in self.maps[0]['rundata']:
+            self.__dict__[ikey] = self.maps[0]['rundata'][ikey]
+
     def plotStrikeLine(self, timeStamp: float = None, ax=None,
                        ax_options: dict = {}, line_options: dict = {},
                        legendText: str = None):
@@ -507,8 +511,17 @@ class strikeLine:
                                label=legendText, **line_options)
 
                     ds = np.diff(self.maps[ii]['map_s']).mean()
-                    ax[1].plot(self.maps[ii]['map_s'],
-                               self.maps[ii]['w']/sspar.ec/ds,
+                    if self.weighting == 0:
+                        w = self.maps[ii]['w']/ds
+                        wylabel = 'Marker density (-)'
+                    elif self.weighting == 1:
+                        w = self.maps[ii]['w']/ds
+                        wylabel = 'Ion density ($m^{-3}$)'
+                    elif self.weighting == 2:
+                        w = self.maps[ii]['w']/ds/sspar.ec
+                        wylabel = 'Ion current ($ion\\cdot m^{-2}\\cdot s$)'
+
+                    ax[1].plot(self.maps[ii]['map_s'],w,
                                label=legendText, **line_options)
                 else:
                     ax.plot(self.maps[ii]['x1']*100,
@@ -525,8 +538,17 @@ class strikeLine:
                            self.maps[imap]['x2']*100,
                            label=legendText, **line_options)
                 ds = np.diff(self.maps[imap]['map_s']).mean()
-                ax[1].plot(self.maps[imap]['map_s'],
-                           self.maps[imap]['w']/sspar.ec/ds,
+                if self.weighting == 0:
+                    w = self.maps[imap]['w']/ds
+                    wylabel = 'Marker density (-)'
+                elif self.weighting == 1:
+                    w = self.maps[imap]['w']/ds
+                    wylabel = 'Ion density ($m^{-3}$)'
+                elif self.weighting == 2:
+                    w = self.maps[imap]['w']/ds/sspar.ec
+                    wylabel = 'Ion current ($ion\\cdot m^{-2}\\cdot s$)'
+
+                ax[1].plot(self.maps[imap]['map_s'], w,
                            label=legendText, **line_options)
             else:
                 ax.plot(self.maps[imap]['x1']*100,
@@ -552,7 +574,7 @@ class strikeLine:
                 else:
                     raise Exception('Mode=3 not implemented')
 
-                ax_options['ylabel'] = 'Ion flux [$ion/m^2s$/ per unit x-axis]'
+                ax_options['ylabel'] = wylabel
                 ax[1] = ssplt.axis_beauty(ax[1], ax_options)
                 ax[1].yaxis.set_label_position('right')
                 ax[1].yaxis.tick_right()
