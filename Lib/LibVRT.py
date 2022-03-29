@@ -255,8 +255,9 @@ def get_time_trace(shot: int = None, roiname: str = '',
                     for r in root.find('Values'). findall('Val'):
                         val.append(float(r.text))
                     val = np.array(val)
-                    lim = float(area.attrib['limit3'])
-            	     
+                    lim = float(area.attrib['limit3'])                            
+                    signal_lim = val*0+lim
+
                     lablim = ''                  
                     limcol = 'blue'
                     if area.attrib['doVpe'].lower() == 'true':
@@ -264,8 +265,17 @@ def get_time_trace(shot: int = None, roiname: str = '',
                        
                     # Get only the requested ROI. All of them by default
                     if roiname.lower() in protocol.lower():
+                        Tlim = []
+                        temp = []
                         if calibrate:
                             T = get_calibration(cam, shot, GA, SH)
+                            if T is not None:
+                                temp = np.interp(val*camrange,
+                                                 np.arange(camrange),T)
+                                Tlim=np.interp(val*0+lim*camrange,
+                                               np.arange(camrange),T)
+                            else:
+                                print('No calibration for '+roiname)
                         else:
                             T = None
                         
@@ -276,20 +286,13 @@ def get_time_trace(shot: int = None, roiname: str = '',
                                          fontsize=22,fontweight='bold')	
                             ax.text(0.03,0.85,lablim,fontsize=15, 
                                     transform=ax.transAxes)
-                            signal_lim = val*0+lim
-                            Tlim = []
-                            temp = []
+                            
                             if T is None:
-                                temp = val
                                 ax.plot(time,val,color='blue')
                                 ax.plot(time,signal_lim,color=limcol)
                                 ax.set_ylim(0.0,lim*1.1)
                                 ax.set_ylabel('counts')      
                             else:
-                                temp = np.interp(val*camrange,
-                                                 np.arange(camrange),T)
-                                Tlim=np.interp(val*0+lim*camrange,
-                                               np.arange(camrange),T)
                                 ax.plot(time,temp,color='blue')
                                 ax.plot(time,Tlim,color=limcol)
                                 ax.set_ylim(800.0,np.max(Tlim)*1.1)	      
@@ -313,55 +316,4 @@ def get_time_trace(shot: int = None, roiname: str = '',
         'temp': temp_array,
         'temp_lim': temp_lim_array}
     return output
-
-# def get_limit(shot: int = None, camera: str = ''):
-#     """
-#     Get the set limit for a said camera
-    
-#     @param shot
-#     @param camera: camera name
-    
-#     @return dictionary with ROIs and their limits
-#     """
-#     VRT_path = '/afs/ipp/u/augd/rawfiles/VRT/'+str(shot)[0:2]+'/S'+str(shot)
-    
-#     # Get the camera xml configuration files
-#     conf_files = glob.glob(VRT_path+'/Conf/Guggi*.xml')
-#     conf_files += glob.glob(VRT_path+'/Conf/labrt.xml')
-    
-#     cameras = {}
-#     for conf_file_path in conf_files:
-#         root = et.parse(conf_file_path).getroot()
-#         # Each camera configuration is under a "grabber" section 
-#         for grabber in root.findall('Grabber'):
-#             rois = []
-#             for roi in grabber.findall('Area'):
-#                 rois.append(roi.attrib['name']) 
-#             # Get the camera configuration
-#             enabled = True if grabber.attrib['enabled'] == 'true' else False 
-#             # Get the camera configuration (SH, GA)
-#             for cam_conf in grabber.findall('ConfInfo/Entry'):           
-#                 c = cam_conf.attrib['cmd']
-#                 if '?' in c:
-#                     c = cam_conf.attrib['cmd'].split('?')[0]+'='
-#                     if '=' in cam_conf.attrib['reply']:
-#                         c += cam_conf.attrib['reply'].split('=')[1]
-#                     else: 
-#                         c += cam_conf.attrib['reply']
-#     return cameras
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
