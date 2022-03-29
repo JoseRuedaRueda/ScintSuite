@@ -3,7 +3,7 @@ Calculate and compare the TimeTraces of the camera signal for different shots
 
 Jose Rueda Rueda: jrrueda@us.es
 
-Note: Done for version 0.5.3. Revised for version 0.8.0
+Note: Done for version 0.5.3. Revised for version 0.9.0
 """
 
 import Lib as ss
@@ -38,9 +38,9 @@ for s in shot:
         # Define roi
         # Note: if you want the figure to re-appear after the selection of the
         # roi, call create roi with the option re_display=True
-        fig_ref, roi = ss.tt.create_roi(fig_ref, re_display=True)
+        roi = ss.tt.roipoly(fig_ref, ax_ref)
         # Create the mask
-        mask = roi.get_mask(vid.exp_dat['frames'][:, :, 0].squeeze())
+        mask = roi.getMask(vid.exp_dat['frames'][:, :, 0].squeeze())
         fig, ax = plt.subplots()
     time_trace = ss.tt.TimeTrace(vid, mask, t1=0.0, t2=10.0)
     time_trace.plot_single(ax=ax, line_params={'label': '#' + str(s)})

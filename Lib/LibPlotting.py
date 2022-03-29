@@ -4,16 +4,15 @@ Methods to enhance plots or to plot auxiliar elements (ie vessel)
 Jose Ruea Rueda (jrrueda@us.es) and Pablo Oyola (pablo.oyola@ipp.mpg.de)
 
 """
+import os
+import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib
 import matplotlib.colors as colors
+from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.collections import LineCollection
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
-from matplotlib.colors import LinearSegmentedColormap
 import Lib.LibData as ssdat
-import os
-import matplotlib as mpl
 from Lib.LibPaths import Path
 import f90nml
 try:
@@ -43,8 +42,8 @@ def plotSettings(plot_mode='software', usetex=False):
     # Add font directories
     try:
         font_files = mpl.font_manager.findSystemFonts(fontpaths=paths.fonts)
-        font_list = mpl.font_manager.createFontList(font_files)
-        mpl.font_manager.fontManager.ttflist.extend(font_list)
+        for font_file in font_files:
+            mpl.font_manager.fontManager.addfont(font_file)
     except:
         Warning('No fonts founds. Using matplotlib default')
 
@@ -58,16 +57,6 @@ def plotSettings(plot_mode='software', usetex=False):
     mpl.rcParams['svg.fonttype'] = 'none'  # to edit fonts in inkscape
 
     # Latex formating
-    mpl.rcParams['text.latex.preamble'] = [
-        r'\usepackage{siunitx}',
-        r'\sisetup{detect-all}',
-        r'\usepackage{sansmath}',
-        r'\usepackage{amsmath}',
-        r'\usepackage{amsfonts}',
-        r'\usepackage{amssymb}',
-        r'\usepackage{braket}',
-        r'\sisetup{detect-all}'
-    ]
     mpl.rc('text', usetex=usetex)
 
     # Default plotting color
@@ -183,7 +172,7 @@ def overplot_trace(ax, x, y, line_params={}, ymin=0., ymax=0.95):
     # --- Create the transformation
     # the x coords of this transformation are data, and the y coord are axes
     trans = \
-        matplotlib.transforms.blended_transform_factory(
+        mpl.transforms.blended_transform_factory(
             ax.transData, ax.transAxes)
     # --- Normalise the y data
     ydummy = (y - y.min()) / (y.max() - y.min()) * (ymax - ymin) + ymin
@@ -578,7 +567,7 @@ def plot2D_ECE(ecedata: dict, rType: str = 'rho_pol', downsample: int = 2,
         fig, ax = plt.subplots(1)
 
     if cmap is None:
-        cmap = matplotlib.cm.plasma
+        cmap = mpl.cm.plasma
 
     ntime = len(ecedata['time'])
     downsample_flag = np.arange(start=0, stop=ntime, step=downsample)

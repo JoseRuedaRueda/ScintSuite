@@ -6,9 +6,7 @@ logbook
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.7.8. Check for version 0.8.0
-
-You should run paths_suite.py before runing this example.
+Note; Written for version 0.7.8. Check for version 0.9.0
 
 Notice that this example is AUG oriented. In all supported machines the logbook
 has the same public methods, which works in the same way (same inputs/outputs)

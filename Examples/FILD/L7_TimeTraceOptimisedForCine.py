@@ -44,9 +44,10 @@ fig_ref = plt.gcf()
 # Note: if you want the figure to re-appear after the selection of the roi,
 # call create roi with the option re_display=False
 fig_ref, roi = ss.tt.create_roi(fig_ref)
-
+roi = ss.tt.roipoly(fig_ref, ax_ref)
 # Create the mask
-mask = roi.get_mask(video.exp_dat['frames'].squeeze())
+mask = roi.getMask(video.exp_dat['frames'][:, :, 0].squeeze())
+
 # -----------------------------------------------------------------------------
 # Section 2: Calculate and display the time traces
 # -----------------------------------------------------------------------------

@@ -663,7 +663,8 @@ class Geometry:
                      ax_params: dict = {},
                      element_to_plot=[0, 1, 2], plot_pinhole: bool = True,
                      units: str = 'cm',
-                     view: str = 'Scint'):
+                     view: str = 'Scint',
+                     referenceSystem: str ='absolute'):
         """
         Plot the geometric elements in 2D.
 
@@ -729,7 +730,8 @@ class Geometry:
                     surface_options['color'] = surface_colors[ele['kind']]
                 # plot the plate
                 plotShadedElement(ele, ax=ax, surface_params=surface_options,
-                                  plot2D=True, units=units, view=view)
+                                  plot2D=True, units=units, view=view,
+                                  referenceSystem =referenceSystem)
 
         # --- Plot pinhole
         if plot_pinhole:

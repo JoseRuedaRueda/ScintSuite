@@ -1,6 +1,70 @@
 """Calibration and database objects."""
 import numpy as np
+import pandas as pd
 import Lib.errors as errors
+
+
+# -----------------------------------------------------------------------------
+# --- Aux functions
+# -----------------------------------------------------------------------------
+def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
+                                  verbose: bool = True):
+    """
+    Read camera calibration database
+
+    This function is different from the one implemented in the __init__ of the
+    old object of the CalibrationDatabase. This one return the database as a
+    pandas dataframe to be used in the new logbook, which are considered to be
+    the proper way of interacting with the camera calibrations. The
+    object CalibrationDatabase is deprecated for FILD and INPA
+
+    Jose Rueda: jrrueda@us.es
+
+    @param filename: Complete path to the file with the calibrations
+    @param n_header: Number of header lines (5 in the oficial format)
+
+    @return database: Pandas dataframe with the database
+    """
+    data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
+            'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
+            'deg': [], 'cal_type': [], 'diag_ID': [], 'c1': [],
+            'xcenter': [], 'ycenter': []}
+
+    # Read the file
+    if verbose:
+        print('Reading Camera database from: ', filename)
+    with open(filename) as f:
+        for i in range(n_header):
+            dummy = f.readline()
+        # Database itself
+        for line in f:
+            dummy = line.split()
+            data['CalID'].append(int(dummy[0]))
+            data['camera'].append(dummy[1])
+            data['shot1'].append(int(dummy[2]))
+            data['shot2'].append(int(dummy[3]))
+            data['xshift'].append(float(dummy[4]))
+            data['yshift'].append(float(dummy[5]))
+            data['xscale'].append(float(dummy[6]))
+            data['yscale'].append(float(dummy[7]))
+            data['deg'].append(float(dummy[8]))
+            data['cal_type'].append(dummy[9])
+            data['diag_ID'].append(int(dummy[10]))
+            try:  # If there is distortion information, it would be here
+                data['c1'].append(float(dummy[11]))
+                data['xcenter'].append(float(dummy[12]))
+                data['ycenter'].append(float(dummy[13]))
+            except IndexError:
+                continue
+    # If the c1 and c2 fields are empty, delete them to avoid issues in the
+    # pandas dataframe
+    if (len(data['c1']) == 0):
+        data.pop('c1')
+        data.pop('xcenter')
+        data.pop('ycenter')
+    # Transform to pandas
+    database = pd.DataFrame(data)
+    return database
 
 
 class CalibrationDatabase:
@@ -137,15 +201,23 @@ class CalParams:
         ## pixel/cm in the x direction
         self.xscale = 0.0
         ## pixel/cm in the y direction
-        self.yscale = 0
+        self.yscale = 0.0
         ## Offset to align 0,0 of the sensor with the scintillator
-        self.xshift = 0
+        self.xshift = 0.0
         ## Offset to align 0,0 of the sensor with the scintillator
-        self.yshift = 0
+        self.yshift = 0.0
         ## Rotation angle to transform from the sensor to the scintillator
         self.deg = 0.0
         ## Camera type
         self.camera = ''
+        ## First order factor for the distortion
+        self.c1 = 0.0
+        ## Second order factor for the distortion
+        self.c2 = 0.0
+        ## X-pixel position of the optical axis
+        self.xcenter = 0.0
+        ## Y-pixel position of the optical axis
+        self.ycenter = 0.0
 
     def print(self):
         """Print calibration"""
@@ -154,3 +226,5 @@ class CalParams:
         print('xshift: ', self.xshift)
         print('yshift: ', self.yshift)
         print('deg: ', self.deg)
+        print('c1: ', self.c1)
+        print('c2: ', self.c2)
