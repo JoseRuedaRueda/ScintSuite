@@ -128,9 +128,9 @@ def remapAllLoadedFrames(video,
         file = ssio.check_open_file(mask)
         [mask] = ssio.read_variable_ncdf(file, ['mask'], human=True)
         # tranform to bool
-        mask = mask.astype(np.bool)
+        mask = mask.astype(bool)
     # -- Check the tipe of remap
-    if remap_method == 'centers':
+    if remap_method.lower() == 'centers':
         MC_number = 0  # to turn off the transformation matrix calculation
     # -- Prepare the frames
     if not use_average:
@@ -151,7 +151,7 @@ def remapAllLoadedFrames(video,
     pitch = 0.5 * (p_edges[0:-1] + p_edges[1:])
 
     # --- STRIKE MAP SEARCH
-    exist = np.zeros(nframes, np.bool)
+    exist = np.zeros(nframes, bool)
     name = ' '      # To save the name of the strike map
     name_old = ' '  # To avoid loading twice in a row the same map
     if not got_smap:
@@ -170,12 +170,12 @@ def remapAllLoadedFrames(video,
         print('Looking for strikemaps in: ', smap_folder)
         for iframe in tqdm(range(nframes)):
             if FILDSIM:
-                name = ssFILDSIM.guess_strike_map_name_FILD(
+                name = ssFILDSIM.guess_strike_map_name(
                     phi[iframe], theta[iframe], geomID=video.FILDgeometry,
                     decimals=decimals
                     )
             else:
-                name = ssSINPA.execution.guess_strike_map_name_FILD(
+                name = ssSINPA.execution.guess_strike_map_name(
                     phi[iframe], theta[iframe], geomID=video.FILDgeometry,
                     decimals=decimals
                     )
@@ -209,14 +209,14 @@ def remapAllLoadedFrames(video,
                 for i in tqdm(range(len(non_existing_index))):
                     ii = non_existing_index[i]
                     icloser = ssextra.find_nearest_sorted(existing_index, ii)
-                    theta_used[ii] = theta_used[icloser]
-                    phi_used[ii] = phi_used[icloser]
+                    theta_used[ii] = theta[icloser]
+                    phi_used[ii] = phi[icloser]
     else:  # the case the smap was passed as input
         theta = np.zeros(nframes)
         phi = np.zeros(nframes)
-        exist = np.ones(nframes, np.bool)
-        theta_used = np.zeros(nframes, np.bool)
-        phi_used = np.zeros(nframes, np.bool)
+        exist = np.ones(nframes, bool)
+        theta_used = np.zeros(nframes, bool)
+        phi_used = np.zeros(nframes, bool)
     # --- REMAP THE FRAMES
     # -- Initialise the variables:
     remaped_frames = np.zeros((npit, ngyr, nframes))

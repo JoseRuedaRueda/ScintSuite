@@ -22,7 +22,7 @@ paths = Path(machine)
 # --- Settings block
 # -----------------------------------------------------------------------------
 runid = 'Example_test'
-geomID = 'AUG021'
+geomID = 'FILD1'
 nml_options = {   # Se the PDF documentation for a complete desription of these
     'config':  {  # parameters
         'runid': runid,

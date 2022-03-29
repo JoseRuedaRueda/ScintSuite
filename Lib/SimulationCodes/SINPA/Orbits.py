@@ -195,3 +195,39 @@ class OrbitClass:
 
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
+
+
+    def save_orbits_to_txt(self, kind=(2,), units: str = 'mm'):
+        """
+        Save each individual orbit in a text file structred with collums for 
+        x y z positions of the orbits, to be easily uplaoded in CAD software
+
+        Anton van Vuuren: avanvuuren@us.es
+
+        @param kindOfCollision: type of orbit to plot: (tuple or list)
+            -0: Collimator colliding
+            -1: Foil colliding but not scintillator collision
+            -2: Scintillator colliding
+            -9: Not colliding
+        @param units: Units in which to savethe orbit positions.
+        """
+        # --- Check the scale
+        if units not in ['m', 'cm', 'mm']:
+            raise Exception('Not understood units?')
+        possible_factors = {'m': 1.0, 'cm': 100.0, 'mm': 1000.0}
+        factor = possible_factors[units]
+            
+        # --- Plot the markers:
+        for i in range(self.nOrbits):
+            if self.kindOfCollision[i] in kind:
+                with open('orb_run_%s_rl_%.2f_xi_%.2f.txt' 
+                          %(self.runID[0].strip().decode("utf-8"), 
+                            self.rl[i], 
+                            np.rad2deg(np.arccos(self.xi[i])) ), 'w' ) as f:
+                    for p in range(len(self.data[i]['position'][:, 0])):
+                        f.write('%f %f %f \n' 
+                                %(self.data[i]['position'][p, 0] * factor,
+                                  self.data[i]['position'][p, 1] * factor,
+                                  self.data[i]['position'][p, 2] * factor )
+                                )
+
