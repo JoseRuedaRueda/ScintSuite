@@ -103,7 +103,7 @@ class deposition:
         try:
             self.rhopol = get_rho(shot=shotnumber, time=timepoint,
                                   Rin=Rin2.flatten(), zin=zin2.flatten())
-            self.rhopol = np.reshape(self.rhopol, (513, 512))
+            self.rhopol = np.reshape(self.rhopol, (512, 513)).T
         except:
             txt = 'Cannot get the equilibrium for shot #%05d'%shotnumber
             raise ValueError(txt)
@@ -167,7 +167,7 @@ class deposition:
 
 
             xlabel = '$\\rho_{pol}$ (-)'
-            ylabel = 'Ion birth density($m^{-3}/(unit $\\rho_{pol)$)'
+            ylabel = 'Ion birth density($m^{-3}$/(unit $\\rho_{pol}$))'
         else:
             raise ValueError('Axis = %s not recognized'%xaxis)
 

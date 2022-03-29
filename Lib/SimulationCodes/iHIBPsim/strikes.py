@@ -524,8 +524,9 @@ class strikeLine:
                 ax[0].plot(self.maps[imap]['x1']*100,
                            self.maps[imap]['x2']*100,
                            label=legendText, **line_options)
+                ds = np.diff(self.maps[imap]['map_s']).mean()
                 ax[1].plot(self.maps[imap]['map_s'],
-                           self.maps[imap]['w']/sspar.ec,
+                           self.maps[imap]['w']/sspar.ec/ds,
                            label=legendText, **line_options)
             else:
                 ax.plot(self.maps[imap]['x1']*100,
@@ -551,7 +552,7 @@ class strikeLine:
                 else:
                     raise Exception('Mode=3 not implemented')
 
-                ax_options['ylabel'] = 'Ion flux [$ion/m^2s$]'
+                ax_options['ylabel'] = 'Ion flux [$ion/m^2s$/ per unit x-axis]'
                 ax[1] = ssplt.axis_beauty(ax[1], ax_options)
                 ax[1].yaxis.set_label_position('right')
                 ax[1].yaxis.tick_right()
