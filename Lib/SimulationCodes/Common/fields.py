@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interpn
 import Lib.LibData as ssdat
 import Lib.LibPlotting as ssplt
+import Lib.errors as errors
 import math
 
 
@@ -82,10 +83,11 @@ class fields:
         Note that its follow the i-HIBPsim/SINPA structure
         (SINPA fields are similar to iHIBPsim fields
         but with no time dependence):
-        --> nR, nZ, nPhi: int32 - Grid size in each direction.
+        --> nR, nZ, nPhi, nTime: int32 - Grid size in each direction.
         --> Rmin, Rmax: float64 - Minimum and maximum major radius.
         --> Zmin, Zmax: float64 - Minimum and maximum vertical pos.
         --> Phimin, Phimax: float64 - Min. and max. toroidal direction.
+        --> Timemin, timemax> float64
         --> Br[nR, nPhi, nZ]: float64
         --> Bphi[nR, nPhi, nZ]: float64
         --> Bz[nR, nPhi, nZ]: float64
@@ -743,7 +745,8 @@ class fields:
                                        u2=np.array((0.0, 1.0, 0.0)),
                                        u3=np.array((0.0, 0.0, 1.0)),
                                        IpBt_sign: float = ssdat.IB_sign,
-                                       verbose: bool = True):
+                                       verbose: bool = True,
+                                       diagnostic: str = 'FILD'):
         """
         Create a field for SINPA from a given B vector
 
@@ -763,6 +766,8 @@ class fields:
         @param u1: u1 vector of the reference system
         @param u2: u2 vector for the referece system
         @param u3: u3 vector for the reference system
+        @param diagnostic: string identifying the diagnostic (to determine the
+            meaining of the angles)
 
         Note: Please see SINPA documentation for a nice drawing of the
         different angles
@@ -781,11 +786,17 @@ class fields:
         # --- Generate the direction
         t = theta * np.pi / 180.0  # pass to radians
         p = phi * np.pi / 180.0
-        # dir = math.cos(t) * (math.sin(p) * u1 + math.cos(p) * u2) \
-        #     - math.sin(t) * u3
-        dir = math.sin(p) * u1 + math.cos(p)\
-            * (math.cos(t) * u2 - math.sin(t) * u3)
-        F = IpBt_sign * field_mod * dir
+        if diagnostic.lower() == 'fild':
+            dir = math.sin(p) * u1 + math.cos(p)\
+                * (math.cos(t) * u2 - math.sin(t) * u3)
+            F = IpBt_sign * field_mod * dir
+        elif diagnostic.lower() == 'inpa':
+            dir = math.sin(t) * (math.cos(p) * u1 + math.sin(p) * u2)\
+                + math.cos(t) * u3
+            F = field_mod * dir
+        else:
+            raise errors.NotValidInput('Not understood diagnostic')
+
         if verbose:
             print('Value of the field is: ', F)
         # --- Store the field

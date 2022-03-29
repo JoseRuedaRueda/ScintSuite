@@ -3,11 +3,11 @@ Object to work with the VRT cameras.
 
 """
 
-from Lib.LibVideo.BasicVideoObject import BVO
+from Lib.LibVideo._BasicVideoObject import BVO
 import xml.etree.ElementTree as et
 import numpy as np
 import tkinter as tk                       # To open UI windows
-import Lib.GUIs as ssGUI             # For GUI elements
+import Lib.GUIs as ssGUI                   # For GUI elements
 import matplotlib.pyplot as plt
 import Lib.LibTimeTraces as tt
 import matplotlib.colors as colors

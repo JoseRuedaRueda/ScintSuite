@@ -20,6 +20,10 @@ Per_*
 *.pkc
 *.pck
 *.pk4
+fort*
+*.avi
+*.mp4
+Data/MyData/paths.txt
 # -----------------------------------------------------------------------------
 # --- Folders to ignore
 # -----------------------------------------------------------------------------
@@ -34,3 +38,5 @@ Data/RemapStrikeMaps/*
 MyRoutines/*
 Results/*
 doc/*
+DoxiDoc/*
+html/*

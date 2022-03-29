@@ -6,10 +6,9 @@ FILD experimental data. It allows you to load the video files as well as call
 the routines to calculate the remap
 
 Jose Rueda Rueda: jrrueda@us.es
-
-Introduced in version 0.8.0
+Lina Velarde Gallardo: lvelarde@us.es
 """
-from Lib.LibVideo.BasicVideoObject import BVO
+from Lib.LibVideo._FILD_INPA_Parent import FIV
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -30,9 +29,9 @@ pa = p.Path(machine)
 del p
 
 
-class INPAVideo(BVO):
+class FILDVideo(FIV):
     """
-    Video class for the INPA diagnostic.
+    Video class for the FILD diagnostic.
 
     Inside there are the necesary routines to load and remapp a FILD video
 
@@ -96,25 +95,32 @@ class INPAVideo(BVO):
                 file = ssdat.guessFILDfilename(shot, diag_ID)
             if shot is None:
                 shot = _aux.guess_shot(file, ssdat.shot_number_length)
+            # Initialise the logbook
+            FILDlogbook = ssdat.FILD_logbook(**logbookOptions)  # Logbook
+            try:
+                AdqFreq = FILDlogbook.getAdqFreq(shot, diag_ID)
+                t_trig = FILDlogbook.gettTrig(shot, diag_ID)
+            except AttributeError:
+                AdqFreq = None
+                t_trig = None
             # initialise the parent class
-            BVO.__init__(self, file=file, shot=shot, empty=empty)
+            FIV.__init__(self, file=file, shot=shot, empty=empty,
+                         adfreq=AdqFreq, t_trig=t_trig)
             ## Diagnostic used to record the data
-            self.diag = 'INPA'
+            self.diag = 'FILD'
             ## Diagnostic ID (FILD manipulator number)
             self.diag_ID = diag_ID
-            # Initialise the logbook
-            INPAlogbook = ssdat.INPA_logbook(**logbookOptions)  # Logbook
             if shot is not None:
-                self.INPAposition = INPAlogbook.getPosition(shot, diag_ID)
-                self.INPAorientation = \
-                    INPAlogbook.getOrientation(shot, diag_ID)
-                self.INPAgeometry = INPAlogbook.getGeomID(shot, diag_ID)
+                self.FILDposition = FILDlogbook.getPosition(shot, diag_ID)
+                self.FILDorientation = \
+                    FILDlogbook.getOrientation(shot, diag_ID)
+                self.FILDgeometry = FILDlogbook.getGeomID(shot, diag_ID)
                 self.CameraCalibration = \
-                    INPAlogbook.getCameraCalibration(shot, diag_ID)
+                    FILDlogbook.getCameraCalibration(shot, diag_ID)
             else:
-                self.INPAposition = None
-                self.INPAorientation = None
-                self.INPAgeometry = None
+                self.FILDposition = None
+                self.FILDorientation = None
+                self.FILDgeometry = None
                 self.CameraCalibration = None
                 print('Shot not provided, you need to define FILDposition')
                 print('You need to define FILDorientation')
@@ -127,7 +133,7 @@ class INPAVideo(BVO):
             ## Orientation angles
             self.Bangles = None
         else:
-            BVO.__init__(self, empty=empty)
+            FIV.__init__(self, empty=empty)
 
     def _getB(self, extra_options: dict = {}, use_average: bool = False):
         """
@@ -142,8 +148,8 @@ class INPAVideo(BVO):
 
         Note: It will overwrite the content of self.Bfield
         """
-        if self.INPAposition is None:
-            raise Exception('INPA position not know')
+        if self.FILDposition is None:
+            raise Exception('FILD position not know')
         # Get the proper timebase
         if use_average:
             time = self.avg_dat['tframes']
@@ -160,292 +166,95 @@ class INPAVideo(BVO):
             'BR': np.array(br).squeeze(),
             'Bz': np.array(bz).squeeze(),
             'Bt': np.array(bt).squeeze(),
-            'Bp': np.array(bp).squeeze()
         }
+        self.BField['B'] = np.sqrt(self.BField['Bt']**2 + self.BField['BR']**2
+                                   + self.BField['Bz']**2)
 
     def _getBangles(self):
         """Get the orientation of the field respec to the head"""
-        pass
+        if self.FILDorientation is None:
+            raise Exception('FILD orientation not know')
+        phi, theta = \
+            ssFILDSIM.calculate_fild_orientation(
+                self.BField['BR'], self.BField['Bz'], self.BField['Bt'],
+                self.FILDorientation['alpha'], self.FILDorientation['beta']
+            )
+        self.Bangles = {'phi': phi, 'theta': theta}
 
     def _checkStrikeMapDatabase():
         pass
 
     def remap_loaded_frames(self, options: dict = {}):
-        pass
-
-    def integrate_remap(self, xmin=20.0, xmax=90.0, ymin=1.0, ymax=10.0,
-                        mask=None):
-        pass
-
-    def plot_frame(self, frame_number=None, ax=None, ccmap=None,
-                   strike_map: str = 'off', t: float = None,
-                   verbose: bool = True,
-                   smap_marker_params: dict = {},
-                   smap_line_params: dict = {}, vmin=0, vmax=None,
-                   xlim=None, ylim=None, scale: str = 'linear'):
         """
-        Plot a frame from the loaded frames
+        Remap all loaded frames in the video object
 
-        @param frame_number: Number of the frame to plot, relative to the video
-            file, optional
-        @param ax: Axes where to plot, is none, just a new axes will be created
-        @param ccmap: colormap to be used, if none, Gamma_II from IDL
-        @param strike_map: StrikeMap to plot:
-            -# 'auto': The code will load the Smap corresponding to the theta,
-            phi angles. Note, the angles should be calculated, so the remap,
-            should be done. (also, it will load the calibration from the
-            performed remap)
-            -# StrikeMap(): if a StrikeMap() object is passed, it will be
-            plotted. Note, the program will only check if the StrikeMap input
-            is a class, it will not check if the calibration was apply etc, so
-            it is supposed that the user had given a Smap, ready to be plotted
-            -# 'off': (or any other string) No strike map will be plotted
-        @param verbose: If true, info of the theta and phi used will be printed
-        @param smap_marker_params: dictionary with parameters to plot the
-            strike_map centroid (see StrikeMap.plot_pix)
-        @param smap_line_params: dictionary with parameters to plot the
-            strike_map lines (see StrikeMap.plot_pix)
-        @param vmin: Minimum value for the color scale to plot
-        @param vmax: Maximum value for the color scale to plot
-        @param xlim: tuple with the x-axis limits
-        @param ylim: tuple with the y-axis limits
-        @param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
+        Jose Rueda Rueda: jrrueda@us.es
 
-        @return ax: the axes where the frame has been drawn
+        @param    options: Options for the remapping routine. See
+            remapAllLoadedFrames in the LibMap package for a full description
 
+        @return:  write in the object the remap_dat dictionary containing with:
+            -# options: Options used for the remapping
+            -# frames: Remaped frames
+            -# time: time associated to the remapped points
+            -# xaxis: xaxis of the remapped frames
+            -# xlabel: name of the xaxis of he remaped frame (pitch for FILD)
+            -# yaxis: xaxis of the remapped frames
+            -# ylabel: name of the yaxis of he remaped frame (r for FILD)
+            -# sprofx: signal integrated over the y range given by options
+            -# sprofy: signal integrated over the x range given by options
         """
-        # --- Check inputs:
-        if (frame_number is not None) and (t is not None):
-            raise Exception('Do not give frame number and time!')
-        if (frame_number is None) and (t is None):
-            raise Exception("Didn't you want to plot something?")
-        if strike_map == 'auto' and self.remap_dat is None:
-            raise Exception('To use the auto mode, you need to remap first')
-        # --- Prepare the scale:
-        if scale == 'sqrt':
-            extra_options = {'norm': colors.PowerNorm(0.5)}
-        elif scale == 'log':
-            extra_options = {'norm': colors.LogNorm(0.5)}
+        # Check if the user want to use the average
+        if 'use_average' in options.keys():
+            use_avg = options['use_average']
+            nt = len(self.avg_dat['tframes'])
         else:
-            extra_options = {}
-        # --- Load the frames
-        # If we use the frame number explicitly
-        if frame_number is not None:
-            if len(self.exp_dat['nframes']) == 1:
-                if self.exp_dat['nframes'] == frame_number:
-                    dummy = self.exp_dat['frames'].squeeze()
-                    tf = float(self.exp_dat['tframes'])
-                    frame_index = 0
-                else:
-                    raise Exception('Frame not loaded')
-            else:
-                frame_index = self.exp_dat['nframes'] == frame_number
-                if np.sum(frame_index) == 0:
-                    raise Exception('Frame not loaded')
-                dummy = self.exp_dat['frames'][:, :, frame_index].squeeze()
-                tf = float(self.exp_dat['tframes'][frame_index])
-        # If we give the time:
-        if t is not None:
-            frame_index = np.argmin(abs(self.exp_dat['tframes'] - t))
-            tf = self.exp_dat['tframes'][frame_index]
-            dummy = self.exp_dat['frames'][:, :, frame_index].squeeze()
-        # --- Check the colormap
-        if ccmap is None:
-            cmap = ssplt.Gamma_II()
-        else:
-            cmap = ccmap
-        # --- Check the axes to plot
-        if ax is None:
-            fig, ax = plt.subplots()
-            created = True
-        else:
-            created = False
-        if vmax is None:
-            vmax = dummy.max()
-        img = ax.imshow(dummy, origin='lower', cmap=cmap, vmin=vmin, vmax=vmax,
-                        **extra_options)
-        # --- trick to make the colorbar of the correct size
-        # cax = fig.add_axes([ax.get_position().x1 + 0.01,
-        #                     ax.get_position().y0, 0.02,
-        #                     ax.get_position().height])
-        if xlim is not None:
-            ax.set_xlim(xlim)
-        if ylim is not None:
-            ax.set_ylim(ylim)
-        im_ratio = dummy.shape[0]/dummy.shape[1]
-        plt.colorbar(img, label='Counts', fraction=0.042*im_ratio, pad=0.04)
-        ax.set_title('t = ' + str(round(tf, 4)) + (' s'))
-        # Save axis limits, if not, if the strike map is larger than
-        # the frame (FILD4,5) the output plot will be horrible
-        xlim = ax.get_xlim()
-        ylim = ax.get_ylim()
-        # --- Plot the StrikeMap
-        if isinstance(strike_map, ssmap.StrikeMap):
-            strike_map.plot_pix(ax=ax)
-        elif strike_map == 'auto':
-            # get parameters of the map
-            theta_used = self.remap_dat['theta_used'][frame_index]
-            phi_used = self.remap_dat['phi_used'][frame_index]
+            use_avg = False
+            nt = len(self.exp_dat['tframes'])
 
-            # Get the full name of the file
-            name__smap = ssFILDSIM.guess_strike_map_name_FILD(
-                phi_used, theta_used, machine=machine,
-                decimals=self.remap_dat['options']['decimals']
-            )
-            smap_folder = self.remap_dat['options']['smap_folder']
-            full_name_smap = os.path.join(smap_folder, name__smap)
-            # Load the map:
-            smap = ssmap.StrikeMap(0, full_name_smap)
-            # Calculate pixel coordinates
-            smap.calculate_pixel_coordinates(
-                self.remap_dat['options']['calibration']
-            )
-            # Plot the map
-            smap.plot_pix(ax=ax, marker_params=smap_marker_params,
-                          line_params=smap_line_params)
-            if verbose:
-                theta_calculated = self.remap_dat['theta'][frame_index]
-                phi_calculated = self.remap_dat['phi'][frame_index]
-                print('Calculated theta: ', theta_calculated)
-                print('Used theta: ', theta_used)
-                print('Calculated phi: ', phi_calculated)
-                print('Used phi: ', phi_used)
-        # Set 'original' limits:
-        ax.set_xlim(xlim)
-        ax.set_ylim(ylim)
-        # Arrange the axes:
-        if created:
-            fig.show()
-            plt.tight_layout()
-        return ax
+        # Check if the magnetic field and the angles are ready, only if the map
+        # is not given
+        if 'map' not in options.keys():
+            if self.BField is None:
+                self._getB(self.BFieldOptions, use_average=use_avg)
+            if self.Bangles is None:
+                self._getBangles()
+            # Check if we need to recaluculate them because they do not
+            # have the proper length (ie they were calculated for the exp_dat
+            # not the average)
+            if self.BField['BR'].size != nt:
+                print('Need to recalculate the magnetic field')
+                self._getB(self.BFieldOptions, use_average=use_avg)
+            if self.Bangles['phi'].size != nt:
+                self._getBangles()
+        self.remap_dat, opt = \
+            ssmap.remapAllLoadedFrames(self, **options)
+        self.remap_dat['options'] = opt
 
-    def plot_frame_remap(self, frame_number=None, ax=None, ccmap=None,
-                         t: float = None, vmin: float = 0, vmax: float = None,
-                         xlim: float = None, ylim: float = None,
-                         scale: str = 'linear',
-                         interpolation: str = 'bicubic',
-                         cbar_tick_format: str = '%.1E'):
+    def calculateBangles(self, t=None, verbose: bool = True):
         """
-        Plot a frame from the remaped frames
-
-        @param frame_number: Number of the frame to plot, relative to the video
-            file, optional
-        @param ax: Axes where to plot, is none, just a new axes will be created
-        @param ccmap: colormap to be used, if none, Gamma_II from IDL
-        @param vmin: Minimum value for the color scale to plot
-        @param vmax: Maximum value for the color scale to plot
-        @param xlim: tuple with the x-axis limits
-        @param ylim: tuple with the y-axis limits
-        @param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
-        @param interpolation: interpolation method for plt.imshow
-        @param cbar_tick_format: format for the colorbar ticks
-
-        @return ax: the axes where the frame has been drawn
-        """
-        # --- Check inputs:
-        if (frame_number is not None) and (t is not None):
-            raise Exception('Do not give frame number and time!')
-        if (frame_number is None) and (t is None):
-            raise Exception("Didn't you want to plot something?")
-        # --- Prepare the scale:
-        if scale == 'sqrt':
-            extra_options = {'norm': colors.PowerNorm(0.5)}
-        elif scale == 'log':
-            extra_options = {'norm': colors.LogNorm(0.5)}
-        else:
-            extra_options = {}
-        # --- Load the frames
-        # If we use the frame number explicitly
-        if frame_number is not None:
-            if len(self.remap_dat['nframes']) == 1:
-                if self.remap_dat['nframes'] == frame_number:
-                    dummy = self.remap_dat['frames'].squeeze()
-                    tf = float(self.remap_dat['tframes'])
-                    frame_index = 0
-                else:
-                    raise Exception('Frame not loaded')
-            else:
-                frame_index = self.remap_dat['nframes'] == frame_number
-                if np.sum(frame_index) == 0:
-                    raise Exception('Frame not loaded')
-                dummy = self.remap_dat['frames'][:, :, frame_index].squeeze()
-                tf = float(self.remap_dat['tframes'][frame_index])
-        # If we give the time:
-        if t is not None:
-            frame_index = np.argmin(np.abs(self.remap_dat['tframes'] - t))
-            tf = self.remap_dat['tframes'][frame_index]
-            dummy = self.remap_dat['frames'][:, :, frame_index].squeeze()
-        # --- Check the colormap
-        if ccmap is None:
-            cmap = ssplt.Gamma_II()
-        else:
-            cmap = ccmap
-        # --- Check the axes to plot
-        if ax is None:
-            fig, ax = plt.subplots()
-            created = True
-        else:
-            created = False
-        if vmax is None:
-            vmax = dummy.max()
-        img = ax.imshow(dummy.T, extent=[self.remap_dat['xaxis'][0],
-                                         self.remap_dat['xaxis'][-1],
-                                         self.remap_dat['yaxis'][0],
-                                         self.remap_dat['yaxis'][-1]],
-                        origin='lower', cmap=cmap, vmin=vmin, vmax=vmax,
-                        interpolation=interpolation, aspect='auto',
-                        **extra_options)
-        # --- trick to make the colorbar of the correct size
-        # cax = fig.add_axes([ax.get_position().x1 + 0.01,
-        #                     ax.get_position().y0, 0.02,
-        #                     ax.get_position().height])
-        if xlim is not None:
-            ax.set_xlim(xlim)
-        if ylim is not None:
-            ax.set_ylim(ylim)
-        im_ratio = dummy.shape[0]/dummy.shape[1]
-        plt.colorbar(img, label='Counts', fraction=0.042*im_ratio, pad=0.04,
-                     format=cbar_tick_format)
-        ax.set_title('t = ' + str(round(tf, 4)) + (' s'))
-        # Save axis limits, if not, if the strike map is larger than
-        # the frame (FILD4,5) the output plot will be horrible
-        xlim = ax.get_xlim()
-        ylim = ax.get_ylim()
-        if created:
-            ax.set_xlabel('$\\lambda \\ [\\degree]$')
-            ax.set_ylabel('$r_l$ [cm]')
-            fig.show()
-            plt.tight_layout()
-        return ax
-
-    def calculateBangles(self, t='all', verbose: bool = True):
-        """
-        Find the orientation of INPA for a given time.
+        Find the orientation of FILD for a given time.
 
         José Rueda: jrrueda@us.es
 
-        @param t: time point where we want the angles [s]. It can be 'all' in
-        that case, the orientation will be calculated for all time points
+        @param t: time point where we want the angles [s]. if None the
+            orientation will be calculated for all time points
         @param verbose: flag to print information or not
         @param R: R coordinate of the detector (in meters) for B calculation
         @param z: z coordinate of the detector (in meters) for B calculation
 
-        @return theta: theta angle [º]
         @return phi: phi angle [º]
+        @return theta: theta angle [º]
         """
         if self.remap_dat is None:
-            alpha = self.INPAorientation['alpha']
-            beta = self.INPAorientation['beta']
+            if self.FILDorientation is None:
+                raise Exception('FILD orientation not know')
+
+            alpha = self.FILDorientation['alpha']
+            beta = self.FILDorientation['beta']
             print('Remap not done, calculating angles')
 
-            if t == 'all':
-                if self.BField is None:
-                    self._getB()
-                self._getBangles()
-                phi = self.Bangles['phi']
-                theta = self.Bangles['theta']
-                time = 'all'
-            else:
+            if t is not None:
                 br, bz, bt, bp =\
                     ssdat.get_mag_field(self.shot, self.FILDposition['R'],
                                         self.FILDposition['z'], time=t)
@@ -454,6 +263,13 @@ class INPAVideo(BVO):
                     ssFILDSIM.calculate_fild_orientation(br, bz, bt,
                                                          alpha, beta)
                 time = t
+            else:
+                if self.BField is None:
+                    self._getB()
+                self._getBangles()
+                phi = self.Bangles['phi']
+                theta = self.Bangles['theta']
+                time = 'all'
         else:
             tmin = self.remap_dat['tframes'][0]
             tmax = self.remap_dat['tframes'][-1]
@@ -483,9 +299,9 @@ class INPAVideo(BVO):
         print(text)
         root = tk.Tk()
         root.resizable(height=None, width=None)
-        ssGUI.ApplicationShowVidRemapINPA(root, self.exp_dat, self.remap_dat,
-                                          self.CameraCalibration,
-                                          self.INPAgeometry)
+        ssGUI.ApplicationShowVidRemap(root, self.exp_dat, self.remap_dat,
+                                      self.CameraCalibration,
+                                      self.FILDgeometry)
         root.mainloop()
         root.destroy()
 
@@ -660,89 +476,6 @@ class INPAVideo(BVO):
             plt.tight_layout()
         plt.show()
 
-    def plot_orientation(self, ax_params: dict = {}, line_params: dict = {},
-                         ax=None):
-        """
-        Plot the orientaton angles of the diagnostic in each time point
-
-        If the remap is done, it plot the calculated and used orientation
-        of the magnetic field as well as some shaded areas to guide the eye
-
-        Jose Rueda Rueda: jrrueda@us.es
-
-        @param ax_param: axis parameters for the axis beauty routine
-        @param ax: array (with size 2) of axes where to plot
-        """
-        # --- Plotting options:
-        ax_options = {
-            'grid': 'both'
-        }
-        ax_options.update(ax_params)
-        line_options = {
-            'linewidth': 2
-        }
-        line_options.update(line_params)
-        # --- Get the data to plot if remap dat is present
-        if self.remap_dat is not None:
-            time = self.remap_dat['tframes']
-            phi = self.remap_dat['phi']
-            phi_used = self.remap_dat['phi_used']
-            theta = self.remap_dat['theta']
-            theta_used = self.remap_dat['theta_used']
-        else:
-            phi = self.Bangles['phi']
-            phi_used = None
-            theta = self.Bangles['theta']
-            theta_used = None
-            if phi.size == len(self.exp_dat['tframes']):
-                time = self.exp_dat['tframes']
-            else:
-                time = self.avg_dat['tframes']
-        # proceed to plot
-        if ax is None:
-            fig, ax = plt.subplots(2, sharex=True)
-        # Plot the theta angle:
-        # Plot a shaded area indicating the points where only an
-        # aproximate map was used, taken from the solution given here:
-        # https://stackoverflow.com/questions/43233552/
-        # how-do-i-use-axvfill-with-a-boolean-series
-        if theta_used is not None:
-            ax[0].fill_between(time, 0, 1,
-                               where=self.remap_dat['existing_smaps'],
-                               alpha=0.25, color='g',
-                               transform=ax[0].get_xaxis_transform())
-            ax[0].fill_between(time, 0, 1,
-                               where=~self.remap_dat['existing_smaps'],
-                               alpha=0.25, color='r',
-                               transform=ax[0].get_xaxis_transform())
-            ax[0].plot(time, theta_used,
-                       **line_options, label='Used', color='b')
-        # Plot the line
-        ax[0].plot(time, theta,
-                   **line_options, label='Calculated', color='k')
-
-        ax_options['ylabel'] = '$\\Theta$ [degrees]'
-        ax[0] = ssplt.axis_beauty(ax[0], ax_options)
-        # Plot the phi angle
-        if phi_used is not None:
-            ax[1].fill_between(time, 0, 1,
-                               where=self.remap_dat['existing_smaps'],
-                               alpha=0.25, color='g',
-                               transform=ax[1].get_xaxis_transform())
-            ax[1].fill_between(time, 0, 1,
-                               where=~self.remap_dat['existing_smaps'],
-                               alpha=0.25, color='r',
-                               transform=ax[1].get_xaxis_transform())
-            ax[1].plot(time, phi_used,
-                       **line_options, label='Used', color='b')
-
-        ax[1].plot(time, phi,
-                   **line_options, label='Calculated', color='k')
-        ax_options['ylabel'] = '$\\phi$ [degrees]'
-        ax_options['xlabel'] = 't [s]'
-        ax[1] = ssplt.axis_beauty(ax[1], ax_options)
-        plt.legend()
-
     def export_remap(self, name=None):
         """
         Export the dictionary containing the remapped data
@@ -798,11 +531,11 @@ class INPAVideo(BVO):
             diag_ID.units = ' '
             diag_ID.long_name = 'FILD number'
 
-            # Save FILD geometry
-            geom_ID = f.createVariable('geom_ID', 's', )
-            geom_ID[:] = self.FILDgeometry
-            geom_ID.units = ' '
-            geom_ID.long_name = 'FILD geomID'
+            # # Save FILD geometry
+            # geom_ID = f.createVariable('geom_ID', 's', )
+            # geom_ID[:] = self.FILDgeometry
+            # geom_ID.units = ' '
+            # geom_ID.long_name = 'FILD geomID'
 
             # Save the flag which indicate if the remap was from average or
             # real frames
@@ -838,9 +571,7 @@ class INPAVideo(BVO):
 
             # Save the modulus of the magnetic field at the FILD positon
             bfield = f.createVariable('bfield', 'float64', ('tframes', ))
-            b = np.sqrt(self.BField['BR']**2 + self.BField['Bz']**2
-                        + self.BField['Bt']**2)
-            bfield[:] = b
+            bfield[:] = self.BField['B']
             bfield.units = 'T'
             bfield.long_name = 'Field at detector'
 
@@ -939,7 +670,7 @@ class INPAVideo(BVO):
             phi.long_name = 'phi'
 
             phi_used = f.createVariable('phi', 'float64', ('tframes', ))
-            phi_used[:] = self.self.remap_dat['phi_used']
+            phi_used[:] = self.remap_dat['phi_used']
             phi_used.units = '$\\degree$'
             phi_used.long_name = 'phi used'
 
