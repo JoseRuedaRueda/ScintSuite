@@ -46,7 +46,8 @@ _fild4 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD4/',
                                                'l': 0.115, 'A': 0.00554,
                                                'N': 250,
                                                'theta_parking': -21.4/180*pi,
-                                               'R_parking': 2.0160}}
+                                               'R_parking': 2.0824,
+                                               'Z_parking': -0.437}}
 
 _fild5 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD5/',
           'extension': '', 'label': 'FILD5', 'diag': 'FHE', 'channel': 'Chan-',

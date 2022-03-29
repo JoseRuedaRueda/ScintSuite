@@ -978,7 +978,7 @@ class StrikeMap(XYtoPixel):
                 }
             # --- Prepare the interpolators:
             self.calculate_interpolators()
-        if self.diag == 'INPA':
+        elif self.diag == 'INPA':
             # --- Prepare options:
             diag_options = {
                 'dxi': 0.05,
