@@ -505,8 +505,10 @@ class strikeLine:
                     ax[0].plot(self.maps[ii]['x1']*100,
                                self.maps[ii]['x2']*100,
                                label=legendText, **line_options)
+
+                    ds = np.diff(self.maps[ii]['map_s']).mean()
                     ax[1].plot(self.maps[ii]['map_s'],
-                               self.maps[ii]['w']/sspar.ec,
+                               self.maps[ii]['w']/sspar.ec/ds,
                                label=legendText, **line_options)
                 else:
                     ax.plot(self.maps[ii]['x1']*100,
