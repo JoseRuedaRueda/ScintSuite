@@ -92,7 +92,7 @@ class StrikeMap(XYtoPixel):
             # Read the file
             if file is None:
                 smap_folder = pa.FILDStrikeMapsRemap
-                dumm = ssFILDSIM.guess_strike_map_name_FILD(phi,
+                dumm = ssFILDSIM.guess_strike_map_name(phi,
                                                             theta,
                                                             machine=machine,
                                                             decimals=decimals)
@@ -310,12 +310,12 @@ class StrikeMap(XYtoPixel):
             # Add the gyroradius label, but just each 2 entries so the plot
             # does not get messy
             if i == j:
-                try:                   
+                try:
                     delta = abs(self.y[flags][1] - self.y[flags][0]) * factor
                     calculated_delta = True
                 except IndexError:
                     j += 2
-            if (i % 2 == 0) and labels and calculated_delta:  # add gyro radius labels              
+            if (i % 2 == 0) and labels and calculated_delta:  # add gyro radius labels
                 # Delta variable just to adust nicelly the distance (as old
                 # fildsim is in cm and new in m)
                 ax.text((self.y[flags]).min() * factor - 0.5 * delta,
@@ -1472,7 +1472,8 @@ class StrikeMap(XYtoPixel):
                              gyroradius=None, pitch=None,
                              kind_of_plot: str = 'normal',
                              include_legend: bool = False,
-                             XI_index=None):
+                             XI_index=None,
+                             normalize: bool = False):
         """
         Plot the fits done to calculate the resolution
 
@@ -1494,6 +1495,7 @@ class StrikeMap(XYtoPixel):
             - just_fit: Just a line plot as the fit
         @param include_legend: flag to include a legend
         @param XI_index: equivalent to pitch_index, but with the new criteria
+        @param normalize: normalize the output
         """
         # --- Initialise plotting options and axis:
         default_labels = {
@@ -1514,6 +1516,8 @@ class StrikeMap(XYtoPixel):
         if ax is None:
             fig, ax = plt.subplots()
             created = True
+        else:
+            created = False
         if (pitch_index is None) and (XI_index is not None):
             pitch_index = XI_index
         # --- Localise the values to plot
@@ -1558,6 +1562,8 @@ class StrikeMap(XYtoPixel):
                     index_pitch = np.array([pitch_index])
             else:
                 index_pitch = np.arange(self.npitch, dtype=np.int)
+        # --- Get the maximum value for the normalization
+
         # --- Plot the desired data
         # This is just to allow the user to ask the variable with capitals
         # letters or not
@@ -1812,14 +1818,14 @@ class StrikeMap(XYtoPixel):
                 else:
                     created_ax = False
                     ax_gyroradius = axarr
-                
+
                 cent = 0.5 * (edges_gyr[1:] + edges_gyr[:-1])
                 fit_line = ax_gyroradius.plot(cent, resultg.best_fit,
                                               label='_nolegend_')
                 label_plot = \
                     f"{float(self.strike_points.header['gyroradius'][ir]):g}"\
                     + '[cm]'
-                
+
                 ax_gyroradius.hist(data[:, 4], bins=edges_gyr,
                                    alpha=alpha, label=label_plot,
                                    color=fit_line[0].get_color())
