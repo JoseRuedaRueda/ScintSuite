@@ -341,22 +341,26 @@ def ELMsync(time: float, signal: float, elm_dict:dict, average = False):
 
     new_time = list()
     new_signal = list()
+
+    t0, t1 = np.searchsorted(time, (elm_dict['tstart_val'][0],
+                                    elm_dict['tend_val'][0]))
+    t_length = t1-t0
     for ii in range(len(elm_dict['tstart_val'])):
         t0, t1 = np.searchsorted(time, (elm_dict['tstart_val'][ii],
                                         elm_dict['tend_val'][ii]))
 
         if t0 == t1:
             continue
-
-        new_time.append(time[t0:t1]-elm_dict['t_onset'][ii])
-        new_signal.append(signal[t0:t1, ...])
+        
+        if t1-t0 == t_length:
+            new_time.append(time[t0:t1]-elm_dict['t_onset'][ii])
+            new_signal.append(signal[t0:t1, ...])
     
     
     if average:
         new_time   = np.array(new_time)
         new_signal = np.array(new_signal)
-        #import IPython
-        #IPython.embed()
+
         new_time = np.mean(new_time, axis = 0)
         new_signal = np.mean(new_signal, axis = 0)
     

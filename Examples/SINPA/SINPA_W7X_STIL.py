@@ -203,23 +203,23 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------
     Test = False  #if true don't submit run
     
-    run_code = True
-    geom_name = 'W7X_stl_QHS_counter' # Only used if running a single iteration
+    run_code = False
+    geom_name = 'W7X_stl_QHS' # Only used if running a single iteration
     
     save_orbits = True
     plot_plate_geometry = True
     plot_3D = True
     
     read_results = not run_code #True
-    plot_strike_points = True
-    plot_strikemap = True
-    plot_orbits = False
+    plot_strike_points = False
+    plot_strikemap = False
+    plot_orbits = True
     
-    backtrace = False
+    backtrace = True
     
     if save_orbits:
         nGyro = 36
-        maxT = 0.00000006  * 10
+        maxT = -0.00000006  * 10
     else:
         nGyro = 350
         maxT = 0.00000006 
@@ -239,15 +239,15 @@ if __name__ == '__main__':
     mar_params = {'zorder':3,'color':'k'}
     
 
-    n_markers = int(1e6)
+    n_markers = int(1e1)
 
-    gyro_array = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2., 3., 4.]
+    gyro_array = [0.25, 0.5]#, 0.75, 1.0, 1.25, 1.5, 1.75, 2., 3., 4.]
 
-    pitch_array = [85., 75., 65., 55., 45., 35., 25., 15., 5.]
-    pitch_array = [95., 105., 115., 125., 135., 145., 155., 165., 175.]
+    pitch_array = [85., 75.]#, 65., 55., 45., 35., 25., 15., 5.]
+    #pitch_array = [95., 105., 115., 125., 135., 145., 155., 165., 175.]
     #pitch_arrays = [[160., 140., 120., 100., -80., -60., -40., -20.],
     #                [160., 140., 120., 100., 80., 60., 40., 20.]]
-    gyrophase_range = np.array([0,2*np.pi])
+    gyrophase_range = np.array([np.pi,2*np.pi])
 
     # Set n1 and r1 for the namelist, 0 and 0 are defaults, setting to 0.02 and 0.4 gives ~300,000 particles for rl = 0.25 
     # and ~400,000 for 0.5
@@ -273,9 +273,8 @@ if __name__ == '__main__':
     #stl_files = {'collimator': 'graphite_cup_QHF.stl',
     #             'scintillator': 'sensor_QHF.stl'}
     pinhole = {}
-    pinhole = {'pinholeKind': 1}
-    pinhole = {'pinholeCentre': None}
-    pinhole = {'pinholeRadius': None}
+    pinhole['pinholeKind'] =1
+    pinhole['pinholeCentre'] = None
     pinhole['points'] = np.array([[-604.214, 5737.866, 737.998],
                                    [-599.764, 5740.079, 738.542],
                                    [-612.243, 5759.764, 714.652],
@@ -292,7 +291,19 @@ if __name__ == '__main__':
                                    [-788.217, 5812.3, 373.24],
                                    [-726.769, 5798.58, 328.944],
                                    [-702.375, 5832.35, 386.639] ] )
-    
+
+    ##STL files
+    stl_files = {#'collimator': 'probe_head_with_pinholes.stl',
+                 'scintillator':  'SCINTILLATOR_PLATE.stl'}
+    pinhole = {}
+    pinhole['pinholeKind'] =1
+    pinhole['pinholeCentre'] = None
+    pinhole['pinholeRadius'] = None
+    pinhole['points'] = np.array([[-782.879, 5789.41, 344.934],
+                                   [-783.033, 5789.71, 345.661],
+                                   [-781.608, 5790.16, 345.778],
+                                   [-781.454, 5789.86, 345.051] ] )
+
 # -----------------------------------------------------------------------------
 # --- Run SINPA FILDSIM
 # -----------------------------------------------------------------------------
@@ -351,7 +362,7 @@ if __name__ == '__main__':
             field.createHomogeneousFieldThetaPhi(theta, phi, field_mod = modB,
                                                  field='B', u1=u1, u2=u2, u3=u3,
                                                  IpBtsign = 1., verbose = False)
-        else:
+        elif use_ascot_B:
             f = open(ascot_bfield_File, 'rb')
             ascot_bfield = pickle.load(f)
             f.close()
@@ -397,7 +408,7 @@ if __name__ == '__main__':
             field.bdims = 3
             
             #To do FILD is at +-97 deg, plot b-field at correct phi position
-            field.plot('br', phiSlice = 0 ,plot_vessel = True)
+            field.plot('br', phiSlice = 0 ,plot_vessel = False)
             plt.show()
         #Write geometry files
         #for i in range(2):
@@ -429,10 +440,10 @@ if __name__ == '__main__':
                                                               - gyrophase_range[0])
                                             
                     #Make field
-                    fieldFileName = os.path.join(inputsDir, 'field.bin')
-                    fid = open(fieldFileName, 'wb')
-                    field.tofile(fid)
-                    fid.close()
+                    # fieldFileName = os.path.join(inputsDir, 'field.bin')
+                    # fid = open(fieldFileName, 'wb')
+                    # field.tofile(fid)
+                    # fid.close()
 
                     # Create namelist
                     ss.sinpa.execution.write_namelist(nml_options)
@@ -493,14 +504,15 @@ if __name__ == '__main__':
             Geometry = ss.simcom.Geometry(GeomID=runid)
 
                     
-            Geometry.plot2Dfilled(ax=ax, view = 'scint', element_to_plot = [0,2],
+            Geometry.plot2Dfilled(ax=ax, view = 'scint', element_to_plot = [2],
                                       plot_pinhole = False,referenceSystem = 'scintillator')
                 
             #for i in range(2):
             #if read_slit[i] or mixnmatch:
             if plot_strike_points:
-                Smap.strike_points.scatter(ax=ax, per=0.1, 
-                                              mar_params = mar_params)
+                Smap.strike_points.scatter(ax=ax, per=0.1, xscale=100.0, yscale=100.0,
+                                              mar_params = mar_params,
+                                              varx='ys', vary='zs')
                     
             if plot_strikemap:
                 Smap.plot_real(ax=ax, marker_params=marker_params,
@@ -519,8 +531,12 @@ if __name__ == '__main__':
                         
                     
             if plot_3D:
-                Geometry.plot3Dfilled(element_to_plot = [0,2], units = 'm')
+                Geometry.plot3Dfilled(element_to_plot = [0, 2], units = 'm')
                 ax3D = plt.gca()
+
+                if plot_strike_points:
+                    #IPython.embed()
+                    Smap.strike_points.plot3D(ax=ax3D)
                 
                 #for i in range(2):
                 #if read_slit or mixnmatch:
@@ -557,7 +573,7 @@ if __name__ == '__main__':
                 Smap.plot_collimator_factor()
                 plt.gcf().show()
 
-        del Smap
+        #del Smap
                         
                         
                         
