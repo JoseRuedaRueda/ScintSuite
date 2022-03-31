@@ -248,7 +248,7 @@ orderStrikes = {
                     'shortName': '$k$',
                 },
             },   # End of INPA signal version 0
-        }
+        },
     },
     'sinpa_FILD': {
         0: {
@@ -352,7 +352,7 @@ orderStrikes = {
                     'shortName': 'Weight',
                 },
             },
-        }  # End of FILD MODE version 0
+        },  # End of FILD MODE version 0
     },
     'fildsim_FILD': {
         0: {
