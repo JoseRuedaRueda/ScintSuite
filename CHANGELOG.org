@@ -1,3 +1,14 @@
+** 0.9.3: Strike modelling
+*** LibOptics
+- Include a class to accommodate radial dependent transmission coefficient in the cameras
+*** LibVideoFiles
+- Include a GUI to analyse the remap in 2D (allows to subtract a reference frame and plot timetraces)
+*** SimulationCodes
+- Optical calibrations (magnification, transmission and distortion) can be applied now to the strike points
+*** Others:
+- Improve documentation and error handling
+- Small improvementes in INPA strikemap plotting
+
 ** 0.9.2 Added functions to the VRT library
 - Added the get_time_traces in LibVRT 
 - Added the ROI2mask function to LibVRT
