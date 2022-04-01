@@ -346,12 +346,14 @@ class BVO:
         @param  return_noise: If True, the average frame used for the noise
         will be returned
         """
+        if self.exp_dat is None:
+            raise errors.NoFramesLoaded('Load the frames first')
         print('.--. ... ..-. -')
         print('Substracting noise')
         if t1 > t2:
             print('t1: ', t1)
             print('t2: ', t2)
-            raise Exception('t1 is larger than t2!!!')
+            raise errors.NotValidInput('t1 is larger than t2!!!')
         # Get shape and data type of the experimental data
         nx, ny, nt = self.exp_dat['frames'].shape
         original_dtype = self.exp_dat['frames'].dtype

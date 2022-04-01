@@ -22,34 +22,33 @@ import Lib as ss
 # -----------------------------------------------------------------------------
 # File with the scintillator
 Scint_file = \
-    '/afs/ipp/home/r/ruejo/ScintSuite/Data/Plates/aug_INPA1_2022_02.pl'  # ####
+    '/afs/ipp/home/r/ruejo/ScintSuite/Data/Plates/INPA/iAUG01/Scintillator.pl'
 SmapFile = \
-    '/afs/ipp/home/r/ruejo/SINPA/runs/Test_Geometry/results/Test_Geometry.map'
+    '/afs/ipp/home/r/ruejo/SINPA/runs/CleanRestart/results/CleanRestart.map'
 FoilFile = \
-    '/afs/ipp/home/r/ruejo/ScintSuite/Data/Plates/aug_INPA1_foil_2022_02.pl'
+    '/afs/ipp/home/r/ruejo/ScintSuite/Data/Plates/INPA/iAUG01/Foil.pl'
 #    # 'test_attenuation/results/test_attenuation.map'
 format = 'FILDSIM'  # Code for which the geometry file is written
 # File with the calibration image (tif)
 calib_image = '/afs/ipp/home/r/ruejo/INPA_Calibration_images/' \
-    + '2_PIXELFLY_OBJETIVE_2022_02.bmp'                                  # ####
+    + '3_PIXEFLY_OBJETIVE_comissioning_2022_02.bmp'                      # ####
 # Video options
 diag_ID = 1  # INPA number
-shot = 40284  # Shot number
+shot = 40412  # Shot number
 tMinNoise = 0.1  # Min time for noise subtraction
 tMaxNoise = 0.4  # Max time for noise subtraction
-t = [1.02, 3.0]  # Times to overplot a frame from the video
+t = [1.74]  # Times to overplot a frame from the video
 # x-scale to y scale
 XtoY = 1.0
 # modify section 3 if you have a custom format for the calibration image
 # Staring points for the calibration
-
-xshift = 1.05
-yshift = 60.56
-xscale = 2688.96
+xshift = 16.90
+yshift = 70.25
+xscale = 2841.85
 xc = 277.3
 yc = 168.33
 c = -1.8049e-3
-deg = -0.4158
+deg = -0.4456
 
 
 # Scale maximum
@@ -103,14 +102,15 @@ elif calib_image.endswith('png'):
 else:
     img = plt.imread(calib_image)
     img = img[::-1, :]
+vid = ss.vid.INPAVideo(shot=shot, diag_ID=diag_ID)
+vid.read_frame()
 fig, ax = plt.subplots()
 # adjust the main plot to make room for the sliders
 plt.subplots_adjust(left=0.5, bottom=0.4)
 ax.imshow(img, origin='lower', cmap=plt.get_cmap('gray'))
 ss.plt.axis_beauty(ax, {'grid': 'both'})
 # Plot the frames
-vid = ss.vid.INPAVideo(shot=shot, diag_ID=diag_ID)
-vid.read_frame()
+
 for tt in t:
     vid.plot_frame(ax=ax, alpha=0.25, t=tt, IncludeColorbar=False)
 # -----------------------------------------------------------------------------
