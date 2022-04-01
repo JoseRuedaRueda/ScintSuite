@@ -84,12 +84,13 @@ class FIV(BVO):
         @return ax: the axes where the frame has been drawn
         """
         # --- Call the parent function
-        ax = super(FIV, self).plot_frame(frame_number=frame_number, ax=ax,
-                                         ccmap=ccmap, t=t, verbose=verbose,
-                                         vmin=vmin, vmax=vmax, xlim=xlim,
-                                         ylim=ylim, scale=scale, alpha=alpha,
-                                         IncludeColorbar=IncludeColorbar,
-                                         RemoveAxisTicksLabels=RemoveAxisTicksLabels)
+        ax = super().plot_frame(
+            frame_number=frame_number, ax=ax, ccmap=ccmap, t=t,
+            verbose=verbose, vmin=vmin, vmax=vmax, xlim=xlim,
+            ylim=ylim, scale=scale, alpha=alpha,
+            IncludeColorbar=IncludeColorbar,
+            RemoveAxisTicksLabels=RemoveAxisTicksLabels
+        )
         # Get the frame number
         if t is not None:
             frame_index = np.argmin(abs(self.exp_dat['tframes'] - t))
@@ -434,5 +435,26 @@ class FIV(BVO):
         root = tk.Tk()
         root.resizable(height=None, width=None)
         ssGUI.ApplicationRemapAnalysis(root, self)
+        root.mainloop()
+        root.destroy()
+
+    def GUI_remap_analysis(self, traces: dict = {}):
+        """
+        Small GUI to explore camera frames
+
+        Jose Rueda: jrrueda@us.es
+
+        @param traces: traces to plot in the upper plot of the GUI, should
+            contain 't1', 'y1', 'l1', etc
+        """
+        text = 'Press TAB until the time slider is highlighted in red.'\
+            + ' Once that happend, you can move the time with the arrows'\
+            + ' of the keyboard, frame by frame'
+        print('--. ..- ..')
+        print(text)
+        print('-... . ..- - -.--')
+        root = tk.Tk()
+        root.resizable(height=None, width=None)
+        ssGUI.ApplicationRemap2DAnalyser(root, self, traces)
         root.mainloop()
         root.destroy()

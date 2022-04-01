@@ -32,8 +32,6 @@ class DatabaseError(Exception):
     pass
 
 # --- Logbook related exceptions
-
-
 class NotFoundCameraCalibration(Exception):
     """Camera calibration to align the scintillator is not found."""
 
@@ -63,12 +61,21 @@ class NotFoundAdqFreq_or_ttrig(Exception):
     function are not found."""
     pass
 
-    
+
 # --- SINPA/FILDSIM related exception
 class WrongNamelist(Exception):
     """
     Raised when some namelist parameter are not consistent
 
     For example when you ask for 6 gyroradius but just give 6 of them
+    """
+    pass
+
+
+# --- Video related exception
+class NoFramesLoaded(Exception):
+    """
+    To be raised when the use user try to do something in the frames before
+    loading them
     """
     pass
