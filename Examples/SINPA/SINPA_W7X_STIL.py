@@ -235,6 +235,7 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------
     # --- Options
     # -----------------------------------------------------------------------------
+    plt.close('all')
     Test = False  #if true don't submit run
     
     run_code = False
@@ -246,7 +247,7 @@ if __name__ == '__main__':
     
     read_results = not run_code #True
     plot_strike_points = False
-    plot_strikemap = False
+    plot_strikemap = True
     plot_orbits = False
     
     backtrace = False
@@ -277,11 +278,11 @@ if __name__ == '__main__':
 
     gyro_array = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2., 3., 4.]
 
-    pitch_array = [45., 75., 65., 55., 45., 35., 25., 15., 5.]
+    pitch_array = [85., 75., 65., 55., 45., 35., 25., 15., 5.]
     #pitch_array = [95., 105., 115., 125., 135., 145., 155., 165., 175.]
     #pitch_arrays = [[160., 140., 120., 100., -80., -60., -40., -20.],
     #                [160., 140., 120., 100., 80., 60., 40., 20.]]
-    gyrophase_range = np.array([np.deg2rad(200),np.deg2rad(340)])
+    gyrophase_range = np.array([np.deg2rad(90),np.deg2rad(270)])
 
     # Set n1 and r1 for the namelist, 0 and 0 are defaults, setting to 0.02 and 0.4 gives ~300,000 particles for rl = 0.25 
     # and ~400,000 for 0.5
