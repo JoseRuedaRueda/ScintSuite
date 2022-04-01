@@ -43,6 +43,8 @@ class ApplicationShowVid:
         tk.Grid.rowconfigure(master, 0, weight=1)
         # --- Create the time slider
         # dt for the slider
+        if t is None:
+            raise Exception('You might need to run vid.read_frames() first')
         dt = t[1] - t[0]
         # Slider creation
         self.tSlider = tk.Scale(master, from_=t[0], to=t[-1], resolution=dt,
@@ -59,6 +61,9 @@ class ApplicationShowVid:
         self.image = ax.imshow(data['frames'][:, :, 0].squeeze(),
                                origin='lower', cmap=self.cmaps[defalut_cmap],
                                aspect='equal')
+        self.time = \
+            ax.text(0.8, 0.9, str(round(data['tframes'][0], 3)) + ' s',
+                    transform=ax.transAxes, color='w')
         # Place the figure in a canvas
         self.canvas = tkagg.FigureCanvasTkAgg(fig, master=master)
         # --- Include the tool bar to zoom and export
@@ -130,9 +135,10 @@ class ApplicationShowVid:
 
     def plot_frame(self, t):
         """Update the plot"""
-        t0 = np.float64(t)
+        t0 = float(t)
         it = np.argmin(abs(self.data['tframes'] - t0))
         dummy = self.data['frames'][:, :, it].squeeze().copy()
+        self.time.set_text(str(round(self.data['tframes'][it], 3)) + ' s')
         self.image.set_data(dummy)
         # If needed, plot the smap
         if self.checkVar1.get():
@@ -144,7 +150,7 @@ class ApplicationShowVid:
             phi_used = self.remap_dat['phi_used'][it]
 
             # Get the full name of the file
-            name__smap = ssfildsim.guess_strike_map_name_FILD(
+            name__smap = ssfildsim.guess_strike_map_name(
                 phi_used, theta_used, machine=machine,
                 decimals=self.remap_dat['options']['decimals']
             )

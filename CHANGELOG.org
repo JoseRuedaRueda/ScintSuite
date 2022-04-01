@@ -1,7 +1,187 @@
-** 0.8.0 Future Version
-This verison was not released, this is just a warning about things which will be deprecated:
-- The Strikes object of the FILDSIM code, use the Common object instead, already available and working better
-- StrikeMap.plot_strike_points() will be deleted. Please use StrikeMap.strike_points.scatter() instead, much better, with more flexibility and options
+** 0.9.3: Strike modelling
+*** LibOptics
+- Include a class to accommodate radial dependent transmission coefficient in the cameras
+*** LibVideoFiles
+- Include a GUI to analyse the remap in 2D (allows to subtract a reference frame and plot timetraces)
+*** SimulationCodes
+- Optical calibrations (magnification, transmission and distortion) can be applied now to the strike points
+*** Others:
+- Improve documentation and error handling
+- Small improvementes in INPA strikemap plotting
+
+** 0.9.2 Added functions to the VRT library
+- Added the get_time_traces in LibVRT 
+- Added the ROI2mask function to LibVRT
+- Fixed a bug on the getdist2sep of FILD4
+
+** 0.9.1 Minor bug fix and upgrades
+*** SimulationCodes Lib
+- Now the strikes object will look backwards in the strike header file, ie, if the used SINPA version is X.y, and there is no specific header in the StrikeHeader file for version X, the code will assume that there was no changes in the file structure between version X and version X-1 and use the header of version X-1
+- Added a function to read the fast-ion distribution function use in FIDASIM
+- solved the bug in the FIDASIM library init file, which make the FIDASIM library to be loaded in loo
+*** FILD-INPA object
+- function plot_orientation() renamed to plotBangles() to avoid confusion between the FILD orientation (alpha, beta, gamma defined in the machine system) with the magnetic field orientation (theta and phi)
+
+** 0.9.0 INPA implementation
+*** General:
+- Time traces library was re-written to do not depend on external libraries and avoid bugs. Now is also way faster for non-cine videos, as it was re-written to avoid loops
+- run path_suite is no longer needed to import the Suite (see import section in the readme)
+- Subfolders for each diagnostic were created in the folder Data/Plates
+*** INPA and Lib.Video:
+- Included INPA calibration files in the data folder
+- FILD INPA and Basic Video Object moved to _<name> just to clean a bit the vid object
+- FILD and INPA do not depend directly from BVO but from the new object FIV, which contains the common rouitnes from FILD and INPA, as the itegral of the remap signal
+- Included INPA paths
+- Lib.LibVideo.FILDVideo.plot_frame() now include the flag IncludeColorbar to include or not the colorbar (default=True). Also, it includes the parameter alpha to have transparencies
+- Lib.LibVideo.FILDVideo.plot_frame() now includes the time as text inside the box, not as the title
+- Lib.LibVideo.FILDVideo.plot_frame() was moved to the new parent object
+- Lib.LibVideo.FILDVideo.integrate_remap(), now included in the parent object, and return not only the trace but the marginal distributions in rl and pitch (of R for the INPA)
+*** Lib.SimulationsCodes:
+- Same naming criteria was adopted for FILDSIM and SINPA, so the routines  guess_strike_map_name_FILD from the SINPA and FILDSIM libraries were renamed just into guess_strike_map_name
+*** Examples:
+- Added Example 16 of the FILD collection to align the scintillator
+*** LibData:
+- get_fast_channel adapted to use the aug_sfutils instead of the old dd
+*** LibMapping:
+- Updating the Scintillator object to make it compatible with the SINPA format
+- readCameraCalibration was extracted from the FILDlogbook and placed to the mapping library, as it will be used for INPA and FILD at the same time
+- Calibration params now include 3 parameters to model distortion (distortion center xc and yc and distortion coefficient). Space for a 4th coefficient was allocated, although not needed for INPA dna iHIBP
+- Scintillator, and strike maps now depend of the parent class XYtoPixel, which contain the basic information of cooridnates and pixel position and the method to translate among them
+*** Plotting:
+- Updated plotSettings() to match new matplotlib. font_manager changed and latex preamble removed
+*** LibFastChannel:
+- Default plotting option changed to raw, to do not fail if the user plot the data just after loading them, so no filtering was done
+*** Bug:
+- Solved a bug in plot_frame from the FILD video object. The syntax for the routines to load the strike map was not updated to version 0.8.0
+- Solved a bug in timetraces object. Mean and std of the ROI were exchanged
+- Solved a bug in the StrikePoints.plot3d(). If the percentage was too low that no marker was selected. Now the code just check that some markers was actually selected
+*** Other changes
+- Some comparison to strings changed to <strin>.lower() == ... to give more flexibility in case the user capitalise the first letter
+- np.bool replaced with bool to avoid future issues with numpy (np.bool was going to be deprecated)
+- PEP8 improvements
+- Comments and documentation (Readme) improved
+
+** 0.8.3 MAST-U adaptation:
+In the process of adapting the code to work for the MAST-U FILD, some important changes have been performed:
+- New library to read PCO files (format .b16)
+- Bug fixed in PNG library: the video files were not necessarily read in the correct order
+
+** 0.8.2 Added get_pellets_timeTrace and update LibFILD4
+- Routine to get the pellets time trace
+- Included a routine (get_dist2sep) to calculate the distance to the separatrix
+
+** 0.8.1 FILD4 object added (LibFILD4)
+- Added routines to load and reconstruct FILD4 trajectories as part of LibData
+- FILD4 database is stored in Javier Hidalgo local machine. Contact him if you cannot access them.
+- Routines used to load and plot FILD4 trajectories now show as deprecated
+
+** 0.8.0 SINPA implementation data analysis
+*Notice*: For all the SINPA related implementation, you need version 0.3 of the SINPA code
+*** Data Folder:
+- calibration_database.txt was moved from cm (used by FILDSIM) to m (used by SINPA). A copy of the old file is kept, saved as calibration_database_cm.txt (see FILD example 0 of how to easily use this file)
+- StrikeMaps will have to be now included inside the folder RemapStrikeMaps/FILD/<geomID>, where <geomID> is the geometry ID of the FILD head used
+*** Examples Folder:
+- SINPA examples updated to the new namelist paraters
+- FILD examples simplified thanks to the direct and easy way of handling now the video files
+- L3 from FILD lectures replaced. There is no longer need for custom options for RFILD. Now L3 shows the new averaging capabilities
+- L14 and L16 from FILD lectures was deprecated (as it was never complete neither machine independent).
+*** Lib.GUIs:
+- VideoPlusRemapPlayer: Was addapted to the new strike map database structure (still missing some tweaks to be included in version 0.8.1)
+*** Lib.Data.Equilibrium:
+- Moved to the aug_sfutils library to load the magnetic field. This library is faster. But you need version 0.7.0 or newer
+*** Lib.Data.FILD:
+- Minor improvements in FILDlogbook
+*** Lib.Data.DiagParam:
+- FILD6 (RFILD) was deleted from the parameter list. As agreed with Javi, RFILD will be just FILD1 with the geom AUG01, as it was in reality, same manipulator, same camera, same pmts...
+- R,z, phi, alpha and beta were removed from the hardcored parameters. Now theses default parameters are defined via namelist in the data folder. For each FILD geometry (see logbook)
+*** Lib.Map.FILD
+- Remap all FILD frames completely rewritten, removed unnecessary parameters/calls. Removed calling the magnetic field inside this function. This makes mode transparent and easy to make the code machine agnostic
+*** Lib.Map.StrikeMap
+- *Bug Solved* Solved a bug which caused problems while calculating the resolutions for the cases where no strike points reach the scintillator for a given gyroradius or for a given pitch angle
+- *Bug Solved* Solved the issue of data from different pitches values not being stored in the proper place of the strike map object.
+- *Bug Solved* Solved issues in plot_resolution_fits, the variables index_pitch and index_gyr were float, so the code failed while using them as indeces (detected by Alex)
+*** LibVideo.AuxFunctions:
+- The function guess_filename() from the auxiliary functions of the Video library was moved towards the LibData.AUG.FILD, because at the end this was using AUG criteria. This should simplify MAST-U implementation. Also, it was renamed to guessFILDfilename
+*** LibVideo.BasicVideoObject:
+- flag 'empty' was included in the BVO such that the video object can be initialize empty. This is to initialize the video object from remap saved files
+- The BVO includes the possibility to average the video on an arbitrary time base. These average frames can be used as input for the remaping routines
+*** LibVideo.FILDVideoObject
+- Now fetch FILD position, orientation and geometry from the FILD logbook
+- Now include the magnetic field as an attribute of the object to better handle the remap
+- It can be initialized just with the shot number and the desired FILD ID
+- export_remap() addapted to work with the new internal structure of the VideoObject
+- remap_loaded_frames(): Changed completely to adapt to SINPA code and to be more machine independent. *INPUT changed*. Notice that now the code will identify by the namelist if it needs to launch SINPA or FILDSIM. If the strikeMap folder is 100% empty (not even the basic namelist) this will fail
+- Use the flag use_average in the options dictionary in the remap input to use the experimental or average frames
+*** Lib.SimulationCodes.Common
+- Geometry object has now a routine to generate files in SINPA format
+- Plot2D with shaded areas included (thanks to @Alex)
+- Function Strikes.calculate_2d_histogram and plot_histogram will calculate and plot all histograms you could imagine
+- StrikeHeader from SINPA updated to match SINPA units (m)
+*** Lib.SimulationCodes.FILDSIM
+- guess_strike_map_name_FILD change its optional arguments, now it is geomID, not machine, as FILD geometries are now identified by a geometry id
+- run_FILDSIM has now an input named cluster, though for the future implementation of MAST-U clusters
+*** Lib.SimulationCodes.SINPA
+- write_namelist() now also prepares the directories main, results and inputs, to simplify execution
+- find_strike_map_FILD() created. This is equivalent to the one of the FILDSIM package, it try to find a strike map, if can not find it, it creates it
+- *Bug Solved* Solved a bug in executing the SINPA code via SBATCH file (Thanks to @Alex)
+*** LibIO
+- load_FILD_remap(). New function from the io library allows to load a remap file into a video object
+*** Lib.errors: Custom Exceptions
+- Custom exceptions are here. They are defined in the file errors.py and are created to be more precise when the Suite raise and exception. This allows better filtering with try structures. Many of the raised exception are now handle by this way. The rest will come in the future
+*** DEPRECATED
+- The Strikes object of the FILDSIM code, use the Common object instead, already available and working better. You can use it, but it would give you a warning
+- StrikeMap.plot_strike_points() is deprecated. Please use StrikeMap.strike_points.scatter() instead, much better, with more flexibility and options
+*** Others
+- np.arange substitute by range in loops
+- Comments improved
+- Small changing to correct deviations from PEP8
+- Updated readme
+- File First_run.py which only confused new users was removed
+- Included an issue template
+
+** 0.7.9 iHIBPsim updated.
+- Minor errors corrected in the iHIBPsim libraries.
+- iHIBPsim namelist: library ready to read and parse the namelists that will be used as inputs for the i-HIBPsim fortran code.
+- iHIBPsim beam: the library has been updated and a simple GUI is introduced (Examples/Others/ihibpsim_beam_gui)
+- iHIBPsim video viewer: included viewer in Examples/Others/ihibpsim_video_gui. No calibrations are yet applied.
+- iHIBPsim paths updated in LibPath
+- Optical calibration of the i-HIBPsim plate added (Data/Calibrations/iHIBP).
+*** Profile library in iHIBPsim.
+- Profiles class to read from the database and save them for the iHIBPsim execution (SimulationCodes/iHIBPsim/profiles.py)
+- Can read from the database.
+- Save/read the binary files.
+- Plotting routines.
+- Possibility to modify the 1D profiles to study perturbations.
+
+** 0.7.8 FILD logbook
+- FILD loogbook object was upgraded. Now is a complete database to interact with the object
+- The function to read the optical calibration database was moved into the FILD logbook object. The old one remains, but marked as deprecated
+- Deprecated decorators where included in the suite (thanks to PLEQUE code :)
+- *Note* This is a transitional update, in version 8.0 the FILD logbook will be directly use in the automatic remap
+
+** 0.7.7 Small improvements in handling SINPA and FILDSIM
+*** Examples:
+- SINPA examples were updated the new SINPA code version (which enables the default parameters in the namelist so FILDSIM user do not need to worry about INPA variables)
+*** Mapping:
+- StrikeMap.calculate_resolutions and StrikeMap.remap_strike_points() where updated to ensure INPA compatibility
+*** SimulationCodes:
+- Strikes object now have the method .get() which return the data from the desired variable of the strike points
+*** Others:
+- Small improvements in comments
+
+** 0.7.6 VRT video object and LibVRT
+*** VRTVideoObject
+- Solved a bug where the time trace was not the same as in the loaded video
+*** LibVRT
+- Library to interact with the VRT data
+- Get camera calibration (signal -> temperature) and (some) camera configuration parameters
+
+** 0.7.5 VRT video object and loadMask
+*** VRTVideoObject
+- Object intended for the analysis of the VRT cameras. Children of the BasicVideoObject
+- Can plot VRT videos and save ROIs
+*** LibIO
+- Added load_mask
 
 ** 0.7.4 Massive remaps:
 - A flag 'allIn' was included in the function to remap all loaded FILD frames. If this flag is set to true, the code will always take the closer strike maps, without allowing to the user to calculate the strike map. In this way, you can remap 'N' shot automatically, without having to say 'No' to the program if a strike map is missing
@@ -24,7 +204,6 @@ This verison was not released, this is just a warning about things which will be
 - FILDPosition from the DiagParam library was deprecated, to obtain the FILD position, the new FILD class should be used
 - load_FILD4_trajectory and plot_FILD4_trajectory where moved to the new FILD library inside LibDataAUG
 - load_FILD4_trajectory makes now the conversion between insertion and real R and z. Notice that this is based on CAD and can be non-precise. +- 1 cm can be expected due to failures in the CAD
-
 
 ** 0.7.1 Uncertainties in fits and angles in execution:
 *** LibMap:

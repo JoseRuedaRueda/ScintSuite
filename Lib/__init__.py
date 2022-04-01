@@ -5,7 +5,16 @@ Allows to access all the diferent libraries and capabilities
 
 Please see https://gitlab.mpcdf.mpg.de/ruejo/scintsuite for a full
 documentation
+
+
+@mainpage Scintillator Suite Project
 """
+# Add the paths direactories for python
+try:
+    from paths_suite import paths_of_the_suite
+    paths_of_the_suite()
+except:
+    pass
 # Mapping
 import Lib.LibMap as mapping
 
@@ -21,7 +30,7 @@ import Lib.LibTomography as tomo
 # Load data
 import Lib.LibData as dat
 import Lib.LibVideo as vid
-
+import Lib.LibVRT as vrt
 
 import Lib.LibParameters as par
 import Lib.LibPlotting as plt
@@ -44,7 +53,7 @@ import Lib.LibSideFunctions as side
 machine = m.machine
 paths = p.Path(machine)
 
-# Non tokamak independent machines
+# Non tokamak independent libraries
 if machine == 'AUG':
     import Lib.BEP as libbep
     import Lib.SimulationCodes.iHIBPsim as ihibp
@@ -62,8 +71,8 @@ print('.-- . .-.. .-.. -.-. --- -- .')
 # -----------------------------------------------------------------------------
 # --- Initialise plotting options
 # -----------------------------------------------------------------------------
-# It seems that with some instalations, this could fail, so let's make just a
-# try
+# It seems that with some matplotlib instalations, this could fail, so let's
+# make just a try
 try:
     plt.plotSettings()
 except:

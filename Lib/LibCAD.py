@@ -14,7 +14,7 @@ except ImportError:
                   category=UserWarning)
 
 
-def write_file_for_fortran(stlfile, outputfile):
+def write_file_for_fortran(stlfile, outputfile, convert_mm_2_m = False):
     """
     Transform .stl files into a format compatible with SINPA/iHIBPsim/MEGA
 
@@ -27,11 +27,20 @@ def write_file_for_fortran(stlfile, outputfile):
     vertices = np.asarray(a.vertices)
     index = np.asarray(a.triangles)
     triangleNum = index.shape[0]
+    
+    conv_fac = 1.0
+    if convert_mm_2_m:# Catia files are usually in mm, hence convert to m
+        conv_fac =  0.001
+    
     # --- Write the vertices in the file
-    f = open(outputfile, 'w')
-    f.write(str(triangleNum) + '\n')
+    # append stl vertice data to file that has information of kind of plate and 
+    # other comments in the first few lines already written
+    f = open(outputfile, 'a')  
+    f.write(str(triangleNum) + '  ! Number of triangles\n')
     for i in range(triangleNum):
         for j in range(3):
-            f.write('%.3f %.3f %.3f \n' % (vertices[index[i, j], 0],
-                                           vertices[index[i, j], 1],
-                                           vertices[index[i, j], 2]))
+            f.write('%.3f %.3f %.3f \n' % (vertices[index[i, j], 0] * conv_fac,
+                                           vertices[index[i, j], 1] * conv_fac,
+                                           vertices[index[i, j], 2] * conv_fac))
+    
+    f.close() 

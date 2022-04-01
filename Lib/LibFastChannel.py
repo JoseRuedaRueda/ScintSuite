@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import Lib.LibPlotting as ssplt
 import Lib.LibData as ssdat
 import Lib.LibFrequencyAnalysis as ssfq
+import Lib.errors as errors
 import scipy.signal as sp  # signal processing
 
 
@@ -19,7 +20,8 @@ import scipy.signal as sp  # signal processing
 class FastChannel:
     """To interact with signals from the fast channel"""
 
-    def __init__(self, diag, diag_ID, channels, shot):
+    def __init__(self, diag: str, diag_ID: int, channels: np.ndarray,
+                 shot: int):
         """Initialize the class, see get_fast_channel for inputs description"""
         ## Experimental data (time and channel signals)
         self.raw_data = \
@@ -35,7 +37,7 @@ class FastChannel:
         ## Shot number
         self.shot = shot
 
-    def filter(self, method='savgol', params: dict = {}):
+    def filter(self, method: str = 'savgol', params: dict = {}):
         """
         Smooth the signal
 
@@ -61,7 +63,7 @@ class FastChannel:
         }
         # --- Perform the filter
         if method not in options_filter.keys():
-            raise Exception('Method not implemented')
+            raise errors.NotImplementedError('Method not implemented')
         filtered_data = self.raw_data['data'].copy()
         options = options_filter[method]
         options.update(params)
@@ -112,7 +114,7 @@ class FastChannel:
             elif method == 'stft2':
                 spec = ssfq.stft2
             else:
-                raise Exception('Method not understood')
+                raise errors.NotImplementedError('Method not understood')
             # --- Perform the spectogram for each channel:
             ch = np.arange(len(self.raw_data['data'])) + 1
             spectra = []
@@ -172,8 +174,8 @@ class FastChannel:
         return
 
     def plot_channels(self, ch_number=None, line_params: dict = {},
-                      ax_params: dict = {}, ax=None, normalise=True,
-                      ptype: str = 'cloud', max_to_plot: int = 7500):
+                      ax_params: dict = {}, ax=None, normalise: bool = True,
+                      ptype: str = 'raw', max_to_plot: int = 7500):
         """
         Plot the fast channel signals
 
@@ -235,7 +237,8 @@ class FastChannel:
                 bline = self.raw_data['data'][ic - 1][-100:-1].mean()
                 if ptype == 'raw':
                     if normalise:
-                        factor = self.raw_data['data'][ic - 1][flag].max() - bline
+                        factor = self.raw_data['data'][ic - 1][flag].max()\
+                            - bline
                     else:
                         factor = 1.0
                     ax.plot(self.raw_data['time'][flag],
@@ -244,7 +247,9 @@ class FastChannel:
                             alpha=0.5)
                 elif ptype == 'smooth':
                     if normalise:
-                        factor = self.filtered_data['data'][ic - 1][flag].max() - bline
+                        factor =\
+                            self.filtered_data['data'][ic - 1][flag].max()\
+                            - bline
                     else:
                         factor = 1.0
                     ax.plot(self.filtered_data['time'][flag],
@@ -272,7 +277,7 @@ class FastChannel:
         return
 
     def plot_spectra(self, ch_number=None,
-                     ax_params: dict = {}, scale='log',
+                     ax_params: dict = {}, scale: str = 'log',
                      cmap=None):
         """
         Plot the fast channel spectrograms
@@ -327,7 +332,7 @@ class FastChannel:
                 elif scale == 'linear':
                     data = self.spectra[ic - 1]['spec']
                 else:
-                    raise Exception('Not understood scale')
+                    raise errors.NotValidInput('Not understood scale')
                 # Limit for the scale
                 tmin = self.spectra[ic - 1]['tvec'][0]
                 tmax = self.spectra[ic - 1]['tvec'][-1]

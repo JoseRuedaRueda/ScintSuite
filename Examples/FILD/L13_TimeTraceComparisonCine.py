@@ -3,7 +3,7 @@ Calculate and compare the TimeTraces of the camera signal for different shots
 
 Jose Rueda Rueda: jrrueda@us.es
 
-Note: Done for version 0.5.3
+Note: Done for version 0.5.3. Revised for version 0.9.0
 """
 
 import Lib as ss
@@ -15,8 +15,8 @@ import numpy as np
 # -----------------------------------------------------------------------------
 
 shot = [39574, 39575, 39576, 39577]
-diag_ID = 1             # FILD number
-t0 = 2.62                # time (at the first shot) to define the roi
+diag_ID = 1            # FILD number
+t0 = 2.62              # time (at the first shot) to define the roi
 
 # -----------------------------------------------------------------------------
 # --- Calculate and plot the TT
@@ -25,12 +25,8 @@ t0 = 2.62                # time (at the first shot) to define the roi
 counter = 0
 TT = []
 for s in shot:
-    # - Get the proper file name
-    filename = ss.vid.guess_filename(s, ss.dat.FILD[diag_ID-1]['path'],
-                                     ss.dat.FILD[diag_ID-1]['extension'])
-
     # - open the video file:
-    vid = ss.vid.FILDVideo(filename, diag_ID=diag_ID)
+    vid = ss.vid.FILDVideo(shot=s, diag_ID=diag_ID)
 
     # - select the ROI:
     if counter == 0:
@@ -42,9 +38,9 @@ for s in shot:
         # Define roi
         # Note: if you want the figure to re-appear after the selection of the
         # roi, call create roi with the option re_display=True
-        fig_ref, roi = ss.tt.create_roi(fig_ref, re_display=True)
+        roi = ss.tt.roipoly(fig_ref, ax_ref)
         # Create the mask
-        mask = roi.get_mask(vid.exp_dat['frames'][:, :, 0].squeeze())
+        mask = roi.getMask(vid.exp_dat['frames'][:, :, 0].squeeze())
         fig, ax = plt.subplots()
     time_trace = ss.tt.TimeTrace(vid, mask, t1=0.0, t2=10.0)
     time_trace.plot_single(ax=ax, line_params={'label': '#' + str(s)})

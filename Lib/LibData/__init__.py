@@ -3,5 +3,7 @@
 from Lib.LibMachine import machine
 if machine == 'AUG':
     from Lib.LibData.AUG import *
+elif machine == 'MU':
+    from Lib.LibData.MU import *
 else:
-    from Lib.LibData.Generic  import *
+    from Lib.LibData.Generic import *

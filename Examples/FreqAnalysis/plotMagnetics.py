@@ -11,15 +11,15 @@ import matplotlib.colors as colors
 import warnings
 import numpy as np
 import Lib as ss
-import LibFrequencyAnalysis as lf
+import Lib.LibFrequencyAnalysis as lf
 
 # -----------------------------------------------------------------------------
 # --- Scripts parameter definition.
 # -----------------------------------------------------------------------------
 # Shot data and timing.
-shotnumber = 38663
-tBegin     = 1.60
-tEnd       = 1.90
+shotnumber = 34430
+tBegin     = 5.60
+tEnd       = 5.90
 coilNumber = 31
 
 # FFT options.
@@ -33,7 +33,7 @@ specType = 'stft' # Spectogram type:
 resolution = int(1000)
 timeResolution = 0.70 # Time resolution.
 cmap = matplotlib.cm.plasma # Colormap
-spec_abstype = 'lin' # linear, sqrt or log
+spec_abstype = 'log' # linear, sqrt or log
 
 
 # -----------------------------------------------------------------------------

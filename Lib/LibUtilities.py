@@ -234,7 +234,7 @@ def ELM_filter(s, s_timebase, tELM, offset=0.):
     """
     time = tELM['t_onset'] + offset
     dt = tELM['dt']
-    flags = np.ones(len(s_timebase), dtype=np.bool)
+    flags = np.ones(len(s_timebase), dtype=bool)
 
     for i in range(tELM['n']):
         tmp_flags = (s_timebase >= time[i]) * (s_timebase <= (time[i] + dt[i]))

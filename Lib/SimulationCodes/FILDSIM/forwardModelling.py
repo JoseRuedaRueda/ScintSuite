@@ -242,7 +242,7 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
     ppmin = smap.unique_pitch.min()
     flags = (distro['gyroradius'] > gmin) * (distro['gyroradius'] < gmax) \
         * (distro['pitch'] > ppmin) * (distro['pitch'] < ppmax)
-    flags = flags.astype(np.bool)
+    flags = flags.astype(bool)
     distro_gyr = distro['gyroradius'][flags]
     distro_pitch = distro['pitch'][flags]
     distro_energy = distro['energy'][flags]
@@ -541,7 +541,7 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
             # Look for the pixels which cover this region:
             flags = (smap.gyr_interp >= gmin) * (smap.gyr_interp < gmax) \
                 * (smap.pit_interp >= pmin) * (smap.pit_interp < pmax)
-            flags = flags.astype(np.bool)
+            flags = flags.astype(bool)
             # If there are some pixels, just divide the value weight among them
             n = np.sum(flags)
             if n > 0:
@@ -779,7 +779,8 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
     return res_matrix, W2D
 
 
-def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
+def plot_W(W4D, pr, pp, sr, sp, pp0: float = None, pr0: float = None,
+           sp0: float = None, sr0: float = None,
            cmap=None, nlev=20):
     """
     Plot the weight function
@@ -793,8 +794,11 @@ def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
     @param sp: array of pitches at the scintillator used to calculate W
     @param pp0: precise radius wanted at the pinhole to plot the scintillator W
     @param pr0: precise pitch wanted at the pinhole to plot the scintillator W
-    @param sp0: precise radius wanted at the pinhole to plot the scintillator W
-    @param sr0: precise pitch wanted at the pinhole to plot the scintillator W
+    @param sp0: precise radius wanted at the scintillator to plot the pinhole W
+    @param sr0: precise pitch wanted at the scintillator to plot the pinhole W
+
+    Note, the pair (pr0, pp0) or (sr0, sp0) should be given, in this basic
+    function they can't be mixed
     """
     # --- Color map
     if cmap is None:
@@ -818,6 +822,7 @@ def plot_W(W4D, pr, pp, sr, sp, pp0=None, pr0=None, sp0=None, sr0=None,
         ax2[1].plot(sp, np.sum(W, axis=0))
         ax2[1].set_xlabel('Pitch')
 
+    # Same but with the scintillator point
     if (sp0 is not None) and (sr0 is not None):
         ip = np.argmin(abs(sp - sp0))
         ir = np.argmin(abs(sr - sr0))

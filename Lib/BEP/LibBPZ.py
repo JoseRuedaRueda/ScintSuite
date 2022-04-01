@@ -149,7 +149,7 @@ def plotAngle_BPZ(data: dict, which: str='tor', time: float=None, ax=None,
     else:
         original_label = ''
     # Plotting.
-    for ii in np.arange(data[fieldname]['data'].shape[1]):
+    for ii in range(data[fieldname]['data'].shape[1]):
         line_opts['label'] = original_label + 'LOS %d'%(ii+1)
 
         plt.plot(data['time'][t0:t1], data[fieldname]['data'][t0:t1, ii],

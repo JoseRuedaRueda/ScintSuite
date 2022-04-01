@@ -13,6 +13,7 @@ import Lib.LibPlotting as ssplt
 import Lib.LibUtilities as ssextra
 import Lib.LibParameters as sspar
 import Lib.LibTracker as sstracker
+import Lib.errors as errors
 
 pa = Path()
 
@@ -180,7 +181,8 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
         sf = dd.shotfile(diagnostic='NIS', pulseNumber=shotnumber,
                          experiment='AUGD', edition=0)
     except:
-        raise Exception('Could not open NIS shotfile for #$05d' % shotnumber)
+        raise errors.DatabaseError(
+            'Could not open NIS shotfile for #$05d' % shotnumber)
 
     # --- Transforming the indices of the NBIs into the AUG system (BOX, Beam)
     nbion_box = np.asarray(np.floor((nbion-1)/4), dtype=int)
@@ -234,7 +236,7 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
     # --- Loop over the time windows.
     nwindows = np.floor(len(timeWindow)/2)
     flags = np.zeros((pniq_on.shape[0],), dtype=bool)
-    for ii in np.arange(nwindows, dtype=int):
+    for ii in range(nwindows):
         t0 = np.abs(timebase-timeWindow[2*ii]).argmin()
         t1 = np.abs(timebase-timeWindow[2*ii + 1]).argmin()
 
@@ -252,10 +254,9 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
     return output
 
 
-def getNBI_timeTraces(shotnumber: int, nbilist: int=None):
+def getNBI_timeTraces(shotnumber: int, nbilist: int = None):
     if nbilist is None:
         nbilist = (1, 2, 3, 4, 5, 6, 7, 8)
-
 
     nbilist = np.atleast_1d(nbilist)
     nbi_box = np.asarray(np.floor((nbilist-1)/4), dtype=int)
@@ -263,10 +264,11 @@ def getNBI_timeTraces(shotnumber: int, nbilist: int=None):
 
     try:
         sf = dd.shotfile(diagnostic='NIS', pulseNumber=shotnumber,
-                            edition=0, experiment='AUGD')
+                         edition=0, experiment='AUGD')
 
     except:
-        raise Exception('NBI shotfile cannot be opened for #%05d'%shotnumber)
+        raise errors.DatabaseError(
+            'NBI shotfile cannot be opened for #%05d' % shotnumber)
 
     output = dict()
 
@@ -274,14 +276,14 @@ def getNBI_timeTraces(shotnumber: int, nbilist: int=None):
     timebase = sf.getTimeBase(b'PNIQ')
     sf.close()
 
-
     for ii, nbinum in enumerate(nbilist):
         output[nbinum] = pniq[:, nbi_box[ii], nbi_idx[ii]]
 
-    output['time']  = timebase
-    output['total'] = np.sum(pniq, axis=(1,2))
+    output['time'] = timebase
+    output['total'] = np.sum(pniq, axis=(1, 2))
 
     return output
+
 
 class NBI:
     """Class with the information and data from an NBI"""
@@ -308,7 +310,7 @@ class NBI:
         if diaggeom:
             self.coords = NBI_diaggeom_coordinates(nnbi)
         else:
-            raise Exception('Sorry, option not yet implemented')
+            raise errors.NotImplementedError('Option not yet implemented')
 
     def calc_pitch_profile(self, shot: int, time: float, rmin: float = 1.3,
                            rmax: float = 2.2, delta: float = 0.04,
@@ -345,7 +347,7 @@ class NBI:
         @param deg: If true the pitch is acos(BtIp * v_par / v)
         """
         if self.coords is None:
-            raise Exception('Sorry, NBI coordinates are needed!!!')
+            raise errors.NotValidInput('Sorry, NBI coordinates are needed!!!')
         # Get coordinate vector
         v = np.array([self.coords['x1'] - self.coords['x0'],
                       self.coords['y1'] - self.coords['y0'],
@@ -361,7 +363,7 @@ class NBI:
         R = np.zeros(nstep)
         Z = np.zeros(nstep)
         phi = np.zeros(nstep)
-        flags = np.zeros(nstep, dtype=np.bool)
+        flags = np.zeros(nstep, dtype=bool)
         for istep in range(nstep):
             Rdum = np.sqrt(point[0]**2 + point[1]**2)
             if (Rdum < rmax) and (Rdum > rmin):
@@ -404,7 +406,8 @@ class NBI:
 
         else:
             if self.pitch_profile['R'].size != R.size:
-                raise Exception('Have you changed delta from the last run?')
+                raise errors.NotValidInput(
+                    'Have you changed delta from the last run?')
             # insert the date where it should be
             self.pitch_profile['t'] = \
                 np.concatenate((self.pitch_profile['t'], t))
@@ -703,5 +706,5 @@ class NBI:
                     scales[units] * zz, **line_options)
         else:
             print('Projection: ', projection)
-            raise Exception('Projection not understood!')
+            raise errors.NotValidInput('Projection not understood!')
         return ax

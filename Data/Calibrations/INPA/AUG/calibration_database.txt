@@ -1,0 +1,9 @@
+# Text file containing information about the camera parameters
+# Last Update: 09/02/2022
+#FORMAT IS:
+#ID CAMERA             SHOT1   SHOT2   XS    YS     Xsc     Ysc     DEG   CAL   diag_ID   c1        xcenter   ycenter
+
+0   PhantomV2512       00000   00001   1427  329   -3991.   3991.   -1.59    PIX   1     -1.25e-3     1003      498.33
+1   PCOpixelfly_cfg0   40259   40260   000   000   -00000   0000     0.0     PIX   1     0.0          000        000
+2   PCOpixelfly_cfg1   40284   40211   16.90  70.25  2841.85 2841.85  -0.4456 PIX   1     -1.8049e-3   277.3     168.33
+3   PCOpixelfly_cfg1   40212   99999   0.0  73.19    2920   2920  -0.4456 PIX   1     -1.8049e-3   270    170
