@@ -310,12 +310,12 @@ class StrikeMap(XYtoPixel):
             # Add the gyroradius label, but just each 2 entries so the plot
             # does not get messy
             if i == j:
-                try:                   
+                try:
                     delta = abs(self.y[flags][1] - self.y[flags][0]) * factor
                     calculated_delta = True
                 except IndexError:
                     j += 2
-            if (i % 2 == 0) and labels and calculated_delta:  # add gyro radius labels              
+            if (i % 2 == 0) and labels and calculated_delta:  # add labels
                 # Delta variable just to adust nicelly the distance (as old
                 # fildsim is in cm and new in m)
                 ax.text((self.y[flags]).min() * factor - 0.5 * delta,
@@ -434,10 +434,10 @@ class StrikeMap(XYtoPixel):
                 flags = self.gyroradius == uniq[i]
                 ax.plot(self.xpixel[flags], self.ypixel[flags], **line_options)
             # Lines of constant pitch
-            uniq = np.unique(self.XI)
+            uniq = self.unique_XI
             n = len(uniq)
             for i in range(n):
-                flags = self.XI == uniq[i]
+                flags = abs(self.XI - uniq[i]) < 0.02
                 ax.plot(self.xpixel[flags], self.ypixel[flags], **line_options)
         else:
             raise errors.NotImplementedError('Not implemented diagnostic')
@@ -445,17 +445,6 @@ class StrikeMap(XYtoPixel):
         # Plot some markers in the grid position
         ## @todo include labels energy/pitch in the plot
         ax.plot(self.xpixel, self.ypixel, **marker_options)
-
-    # def calculate_pixel_coordinates(self, calib):
-    #     """
-    #     Transform the real coordinates of the map into pixels.
-    #
-    #     Jose Rueda Rueda: jrrueda@us.es
-    #
-    #     @param calib: a CalParams() object with the calibration info
-    #     """
-    #     self.xpixel, self.ypixel = \
-    #         common.transform_to_pixel(self.y, self.z, calib)
 
     def interp_grid(self, frame_shape, method=2, plot=False, verbose=False,
                     grid_params: dict = {}, MC_number: int = 100):
@@ -1628,6 +1617,7 @@ class StrikeMap(XYtoPixel):
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
 
+    @deprecated('Please use smap.plot_resolution_fits() instead')
     def plot_pitch_histograms(self, diag_params: dict = {},
                               adaptative: bool = True,
                               min_statistics=100,
@@ -1728,6 +1718,7 @@ class StrikeMap(XYtoPixel):
 
         return
 
+    @deprecated('Please use smap.plot_resolution_fits() instead')
     def plot_gyroradius_histograms(self, diag_params: dict = {},
                                    adaptative: bool = True,
                                    min_statistics=100,
@@ -1812,14 +1803,14 @@ class StrikeMap(XYtoPixel):
                 else:
                     created_ax = False
                     ax_gyroradius = axarr
-                
+
                 cent = 0.5 * (edges_gyr[1:] + edges_gyr[:-1])
                 fit_line = ax_gyroradius.plot(cent, resultg.best_fit,
                                               label='_nolegend_')
                 label_plot = \
                     f"{float(self.strike_points.header['gyroradius'][ir]):g}"\
                     + '[cm]'
-                
+
                 ax_gyroradius.hist(data[:, 4], bins=edges_gyr,
                                    alpha=alpha, label=label_plot,
                                    color=fit_line[0].get_color())
