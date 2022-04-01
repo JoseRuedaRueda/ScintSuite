@@ -17,6 +17,7 @@ import IPython
 import pickle
 import open3d
 
+from stl import mesh 
 
 def get_normal_vector(p1, p2, p3):
     '''
@@ -32,6 +33,38 @@ def get_normal_vector(p1, p2, p3):
     cp = cp/(cp**2).sum()**0.5
     
     return cp
+
+
+def write_scint_triangles(file_name_save= 'SCINTILLATOR_PLATE_test'):
+
+    
+    #make stl file
+    
+    p1 = np.array([-763.522, 5746.9, 399.36])
+    p2 = np.array([-738.88, 5801.67, 344.496])
+    p3 = np.array([-785.658, 5790.75, 337.194])
+    p4 = np.array([-716.744, 5757.82, 406.662])
+    
+    vertices = np.array([\
+    p1,
+    p2,
+    p3,
+    p4])
+    
+    faces = np.array([\
+    [0, 1, 2],
+    [2, 3, 0],
+    [1, 3, 0],
+    [1, 3, 1]])
+        
+    surface = mesh.Mesh(np.zeros(faces.shape[0], dtype=mesh.Mesh.dtype))
+    for i, f in enumerate(faces):
+        for j in range(3):
+            surface.vectors[i][j] = vertices[f[j],:]
+
+    surface.save(file_name_save+'.stl')
+
+
 
 def write_stl_geometry_files(root_dir
                               , scan_name = ''
@@ -99,7 +132,7 @@ def write_stl_geometry_files(root_dir
         index = np.asarray(a.triangles)
         
         # Get the points of the first triangle in the scintillator stl file
-        itriang = 10
+        itriang = 0#10
         j=0
         p1 = np.array((vertices[index[itriang, j], 0],
                        vertices[index[itriang, j], 1],
@@ -153,10 +186,11 @@ def write_stl_geometry_files(root_dir
     u3 = np.cross(u1, u2)
     
     extra_filename = directory + 'ExtraGeometryParams.txt'
-
+    nGeomElements = len(stl_files.keys())
     # make sure to convert all to m
     f = open(extra_filename,'w')
     f.write('&ExtraGeometryParams   ! Namelist with the extra geometric parameters\n')
+    f.write('  nGeomElements = ' + (str(nGeomElements)) + '\n')
     f.write('  ! Pinhole\n')
     f.write('  rPin(1) = ' + (str(np.round(rPin[0],6))) 
             + ',        ! Position of the pinhole XYZ\n')
@@ -179,9 +213,9 @@ def write_stl_geometry_files(root_dir
     f.write('  ps(1) =  ' + (str(np.round(ps[0] ,6))) + '\n')
     f.write('  ps(2) =  ' + (str(np.round(ps[1] ,6))) + '\n')
     f.write('  ps(3) =  ' + (str(np.round(ps[2] ,6))) + '\n\n')
-    f.write('  ScintNormal(1) =  ' + (str(np.round(scint_norm[0],4))) + '   ! Normal to the scintillator\n')
-    f.write('  ScintNormal(2) =  ' + (str(np.round(scint_norm[1],4))) + '\n')
-    f.write('  ScintNormal(3) =  ' + (str(np.round(scint_norm[2],4))) + '\n\n')
+    # f.write('  ScintNormal(1) =  ' + (str(np.round(scint_norm[0],4))) + '   ! Normal to the scintillator\n')
+    # f.write('  ScintNormal(2) =  ' + (str(np.round(scint_norm[1],4))) + '\n')
+    # f.write('  ScintNormal(3) =  ' + (str(np.round(scint_norm[2],4))) + '\n\n')
     f.write('  rotation(1,1) = ' + (str(np.round(rot[0,0],4))) + '\n')
     f.write('  rotation(1,2) = ' + (str(np.round(rot[0,1],4))) + '\n')
     f.write('  rotation(1,3) = ' + (str(np.round(rot[0,2],4))) + '\n')
@@ -206,20 +240,20 @@ if __name__ == '__main__':
     run_code = False
     geom_name = 'W7X_stl_QHS' # Only used if running a single iteration
     
-    save_orbits = True
+    save_orbits = False
     plot_plate_geometry = True
     plot_3D = True
     
     read_results = not run_code #True
     plot_strike_points = False
     plot_strikemap = False
-    plot_orbits = True
+    plot_orbits = False
     
-    backtrace = True
+    backtrace = False
     
     if save_orbits:
         nGyro = 36
-        maxT = -0.00000006  * 10
+        maxT = 0.00000006  * 10
     else:
         nGyro = 350
         maxT = 0.00000006 
@@ -239,15 +273,15 @@ if __name__ == '__main__':
     mar_params = {'zorder':3,'color':'k'}
     
 
-    n_markers = int(1e1)
+    n_markers = int(1e4)
 
-    gyro_array = [0.25, 0.5]#, 0.75, 1.0, 1.25, 1.5, 1.75, 2., 3., 4.]
+    gyro_array = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2., 3., 4.]
 
-    pitch_array = [85., 75.]#, 65., 55., 45., 35., 25., 15., 5.]
+    pitch_array = [45., 75., 65., 55., 45., 35., 25., 15., 5.]
     #pitch_array = [95., 105., 115., 125., 135., 145., 155., 165., 175.]
     #pitch_arrays = [[160., 140., 120., 100., -80., -60., -40., -20.],
     #                [160., 140., 120., 100., 80., 60., 40., 20.]]
-    gyrophase_range = np.array([np.pi,2*np.pi])
+    gyrophase_range = np.array([np.deg2rad(200),np.deg2rad(340)])
 
     # Set n1 and r1 for the namelist, 0 and 0 are defaults, setting to 0.02 and 0.4 gives ~300,000 particles for rl = 0.25 
     # and ~400,000 for 0.5
@@ -273,7 +307,7 @@ if __name__ == '__main__':
     #stl_files = {'collimator': 'graphite_cup_QHF.stl',
     #             'scintillator': 'sensor_QHF.stl'}
     pinhole = {}
-    pinhole['pinholeKind'] =1
+    pinhole['pinholeKind'] = 1
     pinhole['pinholeCentre'] = None
     pinhole['points'] = np.array([[-604.214, 5737.866, 737.998],
                                    [-599.764, 5740.079, 738.542],
@@ -293,8 +327,8 @@ if __name__ == '__main__':
                                    [-702.375, 5832.35, 386.639] ] )
 
     ##STL files
-    stl_files = {#'collimator': 'probe_head_with_pinholes.stl',
-                 'scintillator':  'SCINTILLATOR_PLATE.stl'}
+    stl_files = {'collimator': 'probe_head_with_pinholes.stl',
+                 'scintillator':  'SCINTILLATOR_PLATE_test.stl'}
     pinhole = {}
     pinhole['pinholeKind'] =1
     pinhole['pinholeCentre'] = None
@@ -302,7 +336,13 @@ if __name__ == '__main__':
     pinhole['points'] = np.array([[-782.879, 5789.41, 344.934],
                                    [-783.033, 5789.71, 345.661],
                                    [-781.608, 5790.16, 345.778],
-                                   [-781.454, 5789.86, 345.051] ] )
+                                   [-781.454, 5789.86, 345.051] ] )#counter going slit opening
+
+
+    pinhole['points'] = np.array([[-725.674, 5781.91, 381.177],
+                                   [-725.828, 5782.21, 381.904],
+                                   [-724.403, 5782.66, 382.021],
+                                   [-724.249, 5782.36, 381.294] ] )#co- going slit opening
 
 # -----------------------------------------------------------------------------
 # --- Run SINPA FILDSIM
@@ -315,13 +355,12 @@ if __name__ == '__main__':
                 'runid': '',
                 'geomfolder': '',
                 'FILDSIMmode': True,
-                'nGeomElements': len(stl_files.keys()),
                 'nxi': 0,
                 'nGyroradius': 0,
                 'nMap': n_markers,
                 'n1': n1,
                 'r1': r1,
-                'restrict_mode': True,
+                'restrict_mode': False,
                 'mapping': True,
                 'saveOrbits': save_orbits,
                 'saveRatio': 1,
