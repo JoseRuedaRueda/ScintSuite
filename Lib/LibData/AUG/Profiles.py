@@ -1,25 +1,22 @@
 """Routines to interact with the AUG database"""
-import os
 import dd                # Module to load shotfiles
 import numpy as np
 import map_equ as meq    # Module to map the equilibrium
+import aug_sfutils as sfutils
 import warnings
-import matplotlib.pyplot as plt
-import Lib.LibParameters as libparms
-import Lib.LibData.AUG.DiagParam as params
 from tqdm import tqdm
 from scipy.interpolate import interp1d, interp2d, UnivariateSpline
 from Lib.LibPaths import Path
 from Lib.LibData.AUG.Equilibrium import get_rho, get_shot_basics
-import matplotlib.pyplot as plt
 pa = Path()
 
 
 # -----------------------------------------------------------------------------
 # --- Electron density and temperature profiles.
 # -----------------------------------------------------------------------------
-def get_ne(shotnumber: int, time: float = None, exp: str = 'AUGD',
+def get_ne(shotnumber: int, time: float=None, exp: str = 'AUGD',
            diag: str = 'IDA', edition: int = 0, sf=None):
+
     """
     Wrapper to the different diagnostics to read the electron density profile.
     It supports IDA and PED profiles.
@@ -35,6 +32,7 @@ def get_ne(shotnumber: int, time: float = None, exp: str = 'AUGD',
     @return output: a dictionary containing the electron density evaluated
     in the input times and the corresponding rhopol base.
     """
+
     if diag not in ('IDA', 'PED'):
         raise Exception('Diagnostic non supported!')
 
@@ -46,7 +44,7 @@ def get_ne(shotnumber: int, time: float = None, exp: str = 'AUGD',
                           edition=edition, sf=sf)
 
 
-def get_ne_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
+def get_ne_ped(shotnumber: int, time: float = None, exp: str ='AUGD',
                edition: int = 0, sf=None):
     """
     Reads from the PED shotfile the electron density profile.
@@ -59,30 +57,22 @@ def get_ne_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
     @param edition: edition of the shotfile.
     @param sf: shotfile opened for the PED.
     """
-    # --- Opening the shotfile.
-    sf_was_none = False
-    if sf is None:
-        sf_was_none = True
-        try:
-            sf = dd.shotfile(diagnostic='PED', pulseNumber=shotnumber,
-                             edition=edition, experiment=exp)
 
-        except:
+    # --- Opening the shotfile.
+    if sf is None:
+        sf = sfutils.SFREAD(shotnumber, 'PED', edition=edition, exp=exp)
+
+        if not sf.status:
             raise Exception('Cannot open PED shotfile for #%05d'%shotnumber)
 
     # --- Trying to read the toroidal rotation.
     try:
-        ne = sf(name='neFit').data
-        ne_unc = sf(name='dneFit').data
-        rhop = sf(name='rhoFit').data
-        timebase = sf(name='time').data
+        ne = np.array(sf('neFit'))
+        ne_unc = np.array(sf('dneFit'))
+        rhop = np.array(sf('rhoFit'))
+        timebase = np.array(sf('time'))
     except:
-        if sf_was_none:
-            sf.close()
         raise Exception('Cannot read ne in #05d'%shotnumber)
-
-    if sf_was_none:
-        sf.close()
 
     if (timebase > time.max()) or (timebase < time.min()):
         raise Exception('Time window cannot be located in PED shotfile!')
@@ -113,47 +103,39 @@ def get_ne_ida(shotnumber: int, time: float=None, exp: str = 'AUGD',
     in the input times and the corresponding rhopol base.
     """
     # --- Opening the shotfile.
-    sf_was_none = False
     if sf is None:
-        sf_was_none = True
-        try:
-            sf = dd.shotfile(diagnostic='IDA', pulseNumber=shotnumber,
-                             experiment=exp, edition=edition)
-        except:
-            raise NameError('The shotnumber %d is not in the database'\
-                            %shotnumber)
+        sf = sfutils.SFREAD(shotnumber, 'IDA', edition=edition, exp=exp)
+
+        if not sf.status:
+            raise Exception('Cannot open IDA shotfile for #%05d'%shotnumber)
 
     # --- Reading from the database
     try:
-        ne = sf(name='ne')
-        ne_unc = sf(name='ne_unc')
-        rhop = ne.area.data[0, :]
-        timebase = sf(name='time')
+        ne = np.array(sf('ne')).T
+        ne_unc = np.array(sf('ne_unc')).T
+        rhop = np.array(sf.getareabase('ne'))
+        timebase = np.array(sf('time'))
 
     except:
         raise Exception('Cannot read the density from the IDA #%05d'%shotnumber)
 
     # We will return the data in the same spatial basis as provided by IDA.
-    output = { 'rhop': rhop  }
+    output = { 'rhop': rhop[:, 0]  }
 
     if time is None:
         time = timebase
-        output['data'] = ne.data
+        output['data'] = ne
         output['time'] = time
-        output['uncertainty'] = ne_unc.data
+        output['uncertainty'] = ne_unc
     else:
         output['time'] = time
-        output['data'] = interp1d(timebase, ne.data, kind='linear', axis=0,
-                                  bounds_error=False, fill_value=0.0,
+        output['data'] = interp1d(timebase, ne, kind='linear', axis=0,
+                                  bounds_error=False, fill_value=np.nan,
                                   assume_sorted=True)(time).T
-        output['uncertainty'] = interp1d(timebase, ne_unc.data,
+        output['uncertainty'] = interp1d(timebase, ne_unc,
                                          kind='linear', axis=0,
-                                         bounds_error=False, fill_value=0.0,
+                                         bounds_error=False, fill_value=np.nan,
                                          assume_sorted=True)(time).T
-
-    # --- Closing the shotfile.
-    if sf_was_none:
-       sf.close()
 
     return output
 
@@ -203,30 +185,22 @@ def get_Te_ped(shotnumber: int, time: float = None, exp: str ='AUGD',
     """
 
     # --- Opening the shotfile.
-
-    sf_was_none = False
     if sf is None:
-        sf_was_none = True
-        try:
-            sf = dd.shotfile(diagnostic='PED', pulseNumber=shotnumber,
-                             edition=edition, experiment=exp)
+        sf = sfutils.SFREAD(shotnumber, 'PED', edition=edition, exp=exp)
 
-        except:
+        if not sf.status:
             raise Exception('Cannot open PED shotfile for #%05d'%shotnumber)
-
-
     # --- Trying to read the timebasis.
     try:
         timebasis = sf(name='time')
     except:
-        sf.close()
         raise Exception('Cannot read the timebasis for vT in #%05d'%shotnumber)
 
     # --- Trying to read the toroidal rotation.
     try:
-        te = sf(name='TeFit').data
-        te_unc = sf(name='dTeFit').data
-        rhop = sf(name='rhoFit').data
+        te = np.array(sf('TeFit'))
+        te_unc = np.array(sf('dTeFit'))
+        rhop = np.array(sf('rhoFit'))
     except:
         sf.close()
         raise Exception('Cannot read Te in #%05d'%shotnumber)
@@ -236,9 +210,6 @@ def get_Te_ped(shotnumber: int, time: float = None, exp: str ='AUGD',
                'uncertainty': te_unc,
                'time': timebasis
              }
-
-    if sf_was_none:
-        sf.close()
 
     return output
 
@@ -259,52 +230,44 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
     @return output: a dictionary containing the electron temp. evaluated
     in the input times and the corresponding rhopol base.
     """
-     # --- Opening the shotfile.
-    sf_was_none = False
-    if sf is None:
-        sf_was_none = True
-        try:
-            sf = dd.shotfile(diagnostic='IDA', pulseNumber=shotnumber,
-                             experiment=exp, edition=edition)
-        except:
-            raise NameError('The shotnumber %d is not in the database'\
-                            %shotnumber)
 
-    # --- Reading from the database
+    # --- Opening the shotfile.
+    if sf is None:
+        sf = sfutils.SFREAD(shotnumber, 'IDA', edition=edition, exp=exp)
+
+        if not sf.status:
+            raise Exception('Cannot open IDA shotfile for #%05d'%shotnumber)
+
+    # Reading from the database
     try:
-        te = sf(name='Te')
-        te_unc = sf(name='Te_unc')
-        rhop = te.area.data[0, :]
-        timebase = sf(name='time').data
+        te = np.array(sf('Te')).T
+        te_unc = np.array(sf('Te_unc')).T
+        rhop = np.array(sf.getareabase('Te'))
+        timebase = np.array(sf('time'))
 
     except:
-        raise Exception('Cannot read the density from the IDA #%05d'%shotnumber)
-
-    # --- Closing the shotfile.
-    if sf_was_none:
-       sf.close()
+        raise Exception('Cannot read the temperature from the IDA #%05d'%shotnumber)
 
 
     # We will return the data in the same spatial basis as provided by IDA.
-    output = { 'rhop': rhop  , 'time': timebase}
+    output = { 'rhop': rhop[:, 0]  , 'time': timebase}
 
     if time is None:
         time = timebase
-        output['data'] = te.data
+        output['data'] = te
         output['time'] = time
-        output['uncertainty'] = te_unc.data
+        output['uncertainty'] = te_unc
     else:
         output['time'] = time
-        output['data'] = interp1d(timebase, te.data, kind='linear', axis=0,
+        output['data'] = interp1d(timebase, te, kind='linear', axis=0,
                                   bounds_error=False, fill_value=np.nan,
                                   assume_sorted=True)(time).T
-        output['uncertainty'] = interp1d(timebase, te_unc.data,
+        output['uncertainty'] = interp1d(timebase, te_unc,
                                          kind='linear', axis=0,
                                          bounds_error=False, fill_value=np.nan,
                                          assume_sorted=True)(time).T
 
     return output
-
 
 # -----------------------------------------------------------------------------
 # --- Ion temperature
@@ -330,14 +293,17 @@ def get_Ti(shot: int, time: float=None, diag: str='IDI', exp: str='AUGD',
     if diag not in ('IDI', 'CXRS'):
         raise Exception('Diagnostic non supported!')
 
-    if diag == 'PED':
+    if diag == 'IDI':
         return get_Ti_idi(shotnumber=shot, time=time, exp=exp,
                           edition=edition, sf=sf)
-    elif diag == 'IDI':
+    elif diag == 'CXRS':
         return get_Ti_cxrs(shotnumber=shot, time=time, exp=exp,
-                           edition=edition, sf=sf)
+                           edition=edition)
+    else:
+        raise Exception('Diagnostic non supported!')
 
-def get_Ti_idi(shot: int, time: float = None, exp: str = 'AUGD',
+
+def get_Ti_idi(shotnumber: int, time: float = None, exp: str = 'AUGD',
                edition: int = 0, sf=None):
     """
     Wrap to get AUG ion temperature from the IDI shotfile.
@@ -355,45 +321,40 @@ def get_Ti_idi(shot: int, time: float = None, exp: str = 'AUGD',
     @return output: a dictionary containing the electron temp. evaluated
     in the input times and the corresponding rhopol base.
     """
-    # --- Opening the shotfile.
-    sf_was_none = False
-    if sf is None:
-        sf_was_none = True
-        try:
-            sf = dd.shotfile(diagnostic='IDI', pulseNumber=shot,
-                             experiment=exp, edition=edition)
-        except:
-            raise NameError('The shotnumber %d is not in the database'\
-                            %shot)
 
-    # --- Reading from the database
+    # --- Opening the shotfile.
+    if sf is None:
+        sf = sfutils.SFREAD(shotnumber, 'IDI', edition=edition, exp=exp)
+
+        if not sf.status:
+            raise Exception('Cannot open IDI shotfile for #%05d'%shotnumber)
+
+
+    # Reading from the database
     try:
-        ti = sf(name='Ti')
-        ti_unc = sf(name='Ti_unc')
-        rhop = ti.area.data[0, :]
-        timebase = sf(name='time').data
+        ti = np.array(sf('Ti'))
+        ti_unc = np.array(sf('Ti_unc'))
+        rhop = np.array(sf.getareabase('Ti'))
+        timebase = np.array(sf('time'))
 
     except:
-        raise Exception('Cannot read the density from the IDA #%05d' % shot)
+        raise Exception('Cannot read the density from the IDA #%05d' % shotnumber)
 
-    # --- Closing the shotfile.
-    if sf_was_none:
-        sf.close()
 
     # We will return the data in the same spatial basis as provided by IDA.
-    output = {'rhop': rhop, 'time': timebase}
+    output = {'rhop': rhop[:, 0], 'time': timebase}
 
     if time is None:
         time = timebase
-        output['data'] = ti.data
+        output['data'] = ti
         output['time'] = time
-        output['uncertainty'] = ti_unc.data
+        output['uncertainty'] = ti_unc
     else:
         output['time'] = time
-        output['data'] = interp1d(timebase, ti.data, kind='linear', axis=0,
+        output['data'] = interp1d(timebase, ti, kind='linear', axis=0,
                                   bounds_error=False, fill_value=np.nan,
                                   assume_sorted=True)(time).T
-        output['uncertainty'] = interp1d(timebase, ti_unc.data,
+        output['uncertainty'] = interp1d(timebase, ti_unc,
                                          kind='linear', axis=0,
                                          bounds_error=False, fill_value=np.nan,
                                          assume_sorted=True)(time).T
@@ -427,6 +388,8 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
     @param dz: correction in the z direction
     """
 
+    warnings.warn('This CXRS fit does not properly describe separatrix behaviour!')
+
     diags = ('CMZ', 'CEZ', 'CUZ', 'COZ',)
     signals = ('Ti_c', 'Ti_c', 'Ti_c', 'Ti_c', )
     error_signals = ('err_Ti_c', 'err_Ti_c', 'err_Ti_c', 'err_Ti_c')
@@ -447,10 +410,9 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
     nshotfiles = 0
     sf = list()
     for ii in diags:
-        try:
-            sf_aux = dd.shotfile(diagnostic=ii, pulseNumber=shotnumber,
-                                 experiment=exp, edition=edition)
-        except:
+
+        sf_aux = sfutils.SFREAD(shotnumber, ii, exp=exp, edition=edition)
+        if not sf_aux.status:
             print('Cannot open %s for shot #%05d\n' % (ii, shotnumber))
             continue
 
@@ -463,6 +425,16 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
     # --- Checking the time input.
     if time is None:
         time = np.array((0, 3600.0))  # Dummy limits.
+    else:
+        time = np.atleast_1d(time)
+
+        # For a single time point, we choose a time window of the size
+        # of the averaging window.
+        if len(time) == 1:
+            time = np.array([time - tavg/2.0, time + tavg/2.0])
+        # For more than two points, we get the extreme ones.
+        elif len(time) > 2:
+            time = np.array([time.min(), time.max()])
 
     # --- Reading the shotfiles.
     Ti = list()
@@ -470,29 +442,38 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
     rhopol = list()
     Ti_err = list()
     dt = list()
-    for ii in range(len(sf)):
-        Ti_data = sf[ii](name=signals[ii])
-        zaux = sf[ii](name='z').data.squeeze()
-        Raux = sf[ii](name='R').data.squeeze()
-        err_aux = sf[ii](name=error_signals[ii]).data
+    for ii in np.arange(len(sf), dtype=int):
+        Ti_data = np.array(sf[ii](signals[ii])).squeeze()
+        zaux = np.array(sf[ii](name='z')).squeeze()
+        Raux = np.array(sf[ii](name='R')).squeeze()
+        err_aux = np.array(sf[ii](name=error_signals[ii])).squeeze()
+        time_aux = np.array(sf[ii].gettimebase(signals[ii]))
+
         if Ti_data.size == 0:
-            sf[ii].close()
             nshotfiles -= 1
             continue
+
         if len(sf) == 0:
             raise Exception('Ti not available!')
+
+
         if ii == 0:
-            Ti_aux = Ti_data.data
-            time_aux = Ti_data.time
+            Ti_aux = Ti_data
 
             # Cut only the interesting time window.
             t0, t1 = time_aux.searchsorted(time)
+
+            if t1 == t0:
+                t1 += 1
+            if not isinstance(t0, np.int64):
+                t0 = t0[0]
+                t1 = t1[0]
             time_aux = time_aux[t0:t1]
 
             if len(time_aux) == 0:
-                sf[ii].close()
                 nshotfiles -= 1
                 continue
+
             if len(sf) == 0:
                 raise Exception('Ti not available!')
 
@@ -528,22 +509,31 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
             # Transforming (R, z) into rhopol.
             rhopol_aux = get_rho(shot=shotnumber, Rin=R, zin=z,
                                  time=time_aux)
+
             rhopol.append(rhopol_aux)
 
-            dt.append(time_aux[1]-time_aux[0])
+            if time_aux.size > 1:
+                dt.append(time_aux[1]-time_aux[0])
+            else:
+                dt.append(tavg)
             del R
             del z
             del rhopol_aux
             del Ti_aux
         else:
             # Getting the time window.
-            Ti_aux = Ti_data.data
-            t0, t1 = Ti_data.time.searchsorted(time)
-            time_aux = Ti_data.time[t0:t1]
+            Ti_aux = Ti_data
+            t0, t1 = time_aux.searchsorted(time)
+            if t0 == 1:
+                t1 += 1
+            if not isinstance(t0, np.int64):
+                t0 = t0[0]
+                t1 = t1[0]
+            time_aux = time_aux[t0:t1]
             if len(time_aux) == 0:
-                sf[ii].close()
                 nshotfiles -= 1
                 continue
+
             if len(sf) == 0:
                 raise Exception('Ti not available!')
 
@@ -571,6 +561,7 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
             # Transforming (R, z) into rhopol.
             rhopol_aux = get_rho(shot=shotnumber, Rin=R, zin=z,
                                  time=time_aux)
+
             rhopol.append(rhopol_aux)
             Ti_aux = Ti_aux[t0:t1, flags]
             err_aux = err_aux[t0:t1, flags]
@@ -590,10 +581,6 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
         del zaux
         del Ti_data
         del err_aux
-
-    # --- Closing the shotfiles.
-    for ii in sf:
-        ii.close()
 
     # --- Transforming R -> rhopol.
     output = {
@@ -629,13 +616,13 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
     time_out = np.linspace(tBegin, tEnd, nwindows)
     rhop_out = np.linspace(rhop0, rhop1, num=nrho)
     Ti_out = np.zeros((time_out.size, rhop_out.size))
-    for iwin in range(nwindows):
+    for iwin in np.arange(nwindows, dtype=int):
         data = list()
         rhop = list()
         weight = list()
         # Appending to a list all the data points within the time range
         # for all diagnostics.
-        for idiags in range(nshotfiles):
+        for idiags in np.arange(nshotfiles, dtype=int):
             time0 = float(iwin) * tavg + tBegin
             time1 = time0 + tavg
 
@@ -686,6 +673,539 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
         'data': Ti_out[~flags, :],
         'time': time_out[~flags]
     }
+
+    return output
+
+# -----------------------------------------------------------------------------
+# --- Toroidal rotation velocity
+# -----------------------------------------------------------------------------
+def get_tor_rotation(shotnumber: int, time: float = None, diag: str = 'IDI',
+                     exp: str = 'AUGD', edition: int=0, **kwargs):
+    """
+    Retrieves from the database the toroidal velocity velocity (omega_tor).
+    To get the linear velocity (i.e., vtor) multiply by the major radius.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shotnumber: shotnumber to read.
+    @param time: time window to get the data. If None, all the available times
+    are read.
+    @param diag: the diagnostic can only be 'IDI' or 'CXRS'. In the first, the
+    profiles are obtained directly from the IDI reconstruction. For the option
+    CXRS the diagnostics 'CEZ'/'CMZ' are used.
+    @param exp: experiment under which the shotfile is stored.
+    @param edition: edition of the shotfile to read
+    @param cxrs_options: extra parameters to send to the fitting procedure
+    that reads all the rotation velocities.
+    """
+
+    if diag == 'IDI':
+        return get_tor_rotation_idi(shotnumber, time, exp, edition)
+    elif diag == 'CXRS':
+        return get_tor_rotation_cxrs(shotnumber, time, exp, edition, **kwargs)
+    elif diag == 'PED':
+        return get_tor_rotation_ped(shotnumber, time, exp, edition)
+    else:
+        raise NameError('Diagnostic not available for the toroidal rotation')
+
+
+def get_tor_rotation_idi(shotnumber: int, time: float = None,
+                         exp: str = 'AUGD', edition: int = 0, sf=None):
+
+    """
+    Reads from the IDI shotfile the toroidal rotation velocity.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shotnumber: shotnumber to read.
+    @param time: time window to get the data. If None, all the available times
+    are read.
+    @param exp: experiment under which the shotfile is stored.
+    @param edition: edition of the shotfile to read
+    """
+
+    # --- Opening the shotfile.
+    if sf is None:
+        sf = sfutils.SFREAD(shotnumber, 'IDI', edition=edition, exp=exp)
+
+        if not sf.status:
+            raise Exception('Cannot open IDI shotfile for #%05d'%shotnumber)
+
+    # --- Getting the data
+    data = np.array(sf('vt'))
+    timebase = np.array(sf.gettimebase('vt'))
+
+    # --- If a time window is provided, we cut out the data.
+    if time is not None:
+        t0, t1 = timebase.searchsorted(time)
+        data = data[t0:t1, :]
+        timebase = timebase[t0:t1]
+
+    # --- Saving to a dictionary and output:
+    output = { 'data': data,
+               'time': timebase,
+               'rhop': np.array(sf.getareabase('vt')[t0,...])
+             }
+
+    return output
+
+
+def get_tor_rotation_cxrs(shotnumber: int, time: float = None,
+                          exp: str = 'AUGD', edition: int = 0,
+                          tavg: float = 2.0, nrho: int = 200,
+                          smooth_factor: float = 500.0,
+                          rhop0: float=None, rhop1: float=None,
+                          dr=None, dz=None):
+    """
+    Reads from several diagnostics containing information about the toroidal
+    rotation velocity.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shotnumber: shotnumber to read.
+    @param time: time window to get the data. If None, all the available times
+    are read.
+    @param exp: experiment under which the shotfile is stored.
+    @param edition: edition of the shotfile to read
+    @param tavg: averaging time in miliseconds. 50 ms by default.
+    @param nrho: number of points in rho_pol to calculate the smoothed profile.
+    @param smooth_factor: smoothing factor to send to the UnivariateSpline
+    class to perform the smoothing regression.
+    """
+
+    diags = ('CMZ', 'CEZ', 'CUZ', 'COZ',)
+    signals = ('vr_c', 'vr_c', 'vr_c', 'vr_c', )
+    error_signals = ('err_vr_c', 'err_vr_c', 'err_vr_c', 'err_vr_c')
+    tavg *= 1.0e-3
+
+    # --- Checking the inputs consistency.
+    if dr is None:
+        dr_corr_flag = False
+    else:
+        dr_corr_flag = True
+
+    if dz is None:
+        dz_corr_flag = False
+    else:
+        dz_corr_flag = True
+
+    # --- Opening the shotfiles.
+    nshotfiles = 0
+    sf = list()
+    for ii in diags:
+        sf_aux = sfutils.SFREAD(shotnumber, ii, exp=exp, edition=edition)
+        if not sf_aux.status:
+            print('Cannot open %s for shot #%05d\n'%(ii, shotnumber))
+            continue
+
+        nshotfiles += 1
+        sf.append(sf_aux)
+
+    if nshotfiles == 0:
+        raise Exception('Toroidal rotation velocity not available!')
+
+   # --- Checking the time input.
+    if time is None:
+        time = np.array((0, 3600.0))  # Dummy limits.
+    else:
+        time = np.atleast_1d(time)
+
+        # For a single time point, we choose a time window of the size
+        # of the averaging window.
+        if len(time) == 1:
+            time = np.array([time - tavg/2.0, time + tavg/2.0])
+        # For more than two points, we get the extreme ones.
+        elif len(time) > 2:
+            time = np.array([time.min(), time.max()])
+
+
+    # --- Reading the shotfiles.
+    vtor = list()
+    timebase = list()
+    rhopol = list()
+    vt_err = list()
+    dt= list()
+    for ii in range(len(sf)):
+        vtor_data = np.array(sf[ii](signals[ii])).squeeze()
+        zaux = np.array(sf[ii](name='z')).squeeze()
+        Raux = np.array(sf[ii](name='R')).squeeze()
+        err_aux = np.array(sf[ii](name=error_signals[ii])).squeeze()
+        time_aux = np.array(sf[ii].gettimebase(signals[ii]))
+
+        if vtor_data.size == 0:
+            nshotfiles -= 1
+            continue
+
+        if len(sf) == 0:
+            raise Exception('Toroidal rotation velocity not available!')
+        if ii == 0:
+            # Cut only the interesting time window.
+            t0, t1 = time_aux.searchsorted(time)
+
+            if t1 == t0:
+                t1 += 1
+            if not isinstance(t0, np.int64):
+                t0 = t0[0]
+                t1 = t1[0]
+            time_aux = time_aux[t0:t1]
+
+            if len(time_aux) == 0:
+                nshotfiles -= 1
+                continue
+            if len(sf) == 0:
+                raise Exception('Toroidal rotation velocity not available!')
+
+
+            # Some channels are broken. For those R = 0, and we can easily
+            # take them out.
+            flags = Raux > 1.0
+            R    = Raux[flags]
+            z = zaux[flags]
+
+            # Adding the dR and dZ corrections into the diagnostic
+            if dr_corr_flag:
+                if isinstance(dr, dict):
+                    if diags[ii] in dr:
+                        R += dr[diags[ii]]
+                elif isinstance(dr, float):
+                    R += dr
+
+            if dz_corr_flag:
+                if isinstance(dz, dict):
+                    if diags[ii] in dr:
+                        z += dz[diags[ii]]
+                elif isinstance(dz, float):
+                    z += dz
+
+            # Getting the rotation velocity (rad/s)
+            vtor_aux = vtor_data[t0:t1, flags]/R
+            err_aux = err_aux[t0:t1, flags]/R
+
+            # If the velocity is zero, we take it away.
+            flags_nan = (vtor_aux == 0.0) & (err_aux == 0.0)
+            err_aux[flags_nan] = np.inf
+
+            # Appending to the diagnostic list.
+            vtor.append(vtor_aux)
+            timebase.append(time_aux)
+            vt_err.append(err_aux)
+
+
+            # Transforming (R, z) into rhopol.
+            rhopol_aux = get_rho(shot=shotnumber, Rin=R, zin=z,
+                                 time=time_aux)
+
+            rhopol.append(rhopol_aux)
+
+            dt.append(time_aux[1]-time_aux[0])
+            del R
+            del z
+            del rhopol_aux
+            del vtor_aux
+        else:
+            # Cut only the interesting time window.
+            t0, t1 = time_aux.searchsorted(time)
+
+            if t1 == t0:
+                t1 += 1
+            if not isinstance(t0, np.int64):
+                t0 = t0[0]
+                t1 = t1[0]
+            time_aux = time_aux[t0:t1]
+
+            if len(time_aux) == 0:
+                nshotfiles -= 1
+                continue
+            if len(sf) == 0:
+                raise Exception('Toroidal rotation velocity not available!')
+
+            # If the major radius is zero, that channel should be taken
+            # away.
+            flags = Raux > 1.0
+            R = Raux[flags]
+            z = zaux[flags]
+
+            # Adding the dR and dZ corrections into the diagnostic
+            if dr_corr_flag:
+                if isinstance(dr, dict):
+                    if diags[ii] in dr:
+                        R += dr[diags[ii]]
+                elif isinstance(dr, float):
+                    R += dr
+
+            if dz_corr_flag:
+                if isinstance(dz, dict):
+                    if diags[ii] in dr:
+                        z += dz[diags[ii]]
+                elif isinstance(dz, float):
+                    z += dz
+
+
+            # Going to angular rotation velocity.
+            vtor_aux = vtor_data[t0:t1, flags]/R
+            err_aux  = err_aux[t0:t1, flags]/R
+
+            # Transforming (R, z) into rhopol.
+            rhopol_aux = get_rho(shot=shotnumber, Rin=R, zin=z,
+                                 time=time_aux)
+
+
+            # If there is some 0.0 rotation velocity, we remove it by
+            # setting it to NaN.
+            flags_nan = vtor_aux == 0.0
+            flags_nan = (vtor_aux == 0.0) & (err_aux == 0.0)
+            err_aux[flags_nan] = np.inf
+
+            # Adding to the list.
+            vtor.append(vtor_aux)
+            rhopol.append(rhopol_aux)
+            timebase.append(time_aux)
+            vt_err.append(err_aux)
+            dt.append(time_aux[1]-time_aux[0])
+
+            del R
+            del z
+            del time_aux
+            del rhopol_aux
+            del vtor_aux
+        del Raux
+        del zaux
+        del vtor_data
+        del err_aux
+
+    # --- Transforming R -> rhopol.
+    output = { 'diags': diags,
+               'raw': {
+                   'data': vtor,
+                   'rhopol': rhopol,
+                   'time':timebase,
+                   'err': vt_err
+                   }
+             }
+
+    # --- Fitting the profiles.
+    if nshotfiles > 1:
+        tBegin = np.concatenate(timebase).min()
+        tEnd   = np.concatenate(timebase).max()
+        if rhop0 is None:
+            rhop0  = np.array([x.min() for x in rhopol]).min()
+        if rhop1 is None:
+            rhop1  = np.array([x.max() for x in rhopol]).max()
+    else:
+        tBegin = np.array(timebase).min()
+        tEnd   = np.array(timebase).max()
+        if rhop0 is None:
+            rhop0  = np.array(rhopol).min()
+        if rhop1 is None:
+            rhop1  = np.array(rhopol).max()
+
+    dt     = max(dt)
+    tavg   = max(tavg, dt)
+    nwindows = max(1, int((tEnd - tBegin)/tavg))
+
+    time_out = np.linspace(tBegin, tEnd, nwindows)
+    rhop_out = np.linspace(rhop0, rhop1, num=nrho)
+    vtor_out = np.zeros((time_out.size, rhop_out.size))
+    for iwin in range(nwindows):
+        data = list()
+        rhop = list()
+        weight = list()
+        # Appending to a list all the data points within the time range
+        # for all diagnostics.
+        for idiags in range(nshotfiles):
+            time0 = float(iwin) * tavg + tBegin
+            time1 = time0 + tavg
+
+            t0, t1 = timebase[idiags].searchsorted((time0, time1))
+            #t1 += 1
+
+            data.append(vtor[idiags][t0:t1, :].flatten())
+            rhop.append(rhopol[idiags][t0:t1, :].flatten())
+            weight.append(1.0/vt_err[idiags][t0:t1, :].flatten())
+
+        # Using the smoothing spline.
+        data = np.asarray(np.concatenate(data)).flatten()
+        err  = np.asarray(np.concatenate(weight)).flatten()
+        rhop = np.asarray(np.concatenate(rhop)).flatten()
+
+        sorted_index = np.argsort(rhop)
+
+        rhop = rhop[sorted_index]
+        data = data[sorted_index]
+        err  = err[sorted_index]
+
+        flags_err = (err == np.inf) | (err == 0.0) | (data == 0.0)
+        rhop = rhop[~flags_err]
+        err = err[~flags_err]
+        data = data[~flags_err]
+
+        if len(data) < 8:
+            time_out[iwin]    = np.nan
+            vtor_out[iwin, :] = np.nan
+            continue
+
+        # Creating smoothing spline
+        splineFun = UnivariateSpline(x=rhop, y=data, w=err, s=smooth_factor,
+                                     ext=0.0)
+        vtor_out[iwin, :] = splineFun(rhop_out)
+        rhop_local_min = rhop.min()
+        rhop_local_max = rhop.max()
+        flags = (rhop_out < rhop_local_min) | (rhop_out > rhop_local_max)
+        vtor_out[iwin, flags] = np.nan
+        del splineFun
+        del data
+        del rhop
+        del weight
+        del flags
+
+    flags = np.isnan(time_out)
+
+    output['fit']= { 'rhop': rhop_out,
+                     'data': vtor_out[~flags, :],
+                     'time': time_out[~flags]
+                   }
+
+    return output
+
+
+def get_tor_rotation_ped(shotnumber: int, time: float = None,
+                         exp: str ='AUGD', edition: int = 0, sf=None):
+    """
+    Reads from the shotfile created with augped the toroidal rotation.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shotnumber: shot number to get the data.
+    @param time: time window to retrieve the toroidal rotation data.
+    @param exp: experiment name where the shotfile is stored.
+    @param edition: edition of the shotfile.
+    """
+
+    # --- Opening the shotfile.
+    if sf is None:
+        sf = sfutils.SFREAD(shotnumber, 'PED', edition=edition, exp=exp)
+
+        if not sf.status:
+            raise Exception('Cannot open PED shotfile for #%05d'%shotnumber)
+
+
+    # --- Trying to read the timebasis.
+    try:
+        timebasis = np.array(sf('time'))
+    except:
+        raise Exception('Cannot read the timebasis for vT in #05d'%shotnumber)
+
+    # --- Trying to read the toroidal rotation.
+    try:
+        vT_sig = sf('vTFit')
+        vT = np.array(vT_sig)
+        rhop = np.array(sf.getareabase('vTFit'))
+    except:
+        sf.close()
+        raise Exception('Cannot read vT in #05d'%shotnumber)
+
+    output = { 'rhop': rhop,
+               'data': vT,
+               'time': timebasis
+             }
+
+    return output
+
+def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
+                  equ_diag: dict=None, prof_diag: dict=None):
+    """
+    Computes the diamagnetic Doppler correction in the large aspect-ratio
+    tokamak assuming that this is evaluated in a resonant surface such that
+    q = m/n, for a provided 'n'.
+
+    This approximation is quite conservative and shall only be used as an
+    approximation and only within the confined region (i.e., rhopol < 2)
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shotnumber: shotnumber to get the diamagnetic drift.
+    @param tBegin: initial point of the time window to use.
+    @param tEnd: ending point of the time window to use.
+    @param equ_diag: diagnostic for the magnetic equilibrium. If None, EQH is
+    used.
+    @param prof_diag: diagnostic to retrieve the pressure and density profiles.
+    If None, IDA is chosen by default.
+    """
+
+    # --- Checking the diagnostics.
+    if prof_diag is None:
+        prof_diag = { 'diag': 'IDA',
+                      'edition': 0,
+                      'exp': 'AUGD'
+                    }
+    if equ_diag is None:
+        equ_diag = { 'diag': 'EQH',
+                      'edition': 0,
+                      'exp': 'AUGD'
+                    }
+
+    # --- Getting the position of the edge and the magnetic axis.
+    shotbasics = get_shot_basics(shotnumber=shotnumber,
+                                 diag=equ_diag['diag'],
+                                 exp=equ_diag['exp'],
+                                 edition=equ_diag['edition'],
+                                 time=(tBegin, tEnd))
+
+    Raus = shotbasics['Raus']
+    Raxis = shotbasics['Rmag']
+    zaxis = shotbasics['Zmag']
+
+    # Getting the poloidal flux matrix:
+    equ = meq.equ_map(shotnumber, diag=equ_diag['diag'],
+                      exp=equ_diag['exp'], ed=equ_diag['edition'])
+
+    Rpfm = equ.Rmesh
+    zpfm = equ.Zmesh
+    time = equ.t_eq
+    t0, t1 = np.searchsorted(time, (tBegin, tEnd))
+    equ.read_pfm()
+    pfm  = equ.pfm[:, :, t0:t1].copy()
+    nt = pfm.shape[2]
+    time = time[t0:t1]
+
+    # Getting the PFL at the axis and at the separatrix.
+
+    psi_ax = np.zeros(Raus.shape)
+    psi_ed = np.zeros(Raus.shape)
+
+    # --- Getting the poloidal flux at the separatrix.
+    for itime in range(nt):
+        pfm_interp = interp2d(Rpfm, zpfm, pfm[:, :, itime].T, kind='linear')
+
+        psi_ax[itime] = pfm_interp(Raxis[itime], zaxis[itime])
+        psi_ed[itime] = pfm_interp(Raus[itime], zaxis[itime])
+
+    # --- This is the normalization to get the rho_pol
+    psinorm = psi_ed - psi_ax
+
+    # --- Getting the electron pressure and density
+    ne = get_ne(shotnumber=shotnumber, time=time, **prof_diag)
+
+    Te = get_Te(shotnumber=shotnumber, time=time, **prof_diag)
+
+    prs_e = ne['data'] * Te['data']
+    rhop  = ne['rhop']
+
+    psinorm = interp1d(shotbasics['time'], psinorm, kind='linear')(time)
+
+    drhop = rhop[1] - rhop[0]
+    dprs_e = np.gradient(prs_e, drhop, axis=0) # Pressure gradient.
+
+    # --- Getting the omega_tor
+    omega_star = -dprs_e/(ne['data']*(2.0*np.pi *1.0e3))
+    omega_star /= np.tile(ne['rhop'], (omega_star.shape[1], 1)).T
+    omega_star /= np.tile(psinorm, (omega_star.shape[0], 1))
+
+    output = {
+               'fdiag': omega_star,
+               'rhop': rhop,
+               'time': time
+             }
 
     return output
 
@@ -982,7 +1502,6 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = False,
 
     return output
 
-
 def correctShineThroughECE(ecedata: dict, diag: str = 'PED', exp: str = 'AUGD',
                            edition: int = 0):
     """
@@ -1076,528 +1595,3 @@ def correctShineThroughECE(ecedata: dict, diag: str = 'PED', exp: str = 'AUGD',
         for ii in range(ecedata['fft']['spec'].shape[1]):
             ecedata['fft']['spec_dte'][:, ii, :] /= dte_eval
     return ecedata
-
-# -----------------------------------------------------------------------------
-# --- Toroidal rotation velocity
-# -----------------------------------------------------------------------------
-def get_tor_rotation(shotnumber: int, time: float = None, diag: str = 'IDI',
-                     exp: str = 'AUGD', edition: int=0, **kwargs):
-    """
-    Retrieves from the database the toroidal velocity velocity (omega_tor).
-    To get the linear velocity (i.e., vtor) multiply by the major radius.
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    @param shotnumber: shotnumber to read.
-    @param time: time window to get the data. If None, all the available times
-    are read.
-    @param diag: the diagnostic can only be 'IDI' or 'CXRS'. In the first, the
-    profiles are obtained directly from the IDI reconstruction. For the option
-    CXRS the diagnostics 'CEZ'/'CMZ' are used.
-    @param exp: experiment under which the shotfile is stored.
-    @param edition: edition of the shotfile to read
-    @param cxrs_options: extra parameters to send to the fitting procedure
-    that reads all the rotation velocities.
-    """
-
-    if diag == 'IDI':
-        return get_tor_rotation_idi(shotnumber, time, exp, edition)
-    elif diag == 'CXRS':
-        return get_tor_rotation_cxrs(shotnumber, time, exp, edition, **kwargs)
-    elif diag == 'PED':
-        return get_tor_rotation_ped(shotnumber, time, exp, edition)
-    else:
-        raise NameError('Diagnostic not available for the toroidal rotation')
-
-
-def get_tor_rotation_idi(shotnumber: int, time: float = None,
-                         exp: str = 'AUGD', edition: int = 0):
-
-    """
-    Reads from the IDI shotfile the toroidal rotation velocity.
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    @param shotnumber: shotnumber to read.
-    @param time: time window to get the data. If None, all the available times
-    are read.
-    @param exp: experiment under which the shotfile is stored.
-    @param edition: edition of the shotfile to read
-    """
-
-    # --- Opening shotfile.
-    try:
-        sf_idi = dd.shotfile(diagnostic='IDI', pulseNumber=shotnumber,
-                             experiment=exp, edition=edition)
-    except:
-        raise Exception('IDI shotfile not available for shot #%05d'%shotnumber)
-
-    # --- Getting the data
-    vtor = sf_idi(name = 'vt')
-    data = vtor.data
-    timebase = vtor.time
-
-    # --- If a time window is provided, we cut out the data.
-    if time is not None:
-        t0, t1 = timebase.searchsorted(time)
-        data = data[t0:t1, :]
-        timebase = timebase[t0:t1]
-
-    # --- Saving to a dictionary and output:
-    print('shape=',vtor.area.data.shape)
-    output = { 'data': data,
-               'time': timebase,
-               'rhop': vtor.area.data[t0, :]
-             }
-
-    sf_idi.close()
-    return output
-
-
-def get_tor_rotation_cxrs(shotnumber: int, time: float = None,
-                          exp: str = 'AUGD', edition: int = 0,
-                          tavg: float = 2.0, nrho: int = 200,
-                          smooth_factor: float = 500.0,
-                          rhop0: float=None, rhop1: float=None,
-                          dr=None, dz=None):
-    """
-    Reads from several diagnostics containing information about the toroidal
-    rotation velocity.
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    @param shotnumber: shotnumber to read.
-    @param time: time window to get the data. If None, all the available times
-    are read.
-    @param exp: experiment under which the shotfile is stored.
-    @param edition: edition of the shotfile to read
-    @param tavg: averaging time in miliseconds. 50 ms by default.
-    @param nrho: number of points in rho_pol to calculate the smoothed profile.
-    @param smooth_factor: smoothing factor to send to the UnivariateSpline
-    class to perform the smoothing regression.
-    """
-
-    diags = ('CMZ', 'CEZ', 'CUZ', 'COZ',)
-    signals = ('vr_c', 'vr_c', 'vr_c', 'vr_c', )
-    error_signals = ('err_vr_c', 'err_vr_c', 'err_vr_c', 'err_vr_c')
-    tavg *= 1.0e-3
-
-    # --- Checking the inputs consistency.
-    if dr is None:
-        dr_corr_flag = False
-    else:
-        dr_corr_flag = True
-
-    if dz is None:
-        dz_corr_flag = False
-    else:
-        dz_corr_flag = True
-
-    # --- Opening the shotfiles.
-    nshotfiles = 0
-    sf = list()
-    for ii in diags:
-        try:
-            sf_aux = dd.shotfile(diagnostic = ii, pulseNumber=shotnumber,
-                                 experiment=exp, edition=edition)
-        except:
-            print('Cannot open %s for shot #%05d\n'%(ii, shotnumber))
-            continue
-
-        nshotfiles += 1
-        sf.append(sf_aux)
-
-    if nshotfiles == 0:
-        raise Exception('Toroidal rotation velocity not available!')
-
-    # --- Checking the time input.
-    if time is None:
-        time = np.array((0, 3600.0))  # Dummy limits.
-
-    # --- Reading the shotfiles.
-    vtor = list()
-    timebase = list()
-    rhopol = list()
-    vt_err = list()
-    dt= list()
-    for ii in range(len(sf)):
-        vtor_data = sf[ii](name=signals[ii])
-        zaux = sf[ii](name='z').data.squeeze()
-        Raux = sf[ii](name='R').data.squeeze()
-        err_aux = sf[ii](name=error_signals[ii]).data
-        if vtor_data.size == 0:
-            sf[ii].close()
-            nshotfiles -= 1
-            continue
-        if len(sf) == 0:
-            raise Exception('Toroidal rotation velocity not available!')
-        if ii == 0:
-            vtor_aux = vtor_data.data
-            time_aux = vtor_data.time
-
-            # Cut only the interesting time window.
-            t0, t1 = time_aux.searchsorted(time)
-            time_aux = time_aux[t0:t1]
-
-            if len(time_aux) == 0:
-                sf[ii].close()
-                nshotfiles -= 1
-                continue
-            if len(sf) == 0:
-                raise Exception('Toroidal rotation velocity not available!')
-
-
-            # Some channels are broken. For those R = 0, and we can easily
-            # take them out.
-            flags = Raux > 1.0
-            R    = Raux[flags]
-            z = zaux[flags]
-
-            # Adding the dR and dZ corrections into the diagnostic
-            if dr_corr_flag:
-                if isinstance(dr, dict):
-                    if diags[ii] in dr:
-                        R += dr[diags[ii]]
-                elif isinstance(dr, float):
-                    R += dr
-
-            if dz_corr_flag:
-                if isinstance(dz, dict):
-                    if diags[ii] in dr:
-                        z += dz[diags[ii]]
-                elif isinstance(dz, float):
-                    z += dz
-
-            # Getting the rotation velocity (rad/s)
-            vtor_aux = vtor_aux[t0:t1, flags]/R
-            err_aux = err_aux[t0:t1, flags]/R
-
-            # If the velocity is zero, we take it away.
-            flags_nan = (vtor_aux == 0.0) & (err_aux == 0.0)
-            err_aux[flags_nan] = np.inf
-
-            # Appending to the diagnostic list.
-            vtor.append(vtor_aux)
-            timebase.append(time_aux)
-            vt_err.append(err_aux)
-
-
-            # Transforming (R, z) into rhopol.
-            rhopol_aux = get_rho(shot=shotnumber, Rin=R, zin=z,
-                                 time=time_aux)
-            rhopol.append(rhopol_aux)
-
-            dt.append(time_aux[1]-time_aux[0])
-            del R
-            del z
-            del rhopol_aux
-            del vtor_aux
-        else:
-            # Getting the time window.
-            t0, t1 = vtor_data.time.searchsorted(time)
-            time_aux = vtor_data.time[t0:t1]
-            if len(time_aux) == 0:
-                sf[ii].close()
-                nshotfiles -= 1
-                continue
-            if len(sf) == 0:
-                raise Exception('Toroidal rotation velocity not available!')
-
-            # If the major radius is zero, that channel should be taken
-            # away.
-            flags = Raux > 1.0
-            R = Raux[flags]
-            z = zaux[flags]
-
-            # Adding the dR and dZ corrections into the diagnostic
-            if dr_corr_flag:
-                if isinstance(dr, dict):
-                    if diags[ii] in dr:
-                        R += dr[diags[ii]]
-                elif isinstance(dr, float):
-                    R += dr
-
-            if dz_corr_flag:
-                if isinstance(dz, dict):
-                    if diags[ii] in dr:
-                        z += dz[diags[ii]]
-                elif isinstance(dz, float):
-                    z += dz
-
-
-            # Going to angular rotation velocity.
-            vtor_aux = vtor_data.data[t0:t1, flags]/R
-            err_aux = err_aux[t0:t1, flags]/R
-
-
-
-            # Transforming (R, z) into rhopol.
-            rhopol_aux = get_rho(shot=shotnumber, Rin=R, zin=z,
-                                 time=time_aux)
-
-            # If there is some 0.0 rotation velocity, we remove it by
-            # setting it to NaN.
-            flags_nan = vtor_aux == 0.0
-            flags_nan = (vtor_aux == 0.0) & (err_aux == 0.0)
-            err_aux[flags_nan] = np.inf
-
-            # Adding to the list.
-            vtor.append(vtor_aux)
-            rhopol.append(rhopol_aux)
-            timebase.append(time_aux)
-            vt_err.append(err_aux)
-            dt.append(time_aux[1]-time_aux[0])
-
-            del R
-            del z
-            del time_aux
-            del rhopol_aux
-            del vtor_aux
-        del Raux
-        del zaux
-        del vtor_data
-        del err_aux
-
-    # --- Closing the shotfiles.
-    for ii in sf:
-        ii.close()
-
-    # --- Transforming R -> rhopol.
-    output = { 'diags': diags,
-               'raw': {
-                   'data': vtor,
-                   'rhopol': rhopol,
-                   'time':timebase,
-                   'err': vt_err
-                   }
-             }
-
-    # --- Fitting the profiles.
-    if nshotfiles > 1:
-        tBegin = np.concatenate(timebase).min()
-        tEnd   = np.concatenate(timebase).max()
-        if rhop0 is None:
-            rhop0  = np.array([x.min() for x in rhopol]).min()
-        if rhop1 is None:
-            rhop1  = np.array([x.max() for x in rhopol]).max()
-    else:
-        tBegin = np.array(timebase).min()
-        tEnd   = np.array(timebase).max()
-        if rhop0 is None:
-            rhop0  = np.array(rhopol).min()
-        if rhop1 is None:
-            rhop1  = np.array(rhopol).max()
-
-    dt     = max(dt)
-    tavg   = max(tavg, dt)
-    nwindows = max(1, int((tEnd - tBegin)/tavg))
-
-    time_out = np.linspace(tBegin, tEnd, nwindows)
-    rhop_out = np.linspace(rhop0, rhop1, num=nrho)
-    vtor_out = np.zeros((time_out.size, rhop_out.size))
-    for iwin in range(nwindows):
-        data = list()
-        rhop = list()
-        weight = list()
-        # Appending to a list all the data points within the time range
-        # for all diagnostics.
-        for idiags in range(nshotfiles):
-            time0 = float(iwin) * tavg + tBegin
-            time1 = time0 + tavg
-
-            t0, t1 = timebase[idiags].searchsorted((time0, time1))
-            #t1 += 1
-
-            data.append(vtor[idiags][t0:t1, :].flatten())
-            rhop.append(rhopol[idiags][t0:t1, :].flatten())
-            weight.append(1.0/vt_err[idiags][t0:t1, :].flatten())
-
-        # Using the smoothing spline.
-        data = np.asarray(np.concatenate(data)).flatten()
-        err  = np.asarray(np.concatenate(weight)).flatten()
-        rhop = np.asarray(np.concatenate(rhop)).flatten()
-
-        sorted_index = np.argsort(rhop)
-        rhop = rhop[sorted_index]
-        data = data[sorted_index]
-        err  = err[sorted_index]
-
-        flags_err = (err == np.inf) | (err == 0.0) | (data == 0.0)
-        rhop = rhop[~flags_err]
-        err = err[~flags_err]
-        data = data[~flags_err]
-
-        if len(data) < 8:
-            time_out[iwin]    = np.nan
-            vtor_out[iwin, :] = np.nan
-            continue
-
-        # Creating smoothing spline
-        splineFun = UnivariateSpline(x=rhop, y=data, w=err, s=smooth_factor,
-                                     ext=0.0)
-        vtor_out[iwin, :] = splineFun(rhop_out)
-        rhop_local_min = rhop.min()
-        rhop_local_max = rhop.max()
-        flags = (rhop_out < rhop_local_min) | (rhop_out > rhop_local_max)
-        vtor_out[iwin, flags] = np.nan
-        del splineFun
-        del data
-        del rhop
-        del weight
-        del flags
-
-    flags = np.isnan(time_out)
-
-    output['fit']= { 'rhop': rhop_out,
-                     'data': vtor_out[~flags, :],
-                     'time': time_out[~flags]
-                   }
-
-    return output
-
-
-def get_tor_rotation_ped(shotnumber: int, time: float = None,
-                         exp: str ='AUGD', edition: int = 0):
-    """
-    Reads from the shotfile created with augped the toroidal rotation.
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    @param shotnumber: shot number to get the data.
-    @param time: time window to retrieve the toroidal rotation data.
-    @param exp: experiment name where the shotfile is stored.
-    @param edition: edition of the shotfile.
-    """
-
-    # --- Opening the shotfile.
-
-    try:
-        sf = dd.shotfile(diagnostic='PED', pulseNumber=shotnumber,
-                         edition=edition, experiment=exp)
-
-    except:
-        raise Exception('Cannot open PED shotfile for #%05d'%shotnumber)
-
-
-    # --- Trying to read the timebasis.
-    try:
-        timebasis = sf(name='time')
-    except:
-        sf.close()
-        raise Exception('Cannot read the timebasis for vT in #05d'%shotnumber)
-
-    # --- Trying to read the toroidal rotation.
-    try:
-        vT_sig = sf(name='vTFit')
-        vT = vT_sig.data
-        rhop = vT_sig.area.data
-    except:
-        sf.close()
-        raise Exception('Cannot read vT in #05d'%shotnumber)
-
-    sf.close()
-
-    output = { 'rhop': rhop,
-               'data': vT,
-               'time': timebasis
-             }
-
-    return output
-
-def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
-                  equ_diag: dict=None, prof_diag: dict=None):
-    """
-    Computes the diamagnetic Doppler correction in the large aspect-ratio
-    tokamak assuming that this is evaluated in a resonant surface such that
-    q = m/n, for a provided 'n'.
-
-    This approximation is quite conservative and shall only be used as an
-    approximation and only within the confined region (i.e., rhopol < 2)
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    @param shotnumber: shotnumber to get the diamagnetic drift.
-    @param tBegin: initial point of the time window to use.
-    @param tEnd: ending point of the time window to use.
-    @param equ_diag: diagnostic for the magnetic equilibrium. If None, EQH is
-    used.
-    @param prof_diag: diagnostic to retrieve the pressure and density profiles.
-    If None, IDA is chosen by default.
-    """
-
-    # --- Checking the diagnostics.
-    if prof_diag is None:
-        prof_diag = { 'diag': 'IDA',
-                      'edition': 0,
-                      'exp': 'AUGD'
-                    }
-    if equ_diag is None:
-        equ_diag = { 'diag': 'EQH',
-                      'edition': 0,
-                      'exp': 'AUGD'
-                    }
-
-    # --- Getting the position of the edge and the magnetic axis.
-    shotbasics = get_shot_basics(shotnumber=shotnumber,
-                                 diag=equ_diag['diag'],
-                                 exp=equ_diag['exp'],
-                                 edition=equ_diag['edition'],
-                                 time=(tBegin, tEnd))
-
-    Raus = shotbasics['Raus']
-    Raxis = shotbasics['Rmag']
-    zaxis = shotbasics['Zmag']
-
-    # Getting the poloidal flux matrix:
-    equ = meq.equ_map(shotnumber, diag=equ_diag['diag'],
-                      exp=equ_diag['exp'], ed=equ_diag['edition'])
-
-    Rpfm = equ.Rmesh
-    zpfm = equ.Zmesh
-    time = equ.t_eq
-    t0, t1 = np.searchsorted(time, (tBegin, tEnd))
-    equ.read_pfm()
-    pfm  = equ.pfm[:, :, t0:t1].copy()
-    nt = pfm.shape[2]
-    time = time[t0:t1]
-
-    # Getting the PFL at the axis and at the
-
-    psi_ax = np.zeros(Raus.shape)
-    psi_ed = np.zeros(Raus.shape)
-
-    # --- Getting the poloidal flux at the separatrix.
-    for itime in range(nt):
-        pfm_interp = interp2d(Rpfm, zpfm, pfm[:, :, itime].T, kind='linear')
-
-        psi_ax[itime] = pfm_interp(Raxis[itime], zaxis[itime])
-        psi_ed[itime] = pfm_interp(Raus[itime], zaxis[itime])
-
-    # --- This is the normalization to get the rho_pol
-    psinorm = psi_ed - psi_ax
-
-    # --- Getting the electron pressure and density
-    ne = get_ne(shotnumber=shotnumber, time=time, **prof_diag)
-
-    Te = get_Te(shotnumber=shotnumber, time=time, **prof_diag)
-
-    prs_e = ne['data'] * Te['data']
-    rhop  = ne['rhop']
-
-    psinorm = interp1d(shotbasics['time'], psinorm, kind='linear')(time)
-
-    drhop = rhop[1] - rhop[0]
-    dprs_e = np.gradient(prs_e, drhop, axis=0) # Pressure gradient.
-
-    # --- Getting the omega_tor
-    omega_star = -dprs_e/(ne['data']*(2.0*np.pi *1.0e3))
-    omega_star /= np.tile(ne['rhop'], (omega_star.shape[1], 1)).T
-    omega_star /= np.tile(psinorm, (omega_star.shape[0], 1))
-
-    output = {
-               'fdiag': omega_star,
-               'rhop': rhop,
-               'time': time
-             }
-
-    return output
