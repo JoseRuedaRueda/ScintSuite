@@ -410,11 +410,11 @@ class strikeLine:
         elif self.weighting == 2:
             self.weight_name = 'ion current'
 
-        if self.map_method == 0:
+        if self.map_method == 1:
             self.map_name = 'Rmajor (1D)'
-        elif self.map_method == 1:
-            self.map_name = 'rhopol (1D)'
         elif self.map_method == 2:
+            self.map_name = 'rhopol (1D)'
+        elif self.map_method == 3:
             self.map_name = 'R, z (2D)'
 
     def plotStrikeLine(self, timeStamp: float = None, ax=None,
@@ -537,7 +537,7 @@ class strikeLine:
                         wylabel = 'Ion density ($m^{-3}$)'
                     elif self.weighting == 2:
                         w = self.maps[ii]['w']/ds/sspar.ec
-                        wylabel = 'Ion current ($ion\\cdot m^{-2}\\cdot s$)'
+                        wylabel = 'Ion current ($ion\\cdot m^{-2}\\cdot s^{-1}$)'
 
                     ax[1].plot(self.maps[ii]['map_s'],w,
                                label=legendText, **line_options)
@@ -563,7 +563,7 @@ class strikeLine:
                     wylabel = 'Ion density ($m^{-3}$)'
                 elif self.weighting == 2:
                     w = self.maps[imap]['w']/ds/sspar.ec
-                    wylabel = 'Ion current ($ion\\cdot m^{-2}\\cdot s$)'
+                    wylabel = 'Ion current ($ion\\cdot m^{-2}\\cdot s^{-1}$)'
 
                 ax[1].plot(self.maps[imap]['map_s'], w,
                            label=legendText, **line_options)
@@ -584,9 +584,9 @@ class strikeLine:
 
 
                 ax_options['ratio'] = 'auto'
-                if self.maps[0]['rundata']['map_method'] == 0:
+                if self.map_method == 1:
                     ax_options['xlabel'] = '$\\rho_{pol}$ [-]'
-                elif self.maps[0]['rundata']['map_method'] == 1:
+                elif self.map_method == 2:
                     ax_options['xlabel'] = 'Major radius R [m]'
                 else:
                     raise Exception('Mode=3 not implemented')
