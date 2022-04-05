@@ -260,11 +260,11 @@ class ApplicationShowVidRemap:
 
             # Get the full name of the file
             if self.remap_dat['options']['CodeUsed'] == 'SINPA':
-                name__smap = sssinpa.execution.guess_strike_map_name_FILD(
+                name__smap = sssinpa.execution.guess_strike_map_name(
                     phi_used, theta_used, geomID=self.FILDGeom,
                     decimals=self.remap_dat['options']['decimals'])
             else:
-                name__smap = ssfildsim.guess_strike_map_name_FILD(
+                name__smap = ssfildsim.guess_strike_map_name(
                     phi_used, theta_used, geomID=self.FILDGeom,
                     decimals=self.remap_dat['options']['decimals'])
             smap_folder = self.remap_dat['options']['smap_folder']

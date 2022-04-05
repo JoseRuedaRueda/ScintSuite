@@ -150,7 +150,7 @@ class ApplicationShowVid:
             phi_used = self.remap_dat['phi_used'][it]
 
             # Get the full name of the file
-            name__smap = ssfildsim.guess_strike_map_name_FILD(
+            name__smap = ssfildsim.guess_strike_map_name(
                 phi_used, theta_used, machine=machine,
                 decimals=self.remap_dat['options']['decimals']
             )
