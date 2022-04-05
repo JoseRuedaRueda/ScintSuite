@@ -137,7 +137,13 @@ class deposition:
         Plot the deposition profile as a function either from major radius or
         the rhopol.
 
-        Pablo Oyola - pablo.oyola@ipp.mpg.d
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+        @param xaxis: axis to plot the birth profile. Either 'rmajor' or 'rhopol'.
+        @param ax: axis to plot the data. If none, new ones will be created.
+        @param bins: number of bins to plot the deposition.
+        @param line_params: keyword arguments to pass down to the matplotlib
+        plot function.
         """
 
         # Let's read the data from the file.
@@ -191,7 +197,10 @@ class deposition:
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param view: either 'tor' or 'pol' for toroidal or poloidal, respectively.
-
+        @param ax: axis to plot the data. If none, new ones will be created.
+        @param bins: number of bins to plot the deposition.
+        @param line_params: keyword arguments to pass down to the matplotlib
+        imshow function.
         """
 
         # Let's read the data from the file.
