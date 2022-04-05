@@ -14,6 +14,10 @@ import Lib.LibData as aug
 from Lib.LibPaths import Path
 from Lib.LibMachine import machine
 import warnings
+
+
+from Lib.LibData import get_rho
+import Lib.SimulationCodes.iHIBPsim.hibp_utils as utils
 try:
     import netCDF4 as nc4
 except:
@@ -398,6 +402,21 @@ class strikeLine:
         for ikey in self.maps[0]['rundata']:
             self.__dict__[ikey] = self.maps[0]['rundata'][ikey]
 
+        ## Translating the code numbers in the files into readable options:
+        if self.weighting == 0:
+            self.weight_name = 'no-weighting'
+        elif self.weighting == 1:
+            self.weight_name = 'density'
+        elif self.weighting == 2:
+            self.weight_name = 'ion current'
+
+        if self.map_method == 0:
+            self.map_name = 'Rmajor (1D)'
+        elif self.map_method == 1:
+            self.map_name = 'rhopol (1D)'
+        elif self.map_method == 2:
+            self.map_name = 'R, z (2D)'
+
     def plotStrikeLine(self, timeStamp: float = None, ax=None,
                        ax_options: dict = {}, line_options: dict = {},
                        legendText: str = None):
@@ -500,11 +519,10 @@ class strikeLine:
         if plot_all:
             for ii in range(len(self.maps)):
                 if legendText_initial is None:
-                    legendText = 't = ' + str(self.maps[ii]['timestamp'][0])+\
-                                 ' [s]'
+                    legendText = 't = %.3f [s]'%self.maps[ii]['timestamp'][0]
                 else:
-                    legendText = 't = ' + str(self.maps[ii]['timestamp'][0])+\
-                                 ' [s] - ' + legendText_initial
+                    legendText = 't = %.3f [s]'%self.maps[ii]['timestamp'][0]+\
+                                 legendText_initial
                 if plot_weight:
                     ax[0].plot(self.maps[ii]['x1']*100,
                                self.maps[ii]['x2']*100,
@@ -530,8 +548,7 @@ class strikeLine:
 
         else:
             if legendText is None:
-                legendText = 't = ' + str(self.maps[imap]['timestamp'][0]) + \
-                                 ' [s]'
+                legendText = 't = %.3f [s]'%self.maps[imap]['timestamp'][0]
 
             if plot_weight:
                 ax[0].plot(self.maps[imap]['x1']*100,
@@ -567,9 +584,9 @@ class strikeLine:
 
 
                 ax_options['ratio'] = 'auto'
-                if self.maps[0]['rundata']['map_method'] == 1:
+                if self.maps[0]['rundata']['map_method'] == 0:
                     ax_options['xlabel'] = '$\\rho_{pol}$ [-]'
-                elif self.maps[0]['rundata']['map_method'] == 2:
+                elif self.maps[0]['rundata']['map_method'] == 1:
                     ax_options['xlabel'] = 'Major radius R [m]'
                 else:
                     raise Exception('Mode=3 not implemented')
