@@ -44,7 +44,7 @@ class ihibpProfiles:
                    'set': False
                    }
 
-        self.Te = {'R': np.array((0), dtype = np.float64),
+        self.te = {'R': np.array((0), dtype = np.float64),
                    'z': np.array((0), dtype = np.float64),
                    'f': np.array((0), dtype = np.float64),
                    'nPhi': np.array((1), dtype = np.int32),
@@ -82,7 +82,7 @@ class ihibpProfiles:
                    'set': False
                   }
 
-        self.Ti = {'R': np.array((0), dtype = np.float64),
+        self.ti = {'R': np.array((0), dtype = np.float64),
                    'z': np.array((0), dtype = np.float64),
                    'f': np.array((0), dtype = np.float64),
                    'nPhi': np.array((1), dtype = np.int32),
@@ -230,9 +230,9 @@ class ihibpProfiles:
             elif profName == 'ni':
                 self.flag_ni_ne = False
                 self.ni = tmp
-            elif profName == 'Ti':
+            elif profName == 'ti':
                 self.flag_Ti_Te = False
-                self.Ti = tmp
+                self.ti = tmp
 
     def toFile(self, profName: str, filename: str, overwrite: bool=True):
         """"
