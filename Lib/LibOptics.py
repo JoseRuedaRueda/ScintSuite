@@ -3,14 +3,23 @@ Routines to calculate the optic transmission of the system
 
 Jose Rueda Rueda: jrrueda@us.es
 """
-
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import Lib.LibIO as ssio
+import Lib.errors as errors
+from Lib.LibPaths import Path
+from Lib.LibMachine import machine
+
+paths = Path(machine)
 try:
     from wand.image import Image
 except ModuleNotFoundError:
     print('Wand image not found, you cannnot apply distortion to figures')
+try:
+    import lmfit
+except ModuleNotFoundError:
+    print('lmfit not found')
 
 
 # -----------------------------------------------------------------------------
@@ -133,3 +142,63 @@ def distort_image(frame, params: dict = {}):
         output = np.array(img)[:, :, 0].astype(np.float) * maximum / 255
 
     return output.astype(np.uint)
+
+
+# -----------------------------------------------------------------------------
+# --- Transmission factor
+# -----------------------------------------------------------------------------
+class FnumberTransmission():
+    """
+    F-number transmission
+
+    Jose Rueda Rueda
+
+    Simple object, just to read the F-number files and store the data, no
+    more methods are foreseen in this class for now.
+    """
+
+    def __init__(self, file: str = None, diag: str = 'INPA',
+                 machine: str = 'AUG', geomID: str = 'iAUG01',
+                 fit_model: str = 'poly2'):
+        """
+        Read the file
+
+        There is 2 ways of found the file to be read:
+            -file: give the full name of the file
+            -diag, machine, geomID: give the 'info' of the file to look and the
+            code will look in the data folder
+
+        @param file: Full path to the file to open (optional)
+        @param diag: Diagnostic type, to look in the data folder (FILD or INPA)
+        @param machine: machine, to look in the data folder
+        @param geomID: diagnostic geometry ID to look in the data folder
+        @param fit_model: fit function to use in the fitting, default, 2nd
+            order polynomial (poly2)
+
+        For the fit, it is assumed that the tramission is always maximum in the
+        axis
+        """
+        if file is None:
+            file = os.path.join(paths.ScintSuite, 'Data', 'Calibrations',
+                                diag, machine, geomID + '_F_number.txt')
+        R, F = np.loadtxt(file, skiprows=12, unpack=True)
+
+        Omega = np.pi / (2 * F)**2
+        if fit_model == 'poly2':
+            # Notice that b must be clamped, as it
+            model = lmfit.models.ParabolicModel()
+            params = model.guess(F, x=R)
+            params['b'].value = 0
+            params['b'].vary = False
+            self._fit = model.fit(F, params, x=R)
+        self._data = {'r': R, 'F': F, 'Omega': Omega}
+
+    def f_number(self, r):
+        """
+        Evaluate the f_number coefficient as a given radius in the object plane
+
+        @param: r (can be an array), the radial positions where to evaluate the
+            f_number
+        """
+
+        return self._fit.eval(x=r)

@@ -7,12 +7,14 @@ Contains the Strike object, which stores the information of the strike points
 calculated by the code and plot the different information on it
 """
 import os
+import math
 import warnings
 import numpy as np
 # import Lib.LibParameters as sspar
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
 from Lib.SimulationCodes.Common.strikeHeader import orderStrikes as order
+from Lib.LibMap.Common import transform_to_pixel
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from Lib.LibPlotting import axis_beauty, axisEqual3D, clean3Daxis
@@ -128,7 +130,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
         # Calculate the radial position if it is a INPA simulation
         if not header['FILDSIMmode']:
             iix = header['info']['x0']['i']
-            iiy = header['info']['x0']['i']
+            iiy = header['info']['y0']['i']
             for ig in range(header['ngyr']):
                 for ia in range(header['nXI']):
                     if header['counters'][ia, ig] > 0:
@@ -451,6 +453,9 @@ class Strikes:
                                includeW: bool = True,
                                kind_separation: bool = True):
         """
+        Calculate any 2D histogram of strike points variables
+
+        Jose Rueda Rueda: jrrueda@us.es
         """
         # --- Find the needed colums:
         if (varx not in self.header['info'].keys()) or \
@@ -707,7 +712,9 @@ class Strikes:
             clean3Daxis(ax)
 
     def plot1D(self, var='beta', gyr_index=None, XI_index=None, ax=None,
-               ax_params: dict = {}, nbins: int = 20, includeW: bool = False):
+               ax_params: dict = {}, nbins: int = 20, includeW: bool = False,
+               normalise: bool = False, var_for_threshold: str = None,
+               levels: tuple = None):
         """
         Plot (and calculate) the histogram of the selected variable
 
@@ -732,6 +739,8 @@ class Strikes:
             raise Exception()
         if includeW:
             column_of_W = self.header['info']['w']['i']
+        if var_for_threshold is not None:
+            column_of_var = self.header['info'][var_for_threshold]['i']
         # --- Default plotting options
         ax_options = {
             'grid': 'both',
@@ -770,15 +779,26 @@ class Strikes:
         for ig in index_gyr:
             for ia in index_XI:
                 if self.header['counters'][ia, ig] > 0:
-                    dat = self.data[ia, ig][:, column_to_plot]
-                    if includeW:
-                        w = self.data[ia, ig][:, column_of_W]
+                    if var_for_threshold is not None:
+                        var2 = self.data[ia, ig][:, column_of_var]
+                        flags = (var2 > levels[0]) * (var2 < levels[1])
+                        dat = self.data[ia, ig][flags, column_to_plot]
+                        if includeW:
+                            w = self.data[ia, ig][flags, column_of_W]
+                        else:
+                            w = np.ones(flags.sum())
                     else:
-                        w = np.ones(self.header['counters'][ia, ig])
+                        dat = self.data[ia, ig][:, column_to_plot]
+                        if includeW:
+                            w = self.data[ia, ig][:, column_of_W]
+                        else:
+                            w = np.ones(self.header['counters'][ia, ig])
                     H, xe = np.histogram(dat, weights=w, bins=nbins)
                     # Normalise H
                     H /= xe[1] - xe[0]
                     xc = 0.5 * (xe[:-1] + xe[1:])
+                    if normalise:
+                        H /= np.abs(H).max()
                     ax.plot(xc, H)
         # axis beauty:
         if created:
@@ -961,3 +981,115 @@ class Strikes:
         # axis beauty:
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
+
+    def calculateCameraPosition(self, calibration,):
+        """
+        Get the position of the markers in the camera sensor
+
+        Jose Rueda: jrrueda@us.es
+
+        @params calibration: object with the calibration parameters of the
+            mapping class
+
+        include in the data of the object the columns corresponding to the xcam
+        and ycam, the position in the camera sensor of the strike points
+
+        warning: Only fully tested for SINPA strike points
+        """
+        # See if there is already camera positions in the data
+        if 'xcam' in self.header['info'].keys():
+            print('The camera values are there, we will overwrite them')
+            overwrite = True
+            iixcam = self.header['info']['xcam']['i']
+            iiycam = self.header['info']['ycam']['i']
+        else:
+            overwrite = False
+        iix = self.header['info']['ys']['i']
+        iiy = self.header['info']['zs']['i']
+        for ig in range(self.header['ngyr']):
+            for ia in range(self.header['nXI']):
+                if self.header['counters'][ia, ig] > 0:
+                    xp, yp = transform_to_pixel(self.data[ia, ig][:, iix],
+                                                self.data[ia, ig][:, iiy],
+                                                calibration)
+                    if overwrite:
+                        self.data[ia, ig][:, iixcam] = xp
+                        self.data[ia, ig][:, iiycam] = yp
+                    else:
+                        n_strikes = self.header['counters'][ia, ig]
+                        cam_data = np.zeros((n_strikes, 2))
+                        cam_data[:, 0] = xp
+                        cam_data[:, 1] = yp
+                        self.data[ia, ig] = \
+                            np.append(self.data[ia, ig], cam_data, axis=1)
+        if not overwrite:
+            Old_number_colums = len(self.header['info'])
+            extra_column = {
+                'xcam': {
+                    'i': Old_number_colums,  # Column index in the file
+                    'units': ' [px]',  # Units
+                    'longName': 'X camera position',
+                    'shortName': '$x_{cam}$',
+                },
+                'ycam': {
+                    'i': Old_number_colums + 1,  # Column index in the file
+                    'units': ' [px]',  # Units
+                    'longName': 'Y camera position',
+                    'shortName': '$y_{cam}$',
+                },
+            }
+            self.header['info'].update(extra_column)
+
+    def applyGeometricTramission(self, F_object, cal):
+        """
+        Modify markers weight taking into acocount geometric tramission
+
+        Jose Rueda: jrrueda@us.es
+
+        @param F_object: FnumberTransmission() class of the LibOptics
+        """
+        # Get the index of the involved columns and if we need to overwrite
+        if 'wcam' in self.header['info'].keys():
+            print('The camera weights are there, we will overwrite them')
+            overwrite = True
+            iiwcam = self.header['info']['wcam']['i']
+        else:
+            overwrite = False
+        iix = self.header['info']['ys']['i']
+        iiy = self.header['info']['zs']['i']
+        iiw = self.header['info']['w']['i']
+        # --- Get the center coordinates in the scintillator space
+        alpha = cal.deg * np.pi / 180
+        xc = math.cos(alpha) * (cal.xcenter - cal.xshift) / cal.xscale \
+            + math.sin(alpha) * (cal.ycenter - cal.yshift) / cal.yscale
+        yc = - math.sin(alpha) * (cal.xcenter - cal.xshift) / cal.xscale \
+            + math.cos(alpha) * (cal.ycenter - cal.yshift) / cal.yscale
+        # --- Get the distance to the optical axis on the scintillator
+        for ig in range(self.header['ngyr']):
+            for ia in range(self.header['nXI']):
+                if self.header['counters'][ia, ig] > 0:
+                    rs = np.sqrt((self.data[ia, ig][:, iix] - xc)**2
+                                 + (self.data[ia, ig][:, iiy] - yc)**2)
+                    F = F_object.f_number(rs)
+                    T = math.pi / (2*F)**2
+                    if overwrite:
+                        self.data[ia, ig][:, iiwcam] = \
+                            T * self.data[ia, ig][:, iiw]
+                    else:
+                        shape = self.data[ia, ig].shape
+                        dummy = np.zeros((shape[0], shape[1] + 1))
+                        dummy[:, :-1] = self.data[ia, ig].copy()
+                        dummy[:, -1] = T * self.data[ia, ig][:, iiw]
+                        self.data[ia, ig] = dummy
+        # --- Update the header
+        if not overwrite:
+            Old_number_colums = len(self.header['info'])
+            extra_column = {
+                'wcam': {
+                    'i': Old_number_colums,  # Column index in the file
+                    'units': ' [px]',  # Units
+                    'longName': 'W at camera (only geom transmission)',
+                    'shortName': '$W_{cam}^{geom}$',
+                },
+            }
+            self.header['info'].update(extra_column)
