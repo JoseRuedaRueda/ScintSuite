@@ -1094,11 +1094,11 @@ class Strikes:
             }
             self.header['info'].update(extra_column)
 
-    def points_to_txt(self, per=0.1, 
-               gyr_index=None, XI_index=None,
-               where: str = 'Head',
-               units: str = 'mm',
-               file_name_save: str = 'Strikes.txt'):
+    def points_to_txt(self, per=0.1,
+                      gyr_index=None, XI_index=None,
+                      where: str = 'Head',
+                      units: str = 'mm',
+                      file_name_save: str = 'Strikes.txt'):
         """
         Store strike points to txt file to easily load in CAD software
 
