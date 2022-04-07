@@ -1093,3 +1093,79 @@ class Strikes:
                 },
             }
             self.header['info'].update(extra_column)
+
+    def points_to_txt(self, per=0.1, 
+               gyr_index=None, XI_index=None,
+               where: str = 'Head',
+               units: str = 'mm',
+               file_name_save: str = 'Strikes.txt'):
+        """
+        Store strike points to txt file to easily load in CAD software
+
+        Anton van Vuen: avanvuuren@us.es
+
+        @param per: ratio of markers to be plotted (1=all of them)
+        @param gyr_index: index (or indeces if given as an np.array) of
+            gyroradii to plot
+        @param XI_index: index (or indeces if given as an np.array) of
+            XIs (pitch or R) to plot
+        @param where: string indicating where to plot: 'head', 'NBI',
+        'ScintillatorLocalSystem'. First two are in absolute
+        coordinates, last one in the scintillator coordinates (see SINPA
+        documentation) [Head will plot the strikes in the collimator or
+        scintillator]. For oldFILDSIM, use just head
+        @param units: Units in which to save the strike positions.
+        @param filename: name of the text file to store strikepoints in
+        """
+        # --- Chose the variable we want to plot
+        if where.lower() == 'head':
+            column_to_plot = self.header['info']['x']['i']
+        elif where.lower() == 'nbi':
+            column_to_plot = self.header['info']['x0']['i']
+        elif where.lower() == 'scintillatorlocalsystem':
+            column_to_plot = self.header['info']['xs']['i']
+        else:
+            raise Exception('Not understood what do you want to plot')
+        
+        nXI, ngyr = self.header['counters'].shape
+        # See which gyroradius / pitch (R) we need
+        if gyr_index is None:  # if None, use all gyroradii
+            index_gyr = range(ngyr)
+        else:
+            # Test if it is a list or array
+            if isinstance(gyr_index, (list, np.ndarray)):
+                index_gyr = gyr_index
+            else:  # it should be just a number
+                index_gyr = np.array([gyr_index])
+        if XI_index is None:  # if None, use all gyroradii
+            index_XI = range(nXI)
+        else:
+            # Test if it is a list or array
+            if isinstance(XI_index, (list, np.ndarray)):
+                index_XI = XI_index
+            else:  # it should be just a number
+                index_XI = np.array([XI_index])
+
+        # --- Check the scale
+        if units not in ['m', 'cm', 'mm']:
+            raise Exception('Not understood units?')
+        possible_factors = {'m': 1.0, 'cm': 100.0, 'mm': 1000.0}
+        factor = possible_factors[units]        
+        
+        with open(file_name_save, 'w') as f:
+            for ig in index_gyr:
+                for ia in index_XI:
+                    if self.header['counters'][ia, ig] > 0:
+                        flags = np.random.rand(
+                            self.header['counters'][ia, ig]) < per
+                        if flags.sum() > 0:
+                            x = self.data[ia, ig][flags, column_to_plot]
+                            y = self.data[ia, ig][flags, column_to_plot + 1]
+                            z = self.data[ia, ig][flags, column_to_plot + 2]
+                            
+                            for xs, ys,zs in zip(x, y, z):
+                                f.write('%f %f %f \n'
+                                        % (xs * factor,
+                                           ys * factor,
+                                           zs * factor))
+                            

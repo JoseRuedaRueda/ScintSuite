@@ -21,6 +21,33 @@ from Lib.LibPlotting import axis_beauty, axisEqual3D, clean3Daxis
 import f90nml
 paths = Path(machine)
 
+from stl import mesh
+
+def triangles_to_stl(geom: dict,
+                       file_name_save: str = 'Test',
+                       units: str = 'mm'):
+    '''
+    '''
+    if geom['vertex'] is not None:
+        return
+    else:
+        key_base = 'triangles'
+    # See which data we need to plot
+    key = key_base
+        
+    # Get the units:
+    if units not in ['m', 'cm', 'mm']:
+        raise Exception('Not understood units?')
+    possible_factors = {'m': 1.0, 'cm': 100.0, 'mm': 1000.0}
+    factor = possible_factors[units]        
+
+    data = np.zeros(geom['n'], dtype=mesh.Mesh.dtype)
+    mesh_object = mesh.Mesh(data, remove_empty_areas=False)
+    mesh_object.x[:] = np.reshape(geom[key][:, 0], (geom['n'],3) ) * factor
+    mesh_object.y[:] = np.reshape(geom[key][:, 1], (geom['n'],3) ) * factor
+    mesh_object.z[:] = np.reshape(geom[key][:, 2], (geom['n'],3) ) * factor
+    mesh_object.save(file_name_save+'.stl')  
+
 
 def read_element(file, code: str = 'SINPA'):
     """
@@ -210,7 +237,7 @@ def plotLinesElement(geom: dict, ax=None, line_params: dict = {},
                     [geom[key][0, 2] * factor, geom[key][-1, 2] * factor],
                     **line_options)
 
-
+    
 def plotShadedElement(geom: dict, ax=None, surface_params: dict = {},
                       referenceSystem='absolute', plot2D: bool = False,
                       units: str = 'cm', view: str = 'absolute'):
@@ -779,3 +806,26 @@ class Geometry:
         file = os.path.join(folder, 'ExtraGeometryParams.txt')
         f90nml.write({'ExtraGeometryParams': self.ExtraGeometryParams}, file,
                      force=True)
+
+    def elements_to_stl(self, element_to_save=[0, 1, 2], units: str = 'cm'
+                           ,file_name_save: str = 'Test'):
+        """
+        Store the geometric elements to stl files. Useful for testing SINPA inputs
+        Anton van Vuuren: avanvuuren@us.es
+        @param geom: dictionary created by read_element()
+
+        @param element_to_save: kind of plates we want to plot:
+            -0: Collimator
+            -1: Ionizers
+            -2: Scintillator
+
+        @param units: units to plot the geometry. Acepted: m, cm, mm
+        @param file_name_save: name of stl file to be generated (don't add ".stl")
+        """
+        file_mod = ["Collimator", "Ionizers", "Scintillator"]
+        for ele in self.elements:
+            if ele['kind'] in element_to_save:
+                triangles_to_stl(ele, units=units ,
+                                 file_name_save = file_name_save 
+                                 + "_" + file_mod[ele['kind']])
+
