@@ -439,7 +439,6 @@ if __name__ == '__main__':
                                     [-724.403, 5782.66, 382.021],
                                     [-724.249, 5782.36, 381.294] ] )#co- going slit opening
 
-    #pinholes[0]['points'] +=20.
     
     pinholes[1]['pinholeKind'] =1
     pinholes[1]['pinholeCentre'] = None

@@ -27,7 +27,15 @@ def triangles_to_stl(geom: dict,
                        file_name_save: str = 'Test',
                        units: str = 'mm'):
     '''
+    Function to store trianlges from Geometry object to stl format
+    
+    Anton van Vuuren: avanvuuren@us.es
+    
+    @param: Geometry object whose triangles will be stored to an stl file
+    @param filename: name of the stl fileto be saved (.stl not needed)
+    @param units: Units in which to savethe orbit positions.
     '''
+    
     if geom['vertex'] is not None:
         return
     else:

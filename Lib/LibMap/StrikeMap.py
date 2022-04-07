@@ -1839,14 +1839,17 @@ class StrikeMap(XYtoPixel):
                   file_name_save: str = 'Map.txt'
                   ):
         """
-        Plot the strike map (x,y = dimensions in the scintillator).
+        Convert the strike map data to text format. The srike map points are 
+        stored in three columns representing the X, Y and Z coordinates, which 
+        can then be easily loaded in CAD software.
 
         Anton van Vuuren: avanvuuren@us.es
 
         @param: Geometry object with which to apply anti rotation 
-        and translation to recover absoulte coordinates
+        and translation to recover the map in absoulte coordinates. 
+        If no Geometry object is given the strike map coordinates will be 
+        saved in the scintillator reference system
         @param units: Units in which to save the strikemap positions.
-        
         @param filename: name of the text file to store the strike map in
         """
         # --- Check the scale
@@ -1854,10 +1857,13 @@ class StrikeMap(XYtoPixel):
             raise Exception('Not understood units?')
         possible_factors = {'m': 1.0, 'cm': 100.0, 'mm': 1000.0}
         factor = possible_factors[units]
-
-        rot = Geom.ExtraGeometryParams['rotation']
-        tras = Geom.ExtraGeometryParams['ps'] 
         
+        if Geom != None:
+            rot = Geom.ExtraGeometryParams['rotation']
+            tras = Geom.ExtraGeometryParams['ps'] 
+        else:
+            rot = np.identity(3)
+            tras = 0.
         # Plot some markers in the grid position
         
         with open(file_name_save, 'w') as f:
