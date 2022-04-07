@@ -12,6 +12,7 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from tqdm import tqdm                      # For waitbars
 from scipy import ndimage                  # To filter the images
 import Lib.LibIO as _ssio
@@ -770,12 +771,14 @@ class BVO:
             ax.set_ylim(ylim)
 
         if IncludeColorbar:
-            plt.colorbar(img, label='Counts', pad=0.04, ax=ax)
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="5%", pad=0.05)
+            plt.colorbar(img, label='Counts', cax=cax)
         ax.text(0.05, 0.9, '#' + str(self.shot),
                 horizontalalignment='left',
                 color='w', verticalalignment='bottom',
                 transform=ax.transAxes)
-        plt.text(0.95, 0.9, 't = ' + str(round(tf, 4)) + (' s'),
+        plt.text(0.95, 0.9, 't = ' + str(round(tf, 3)) + (' s'),
                  horizontalalignment='right',
                  color='w', verticalalignment='bottom',
                  transform=ax.transAxes)
