@@ -12,3 +12,5 @@ import Lib.SimulationCodes.iHIBPsim.strikes as strikes
 import Lib.SimulationCodes.iHIBPsim.execute as exe
 import Lib.SimulationCodes.iHIBPsim.nml as namelist
 import Lib.SimulationCodes.iHIBPsim.geom as geom
+import Lib.SimulationCodes.iHIBPsim.hibp_utils as utils
+import Lib.SimulationCodes.iHIBPsim.deposition as depos
