@@ -156,7 +156,9 @@ class FIV(BVO):
                          xlim: float = None, ylim: float = None,
                          scale: str = 'linear',
                          interpolation: str = 'bicubic',
-                         cbar_tick_format: str = '%.1E'):
+                         cbar_tick_format: str = '%.1E',
+                         IncludeColorbar: bool = True,
+                         color_labels_in_plot: str = 'w'):
         """
         Plot a frame from the remaped frames
 
@@ -235,10 +237,19 @@ class FIV(BVO):
             ax.set_xlim(xlim)
         if ylim is not None:
             ax.set_ylim(ylim)
-        im_ratio = dummy.shape[0]/dummy.shape[1]
-        plt.colorbar(img, label='Counts', fraction=0.042*im_ratio, pad=0.04,
-                     format=cbar_tick_format)
-        ax.set_title('t = ' + str(round(tf, 4)) + (' s'))
+        if IncludeColorbar:
+            im_ratio = dummy.shape[0]/dummy.shape[1]
+            plt.colorbar(img, label='Counts', fraction=0.042*im_ratio,
+                         pad=0.04, format=cbar_tick_format, ax=ax,)
+        # Set the labels with t and shot
+        ax.text(0.05, 0.9, '#' + str(self.shot),
+                horizontalalignment='left',
+                color=color_labels_in_plot, verticalalignment='bottom',
+                transform=ax.transAxes)
+        plt.text(0.95, 0.9, 't = ' + str(round(tf, 4)) + (' s'),
+                 horizontalalignment='right',
+                 color=color_labels_in_plot, verticalalignment='bottom',
+                 transform=ax.transAxes)
         # Save axis limits, if not, if the strike map is larger than
         # the frame (FILD4,5) the output plot will be horrible
         xlim = ax.get_xlim()
@@ -247,9 +258,11 @@ class FIV(BVO):
             if self.diag == 'FILD':
                 ax.set_xlabel('$\\lambda \\ [\\degree]$')
                 ax.set_ylabel('$r_l$ [cm]')
-            else:
+            elif self.diag == 'INPA':
                 ax.set_xlabel('R [m]')
                 ax.set_ylabel('$r_l$ [cm]')
+            else:
+                pass
             fig.show()
             plt.tight_layout()
         return ax

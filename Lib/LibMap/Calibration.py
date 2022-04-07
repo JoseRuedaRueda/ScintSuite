@@ -226,5 +226,7 @@ class CalParams:
         print('xshift: ', self.xshift)
         print('yshift: ', self.yshift)
         print('deg: ', self.deg)
+        print('xcenter: ', self.xcenter)
+        print('ycenter: ', self.ycenter)
         print('c1: ', self.c1)
         print('c2: ', self.c2)

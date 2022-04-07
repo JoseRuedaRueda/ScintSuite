@@ -383,7 +383,9 @@ class StrikeMap(XYtoPixel):
         ax.plot(self.y * factor, self.z * factor, **marker_options)
 
     def plot_pix(self, ax=None, marker_params: dict = {},
-                 line_params: dict = {}):
+                 line_params: dict = {}, labels: bool = False,
+                 rotation_for_gyr_label: float = 100.0,
+                 rotation_for_xi_label: float = 30.0,):
         """
         Plot the strike map (x,y = pixels on the camera).
 
@@ -430,15 +432,71 @@ class StrikeMap(XYtoPixel):
             # Lines of constant gyroradius
             uniq = np.unique(self.gyroradius)
             n = len(uniq)
+            j = 1
+            calculated_delta = False
             for i in range(n):
                 flags = self.gyroradius == uniq[i]
                 ax.plot(self.xpixel[flags], self.ypixel[flags], **line_options)
+                # Add the gyroradius label, but just each 2 entries so the plot
+                # does not get messy
+                if i == j:
+                    try:
+                        delta = abs(self.ypixel[flags]
+                                    [1] - self.ypixel[flags][0])
+                        calculated_delta = True
+                    except IndexError:
+                        j += 2
+                if (i % 2 == 0) and labels and calculated_delta:  # add labels
+                    # Delta variable just to adust nicelly the distance (as old
+                    # fildsim is in cm and new in m)
+                    ax.text((self.xpixel[flags][0]) - 0.5 * delta,
+                            (self.ypixel[flags][0]),
+                            '%.2f' % (float(self.unique_gyroradius[i])),
+                            horizontalalignment='right',
+                            verticalalignment='center',
+                            color=line_options['color'])
+                if i == round(n/2) and labels:
+                    ax.text((self.xpixel[flags][0]) - 8.0 * delta,
+                            (self.ypixel[flags][0]),
+                            'Gyroradius [cm]',
+                            horizontalalignment='center',
+                            verticalalignment='center',
+                            rotation=rotation_for_gyr_label,
+                            color=line_options['color'])
             # Lines of constant pitch
             uniq = self.unique_XI
             n = len(uniq)
+            j = 1
+            calculated_delta = False
             for i in range(n):
                 flags = abs(self.XI - uniq[i]) < 0.02
                 ax.plot(self.xpixel[flags], self.ypixel[flags], **line_options)
+                # Add the gyroradius label, but just each 2 entries so the plot
+                # does not get messy
+                if i == j:
+                    try:
+                        delta = abs(self.ypixel[flags]
+                                    [1] - self.ypixel[flags][0])
+                        calculated_delta = True
+                    except IndexError:
+                        j += 2
+                if (i % 2 == 0) and labels and calculated_delta:  # add labels
+                    # Delta variable just to adust nicelly the distance (as old
+                    # fildsim is in cm and new in m)
+                    ax.text((self.xpixel[flags][0]) - 0.5 * delta,
+                            (self.ypixel[flags][0]),
+                            '%.2f' % (float(self.unique_XI[i])),
+                            horizontalalignment='right',
+                            verticalalignment='center',
+                            color=line_options['color'])
+                if i == round(n/2) and labels:
+                    ax.text((self.xpixel[flags][0]),
+                            (self.ypixel[flags][0])+3*delta,
+                            'R [m]',
+                            horizontalalignment='center',
+                            verticalalignment='center',
+                            rotation=rotation_for_xi_label,
+                            color=line_options['color'])
         else:
             raise errors.NotImplementedError('Not implemented diagnostic')
 
@@ -653,7 +711,7 @@ class StrikeMap(XYtoPixel):
                         r_markers = \
                             self.grid_interp['interpolators']['gyroradius'](
                                 x_markers, y_markers)
-                        p_markers = self.grid_interp['interpolators']['pitch'](
+                        p_markers = self.grid_interp['interpolators']['xi'](
                             x_markers, y_markers)
                         # make the histogram in the r-pitch space
                         H, xedges, yedges = \
@@ -1831,5 +1889,6 @@ class StrikeMap(XYtoPixel):
         fig.tight_layout()
         fig.show()
 
+        return
         return
         return
