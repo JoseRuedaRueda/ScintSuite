@@ -17,6 +17,12 @@
 *** Others:
 - Improve documentation and error handling
 - Small improvementes in INPA strikemap plotting
+
+** 0.9.2 Added functions to the VRT library
+- Added the get_time_traces in LibVRT 
+- Added the ROI2mask function to LibVRT
+- Fixed a bug on the getdist2sep of FILD4
+
 ** 0.9.1 Minor bug fix and upgrades
 *** SimulationCodes Lib
 - Now the strikes object will look backwards in the strike header file, ie, if the used SINPA version is X.y, and there is no specific header in the StrikeHeader file for version X, the code will assume that there was no changes in the file structure between version X and version X-1 and use the header of version X-1
