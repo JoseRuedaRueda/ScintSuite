@@ -47,7 +47,7 @@ def write_file_for_fortran(stlfile, outputfile, convert_mm_2_m = False):
     f.close() 
 
 
-def write_file_for_fortran_test(stlfile, outputfile, convert_mm_2_m = False):
+def write_file_for_fortran_numpymesh(stlfile, outputfile, convert_mm_2_m = False):
     """
     Transform .stl files into a format compatible with SINPA/iHIBPsim/MEGA
     using stl mesh
