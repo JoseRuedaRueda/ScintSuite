@@ -341,10 +341,12 @@ def ELMsync(time: float, signal: float, elm_dict:dict, average = False):
 
     new_time = list()
     new_signal = list()
-
+    
+    #this is needed in case we want to average the ELM windows #AJVV
     t0, t1 = np.searchsorted(time, (elm_dict['tstart_val'][0],
-                                    elm_dict['tend_val'][0]))
+                                elm_dict['tend_val'][0]))
     t_length = t1-t0
+    
     for ii in range(len(elm_dict['tstart_val'])):
         t0, t1 = np.searchsorted(time, (elm_dict['tstart_val'][ii],
                                         elm_dict['tend_val'][ii]))
@@ -352,10 +354,18 @@ def ELMsync(time: float, signal: float, elm_dict:dict, average = False):
         if t0 == t1:
             continue
         
-        if t1-t0 == t_length:
+        if not average:
             new_time.append(time[t0:t1]-elm_dict['t_onset'][ii])
             new_signal.append(signal[t0:t1, ...])
-    
+        else:
+            if t1-t0 == t_length:
+                '''
+                only append arrays of ELM windows with equal length,
+                otherwise np.mean will not work later.
+                Sometimes the ELM window arrays differ in length by one index
+                '''
+                new_time.append(time[t0:t1]-elm_dict['t_onset'][ii])
+                new_signal.append(signal[t0:t1, ...])    
     
     if average:
         new_time   = np.array(new_time)
