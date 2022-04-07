@@ -600,6 +600,32 @@ orderStrikes = {
                     'shortName': 'Weight',
                 },
             },
+            'wrong': {
+                'x': {
+                    'i': 0,  # Column index in the file
+                    'units': ' [m]',  # Units
+                    'longName': 'X end position tokamak system',
+                    'shortName': 'x',
+                },
+                'y': {
+                    'i': 1,  # Column index in the file
+                    'units': ' [m]',  # Units
+                    'longName': 'Y end position tokamak system',
+                    'shortName': 'y',
+                },
+                'z': {
+                    'i': 2,  # Column index in the file
+                    'units': ' [m]',  # Units
+                    'longName': 'Z end position tokamak system',
+                    'shortName': 'z'
+                },
+                'w': {
+                    'i': 3,  # Column index in the file
+                    'units': ' [au]',  # Units
+                    'longName': 'Weight',
+                    'shortName': 'Weight',
+                },
+            },
         },  # End of FILD MODE version 0
     },
     'fildsim_FILD': {

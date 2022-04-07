@@ -29,8 +29,9 @@ class ApplicationShowVid:
             'Greys': plt.get_cmap('Greys_r'),
             'Gamma_II': ssplt.Gamma_II(),
             'Plasma': plt.get_cmap('plasma'),
+            'BWR': plt.get_cmap('bwr')
         }
-        names_cmaps = ['Cai', 'Gamma_II', 'Greys', 'Plasma']
+        names_cmaps = ['Cai', 'Gamma_II', 'Greys', 'Plasma', 'BWR']
         defalut_cmap = 'Greys'
         # --- Initialise the data container
         self.data = data
@@ -172,8 +173,8 @@ class ApplicationShowVid:
 
     def set_scale(self):
         """Set color scale"""
-        cmin = int(self.cmap_min.get())
-        cmax = int(self.cmap_max.get())
+        cmin = float(self.cmap_min.get())
+        cmax = float(self.cmap_max.get())
         self.image.set_clim(cmin, cmax)
         self.canvas.draw()
 

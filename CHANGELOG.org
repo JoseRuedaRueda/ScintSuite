@@ -1,3 +1,12 @@
+** 0.9.4: Small upgrade
+** LibVideo
+- Plot frame and plot remap frame include new optional arguments
+- New BWR added in video player
+** LibSimulationCodes
+- Strikes objects upgraded for new wrong markers file in SINPA
+** LibStrikeMap
+- Small correction in the strike map plotting for INPA
+
 ** 0.9.3: Strike modelling
 *** LibOptics
 - Include a class to accommodate radial dependent transmission coefficient in the cameras
