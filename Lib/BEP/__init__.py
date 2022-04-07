@@ -7,3 +7,4 @@ Notice: Is not guarantie that this library works outise AUG
 """
 
 import Lib.BEP.LibBEP as bep_reader
+import Lib.BEP.LibBPZ
