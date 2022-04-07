@@ -1833,3 +1833,37 @@ class StrikeMap(XYtoPixel):
 
         return
         return
+
+    def map_to_txt(self, Geom = None,
+                  units: str = 'mm',
+                  file_name_save: str = 'Map.txt'
+                  ):
+        """
+        Plot the strike map (x,y = dimensions in the scintillator).
+
+        Anton van Vuuren: avanvuuren@us.es
+
+        @param: Geometry object with which to apply anti rotation 
+        and translation to recover absoulte coordinates
+        @param units: Units in which to save the strikemap positions.
+        
+        @param filename: name of the text file to store the strike map in
+        """
+        # --- Check the scale
+        if units not in ['m', 'cm', 'mm']:
+            raise Exception('Not understood units?')
+        possible_factors = {'m': 1.0, 'cm': 100.0, 'mm': 1000.0}
+        factor = possible_factors[units]
+
+        rot = Geom.ExtraGeometryParams['rotation']
+        tras = Geom.ExtraGeometryParams['ps'] 
+        
+        # Plot some markers in the grid position
+        
+        with open(file_name_save, 'w') as f:
+            for xm, ym, zm in zip(self.x, self.y, self.z):
+                point_rotated = rot.T @ (np.array([xm, ym, zm]))  + tras
+                f.write('%f %f %f \n'
+                                    % (point_rotated[0] * factor,
+                                       point_rotated[1] * factor,
+                                       point_rotated[2] * factor))
