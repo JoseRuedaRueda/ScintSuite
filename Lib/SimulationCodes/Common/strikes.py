@@ -46,6 +46,8 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
         plate = 'signalscintillator'
     elif filename.endswith('spcsignal'):
         plate = 'collimator'
+    elif filename.endswith('wmmap'):
+        plate = 'wrong'
     else:
         raise Exception('File not understood. Has you chenged the ext???')
 
@@ -293,7 +295,7 @@ class Strikes:
         Jose Rueda: jrrueda@us.es
 
         @param runID: runID of the simulation
-        @param type: file to load (mapcollimator, mapscintillator,
+        @param type: file to load (mapcollimator, mapscintillator, mapwrong
             signalcollimator or signalscintillator).Not used if code=='FILDSIM'
         @param file: if a filename is provided, data will be loaded from this
             file, ignoring the code folder structure (and runID)
@@ -312,6 +314,8 @@ class Strikes:
                     name = runID + '.spsignal'
                 elif type.lower() == 'signalcollimator':
                     name = runID + '.spcsignal'
+                elif type.lower() == 'mapwrong':
+                    name = runID + '.wmmap'
                 else:
                     raise Exception('Type not understood, revise inputs')
                 file = os.path.join(paths.SINPA, 'runs', runID, 'results',
