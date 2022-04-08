@@ -1891,4 +1891,48 @@ class StrikeMap(XYtoPixel):
 
         return
         return
-        return
+
+    def map_to_txt(self, Geom = None,
+                  units: str = 'mm',
+                  file_name_save: str = 'Map.txt'
+                  ):
+        """
+        Convert the strike map data to text format. The srike map points are 
+        stored in three columns representing the X, Y and Z coordinates, which 
+        can then be easily loaded in CAD software.
+
+        Anton van Vuuren: avanvuuren@us.es
+
+        @param: Geometry object with which to apply anti rotation 
+        and translation to recover the map in absoulte coordinates. 
+        If no Geometry object is given the strike map coordinates will be 
+        saved in the scintillator reference system
+        @param units: Units in which to save the strikemap positions.
+        @param filename: name of the text file to store the strike map in
+        
+        Note data points are saved with no information about which gyroradius and 
+        pitch angle they corrospond to. This could be included in future to load 
+        strike maps from the txt files with all the necessary information
+        
+        """
+        # --- Check the scale
+        if units not in ['m', 'cm', 'mm']:
+            raise Exception('Not understood units?')
+        possible_factors = {'m': 1.0, 'cm': 100.0, 'mm': 1000.0}
+        factor = possible_factors[units]
+        
+        if Geom != None:
+            rot = Geom.ExtraGeometryParams['rotation']
+            tras = Geom.ExtraGeometryParams['ps'] 
+        else:
+            rot = np.identity(3)
+            tras = 0.
+        # Plot some markers in the grid position
+        
+        with open(file_name_save, 'w') as f:
+            for xm, ym, zm in zip(self.x, self.y, self.z):
+                point_rotated = rot.T @ (np.array([xm, ym, zm]))  + tras
+                f.write('%f %f %f \n'
+                                    % (point_rotated[0] * factor,
+                                       point_rotated[1] * factor,
+                                       point_rotated[2] * factor))
