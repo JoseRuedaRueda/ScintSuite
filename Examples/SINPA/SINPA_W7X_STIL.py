@@ -51,7 +51,7 @@ def write_collimator_plates(file_name_save= 'lateral_collimator_plates'
     vi/= np.linalg.norm(vi) # unit vector
     ic = np.argmax(np.abs(vi))
     dpos=vi/np.abs(vi[ic])
-    dpos=dpos/np.sqrt(np.sum(dpos**2))*dl1
+    dpos=dpos/np.sqrt(np.sum(dpos**2))*dl2
     p1_dl = p1 + dpos
     
     xx = np.array([p1[0], p1_dl[0],p2[0]])
@@ -66,7 +66,7 @@ def write_collimator_plates(file_name_save= 'lateral_collimator_plates'
     vi/= np.linalg.norm(vi) # unit vector
     ic = np.argmax(np.abs(vi))
     dpos=vi/np.abs(vi[ic])
-    dpos=dpos/np.sqrt(np.sum(dpos**2))*dl1
+    dpos=dpos/np.sqrt(np.sum(dpos**2))*dl2
     p1_dl = p1 + dpos
     
     xx = np.concatenate([xx, np.array([p1[0], p1_dl[0],p2[0]])])
@@ -84,7 +84,7 @@ def write_collimator_plates(file_name_save= 'lateral_collimator_plates'
     vi/= np.linalg.norm(vi) # unit vector
     ic = np.argmax(np.abs(vi))
     dpos=vi/np.abs(vi[ic])
-    dpos=dpos/np.sqrt(np.sum(dpos**2))*dl2
+    dpos=dpos/np.sqrt(np.sum(dpos**2))*dl1
     p1_dl = p1 + dpos
 
     xx = np.concatenate([xx, np.array([p1[0], p1_dl[0],p2[0]])])
@@ -99,7 +99,7 @@ def write_collimator_plates(file_name_save= 'lateral_collimator_plates'
     vi/= np.linalg.norm(vi) # unit vector
     ic = np.argmax(np.abs(vi))
     dpos=vi/np.abs(vi[ic])
-    dpos=dpos/np.sqrt(np.sum(dpos**2))*dl2
+    dpos=dpos/np.sqrt(np.sum(dpos**2))*dl1
     p1_dl = p1 + dpos
 
     xx = np.concatenate([xx, np.array([p1[0], p1_dl[0],p2[0]])])
@@ -312,16 +312,16 @@ if __name__ == '__main__':
     plt.close('all')
     Test = False  #if true don't submit run
     
-    run_code = True
-    geom_name = 'W7X_stl_QHS_test2' # Only used if running a single iteration
+    run_code = False
+    geom_name = 'W7X_stl_QHS_scan' # Only used if running a single iteration
 
-    scan = False # Set to "False" to run a single iteration
+    scan = True # Set to "False" to run a single iteration
     scan_param = ['sh'] # , 'pw2', 'pl', 'pl2', 'psd', 'sh', 'sh2', 'sl', 'sl2', 'oc', 'oc2', 'st', 'ct', 'ct2']
 
     
     save_orbits = False
     plot_plate_geometry = True
-    plot_3D = True
+    plot_3D = False
     
     read_results = not run_code #True
     plot_strike_points = True
@@ -341,7 +341,7 @@ if __name__ == '__main__':
 
     double = False # Plot both slits in the geometry files
     run_slit = [True, False] # Run particles starting at one slit or the other?
-    read_slit = [True, True] # Read results from the left slit, the right slit, or both?
+    read_slit = [True, False] # Read results from the left slit, the right slit, or both?
     
     if run_code:
         if not run_slit[0] and not run_slit[1]:
@@ -370,7 +370,7 @@ if __name__ == '__main__':
                   {'zorder':3,'color':'w'}]
     
 
-    n_markers = int(1e2)
+    n_markers = int(1e4)
 
     gyro_arrays = [[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2., 3., 4.],
                    [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2., 3., 4.]]
@@ -396,15 +396,15 @@ if __name__ == '__main__':
     
     use_aligned_B = False    
     use_rotated_FILD_B = False
-    use_ascot_B = True
-    use_single_B = False
+    use_ascot_B = False
+    use_single_B = True
     ascot_bfield_File = 'std_bfield.pickle'
     ascot_boozer_File = 'std_boozer.pickle'
 
     ##STL files
     
     
-    collimator_stl_files = {'collimator': 'probe_head_with_pinholes.stl',
+    collimator_stl_files = {#'collimator': 'probe_head_with_pinholes.stl',
                             }
     scintillator_stl_files = {'scintillator':  'SCINTILLATOR_PLATE_test2.stl'}
     pinholes = [{}, {}]
@@ -416,7 +416,6 @@ if __name__ == '__main__':
                                     [-724.403, 5782.66, 382.021],
                                     [-724.249, 5782.36, 381.294] ] )#co- going slit opening
 
-    pinholes[0]['points'] +=20.
     
     pinholes[1]['pinholeKind'] =1
     pinholes[1]['pinholeCentre'] = None
@@ -445,7 +444,7 @@ if __name__ == '__main__':
                                         'value': slit_height}
         scan_Parameters['Slit height_2'] = {'scan_str': 'sh2',
                                         'scan_param': 'slit_height_2',
-                                        'scan_values': np.arange(0.1, 2.5, 0.2) *10,
+                                        'scan_values': np.arange(0.1, 2.5, 0.2) ,
                                         'scan': False,
                                         'value': slit_height_2}
         for scan_parameter in scan_Parameters.keys():
@@ -634,6 +633,7 @@ if __name__ == '__main__':
                         '''
                         Loop over scan paramater
                         '''
+                        
                         name = scan_Parameters[scan_parameter]['scan_param']
                         temp = head_params[name]
                         head_params[name] = value
@@ -700,9 +700,9 @@ if __name__ == '__main__':
                                            ascot_bfield['toroidalPeriods'],
                                            axis = 1)
                             
-                            field.Bfield['fr'] = np.asfortranarray(br.T, dtype=np.float64)
-                            field.Bfield['fz'] = np.asfortranarray(bz.T, dtype=np.float64)
-                            field.Bfield['ft'] = np.asfortranarray(bphi.T, dtype=np.float64)
+                            field.Bfield['fr'] = np.asfortranarray(br, dtype=np.float64)
+                            field.Bfield['fz'] = np.asfortranarray(bz, dtype=np.float64)
+                            field.Bfield['ft'] = np.asfortranarray(bphi, dtype=np.float64)
                             
                             field.Bfield['nPhi'] = np.asfortranarray(np.shape(br)[1], dtype=np.int32 )
                             field.Bfield['Phimin'] = np.asfortranarray(0., dtype=np.float64)
@@ -770,7 +770,7 @@ if __name__ == '__main__':
                             if plot_3D:
                                 Geometry.plot3Dfilled(element_to_plot = [0,2], plot_pinhole = False)
                             #Geometry.plot2Dfilled(view = 'XY', element_to_plot = [0,2], plot_pinhole = False)
-                            Geometry.plot2Dfilled(view = 'Scint', element_to_plot = [2], plot_pinhole = False)
+                            Geometry.plot2Dfilled(view = 'Scint', element_to_plot = [0,2], plot_pinhole = False)
     
                         
     # -----------------------------------------------------------------------------

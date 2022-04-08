@@ -271,7 +271,7 @@ class ihibpProfiles:
             np.array(gridlimits, dtype='float64').tofile(fid)
 
             # Writing the profile data.
-            np.array(tmp['f'].T, dtype='float64', order='F').tofile(fid)
+            np.array(tmp['f'].T, dtype='float64').ravel(order='F').tofile(fid)
 
         return
     def getfromDB(self, shotnumber: int, profName: str, diag: str=None,
