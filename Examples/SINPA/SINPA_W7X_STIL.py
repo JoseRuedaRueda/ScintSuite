@@ -178,7 +178,7 @@ def write_stl_geometry_files(root_dir
         f.write('STL collimator %s \n' %coll)
         f.write('0  ! Kind of plate\n')
         f.close()
-        ss.LibCAD.write_file_for_fortran_test(collimator_stl_files[coll],
+        ss.LibCAD.write_file_for_fortran_numpymesh(collimator_stl_files[coll],
                                               collimator_filename, 
                                               convert_mm_2_m = True)      
 
@@ -200,7 +200,7 @@ def write_stl_geometry_files(root_dir
         f.write('2  ! Kind of plate\n')
         f.close()
         # Append triangle data from stl file
-        ss.LibCAD.write_file_for_fortran(scintillator_stl_files[scint], 
+        ss.LibCAD.write_file_for_fortran_numpymesh(scintillator_stl_files[scint], 
                                          scint_filename, 
                                          convert_mm_2_m = True) 
         
@@ -224,30 +224,7 @@ def write_stl_geometry_files(root_dir
         
         scint_norm = -get_normal_vector(p1, p2, p3)        
         
-        # a = open3d.io.read_triangle_mesh(stl_files['scintillator'])
-        # vertices = np.asarray(a.vertices)
-        # index = np.asarray(a.triangles)
-        
-        # # Get the points of the first triangle in the scintillator stl file
-        # itriang = 22
-        # j=0
-        # p1 = np.array((vertices[index[itriang, j], 0],
-        #                vertices[index[itriang, j], 1],
-        #                vertices[index[itriang, j], 2]) ) * 0.001 #convert mm to m
-        # j=1
-        # p2 = np.array((vertices[index[itriang, j], 0],
-        #                vertices[index[itriang, j], 1],
-        #                vertices[index[itriang, j], 2]) ) * 0.001 #convert mm to m
-        # j=2
-        # p3 = np.array((vertices[index[itriang, j], 0],
-        #                vertices[index[itriang, j], 1],
-        #                vertices[index[itriang, j], 2]) ) * 0.001 #convert mm to m
-        
-
-        # scint_norm = -get_normal_vector(p1, p2, p3)
-        # To do: Make sure normal vector points away from plasma
-        # need a plasma point to test
-        
+      
         ps = p1 #Arbitrarily choose the first point as the reference point
         u1_scint = p3 - p1
         u1_scint /= np.linalg.norm(u1_scint) #Only needed to align the scintilattor
@@ -393,7 +370,7 @@ if __name__ == '__main__':
                   {'zorder':3,'color':'w'}]
     
 
-    n_markers = int(1e4)
+    n_markers = int(1e2)
 
     gyro_arrays = [[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2., 3., 4.],
                    [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2., 3., 4.]]
@@ -439,6 +416,7 @@ if __name__ == '__main__':
                                     [-724.403, 5782.66, 382.021],
                                     [-724.249, 5782.36, 381.294] ] )#co- going slit opening
 
+    pinholes[0]['points'] +=20.
     
     pinholes[1]['pinholeKind'] =1
     pinholes[1]['pinholeCentre'] = None
@@ -722,9 +700,9 @@ if __name__ == '__main__':
                                            ascot_bfield['toroidalPeriods'],
                                            axis = 1)
                             
-                            field.Bfield['fr'] = np.asfortranarray(br, dtype=np.float64)
-                            field.Bfield['fz'] = np.asfortranarray(bz, dtype=np.float64)
-                            field.Bfield['ft'] = np.asfortranarray(bphi, dtype=np.float64)
+                            field.Bfield['fr'] = np.asfortranarray(br.T, dtype=np.float64)
+                            field.Bfield['fz'] = np.asfortranarray(bz.T, dtype=np.float64)
+                            field.Bfield['ft'] = np.asfortranarray(bphi.T, dtype=np.float64)
                             
                             field.Bfield['nPhi'] = np.asfortranarray(np.shape(br)[1], dtype=np.int32 )
                             field.Bfield['Phimin'] = np.asfortranarray(0., dtype=np.float64)

@@ -975,8 +975,12 @@ class fields:
             self.Bfield['Timemin'].tofile(fid)
             self.Bfield['Timemax'].tofile(fid)
 
-            # Write fields
-            if self.bdims > 0:
+            # Write fields            
+            if self.bdims == 3:
+                self.Bfield['fr'].tofile(fid)
+                self.Bfield['ft'].tofile(fid)
+                self.Bfield['fz'].tofile(fid)
+            elif self.bdims > 0:
                 self.Bfield['fr'].T.tofile(fid)
                 self.Bfield['ft'].T.tofile(fid)
                 self.Bfield['fz'].T.tofile(fid)
