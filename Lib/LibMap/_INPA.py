@@ -147,7 +147,6 @@ def remapAllLoadedFrames(video,
     g_edges = rmin - dr/2 + np.arange(ngyr+1) * dr
     gyr = 0.5 * (g_edges[0:-1] + g_edges[1:])
     pitch = 0.5 * (p_edges[0:-1] + p_edges[1:])
-
     # --- STRIKE MAP SEARCH
     exist = np.zeros(nframes, bool)
     name = ' '      # To save the name of the strike map

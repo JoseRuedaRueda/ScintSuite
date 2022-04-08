@@ -265,12 +265,13 @@ def axis_beauty(ax, param_dict: dict):
         if 'fontname' in param_dict:
             ax.yaxis.offsetText.set_fontname(param_dict['fontname'])
     if 'grid' in param_dict:
-        if param_dict['grid'] == 'both':
-            ax.grid(True, which='minor', linestyle=':')
-            ax.minorticks_on()
-            ax.grid(True, which='major')
-        else:
-            ax.grid(True, which=param_dict['grid'])
+        if param_dict['grid'] is not None:
+            if param_dict['grid'] == 'both':
+                ax.grid(True, which='minor', linestyle=':')
+                ax.minorticks_on()
+                ax.grid(True, which='major')
+            else:
+                ax.grid(True, which=param_dict['grid'])
     if 'ratio' in param_dict:
         ax.axis(param_dict['ratio'])
     # Arrange ticks a ticks labels
@@ -314,7 +315,7 @@ def Cai(n=256):
 # --- 3D Plotting
 # -----------------------------------------------------------------------------
 def plot_3D_revolution(r, z, phi_min: float = 0.0, phi_max: float = 1.57,
-                       nphi: int = 25, ax=None, label: str=None,
+                       nphi: int = 25, ax=None, label: str = None,
                        color=[0.5, 0.5, 0.5], alpha: float = 0.75):
     """
     Plot a revolution surface with the given cross-section

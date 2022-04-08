@@ -84,3 +84,37 @@ def write_file_for_fortran_numpymesh(stlfile, outputfile, convert_mm_2_m = False
     
     f.close() 
 
+
+def write_triangles_to_stl(geom: dict,
+                           file_name_save: str = 'Test',
+                           units: str = 'mm'):
+    '''
+    Function to store trianlges from Geometry object to stl format
+    
+    Anton van Vuuren: avanvuuren@us.es
+    
+    @param: Geometry object whose triangles will be stored to an stl file
+    @param filename: name of the stl fileto be saved (.stl not needed)
+    @param units: Units in which to savethe orbit positions.
+    '''
+    
+    if geom['vertex'] is not None:
+        return
+    else:
+        key_base = 'triangles'
+    # See which data we need to plot
+    key = key_base
+        
+    # Get the units:
+    if units not in ['m', 'cm', 'mm']:
+        raise Exception('Not understood units?')
+    possible_factors = {'m': 1.0, 'cm': 100.0, 'mm': 1000.0}
+    factor = possible_factors[units]        
+
+    data = np.zeros(geom['n'], dtype=mesh.Mesh.dtype)
+    mesh_object = mesh.Mesh(data, remove_empty_areas=False)
+    mesh_object.x[:] = np.reshape(geom[key][:, 0], (geom['n'],3) ) * factor
+    mesh_object.y[:] = np.reshape(geom[key][:, 1], (geom['n'],3) ) * factor
+    mesh_object.z[:] = np.reshape(geom[key][:, 2], (geom['n'],3) ) * factor
+    mesh_object.save(file_name_save+'.stl')  
+
