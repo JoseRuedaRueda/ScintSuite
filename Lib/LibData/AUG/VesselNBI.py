@@ -1,6 +1,7 @@
 """Load the machine vessel"""
 import get_gc            # Module to load vessel components
 import dd                # Module to load shotfiles
+import aug_sfutils as sfutils
 import numpy as np
 import os
 import math
@@ -281,6 +282,45 @@ def getNBI_timeTraces(shotnumber: int, nbilist: int = None):
 
     output['time'] = timebase
     output['total'] = np.sum(pniq, axis=(1, 2))
+
+    return output
+
+def getNBI_total(shot: int, tBeg: float=None, tEnd: float=None):
+    """
+    Gets the total NBI power from the NIS shotfile.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shot: shotnumber to get the NBI power.
+    @param tBeg: initial time to get the timetrace. If None, the initial time
+    stored in the shotfile will be returned.
+    @param tEnd: final time to get the timetrace. If None, the final time
+    stored in the shotfile will be returned.
+    """
+    sf = sfutils.SFREAD('NIS', shot)
+    if not sf.status:
+        raise errors.DatabaseError('Cannot get the NIS shotfile for #%05d'%shot)
+
+    pni = sf(name='PNI')
+    time = sf.gettimebase('PNI')
+
+    if tBeg is None:
+        t0 = 0
+    else:
+        t0 = np.abs(time - tBeg).argmin()
+
+    if tEnd is None:
+        t1 = len(time)
+    else:
+        t1 = np.abs(time - tEnd).argmin()
+
+    # cutting the data to the desired time range.
+    pni = pni[t0:t1]
+    time = time[t0:t1]
+
+    output = { 'power': pni,
+               'time': time
+             }
 
     return output
 

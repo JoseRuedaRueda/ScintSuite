@@ -225,12 +225,12 @@ class ihibpProfiles:
             profName = profName.lower()
             if profName == 'ne':
                 self.ne = tmp
-            elif profName == 'te':
+            elif profName == 'Te':
                 self.te = tmp
             elif profName == 'ni':
                 self.flag_ni_ne = False
                 self.ni = tmp
-            elif profName == 'Ti':
+            elif profName == 'ti':
                 self.flag_Ti_Te = False
                 self.Ti = tmp
 
