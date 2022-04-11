@@ -1,10 +1,14 @@
+** 0.9.5: Energy remap
+- Include the possibility to translate the remap to energy instead of rl (see the function translate_remap_to_energy of video object and the plot_frame remap for the needed input)
+- FILDgeometry/INPAgeometry atriutes in the video object just renamed to geometryID, idem with FILDposition, FILDorientation etc to simplify life 
+
 ** 0.9.4: Small upgrade
-** LibVideo
+*** LibVideo
 - Plot frame and plot remap frame include new optional arguments
 - New BWR added in video player
-** LibSimulationCodes
+*** LibSimulationCodes
 - Strikes objects upgraded for new wrong markers file in SINPA
-** LibStrikeMap
+*** LibStrikeMap
 - Small correction in the strike map plotting for INPA
 
 ** 0.9.3: Strike modelling
@@ -19,7 +23,7 @@
 - Small improvementes in INPA strikemap plotting
 
 ** 0.9.2 Added functions to the VRT library
-- Added the get_time_traces in LibVRT 
+- Added the get_time_traces in LibVRT
 - Added the ROI2mask function to LibVRT
 - Fixed a bug on the getdist2sep of FILD4
 

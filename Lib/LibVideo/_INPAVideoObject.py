@@ -106,14 +106,15 @@ class INPAVideo(FIV):
             # Initialise the logbook
             INPAlogbook = ssdat.INPA_logbook(**logbookOptions)  # Logbook
             if shot is not None:
-                self.INPApositionOrientation = \
+                self.position, self.orientation = \
                     INPAlogbook.getPositionOrientation(shot, diag_ID)
-                self.INPAgeometry = INPAlogbook.getGeomID(shot, diag_ID)
+                self.geometryID = INPAlogbook.getGeomID(shot, diag_ID)
                 self.CameraCalibration = \
                     INPAlogbook.getCameraCalibration(shot, diag_ID)
             else:
-                self.INPApositionOrientation = None
-                self.INPAgeometry = None
+                self.position = None
+                self.orientation = None
+                self.geometryID = None
                 self.CameraCalibration = None
                 print('Shot not provided, you need to define INPAgeometry')
                 print('You need to define INPApositionOrientation')
@@ -127,59 +128,24 @@ class INPAVideo(FIV):
         else:
             FIV.__init__(self, empty=empty)
 
-    def _getB(self, extra_options: dict = {}, use_average: bool = False):
-        """
-        Get the magnetic field in the FILD position
-
-        Jose Rueda - jrrueda@us.es
-
-        @param extra_options: Extra options to be passed to the magnetic field
-            calculation. Ideal place to insert all your machine dependent stuff
-        @param use_average: flag to use the timebase of the average frames or
-            the experimental frames
-
-        Note: It will overwrite the content of self.Bfield
-        """
-        if self.INPApositionOrientation is None:
-            raise Exception('INPA position not know')
-        # Get the proper timebase
-        if use_average:
-            time = self.avg_dat['tframes']
-        else:
-            time = self.exp_dat['tframes']
-        # Calculate the magnetic field
-        print('Calculating magnetic field (this might take a while): ')
-        br, bz, bt, bp =\
-            ssdat.get_mag_field(self.shot,
-                                self.INPApositionOrientation['R_scintillator'],
-                                self.INPApositionOrientation['z_scintillator'],
-                                time=time,
-                                **extra_options)
-        self.BField = {
-            'BR': np.array(br).squeeze(),
-            'Bz': np.array(bz).squeeze(),
-            'Bt': np.array(bt).squeeze(),
-            'B': np.sqrt(np.array(bp)**2 + np.array(bt)**2).squeeze()
-        }
-
     def _getBangles(self):
         """Get the orientation of the field respec to the head."""
         s1_projection = \
-            (self.INPApositionOrientation['s1rzt'][0] * self.BField['BR']
-             + self.INPApositionOrientation['s1rzt'][1] * self.BField['Bz']
-             + self.INPApositionOrientation['s1rzt'][2] * self.BField['Bt']) \
+            (self.orientation['s1rzt'][0] * self.BField['BR']
+             + self.orientation['s1rzt'][1] * self.BField['Bz']
+             + self.orientation['s1rzt'][2] * self.BField['Bt']) \
             / self.BField['B']
 
         s2_projection = \
-            (self.INPApositionOrientation['s2rzt'][0] * self.BField['BR']
-             + self.INPApositionOrientation['s2rzt'][1] * self.BField['Bz']
-             + self.INPApositionOrientation['s2rzt'][2] * self.BField['Bt'])\
+            (self.orientation['s2rzt'][0] * self.BField['BR']
+             + self.orientation['s2rzt'][1] * self.BField['Bz']
+             + self.orientation['s2rzt'][2] * self.BField['Bt'])\
             / self.BField['B']
 
         s3_projection = \
-            (self.INPApositionOrientation['s3rzt'][0] * self.BField['BR']
-             + self.INPApositionOrientation['s3rzt'][1] * self.BField['Bz']
-             + self.INPApositionOrientation['s3rzt'][2] * self.BField['Bt'])\
+            (self.orientation['s3rzt'][0] * self.BField['BR']
+             + self.orientation['s3rzt'][1] * self.BField['Bz']
+             + self.orientation['s3rzt'][2] * self.BField['Bt'])\
             / self.BField['B']
         print(s3_projection.mean())
         theta = np.arccos(s3_projection) * 180.0 / math.pi
@@ -264,26 +230,26 @@ class INPAVideo(FIV):
                 time = 'all'
             else:
                 br, bz, bt, bp = ssdat.get_mag_field(
-                    self.shot, self.INPApositionOrientation['R_scintillator'],
-                    self.INPApositionOrientation['z_scintillator'], time=time,
+                    self.shot, self.position['R_scintillator'],
+                    self.position['z_scintillator'], time=time,
                     **self.BFieldOptions)
                 BR = np.array(br).squeeze()
                 Bz = np.array(bz).squeeze()
                 Bt = np.array(bt).squeeze()
                 s1_projection = \
-                    self.INPApositionOrientation['s1rzt'][0] * BR\
-                    + self.INPApositionOrientation['s1rzt'][1] * Bz\
-                    + self.INPApositionOrientation['s1rzt'][2] * Bt\
+                    self.orientation['s1rzt'][0] * BR\
+                    + self.orientation['s1rzt'][1] * Bz\
+                    + self.orientation['s1rzt'][2] * Bt\
 
                 s2_projection = \
-                    self.INPApositionOrientation['s2rzt'][0] * BR\
-                    + self.INPApositionOrientation['s2rzt'][1] * Bz\
-                    + self.INPApositionOrientation['s2rzt'][2] * Bt\
+                    self.orientation['s2rzt'][0] * BR\
+                    + self.orientation['s2rzt'][1] * Bz\
+                    + self.orientation['s2rzt'][2] * Bt\
 
                 s3_projection = \
-                    self.INPApositionOrientation['s3rzt'][0] * BR\
-                    + self.INPApositionOrientation['s3rzt'][1] * Bz\
-                    + self.INPApositionOrientation['s3rzt'][2] * Bt\
+                    self.orientation['s3rzt'][0] * BR\
+                    + self.orientation['s3rzt'][1] * Bz\
+                    + self.orientation['s3rzt'][2] * Bt\
 
                 theta = np.arccos(s3_projection)
                 phi = np.arctan2(s2_projection, s1_projection)
@@ -320,7 +286,7 @@ class INPAVideo(FIV):
         root.resizable(height=None, width=None)
         ssGUI.ApplicationShowVidRemapINPA(root, self.exp_dat, self.remap_dat,
                                           self.CameraCalibration,
-                                          self.INPAgeometry)
+                                          self.geometryID)
         root.mainloop()
         root.destroy()
 

@@ -111,16 +111,16 @@ class FILDVideo(FIV):
             ## Diagnostic ID (FILD manipulator number)
             self.diag_ID = diag_ID
             if shot is not None:
-                self.FILDposition = FILDlogbook.getPosition(shot, diag_ID)
-                self.FILDorientation = \
+                self.position = FILDlogbook.getPosition(shot, diag_ID)
+                self.orientation = \
                     FILDlogbook.getOrientation(shot, diag_ID)
-                self.FILDgeometry = FILDlogbook.getGeomID(shot, diag_ID)
+                self.geometryID = FILDlogbook.getGeomID(shot, diag_ID)
                 self.CameraCalibration = \
                     FILDlogbook.getCameraCalibration(shot, diag_ID)
             else:
-                self.FILDposition = None
-                self.FILDorientation = None
-                self.FILDgeometry = None
+                self.position = None
+                self.orientation = None
+                self.geometryID = None
                 self.CameraCalibration = None
                 print('Shot not provided, you need to define FILDposition')
                 print('You need to define FILDorientation')
@@ -135,49 +135,49 @@ class FILDVideo(FIV):
         else:
             FIV.__init__(self, empty=empty)
 
-    def _getB(self, extra_options: dict = {}, use_average: bool = False):
-        """
-        Get the magnetic field in the FILD position
-
-        Jose Rueda - jrrueda@us.es
-
-        @param extra_options: Extra options to be passed to the magnetic field
-            calculation. Ideal place to insert all your machine dependent stuff
-        @param use_average: flag to use the timebase of the average frames or
-            the experimental frames
-
-        Note: It will overwrite the content of self.Bfield
-        """
-        if self.FILDposition is None:
-            raise Exception('FILD position not know')
-        # Get the proper timebase
-        if use_average:
-            time = self.avg_dat['tframes']
-        else:
-            time = self.exp_dat['tframes']
-        # Calculate the magnetic field
-        print('Calculating magnetic field (this might take a while): ')
-        br, bz, bt, bp =\
-            ssdat.get_mag_field(self.shot, self.FILDposition['R'],
-                                self.FILDposition['z'],
-                                time=time,
-                                **extra_options)
-        self.BField = {
-            'BR': np.array(br).squeeze(),
-            'Bz': np.array(bz).squeeze(),
-            'Bt': np.array(bt).squeeze(),
-        }
-        self.BField['B'] = np.sqrt(self.BField['Bt']**2 + self.BField['BR']**2
-                                   + self.BField['Bz']**2)
+    # def _getB(self, extra_options: dict = {}, use_average: bool = False):
+    #     """
+    #     Get the magnetic field in the FILD position
+    #
+    #     Jose Rueda - jrrueda@us.es
+    #
+    #     @param extra_options: Extra options to be passed to the magnetic field
+    #         calculation. Ideal place to insert all your machine dependent stuff
+    #     @param use_average: flag to use the timebase of the average frames or
+    #         the experimental frames
+    #
+    #     Note: It will overwrite the content of self.Bfield
+    #     """
+    #     if self.position is None:
+    #         raise Exception('FILD position not know')
+    #     # Get the proper timebase
+    #     if use_average:
+    #         time = self.avg_dat['tframes']
+    #     else:
+    #         time = self.exp_dat['tframes']
+    #     # Calculate the magnetic field
+    #     print('Calculating magnetic field (this might take a while): ')
+    #     br, bz, bt, bp =\
+    #         ssdat.get_mag_field(self.shot, self.position['R'],
+    #                             self.position['z'],
+    #                             time=time,
+    #                             **extra_options)
+    #     self.BField = {
+    #         'BR': np.array(br).squeeze(),
+    #         'Bz': np.array(bz).squeeze(),
+    #         'Bt': np.array(bt).squeeze(),
+    #     }
+    #     self.BField['B'] = np.sqrt(self.BField['Bt']**2 + self.BField['BR']**2
+    #                                + self.BField['Bz']**2)
 
     def _getBangles(self):
         """Get the orientation of the field respec to the head"""
-        if self.FILDorientation is None:
+        if self.orientation is None:
             raise Exception('FILD orientation not know')
         phi, theta = \
             ssFILDSIM.calculate_fild_orientation(
                 self.BField['BR'], self.BField['Bz'], self.BField['Bt'],
-                self.FILDorientation['alpha'], self.FILDorientation['beta']
+                self.orientation['alpha'], self.orientation['beta']
             )
         self.Bangles = {'phi': phi, 'theta': theta}
 
@@ -247,17 +247,17 @@ class FILDVideo(FIV):
         @return theta: theta angle [º]
         """
         if self.remap_dat is None:
-            if self.FILDorientation is None:
+            if self.orientation is None:
                 raise Exception('FILD orientation not know')
 
-            alpha = self.FILDorientation['alpha']
-            beta = self.FILDorientation['beta']
+            alpha = self.orientation['alpha']
+            beta = self.orientation['beta']
             print('Remap not done, calculating angles')
 
             if t is not None:
                 br, bz, bt, bp =\
-                    ssdat.get_mag_field(self.shot, self.FILDposition['R'],
-                                        self.FILDposition['z'], time=t)
+                    ssdat.get_mag_field(self.shot, self.position['R'],
+                                        self.position['z'], time=t)
 
                 phi, theta = \
                     ssFILDSIM.calculate_fild_orientation(br, bz, bt,
@@ -301,7 +301,7 @@ class FILDVideo(FIV):
         root.resizable(height=None, width=None)
         ssGUI.ApplicationShowVidRemap(root, self.exp_dat, self.remap_dat,
                                       self.CameraCalibration,
-                                      self.FILDgeometry)
+                                      self.geometryID)
         root.mainloop()
         root.destroy()
 
@@ -533,7 +533,7 @@ class FILDVideo(FIV):
 
             # # Save FILD geometry
             # geom_ID = f.createVariable('geom_ID', 's', )
-            # geom_ID[:] = self.FILDgeometry
+            # geom_ID[:] = self.geometryID
             # geom_ID.units = ' '
             # geom_ID.long_name = 'FILD geomID'
 
@@ -726,32 +726,32 @@ class FILDVideo(FIV):
             rprofmax.long_name = 'Maximum r_l to integrate the remap'
 
             rfild = f.createVariable('rfild', 'float64', ('number',))
-            rfild[:] = self.FILDposition['R']
+            rfild[:] = self.position['R']
             rfild.units = 'm'
             rfild.long_name = 'R FILD position'
 
             zfild = f.createVariable('zfild', 'float64', ('number',))
-            zfild[:] = self.FILDposition['z']
+            zfild[:] = self.position['z']
             zfild.units = 'm'
             zfild.long_name = 'z FILD position'
 
             phifild = f.createVariable('phifild', 'float64', ('number',))
-            phifild[:] = self.FILDposition['phi']
+            phifild[:] = self.position['phi']
             phifild.units = 'm'
             phifild.long_name = 'phi FILD position'
 
             alpha = f.createVariable('alpha', 'float64', ('number',))
-            alpha[:] = self.FILDorientation['alpha']
+            alpha[:] = self.orientation['alpha']
             alpha.units = '$\\degree$'
             alpha.long_name = 'alpha orientation'
 
             beta = f.createVariable('beta', 'float64', ('number',))
-            beta[:] = self.FILDorientation['beta']
+            beta[:] = self.orientation['beta']
             beta.units = '$\\degree$'
             beta.long_name = 'beta orientation'
 
             gamma = f.createVariable('gamma', 'float64', ('number',))
-            gamma[:] = self.FILDorientation['gamma']
+            gamma[:] = self.orientation['gamma']
             beta.units = '$\\degree$'
             beta.long_name = 'gamma orientation'
 
