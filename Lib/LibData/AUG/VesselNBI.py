@@ -312,7 +312,7 @@ def getNBI_total(shot: int, tBeg: float=None, tEnd: float=None):
     if tEnd is None:
         t1 = len(time)
     else:
-        t1 = np.abs(time -tEnd).argmin()
+        t1 = np.abs(time - tEnd).argmin()
 
     # cutting the data to the desired time range.
     pni = pni[t0:t1]
