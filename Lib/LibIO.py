@@ -557,8 +557,8 @@ def load_FILD_remap(filename: str = None, verbose=True,
         vid.exp_dat = {}
         vid.Bangles = {}
         vid.BField = {}
-        vid.FILDorientation = {}
-        vid.FILDposition = {}
+        vid.orientation = {}
+        vid.position = {}
         vid.settings = {}
         # Read and save the 'standard' data
         vid.shot = f.variables['shot'][0]  # Shot number
@@ -570,7 +570,7 @@ def load_FILD_remap(filename: str = None, verbose=True,
             vid.remap_dat['options']['use_average'] = False
 
         if 'geom_ID' in var:
-            vid.FILDgeometry = f.variables['geom_ID'][:]
+            vid.geometryID = f.variables['geom_ID'][:]
 
         vid.remap_dat['tframes'] = f.variables['tframes'][:]
 
@@ -636,19 +636,19 @@ def load_FILD_remap(filename: str = None, verbose=True,
         vid.remap_dat['options']['rprofmin'] = f.variables['rprofmin'][0]
         vid.remap_dat['options']['rprofmax'] = f.variables['rprofmax'][0]
 
-        vid.FILDposition['R'] = f.variables['rfild'][0]
-        vid.FILDposition['z'] = f.variables['zfild'][0]
+        vid.position['R'] = f.variables['rfild'][0]
+        vid.position['z'] = f.variables['zfild'][0]
         if 'phifild' in var:
-            vid.FILDposition['phi'] = f.variables['phifild'][0]
+            vid.position['phi'] = f.variables['phifild'][0]
         else:  # if phi is not present, old remap file, tokamak. Phi irrelevant
-            vid.FILDposition['phi'] = 0.0
+            vid.position['phi'] = 0.0
 
-        vid.FILDorientation['alpha'] = f.variables['alpha'][0]
-        vid.FILDorientation['beta'] = f.variables['beta'][0]
+        vid.orientation['alpha'] = f.variables['alpha'][0]
+        vid.orientation['beta'] = f.variables['beta'][0]
         if 'gamma' in var:
-            vid.FILDorientation['gamma'] = f.variables['gamma'][0]
+            vid.orientation['gamma'] = f.variables['gamma'][0]
         else:  # if phi is not present, old remap file, tokamak. Phi irrelevant
-            vid.FILDorientation['gamma'] = 0.0
+            vid.orientation['gamma'] = 0.0
 
         if 'bits' in var:
             vid.settings['RealBPP'] = f.variables['RealBPP'][0]

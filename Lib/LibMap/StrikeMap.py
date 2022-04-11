@@ -92,10 +92,9 @@ class StrikeMap(XYtoPixel):
             # Read the file
             if file is None:
                 smap_folder = pa.FILDStrikeMapsRemap
-                dumm = ssFILDSIM.guess_strike_map_name(phi,
-                                                            theta,
-                                                            machine=machine,
-                                                            decimals=decimals)
+                dumm = ssFILDSIM.guess_strike_map_name(phi, theta,
+                                                       machine=machine,
+                                                       decimals=decimals)
                 file = os.path.join(smap_folder, dumm)
                 self.file = file
             if not os.path.isfile(file):
