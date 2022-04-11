@@ -355,7 +355,7 @@ def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
 
     return output
 
-def get_ECRH_traces(shot: int, time: float=None, ec_list: list=None):
+def get_ECRH_traces(shot: int, time: float = None, ec_list: list = None):
     """
     Retrieves from the AUG database the ECRH timetraces with the power of the
     ECRH. The power and the injection angles are retrieved from the ECS
@@ -453,5 +453,86 @@ def get_ECRH_traces(shot: int, time: float=None, ec_list: list=None):
                       }
 
     warnings.filterwarnings('default', category=RuntimeWarning)
+
+    return output
+
+def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None):
+    """
+    Returns the total ECRH power from the ECS shotfile in AUG.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shot: shotnumber to get the ECRH power.
+    @param tBeg: initial time to get the timetrace. If None, the initial time
+    stored in the shotfile will be returned.
+    @param tEnd: final time to get the timetrace. If None, the final time
+    stored in the shotfile will be returned.
+    """
+
+    sf_ecs = sf.SFREAD('NIS', shot)
+    if not sf_ecs.status:
+        raise errors.DatabaseError('Cannot get the ECS shotfile for #%05d'%shot)
+
+    pecrh = sf_ecs(name='PECRH')
+    time = sf_ecs('TIME')
+    print(time)
+
+    if tBeg is None:
+        t0 = 0
+    else:
+        t0 = np.abs(time - tBeg).argmin()
+
+    if tEnd is None:
+        t1 = len(time)
+    else:
+        t1 = np.abs(time -tEnd).argmin()
+
+    # cutting the data to the desired time range.
+    pecrh = pecrh[t0:t1]
+    time = time[t0:t1]
+
+    output = { 'power': pecrh,
+               'time': time
+             }
+
+    return output
+
+def getPrad_total(shot: int, tBeg: float = None, tEnd: float = None):
+    """
+    Returns the total radiated power from the BPD shotfile in AUG.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shot: shotnumber to get the ECRH power.
+    @param tBeg: initial time to get the timetrace. If None, the initial time
+    stored in the shotfile will be returned.
+    @param tEnd: final time to get the timetrace. If None, the final time
+    stored in the shotfile will be returned.
+    """
+
+    sf_bpd = sf.SFREAD('BPD', shot)
+    if not sf_bpd.status:
+        raise errors.DatabaseError('Cannot get the BPD shotfile for #%05d'%shot)
+
+    prad = sf_bpd(name='Pradtot')
+    time = sf_bpd.gettimebase('Pradtot')
+
+    if tBeg is None:
+        t0 = 0
+    else:
+        t0 = np.abs(time - tBeg).argmin()
+
+    if tEnd is None:
+        t1 = len(time)
+    else:
+        t1 = np.abs(time -tEnd).argmin()
+
+    # cutting the data to the desired time range.
+    prad = prad[t0:t1]
+    time = time[t0:t1]
+
+    output = { 'power': prad,
+               'time': time
+             }
 
     return output

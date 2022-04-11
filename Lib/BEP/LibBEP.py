@@ -10,7 +10,7 @@ import shutil
 try:
     import netCDF4 as nc4
 except ModuleNotFoundError:
-    print('Yout cannot save or load BEB database')        
+    print('Yout cannot save or load BEB database')
 
 
 FCTSPH = 0.46926  # Counts per photon.
@@ -103,11 +103,13 @@ def readBEP(shotnumber: int, time: float, experiment: str = 'AUGD',
     filename_tmp = '/tmp/all_spectra_BEP_%s'%os.getenv('USER')
     filename_db = '%s/%05d_%s'%(bep_spectra_path, shotnumber,
                                 os.getenv('USER'))
+    print(filename_tmp, filename_db)
 
     if (not os.path.isfile(filename_tmp)) and \
-        (not os.path.isfile(filename_tmp)):
+        (not os.path.isfile(filename_db)):
             command = '%s %s %05d %d'%(beppget_path, experiment,
                                         shotnumber, smear_s)
+            print(command)
             os.system(command)
             shutil.copy2(src=filename_tmp, dst=filename_db)
     elif not os.path.isfile(filename_db):
@@ -115,6 +117,7 @@ def readBEP(shotnumber: int, time: float, experiment: str = 'AUGD',
         if rootgrp.shot != shotnumber:
             command = '%s %s %05d %d'%(beppget_path, experiment,
                                         shotnumber, smear_s)
+            print(command)
             os.system(command)
         rootgrp.close()
         shutil.copy2(src=filename_tmp, dst=filename_db)
