@@ -1,3 +1,6 @@
+** 0.9.7: Moving to SFUTILS.
+- Changed dd-libraries in LibData/AUG/Misc into sfutils.
+
 ** 0.9.6: Energy remap
 - Include the possibility to translate the remap to energy instead of rl (see the function translate_remap_to_energy of video object and the plot_frame remap for the needed input)
 - FILDgeometry/INPAgeometry atriutes in the video object just renamed to geometryID, idem with FILDposition, FILDorientation etc to simplify life
