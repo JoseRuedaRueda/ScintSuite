@@ -218,9 +218,9 @@ def remapAllLoadedFrames(video,
         if not got_smap:
             name = ssSINPA.execution.find_strike_map_INPA(
                 phi_used[iframe], theta_used[iframe], smap_folder,
-                video.INPApositionOrientation['s1'],
-                video.INPApositionOrientation['s2'],
-                video.INPApositionOrientation['s3'],
+                video.orientation['s1'],
+                video.orientation['s2'],
+                video.orientation['s3'],
                 geomID=video.geometryID, SINPA_options=code_options,
                 decimals=decimals, clean=True)
         # Only reload the strike map if it is needed
