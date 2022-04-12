@@ -16,7 +16,8 @@ Needed packages(Only listed 'non-standard' packages):
     - netCDF4: To load and save files from the BEB database =pip install netCDF4=
     - scipy 1.7.0 or newer, to have the RBF interpolators for the strike points
     - aug_sfutils > 0.7.0: To load the AUG magnetic field (see AUG python documentation for the different ways of installing this package https://www.aug.ipp.mpg.de/aug/manuals/aug_sfutils/)
-
+    - Open3D or stl: To deal with CAD files
+*Installation* Executing 'first_run.py' in your terminal console should allow you to install everything you need to run the suite
 *** Cloning the suite
 In order to clone the suite just open a terminal in your home directory and type:
 
