@@ -44,14 +44,16 @@ def write_file_for_fortran(stlfile, outputfile, convert_mm_2_m=False):
     f.write(str(triangleNum) + '  ! Number of triangles\n')
     for i in range(triangleNum):
         for j in range(3):
-            f.write('%.9f %.9f %.9f \n' % (vertices[index[i, j], 0] * conv_fac,
-                                           vertices[index[i, j], 1] * conv_fac,
-                                           vertices[index[i, j], 2] * conv_fac))
+            f.write(
+                '%.9f %.9f %.9f \n' % (vertices[index[i, j], 0] * conv_fac,
+                                       vertices[index[i, j], 1] * conv_fac,
+                                       vertices[index[i, j], 2] * conv_fac))
 
     f.close()
 
 
-def write_file_for_fortran_numpymesh(stlfile, outputfile, convert_mm_2_m=False):
+def write_file_for_fortran_numpymesh(stlfile, outputfile,
+                                     convert_mm_2_m: bool = False):
     """
     Transform .stl files into a format compatible with SINPA/iHIBPsim/MEGA
     using stl mesh

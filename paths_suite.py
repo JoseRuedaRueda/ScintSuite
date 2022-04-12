@@ -31,6 +31,7 @@ def paths_of_the_suite():
     Machine_libs = {
         'AUG': {
             'AUG_Python': '/afs/ipp/aug/ads-diags/common/python/lib',
+            'Giovanni': '/afs/ipp/home/g/git/python/fbm/'
             # 'Suite_AUG': os.path.join(SUITE_DIR, 'Lib/LibData/AUG')
         },
         'MU': {
