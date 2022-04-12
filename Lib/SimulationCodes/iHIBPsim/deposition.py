@@ -8,7 +8,11 @@ Pablo Oyola - pablo.oyola@ipp.mpg.de
 """
 
 import numpy as np
-import xarray as xr
+import warnings
+try:
+    import xarray as xr
+except ModuleNotFoundError:
+    warnings.warn('Xarray not found. Install it to use iHIBPsim.')
 import matplotlib.pyplot as plt
 import os
 

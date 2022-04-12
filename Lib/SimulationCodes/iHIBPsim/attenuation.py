@@ -9,7 +9,7 @@ from scipy.interpolate import interp1d, interp2d
 import warnings
 try:
     import netCDF4 as nc4
-except:
+except ModuleNotFoundError:
     warnings.warn('netCDF4 library not found. Install it to use iHIBPsim.')
 
 
