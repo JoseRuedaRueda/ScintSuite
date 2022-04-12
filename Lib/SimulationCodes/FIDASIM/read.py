@@ -618,7 +618,7 @@ def read_fbm(filename):
         data['pmax'] = int(np.fromfile(fid, 'float64', 1)[:])
         data['pmin'] = int(np.fromfile(fid, 'float64', 1)[:])
         data['dP'] = int(np.fromfile(fid, 'float64', 1)[:])
-        data['energy'] = np.fromfile(fid, 'float64', data['npitch'])[:]
+        data['pitch'] = np.fromfile(fid, 'float64', data['npitch'])[:]
         # --- 4D Fast-ion distribution
         data['fbm'] = \
             np.reshape(np.fromfile(fid, 'float32',
