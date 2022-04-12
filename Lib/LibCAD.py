@@ -19,7 +19,7 @@ except ImportError:
                   category=UserWarning)
 
 
-def write_file_for_fortran(stlfile, outputfile, convert_mm_2_m = False):
+def write_file_for_fortran(stlfile, outputfile, convert_mm_2_m=False):
     """
     Transform .stl files into a format compatible with SINPA/iHIBPsim/MEGA
 
@@ -34,8 +34,8 @@ def write_file_for_fortran(stlfile, outputfile, convert_mm_2_m = False):
     triangleNum = index.shape[0]
 
     conv_fac = 1.0
-    if convert_mm_2_m:# Catia files are usually in mm, hence convert to m
-        conv_fac =  0.001
+    if convert_mm_2_m:  # Catia files are usually in mm, hence convert to m
+        conv_fac = 0.001
 
     # --- Write the vertices in the file
     # append stl vertice data to file that has information of kind of plate and
@@ -51,7 +51,7 @@ def write_file_for_fortran(stlfile, outputfile, convert_mm_2_m = False):
     f.close()
 
 
-def write_file_for_fortran_numpymesh(stlfile, outputfile, convert_mm_2_m = False):
+def write_file_for_fortran_numpymesh(stlfile, outputfile, convert_mm_2_m=False):
     """
     Transform .stl files into a format compatible with SINPA/iHIBPsim/MEGA
     using stl mesh
@@ -63,8 +63,8 @@ def write_file_for_fortran_numpymesh(stlfile, outputfile, convert_mm_2_m = False
     @param filename: name of the stl file (full path)
     """
     conv_fac = 1.0
-    if convert_mm_2_m:# Catia files are usually in mm, hence convert to m
-        conv_fac =  0.001
+    if convert_mm_2_m:  # Catia files are usually in mm, hence convert to m
+        conv_fac = 0.001
 
     # --- Open and load the stil file
     mesh_obj = mesh.Mesh.from_file(stlfile)
@@ -117,7 +117,7 @@ def write_triangles_to_stl(geom: dict,
 
     data = np.zeros(geom['n'], dtype=mesh.Mesh.dtype)
     mesh_object = mesh.Mesh(data, remove_empty_areas=False)
-    mesh_object.x[:] = np.reshape(geom[key][:, 0], (geom['n'],3) ) * factor
-    mesh_object.y[:] = np.reshape(geom[key][:, 1], (geom['n'],3) ) * factor
-    mesh_object.z[:] = np.reshape(geom[key][:, 2], (geom['n'],3) ) * factor
+    mesh_object.x[:] = np.reshape(geom[key][:, 0], (geom['n'], 3)) * factor
+    mesh_object.y[:] = np.reshape(geom[key][:, 1], (geom['n'], 3)) * factor
+    mesh_object.z[:] = np.reshape(geom[key][:, 2], (geom['n'], 3)) * factor
     mesh_object.save(file_name_save+'.stl')
