@@ -23,8 +23,10 @@ def import_or_install(package):
 # -----------------------------------------------------------------------------
 print('MACHINE DEPENDENT LIBRARIES AS AUG_SFUTILS MUST BE INSTALLED INDEPENDENTLY')
 import_or_install('f90nml')
-import_or_install('cv2')
+import_or_install('opencv-python')
 import_or_install('lmfit')
 import_or_install('cycler')
-import_or_install('pyfft')
+import_or_install('pyfftw')
 import_or_install('netCDF4')
+import_or_install('shapely')
+import_or_install('stl')

@@ -397,7 +397,7 @@ class BVO:
         if 'original_frames' not in self.exp_dat and flag_copy:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
         # Subtract the noise
-        frame = frame.astype(np.float)  # Get the average as float to later
+        frame = frame.astype(float)  # Get the average as float to later
         #                                 subtract and not have issues with < 0
         self.exp_dat['frames'] = (self.exp_dat['frames'].astype(np.float)
                                   - frame[..., None])
