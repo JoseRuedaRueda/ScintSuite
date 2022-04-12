@@ -20,6 +20,8 @@ pa = Path()
 # -----------------------------------------------------------------------------
 # --- GENERIC SIGNAL RETRIEVING.
 # -----------------------------------------------------------------------------
+
+
 def get_signal_generic(shot: int, diag: str, signame: str, exp: str = 'AUGD',
                        edition: int = 0, tBegin: float = None,
                        tEnd: float = None):
@@ -39,16 +41,16 @@ def get_signal_generic(shot: int, diag: str, signame: str, exp: str = 'AUGD',
     """
 
     # Reading the second diagnostic data.
-    sf = sfutils.SFREAD(shot, diag, edition=edition, experiment=exp)
+    sfo = sf.SFREAD(shot, diag, edition=edition, experiment=exp)
 
-    if not sf.status:
-        raise Exception( 'The signal data cannot be read for #%05d:%s:%s(%d)'\
-            % (shot, diag, signame, edition))
+    if not sfo.status:
+        raise Exception('The signal data cannot be read for #%05d:%s:%s(%d)'
+                        % (shot, diag, signame, edition))
 
-    data = sf(name=signame)
+    data = sfo(name=signame)
     if data is None:
-        raise ValueError('Cannot find signal %s'%signame)
-    time = sf.gettimebase(signame)
+        raise ValueError('Cannot find signal %s' % signame)
+    time = sfo.gettimebase(signame)
 
     if tBegin is None:
         t0 = 0
@@ -144,15 +146,15 @@ def get_ELM_timebase(shot: int, time: float = None, edition: int = 0,
         -# n: The number of ELMs
     """
     # --- Open the AUG shotfile
-    sf = sfutils.SFREAD(shot, 'ELM', edition=edition, experiment=exp)
+    sfo = sf.SFREAD(shot, 'ELM', edition=edition, experiment=exp)
 
-    if not sf.status:
-        raise Exception('Cannot access shotfile %s:#%05d:ELM'%(exp, shot))
+    if not sfo.status:
+        raise Exception('Cannot access shotfile %s:#%05d:ELM' % (exp, shot))
     tELM = {
-        't_onset':  sf('tELM'),
-        'dt': sf('dt_ELM'),
-        'energy': sf('ELMENER'),
-        'f_ELM': sf('f_ELM')
+        't_onset':  sfo('tELM'),
+        'dt': sfo('dt_ELM'),
+        'energy': sfo('ELMENER'),
+        'f_ELM': sfo('f_ELM')
     }
 
     if time is not None:
