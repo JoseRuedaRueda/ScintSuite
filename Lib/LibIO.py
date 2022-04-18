@@ -154,7 +154,7 @@ def read_variable_ncdf(file, varNames, human=True, verbose=True):
     if human:
         file = check_open_file(file)
     # see if the inputs is a list/tupple or not
-    if isinstance(varNames, list):
+    if isinstance(varNames, (list, tuple)):
         listNames = varNames
     else:
         listNames = []
