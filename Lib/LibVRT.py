@@ -268,7 +268,7 @@ def get_time_trace(shot: int = None, roiname: str = '',
                         limcol = 'red' if np.any(val>=lim) else 'green'
 
                     # Get only the requested ROI. All of them by default
-                    if roiname.lower() in protocol.lower():
+                    if roiname.lower() in area.attrib['name'].lower():
                         Tlim = []
                         temp = []
                         if calibrate:
