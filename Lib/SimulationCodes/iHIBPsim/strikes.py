@@ -13,22 +13,18 @@ import Lib.LibPlotting as ssplt
 import Lib.LibData as aug
 from Lib.LibPaths import Path
 from Lib.LibMachine import machine
-import warnings
-
-
+import os
+from os import listdir
+from warnings import warn
 from Lib.LibData import get_rho
 import Lib.SimulationCodes.iHIBPsim.hibp_utils as utils
 try:
     import netCDF4 as nc4
-except:
-    warnings.warn('netCDF4 library not found. Install it to use iHIBPsim.')
+except ImportError:
+    pass
 
 if machine == 'AUG':
     import dd
-import os
-# from Lib.LibIO import getFileSize
-from os import listdir
-from warnings import warn
 
 pa = Path()
 

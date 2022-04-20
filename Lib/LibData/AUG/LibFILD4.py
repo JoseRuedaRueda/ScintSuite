@@ -32,76 +32,87 @@ except ModuleNotFoundError:
 def get_dist2sep(shot: int = None, R: float = None, z: float = None,
                  t: float = None, diag: str = 'EQH', plot_sep: bool = True,
                  plot_dist: bool = True):
-        """
-        Get the distance to the separatrix during a shot.
+    """
+    Get the distance to the separatrix during a shot.
 
-        @param shot
-        @param R: R array [m]
-        @param z: z array [m]
-        @param t: time array. If None, entire shot
-        @param diag: diagnostic for equilibrium reconstruction
-        @param plot_sep: plot separatrix position
-        @param plot_dist: plot distance to the separatrix
+    @param shot
+    @param R: R array [m]
+    @param z: z array [m]
+    @param t: time array. If None, entire shot
+    @param diag: diagnostic for equilibrium reconstruction
+    @param plot_sep: plot separatrix position
+    @param plot_dist: plot distance to the separatrix
 
-        returns distance to the separatrix in m
-        """
+    returns distance to the separatrix in m
+    """
 
-        # Load the separatrix
-        equ = sf.EQU(shot, diag = diag)
-        r_sep, z_sep = sf.rho2rz(equ, rho_in = 1.0, t_in = t,
-                                 coord_in = 'rho_pol')
-        if t is None:
-            R = R*np.ones(r_sep.shape)
-            z = z*np.ones(r_sep.shape)
-            t = equ.time
+    # Load the separatrix
+    equ = sf.EQU(shot, diag=diag)
+    r_sep, z_sep = sf.rho2rz(equ, rho_in=1.0, t_in=t,
+                             coord_in='rho_pol')
+    if t is None:
+        R = R*np.ones(r_sep.shape)
+        z = z*np.ones(r_sep.shape)
+        t = equ.time
 
-        # Get the minimum distance between the probe head and the separatrix
-        dist_sep = np.zeros(r_sep.shape)
-        for i in range(len(r_sep)):
-            line_coords = np.transpose(np.array([r_sep[i][0], z_sep[i][0]]))
-            line = geom.LineString(line_coords)
-            point = geom.Point([R[i], z[i]])
-            dist_sep[i] = point.distance(line) # in m
+    # Get the minimum distance between the probe head and the separatrix
+    dist_sep = np.zeros(r_sep.shape)
+    for i in range(len(r_sep)):
+        line_coords = np.transpose(np.array([r_sep[i][0], z_sep[i][0]]))
+        line = geom.LineString(line_coords)
+        point = geom.Point([R[i], z[i]])
+        dist_sep[i] = point.distance(line)  # in m
 
-        if plot_sep:
-            fig, ax = plt.subplots()
-            title = '#'+str(shot)+'\n t = '+\
-                str(t[0])+' - '+str(t[-1])+' s'
-            fig.suptitle(title)
-            plt.grid()
-            plt.axis('equal')
-            for i in range(len(t)):
-                ax.plot(np.array(r_sep[i]).squeeze(),
-                        np.array(z_sep[i]).squeeze(), '-b')
-            ax.plot(R, z, 'xr')
-            plt.show()
+    if plot_sep:
+        fig, ax = plt.subplots()
+        title = '#'+str(shot)+'\n t = ' + str(t[0])+' - '+str(t[-1])+' s'
+        fig.suptitle(title)
+        plt.grid()
+        plt.axis('equal')
+        for i in range(len(t)):
+            ax.plot(np.array(r_sep[i]).squeeze(),
+                    np.array(z_sep[i]).squeeze(), '-b')
+        ax.plot(R, z, 'xr')
+        plt.show()
 
-        if plot_dist:
-            fig2, ax2 = plt.subplots(2)
-            title = '#'+str(shot)
-            fig2.suptitle(title)
-            ax2[0].plot(t, R)
-            ax2[0].set_xlabel('Time [s]')
-            ax2[0].set_ylabel('R [m]')
-            ax2[1].plot(t, dist_sep)
-            ax2[1].set_xlabel('Time [s]')
-            ax2[1].set_ylabel('Dist2sep [m]')
-            plt.show()
-        return dist_sep
+    if plot_dist:
+        fig2, ax2 = plt.subplots(2)
+        title = '#'+str(shot)
+        fig2.suptitle(title)
+        ax2[0].plot(t, R)
+        ax2[0].set_xlabel('Time [s]')
+        ax2[0].set_ylabel('R [m]')
+        ax2[1].plot(t, dist_sep)
+        ax2[1].set_xlabel('Time [s]')
+        ax2[1].set_ylabel('Dist2sep [m]')
+        plt.show()
+    return dist_sep
 
 
 class FILD4_traject:
+    """
+    Class to handle FILD4 (magnetically diven FILD) trajectories.
 
+    Javier Hidalgo - javih@us.es
+
+    Public methods:
+        - load_power_supply: Load the power supply output
+        - reconstruct_traject: reconstruct FILD trajectory
+        - get_dist2sep: get distance to separatrix
+        - load_trajectory: Load FILD trajectory
+    """
 
     def __init__(self, shot: int = None):
         """
+        Initialise the class.
+
         @param shot
         """
         self.shot = shot
         self.dat_ps = {}
         self.traject = {}
 
-    def _linear_reg(x,y):
+    def _linear_reg(x, y):
         n = np.size(x)
         m_x = np.mean(x)
         m_y = np.mean(y)
@@ -114,9 +125,10 @@ class FILD4_traject:
         return (m, n)
 
     def load_power_supply(self, path_ps: str = '', smooth: bool = True,
-                            win_length: int = 15, polyorder: int = 3):
+                          win_length: int = 15, polyorder: int = 3):
         """
         Load the power supply output.
+
         This file has no headers. It was designed like this when FILD4 was
         first installed. They will be added in the future.
 
@@ -131,18 +143,18 @@ class FILD4_traject:
                                    'output_power_supply', str(self.shot)[0:2],
                                    'FILD_MDRS_'+str(self.shot)+'.txt')
         print('path is ' + path_ps)
-        data = np.loadtxt(path_ps, delimiter = '\t')
-        time_V_goal = data[:,0]*1e-3 # s
+        data = np.loadtxt(path_ps, delimiter='\t')
+        time_V_goal = data[:, 0]*1e-3  # s
         flag = int(np.argwhere(time_V_goal == np.max(time_V_goal))[0])
-        time_V_goal = time_V_goal[0:flag] # s
-        V_goal = data[0:flag, 1] # V
+        time_V_goal = time_V_goal[0:flag]  # s
+        V_goal = data[0:flag, 1]  # V
 
-        time_I = data[:,2]*1e-9  # s
+        time_I = data[:, 2]*1e-9  # s
         flag = int(np.argwhere(time_I == np.max(time_I))[0])
         time_I = time_I[0:flag]
-        I = data[0:flag, 3] # A
-        time_V = data[0:flag,4]*1e-9 # s
-        V = data[0:flag,5] # V
+        I = data[0:flag, 3]  # A
+        time_V = data[0:flag, 4]*1e-9  # s
+        V = data[0:flag, 5]  # V
 
         if smooth:
             V_goal = savgol(V_goal, win_length, polyorder)
@@ -158,10 +170,10 @@ class FILD4_traject:
         self.dat_ps = output
         return
 
-    def reconstruct_traject(self, B: float = None, get_R: str ='auto',
+    def reconstruct_traject(self, B: float = None, get_R: str = 'auto',
                             R: float = 13.5, R_fit_order: int = 0,
-                            R_coef: tuple =(),
-                            diag = 'EQH'):
+                            R_coef: tuple = (),
+                            diag: str = 'EQH'):
         """
         Reconstruct FILD4 trajectory from the power supply output
 
@@ -180,14 +192,14 @@ class FILD4_traject:
         if not bool(self.dat_ps):
             raise NameError('Power supply not loaded. Run load_power_supply')
 
-        max_insertion = 0.067 # m (FARO). Hardcoded
+        max_insertion = 0.067  # m (FARO). Hardcoded
         # Get the magnetic field in the coil
-        if B == None:
-            equ = sf.EQU(self.shot, diag = diag)
+        if B is None:
+            equ = sf.EQU(self.shot, diag=diag)
             R_coil = params.fild4['coil']['R_coil']
             Z_coil = params.fild4['coil']['Z_coil']
-            br, bz, bt = sf.rz2brzt(equ, r_in = R_coil, z_in = Z_coil,
-                                    t_in = self.dat_ps['time_V'])
+            br, bz, bt = sf.rz2brzt(equ, r_in=R_coil, z_in=Z_coil,
+                                    t_in=self.dat_ps['time_V'])
             B = abs(bt).squeeze()
         else:
             B = (abs(B)*np.ones(self.dat_ps['time_V'].shape)).squeeze()
@@ -205,15 +217,15 @@ class FILD4_traject:
             index = abs(V) > 0.5
             R_output = R_output[index]
             time_R = time_V[index]
-            index = (R_output<16)*(R_output>12)
+            index = (R_output < 16)*(R_output > 12)
             R_output = R_output[index]
             time_R = time_R[index]
             # Filter the values that are above the mean value
             flag = 0
             while flag == 0:
                 R_mean = R_output.mean()
-                time_R = time_R[abs((R_output-R_mean))<0.1*R_mean]
-                R_output = R_output[abs((R_output-R_mean))<0.1*R_mean]
+                time_R = time_R[abs((R_output-R_mean)) < 0.1*R_mean]
+                R_output = R_output[abs((R_output-R_mean)) < 0.1*R_mean]
                 if abs(R_mean-R_output.mean()) < 0.005*R_mean:
                     flag = 1
             if R_fit_order == 0:
@@ -259,8 +271,8 @@ class FILD4_traject:
                         'Resistance': R_fit}
         return
 
-    def get_dist2sep(self, t: float = None, diag = 'EQH', plot_sep: bool = True,
-                 plot_dist: bool = True):
+    def get_dist2sep(self, t: float = None, diag: str = 'EQH',
+                     plot_sep: bool = True, plot_dist: bool = True):
         """
         Wrapper for the FILD4 case for the dist2sep routine.
 
@@ -280,9 +292,9 @@ class FILD4_traject:
                               self.traject['position'])
         R_pos = params.fild4['coil']['R_parking']-insertion
         z_pos = params.fild4['coil']['Z_parking']*np.ones(t.shape)
-        self.dist2sep = get_dist2sep(shot = self.shot, R = R_pos, z = z_pos,
-                                 t = t, diag = diag, plot_sep = plot_sep,
-                                 plot_dist = False)
+        self.dist2sep = get_dist2sep(shot=self.shot, R=R_pos, z=z_pos,
+                                     t=t, diag=diag, plot_sep=plot_sep,
+                                     plot_dist=False)
 
         # Adaptated plot_dist. In terms of insertion instead of absolute pos.
         if plot_dist:
@@ -302,15 +314,15 @@ class FILD4_traject:
     def load_trajectory(self, path_traject: str = '',
                         version: int = -1):
         """
-        Load an already calculated trajectory
+        Load an already calculated trajectory.
 
         @param path_traject: if unused. Check in the default folder
         @param version: trajectory version to be loaded. -1 means last one
         """
         if path_traject == '':
             folder = os.path.join(paths.FILD4_trajectories,
-                                        'reconstructed_trajectories',
-                                        str(self.shot)[0:2])
+                                  'reconstructed_trajectories',
+                                  str(self.shot)[0:2])
             file_name = ''
             file_versions = []
             for file in os.listdir(folder):
@@ -326,14 +338,13 @@ class FILD4_traject:
                 raise NameError('Version not available')
             path_traject = os.path.join(folder, file_name)
 
-        data = np.loadtxt(path_traject, skiprows = 3, delimiter = '\t')
-        self.traject['time'] = data[:,0]
-        self.traject['position'] = data[:,1]
-        self.traject['velocity'] = data[:,2]
-        self.traject['Resistance'] = data[:,3]
+        data = np.loadtxt(path_traject, skiprows=3, delimiter='\t')
+        self.traject['time'] = data[:, 0]
+        self.traject['position'] = data[:, 1]
+        self.traject['velocity'] = data[:, 2]
+        self.traject['Resistance'] = data[:, 3]
 
         return
-
 
     def save_trajectory(self, path_save: str = '', comment: str = ''):
         """
@@ -348,9 +359,10 @@ class FILD4_traject:
 
         if path_save == '':
             folder = os.path.join(paths.FILD4_trajectories,
-                                        'reconstructed_trajectories',
-                                        str(self.shot)[0:2])
-            if not os.path.isdir(folder): os.mkdir(folder)
+                                  'reconstructed_trajectories',
+                                  str(self.shot)[0:2])
+            if not os.path.isdir(folder):
+                os.mkdir(folder)
             file_versions = []
             for file in os.listdir(folder):
                 if file.startswith(str(self.shot)):
@@ -361,9 +373,9 @@ class FILD4_traject:
         print('Saving in '+path_save)
         with open(path_save, 'w') as f:
             f.write('#'+str(self.shot)+'   Date: '+str(date.today()))
-            f.write('\nComment: '+ comment)
-            f.write('\nTime [s]\tInsertion [m]\tVelocity [m/s]'+
-                    '\tResistance [Ohm]')
+            f.write('\nComment: ' + comment)
+            f.write('\nTime [s]\tInsertion [m]\tVelocity [m/s]'
+                    + '\tResistance [Ohm]')
             for i in range(len(self.traject['time'])):
                 f.write('\n{:1.6}\t{:1.4}\t{:2.4}\t{:2.3}'.format(
                     self.traject['time'][i], self.traject['position'][i],
@@ -372,7 +384,7 @@ class FILD4_traject:
         return
 
     def plot_figs(self, traject: bool = True, power_supply: bool = True,
-             R_fit: bool = True):
+                  R_fit: bool = True):
         """
         @param traject
         @param power supply
@@ -380,21 +392,24 @@ class FILD4_traject:
         """
 
         nplots = 0
-        if power_supply: nplots += 2
-        if traject: nplots += 2
-        if R_fit: nplots += 1
+        if power_supply:
+            nplots += 2
+        if traject:
+            nplots += 2
+        if R_fit:
+            nplots += 1
 
-        if nplots == 0: raise NameError('No plots chosen')
-
+        if nplots == 0:
+            raise NameError('No plots chosen')
 
         id_plot = 0
-        fig, ax = plt.subplots(nplots, sharex = True)
+        fig, ax = plt.subplots(nplots, sharex=True)
         fig.suptitle('#'+str(self.shot))
         if power_supply:
             ax[id_plot].plot(self.dat_ps['time_V'], self.dat_ps['V'], '.',
-                              label = 'V power supply')
+                             label='V power supply')
             ax[id_plot].plot(self.dat_ps['time_V_goal'], self.dat_ps['V_goal'],
-                              '-r', label = 'V goal')
+                             '-r', label='V goal')
             ax[id_plot].set_ylabel('V [V]')
             ax[id_plot].grid(True)
             ax[id_plot].legend()

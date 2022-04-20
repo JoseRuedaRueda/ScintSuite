@@ -68,7 +68,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
                 np.fromfile(fid, 'int32', 1)[0].astype(bool)
             header['ncolumns'] = np.fromfile(fid, 'int32', 1)[0]
             header['counters'] = \
-                np.zeros((header['nXI'], header['ngyr']), np.int)
+                np.zeros((header['nXI'], header['ngyr']), int)
             data = np.empty((header['nXI'], header['ngyr']),
                             dtype=np.ndarray)
             header['scint_limits'] = {
@@ -214,7 +214,7 @@ def readFILDSIMstrikes(filename: str, verbose: bool = False):
     # --- Order the strike points in gyroradius and pitch angle
     data = np.empty((header['nXI'], header['ngyr']), dtype=np.ndarray)
     header['counters'] = np.zeros((header['nXI'], header['ngyr']),
-                                  dtype=np.int)
+                                  dtype=int)
     header['scint_limits'] = {  # for later histogram making
         'xmin': 300.,
         'xmax': -300.,
@@ -401,7 +401,7 @@ class Strikes:
                 w = np.ones(self.header['counters'][0, 0])
             self.ScintHistogram = {5: {}, 6: {}, 7: {}, 8: {}}
             for k in [5, 6, 7, 8]:
-                f = self.data[0, 0][:, column_kind].astype(np.int) == k
+                f = self.data[0, 0][:, column_kind].astype(int) == k
                 H, xedges, yedges = \
                     np.histogram2d(self.data[0, 0][f, colum_pos + 1],
                                    self.data[0, 0][f, colum_pos + 2],
@@ -511,7 +511,7 @@ class Strikes:
             self.histograms[varx + '_' + vary] = \
                 {0: {}, 5: {}, 6: {}, 7: {}, 8: {}}
             for k in [5, 6, 7, 8]:
-                f = self.data[0, 0][:, jk].astype(np.int) == k
+                f = self.data[0, 0][:, jk].astype(int) == k
                 H, xedges, yedges = \
                     np.histogram2d(self.data[0, 0][f, jx],
                                    self.data[0, 0][f, jy],
@@ -1130,7 +1130,7 @@ class Strikes:
             column_to_plot = self.header['info']['xs']['i']
         else:
             raise Exception('Not understood what do you want to plot')
-        
+
         nXI, ngyr = self.header['counters'].shape
         # See which gyroradius / pitch (R) we need
         if gyr_index is None:  # if None, use all gyroradii
@@ -1154,8 +1154,8 @@ class Strikes:
         if units not in ['m', 'cm', 'mm']:
             raise Exception('Not understood units?')
         possible_factors = {'m': 1.0, 'cm': 100.0, 'mm': 1000.0}
-        factor = possible_factors[units]        
-        
+        factor = possible_factors[units]
+
         with open(file_name_save, 'w') as f:
             for ig in index_gyr:
                 for ia in index_XI:
@@ -1166,10 +1166,9 @@ class Strikes:
                             x = self.data[ia, ig][flags, column_to_plot]
                             y = self.data[ia, ig][flags, column_to_plot + 1]
                             z = self.data[ia, ig][flags, column_to_plot + 2]
-                            
-                            for xs, ys,zs in zip(x, y, z):
+
+                            for xs, ys, zs in zip(x, y, z):
                                 f.write('%f %f %f \n'
                                         % (xs * factor,
                                            ys * factor,
                                            zs * factor))
-                            
