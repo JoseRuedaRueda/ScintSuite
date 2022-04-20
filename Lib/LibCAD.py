@@ -10,13 +10,11 @@ import warnings
 try:
     import open3d
 except ImportError:
-    warnings.warn('You cannot process CAD files',
-                  category=UserWarning)
+    print('Open3D not found. CAD file support limited')
 try:
     from stl import mesh
 except ImportError:
-    warnings.warn('You cannot process CAD files',
-                  category=UserWarning)
+    print('stl not found. CAD file support limited')
 
 
 def write_file_for_fortran(stlfile, outputfile, convert_mm_2_m=False):

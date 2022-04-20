@@ -1,9 +1,15 @@
+** 0.9.8: Rebujito release
+- Filtered Numpy Warnings
+- Small PEP8 corrections
+- Solved a bug in the fidasim.read.read_npa routine. kind of the markers was not being read
+- New FBM and NPA objects to load and plot the FIDASIM FI distribution function and neutral CX flux
+
 ** 0.9.7: Moving to SFUTILS.
 - Changed dd-libraries in LibData/AUG/Misc into sfutils.
 
 ** 0.9.6: Energy remap
 - Include the possibility to translate the remap to energy instead of rl (see the function translate_remap_to_energy of video object and the plot_frame remap for the needed input)
-- FILDgeometry/INPAgeometry atriutes in the video object just renamed to geometryID, idem with FILDposition, FILDorientation etc to simplify life
+- FILDgeometry/INPAgeometry atributes in the video object just renamed to geometryID, idem with FILDposition, FILDorientation etc to simplify life
 - Added a proper first_run script
 ** 0.9.5b Text and stl output functions added to evaluate SINPA data structures
 *** SimulationCodes Lib

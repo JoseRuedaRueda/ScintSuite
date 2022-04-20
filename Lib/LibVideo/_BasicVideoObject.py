@@ -198,7 +198,8 @@ class BVO:
                         self.timebase = png.read_data(self.path)
                 elif self.type_of_file == '.b16':
                     self.header, self.imageheader, self.settings,\
-                        self.timebase = pco.read_data(self.path, adfreq, t_trig)
+                        self.timebase = pco.read_data(
+                            self.path, adfreq, t_trig)
             if self.type_of_file is None:
                 raise Exception('Not file found!')
 
@@ -289,7 +290,7 @@ class BVO:
                     try:
                         self.exp_dat['frames'] = \
                             pco.read_frame(self, frames_number,
-                                       limitation=limitation, limit=limit)
+                                           limitation=limitation, limit=limit)
                     except TypeError:
                         raise Exception('Please insert frame number as array')
                     self.exp_dat['tframes'] = \

@@ -17,12 +17,8 @@ import Lib
 import os
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
+import f90nml
 
-try:
-    import f90nml
-except ImportError:
-    warnings.warn('You cannot read FILDSIM namelist nor remap',
-                  category=UserWarning)
 
 IHIBPSIM_ACTION_NAMES = ('tracker', 'ihibpsim', 'shot_remap')
 paths = Path(machine)
@@ -931,4 +927,3 @@ def check_files_many(runID: str, action: str='shot_remap'):
     for ii, nml in enumerate(nmls):
         ret_flags[ii] = check_files(nml, action=action)
     return ret_flags
-

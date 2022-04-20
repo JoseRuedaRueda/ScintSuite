@@ -6,24 +6,23 @@ import numpy as np
 import os
 from tqdm import tqdm
 from scipy.interpolate import interp1d
-import warnings
 import Lib.errors as errors
 try:
     import requests
 except ModuleNotFoundError:
-    warnings.warn('request package is not installed. Install it to read '
-                  + 'the magnetic phase corrections.')
+    print('request package is not installed. Install it to read '
+          + 'the magnetic phase corrections.')
 
 try:
     import re
 except ModuleNotFoundError:
-    warnings.warn('re package is not installed. Install it to read '
-                  + 'the magnetic phase corrections.')
+    print('re package is not installed. Install it to read '
+          + 'the magnetic phase corrections.')
 try:
     import shutil
 except ModuleNotFoundError:
-    warnings.warn('shutil package is not installed. Install it to read '
-                  + 'the magnetic phase corrections.')
+    print('shutil package is not installed. Install it to read '
+          + 'the magnetic phase corrections.')
 
 paths = Path(machine='AUG')
 

@@ -13,7 +13,7 @@ import datetime
 try:
     import lmfit
 except ImportError:
-    warnings.warn('lmfit not found, you cannot calculate resolutions')
+    print('lmfit not found, you cannot calculate resolutions')
 
 
 # -----------------------------------------------------------------------------
