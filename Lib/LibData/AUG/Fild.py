@@ -15,6 +15,7 @@ from Lib.LibPaths import Path
 from Lib.LibMap.Calibration import CalParams, readCameraCalibrationDatabase
 import Lib.LibData.AUG.DiagParam as params
 import Lib.errors as errors
+from Lib.decorators import deprecated
 paths = Path(machine)
 
 
@@ -55,10 +56,9 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
 
 
 # --- Auxiliar routines to load and plot FILD4 trajectory:
+@deprecated('Use the FILD4 object')
 def load_FILD4_trajectory(shot, path=paths.FILD4_trajectories):
     """
-    Deprecated function. Use the FILD4 object
-    
     Load FILD4 trajectory
 
     Jose Rueda: jrrueda@us.es
@@ -69,10 +69,6 @@ def load_FILD4_trajectory(shot, path=paths.FILD4_trajectories):
     @param shot: Shot number to load
     @param path: Path to the main folder with FILD4 trajectories
     """
-    print('--------------------')
-    print('Deprecated function. Use the FILD4 object in LibData')
-    print('--------------------')
-
     # --- Load the power supply output data
     shot_str = str(shot)
     try:
@@ -131,13 +127,12 @@ def load_FILD4_trajectory(shot, path=paths.FILD4_trajectories):
     return {'PSouput': PSouput, 'insertion': insertion, 'position': position}
 
 
+@deprecated('Use the FILD4 object')
 def plot_FILD4_trajectory(shot, PS_output=False, ax=None, ax_PS=None,
                           line_params={}, line_params_PS={}, overlay=False,
                           unit='cm'):
     """
-    Deprecated function. Use the FILD4 object
-
-    Plot FILD4 trajectory
+    Plot FILD4 trajectory.
 
     Jose Rueda: jrrueda@us.es
 
@@ -158,9 +153,6 @@ def plot_FILD4_trajectory(shot, PS_output=False, ax=None, ax_PS=None,
                     insertion will be plotted in arbitrary units on top of it.
                     ax input is mandatory for this
     """
-    print('--------------------')
-    print('Deprecated function. Use the FILD4 object in LibData')
-    print('--------------------')
     line_options = {
         'label': '#' + str(shot),
     }

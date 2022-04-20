@@ -546,7 +546,7 @@ def read_settings(filename):
     return data
 
 
-def read_npa(filename):
+def read_npa(filename, verbose: bool = True):
     """
     Read (I)NPA output files.
 
@@ -554,10 +554,11 @@ def read_npa(filename):
 
     @param filenam: name of the file to be read
     """
-    print('Reading file: ', filename)
+    if verbose:
+        print('Reading file: ', filename)
     with open(filename, 'rb') as fid:
         shot = int(np.fromfile(fid, 'int32', 1)[:])
-        time = int(np.fromfile(fid, 'float32', 1)[:])
+        time = float(np.fromfile(fid, 'float32', 1)[:])
         nr_npa = int(np.fromfile(fid, 'int32', 1)[:])
         counter = int(np.fromfile(fid, 'int32', 1)[:])
         data = {
@@ -571,8 +572,8 @@ def read_npa(filename):
                                (counter, 3), order='F'),
             'v': np.reshape(np.fromfile(fid, 'float32', counter * 3),
                             (counter, 3), order='F'),
-            'wght': np.fromfile(fid, 'float32', counter * 3),
-            'kind': np.fromfile(fid, 'float32', counter * 3),
+            'wght': np.fromfile(fid, 'float32', counter),
+            'kind': np.fromfile(fid, 'float32', counter),
         }
     return data
 
@@ -588,7 +589,7 @@ def read_fbm(filename):
     print('Reading file: ', filename)
     with open(filename, 'rb') as fid:
         data = {
-            'cdf_file': np.fromfile(fid, 'S1', 17)[:],
+            'cdf_file': np.fromfile(fid, 'S17', 1)[:],
             'cdf_time': np.fromfile(fid, 'float64', 1)[:],
             'fbm_gc': int(np.fromfile(fid, 'int32', 1)[:]),
             'afbm': np.fromfile(fid, 'float64', 1)[:],
@@ -597,6 +598,7 @@ def read_fbm(filename):
             'rmin': np.fromfile(fid, 'float64', 1)[:],
             'dr': np.fromfile(fid, 'float64', 1)[:],
         }
+        data['cdf_file'] = data['cdf_file'][0].decode()
         data['rgrid'] = np.fromfile(fid, 'float64', data['nr'])[:]
         # --- z grid
         data['nz'] = int(np.fromfile(fid, 'int32', 1)[:])
