@@ -81,9 +81,9 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     return rho
 
 
-def get_rho2rz(shot: int, flxlabel: float, diag: str = 'EQH', exp: str = 'AUGD',
-               ed: int = 0, time: float = None, coord_out: str = 'rho_pol',
-               equ=None):
+def get_rho2rz(shot: int, flxlabel: float, diag: str = 'EQH',
+               exp: str = 'AUGD', ed: int = 0, time: float = None,
+               coord_out: str = 'rho_pol', equ=None):
     """
     Gets the curves (R, z) associated to a given flux surface.
 
@@ -117,7 +117,6 @@ def get_rho2rz(shot: int, flxlabel: float, diag: str = 'EQH', exp: str = 'AUGD',
         equ.Close()
 
     return R, z, tout
-
 
 
 def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
@@ -224,7 +223,7 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
     PFxx = sf.GetSignal('PFxx').T
     ikCAT = np.argmin(abs(PFxx[1:, :] - PFxx[0, :]), axis=0) + 1
     ssq['psi_ax'] = PFxx[0, ...]
-    ssq['psi_sp'] =  [PFxx[iflux, ii] for ii, iflux in enumerate(ikCAT)]
+    ssq['psi_sp'] = [PFxx[iflux, ii] for ii, iflux in enumerate(ikCAT)]
 
     if new_equ_opened:
         sf.close()
@@ -312,7 +311,7 @@ def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
     PFxx = sf.GetSignal('PFxx').T
     ikCAT = np.argmin(abs(PFxx[1:, :] - PFxx[0, :]), axis=0) + 1
     psi_ax = np.tile(PFxx[0, ...], (pfl.shape[1], 1)).T
-    psi_edge =  [PFxx[iflux, ii] for ii, iflux in enumerate(ikCAT)]
+    psi_edge = [PFxx[iflux, ii] for ii, iflux in enumerate(ikCAT)]
     psi_edge = np.tile(np.array(psi_edge), (pfl.shape[1], 1)).T
 
     rhop = np.sqrt((pfl - psi_ax)/(psi_edge-psi_ax)).squeeze()
@@ -322,27 +321,31 @@ def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
         time = np.atleast_1d(time)
 
     if time is None:
-        output = { 'data': qpsi,
-                   'time': timebasis,
-                   'rhop': rhop
-                 }
+        output = {
+            'data': qpsi,
+            'time': timebasis,
+            'rhop': rhop
+        }
 
     elif len(time) == 1:
-        output = { 'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
-                   'time': time.squeeze(),
-                   'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze()
-                 }
+        output = {
+            'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
+            'time': time.squeeze(),
+            'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze()
+        }
     elif len(time) == 2:
         t0, t1 = np.searchsorted(timebasis, time)
-        output = { 'data': qpsi[t0:t1, ...].squeeze(),
-                   'time': timebasis[t0:t1].squeeze(),
-                   'rhop': rhop[t0:t1, ...].squeeze(),
-                 }
+        output = {
+            'data': qpsi[t0:t1, ...].squeeze(),
+            'time': timebasis[t0:t1].squeeze(),
+            'rhop': rhop[t0:t1, ...].squeeze(),
+        }
     else:
-         output = { 'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
-                    'time': time.squeeze(),
-                    'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze(),
-                 }
+         output = {
+            'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
+            'time': time.squeeze(),
+            'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze(),
+         }
 
     if sf_new:
         sf.close()
@@ -446,11 +449,12 @@ def get_ECRH_traces(shot: int, time: float = None, ec_list: list = None):
     # Reading the total power
     name = 'PECRH'
     pecrh = sfecs(name=name)
-    output['total'] = { 'time': timebase,
-                        'power': interp1d(pecrh.time, pecrh.data,
+    output['total'] = {
+        'time': timebase,
+        'power': interp1d(pecrh.time, pecrh.data,
                                           bounds_error=False,
                                           fill_value=0.0)(timebase)*1.e-6
-                      }
+    }
 
     warnings.filterwarnings('default', category=RuntimeWarning)
 
@@ -491,15 +495,17 @@ def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None):
     pecrh = pecrh[t0:t1]
     time = time[t0:t1]
 
-    output = { 'power': pecrh,
-               'time': time
-             }
+    output = {
+        'power': pecrh,
+        'time': time
+    }
 
     return output
 
+
 def getPrad_total(shot: int, tBeg: float = None, tEnd: float = None):
     """
-    Returns the total radiated power from the BPD shotfile in AUG.
+    Return the total radiated power from the BPD shotfile in AUG.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
@@ -531,8 +537,9 @@ def getPrad_total(shot: int, tBeg: float = None, tEnd: float = None):
     prad = prad[t0:t1]
     time = time[t0:t1]
 
-    output = { 'power': prad,
-               'time': time
-             }
+    output = {
+        'power': prad,
+        'time': time
+    }
 
     return output

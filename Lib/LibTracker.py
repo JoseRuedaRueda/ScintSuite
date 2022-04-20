@@ -1,12 +1,7 @@
 """Contains the methods and classes to interact with iHIBPsim tracker"""
 
-import warnings
 import numpy as np
-try:
-    import f90nml
-except ImportError:
-    warnings.warn('You cannot read FILDSIM namelist nor remap',
-                  category=UserWarning)
+import f90nml
 
 
 # -----------------------------------------------------------------------------
@@ -247,6 +242,7 @@ def write_namelist_legacy_(name_of_namelist_file: str,
         print("", file=f, sep='')
         # ---------------------------------------------------------------------
     print('Namelist written: ', name_of_namelist_file)
+
 
 def cart2pol(r, v=None):
     """

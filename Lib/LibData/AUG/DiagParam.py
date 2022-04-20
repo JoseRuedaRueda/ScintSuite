@@ -2,8 +2,7 @@
 
 import numpy as np
 import Lib.errors as errors
-import warnings
-from math import pi as pi
+from math import pi
 # -----------------------------------------------------------------------------
 # --- AUG parameters
 # -----------------------------------------------------------------------------
