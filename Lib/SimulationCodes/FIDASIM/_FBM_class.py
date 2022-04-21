@@ -14,6 +14,12 @@ class FBM:
     Jose Rueda: jrrueda@us.es
 
     Note: only fulle tested with axi-symmetric distributions
+
+    Public methods:
+        - plotRZ: Plot the FI density (R,Z)
+        - plotEPatRZ: Plot the FI distribution on E, pitch at a given R, Z
+        - plotInt: integrate the FI distribution along 3 ranges in 3 of the
+            variables and plot the results vs the 4th
     """
 
     def __init__(self, filename: str, verbose: bool = True):
@@ -168,7 +174,14 @@ class FBM:
         """
         Plot the 1D results of performing a 3D integration
 
-        Note, at least 3 interval should be given
+        Note, 3 and only 3 intervals should be given
+
+        @param R: Tuple containing (Rmin, Rmax) for the integration
+        @param z: Tuple containing (zmin, zmax) for the integration
+        @param E: Tuple containing (Emin, Emax) for the integration
+        @param P: Tuple containing (Pmin, Pmax) for the integration
+        @param line_params: dictionary with line parameters for matplotlib
+        @param verbose: if True, print some basic infor in the console
         """
         possible = {
             'R': 'R',

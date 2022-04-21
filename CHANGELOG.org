@@ -3,6 +3,7 @@
 - Small PEP8 corrections
 - Solved a bug in the fidasim.read.read_npa routine. kind of the markers was not being read
 - New FBM and NPA objects to load and plot the FIDASIM FI distribution function and neutral CX flux
+- FIDASIM library re-written
 
 ** 0.9.7: Moving to SFUTILS.
 - Changed dd-libraries in LibData/AUG/Misc into sfutils.

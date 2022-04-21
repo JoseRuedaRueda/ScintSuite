@@ -1,10 +1,18 @@
 """
 Read FIDASIM Outputs
 
-pcano, 12/2020
+Base created by Plar Cano: pcano@us.es and ajvv. Adapted and extended by
+Jose Rueda: jrrueda@us.es
+
 Python reading routines for FIDASIM output
-Still to implement: NPA, weighting functions, Zeeman lines
+
+Contains:
+    - read_neutrals
+    - read_spec
+    - read_grid
+Still to implement: weighting functions, Zeeman lines
 """
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import Lib.LibParameters as sspar
@@ -14,26 +22,34 @@ def read_neutrals(filename: str):
     """
     Read the NBI and Halo neutrals
 
-    pcano
+    Plar Cano: pcano@us.es and Jose Rueda: jrrueda@us.es
 
-    @param filename: name of the folder with FIDASIM the results
+    @param filename: name of the neutral file to read
+
+    @return data: Dictionary containing:
+        - shot: shot number
+        - time: time point [s]
+        - nx, ny, nz: grid size
+        - nlevs: number of spectra levels
+        - fdens: density of 1 energy neutrals (nl, nz, ny, nx)
+        - hdens: density of 2nd energy neutrals (nl, nz, ny, nx)
+        - tdens: density of 3rd energy neutrals (nl, nz, ny, nx)
+        - halodens: density of halo neutrals (nl, nz, ny, nx)
+        - dcxdens: [optional] density of direct CX neutrals (nl, nz, ny, nx)
     """
-    data = {}
     float_type = np.single
 
-    with open('%s/neutrals.bin' % (filename), 'rb') as fh:
-        dumm = np.fromfile(fh, dtype=float_type, count=1)
-        print(dumm)
-        dumm = np.fromfile(fh, dtype=float_type, count=1)
-        print(dumm)
-
-        data['nx'] = np.fromfile(fh, dtype=float_type, count=1)
-        data['ny'] = np.fromfile(fh, dtype=float_type, count=1)
-        data['nz'] = np.fromfile(fh, dtype=float_type, count=1)
-        data['nlevs'] = np.fromfile(fh, dtype=float_type, count=1)
-        (nx, ny, nz, nl) = (np.int(data['nx']), np.int(data['ny']),
-                            np.int(data['nz']), np.int(data['nlevs']))
-        dim = np.int(nx*ny*nz*nl)
+    with open(filename, 'rb') as fh:
+        data = {
+            'shot': int(np.fromfile(fh, dtype=float_type, count=1)),
+            'time': float(np.fromfile(fh, dtype=float_type, count=1)),
+            'nx': int(np.fromfile(fh, dtype=float_type, count=1)),
+            'ny': int(np.fromfile(fh, dtype=float_type, count=1)),
+            'nz': int(np.fromfile(fh, dtype=float_type, count=1)),
+            'nlevs': int(np.fromfile(fh, dtype=float_type, count=1)),
+        }
+        (nx, ny, nz, nl) = (data['nx'], data['ny'], data['nz'], data['nlevs'])
+        dim = nx*ny*nz*nl
 
         data['fdens'] = np.fromfile(fh, dtype=float_type,
                                     count=dim).reshape(nl, nz, ny, nx)
@@ -47,8 +63,11 @@ def read_neutrals(filename: str):
             data['dcxdens'] = np.fromfile(fh, dtype=float_type,
                                           count=dim).reshape(nl, nz, ny, nx)
         except EOFError:
+            print('dcxdens not written in the file')
             pass
-    # fh.close()
+        except ValueError:
+            print('dcxdens not written in the file')
+            pass
     return data
 
 
@@ -56,15 +75,18 @@ def read_spec(filename: str, spectra_stark_resolved: bool = True):
     """
     Read the spectral lines
 
-    @param filename: name of the folder with FIDASIM the results
+    Plar Cano: pcano@us.es
+
+    @param filename: name of the file with FIDASIM the results
     @param spectra_stark_resolved: If there stark resolved data was simulated
     """
     data = {}
     int_type = np.int32
     float_type = np.single
     long_type = np.single
-    with open('%s/nbi_halo_spectra.bin' % (filename), 'rb') as fh:
+    with open(filename, 'rb') as fh:
         dumm = np.fromfile(fh, dtype=int_type, count=1)[0]  # shot
+        data['shot'] = dumm
         print('Shot number:', dumm)
         nstark = np.fromfile(fh, dtype=long_type, count=1)[0]
         if nstark == 15:
@@ -107,22 +129,27 @@ def read_spec(filename: str, spectra_stark_resolved: bool = True):
                                           count=dim).reshape(nlo, nla)
             except EOFError:
                 pass
-
-    data['rho_diag'] = read_rho_diag(filename)
+    folder, file = os.path.split(filename)
+    rhofile = os.path.join(folder, 'rhodiag.bin')
+    data['rho_diag'] = read_rho_diag(rhofile)
     return data
 
 
-def read_grid(filename):
+def read_grid(filename: str):
     """
     Read the FIDASIM grid
 
-    @param filename: name of the folder with FIDASIM the results
+    Plar Cano: pcano@us.es and Jose Rueda: jrrueda@us.es
+
+    @param filename: name of the file with the FIDASIM4 grid
+
+    @return grid: used grid in FIDASIM
     """
     grid = {}
     int_type = np.int32
     double_type = np.float64
-    print(filename)
-    with open('%s/grid.bin' % (filename), 'rb') as fh:
+    print('Reading: ', filename)
+    with open(filename, 'rb') as fh:
         grid['nx'] = np.fromfile(fh, dtype=int_type, count=1)[0]
         grid['dx'] = np.fromfile(fh, dtype=double_type, count=1)[0]
         grid['xmin'] = np.fromfile(fh, dtype=double_type, count=1)[0]
@@ -146,49 +173,62 @@ def read_grid(filename):
         grid['ntrack'] = np.fromfile(fh, dtype=int_type, count=1)[0]
         grid['dl'] = np.fromfile(fh, dtype=double_type, count=1)[0]
 
-        grid['xx'] = np.fromfile(fh, dtype=double_type, count=grid['nx']),
-        grid['yy'] = np.fromfile(fh, dtype=double_type, count=grid['ny']),
-        grid['zz'] = np.fromfile(fh, dtype=double_type, count=grid['nz']),
-        grid['rr'] = np.fromfile(fh, dtype=double_type, count=grid['nr']),
-    fh.close()
-    grid['xaxis'] = np.linspace(grid['xmin'], grid['xmax'], grid['nx']),
-    grid['yaxis'] = np.linspace(grid['ymin'], grid['ymax'], grid['ny']),
-    grid['zaxis'] = np.linspace(grid['zmin'], grid['zmax'], grid['nz']),
+        grid['xx'] = np.fromfile(fh, dtype=double_type, count=grid['nx'])
+        grid['yy'] = np.fromfile(fh, dtype=double_type, count=grid['ny'])
+        grid['zz'] = np.fromfile(fh, dtype=double_type, count=grid['nz'])
+        grid['rr'] = np.fromfile(fh, dtype=double_type, count=grid['nr'])
+
+    grid['xaxis'] = np.linspace(grid['xmin'], grid['xmax'], grid['nx'])
+    grid['yaxis'] = np.linspace(grid['ymin'], grid['ymax'], grid['ny'])
+    grid['zaxis'] = np.linspace(grid['zmin'], grid['zmax'], grid['nz'])
     return grid
 
 
-def read_profiles(filename):
+def read_profiles(filename: str):
     """
     Read used profiles
 
-    @param filename: name of the folder with FIDASIM the results
+    @param filename: mane of the profile fidasim file
+
+    @return profile dict containing:
+        - nrho: number of poins of the grid
+        - drho: rho spacing
+        - rho: rho axis
+        - te, ti: electron and ion temperatures [] (nrho)
+        - dene: electron density [] (nrho)
+        - denp: main ion density [] (nrho)
+        - deni: impurity density [] (nrho)
+        - vtor: toroidal rotation [] (nrho)
+        - zeff: Zeff [] (nrho)
+        - background_dens: bck neutral density [] (nrho)
+        - rho_str: string indicating if rho is toroidal or poloidal
+
     """
-    profiles = {}
     int_type = np.int32
     double_type = np.float64
-    str_type = '|S1'
+    str_type = '|S5'
 
-    with open('%s/profiles.bin' % (filename), 'rb') as fh:
+    with open(filename, 'rb') as fh:
         nrho = np.fromfile(fh, dtype=int_type, count=1)[0]
-        profiles['drho'] = np.fromfile(fh, dtype=double_type, count=1)[0]
-        profiles['rho'] = np.fromfile(fh, dtype=double_type, count=nrho)
-        profiles['te'] = np.fromfile(fh, dtype=double_type, count=nrho)
-        profiles['ti'] = np.fromfile(fh, dtype=double_type, count=nrho)
-        profiles['dene'] = np.fromfile(fh, dtype=double_type, count=nrho)
-        profiles['denp'] = np.fromfile(fh, dtype=double_type, count=nrho)
-        profiles['deni'] = np.fromfile(fh, dtype=double_type, count=nrho)
-        profiles['vtor'] = np.fromfile(fh, dtype=double_type, count=nrho)
-        profiles['zeff'] = np.fromfile(fh, dtype=double_type, count=nrho)
-        profiles['background_dens'] = np.fromfile(fh, dtype=double_type,
-                                                  count=nrho)
-        profiles['rho_str'] = np.fromfile(fh, dtype=str_type,
-                                          count=5).tostring()
-    fh.close()
-    profiles['nrho'] = nrho
+        profiles = {
+            'nrho': nrho,
+            'drho': np.fromfile(fh, dtype=double_type, count=1)[0],
+            'rho': np.fromfile(fh, dtype=double_type, count=nrho),
+            'te': np.fromfile(fh, dtype=double_type, count=nrho),
+            'ti': np.fromfile(fh, dtype=double_type, count=nrho),
+            'dene': np.fromfile(fh, dtype=double_type, count=nrho),
+            'denp': np.fromfile(fh, dtype=double_type, count=nrho),
+            'deni': np.fromfile(fh, dtype=double_type, count=nrho),
+            'vtor': np.fromfile(fh, dtype=double_type, count=nrho),
+            'zeff': np.fromfile(fh, dtype=double_type, count=nrho),
+            'background_dens': np.fromfile(fh, dtype=double_type, count=nrho),
+            'rho_str': np.fromfile(fh, dtype=str_type, count=1)[0].decode()
+        }
     return profiles
 
 
-def read_fida(filename, spectra_stark_resolved=1, nstark=-1):
+def read_fida(filename: str, spectra_stark_resolved: bool = True,
+              nstark: int = -1):
     """
     Read FIDA simulated signal
 
@@ -232,7 +272,6 @@ def read_fida(filename, spectra_stark_resolved=1, nstark=-1):
             except EOFError:
                 pass
 
-    fh.close()
     return data
 
 
@@ -240,41 +279,68 @@ def read_rho_diag(filename):
     """
     Read rho coorditantes
 
-    @param filename: name of the folder with FIDASIM the results
+    Plar Cano: pcano@us.es and Jose Rueda: jrrueda@us.es
+
+    @param filename: name of the file with the rho coordinates
+
+    @return data: dictionary containing the coordinates
+        - dim: dimenssion of the grid
+        - rhot: rho toroidal
+        - rhop: rho poloidal
     """
     data = {}
     int_type = np.int32
     double_type = np.float64
-    with open('%s/rhodiag.bin' % (filename), 'rb') as fh:
-        dim = np.fromfile(fh, dtype=int_type, count=1)
-        data['rhop'] = np.fromfile(fh, dtype=double_type, count=dim)
-        data['rhot'] = np.fromfile(fh, dtype=double_type, count=dim)
-    fh.close()
+    with open(filename, 'rb') as fh:
+        dim = int(np.fromfile(fh, dtype=int_type, count=1)[0])
+        data = {
+            'dim': dim,
+            'rhop': np.fromfile(fh, dtype=double_type, count=dim),
+            'rhot': np.fromfile(fh, dtype=double_type, count=dim),
+        }
     return data
 
 
-def read_field(filename, nr=-1, nz=-1):
+def read_field(filename, nr: int = None, nz: int = None):
     """
     Read the electromagnetic field
 
-    @param filename: name of the folder with FIDASIM the results
-    """
-    data = {}
-    double_type = np.float64
+    Plar Cano: pcano@us.es and Jose Rueda: jrrueda@us.es
 
-    if nr == -1 or nz == -1:
-        grid = read_grid(filename)
+    @param filename: name of the field file
+    @param nr: number of grid points in r direction
+    @param nz: number of grid points in z direction
+
+    @return: dict containing:
+        - brzt: field Br, Bz, Bt [T], (3, nr, nz)
+        - efield: electric field Er, Ez, Et [V/cm]
+        - rho_grid: rho grid
+        - grid: spatial grid, only if nr or nz were None
+
+    Note: Only works with 2D fields!
+    Note: if nr or nz are None, the grid saved in the same folder will be load
+    and used
+    """
+    double_type = np.float64
+    readed_grid = False
+    if (nr is None) or (nz is None):
+        folder, file = os.path.split(filename)
+        grid = read_grid(os.path.join(folder, 'grid.bin'))
         (nr, nz) = (grid['nr'], grid['nz'])
+        readed_grid = True
     dim = nr*nz*3
-    print(dim, nr, nz)
-    with open('%s/field.bin' % (filename), 'rb') as fh:
-        data['brzt'] = np.fromfile(fh, dtype=double_type,
-                                   count=dim).reshape(3, nz, nr)
-        data['efield'] = np.fromfile(fh, dtype=double_type,
-                                     count=dim).reshape(3, nz, nr)
-        data['rho_grid'] = np.fromfile(fh, dtype=double_type,
-                                       count=nr*nz).reshape(nz, nr)
-    fh.close()
+
+    with open(filename, 'rb') as fh:
+        data = {
+            'brzt': np.fromfile(fh, dtype=double_type,
+                                count=dim).reshape(3, nz, nr),
+            'erzt': np.fromfile(fh, dtype=double_type,
+                                count=dim).reshape(3, nz, nr),
+            'rho_grid': np.fromfile(fh, dtype=double_type,
+                                    count=nr*nz).reshape(nz, nr)
+        }
+    if readed_grid:
+        data['grid'] = grid
     return data
 
 
@@ -282,12 +348,17 @@ def read_diag(filename):
     """
     Read the diagnostic
 
-    @param filename: name of the folder with FIDASIM the results
+    Plar Cano: pcano@us.es and Jose Rueda: jrrueda@us.es
+
+    @param filename: name of the file with the fidasim diagnostic
+
+    Note: still have done, weights of LOS not read, neither alpha and beta for
+        the INPA
     """
     data = {}
     int_type = np.int32
     double_type = np.float64
-    with open('%s/diag.bin' % (filename), 'rb') as fh:
+    with open(filename, 'rb') as fh:
         nchan = np.fromfile(fh, dtype=int_type, count=1)[0]
         data['nchan'] = nchan
         data['xyzhead'] = np.fromfile(fh, dtype=double_type,
@@ -319,6 +390,8 @@ def read_spac_res(filename, nr=-1, nz=-1, nchan=-1, stell_ind=0.0):
     """
     Read spac res
 
+    Plar Cano: pcano@us.es
+
     @param filename: name of the folder with FIDASIM the results
     """
     data = {}
@@ -330,7 +403,7 @@ def read_spac_res(filename, nr=-1, nz=-1, nchan=-1, stell_ind=0.0):
     if nchan == -1:
         diag = read_diag(filename)
         nchan = diag['nchan']
-    with open('%s/spac_res.bin' % (filename), 'rb') as fh:
+    with open(filename, 'rb') as fh:
         data['spac_res'] = \
             np.fromfile(fh, dtype=float_type,
                         count=nr*nz*nchan).reshape(nchan, nz, nr)
@@ -344,24 +417,27 @@ def read_bremmstrahlung(filename, lambda_in=np.asarray([0]), diag=None,
     """
     Read Bremmstrahlung data
 
-    @param filename: name of the folder with FIDASIM the results
+    Plar Cano: pcano@us.es
+
+    @param filename: file with FIDASIM results
     """
     data = {}
     h_planck = sspar.h_planck
     c0 = sspar.c
+    folder, file = os.path.split(filename)
     if grid is None:
-        grid = read_grid(filename)
+        grid = read_grid(os.path.join(folder, 'grid.bin'))
     if diag is None:
-        diag = read_diag(filename)
+        diag = read_diag(os.path.join(folder, 'diag.bin'))
     if settings is None:
-        settings = read_settings(filename)
+        settings = read_settings(os.path.join(folder, 'namelist.dat'))
     if prof is None:
-        prof = read_profiles(filename)
+        prof = read_profiles(os.path.join(folder, 'profiles.bin'))
     if lambda_in[0] == 0:
-        spectra = read_spec(filename)
+        spectra = read_spec(os.path.join(folder, 'nbi_halo_spectra.bin'))
         lambda_in = spectra['lambda']
     if field is None:
-        field = read_field(filename)
+        field = read_field(os.path.join(folder, 'field.bin'))
 
     wavel = lambda_in * 1.e-9
     dl = grid['dl'] / 2.   # step length
@@ -475,14 +551,16 @@ def read_bremmstrahlung(filename, lambda_in=np.asarray([0]), diag=None,
     return data
 
 
-def read_settings(filename):
+def read_settings(filename: str):
     """
     Read FIDASIM settings
 
-    @param filename: name of the folder with FIDASIM the results
+    Plar Cano: pcano@us.es
+
+    @param filename: name of the FIDASIM namelist file
     """
     data = {}
-    f = open('%s/namelist.dat' % (filename), 'r')
+    f = open(filename, 'r')
     f.readline()
     data['path'] = f.readline().split('\n')[0]
     data['device'] = f.readline().split('\n')[0]

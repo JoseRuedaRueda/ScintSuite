@@ -31,6 +31,7 @@ class DatabaseError(Exception):
 
     pass
 
+
 # --- Logbook related exceptions
 class NotFoundCameraCalibration(Exception):
     """Camera calibration to align the scintillator is not found."""
@@ -57,8 +58,8 @@ class FoundSeveralGeomID(Exception):
 
 
 class NotFoundAdqFreq_or_ttrig(Exception):
-    """Either the frequency of adquisition function or the time trigger
-    function are not found."""
+    """Either frequency of adquisition or trigger were not found."""
+
     pass
 
 
@@ -69,13 +70,12 @@ class WrongNamelist(Exception):
 
     For example when you ask for 6 gyroradius but just give 6 of them
     """
+
     pass
 
 
 # --- Video related exception
 class NoFramesLoaded(Exception):
-    """
-    To be raised when the use user try to do something in the frames before
-    loading them
-    """
+    """Raised when you try to do something with the frames before loading   """
+
     pass
