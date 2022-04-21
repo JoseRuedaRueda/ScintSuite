@@ -19,6 +19,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from Lib.LibPlotting import axis_beauty, axisEqual3D, clean3Daxis
 import Lib.LibPlotting as ssplt
+import Lib.errors as errors
+import Lib.LibData as ssdat
 from copy import deepcopy
 paths = Path(machine)
 
@@ -129,6 +131,10 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
                             header['scint_limits']['ymax'] = \
                                 max(header['scint_limits']['ymax'],
                                     data[ia, ig][:, zcolum].max())
+            # Read the time
+            if plate.lower() == 'signalscintillator':
+                header['time'] = float(np.fromfile(fid, 'float32', 1)[0])
+                header['shot'] = int(np.fromfile(fid, 'int32', 1)[0])
         # Calculate the radial position if it is a INPA simulation
         if not header['FILDSIMmode']:
             iix = header['info']['x0']['i']
@@ -1017,13 +1023,13 @@ class Strikes:
                                                 self.data[ia, ig][:, iiy],
                                                 calibration)
                     if overwrite:
-                        self.data[ia, ig][:, iixcam] = xp
-                        self.data[ia, ig][:, iiycam] = yp
+                        self.data[ia, ig][:, iixcam] = xp.copy()
+                        self.data[ia, ig][:, iiycam] = yp.copy()
                     else:
                         n_strikes = self.header['counters'][ia, ig]
                         cam_data = np.zeros((n_strikes, 2))
-                        cam_data[:, 0] = xp
-                        cam_data[:, 1] = yp
+                        cam_data[:, 0] = xp.copy()
+                        cam_data[:, 1] = yp.copy()
                         self.data[ia, ig] = \
                             np.append(self.data[ia, ig], cam_data, axis=1)
         if not overwrite:
@@ -1172,3 +1178,81 @@ class Strikes:
                                         % (xs * factor,
                                            ys * factor,
                                            zs * factor))
+
+    def caclualtePitch(self, Boptions: dict = {}, IPBtSign: float = -1.0):
+        """
+        Calculate the pitch of the markers
+
+        Jose Rueda: jrrueda@us.es
+
+        Note: This function only works for INPA markers
+        Note2: This is mainly though to be used for FIDASIM markers, no mapping
+        for these guys, there is only one set of data, so is nice. If you use
+        it for the mapping markers, there would be ngyr x nR set of data and
+        the magnetic field shotfile will be open those number of times. Not the
+        end of the world, but just to have it in mind. A small work arround
+        could be added if needed, althoug that would imply something like:
+        if machine == 'AUG'... which I would like to avoid
+
+        @param Boptions: extra parameters for the calculation of the magnetic
+            field
+        """
+        # Only works for INPA markers, return error if we try with FILD
+        if self.header['FILDSIMmode']:
+            raise errors.NotValidInput('Hey! This is only for INPA')
+        # See if we need to overwrite
+        if 'pitch0' in self.header['info'].keys():
+            print('The pitch values are there, we will overwrite them')
+            overwrite = True
+            ipitch0 = self.header['info']['pitch0']['i']
+        else:
+            overwrite = False
+        # Get the index for the needed variables
+        ir = self.header['info']['R0']['i']          # get the index
+        iz = self.header['info']['z0']['i']
+        ix = self.header['info']['x0']['i']
+        iy = self.header['info']['y0']['i']
+        ivz = self.header['info']['vz0']['i']
+        ivx = self.header['info']['vx0']['i']
+        ivy = self.header['info']['vy0']['i']
+        for ig in range(self.header['ngyr']):
+            for ia in range(self.header['nXI']):
+                if self.header['counters'][ia, ig] > 0:
+                    phi = np.arctan2(self.data[ia, ig][:, iy],
+                                     self.data[ia, ig][:, ix])
+                    br, bz, bt, bp =\
+                        ssdat.get_mag_field(self.header['shot'],
+                                            self.data[ia, ig][:, ir],
+                                            self.data[ia, ig][:, iz],
+                                            time=self.header['time'],
+                                            **Boptions)
+                    bx = br*np.cos(phi) - bt*np.sin(phi)
+                    by = - br*np.cos(phi) + bt*np.cos(phi)
+                    b = np.sqrt(bx**2 + by**2 + bz**2).squeeze()
+                    v = np.sqrt(self.data[ia, ig][:, ivx]**2
+                                + self.data[ia, ig][:, ivy]**2
+                                + self.data[ia, ig][:, ivz]**2)
+                    pitch = (self.data[ia, ig][:, ivx] * bx
+                             + self.data[ia, ig][:, ivy] * by
+                             + self.data[ia, ig][:, ivz] * bz).squeeze()
+                    pitch /= v*b*IPBtSign
+                    if overwrite:
+                        self.data[ia, ig][:, ipitch0] = pitch.copy()
+                    else:
+                        print(self.data[ia, ig].shape)
+                        print(np.atleast_2d(pitch.copy()).T.shape)
+                        self.data[ia, ig] = \
+                            np.append(self.data[ia, ig],
+                                      np.atleast_2d(pitch.copy()).T, axis=1)
+
+        if not overwrite:
+            Old_number_colums = len(self.header['info'])
+            extra_column = {
+                'pitch0': {
+                    'i': Old_number_colums,  # Column index in the file
+                    'units': ' []',  # Units
+                    'longName': 'Pitch',
+                    'shortName': '$\\lambda_{0}$',
+                },
+            }
+            self.header['info'].update(extra_column)

@@ -2,6 +2,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import Lib.LibData as ssdat
 from Lib.SimulationCodes.FIDASIM._read import read_npa
 
 
@@ -10,6 +11,10 @@ class NPA():
     NPA FIDASIM markers
 
     Jose Rueda: jrrueda@us.es
+
+    Public methods:
+        - plot1Dhistogram: plot a 1D histogram of the markers variables
+        - calculatePitch: calculate_pitch of the markers
     """
 
     def __init__(self, filename, A=2.014, verbose: bool = True):
@@ -27,6 +32,8 @@ class NPA():
             * 1.660538782e-27 / 1.602176487e-19 / 1000.0/1.0e4
         self._dat['Ri'] = np.sqrt(self._dat['ipos'][:, 0]**2
                                   + self._dat['ipos'][:, 1]**2)
+        self._dat['Rf'] = np.sqrt(self._dat['fpos'][:, 0]**2
+                                  + self._dat['fpos'][:, 1]**2)
         # Print the information
         if verbose:
             print('shot: %i' % self._dat['shot'])
@@ -70,3 +77,36 @@ class NPA():
         if normalise:
             H /= H.max()
         ax.plot(xcenter, H, **line_params)
+        if created:
+            ax.set_ylabel('CX flux [a.u.]')
+            ax.set_xlabel(var)
+
+    def calculatePitch(self, Boptions: dict = {}, IpBtSign: float = -1.0):
+        """
+        Calculate the pitch of the FIDASIM markers
+
+        Jose Rueda Rueda: jrrueda@us.es
+
+        @param Boptions: extra options for the routine which calculate the
+            magnetic field
+        @param IpBtSign: +-1, for the definition of the pitch angle
+        """
+        keys = [['ipos', 'Ri', 'ipitch'], ['fpos', 'Rf', 'fpitch']]
+
+        for ks in keys:
+            br, bz, bt, bp =\
+                ssdat.get_mag_field(self._dat['shot'], self._dat[ks[1]],
+                                    self._dat[ks[0]][:, 2],
+                                    time=self._dat['time'],
+                                    **Boptions)
+            phi = np.arctan2(self._dat[ks[0]][:, 1], self._dat[ks[0]][:, 0])
+
+            bx = br*np.cos(phi) - bt*np.sin(phi)
+            by = - br*np.cos(phi) + bt*np.cos(phi)
+            b = np.sqrt(bx**2 + by**2 + bz**2).squeeze()
+            v = np.sqrt((self._dat['v']**2).sum(axis=-1))
+            pitch = (self._dat['v'][:, 0] * bx
+                     + self._dat['v'][:, 1] * by
+                     + self._dat['v'][:, 2] * bz).squeeze()
+            pitch /= v*b*IpBtSign
+            self._dat[ks[2]] = pitch
