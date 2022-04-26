@@ -179,8 +179,8 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
     # Checking the inputs.
     new_equ_opened = False
     try:
-        sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber,
-                         experiment=exp, edition=edition)
+        sfo = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber,
+                          experiment=exp, edition=edition)
         new_equ_opened = True
     except:
         raise errors.DatabaseError('EQU shotfile cannot be opened.')
@@ -188,7 +188,7 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
     # Deactivate the nasty warnings for a while.
     warnings.filterwarnings('ignore', category=DeprecationWarning)
     warnings.filterwarnings('ignore', category=RuntimeWarning)
-    eqh_time = np.asarray(sf(name='time').data)  # Time data.
+    eqh_time = np.asarray(sfo(b'time').data)  # Time data.
 
     # Checking the time data.
     if time is not None:
@@ -206,8 +206,8 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
         t1 = np.abs(eqh_time.flatten() - time[-1]).argmin() + 1
 
     # Getting the names and the SSQ data.
-    eqh_ssqnames = sf.GetSignal(name='SSQnam')
-    eqh_ssq = sf.GetSignal(name='SSQ')
+    eqh_ssqnames = sfo.GetSignal(name='SSQnam')
+    eqh_ssq = sfo.GetSignal(name='SSQ')
     warnings.filterwarnings('default')
 
     # Unpacking the data.
@@ -220,13 +220,13 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
 
     # Reading from the equilibrium the magnetic flux at the axis and in the
     # separatrix.
-    PFxx = sf.GetSignal('PFxx').T
+    PFxx = sfo.GetSignal('PFxx').T
     ikCAT = np.argmin(abs(PFxx[1:, :] - PFxx[0, :]), axis=0) + 1
     ssq['psi_ax'] = PFxx[0, ...]
     ssq['psi_sp'] = [PFxx[iflux, ii] for ii, iflux in enumerate(ikCAT)]
 
     if new_equ_opened:
-        sf.close()
+        sfo.close()
 
     # Adding the time.
     ssq['time'] = np.atleast_1d(eqh_time[t0:t1])

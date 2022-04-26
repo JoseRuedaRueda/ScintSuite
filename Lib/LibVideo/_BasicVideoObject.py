@@ -24,6 +24,7 @@ import Lib.LibVideo.AuxFunctions as aux
 import Lib.LibData as ssdat
 import Lib.LibUtilities as ssutilities
 import Lib.LibPlotting as ssplt
+import Lib.LibTimeTraces as sstt
 import Lib.GUIs as ssGUI
 import Lib.errors as errors
 import tkinter as tk
@@ -159,8 +160,8 @@ class BVO:
                     break
 
                 # To stablish the format, count to 3 to make sure there are not
-                # other types of files randomly inserted in the same folder that
-                # mislead the type_of_file
+                # other types of files randomly inserted in the same folder
+                # that mislead the type_of_file
                 count_png = 0
                 count_tif = 0
                 count_pco = 0
@@ -400,7 +401,7 @@ class BVO:
         # Subtract the noise
         frame = frame.astype(float)  # Get the average as float to later
         #                                 subtract and not have issues with < 0
-        self.exp_dat['frames'] = (self.exp_dat['frames'].astype(np.float)
+        self.exp_dat['frames'] = (self.exp_dat['frames'].astype(float)
                                   - frame[..., None])
         self.exp_dat['frames'][self.exp_dat['frames'] < 0] = 0.0
         self.exp_dat['frames'] = self.exp_dat['frames'].astype(original_dtype)
@@ -657,31 +658,66 @@ class BVO:
         root.mainloop()
         root.destroy()
 
-    def getFrameIndex(self, t):
+    def getFrameIndex(self, t: float = None, frame_number: int = None,
+                      flagAverage: bool = False):
         """
-        Return the index of the closest frame in time
+        Return the index of the frame inside the loaded frames
 
         Jose Rueda Rueda: jrrueda@us.es
 
         @param t: desired time (in the same units of the video database)
+        @param frame_index: frame index to load, relative to the camera,
+            ignored if time is present
+        @param flagAverage: flag to look at the average o raw frames
 
         @return it: index of the frame in the loaded array
         """
-        return np.argmin(np.abs(self.timebase - t))
+        it = None
+        if t is not None:
+            if not flagAverage:
+                it = np.argmin(np.abs(self.timebase - t))
+            else:
+                it = np.argmin(np.abs(self.avg_dat - t))
+        else:
+            if not flagAverage:
+                it = np.where(self.exp_dat['nframes'] == frame_number)[0]
+            else:
+                it = np.where(self.avg_dat['nframes'] == frame_number)[0]
+        return it
 
-    def getFrame(self, t):
+    def getFrame(self, t: float, flagAverage: bool = False):
         """
         Return the frame of the closest in time to the desired time
 
         Jose Rueda Rueda: jrrueda@us.es
 
         @param t: desired time (in the same units of the video database)
+        @param flagAverage: flag to look at the average or raw frames
 
         @return it: index of the frame in the loaded array
         """
         it = self.getFrameIndex(t)
+        if not flagAverage:
+            frame = self.exp_dat['frames'][..., it].squeeze()
+        else:
+            frame = self.avg_dat['frames'][..., it].squeeze()
 
-        return self.exp_dat['frames'][..., it].squeeze()
+        return frame
+
+    def getTime(self, it: int, flagAverage: bool = False):
+        """
+        Get the time corresponding to a loaded frame number
+
+        Jose Rueda: jrrueda@us.es
+
+        @param it: frame number (relative to the loaded frames)
+        @param flagAverage: flag to look at the averaged or raw frames
+        """
+        if not flagAverage:
+            t = float(self.exp_dat['tframes'][it])
+        else:
+            t = float(self.avg_dat['tframes'][it])
+        return t
 
     def plot_frame(self, frame_number=None, ax=None, ccmap=None,
                    t: float = None,
@@ -690,7 +726,8 @@ class BVO:
                    xlim: float = None, ylim: float = None,
                    scale: str = 'linear',
                    alpha: float = 1.0, IncludeColorbar: bool = True,
-                   RemoveAxisTicksLabels: bool = False):
+                   RemoveAxisTicksLabels: bool = False,
+                   flagAverage: bool = False):
         """
         Plot a frame from the loaded frames
 
@@ -729,24 +766,15 @@ class BVO:
         # --- Load the frames
         # If we use the frame number explicitly
         if frame_number is not None:
-            if len(self.exp_dat['nframes']) == 1:
-                if self.exp_dat['nframes'] == frame_number:
-                    dummy = self.exp_dat['frames'].squeeze()
-                    tf = float(self.exp_dat['tframes'])
-                    frame_index = 0
-                else:
-                    raise Exception('Frame not loaded')
-            else:
-                frame_index = self.exp_dat['nframes'] == frame_number
-                if np.sum(frame_index) == 0:
-                    raise Exception('Frame not loaded')
-                dummy = self.exp_dat['frames'][:, :, frame_index].squeeze()
-                tf = float(self.exp_dat['tframes'][frame_index])
+            frame_index = self.getFrameIndex(frame_number=frame_number,
+                                             flagAverage=flagAverage)
+            tf = self.getTime(frame_index, flagAverage)
+            dummy = self.getFrame(tf, flagAverage)
         # If we give the time:
         if t is not None:
-            frame_index = np.argmin(abs(self.exp_dat['tframes'] - t))
-            tf = self.exp_dat['tframes'][frame_index]
-            dummy = self.exp_dat['frames'][:, :, frame_index].squeeze().copy()
+            frame_index = self.getFrameIndex(t, flagAverage)
+            tf = self.getTime(frame_index, flagAverage)
+            dummy = self.getFrame(t, flagAverage)
         # --- Check the colormap
         if ccmap is None:
             cmap = ssplt.Gamma_II()
@@ -760,8 +788,10 @@ class BVO:
             created = False
         if vmax is None:
             vmax = dummy.max()
-        if scale == 'log':  # If we use log scale, just set to 1 counts the 0s
-            dummy[dummy < 1.0] = 0.0
+        if scale == 'log':  # If we use log scale, just avoid zeros
+            # we are here mixing a bit integers and float... but python will
+            # provide
+            dummy[dummy < 1.0] = 1.0e-5
 
         img = ax.imshow(dummy, origin='lower', cmap=cmap, vmin=vmin, vmax=vmax,
                         alpha=alpha, **extra_options)
@@ -791,3 +821,27 @@ class BVO:
             fig.show()
             plt.tight_layout()
         return ax
+
+    def getTimeTrace(self, t: float = None, mask=None):
+        """
+        Calculate the timeTrace of the video
+
+        Jose Rueda Rueda: jrrueda@us.es
+
+        @param t: time of the frame to be plotted for the selection of the roi
+        @param mask: bolean mask of the ROI
+
+        If mask is present, the t argument will be ignored
+
+        @returns timetrace: a timetrace object
+        """
+        if mask is None:
+            # - Plot the frame
+            ax_ref = self.plot_frame(t=t)
+            fig_ref = plt.gcf()
+            # - Define roi
+            roi = sstt.roipoly(fig_ref, ax_ref)
+            # Create the mask
+            mask = roi.getMask(self.exp_dat['frames'][:, :, 0].squeeze())
+
+        return sstt.TimeTrace(self, mask)
