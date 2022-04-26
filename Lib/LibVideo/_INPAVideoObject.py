@@ -277,16 +277,15 @@ class INPAVideo(FIV):
 
     def GUI_frames_and_remap(self):
         """GUI to explore camera and remapped frames"""
-        raise errors.NotImplementedError('Sorry, still to be done')
         text = 'Press TAB until the time slider is highlighted in red.'\
             + ' Once that happend, you can move the time with the arrows'\
             + ' of the keyboard, frame by frame'
         print(text)
         root = tk.Tk()
         root.resizable(height=None, width=None)
-        ssGUI.ApplicationShowVidRemapINPA(root, self.exp_dat, self.remap_dat,
-                                          self.CameraCalibration,
-                                          self.geometryID)
+        ssGUI.ApplicationShowVidRemap(root, self.exp_dat, self.remap_dat,
+                                      self.CameraCalibration,
+                                      self.geometryID)
         root.mainloop()
         root.destroy()
 
