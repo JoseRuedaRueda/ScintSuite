@@ -3,6 +3,7 @@
 import numpy as np
 import Lib.errors as errors
 from math import pi
+import os
 # -----------------------------------------------------------------------------
 # --- AUG parameters
 # -----------------------------------------------------------------------------
@@ -64,7 +65,53 @@ IHIBP_scintillator_Y = np.array((-17.0, 0.0))  # [cm]
 iHIBP = {'port_center': [0.687, -3.454, 0.03], 'sector': 13,
          'beta_std': 4.117, 'theta_std': 0.0, 'source_radius': 7.0e-3}
 
+def _iHIBP1_path(shot: int=42000):
+    """
+    Contain hardcored path of were iHIBP camera data is stored.
+    """
 
+    shot_str  = '%05d'%shot
+    shot_path = os.path.join(shot_str[0:2], 'S%05d'%shot)
+
+    if shot < 99999:
+        path = os.path.join('/afs/ipp/home/a/augd/rawfiles/VRT', shot_path)
+    else:
+        raise errors.NotValidInput('Wrong shot number?')
+    return path
+
+def _iHIBP1_timepath(shot: int=42000):
+    """
+    Contain hardcored path of were iHIBP camera data is stored.
+    """
+
+    shot_str  = '%05d'%shot
+    shot_path = os.path.join(shot_str[0:2], 'S%05d'%shot)
+
+    if shot < 99999:
+        path = os.path.join('/afs/ipp/home/a/augd/rawfiles/VRT', shot_path,
+                            'Prot', 'FrameProt', 'HIBP_FrameProt.xml')
+    else:
+        raise errors.NotValidInput('Wrong shot number?')
+    return path
+
+def _iHIBP1_extension(shot: int=42000):
+    """
+    Contain hardcored extensions of were iHIBP camera data.
+    """
+    if shot < 99999:
+        ext = 'mp4'
+    else:
+        raise errors.NotValidInput('Wrong shot number?')
+    return ext
+
+
+_ihibp1 = {
+    'path': _iHIBP1_path,  # Path for the video files
+    'extension': _iHIBP1_extension,  # Extension of the video file, none if png.
+    'path_times': _iHIBP1_timepath
+}
+
+iHIBPext = (_ihibp1,)
 # -----------------------------------------------------------------------------
 # --- INPA
 # -----------------------------------------------------------------------------

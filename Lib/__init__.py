@@ -59,7 +59,6 @@ with warnings.catch_warnings(record=True):
 
     # Non tokamak independent libraries
     if machine == 'AUG':
-        import Lib.BEP as libbep
         import Lib.SimulationCodes.iHIBPsim as ihibp
 
     # Delte the intermedite variables to 'clean'
