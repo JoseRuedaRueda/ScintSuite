@@ -236,21 +236,35 @@ class INPA_logbook:
         # Get always the default as a reference:
         geomID = self.getGeomID(shot, diag_ID)
         default = self._getPositionOrientationDefault(geomID)
+        position = {
+            'R_pinhole': default['R_pinhole'],
+            'z_pinhole': default['z_pinhole'],
+            'phi_pinhole': default['phi_pinhole'],
+            # Reference point on the scintillator (to get B)
+            'R_scintillator': default['R_scintillator'],
+            'z_scintillator': default['z_pinhole'],
+            'phi_scintillator': default['phi_pinhole'],
+        }
         # Transform to cylindrical vector in the choosen scintillator point
         phi = default['phi_scintillator'] * math.pi / 180.0
         ur = np.array([math.cos(phi), math.sin(phi), 0])
         uphi = np.array([-math.sin(phi), math.cos(phi), 0])
         uz = np.array([0, 0, 1])
-        default['s1rzt'] = np.array([(default['s1'] * ur).sum(),
-                                     (default['s1'] * uz).sum(),
-                                     (default['s1'] * uphi).sum()])
-        default['s2rzt'] = np.array([(default['s2'] * ur).sum(),
-                                     (default['s2'] * uz).sum(),
-                                     (default['s2'] * uphi).sum()])
-        default['s3rzt'] = np.array([(default['s3'] * ur).sum(),
-                                     (default['s3'] * uz).sum(),
-                                     (default['s3'] * uphi).sum()])
-        return default
+        orientation = {
+              's1': np.array(default['s1']),
+              's2': np.array(default['s2']),
+              's3': np.array(default['s3']),
+        }
+        orientation['s1rzt'] = np.array([(default['s1'] * ur).sum(),
+                                         (default['s1'] * uz).sum(),
+                                         (default['s1'] * uphi).sum()])
+        orientation['s2rzt'] = np.array([(default['s2'] * ur).sum(),
+                                         (default['s2'] * uz).sum(),
+                                         (default['s2'] * uphi).sum()])
+        orientation['s3rzt'] = np.array([(default['s3'] * ur).sum(),
+                                         (default['s3'] * uz).sum(),
+                                         (default['s3'] * uphi).sum()])
+        return position, orientation
 
     def getGeomShots(self, geomID, maxR: float = None, verbose: bool = True):
         """

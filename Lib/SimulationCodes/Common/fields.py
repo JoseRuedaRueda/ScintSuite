@@ -977,13 +977,13 @@ class fields:
 
             # Write fields
             if self.bdims > 0:
-                self.Bfield['fr'].T.tofile(fid)
-                self.Bfield['ft'].T.tofile(fid)
-                self.Bfield['fz'].T.tofile(fid)
+                self.Bfield['fr'].ravel(order='F').tofile(fid)
+                self.Bfield['ft'].ravel(order='F').tofile(fid)
+                self.Bfield['fz'].ravel(order='F').tofile(fid)
             else:
-                self.Bfield['fx'].T.tofile(fid)
-                self.Bfield['fy'].T.tofile(fid)
-                self.Bfield['fz'].T.tofile(fid)
+                self.Bfield['fx'].ravel(order='F').tofile(fid)
+                self.Bfield['fy'].ravel(order='F').tofile(fid)
+                self.Bfield['fz'].ravel(order='F').tofile(fid)
         elif eflag:
             # Write header with grid size information:
             self.Efield['nR'].tofile(fid)
@@ -1003,13 +1003,13 @@ class fields:
 
             # Write fields
             if self.edims > 0:
-                self.Efield['fr'].T.tofile(fid)
-                self.Efield['ft'].T.tofile(fid)
-                self.Efield['fz'].T.tofile(fid)
+                self.Efield['fr'].ravel(order='F').tofile(fid)
+                self.Efield['ft'].ravel(order='F').tofile(fid)
+                self.Efield['fz'].ravel(order='F').tofile(fid)
             else:
-                self.Efield['fx'].T.tofile(fid)
-                self.Efield['fy'].T.tofile(fid)
-                self.Efield['fz'].T.tofile(fid)
+                self.Efield['fx'].ravel(order='F').tofile(fid)
+                self.Efield['fy'].ravel(order='F').tofile(fid)
+                self.Efield['fz'].ravel(order='F').tofile(fid)
 
         else:
             raise Exception('Not a valid combination of inputs')

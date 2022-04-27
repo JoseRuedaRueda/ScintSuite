@@ -18,6 +18,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from Lib.LibMachine import machine
 from Lib.LibPaths import Path
 from Lib.LibPlotting import axis_beauty, axisEqual3D, clean3Daxis
+import Lib.LibCAD as libcad
 import f90nml
 paths = Path(machine)
 
@@ -210,7 +211,7 @@ def plotLinesElement(geom: dict, ax=None, line_params: dict = {},
                     [geom[key][0, 2] * factor, geom[key][-1, 2] * factor],
                     **line_options)
 
-
+    
 def plotShadedElement(geom: dict, ax=None, surface_params: dict = {},
                       referenceSystem='absolute', plot2D: bool = False,
                       units: str = 'cm', view: str = 'absolute'):
@@ -779,3 +780,26 @@ class Geometry:
         file = os.path.join(folder, 'ExtraGeometryParams.txt')
         f90nml.write({'ExtraGeometryParams': self.ExtraGeometryParams}, file,
                      force=True)
+
+    def elements_to_stl(self, element_to_save=[0, 1, 2], units: str = 'cm'
+                           ,file_name_save: str = 'Test'):
+        """
+        Store the geometric elements to stl files. Useful for testing SINPA inputs
+        Anton van Vuuren: avanvuuren@us.es
+        @param geom: dictionary created by read_element()
+
+        @param element_to_save: kind of plates we want to plot:
+            -0: Collimator
+            -1: Ionizers
+            -2: Scintillator
+
+        @param units: units to plot the geometry. Acepted: m, cm, mm
+        @param file_name_save: name of stl file to be generated (don't add ".stl")
+        """
+        file_mod = ["Collimator", "Ionizers", "Scintillator"]
+        for ele in self.elements:
+            if ele['kind'] in element_to_save:
+                libcad.write_triangles_to_stl(ele, units=units ,
+                                                file_name_save = file_name_save 
+                                                + "_" + file_mod[ele['kind']])
+
