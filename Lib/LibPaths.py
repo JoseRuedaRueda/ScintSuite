@@ -35,10 +35,16 @@ class Path:
         self.ihibp_repo = os.path.join(self.iHIBPsim, 'repo')
         self.tracker = os.path.join(self.ihibp_bins, 'tracker.go')
 
-        self.ihibpsim_strline_database = os.path.join(self.ScintSuite,
-                                                      'Data',
-                                                      'StrikeMaps',
-                                                      'iHIBP')
+        self.ihibp_calibration_db = os.path.join(self.ScintSuite,
+                                                 'Data',
+                                                 'Calibrations',
+                                                 'iHIBP',
+                                                 'calibration_database.txt')
+        self.ihibp_scint_plate = os.path.join(self.ScintSuite,
+                                              'Data', 'Plates', 'iHIBP',
+                                              'aug_iHIBP_2020_12.pl')
+        self.ihibpsim_strline_database = os.path.join(self.ScintSuite, 'Data',
+                                                      'StrikeMaps', 'iHIBP')
         if machine == 'AUG':
             self.iHIBP_videos = '/afs/ipp/home/a/augd/rawfiles/VRT/'
             self.FILDStrikeMapsRemap += '/AUG/'

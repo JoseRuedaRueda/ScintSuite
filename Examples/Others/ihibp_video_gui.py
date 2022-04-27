@@ -15,6 +15,6 @@ if __name__ == '__main__':
     filetype = [('iHIBP strikeline map', '*.map')]
 
     a = app_ihibp_vid(root, shotnumber=39810,
-                      path=ask_to_open(filetype=filetype))
+                      path=None)
     root.mainloop()
     root.destroy()
