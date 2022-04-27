@@ -113,7 +113,7 @@ def remapAllLoadedFrames(video,
 
     if smap_folder is None:
         smap_folder = os.path.join(paths.ScintSuite, 'Data', 'RemapStrikeMaps',
-                                   'FILD', video.FILDgeometry)
+                                   'FILD', video.geometryID)
     # -- Check which code generated the library
     if not got_smap:
         namelistFile = os.path.join(smap_folder, 'parameters.cfg')
@@ -171,12 +171,12 @@ def remapAllLoadedFrames(video,
         for iframe in tqdm(range(nframes)):
             if FILDSIM:
                 name = ssFILDSIM.guess_strike_map_name(
-                    phi[iframe], theta[iframe], geomID=video.FILDgeometry,
+                    phi[iframe], theta[iframe], geomID=video.geometryID,
                     decimals=decimals
                     )
             else:
                 name = ssSINPA.execution.guess_strike_map_name(
-                    phi[iframe], theta[iframe], geomID=video.FILDgeometry,
+                    phi[iframe], theta[iframe], geomID=video.geometryID,
                     decimals=decimals
                     )
             # See if the strike map exist
@@ -228,12 +228,12 @@ def remapAllLoadedFrames(video,
             if FILDSIM:
                 name = ssFILDSIM.find_strike_map(
                     phi_used[iframe], theta_used[iframe], smap_folder,
-                    geomID=video.FILDgeometry, FILDSIM_options=code_options,
+                    geomID=video.geometryID, FILDSIM_options=code_options,
                     decimals=decimals, clean=True)
             else:  # SINPA CODE
                 name = ssSINPA.execution.find_strike_map_FILD(
                     phi_used[iframe], theta_used[iframe], smap_folder,
-                    geomID=video.FILDgeometry, SINPA_options=code_options,
+                    geomID=video.geometryID, SINPA_options=code_options,
                     decimals=decimals, clean=True)
         # Only reload the strike map if it is needed
         if name != name_old:

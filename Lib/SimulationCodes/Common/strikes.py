@@ -19,6 +19,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from Lib.LibPlotting import axis_beauty, axisEqual3D, clean3Daxis
 import Lib.LibPlotting as ssplt
+import Lib.errors as errors
+import Lib.LibData as ssdat
 from copy import deepcopy
 paths = Path(machine)
 
@@ -46,6 +48,8 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
         plate = 'signalscintillator'
     elif filename.endswith('spcsignal'):
         plate = 'collimator'
+    elif filename.endswith('wmmap'):
+        plate = 'wrong'
     else:
         raise Exception('File not understood. Has you chenged the ext???')
 
@@ -66,7 +70,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
                 np.fromfile(fid, 'int32', 1)[0].astype(bool)
             header['ncolumns'] = np.fromfile(fid, 'int32', 1)[0]
             header['counters'] = \
-                np.zeros((header['nXI'], header['ngyr']), np.int)
+                np.zeros((header['nXI'], header['ngyr']), int)
             data = np.empty((header['nXI'], header['ngyr']),
                             dtype=np.ndarray)
             header['scint_limits'] = {
@@ -127,6 +131,10 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
                             header['scint_limits']['ymax'] = \
                                 max(header['scint_limits']['ymax'],
                                     data[ia, ig][:, zcolum].max())
+            # Read the time
+            if plate.lower() == 'signalscintillator':
+                header['time'] = float(np.fromfile(fid, 'float32', 1)[0])
+                header['shot'] = int(np.fromfile(fid, 'int32', 1)[0])
         # Calculate the radial position if it is a INPA simulation
         if not header['FILDSIMmode']:
             iix = header['info']['x0']['i']
@@ -212,7 +220,7 @@ def readFILDSIMstrikes(filename: str, verbose: bool = False):
     # --- Order the strike points in gyroradius and pitch angle
     data = np.empty((header['nXI'], header['ngyr']), dtype=np.ndarray)
     header['counters'] = np.zeros((header['nXI'], header['ngyr']),
-                                  dtype=np.int)
+                                  dtype=int)
     header['scint_limits'] = {  # for later histogram making
         'xmin': 300.,
         'xmax': -300.,
@@ -293,7 +301,7 @@ class Strikes:
         Jose Rueda: jrrueda@us.es
 
         @param runID: runID of the simulation
-        @param type: file to load (mapcollimator, mapscintillator,
+        @param type: file to load (mapcollimator, mapscintillator, mapwrong
             signalcollimator or signalscintillator).Not used if code=='FILDSIM'
         @param file: if a filename is provided, data will be loaded from this
             file, ignoring the code folder structure (and runID)
@@ -312,6 +320,8 @@ class Strikes:
                     name = runID + '.spsignal'
                 elif type.lower() == 'signalcollimator':
                     name = runID + '.spcsignal'
+                elif type.lower() == 'mapwrong':
+                    name = runID + '.wmmap'
                 else:
                     raise Exception('Type not understood, revise inputs')
                 file = os.path.join(paths.SINPA, 'runs', runID, 'results',
@@ -397,7 +407,7 @@ class Strikes:
                 w = np.ones(self.header['counters'][0, 0])
             self.ScintHistogram = {5: {}, 6: {}, 7: {}, 8: {}}
             for k in [5, 6, 7, 8]:
-                f = self.data[0, 0][:, column_kind].astype(np.int) == k
+                f = self.data[0, 0][:, column_kind].astype(int) == k
                 H, xedges, yedges = \
                     np.histogram2d(self.data[0, 0][f, colum_pos + 1],
                                    self.data[0, 0][f, colum_pos + 2],
@@ -507,7 +517,7 @@ class Strikes:
             self.histograms[varx + '_' + vary] = \
                 {0: {}, 5: {}, 6: {}, 7: {}, 8: {}}
             for k in [5, 6, 7, 8]:
-                f = self.data[0, 0][:, jk].astype(np.int) == k
+                f = self.data[0, 0][:, jk].astype(int) == k
                 H, xedges, yedges = \
                     np.histogram2d(self.data[0, 0][f, jx],
                                    self.data[0, 0][f, jy],
@@ -1013,13 +1023,13 @@ class Strikes:
                                                 self.data[ia, ig][:, iiy],
                                                 calibration)
                     if overwrite:
-                        self.data[ia, ig][:, iixcam] = xp
-                        self.data[ia, ig][:, iiycam] = yp
+                        self.data[ia, ig][:, iixcam] = xp.copy()
+                        self.data[ia, ig][:, iiycam] = yp.copy()
                     else:
                         n_strikes = self.header['counters'][ia, ig]
                         cam_data = np.zeros((n_strikes, 2))
-                        cam_data[:, 0] = xp
-                        cam_data[:, 1] = yp
+                        cam_data[:, 0] = xp.copy()
+                        cam_data[:, 1] = yp.copy()
                         self.data[ia, ig] = \
                             np.append(self.data[ia, ig], cam_data, axis=1)
         if not overwrite:
@@ -1090,6 +1100,159 @@ class Strikes:
                     'units': ' [px]',  # Units
                     'longName': 'W at camera (only geom transmission)',
                     'shortName': '$W_{cam}^{geom}$',
+                },
+            }
+            self.header['info'].update(extra_column)
+
+    def points_to_txt(self, per=0.1,
+                      gyr_index=None, XI_index=None,
+                      where: str = 'Head',
+                      units: str = 'mm',
+                      file_name_save: str = 'Strikes.txt'):
+        """
+        Store strike points to txt file to easily load in CAD software
+
+        Anton van Vuen: avanvuuren@us.es
+
+        @param per: ratio of markers to be plotted (1=all of them)
+        @param gyr_index: index (or indeces if given as an np.array) of
+            gyroradii to plot
+        @param XI_index: index (or indeces if given as an np.array) of
+            XIs (pitch or R) to plot
+        @param where: string indicating where to plot: 'head', 'NBI',
+        'ScintillatorLocalSystem'. First two are in absolute
+        coordinates, last one in the scintillator coordinates (see SINPA
+        documentation) [Head will plot the strikes in the collimator or
+        scintillator]. For oldFILDSIM, use just head
+        @param units: Units in which to save the strike positions.
+        @param filename: name of the text file to store strikepoints in
+        """
+        # --- Chose the variable we want to plot
+        if where.lower() == 'head':
+            column_to_plot = self.header['info']['x']['i']
+        elif where.lower() == 'nbi':
+            column_to_plot = self.header['info']['x0']['i']
+        elif where.lower() == 'scintillatorlocalsystem':
+            column_to_plot = self.header['info']['xs']['i']
+        else:
+            raise Exception('Not understood what do you want to plot')
+
+        nXI, ngyr = self.header['counters'].shape
+        # See which gyroradius / pitch (R) we need
+        if gyr_index is None:  # if None, use all gyroradii
+            index_gyr = range(ngyr)
+        else:
+            # Test if it is a list or array
+            if isinstance(gyr_index, (list, np.ndarray)):
+                index_gyr = gyr_index
+            else:  # it should be just a number
+                index_gyr = np.array([gyr_index])
+        if XI_index is None:  # if None, use all gyroradii
+            index_XI = range(nXI)
+        else:
+            # Test if it is a list or array
+            if isinstance(XI_index, (list, np.ndarray)):
+                index_XI = XI_index
+            else:  # it should be just a number
+                index_XI = np.array([XI_index])
+
+        # --- Check the scale
+        if units not in ['m', 'cm', 'mm']:
+            raise Exception('Not understood units?')
+        possible_factors = {'m': 1.0, 'cm': 100.0, 'mm': 1000.0}
+        factor = possible_factors[units]
+
+        with open(file_name_save, 'w') as f:
+            for ig in index_gyr:
+                for ia in index_XI:
+                    if self.header['counters'][ia, ig] > 0:
+                        flags = np.random.rand(
+                            self.header['counters'][ia, ig]) < per
+                        if flags.sum() > 0:
+                            x = self.data[ia, ig][flags, column_to_plot]
+                            y = self.data[ia, ig][flags, column_to_plot + 1]
+                            z = self.data[ia, ig][flags, column_to_plot + 2]
+
+                            for xs, ys, zs in zip(x, y, z):
+                                f.write('%f %f %f \n'
+                                        % (xs * factor,
+                                           ys * factor,
+                                           zs * factor))
+
+    def caclualtePitch(self, Boptions: dict = {}, IPBtSign: float = -1.0):
+        """
+        Calculate the pitch of the markers
+
+        Jose Rueda: jrrueda@us.es
+
+        Note: This function only works for INPA markers
+        Note2: This is mainly though to be used for FIDASIM markers, no mapping
+        for these guys, there is only one set of data, so is nice. If you use
+        it for the mapping markers, there would be ngyr x nR set of data and
+        the magnetic field shotfile will be open those number of times. Not the
+        end of the world, but just to have it in mind. A small work arround
+        could be added if needed, althoug that would imply something like:
+        if machine == 'AUG'... which I would like to avoid
+
+        @param Boptions: extra parameters for the calculation of the magnetic
+            field
+        """
+        # Only works for INPA markers, return error if we try with FILD
+        if self.header['FILDSIMmode']:
+            raise errors.NotValidInput('Hey! This is only for INPA')
+        # See if we need to overwrite
+        if 'pitch0' in self.header['info'].keys():
+            print('The pitch values are there, we will overwrite them')
+            overwrite = True
+            ipitch0 = self.header['info']['pitch0']['i']
+        else:
+            overwrite = False
+        # Get the index for the needed variables
+        ir = self.header['info']['R0']['i']          # get the index
+        iz = self.header['info']['z0']['i']
+        ix = self.header['info']['x0']['i']
+        iy = self.header['info']['y0']['i']
+        ivz = self.header['info']['vz0']['i']
+        ivx = self.header['info']['vx0']['i']
+        ivy = self.header['info']['vy0']['i']
+        for ig in range(self.header['ngyr']):
+            for ia in range(self.header['nXI']):
+                if self.header['counters'][ia, ig] > 0:
+                    phi = np.arctan2(self.data[ia, ig][:, iy],
+                                     self.data[ia, ig][:, ix])
+                    br, bz, bt, bp =\
+                        ssdat.get_mag_field(self.header['shot'],
+                                            self.data[ia, ig][:, ir],
+                                            self.data[ia, ig][:, iz],
+                                            time=self.header['time'],
+                                            **Boptions)
+                    bx = br*np.cos(phi) - bt*np.sin(phi)
+                    by = - br*np.cos(phi) + bt*np.cos(phi)
+                    b = np.sqrt(bx**2 + by**2 + bz**2).squeeze()
+                    v = np.sqrt(self.data[ia, ig][:, ivx]**2
+                                + self.data[ia, ig][:, ivy]**2
+                                + self.data[ia, ig][:, ivz]**2)
+                    pitch = (self.data[ia, ig][:, ivx] * bx
+                             + self.data[ia, ig][:, ivy] * by
+                             + self.data[ia, ig][:, ivz] * bz).squeeze()
+                    pitch /= v*b*IPBtSign
+                    if overwrite:
+                        self.data[ia, ig][:, ipitch0] = pitch.copy()
+                    else:
+                        print(self.data[ia, ig].shape)
+                        print(np.atleast_2d(pitch.copy()).T.shape)
+                        self.data[ia, ig] = \
+                            np.append(self.data[ia, ig],
+                                      np.atleast_2d(pitch.copy()).T, axis=1)
+
+        if not overwrite:
+            Old_number_colums = len(self.header['info'])
+            extra_column = {
+                'pitch0': {
+                    'i': Old_number_colums,  # Column index in the file
+                    'units': ' []',  # Units
+                    'longName': 'Pitch',
+                    'shortName': '$\\lambda_{0}$',
                 },
             }
             self.header['info'].update(extra_column)

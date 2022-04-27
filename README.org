@@ -12,15 +12,18 @@ Needed packages(Only listed 'non-standard' packages):
     - cv2 (OpenCv): To load frames from .mp4 files and to export videos =pip install opencv-python=
     - lmfit: To perform the fits needed for the resolution calculation =pip install lmfit=
     - cycler: To set default plotting color =pip install cycler=
-    - pyfft: To have extra capabilities in the spectrogram calculation =pip install pyfft=
+    - pyfftw: To have extra capabilities in the spectrogram calculation =pip install pyfftw=
     - netCDF4: To load and save files from the BEB database =pip install netCDF4=
     - scipy 1.7.0 or newer, to have the RBF interpolators for the strike points
     - aug_sfutils > 0.7.0: To load the AUG magnetic field (see AUG python documentation for the different ways of installing this package https://www.aug.ipp.mpg.de/aug/manuals/aug_sfutils/)
-
-*** Cloning the suite
+    - Open3D or stl: To deal with CAD files
+*Installation* Executing 'first_run.py' in your terminal console should allow you to install everything you need to run the suite
+*** Cloning the suite and installing
 In order to clone the suite just open a terminal in your home directory and type:
 
 = git clone https://gitlab.mpcdf.mpg.de/ruejo/scintsuite.git ScintSuite =
+
+To install all non-standard packages, you can give a try the script: 'first_run.py'. It will work in personal computers and 'standard installations' although things can go wrong if your system has some particular rights limitations etc. In that case, I fear to say that you are alone
 
 *** Importing the suite
 In order to import the ScintSuite as = import Lib as MyAwesomeName =, you need to set in your environment the different paths to the external modules. For example, in the case of AUG, the path towards the AUG-python library. To do this, you just need to run the file path suite. For example, just type in a python terminal = run paths_suite =. After running it, you should be able to import the suite from everywhere in your computer. However, if your working directory is the root directory of the Suite, there is no need of running this line, you can just execute directly = import Lib as MyAwesomeName = and enjoy (as the function path_suite is called in the Sutie __init__)
@@ -84,8 +87,9 @@ If a new implementation is required, open the appropriate issue in the GIT and l
 - Minor priority: Label for maintainer, indicates that the request has low priority in the ToDo list
 
 ** Machine names
-All devices are identified by three letters:
+All devices are identified by a string:
 - 'AUG': ASDEX Upgrade
+- 'MU': MAST Upgrade
 
 ** Useful links
 - FILDSIM code: <https://gitlab.mpcdf.mpg.de/jgq/FILDSIM.git>
