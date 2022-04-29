@@ -37,12 +37,7 @@ class app_ihibp_vid:
         self.shotnumber = shotnumber
         self.strikeline_on = path is not None
 
-        # Loading the video object.
-        videopath = os.path.join(paths.iHIBP_videos,
-                                 str(shotnumber)[0:2],
-                                 'S%05d'%shotnumber,
-                                 'S%05d_HIBP.mp4'%shotnumber)
-        self.video = libvideo.BVO(videopath, shot=shotnumber)
+        self.video = libvideo.iHIBPvideo(shot=shotnumber)
 
         # Setting the colormap options.
         self.cmaps = {
