@@ -1,5 +1,7 @@
 """
 Script to launch the iHIBP gui.
+
+This GUI will show the image of the iHIBP scintillator.
 """
 
 import tkinter as tk

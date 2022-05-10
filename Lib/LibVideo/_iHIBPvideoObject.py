@@ -23,10 +23,17 @@ del p
 def decision(prob: float, x0: float, dx0: float):
     """
     Decision function choosing whether a pixel is noise or not.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param prob: array with the probability value that must range between [0, 1]
+    @param x0: probability threshold, point at which the probability of being
+    noise would be 50%.
+    @param dx0: probability slope. Slope to transition from noise to signal.
     """
 
     assert (x0 > 0.0) and (x0 < 1.0), 'Probability threshold must be in [0, 1]'
-    assert (dx0 > 0.0) and (dx0 < 1.0), 'Probability dependence must be in [0, 1]'
+    assert (dx0 > 0.0) and (dx0 < 1.0), 'Probability slope must be in [0, 1]'
 
     f = 0.5*(1.0 + np.tanh((prob-x0)/dx0))
 
@@ -54,6 +61,9 @@ def guessiHIBPfilename(shot: int):
 
     return f
 
+# ------------------------------------------------------------------------------
+# TIMEBASE OF THE CAMERA.
+# ------------------------------------------------------------------------------
 def ihibp_get_time_basis_old(shot: int):
     """"
     The iHIBP videos are defined in terms of time relative to the beginning of
@@ -62,6 +72,9 @@ def ihibp_get_time_basis_old(shot: int):
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
     @param shot: shot to get the timing.
+    @return timestamp: time at which the camera is recording in seconds.
+    @return framenum: number of the frame corresponding to each timestamp.
+    @return properties: properties from the XML header
     """
     fn = params.iHIBPext[0]['path_times'](shot)
 
@@ -109,10 +122,14 @@ def ihibp_get_time_basis_new(shot: int):
     the recording trigger, and we need time relative to the shot trigger.
 
     This routine is updated with the new XML used for the VRT cameras.
+    Developed 09/05/2022
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
     @param shot: shot to get the timing.
+    @return timestamp: time at which the camera is recording in seconds.
+    @return framenum: number of the frame corresponding to each timestamp.
+    @return properties: properties from the XML header
     """
     fn = params.iHIBPext[0]['path_times'](shot)
 
@@ -163,10 +180,16 @@ def ihibp_get_time_basis_new(shot: int):
 
 def ihibp_get_time_basis(shot: int):
     """""
-    This method is used as a wrapper to access the iHIBP videos timebase in
-    a unified way.
+    Retrieves the timebase of the video recorded for the iHIBP MP4 video that
+    it is stored into XML files.
+
+    Since there are two versions of the XML, we need to distinguish according
+    to the shotnumber. This function is intended as a wrapper to the actual
+    reading functions.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shot: shot to read the timebasis.
     """
 
     if shot > 40395:
@@ -188,6 +211,15 @@ class iHIBPvideo(BVO):
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
         @param shot: pulse number to read video data.
+        @param calib: CalParams object with the calibration parameters for the
+        image. This is used to properly set the scintillator image to its
+        position.
+        @param scobj: Scintillator object containing all the data of the
+        scintillator position, shape,...
+        @param signal_threshold: sets the minimum number of counts per pixel to
+        be considered illuminated the scintillator. The first image that
+        fulfills that will be considered the reference frame with no signal and
+        used to remove noise.
         """
 
         # --- Try to load the shotfile
@@ -257,7 +289,10 @@ class iHIBPvideo(BVO):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @params kwargs: same arguments than BVO.plot_frame.
+        @param plotScintillatorPlate: flag to plot or not the scintillator
+        plate to the figure. Defaults to True.
+        @param kwargs: same arguments than BVO.plot_frame.
+        @return ax: axis where the frame has been plot.
         """
 
         ax = super().plot_frame(**kwargs)
@@ -283,8 +318,6 @@ class iHIBPvideo(BVO):
         @param timetrace: timetrace to be used as a monitor for the background
         light. If None, we will fall back to the standard monitor that is just
         taking a small piece of the scintillator.
-        @param signal_threshold: minimum change in the counts number to be
-        considered the first illuminated frame.
         """
 
         # If the time trace is not provided, we give the user the opportunity
@@ -315,7 +348,21 @@ class iHIBPvideo(BVO):
         """
         Substract time-dependent background noise.
 
+        This is based on a probabilitic approach: with a reference frame taken
+        at the initialization of the class. Using a monitor set within class
+        via the function set_background_monitor, the frame is scaled and the noise
+        is substracted for each pixel independently and for each time following
+        the monitor time evolution.
+        The algorithm assigns to each pixel the probability of being noise
+        following a Poissonian distribution (exponential decay), whose decay
+        constant is the noise value for each pixel and time. Then, a decision
+        function is called with the probability yielding a factor between 0
+        and 1 to weight the pixel value.
+
         Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+        @param x0: value of the probability transition from noise to signal
+        @param dx0: pace to smooth the transition from noise to signal.
         """
         if 'frame_noise' not in self.__dict__:
             raise Exception('A particular time-dependence'+\
