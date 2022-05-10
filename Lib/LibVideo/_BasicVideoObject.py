@@ -469,7 +469,7 @@ class BVO:
                 self.exp_dat['frames'][:, :, i] = \
                     ndimage.gaussian_filter(self.exp_dat['frames'][:, :, i],
                                             **gaussian_options)
-        print('-... -.-- . / -... -.-- .')
+        print('\n-... -.-- . / -... -.-- .')
         return
 
     def cut_frames(self, px_min: int, px_max: int, py_min: int, py_max: int,
