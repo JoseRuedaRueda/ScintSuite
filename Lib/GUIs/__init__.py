@@ -8,5 +8,3 @@ from Lib.GUIs._RemapAnalyser2D import ApplicationRemap2DAnalyser
 # from Lib.GUIs.VideoPlusRemapPlayerProfiles import ApplicationShowProfiles
 import Lib.LibMachine as m
 machine = m.machine
-if machine == 'AUG':
-    from Lib.GUIs.BEP_gui import AppBEP_plot as ApplicationShowBEP
