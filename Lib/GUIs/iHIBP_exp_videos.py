@@ -22,7 +22,7 @@ class app_ihibp_vid:
     overplot the strikeline, when computed.
     """
 
-    def __init__(self, tkwindow, shotnumber: int, path: str=None):
+    def __init__(self, tkwindow, shotnumber: int, path: str=None, **kwargs):
         """
         Initializes the class with the neccessary data to create the GUI and
         smooth plot the i-HIBP videos.
@@ -37,7 +37,8 @@ class app_ihibp_vid:
         self.shotnumber = shotnumber
         self.strikeline_on = path is not None
 
-        self.video = libvideo.iHIBPvideo(shot=shotnumber)
+        self.video = libvideo.iHIBPvideo(shot=shotnumber,
+                                         **kwargs)
 
         # Setting the colormap options.
         self.cmaps = {

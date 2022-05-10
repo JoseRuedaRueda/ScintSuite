@@ -54,7 +54,7 @@ def guessiHIBPfilename(shot: int):
 
     return f
 
-def ihibp_get_time_basis(shot: int):
+def ihibp_get_time_basis_old(shot: int):
     """"
     The iHIBP videos are defined in terms of time relative to the beginning of
     the recording trigger, and we need time relative to the shot trigger.
@@ -103,6 +103,77 @@ def ihibp_get_time_basis(shot: int):
     timestamp = timestamp * 1e-9 # -> to seconds
     return timestamp, framenum, properties
 
+def ihibp_get_time_basis_new(shot: int):
+    """"
+    The iHIBP videos are defined in terms of time relative to the beginning of
+    the recording trigger, and we need time relative to the shot trigger.
+
+    This routine is updated with the new XML used for the VRT cameras.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shot: shot to get the timing.
+    """
+    fn = params.iHIBPext[0]['path_times'](shot)
+
+    if not os.path.isfile(fn):
+        raise FileNotFoundError('Cannot find the path to access the frames'+\
+                                ' timing: %s'%fn)
+
+    # Opening the time configuration file.
+    root = et.parse(fn).getroot()
+
+    # From the root we get the properties.
+    properties = dict()
+    for ikey in root.keys():
+        properties[ikey] = root.get(ikey)
+        try:
+            if properties[ikey][0:2] == '0x':
+                properties[ikey] = int(properties[ikey], base=16)
+            else:
+                properties[ikey] = float(properties[ikey])
+                if float(int(properties[ikey])) == float(properties[ikey]):
+                    properties[ikey] = int(properties[ikey])
+        except:
+            pass
+
+    # Getting the frames.
+    frames = root.getchildren()[2]
+    # Now we read the rest of the entries.
+    nframs = len(frames)
+    timestamp = np.zeros((nframs,), dtype=float)
+    framenum  = np.zeros((nframs,), dtype=int)
+    for ii, iele in enumerate(frames.getchildren()):
+        tmp = iele.attrib
+        framenum[ii] = int(tmp['number'])
+        timestamp[ii] = float(int(tmp['timestamp']))
+
+    # Sorting.
+    idxsort = np.argsort(framenum)
+    framenum = framenum[idxsort]
+    timestamp = timestamp[idxsort]
+
+    # By substracting thte TS06 time (shot trigger) we get shot-relative
+    # timing.
+    timestamp -= properties['ts6']
+
+    # The time so calculated is given in nanoseconds:
+    timestamp = timestamp * 1e-9 # -> to seconds
+    return timestamp, framenum, properties
+
+def ihibp_get_time_basis(shot: int):
+    """""
+    This method is used as a wrapper to access the iHIBP videos timebase in
+    a unified way.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    """
+
+    if shot > 40395:
+        return ihibp_get_time_basis_new(shot=shot)
+    else:
+        return ihibp_get_time_basis_old(shot=shot)
+
 class iHIBPvideo(BVO):
     """
     Basic video object for the iHIBP camera and data handling.
@@ -123,13 +194,18 @@ class iHIBPvideo(BVO):
         fn = guessiHIBPfilename(shot=shot)
         if not os.path.isfile(fn):
             raise errors.DatabaseError('Cannot find video for shot #%05d'%shot)
+
         # We initialize the parent class with the iHIBP video.
         super().__init__(file=fn, shot=shot)
 
         # Getting the time correction.
-        self.timecal, self.cam_prop, _ = ihibp_get_time_basis(shot=shot)
-        self.exp_dat['tframes'] = self.timecal
-        self.timebase = self.timecal
+        try:
+            self.timecal, _, self.cam_prop = ihibp_get_time_basis(shot=shot)
+
+            self.exp_dat['tframes'] = self.timecal
+            self.timebase = self.timecal
+        except FileNotFoundError:
+            pass
 
 
         # Let's check whether the user provided the calibration parameters.

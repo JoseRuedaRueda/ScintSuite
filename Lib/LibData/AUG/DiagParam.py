@@ -87,9 +87,13 @@ def _iHIBP1_timepath(shot: int=42000):
     shot_str  = '%05d'%shot
     shot_path = os.path.join(shot_str[0:2], 'S%05d'%shot)
 
-    if shot < 99999:
+    if shot < 40395:
         path = os.path.join('/afs/ipp/home/a/augd/rawfiles/VRT', shot_path,
                             'Prot', 'FrameProt', 'HIBP_FrameProt.xml')
+    elif shot < 99999:
+        name = 'S%s_HIBP.meta.xml'%shot_str
+        path = os.path.join('/afs/ipp/home/a/augd/rawfiles/VRT', shot_path,
+                            name)
     else:
         raise errors.NotValidInput('Wrong shot number?')
     return path

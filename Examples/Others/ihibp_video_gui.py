@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     filetype = [('iHIBP strikeline map', '*.map')]
 
-    a = app_ihibp_vid(root, shotnumber=39859,
-                      path=None)
+    a = app_ihibp_vid(root, shotnumber=40860,
+                      path=None, signal_threshold=0)
     root.mainloop()
     root.destroy()
