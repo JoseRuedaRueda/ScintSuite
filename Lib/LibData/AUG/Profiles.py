@@ -74,8 +74,10 @@ def get_ne_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
     except:
         raise Exception('Cannot read ne in #05d' % shotnumber)
 
-    if (timebase > time.max()) or (timebase < time.min()):
-        raise Exception('Time window cannot be located in PED shotfile!')
+    if time is not None:
+        time = np.atleast_1d(time)
+        if (timebase > time.max()) or (timebase < time.min()):
+            raise Exception('Time window cannot be located in PED shotfile!')
 
     output = {
         'rhop': rhop,
