@@ -1,9 +1,26 @@
+"""
+Library to manipulate UFILES.
+
+Taken from Giovanni Tardini's repository (git@ipp.mpg.de)
+
+Adapted to read generic UFILEs by Pablo Oyola - pablo.oyola@ipp.mpg.de
+"""
+
 import numpy as np
 import datetime
 import shutil
 import os
 
 def wr_for(arr_in, fmt='%13.6E', n_lin=6):
+    """
+    Prepare and array to the appropriate format to be written into a UFILE.
+
+    Giovanni Tardini - git@ipp.mpg.de
+
+    @param arr_in: array to be written in an UFILE.
+    @param fmt: format of the output.
+    @param n_lin: number of maximum numbers per line.
+    """
 
     arr_flat = arr_in.T.ravel()
     nx = len(arr_flat)
@@ -20,6 +37,15 @@ def wr_for(arr_in, fmt='%13.6E', n_lin=6):
 
 
 def ssplit(ll):
+    """
+    Parse an input line and separates them and put the resulting numbers into
+    a list.
+
+    Giovanni Tardini - git@ipp.mpg.de
+
+    @param ll: one line of text containing numbers.
+    """
+
     tmp = ll.replace('-', ' -')
     tmp = tmp.replace('e -', 'e-')
     tmp = tmp.replace('E -', 'E-')
@@ -30,6 +56,14 @@ def ssplit(ll):
 
 
 def lines2fltarr(lines, dtyp=None):
+    """
+    Converts a collection of lines into a flattened array.
+
+    Giovanni Tardini - git@ipp.mpg.de
+
+    @param lines: set of lines to be converted into a 1D array.
+    @param dtyp: type of the output.
+    """
     data = []
     for line in lines:
         data += ssplit(line)
@@ -39,7 +73,17 @@ def lines2fltarr(lines, dtyp=None):
     return np.array(data, dtype=dtyp)
 
 
-def fltarr_len(lines, nx, dtyp=None):
+def fltarr_len(lines, nx: int, dtyp=None):
+    """
+    Converts a collection of lines into a flattened array, providing a maximum
+    length for the data.
+
+    Giovanni Tardini - git@ipp.mpg.de
+
+    @param lines: set of lines to be converted into a 1D array.
+    @param nx: maximum lenght of the output array.
+    @param dtyp: type of the output.
+    """
     data = []
     for jlin, line in enumerate(lines):
         data += ssplit(line)
@@ -51,19 +95,39 @@ def fltarr_len(lines, nx, dtyp=None):
     return jlin+1, np.array(data, dtype=dtyp)
 
 
-
-
 class ufile:
-    def __init__(self, fin=None):
+    """
+    Class to handle the UFILE content: read/write and parsing the dimensions.
+    """
+    def __init__(self, fin: str=None):
+        """
+        Initializes the class for the UFILE. If a name is provided, the object
+        proceeds to read its content.
+
+        Giovanni Tardini - git@ipp.mpg.de
+
+        @param fin: filename of the file to read. If not provided, the class
+        is initialized as empty.
+        """
         self.f = {}
         if fin is not None:
             self.read(fin)
 
 
     def read(self, fin):
+        """
+        Reads the content of the UFILE into the class.
 
+        Giovanni Tarding - git@ipp.mpg.de
+
+        @param fin: input filename to read
+        """
+
+        # Loading all the lines from the file.
         with open(fin, 'r') as f:
             lines = f.readlines()
+
+        # Preparing the dimensions.
         dims = []
         coords = ['X', 'Y', 'Z']
         self.comment = ''
@@ -71,6 +135,7 @@ class ufile:
         n_coords = 0
         jend = np.nan
 
+        # Loop over the lines.
         for jline, lin in enumerate(lines):
             if '-SHOT #' in lin or '; Shot #' in lin:
                 a = lin.split()
@@ -140,7 +205,14 @@ class ufile:
         self.f['data'] = farr.reshape(dims[::-1]).T
 
 
-    def average(self, axis=0):
+    def average(self, axis: int=0):
+        """
+        Perform an average of the data along the input axis.
+
+        Giovanni Tarding - git@ipp.mpg.de
+
+        @param axis: axis along which to perform the average.
+        """
         self.ext = self.ext + '_AVG%d' %axis
         if axis == 0:
             self.X['data'] = np.atleast_1d(np.nanmean(self.X['data']))
@@ -154,26 +226,29 @@ class ufile:
         self.f['data'] = tmp.reshape(shape)
 
 
-    def write(self, udir=None, dev='AUGD'):
+    def write(self, fout: str, dev: str='AUGD'):
+        """
+        Writes the content of the class into a file.
+
+        Giovanni Tarding - git@ipp.mpg.de
+
+        @param udir: directory to write the UFILE.
+        @param dev:  target directory to write the UFILE accordingly.
+        """
         self.shot = int(self.shot)
-        s5shot = '%05d' %self.shot
 
         if hasattr(self, 'comment'):
             comment = self.comment
         else:
             comment = ''
 
-        if udir is None:
-            udir = '%s/udb/%s' %(os.getenv('HOME'), s5shot)
-        os.system('mkdir -p %s' %udir)
-        uf = '%s/%s%s.%s' %(udir, self.pre, s5shot, self.ext)
-        if os.path.isfile(uf):
-            ufbak = uf
+        if os.path.isfile(fout):
+            ufbak = fout
             jext = 1
             while os.path.isfile(ufbak):
-                ufbak = '%s.%d' %(uf, jext)
+                ufbak = '%s.%d' %(fout, jext)
                 jext += 1
-            shutil.move(uf, ufbak)
+            shutil.move(fout, ufbak)
 
         # Dimensions check
         dims = []
@@ -191,7 +266,6 @@ class ufile:
         ndim = len(dims)
         if ndim != self.f['data'].ndim:
             raise Exception('Data ndim inconsistent with n of independent variables')
-            return
 
         for jdim, dim in enumerate(dims):
             if dim != self.f['data'].shape[jdim]:
@@ -261,6 +335,5 @@ class ufile:
         ufs = ufs.replace('\n', '\n ')
         ufs += comment + '\n'
 
-        f = open(uf, 'w')
-        f.write(ufs)
-        f.close()
+        with open(fout, 'w') as fid:
+            fid.write(ufs)
