@@ -4,16 +4,23 @@ Parent bject for FILD and INPA video, which share many points in common
 Introduced in version 0.9.0
 """
 import os
+import math
 import numpy as np
 import tkinter as tk
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy.interpolate import interp1d
 from Lib.LibVideo._BasicVideoObject import BVO
 import Lib.GUIs as ssGUI
 import Lib.LibMap as ssmap
+import Lib.LibData as ssdat
 import Lib.LibPlotting as ssplt
 import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 import Lib.SimulationCodes.SINPA as ssSINPA
+import Lib.LibParameters as sspar
+import Lib.errors as errors
+from tqdm import tqdm   # For waitbars
 
 
 class FIV(BVO):
@@ -29,11 +36,62 @@ class FIV(BVO):
     - Public methods:
         - plot_frame: Plot a camera frame
         - plot_frame_remap: Plot a frame from the remap data
+        - plotBangles: Plot the angles of the B field respect to the head
         - integrate_remap: Perform the integration over a region of the
             phase space
+    - Remap units:
+        - frames, xaxis, yaxis in the remap dict: signal per units of gyrorad
+        and Xi. signal/cm/XI_units. For the case of FILD, Xi_units = degree
+        and for the case of INPA, XI_units = meters.
+
+        The basic remap is saved in the remap_dat attribute. But it can be
+        translated to different units using the proper 'translation_functions'
+        this translations are stored in the 'translations' field in the
+        remap_dat. This is a dictionary, with a key for each specie. Inside the
+        specie, we have several dictionaries identified by a number
+            - 1: The yaxis is no longer Gyroradius but energy, in keV
     """
 
-    # Plotting routines
+    def _getB(self, extra_options: dict = {}, use_average: bool = False):
+        """
+        Get the magnetic field in the FILD position
+
+        Jose Rueda - jrrueda@us.es
+
+        @param extra_options: Extra options to be passed to the magnetic field
+            calculation. Ideal place to insert all your machine dependent stuff
+        @param use_average: flag to use the timebase of the average frames or
+            the experimental frames
+
+        Note: It will overwrite the content of self.Bfield
+        """
+        if self.position is None:
+            raise Exception('Detector position not know')
+        # Get the proper timebase
+        if use_average:
+            time = self.avg_dat['tframes']
+        else:
+            time = self.exp_dat['tframes']
+        # Calculate the magnetic field
+        print('Calculating magnetic field (this might take a while): ')
+        if 'R_scintillator' in self.position.keys():  # INPA case
+            key1 = 'R_scintillator'
+            key2 = 'z_scintillator'
+        else:
+            key1 = 'R'
+            key2 = 'z'
+        br, bz, bt, bp =\
+            ssdat.get_mag_field(self.shot,
+                                self.position[key1],
+                                self.position[key2],
+                                time=time,
+                                **extra_options)
+        self.BField = {
+            'BR': np.array(br).squeeze(),
+            'Bz': np.array(bz).squeeze(),
+            'Bt': np.array(bt).squeeze(),
+            'B': np.sqrt(np.array(bp)**2 + np.array(bt)**2).squeeze()
+        }
 
     def plot_frame(self, frame_number=None, ax=None, ccmap=None,
                    strike_map: str = 'off', t: float = None,
@@ -113,18 +171,18 @@ class FIV(BVO):
             # Get the full name of the file
             if self.diag == 'FILD' and self.remap_dat['options']['CodeUsed'].lower() == 'fildsim':
                 name__smap = ssFILDSIM.guess_strike_map_name(
-                    phi_used, theta_used, geomID=self.FILDgeometry,
+                    phi_used, theta_used, geomID=self.geometryID,
                     decimals=self.remap_dat['options']['decimals'])
                 id = 0  # To identify the kind of strike map
             elif self.diag == 'FILD':
                 name__smap = ssSINPA.execution.guess_strike_map_name(
-                    phi_used, theta_used, geomID=self.FILDgeometry,
+                    phi_used, theta_used, geomID=self.geometryID,
                     decimals=self.remap_dat['options']['decimals']
                     )
                 id = 0  # To identify the kind of strike map
             elif self.diag == 'SINPA':
                 name__smap = ssSINPA.execution.guess_strike_map_name(
-                    phi_used, theta_used, geomID=self.INPAgeometry,
+                    phi_used, theta_used, geomID=self.geometryID,
                     decimals=self.remap_dat['options']['decimals']
                     )
                 id = 1  # To identify the kind of strike map
@@ -156,7 +214,10 @@ class FIV(BVO):
                          xlim: float = None, ylim: float = None,
                          scale: str = 'linear',
                          interpolation: str = 'bicubic',
-                         cbar_tick_format: str = '%.1E'):
+                         cbar_tick_format: str = '%.1E',
+                         IncludeColorbar: bool = True,
+                         color_labels_in_plot: str = 'w',
+                         translation: tuple = None):
         """
         Plot a frame from the remaped frames
 
@@ -172,6 +233,11 @@ class FIV(BVO):
         @param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
         @param interpolation: interpolation method for plt.imshow
         @param cbar_tick_format: format for the colorbar ticks
+        @param IncludeColorbar: Boolean flag to include the colorbar
+        @param color_labels_in_plot: Color for the labels in the plot
+        @param translation: tupple with the desired specie and tranlation to
+            plot. Example ('D', 1)
+
         @return ax: the axes where the frame has been drawn
         """
         # --- Check inputs:
@@ -191,7 +257,11 @@ class FIV(BVO):
         if frame_number is not None:
             if len(self.remap_dat['nframes']) == 1:
                 if self.remap_dat['nframes'] == frame_number:
-                    dummy = self.remap_dat['frames'].squeeze()
+                    if translation is None:
+                        dummy = self.remap_dat['frames'].squeeze()
+                    else:
+                        dummy = self.remap_dat['translations'][translation[0]]\
+                            [translation[1]]['frames'].squeeze()
                     tf = float(self.remap_dat['tframes'])
                     frame_index = 0
                 else:
@@ -200,13 +270,23 @@ class FIV(BVO):
                 frame_index = self.remap_dat['nframes'] == frame_number
                 if np.sum(frame_index) == 0:
                     raise Exception('Frame not loaded')
-                dummy = self.remap_dat['frames'][:, :, frame_index].squeeze()
+                if translation is None:
+                    dummy = \
+                        self.remap_dat['frames'][:, :, frame_index].squeeze()
+                else:
+                    dummy = self.remap_dat['translations'][translation[0]]\
+                        [translation[1]]['frames'][:, :, frame_index].squeeze()
                 tf = float(self.remap_dat['tframes'][frame_index])
         # If we give the time:
         if t is not None:
             frame_index = np.argmin(np.abs(self.remap_dat['tframes'] - t))
             tf = self.remap_dat['tframes'][frame_index]
-            dummy = self.remap_dat['frames'][:, :, frame_index].squeeze()
+            if translation is None:
+                dummy = \
+                    self.remap_dat['frames'][:, :, frame_index].squeeze()
+            else:
+                dummy = self.remap_dat['translations'][translation[0]]\
+                    [translation[1]]['frames'][:, :, frame_index].squeeze()
         # --- Check the colormap
         if ccmap is None:
             cmap = ssplt.Gamma_II()
@@ -220,36 +300,52 @@ class FIV(BVO):
             created = False
         if vmax is None:
             vmax = dummy.max()
-        img = ax.imshow(dummy.T, extent=[self.remap_dat['xaxis'][0],
-                                         self.remap_dat['xaxis'][-1],
-                                         self.remap_dat['yaxis'][0],
-                                         self.remap_dat['yaxis'][-1]],
+        if translation is None:
+            ext = [self.remap_dat['xaxis'][0], self.remap_dat['xaxis'][-1],
+                   self.remap_dat['yaxis'][0], self.remap_dat['yaxis'][-1]]
+        else:
+            ext = [self.remap_dat['translations'][translation[0]][translation[1]]['xaxis'][0],
+                   self.remap_dat['translations'][translation[0]][translation[1]]['xaxis'][-1],
+                   self.remap_dat['translations'][translation[0]][translation[1]]['yaxis'][0],
+                   self.remap_dat['translations'][translation[0]][translation[1]]['yaxis'][-1]]
+        img = ax.imshow(dummy.T, extent=ext,
                         origin='lower', cmap=cmap, vmin=vmin, vmax=vmax,
                         interpolation=interpolation, aspect='auto',
                         **extra_options)
         # --- trick to make the colorbar of the correct size
-        # cax = fig.add_axes([ax.get_position().x1 + 0.01,
-        #                     ax.get_position().y0, 0.02,
-        #                     ax.get_position().height])
         if xlim is not None:
             ax.set_xlim(xlim)
         if ylim is not None:
             ax.set_ylim(ylim)
-        im_ratio = dummy.shape[0]/dummy.shape[1]
-        plt.colorbar(img, label='Counts', fraction=0.042*im_ratio, pad=0.04,
-                     format=cbar_tick_format)
-        ax.set_title('t = ' + str(round(tf, 4)) + (' s'))
+        if IncludeColorbar:
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="5%", pad=0.05)
+            plt.colorbar(img, label='Counts [a.u.]', cax=cax,
+                         format=cbar_tick_format)
+        # Set the labels with t and shot
+        ax.text(0.05, 0.9, '#' + str(self.shot),
+                horizontalalignment='left',
+                color=color_labels_in_plot, verticalalignment='bottom',
+                transform=ax.transAxes)
+        plt.text(0.95, 0.9, 't = ' + str(round(tf, 4)) + (' s'),
+                 horizontalalignment='right',
+                 color=color_labels_in_plot, verticalalignment='bottom',
+                 transform=ax.transAxes)
         # Save axis limits, if not, if the strike map is larger than
         # the frame (FILD4,5) the output plot will be horrible
         xlim = ax.get_xlim()
         ylim = ax.get_ylim()
         if created:
+            if translation is None:
+                ax.set_ylabel('$r_l$ [cm]')
+            elif translation[1] == 1:
+                ax.set_ylabel('E [keV]')
             if self.diag == 'FILD':
                 ax.set_xlabel('$\\lambda \\ [\\degree]$')
-                ax.set_ylabel('$r_l$ [cm]')
-            else:
+            elif self.diag == 'INPA':
                 ax.set_xlabel('R [m]')
-                ax.set_ylabel('$r_l$ [cm]')
+            else:
+                pass
             fig.show()
             plt.tight_layout()
         return ax
@@ -424,7 +520,65 @@ class FIV(BVO):
 
         return output
 
-    def GUI_profile_analysis(self):
+    def translate_remap_to_energy(self, Emin: float = 15.0, Emax: float = 95.0,
+                                  dE: int = 1.0, useAverageB: bool = True,
+                                  specie: str = 'D'):
+        """
+        Transform the remap from Gyroradius to Energy
+
+        Introduced in version 0.9.5
+
+        @param Emin: Minimum energy for the new axis
+        @param Emax: Maximum energy for the new axis
+        @param dE: spacing for the new axis
+        @param useAverageB: flag to use the average value of the field or the
+            time-dependent field
+        @param specie: assumed specie of the incident ion (H, D, T, He...)
+        """
+        # See if there is remap data
+        if (self.remap_dat is None) or (self.Bangles is None):
+            raise Exception('You need to remap first!')
+        # See if there remap data has the same length of the B field (the user
+        # may have use the average in one of them...)
+        nx, ny, nt = self.remap_dat['frames'].shape
+        nt2 = self.BField['B'].size
+        if nt != nt2:
+            raise Exception('The B points do not agree with the remap!!!')
+        # Get the specie Mass and charge
+        par = sspar.species_info[specie.upper()]
+        if useAverageB:
+            B = self.BField['B'].mean()
+            rl = self.remap_dat['yaxis']
+            K = ssFILDSIM.get_energy(rl, B, A=par['A'], Z=par['Z']) / 1000.0
+            factor = math.sqrt(par['A'] * sspar.amu2kg / 2.0) / B / par['Z'] \
+                / sspar.ec / np.sqrt(K)
+            frames = self.remap_dat['frames'] / factor[None, :, None]
+            # Now comes the slow part, this need to be optimized, but let's go:
+            ne = int((Emax-Emin)/dE) + 1
+            Eedges = Emin - dE/2 + np.arange(ne+1) * dE
+            E = 0.5 * (Eedges[0:-1] + Eedges[1:])
+            print('Interpolating in the new energy grid')
+            new_frames = np.zeros((nx, ne, nt))
+            for it in tqdm(range(nt)):
+                for ixi in range(nx):
+                    # Interpolate the signal in the K array:
+                    f2 = interp1d(K, frames[ixi, :, it].squeeze(),
+                                  kind='cubic')
+                    new_frames[ixi, :, it] = f2(E)
+            # Now save the remap in the proper place
+            if 'translations' not in self.remap_dat.keys():
+                self.remap_dat['translations'] = {}
+            self.remap_dat['translations'][specie.upper()] = {
+                1: {
+                    'xaxis': self.remap_dat['xaxis'],
+                    'yaxis': E,
+                    'frames': new_frames
+                },
+            }
+        else:
+            raise errors.NotImplementedError('Sorry, still not done')
+
+    def GUI_profile_analysis(self, translation: tuple = None):
         """Small GUI to explore camera frames"""
         text = 'Press TAB until the time slider is highlighted in red.'\
             + ' Once that happend, you can move the time with the arrows'\
@@ -434,7 +588,7 @@ class FIV(BVO):
         print('-... . ..- - -.--')
         root = tk.Tk()
         root.resizable(height=None, width=None)
-        ssGUI.ApplicationRemapAnalysis(root, self)
+        ssGUI.ApplicationRemapAnalysis(root, self, translation)
         root.mainloop()
         root.destroy()
 

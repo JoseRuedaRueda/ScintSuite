@@ -13,18 +13,18 @@ import Lib.LibPlotting as ssplt
 import Lib.LibData as aug
 from Lib.LibPaths import Path
 from Lib.LibMachine import machine
-import warnings
+import os
+from os import listdir
+from warnings import warn
+from Lib.LibData import get_rho
+import Lib.SimulationCodes.iHIBPsim.hibp_utils as utils
 try:
     import netCDF4 as nc4
-except:
-    warnings.warn('netCDF4 library not found. Install it to use iHIBPsim.')
+except ImportError:
+    pass
 
 if machine == 'AUG':
     import dd
-import os
-# from Lib.LibIO import getFileSize
-from os import listdir
-from warnings import warn
 
 pa = Path()
 
@@ -394,6 +394,25 @@ class strikeLine:
         for ii in range(len(self.maps)):
             self.time[ii] = self.maps[ii]['timestamp']
 
+        ## We dump the header content into the class dictionary.
+        for ikey in self.maps[0]['rundata']:
+            self.__dict__[ikey] = self.maps[0]['rundata'][ikey]
+
+        ## Translating the code numbers in the files into readable options:
+        if self.weighting == 0:
+            self.weight_name = 'no-weighting'
+        elif self.weighting == 1:
+            self.weight_name = 'density'
+        elif self.weighting == 2:
+            self.weight_name = 'ion current'
+
+        if self.map_method == 1:
+            self.map_name = 'Rmajor (1D)'
+        elif self.map_method == 2:
+            self.map_name = 'rhopol (1D)'
+        elif self.map_method == 3:
+            self.map_name = 'R, z (2D)'
+
     def plotStrikeLine(self, timeStamp: float = None, ax=None,
                        ax_options: dict = {}, line_options: dict = {},
                        legendText: str = None):
@@ -496,17 +515,27 @@ class strikeLine:
         if plot_all:
             for ii in range(len(self.maps)):
                 if legendText_initial is None:
-                    legendText = 't = ' + str(self.maps[ii]['timestamp'][0])+\
-                                 ' [s]'
+                    legendText = 't = %.3f [s]'%self.maps[ii]['timestamp'][0]
                 else:
-                    legendText = 't = ' + str(self.maps[ii]['timestamp'][0])+\
-                                 ' [s] - ' + legendText_initial
+                    legendText = 't = %.3f [s]'%self.maps[ii]['timestamp'][0]+\
+                                 legendText_initial
                 if plot_weight:
                     ax[0].plot(self.maps[ii]['x1']*100,
                                self.maps[ii]['x2']*100,
                                label=legendText, **line_options)
-                    ax[1].plot(self.maps[ii]['map_s'],
-                               self.maps[ii]['w']/sspar.ec,
+
+                    ds = np.diff(self.maps[ii]['map_s']).mean()
+                    if self.weighting == 0:
+                        w = self.maps[ii]['w']/ds
+                        wylabel = 'Marker density (-)'
+                    elif self.weighting == 1:
+                        w = self.maps[ii]['w']/ds
+                        wylabel = 'Ion density ($m^{-3}$)'
+                    elif self.weighting == 2:
+                        w = self.maps[ii]['w']/ds/sspar.ec
+                        wylabel = 'Ion current ($ion\\cdot m^{-2}\\cdot s^{-1}$)'
+
+                    ax[1].plot(self.maps[ii]['map_s'],w,
                                label=legendText, **line_options)
                 else:
                     ax.plot(self.maps[ii]['x1']*100,
@@ -515,15 +544,24 @@ class strikeLine:
 
         else:
             if legendText is None:
-                legendText = 't = ' + str(self.maps[imap]['timestamp'][0]) + \
-                                 ' [s]'
+                legendText = 't = %.3f [s]'%self.maps[imap]['timestamp'][0]
 
             if plot_weight:
                 ax[0].plot(self.maps[imap]['x1']*100,
                            self.maps[imap]['x2']*100,
                            label=legendText, **line_options)
-                ax[1].plot(self.maps[imap]['map_s'],
-                           self.maps[imap]['w']/sspar.ec,
+                ds = np.diff(self.maps[imap]['map_s']).mean()
+                if self.weighting == 0:
+                    w = self.maps[imap]['w']/ds
+                    wylabel = 'Marker density (-)'
+                elif self.weighting == 1:
+                    w = self.maps[imap]['w']/ds
+                    wylabel = 'Ion density ($m^{-3}$)'
+                elif self.weighting == 2:
+                    w = self.maps[imap]['w']/ds/sspar.ec
+                    wylabel = 'Ion current ($ion\\cdot m^{-2}\\cdot s^{-1}$)'
+
+                ax[1].plot(self.maps[imap]['map_s'], w,
                            label=legendText, **line_options)
             else:
                 ax.plot(self.maps[imap]['x1']*100,
@@ -542,14 +580,14 @@ class strikeLine:
 
 
                 ax_options['ratio'] = 'auto'
-                if self.maps[0]['rundata']['map_method'] == 1:
+                if self.map_method == 1:
                     ax_options['xlabel'] = '$\\rho_{pol}$ [-]'
-                elif self.maps[0]['rundata']['map_method'] == 2:
+                elif self.map_method == 2:
                     ax_options['xlabel'] = 'Major radius R [m]'
                 else:
                     raise Exception('Mode=3 not implemented')
 
-                ax_options['ylabel'] = 'Ion flux [$ion/m^2s$]'
+                ax_options['ylabel'] = wylabel
                 ax[1] = ssplt.axis_beauty(ax[1], ax_options)
                 ax[1].yaxis.set_label_position('right')
                 ax[1].yaxis.tick_right()

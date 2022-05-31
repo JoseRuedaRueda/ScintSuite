@@ -1,2 +1,3 @@
 """Just the version of the suite, to label outputs"""
-version = '0.9.3'
+version = '0.9.9'
+codename = 'Rebujito'

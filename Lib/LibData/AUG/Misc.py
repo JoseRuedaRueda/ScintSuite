@@ -23,7 +23,8 @@ pa = Path()
 
 
 def get_signal_generic(shot: int, diag: str, signame: str, exp: str = 'AUGD',
-                       edition: int = 0, tBegin: float = None, tEnd: float = None):
+                       edition: int = 0, tBegin: float = None,
+                       tEnd: float = None):
     """
     Function that generically retrieves a signal from the database in AUG.
 
@@ -40,20 +41,29 @@ def get_signal_generic(shot: int, diag: str, signame: str, exp: str = 'AUGD',
     """
 
     # Reading the second diagnostic data.
-    try:
-        sf = dd.shotfile(diagnostic=diag, pulseNumber=shot,
-                         edition=edition, experiment=exp)
+    sfo = sf.SFREAD(shot, diag, edition=edition, experiment=exp)
 
-        signal_obj = sf(name=signame, tBegin=tBegin, tEnd=tEnd)
-        data = signal_obj.data
-        time = signal_obj.time
+    if not sfo.status:
+        raise Exception('The signal data cannot be read for #%05d:%s:%s(%d)'
+                        % (shot, diag, signame, edition))
 
-    except:
-        raise errors.DatabaseError(
-            'The signal data cannot be read for #%05d:%s:%s(%d)'
-            % (shot, diag, signame, edition))
+    data = sfo(name=signame)
+    if data is None:
+        raise ValueError('Cannot find signal %s' % signame)
+    time = sfo.gettimebase(signame)
 
-    sf.close()
+    if tBegin is None:
+        t0 = 0
+    else:
+        t0 = np.abs(time - tBegin).argmin()
+
+    if tBegin is None:
+        t1 = len(time)
+    else:
+        t1 = np.abs(time - tEnd).argmin()
+
+    data = np.array(data[t0:t1, ...], dtype=float)
+    time = np.array(time[t0:t1, ...], dtype=float)
 
     return time, data
 
@@ -136,13 +146,15 @@ def get_ELM_timebase(shot: int, time: float = None, edition: int = 0,
         -# n: The number of ELMs
     """
     # --- Open the AUG shotfile
-    ELM = dd.shotfile(diagnostic='ELM', pulseNumber=shot,
-                      edition=edition, experiment=exp)
+    sfo = sf.SFREAD(shot, 'ELM', edition=edition, experiment=exp)
+
+    if not sfo.status:
+        raise Exception('Cannot access shotfile %s:#%05d:ELM' % (exp, shot))
     tELM = {
-        't_onset':  ELM('tELM'),
-        'dt': ELM('dt_ELM').data,
-        'energy': ELM(name='ELMENER').data,
-        'f_ELM': ELM(name='f_ELM').data
+        't_onset':  sfo('tELM'),
+        'dt': sfo('dt_ELM'),
+        'energy': sfo('ELMENER'),
+        'f_ELM': sfo('f_ELM')
     }
 
     if time is not None:
@@ -178,6 +190,5 @@ def get_ELM_timebase(shot: int, time: float = None, edition: int = 0,
             }
 
     tELM['n'] = len(tELM['t_onset'])
-    ELM.close()
 
     return tELM

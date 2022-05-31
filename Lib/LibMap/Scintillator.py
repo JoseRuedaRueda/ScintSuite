@@ -72,6 +72,36 @@ class Scintillator(XYtoPixel):
         self.xpixel = None
         self.ypixel = None
 
+    def get_path_pix(self):
+        """
+        Returns the path covered by the scintillator in pixel coordinates.
+
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+        """
+        xdum = self.xpixel
+        ydum = self.ypixel
+        if self.code == 'fildsim':
+            # FILDSIM geometry does not close the last line, so we have to add
+            # it manually
+            x = np.concatenate((xdum, np.array([self.xpixel[0]])))
+            y = np.concatenate((ydum, np.array([self.ypixel[0]])))
+        else:
+            x = np.array([xdum[0], xdum[1], xdum[2], xdum[1],
+                          xdum[0], xdum[2]])
+            y = np.array([ydum[0], ydum[1], ydum[2], ydum[1],
+                          ydum[0], ydum[2]])
+            for i in range(1, int(self.n_vertices/3)):
+                x = np.concatenate((x,
+                                   np.array([xdum[3*i], xdum[3*i + 1],
+                                             xdum[3*i+2], xdum[3*i + 1],
+                                             xdum[3*i], xdum[3*i + 2]])))
+                y = np.concatenate((y,
+                                   np.array([ydum[3*i], ydum[3*i + 1],
+                                             ydum[3*i+2], ydum[3*i + 1],
+                                             ydum[3*i], ydum[3*i + 2]])))
+
+        return x, y
+
     def plot_pix(self, ax=None, plt_par: dict = {}):
         """
         Plot the scintillator, in pixels, in the axes ax.

@@ -22,7 +22,7 @@ class app_ihibp_vid:
     overplot the strikeline, when computed.
     """
 
-    def __init__(self, tkwindow, shotnumber: int, path: str):
+    def __init__(self, tkwindow, shotnumber: int, path: str=None, **kwargs):
         """
         Initializes the class with the neccessary data to create the GUI and
         smooth plot the i-HIBP videos.
@@ -35,13 +35,10 @@ class app_ihibp_vid:
         """
         self.TKwindow   = tkwindow
         self.shotnumber = shotnumber
+        self.strikeline_on = path is not None
 
-        # Loading the video object.
-        videopath = os.path.join(paths.iHIBP_videos,
-                                 str(shotnumber)[0:2],
-                                 'S%05d'%shotnumber,
-                                 'S%05d_HIBP.mp4'%shotnumber)
-        self.video = libvideo.BVO(videopath, shot=shotnumber)
+        self.video = libvideo.iHIBPvideo(shot=shotnumber,
+                                         **kwargs)
 
         # Setting the colormap options.
         self.cmaps = {
@@ -79,7 +76,7 @@ class app_ihibp_vid:
         fig = plt.figure()
         ax = fig.add_subplot(111)
         self.image1 = ax.imshow(self.video.exp_dat['frames'][:, :, 0].squeeze(),
-                                origin='lower', cmap=self.cmaps[defalut_cmap],
+                                 origin='lower', cmap=self.cmaps[defalut_cmap],
                                 aspect='equal')
 
         # Place the figure in a canvas
@@ -94,13 +91,15 @@ class app_ihibp_vid:
         self.toolbar1.update()
 
         # Reading in the strike line maps.
-        self.strline = ihibpstrikes.strikeLine(path,
-                                               shotnumber=self.shotnumber)
+        if path is not None:
+            self.strline = ihibpstrikes.strikeLine(path,
+                                                   shotnumber=self.shotnumber)
         fig2 = plt.figure()
         self.canvas2 = tkagg.FigureCanvasTkAgg(fig2, master=tkwindow)
         self.ax2 = fig2.add_subplot(111)
-        self.image2 = self.strline.plotStrikeLine(self.video.exp_dat['tframes'][0],
-                                        ax=self.ax2)
+        if path is not None:
+            self.image2 = self.strline.plotStrikeLine(self.video.exp_dat['tframes'][0],
+                                                      ax=self.ax2)
         self.toolbarFrame2 = tk.Frame(master=tkwindow)
         self.toolbarFrame2.grid(row=1, column=2, columnspan=1)
         self.toolbar2 = \
@@ -170,13 +169,14 @@ class app_ihibp_vid:
         self.image1.set_data(dummy)
 
         # Updating the strikeline.
-        if t0 > self.strline.time.max():
-            self.image2[0].set_xdata([])
-            self.image2[0].set_ydata([])
-        else:
-            it = np.abs(self.strline.time-t0).argmin()
-            self.image2[0].set_xdata(self.strline.maps[it]['x1']*100)
-            self.image2[0].set_ydata(self.strline.maps[it]['x2']*100)
+        if self.strikeline_on:
+            if t0 > self.strline.time.max():
+                self.image2[0].set_xdata([])
+                self.image2[0].set_ydata([])
+            else:
+                it = np.abs(self.strline.time-t0).argmin()
+                self.image2[0].set_xdata(self.strline.maps[it]['x1']*100)
+                self.image2[0].set_ydata(self.strline.maps[it]['x2']*100)
 
         # If needed, plot the smap
 

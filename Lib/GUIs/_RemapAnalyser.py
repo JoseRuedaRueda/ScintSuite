@@ -9,7 +9,7 @@ from tkinter import ttk
 class ApplicationRemapAnalysis:
     """Class to compare the profiles from the remap"""
 
-    def __init__(self, master, vid):
+    def __init__(self, master, vid, translation: tuple = None):
         """
         Create the window with the sliders
 

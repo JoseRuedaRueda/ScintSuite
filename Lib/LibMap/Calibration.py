@@ -88,28 +88,43 @@ class CalibrationDatabase:
         self.header = []
         ## Dictionary with the data from the calibration. See @ref database
         ## for a full description of the meaning of each field
-        self.data = {'ID': [], 'camera': [], 'shot1': [], 'shot2': [],
+        self.data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
                      'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
-                     'deg': [], 'cal_type': [], 'diag_ID': []}
-        # Open the file
+                     'deg': [], 'cal_type': [], 'diag_ID': [], 'c1': [],
+                     'xcenter': [], 'ycenter': []}
+
+        # Read the file
+        print('Reading Camera database from: ', filename)
         with open(filename) as f:
             for i in range(n_header):
-                # Lines with description
-                self.header = self.header + [f.readline()]
+                dummy = f.readline()
             # Database itself
             for line in f:
                 dummy = line.split()
-                self.data['ID'] = self.data['ID'] + [int(dummy[0])]
-                self.data['camera'] = self.data['camera'] + [dummy[1]]
-                self.data['shot1'] = self.data['shot1'] + [int(dummy[2])]
-                self.data['shot2'] = self.data['shot2'] + [int(dummy[3])]
-                self.data['xshift'] = self.data['xshift'] + [float(dummy[4])]
-                self.data['yshift'] = self.data['yshift'] + [float(dummy[5])]
-                self.data['xscale'] = self.data['xscale'] + [float(dummy[6])]
-                self.data['yscale'] = self.data['yscale'] + [float(dummy[7])]
-                self.data['deg'] = self.data['deg'] + [float(dummy[8])]
-                self.data['cal_type'] = self.data['cal_type'] + [dummy[9]]
-                self.data['diag_ID'] = self.data['diag_ID'] + [int(dummy[10])]
+                self.data['CalID'].append(int(dummy[0]))
+                self.data['camera'].append(dummy[1])
+                self.data['shot1'].append(int(dummy[2]))
+                self.data['shot2'].append(int(dummy[3]))
+                self.data['xshift'].append(float(dummy[4]))
+                self.data['yshift'].append(float(dummy[5]))
+                self.data['xscale'].append(float(dummy[6]))
+                self.data['yscale'].append(float(dummy[7]))
+                self.data['deg'].append(float(dummy[8]))
+                self.data['cal_type'].append(dummy[9])
+                self.data['diag_ID'].append(int(dummy[10]))
+                try:  # If there is distortion information, it would be here
+                    self.data['c1'].append(float(dummy[11]))
+                    self.data['xcenter'].append(float(dummy[12]))
+                    self.data['ycenter'].append(float(dummy[13]))
+                except IndexError:
+                    continue
+        # If the c1 and c2 fields are empty, delete them to avoid issues in the
+        # pandas self.dataframe
+        if (len(self.data['c1']) == 0):
+            self.data.pop('c1')
+            self.data.pop('xcenter')
+            self.data.pop('ycenter')
+
 
     def write_database_to_txt(self, file: str = None):
         """
@@ -130,8 +145,8 @@ class CalibrationDatabase:
             for i in range(len(self.header)):
                 f.write(self.header[i])
             # Write the database information
-            for i in range(len(self.data['ID'])):
-                line = str(self.data['ID'][i]) + ' ' + \
+            for i in range(len(self.data['CalID'])):
+                line = str(self.data['CalID'][i]) + ' ' + \
                        self.data['camera'][i] + ' ' + \
                        str(self.data['shot1'][i]) + ' ' + \
                        str(self.data['shot2'][i]) + ' ' + \
@@ -155,8 +170,8 @@ class CalibrationDatabase:
         @param diag_ID: ID of the diagnostic we want
         @return cal: CalParams() object
         """
-        flags = np.zeros(len(self.data['ID']))
-        for i in range(len(self.data['ID'])):
+        flags = np.zeros(len(self.data['CalID']))
+        for i in range(len(self.data['CalID'])):
             if (self.data['shot1'][i] <= shot) * \
                     (self.data['shot2'][i] >= shot) * \
                     (self.data['camera'][i] == camera) * \
@@ -177,11 +192,8 @@ class CalibrationDatabase:
         else:
             dummy = np.argmax(np.array(flags))
             cal = CalParams()
-            cal.xscale = self.data['xscale'][dummy]
-            cal.yscale = self.data['yscale'][dummy]
-            cal.xshift = self.data['xshift'][dummy]
-            cal.yshift = self.data['yshift'][dummy]
-            cal.deg = self.data['deg'][dummy]
+            for ikey in self.data.keys():
+                cal.__dict__[ikey] = self.data[ikey][dummy]
 
         return cal
 
@@ -226,5 +238,7 @@ class CalParams:
         print('xshift: ', self.xshift)
         print('yshift: ', self.yshift)
         print('deg: ', self.deg)
+        print('xcenter: ', self.xcenter)
+        print('ycenter: ', self.ycenter)
         print('c1: ', self.c1)
         print('c2: ', self.c2)

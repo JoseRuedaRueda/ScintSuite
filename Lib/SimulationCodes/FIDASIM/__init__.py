@@ -1,8 +1,12 @@
 """
 Read the FIDASIM I/O
 
-Core written by Pilar and addadped to the Suite by Jose. Notice that the
-documentation of this part still need to be completed
+Core written by Pilar Cano Mejias
+Adapted and extended by Jose Rueda Rueda: jrrueda@us.es
+
+Intereact with European FIDASIM4
 """
-import Lib.SimulationCodes.FIDASIM.plot as plt
-import Lib.SimulationCodes.FIDASIM.read as read
+import Lib.SimulationCodes.FIDASIM._plot as plt
+import Lib.SimulationCodes.FIDASIM._read as read
+from Lib.SimulationCodes.FIDASIM._FBM_class import FBM
+from Lib.SimulationCodes.FIDASIM._npa_class import NPA

@@ -225,12 +225,12 @@ class ihibpProfiles:
             profName = profName.lower()
             if profName == 'ne':
                 self.ne = tmp
-            elif profName == 'te':
+            elif profName == 'Te':
                 self.te = tmp
             elif profName == 'ni':
                 self.flag_ni_ne = False
                 self.ni = tmp
-            elif profName == 'Ti':
+            elif profName == 'ti':
                 self.flag_Ti_Te = False
                 self.Ti = tmp
 
@@ -271,7 +271,7 @@ class ihibpProfiles:
             np.array(gridlimits, dtype='float64').tofile(fid)
 
             # Writing the profile data.
-            np.array(tmp['f'].T, dtype='float64', order='F').tofile(fid)
+            np.array(tmp['f'].T, dtype='float64').ravel(order='F').tofile(fid)
 
         return
     def getfromDB(self, shotnumber: int, profName: str, diag: str=None,

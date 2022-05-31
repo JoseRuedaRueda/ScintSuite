@@ -119,7 +119,7 @@ def remapAllLoadedFrames(video,
 
     if smap_folder is None:
         smap_folder = os.path.join(paths.ScintSuite, 'Data', 'RemapStrikeMaps',
-                                   'INPA', video.INPAgeometry)
+                                   'INPA', video.geometryID)
     # -- Check the mask
     if type(mask) is str:
         # the user gave us a saved mask, not the matrix, so load the matrix:
@@ -147,7 +147,6 @@ def remapAllLoadedFrames(video,
     g_edges = rmin - dr/2 + np.arange(ngyr+1) * dr
     gyr = 0.5 * (g_edges[0:-1] + g_edges[1:])
     pitch = 0.5 * (p_edges[0:-1] + p_edges[1:])
-
     # --- STRIKE MAP SEARCH
     exist = np.zeros(nframes, bool)
     name = ' '      # To save the name of the strike map
@@ -168,7 +167,7 @@ def remapAllLoadedFrames(video,
         print('Looking for strikemaps in: ', smap_folder)
         for iframe in tqdm(range(nframes)):
             name = ssSINPA.execution.guess_strike_map_name(
-                phi[iframe], theta[iframe], geomID=video.INPAgeometry,
+                phi[iframe], theta[iframe], geomID=video.geometryID,
                 decimals=decimals
                 )
             # See if the strike map exist
@@ -219,10 +218,10 @@ def remapAllLoadedFrames(video,
         if not got_smap:
             name = ssSINPA.execution.find_strike_map_INPA(
                 phi_used[iframe], theta_used[iframe], smap_folder,
-                video.INPApositionOrientation['s1'],
-                video.INPApositionOrientation['s2'],
-                video.INPApositionOrientation['s3'],
-                geomID=video.INPAgeometry, SINPA_options=code_options,
+                video.orientation['s1'],
+                video.orientation['s2'],
+                video.orientation['s3'],
+                geomID=video.geometryID, SINPA_options=code_options,
                 decimals=decimals, clean=True)
         # Only reload the strike map if it is needed
         if name != name_old:

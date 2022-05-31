@@ -117,7 +117,7 @@ def read_data(path):
             if a == 0 or a == 1:  # Find the first point where this was broken
                 dif = np.diff(time_base)
                 flags = dif < 0
-                id = np.arange(len(time_base), dtype=np.int)
+                id = np.arange(len(time_base), dtype=int)
                 id = id[1:]
                 limit = id[flags]
                 limit = int(limit[:])

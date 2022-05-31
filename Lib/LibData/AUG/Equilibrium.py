@@ -81,9 +81,9 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     return rho
 
 
-def get_rho2rz(shot: int, flxlabel: float, diag: str = 'EQH', exp: str = 'AUGD',
-               ed: int = 0, time: float = None, coord_out: str = 'rho_pol',
-               equ=None):
+def get_rho2rz(shot: int, flxlabel: float, diag: str = 'EQH',
+               exp: str = 'AUGD', ed: int = 0, time: float = None,
+               coord_out: str = 'rho_pol', equ=None):
     """
     Gets the curves (R, z) associated to a given flux surface.
 
@@ -117,7 +117,6 @@ def get_rho2rz(shot: int, flxlabel: float, diag: str = 'EQH', exp: str = 'AUGD',
         equ.Close()
 
     return R, z, tout
-
 
 
 def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
@@ -180,8 +179,8 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
     # Checking the inputs.
     new_equ_opened = False
     try:
-        sf = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber,
-                         experiment=exp, edition=edition)
+        sfo = dd.shotfile(diagnostic=diag, pulseNumber=shotnumber,
+                          experiment=exp, edition=edition)
         new_equ_opened = True
     except:
         raise errors.DatabaseError('EQU shotfile cannot be opened.')
@@ -189,7 +188,7 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
     # Deactivate the nasty warnings for a while.
     warnings.filterwarnings('ignore', category=DeprecationWarning)
     warnings.filterwarnings('ignore', category=RuntimeWarning)
-    eqh_time = np.asarray(sf(name='time').data)  # Time data.
+    eqh_time = np.asarray(sfo(b'time').data)  # Time data.
 
     # Checking the time data.
     if time is not None:
@@ -207,8 +206,8 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
         t1 = np.abs(eqh_time.flatten() - time[-1]).argmin() + 1
 
     # Getting the names and the SSQ data.
-    eqh_ssqnames = sf.GetSignal(name='SSQnam')
-    eqh_ssq = sf.GetSignal(name='SSQ')
+    eqh_ssqnames = sfo.GetSignal(name='SSQnam')
+    eqh_ssq = sfo.GetSignal(name='SSQ')
     warnings.filterwarnings('default')
 
     # Unpacking the data.
@@ -221,13 +220,13 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
 
     # Reading from the equilibrium the magnetic flux at the axis and in the
     # separatrix.
-    PFxx = sf.GetSignal('PFxx').T
+    PFxx = sfo.GetSignal('PFxx').T
     ikCAT = np.argmin(abs(PFxx[1:, :] - PFxx[0, :]), axis=0) + 1
     ssq['psi_ax'] = PFxx[0, ...]
-    ssq['psi_sp'] =  [PFxx[iflux, ii] for ii, iflux in enumerate(ikCAT)]
+    ssq['psi_sp'] = [PFxx[iflux, ii] for ii, iflux in enumerate(ikCAT)]
 
     if new_equ_opened:
-        sf.close()
+        sfo.close()
 
     # Adding the time.
     ssq['time'] = np.atleast_1d(eqh_time[t0:t1])
@@ -312,7 +311,7 @@ def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
     PFxx = sf.GetSignal('PFxx').T
     ikCAT = np.argmin(abs(PFxx[1:, :] - PFxx[0, :]), axis=0) + 1
     psi_ax = np.tile(PFxx[0, ...], (pfl.shape[1], 1)).T
-    psi_edge =  [PFxx[iflux, ii] for ii, iflux in enumerate(ikCAT)]
+    psi_edge = [PFxx[iflux, ii] for ii, iflux in enumerate(ikCAT)]
     psi_edge = np.tile(np.array(psi_edge), (pfl.shape[1], 1)).T
 
     rhop = np.sqrt((pfl - psi_ax)/(psi_edge-psi_ax)).squeeze()
@@ -322,27 +321,31 @@ def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
         time = np.atleast_1d(time)
 
     if time is None:
-        output = { 'data': qpsi,
-                   'time': timebasis,
-                   'rhop': rhop
-                 }
+        output = {
+            'data': qpsi,
+            'time': timebasis,
+            'rhop': rhop
+        }
 
     elif len(time) == 1:
-        output = { 'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
-                   'time': time.squeeze(),
-                   'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze()
-                 }
+        output = {
+            'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
+            'time': time.squeeze(),
+            'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze()
+        }
     elif len(time) == 2:
         t0, t1 = np.searchsorted(timebasis, time)
-        output = { 'data': qpsi[t0:t1, ...].squeeze(),
-                   'time': timebasis[t0:t1].squeeze(),
-                   'rhop': rhop[t0:t1, ...].squeeze(),
-                 }
+        output = {
+            'data': qpsi[t0:t1, ...].squeeze(),
+            'time': timebasis[t0:t1].squeeze(),
+            'rhop': rhop[t0:t1, ...].squeeze(),
+        }
     else:
-         output = { 'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
-                    'time': time.squeeze(),
-                    'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze(),
-                 }
+         output = {
+            'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
+            'time': time.squeeze(),
+            'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze(),
+         }
 
     if sf_new:
         sf.close()
@@ -355,7 +358,7 @@ def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
 
     return output
 
-def get_ECRH_traces(shot: int, time: float=None, ec_list: list=None):
+def get_ECRH_traces(shot: int, time: float = None, ec_list: list = None):
     """
     Retrieves from the AUG database the ECRH timetraces with the power of the
     ECRH. The power and the injection angles are retrieved from the ECS
@@ -446,12 +449,97 @@ def get_ECRH_traces(shot: int, time: float=None, ec_list: list=None):
     # Reading the total power
     name = 'PECRH'
     pecrh = sfecs(name=name)
-    output['total'] = { 'time': timebase,
-                        'power': interp1d(pecrh.time, pecrh.data,
+    output['total'] = {
+        'time': timebase,
+        'power': interp1d(pecrh.time, pecrh.data,
                                           bounds_error=False,
                                           fill_value=0.0)(timebase)*1.e-6
-                      }
+    }
 
     warnings.filterwarnings('default', category=RuntimeWarning)
+
+    return output
+
+def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None):
+    """
+    Returns the total ECRH power from the ECS shotfile in AUG.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shot: shotnumber to get the ECRH power.
+    @param tBeg: initial time to get the timetrace. If None, the initial time
+    stored in the shotfile will be returned.
+    @param tEnd: final time to get the timetrace. If None, the final time
+    stored in the shotfile will be returned.
+    """
+
+    sf_ecs = sf.SFREAD('NIS', shot)
+    if not sf_ecs.status:
+        raise errors.DatabaseError('Cannot get the ECS shotfile for #%05d'%shot)
+
+    pecrh = sf_ecs(name='PECRH')
+    time = sf_ecs('TIME')
+    print(time)
+
+    if tBeg is None:
+        t0 = 0
+    else:
+        t0 = np.abs(time - tBeg).argmin()
+
+    if tEnd is None:
+        t1 = len(time)
+    else:
+        t1 = np.abs(time -tEnd).argmin()
+
+    # cutting the data to the desired time range.
+    pecrh = pecrh[t0:t1]
+    time = time[t0:t1]
+
+    output = {
+        'power': pecrh,
+        'time': time
+    }
+
+    return output
+
+
+def getPrad_total(shot: int, tBeg: float = None, tEnd: float = None):
+    """
+    Return the total radiated power from the BPD shotfile in AUG.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shot: shotnumber to get the ECRH power.
+    @param tBeg: initial time to get the timetrace. If None, the initial time
+    stored in the shotfile will be returned.
+    @param tEnd: final time to get the timetrace. If None, the final time
+    stored in the shotfile will be returned.
+    """
+
+    sf_bpd = sf.SFREAD('BPD', shot)
+    if not sf_bpd.status:
+        raise errors.DatabaseError('Cannot get the BPD shotfile for #%05d'%shot)
+
+    prad = sf_bpd(name='Pradtot')
+    time = sf_bpd.gettimebase('Pradtot')
+
+    if tBeg is None:
+        t0 = 0
+    else:
+        t0 = np.abs(time - tBeg).argmin()
+
+    if tEnd is None:
+        t1 = len(time)
+    else:
+        t1 = np.abs(time -tEnd).argmin()
+
+    # cutting the data to the desired time range.
+    prad = prad[t0:t1]
+    time = time[t0:t1]
+
+    output = {
+        'power': prad,
+        'time': time
+    }
 
     return output

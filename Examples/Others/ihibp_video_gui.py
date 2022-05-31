@@ -1,5 +1,7 @@
 """
 Script to launch the iHIBP gui.
+
+This GUI will show the image of the iHIBP scintillator.
 """
 
 import tkinter as tk
@@ -14,7 +16,7 @@ if __name__ == '__main__':
 
     filetype = [('iHIBP strikeline map', '*.map')]
 
-    a = app_ihibp_vid(root, shotnumber=39810,
-                      path=ask_to_open(filetype=filetype))
+    a = app_ihibp_vid(root, shotnumber=40860,
+                      path=None, signal_threshold=0)
     root.mainloop()
     root.destroy()
