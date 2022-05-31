@@ -53,6 +53,7 @@ with warnings.catch_warnings(record=True):
     from Lib.version_suite import version, codename
     import Lib.LibCAD as cad
     import Lib.LibSideFunctions as side
+    import Lib.ufiles as ufiles
 
     machine = m.machine
     paths = p.Path(machine)
@@ -60,6 +61,7 @@ with warnings.catch_warnings(record=True):
     # Non tokamak independent libraries
     if machine == 'AUG':
         import Lib.SimulationCodes.iHIBPsim as ihibp
+        import Lib.SimulationCodes.torbeam as torbeam
 
     # Delte the intermedite variables to 'clean'
     del p
