@@ -100,7 +100,7 @@ def read_spec(filename: str, spectra_stark_resolved: bool = True):
         (ns, nla, nlo) = (data['nstark'], data['nlambda'], data['nlos'])
         data['lambda'] = np.fromfile(fh, dtype=float_type, count=nla)
         if spectra_stark_resolved:
-            dim = np.int(nstark*nla*nlo)
+            dim = int(nstark*nla*nlo)
             data['full'] = np.fromfile(fh, dtype=float_type,
                                        count=dim).reshape(nlo, nla, ns)
             data['half'] = np.fromfile(fh, dtype=float_type,
@@ -112,7 +112,7 @@ def read_spec(filename: str, spectra_stark_resolved: bool = True):
             try:
                 data['dcx'] = np.fromfile(fh, dtype=float_type,
                                           count=dim).reshape(nlo, nla, ns)
-            except EOFError:
+            except:
                 pass
         else:
             dim = nla*nlo
@@ -127,11 +127,14 @@ def read_spec(filename: str, spectra_stark_resolved: bool = True):
             try:
                 data['dcx'] = np.fromfile(fh, dtype=float_type,
                                           count=dim).reshape(nlo, nla)
-            except EOFError:
+            except:
                 pass
-    folder, file = os.path.split(filename)
-    rhofile = os.path.join(folder, 'rhodiag.bin')
-    data['rho_diag'] = read_rho_diag(rhofile)
+    try:
+        folder, file = os.path.split(filename)
+        rhofile = os.path.join(folder, 'rhodiag.bin')
+        data['rho_diag'] = read_rho_diag(rhofile)
+    except:
+        pass
     return data
 
 
