@@ -1,3 +1,8 @@
+** 0.9.10: iHIBP videos improvements and TORBEAM sims.
+- Corrected bugs in the iHIBPsim videos read.
+- Added a class to handle the TORBEAM simulations written in UFILE format.
+
+
 ** 0.9.9: BEP removed from library and work in iHIBP.
 - Removed the full BEP library from the ScintSuite.
 - Rebranded class for the iHIBP video with:

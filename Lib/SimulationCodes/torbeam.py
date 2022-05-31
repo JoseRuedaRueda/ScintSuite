@@ -1,5 +1,7 @@
 """
-ECRH TORBEAM.
+Library to read the output files from the TORBEAM simulations stored in
+UFILE format.
+
 
 Pablo Oyola - pablo.oyola@ipp.mpg.de
 """
