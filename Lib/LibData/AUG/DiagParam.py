@@ -18,6 +18,8 @@ Bt_sign = -1   # +1 Indicates the positive phi direction (counterclockwise)
 It_sign = 1  # -1 Indicates the negative phi direction (clockwise)
 IB_sign = Bt_sign * It_sign
 
+num_of_gyrotrons = 8 # Number of gyrotrons available in AUG.
+
 # -----------------------------------------------------------------------------
 #                           FILD PARAMETERS
 # -----------------------------------------------------------------------------
