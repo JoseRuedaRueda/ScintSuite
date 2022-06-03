@@ -1,8 +1,8 @@
 """Hydrogen and lithium ionization formulae"""
 
 import numpy as np
-import Lib.LibParameters as sspar
-import Lib.LibPlotting as ssplt
+import Lib._Parameters as sspar
+import Lib._Plotting as ssplt
 import matplotlib.pyplot as plt
 
 # Importing libraries with the Cs and the rubidium cross sections.

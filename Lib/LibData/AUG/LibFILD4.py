@@ -19,8 +19,8 @@ import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter as savgol
 import aug_sfutils as sf
 import Lib.LibData.AUG.DiagParam as params
-from Lib.LibPaths import Path
-from Lib.LibMachine import machine
+from Lib._Paths import Path
+from Lib._Machine import machine
 paths = Path(machine)
 
 try:
@@ -437,4 +437,4 @@ class FILD4_traject:
             ax[id_plot].grid(True)
         ax[id_plot].set_xlabel('Time [s]')
         plt.show()
-        return fig
+        return fig, ax

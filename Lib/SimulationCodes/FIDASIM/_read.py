@@ -15,7 +15,7 @@ Still to implement: weighting functions, Zeeman lines
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import Lib.LibParameters as sspar
+import Lib._Parameters as sspar
 
 
 def read_neutrals(filename: str):
@@ -658,7 +658,7 @@ def read_npa(filename, verbose: bool = True):
 
 def read_fbm(filename):
     """
-    Read (I)NPA output files.
+    Read the Fast-ion distribution function file.
 
     Jose Rueda: jrrueda@us.es
 

@@ -1,8 +1,8 @@
 """Contains the methods and classes to interact with iHIBPsim - Orbits"""
 
 import numpy as np
-import Lib.LibPlotting as ssplt
-import Lib.LibParameters as sspar
+import Lib._Plotting as ssplt
+import Lib._Parameters as sspar
 import matplotlib.pyplot as plt
 import os
 

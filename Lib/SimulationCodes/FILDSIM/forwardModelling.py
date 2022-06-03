@@ -1,13 +1,13 @@
 """Calculate and plot synthetic signals with FILDSIM."""
 import numpy as np
 import matplotlib.pyplot as plt
-import Lib.LibMap as ssmapping
+import Lib._Mapping as ssmapping
 import Lib.SimulationCodes.FILDSIM.execution as ssfildsimA
-import Lib.LibPlotting as ssplt
+import Lib._Plotting as ssplt
 import Lib.LibData as ssdat
-import Lib.LibNoise as ssnoise
-import Lib.LibIO as ssio
-import Lib.LibOptics as ssoptics
+import Lib._Noise as ssnoise
+import Lib._IO as ssio
+import Lib._Optics as ssoptics
 from tqdm import tqdm            # For waitbars
 try:
     import lmfit
@@ -62,7 +62,7 @@ def gaussian_input_distribution(r0, sr0, p0, sp0, B=1.8, A=2.0, Z=1, F=1e6,
     return distro
 
 
-def read_ASCOT_distribution(file, version: int = 4, IpBt_sign=ssdat.IB_sign):
+def read_ASCOT_distribution(file, version: int = 4, IpBt_sign=-1.0):
     """
     Read a distribution coming from ASCOT
 

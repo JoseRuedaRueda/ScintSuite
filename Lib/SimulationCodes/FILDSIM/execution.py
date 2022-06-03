@@ -1,11 +1,10 @@
 """Routines to interact with FILDSIM."""
 import os
-import warnings
 import numpy as np
 import math as ma
-import Lib.LibParameters as ssp
-from Lib.LibMachine import machine
-from Lib.LibPaths import Path
+import Lib._Parameters as ssp
+from Lib._Machine import machine
+from Lib._Paths import Path
 import Lib.LibData as ssdat
 from Lib.decorators import deprecated
 import Lib.errors as errors
@@ -318,7 +317,7 @@ def read_plate(filename):
 # -----------------------------------------------------------------------------
 # --- Energy definition FILDSIM
 # -----------------------------------------------------------------------------
-def get_energy(gyroradius, B: float, A: float = 2., Z: int = 1):
+def get_energy(gyroradius, B: float, A: float = 2.01410178, Z: float = 1.0):
     """
     Calculate the energy given a gyroradius, FILDSIM criteria
 
@@ -331,12 +330,12 @@ def get_energy(gyroradius, B: float, A: float = 2., Z: int = 1):
 
     @return E: the energy [in eV]
     """
-    m = ssp.mp * A  # Mass of the ion
-    E = 0.5 * (gyroradius/100.0 * Z * B)**2 / m * ssp.c ** 2
+    m = ssp.amu2kg * A  # Mass of the ion
+    E = 0.5 * (gyroradius/100.0 * Z * B)**2 / m * ssp.ec
     return E
 
 
-def get_gyroradius(E, B: float, A: float = 2., Z: int = 1):
+def get_gyroradius(E, B: float, A: float = 2.01410178, Z: int = 1):
     """
     Calculate the gyroradius given an energy, FILDSIM criteria
 
@@ -349,6 +348,6 @@ def get_gyroradius(E, B: float, A: float = 2., Z: int = 1):
 
     @return r: Larmor radius as taken from FILD strike map [in cm]
     """
-    m = ssp.mp * A  # Mass of the ion
+    m = ssp.amu2kg * A  # Mass of the ion
     r = 100. * np.sqrt(2.0 * E * m / ssp.c**2) / Z / B
     return r

@@ -9,15 +9,17 @@ import f90nml
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import warnings
-from Lib.LibMachine import machine
-from Lib.LibPaths import Path
-from Lib.LibMap.Calibration import CalParams, readCameraCalibrationDatabase
+from Lib._Machine import machine
+from Lib._Paths import Path
+from Lib._Mapping._Calibration import CalParams, readCameraCalibrationDatabase
 import Lib.LibData.AUG.DiagParam as params
 import Lib.errors as errors
 from Lib.decorators import deprecated
+import logging
+logger = logging.getLogger('ScintSuite.Data')
 paths = Path(machine)
-
+__all__ = ['guessFILDfilename', 'load_FILD4_trajectory',
+           'plot_FILD4_trajectory', 'FILD_logbook']
 
 # --- Default files:
 _cameraDatabase = os.path.join(paths.ScintSuite, 'Data', 'Calibrations',
@@ -110,7 +112,7 @@ def load_FILD4_trajectory(shot, path=paths.FILD4_trajectories):
             'insertion': data[:, 1],
         }
         if data[:, 1].max() > ins_lim[1]:
-            warnings.warn('FILD4 insertion larger than the maximum!!!')
+            logger.warning('6: FILD4 insertion larger than the maximum!!!')
         position = {
             't': data[:, 0],
             'R': R4_lim[0] + (data[:, 1]-ins_lim[0])/(ins_lim[0]-ins_lim[1])

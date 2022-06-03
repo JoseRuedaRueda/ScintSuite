@@ -96,6 +96,7 @@ class FBM:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
             plt.colorbar(img, label='FI density [a.u.]', cax=cax)
+        return ax
 
     def plotEPatRZ(self, R, z, ax=None, cmap=None,
                    IncludeColorbar: bool = True,

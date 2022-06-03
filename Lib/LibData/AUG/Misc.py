@@ -10,18 +10,16 @@ This library contains:
 
 """
 import aug_sfutils as sf
-import dd                # Module to load shotfiles
 import numpy as np
 import Lib.LibData.AUG.DiagParam as params
-from Lib.LibPaths import Path
+from Lib._Paths import Path
 import Lib.errors as errors
 pa = Path()
+
 
 # -----------------------------------------------------------------------------
 # --- GENERIC SIGNAL RETRIEVING.
 # -----------------------------------------------------------------------------
-
-
 def get_signal_generic(shot: int, diag: str, signame: str, exp: str = 'AUGD',
                        edition: int = 0, tBegin: float = None,
                        tEnd: float = None):
