@@ -7,7 +7,7 @@ import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 import Lib.SimulationCodes.SINPA as ssSINPA
 import Lib._Utilities as ssextra
 from Lib._Machine import machine
-from Lib._Mapping.StrikeMap import StrikeMap
+from Lib._Mapping._StrikeMap import StrikeMap
 import Lib._Mapping._Common as common
 import Lib._Paths as p
 import Lib._IO as ssio

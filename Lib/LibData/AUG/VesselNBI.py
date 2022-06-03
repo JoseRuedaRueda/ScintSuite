@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import Lib._Plotting as ssplt
 import Lib._Utilities as ssextra
 import Lib._Parameters as sspar
-import Lib.LibTracker as sstracker
 import Lib.errors as errors
 
 pa = Path()
@@ -527,105 +526,105 @@ class NBI:
         }
         return out
 
-    def generate_tarcker_markers(self, Nions, E: float = 93000., sE=2000.,
-                                 Rmin: float = 1.25, Rmax: float = 2.1, A=2.,
-                                 rc=None, lambda0: float = 2.5,
-                                 max_trials=2000):
-        """
-        Prepare markers along the NBI line
-
-        Jose Rueda: jrrueda@us.es
-
-        Gaussian distribution will be assumed for the energies
-
-        @param Nions: Number of markers to generate
-        @param E: energy of the markers [eV]
-        @param sE: standard deviation of the energy of the markers [eV]
-        @param Rmin: minimum radius to launch the markers
-        @param Rmax: maximum radius to launch the markers
-        @param A: Mass number of the ions
-        @param rc: intersection coords of the NBI with the separatrix [x,y,z]
-        @param lambda0: decay length of the NBI weight in the plasma
-        """
-        unit = self.coords['u']
-        p0 = np.array([self.coords['x0'], self.coords['y0'],
-                       self.coords['z0']])
-        # Initialise the random generator:
-        rand = np.random.default_rng()
-        gauss = rand.standard_normal
-        # Initialise the arrays
-        c = 0   # counter of good ions
-        trials = 0  # Number of trials
-        R = np.zeros(Nions, dtype=np.float64)
-        z = np.zeros(Nions, dtype=np.float64)
-        phi = np.zeros(Nions, dtype=np.float64)
-        vR = np.zeros(Nions, dtype=np.float64)
-        vz = np.zeros(Nions, dtype=np.float64)
-        vt = np.zeros(Nions, dtype=np.float64)
-        m = np.zeros(Nions, dtype=np.float64)
-        q = np.zeros(Nions, dtype=np.float64)
-        logw = np.zeros(Nions, dtype=np.float64)
-        t = np.zeros(Nions, dtype=np.float64)
-        if (rc is not None) and (lambda0 is not None):
-            weight_markers = True
-            d0 = math.sqrt((self.coords['x0'] - rc[0])**2
-                           + (self.coords['y0'] - rc[1])**2
-                           + (self.coords['z0'] - rc[2])**2)
-        else:
-            weight_markers = False
-            d0 = 1.
-
-        while c < Nions:
-            trials += 1
-            a = np.random.random()
-            p1 = p0 + a * unit * self.coords['length']
-            R1 = np.sqrt(p1[0]**2 + p1[1]**2)
-
-            if weight_markers:  # to discard markers outside the sep
-                d1 = math.sqrt((self.coords['x0'] - p1[0])**2
-                               + (self.coords['y0'] - p1[1])**2
-                               + (self.coords['z0'] - p1[2])**2)
-                d_plasma = math.sqrt((rc[0] - p1[0])**2
-                                     + (rc[1] - p1[1])**2
-                                     + (rc[2] - p1[2])**2)
-            else:
-                d1 = 2.0 * d0  # to ensure we always enter the next if
-
-            if (R1 > Rmin) and (R1 < Rmax) and (d1 > d0):
-                rand_E = E + sE * gauss()
-                v = np.sqrt(2. * rand_E / A / sspar.mp) * sspar.c * unit
-                R[c] = R1
-                z[c] = p1[2]
-                phi[c] = np.arctan2(p1[1], p1[0])
-                vv = sstracker.cart2pol(p1, v)
-                vR[c] = vv[0]
-                vz[c] = vv[1]
-                vt[c] = vv[2]
-                m[c] = A
-                q[c] = 1
-                if weight_markers:
-                    logw[c] = lambda0 * d_plasma
-                else:
-                    logw[c] = 0.
-                t[c] = 0.0
-                c += 1
-            if trials > max_trials:
-                print('All markers could not be generated')
-                print('Maximum trials reached')
-                c = Nions
-        marker = {
-            'R': R[:c],
-            'z': z[:c],
-            'phi': phi[:c],
-            'vR': vR[:c],
-            'vphi': vt[:c],
-            'vz': vz[:c],
-            'm': m[:c],
-            'q': q[:c],
-            'logw': logw[:c],
-            't': t[:c]
-        }
-        return marker
+    # def generate_tarcker_markers(self, Nions, E: float = 93000., sE=2000.,
+    #                              Rmin: float = 1.25, Rmax: float = 2.1, A=2.,
+    #                              rc=None, lambda0: float = 2.5,
+    #                              max_trials=2000):
+    #     """
+    #     Prepare markers along the NBI line
+    #
+    #     Jose Rueda: jrrueda@us.es
+    #
+    #     Gaussian distribution will be assumed for the energies
+    #
+    #     @param Nions: Number of markers to generate
+    #     @param E: energy of the markers [eV]
+    #     @param sE: standard deviation of the energy of the markers [eV]
+    #     @param Rmin: minimum radius to launch the markers
+    #     @param Rmax: maximum radius to launch the markers
+    #     @param A: Mass number of the ions
+    #     @param rc: intersection coords of the NBI with the separatrix [x,y,z]
+    #     @param lambda0: decay length of the NBI weight in the plasma
+    #     """
+    #     unit = self.coords['u']
+    #     p0 = np.array([self.coords['x0'], self.coords['y0'],
+    #                    self.coords['z0']])
+    #     # Initialise the random generator:
+    #     rand = np.random.default_rng()
+    #     gauss = rand.standard_normal
+    #     # Initialise the arrays
+    #     c = 0   # counter of good ions
+    #     trials = 0  # Number of trials
+    #     R = np.zeros(Nions, dtype=np.float64)
+    #     z = np.zeros(Nions, dtype=np.float64)
+    #     phi = np.zeros(Nions, dtype=np.float64)
+    #     vR = np.zeros(Nions, dtype=np.float64)
+    #     vz = np.zeros(Nions, dtype=np.float64)
+    #     vt = np.zeros(Nions, dtype=np.float64)
+    #     m = np.zeros(Nions, dtype=np.float64)
+    #     q = np.zeros(Nions, dtype=np.float64)
+    #     logw = np.zeros(Nions, dtype=np.float64)
+    #     t = np.zeros(Nions, dtype=np.float64)
+    #     if (rc is not None) and (lambda0 is not None):
+    #         weight_markers = True
+    #         d0 = math.sqrt((self.coords['x0'] - rc[0])**2
+    #                        + (self.coords['y0'] - rc[1])**2
+    #                        + (self.coords['z0'] - rc[2])**2)
+    #     else:
+    #         weight_markers = False
+    #         d0 = 1.
+    #
+    #     while c < Nions:
+    #         trials += 1
+    #         a = np.random.random()
+    #         p1 = p0 + a * unit * self.coords['length']
+    #         R1 = np.sqrt(p1[0]**2 + p1[1]**2)
+    #
+    #         if weight_markers:  # to discard markers outside the sep
+    #             d1 = math.sqrt((self.coords['x0'] - p1[0])**2
+    #                            + (self.coords['y0'] - p1[1])**2
+    #                            + (self.coords['z0'] - p1[2])**2)
+    #             d_plasma = math.sqrt((rc[0] - p1[0])**2
+    #                                  + (rc[1] - p1[1])**2
+    #                                  + (rc[2] - p1[2])**2)
+    #         else:
+    #             d1 = 2.0 * d0  # to ensure we always enter the next if
+    #
+    #         if (R1 > Rmin) and (R1 < Rmax) and (d1 > d0):
+    #             rand_E = E + sE * gauss()
+    #             v = np.sqrt(2. * rand_E / A / sspar.mp) * sspar.c * unit
+    #             R[c] = R1
+    #             z[c] = p1[2]
+    #             phi[c] = np.arctan2(p1[1], p1[0])
+    #             vv = sstracker.cart2pol(p1, v)
+    #             vR[c] = vv[0]
+    #             vz[c] = vv[1]
+    #             vt[c] = vv[2]
+    #             m[c] = A
+    #             q[c] = 1
+    #             if weight_markers:
+    #                 logw[c] = lambda0 * d_plasma
+    #             else:
+    #                 logw[c] = 0.
+    #             t[c] = 0.0
+    #             c += 1
+    #         if trials > max_trials:
+    #             print('All markers could not be generated')
+    #             print('Maximum trials reached')
+    #             c = Nions
+    #     marker = {
+    #         'R': R[:c],
+    #         'z': z[:c],
+    #         'phi': phi[:c],
+    #         'vR': vR[:c],
+    #         'vphi': vt[:c],
+    #         'vz': vz[:c],
+    #         'm': m[:c],
+    #         'q': q[:c],
+    #         'logw': logw[:c],
+    #         't': t[:c]
+    #     }
+    #     return marker
 
     def plot_pitch_profile(self, line_params: dict = {},
                            ax_param={},

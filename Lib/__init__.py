@@ -90,7 +90,7 @@ import Lib.SimulationCodes.Common as simcom
 import Lib._Tomography as tomo
 
 # Handle Video files
-import Lib._Video. as vid
+import Lib._Video as vid
 import Lib._VRT as vrt
 
 
@@ -101,7 +101,6 @@ import Lib._Utilities as extra
 import Lib._FrequencyAnalysis as ftt
 import Lib._Paths as p
 import Lib._Machine as m
-import Lib.LibTracker as tracker
 import Lib._IO as io
 import Lib._FastChannel as fc
 import Lib._ScintillatorCharacterization as scintcharact
