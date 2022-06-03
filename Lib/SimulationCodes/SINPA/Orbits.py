@@ -6,11 +6,11 @@ Introduced in version 0.6.0
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import Lib.LibParameters as sspar
+import Lib._Parameters as sspar
 from mpl_toolkits.mplot3d import Axes3D
-from Lib.LibMachine import machine
-from Lib.LibPaths import Path
-import Lib.LibPlotting as ssplt
+from Lib._Machine import machine
+from Lib._Paths import Path
+import Lib._Plotting as ssplt
 paths = Path(machine)
 
 
@@ -162,6 +162,7 @@ class OrbitClass:
         if created:
             ssplt.clean3Daxis(ax)
             ssplt.axisEqual3D(ax)
+        return ax
 
     def plotEnergy(self, iorbit, ax=None, line_params: dict = {},
                    ax_params: dict = {}):
@@ -195,6 +196,7 @@ class OrbitClass:
 
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
+        return ax
 
     def save_orbits_to_txt(self, kind=(2,), units: str = 'mm'):
         """

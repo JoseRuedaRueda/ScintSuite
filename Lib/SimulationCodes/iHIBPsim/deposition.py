@@ -8,17 +8,18 @@ Pablo Oyola - pablo.oyola@ipp.mpg.de
 """
 
 import numpy as np
+import logging
+import matplotlib.pyplot as plt
+import os
+from scipy.interpolate import RectBivariateSpline
+from Lib.LibData import get_rho
+import Lib.SimulationCodes.iHIBPsim.hibp_utils as utils
+logger = logging.getLogger('ScintSuite.iHIBPsim')
 try:
     import xarray as xr
 except ModuleNotFoundError:
-    print('Xarray not found. Install it to use iHIBPsim.')
-import matplotlib.pyplot as plt
-import os
+    logger.warning('0: Xarray not found. Needed for iHIBPsim.')
 
-from scipy.interpolate import RectBivariateSpline
-
-from Lib.LibData import get_rho
-import Lib.SimulationCodes.iHIBPsim.hibp_utils as utils
 
 # -----------------------------------------------------------------------------
 # Variables.
@@ -32,7 +33,7 @@ variables_name = np.array(('ID', 'Rmajor', 'Z', 'phi', 'vR', 'vZ', 'vPhi',
 # -----------------------------------------------------------------------------
 # Auxiliar functions to read the files.
 # -----------------------------------------------------------------------------
-def read_deposition_header(filename: str, version: int=1):
+def read_deposition_header(filename: str, version: int = 1):
     """
     Get the header from the deposition file according to the code version.
 

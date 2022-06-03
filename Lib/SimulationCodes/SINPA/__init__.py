@@ -12,3 +12,4 @@ import Lib.SimulationCodes.SINPA.reading as read
 import Lib.SimulationCodes.SINPA.execution as execution
 from Lib.SimulationCodes.SINPA.Orbits import OrbitClass as orbits
 import Lib.SimulationCodes.SINPA.geometry as geometry
+from Lib.SimulationCodes.SINPA._INPA_strike_points import INPAStrikes

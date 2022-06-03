@@ -1,6 +1,6 @@
 """Routines to load data from the tokamak database"""
 
-from Lib.LibMachine import machine
+from Lib._Machine import machine
 if machine == 'AUG':
     from Lib.LibData.AUG import *
 elif machine == 'MU':

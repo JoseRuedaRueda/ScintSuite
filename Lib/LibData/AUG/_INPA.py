@@ -9,11 +9,9 @@ import f90nml
 import math
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import warnings
-from Lib.LibMachine import machine
-from Lib.LibPaths import Path
-from Lib.LibMap.Calibration import CalParams, readCameraCalibrationDatabase
+from Lib._Machine import machine
+from Lib._Paths import Path
+from Lib._Mapping._Calibration import CalParams, readCameraCalibrationDatabase
 import Lib.LibData.AUG.DiagParam as params
 import Lib.errors as errors
 paths = Path(machine)

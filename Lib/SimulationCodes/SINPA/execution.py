@@ -12,8 +12,8 @@ import numpy as np
 import Lib.SimulationCodes.SINPA.reading as reading
 import Lib.SimulationCodes.Common.fields as simcomFields
 import Lib.SimulationCodes.Common.geometry as simcomGeo
-from Lib.LibMachine import machine
-from Lib.LibPaths import Path
+from Lib._Machine import machine
+from Lib._Paths import Path
 import Lib.errors as errors
 paths = Path(machine)
 

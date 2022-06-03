@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interpn
 import Lib.LibData as ssdat
-import Lib.LibPlotting as ssplt
+import Lib._Plotting as ssplt
 import Lib.errors as errors
 import math
 
@@ -744,7 +744,7 @@ class fields:
                                        u1=np.array((1.0, 0.0, 0.0)),
                                        u2=np.array((0.0, 1.0, 0.0)),
                                        u3=np.array((0.0, 0.0, 1.0)),
-                                       IpBt_sign: float = ssdat.IB_sign,
+                                       IpBt_sign: float = -1.0,
                                        verbose: bool = True,
                                        diagnostic: str = 'FILD'):
         """
