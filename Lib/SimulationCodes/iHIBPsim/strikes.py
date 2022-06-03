@@ -8,11 +8,11 @@ import numpy as np
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
-import Lib.LibParameters as sspar
-import Lib.LibPlotting as ssplt
+import Lib._Parameters as sspar
+import Lib._Plotting as ssplt
 import Lib.LibData as aug
-from Lib.LibPaths import Path
-from Lib.LibMachine import machine
+from Lib._Paths import Path
+from Lib._Machine import machine
 import os
 from os import listdir
 from warnings import warn
@@ -24,7 +24,7 @@ except ImportError:
     pass
 
 if machine == 'AUG':
-    import dd
+    import aug_sfutils as sfutils
 
 pa = Path()
 
@@ -654,16 +654,16 @@ class strikeLine:
         # --- Temperature and density data.
         try:
             print(self.shot)
-            sf_ida = dd.shotfile(pulseNumber=self.shot, diagnostic='IDA',
-                                 experiment='AUGD', edition=0)
+            sf_ida = sfutils.SFREAD('IDA', self.shot,
+                                    experiment='AUGD', edition=0)
         except:
-            warn('The IDA profile cannot be loaded for #%05d'%self.shot)
+            warn('The IDA profile cannot be loaded for #%05d' % self.shot)
             return
 
         Te = sf_ida(name='Te')
         ne = sf_ida(name='ne')
-        tindx_ne = np.zeros((len(self.time),), dtype = int)
-        tindx_te = np.zeros((len(self.time),), dtype = int)
+        tindx_ne = np.zeros((len(self.time),), dtype=int)
+        tindx_te = np.zeros((len(self.time),), dtype=int)
         for ii in range(len(tindx)):
             tindx_ne[ii] = np.abs(ne.time.flatten() - self.time[ii]).argmin()
             tindx_te[ii] = np.abs(Te.time.flatten() - self.time[ii]).argmin()
@@ -677,8 +677,6 @@ class strikeLine:
 
             name = 'Te'+rhopNames[ii]
             self.shotinfo[name] = ne.data[tindx_ne, rhop_indx]
-
-        sf_ida.close()
 
 
 # -----------------------------------------------------------------------------

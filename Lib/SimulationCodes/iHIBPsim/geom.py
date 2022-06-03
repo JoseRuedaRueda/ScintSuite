@@ -15,19 +15,19 @@ from typing import Union
 import Lib.LibData.AUG.DiagParam as libparms
 import Lib.SimulationCodes.iHIBPsim as libhipsim
 import Lib.SimulationCodes.Common.geometry as common_geom
-import warnings
 from copy import deepcopy
-from Lib.LibUtilities import find_2D_intersection
-
+from Lib._Utilities import find_2D_intersection
+import logging
+logger = logging.getLogger('ScintSuite.iHIBPsim')
 BEAM_INF_SMALL = 0
 BEAM_ANGULAR_DIVERGENCY = 1
 BEAM_ENERGY_DISPERSION = 2
 BEAM_FULLWIDTH = 3
 
+
 # ----------------------------------------------------------------------------
 # --- Beam geometry modules.
 # ----------------------------------------------------------------------------
-
 def R2beam(u: float, origin: float, R: float):
     """
     For a given beam trajectory in the (X, Y) described by the vector pair
@@ -1236,13 +1236,12 @@ class geom:
                                         surface_params=kwargs,
                                         plot_pinhole=False)
         else:
-            warnings.warn('Head is not plot in non-3D plots.')
+            logger.warning('a1: Head is not plot in non-3D plots.')
 
         return ax
 
-
-    def plot(self, view: str='3d', elements: str = 'all', ax=None, fig=None,
-             timepoint: float=None):
+    def plot(self, view: str = '3d', elements: str = 'all', ax=None, fig=None,
+             timepoint: float = None):
         """
         Plots the iHIBP geometry, including the head, the scintillator plate
         and the beam injection geometry, or a part of these.

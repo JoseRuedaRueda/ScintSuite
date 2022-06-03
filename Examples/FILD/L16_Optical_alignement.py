@@ -23,7 +23,7 @@ import Lib as ss
 Scint_file = '/afs/ipp/home/r/ruejo/SINPA/Geometry/AUG02/Element2.txt'   # ####
 format = 'SINPA'  # Code for which the geometry file is written
 # File with the calibration image (png)
-calib_image = '/afs/ipp/home/r/ruejo/FILD_Calibration_images/FILD1/' + \
+calib_image = '/afs/ipp/home/r/ruejo/FILD_Calibration_images/FILD1/OldCalibrations/' + \
     'FILD_reference_800x600_2021_07_05_inserted.png'                     # ####
 # modify section 3 if you have a custom format for the calibration image
 # Staring points for the calibration
@@ -79,7 +79,7 @@ scintillator.plot_pix(ax)
 # --- GUI
 # -----------------------------------------------------------------------------
 # Make a horizontal sliders to control shifts
-axxs = plt.axes([0.4, 0.05, 0.65, 0.03])
+axxs = plt.axes([0.1, 0.05, 0.65, 0.03])
 axxs_slider = Slider(
     ax=axxs,
     label='xshift',
@@ -87,7 +87,7 @@ axxs_slider = Slider(
     valmax=xshiftmax,
     valinit=xshift,
 )
-axys = plt.axes([0.4, 0.15, 0.65, 0.03])
+axys = plt.axes([0.1, 0.15, 0.65, 0.03])
 axys_slider = Slider(
     ax=axys,
     label='yshift',
