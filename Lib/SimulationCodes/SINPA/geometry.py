@@ -8,8 +8,8 @@ Introduced in version 0.6.0
 import math
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-from Lib.LibMachine import machine
-from Lib.LibPaths import Path
+from Lib._Machine import machine
+from Lib._Paths import Path
 paths = Path(machine)
 
 

@@ -23,6 +23,7 @@ class NotValidInput(Exception):
     Example 2: if one routine required the time in second or time index and you
     do not give any of them
     """
+
     pass
 
 
@@ -77,5 +78,19 @@ class WrongNamelist(Exception):
 # --- Video related exception
 class NoFramesLoaded(Exception):
     """Raised when you try to do something with the frames before loading   """
+
+    pass
+
+
+# --- StrikeMap
+class NotFoundStrikeMap(Exception):
+    """Raised if the no StrikeMap is found in the database"""
+
+    pass
+
+
+# --- StrikeMap
+class NotFoundVariable(Exception):
+    """Raised if the no StrikeMap is found in the database"""
 
     pass

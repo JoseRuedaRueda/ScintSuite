@@ -5,12 +5,11 @@ Introduced in version 0.6.0
 """
 import os
 import numpy as np
-import warnings
-import Lib.LibPlotting as ssplt
+import Lib._Plotting as ssplt
 import matplotlib.pyplot as plt
-from Lib.LibMachine import machine
+from Lib._Machine import machine
 from Lib.decorators import deprecated
-import Lib.LibPaths as p
+import Lib._Paths as p
 paths = p.Path(machine)
 del p
 

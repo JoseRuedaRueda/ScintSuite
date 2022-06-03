@@ -1,0 +1,293 @@
+"""
+Routines to calculate the optic transmission of the system
+
+Jose Rueda Rueda: jrrueda@us.es
+"""
+import os
+import math
+import numpy as np
+import logging
+import matplotlib.pyplot as plt
+import Lib._IO as ssio
+import Lib.errors as errors
+from Lib._Paths import Path
+from Lib._Machine import machine
+from Lib._Utilities import distmat
+from tqdm import tqdm
+logger = logging.getLogger('ScintSuite.Optics')
+
+paths = Path(machine)
+try:
+    from wand.image import Image
+except ModuleNotFoundError:
+    text = 'Wand image not found, you cannnot apply distortion to figures'
+    logger.warning('0: %s' % text)
+try:
+    import lmfit
+except ModuleNotFoundError:
+    text = 'lmfit not found. You can not fit'
+    logger.warning('0: %s' % text)
+
+
+# -----------------------------------------------------------------------------
+# --- Absolute calibration
+# -----------------------------------------------------------------------------
+def read_spectral_response(file: str = None, plot: bool = False):
+    """
+    Read the camera spectral response
+
+    Jose Rueda: jrrueda@us.es
+
+    Data should follow the example of the PhantomV2512.txt format
+
+    for the future: allow for unit changes (ie, receive the response in units
+    different from the A/W)
+
+    @param file: full path to the txt file
+    @param plot: bool to plot or not
+    @return out: dict containing:
+        -# lambda: wavelength [nm]
+        -# response: spectral response [A/W]
+    """
+    if file is None:
+        file = ssio.ask_to_open(ext='*.txt')
+        if file == '' or file == ():
+            print('You canceled the reading')
+            return
+    else:
+        file = ssio.check_open_file(file)
+
+    # read the data
+    [x, y] = np.loadtxt(file, skiprows=5, unpack=True)
+
+    # plot
+    if plot:
+        fig, ax = plt.subplots()
+        ax.plot(x, y, linewidth=2)
+        ax.set_xlabel('Wavelength [nm]', fontsize=14)
+        ax.set_ylabel('Response [A/W]', fontsize=14)
+        fig.show()
+
+    out = {
+        'lambda': x,
+        'response': y
+    }
+    return out
+
+
+def read_sphere_data(file: str = None, plot: bool = False):
+    """
+    Read integrating sphere data
+
+    Jose Rueda Rueda: jrrueda@us.es
+
+    @param file: full path to the file with the data
+    @param plot: flag to decide if we must plot
+    """
+    # check if the file exist
+    if file is None:
+        file = ssio.ask_to_open(ext='*.txt')
+        if file == '' or file == ():
+            print('You canceled the reading')
+            return
+    else:
+        file = ssio.check_open_file(file)
+    # read the data
+    [x, y] = np.loadtxt(file, skiprows=1, unpack=True)
+
+    # plot
+    if plot:
+        fig, ax = plt.subplots()
+        ax.plot(x, y, linewidth=2)
+        ax.set_xlabel('Wavelength [nm]', fontsize=14)
+        ax.set_ylabel('spectral radiance [W/m**2/nm/sr]', fontsize=14)
+        fig.show()
+
+    out = {
+        'lambda': x,
+        'spectrum': y
+    }
+    return out
+
+
+# -----------------------------------------------------------------------------
+# --- Distortion analysis
+# -----------------------------------------------------------------------------
+def manual_find_grid_points(image):
+    """
+    Manually find the edges corners of the calibration grid
+
+    Jose Rueda: jrrueda@us.es
+
+    @param image: frame with the grid
+    """
+    print('Left mouse: add a point')
+    print('Right mouse: remove a point')
+    print('Middle mouse: stop input')
+    points = plt.ginput(-1, timeout=0, show_cliks=True)
+    return points
+
+
+def distort_image(frame, params: dict = {}):
+    """
+    Apply distortion to the images
+    """
+    options = {
+        'model': 'WandImage',
+        'parameters': {
+            'method': 'barrel',
+            'arguments': (0.2, 0.1, 0.1, 0.6)
+        },
+    }
+    options.update(params)
+    if options['model'] == 'WandImage':
+        maximum = frame.max()
+        dummy = frame.astype(np.float) / maximum
+        img = Image.from_array(dummy)
+        img.virtual_pixel = 'transparent'
+        img.distort(**options['parameters'])
+        output = np.array(img)[:, :, 0].astype(np.float) * maximum / 255
+
+    return output.astype(np.uint)
+
+
+# -----------------------------------------------------------------------------
+# --- Finite focusing
+# -----------------------------------------------------------------------------
+def createFocusMatrix(frame, coef_sigma=1.0,
+                      center: tuple = (0, 0)):
+    """
+    Create the translation matrix for the Finite Focusing of the optics
+
+    Jose Rueda Rueda: jrrueda@us.es
+
+    @param frame: original frame
+    @param coef_sigma: standard deviation of the focusing, in pixels. Can be
+        an array if the focusing is a function of the distance to the optical
+        axis.
+    @param center: coordinates (in pixels, of the optical axis)
+
+    Warning, can be extremelly memory consuming, if you want to apply finite
+    focus, use the function: defocus
+    """
+    # conver to numpy array, if the user gave us just a constant sigma
+    try:
+        len(coef_sigma)
+    except TypeError:
+        coef_sigma = np.array([coef_sigma])
+    # Create the ouput matrix
+    n1, n2 = frame.shape
+    output = np.zeros((n1, n2, n1, n2))
+
+    # fill the matrix
+    ic = center[0]
+    jc = center[1]  # just to save notation
+
+    for i in tqdm(range(n1)):
+        for j in range(n2):
+            d = math.sqrt((i - ic)**2 + (j - jc)**2)
+            sigma = np.polyval(coef_sigma, d)
+            index_distance = distmat(frame, (i, j))
+            output[i, j, ...] = np.exp(-index_distance**2 / 2 / sigma*2)\
+                / 2 / math.pi / sigma**2
+    return output
+
+
+def defocus(frame, coef_sigma=1.0,
+            center: tuple = (0, 0)):
+    """
+    Create the translation matrix for the Finite Focusing of the optics
+
+    Jose Rueda Rueda: jrrueda@us.es
+
+    @param frame: original frame
+    @param coef_sigma: standard deviation of the focusing, in pixels. Can be
+        an array if the focusing is a function of the distance to the optical
+        axis.
+    @param center: coordinates (in pixels, of the optical axis)
+
+    Warning, can be extremelly memory consuming, if you want to apply finite
+    focus, use the function: defocus
+    """
+    # conver to numpy array, if the user gave us just a constant sigma
+    try:
+        len(coef_sigma)
+    except TypeError:
+        coef_sigma = np.array([coef_sigma])
+    # Create the ouput matrix
+    n1, n2 = frame.shape
+    output = np.zeros((n1, n2))
+
+    # fill the matrix
+    ic = center[0]
+    jc = center[1]  # just to save notation
+
+    for i in tqdm(range(n1)):
+        for j in range(n2):
+            d = math.sqrt((i - ic)**2 + (j - jc)**2)
+            sigma = np.polyval(coef_sigma, d)
+            index_distance = distmat(frame, (i, j))
+            output += np.exp(-index_distance**2 / 2 / sigma*2)\
+                / 2 / math.pi / sigma**2 * frame[i, j]
+    return output
+
+# -----------------------------------------------------------------------------
+# --- Transmission factor
+# -----------------------------------------------------------------------------
+
+
+class FnumberTransmission():
+    """
+    F-number transmission
+
+    Jose Rueda Rueda
+
+    Simple object, just to read the F-number files and store the data, no
+    more methods are foreseen in this class for now.
+    """
+
+    def __init__(self, file: str = None, diag: str = 'INPA',
+                 machine: str = 'AUG', geomID: str = 'iAUG01',
+                 fit_model: str = 'poly2'):
+        """
+        Read the file
+
+        There is 2 ways of found the file to be read:
+            -file: give the full name of the file
+            -diag, machine, geomID: give the 'info' of the file to look and the
+            code will look in the data folder
+
+        @param file: Full path to the file to open (optional)
+        @param diag: Diagnostic type, to look in the data folder (FILD or INPA)
+        @param machine: machine, to look in the data folder
+        @param geomID: diagnostic geometry ID to look in the data folder
+        @param fit_model: fit function to use in the fitting, default, 2nd
+            order polynomial (poly2)
+
+        For the fit, it is assumed that the tramission is always maximum in the
+        axis
+        """
+        if file is None:
+            file = os.path.join(paths.ScintSuite, 'Data', 'Calibrations',
+                                diag, machine, geomID + '_F_number.txt')
+        R, F = np.loadtxt(file, skiprows=12, unpack=True)
+
+        Omega = np.pi / (2 * F)**2
+        if fit_model == 'poly2':
+            # Notice that b must be clamped, as it
+            model = lmfit.models.ParabolicModel()
+            params = model.guess(F, x=R)
+            params['b'].value = 0
+            params['b'].vary = False
+            self._fit = model.fit(F, params, x=R)
+        self._data = {'r': R, 'F': F, 'Omega': Omega}
+
+    def f_number(self, r):
+        """
+        Evaluate the f_number coefficient as a given radius in the object plane
+
+        @param: r (can be an array), the radial positions where to evaluate the
+            f_number
+        """
+
+        return self._fit.eval(x=r)
