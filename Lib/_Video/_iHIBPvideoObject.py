@@ -3,7 +3,7 @@ iHIBP video object.
 
 Pablo Oyola - pablo.oyola@ipp.mpg.de
 """
-from Lib.LibVideo._BasicVideoObject import BVO
+from Lib._Video._BasicVideoObject import BVO
 import xml.etree.ElementTree as et
 import os
 import numpy as np
@@ -11,12 +11,12 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from scipy.special import gamma, gammainc
 import Lib.errors as errors
-import Lib.LibPaths as p
-from Lib.LibMachine import machine
-import Lib.LibMap.Calibration as libcal
-from Lib.LibMap.Scintillator import Scintillator
+import Lib._Paths as p
+from Lib._Machine import machine
+import Lib._Mapping._Calibration as libcal
+from Lib._Mapping._Scintillator import Scintillator
 import Lib.LibData.AUG.DiagParam as params
-import Lib.LibTimeTraces as sstt
+import Lib._TimeTrace as sstt
 pa = p.Path(machine)
 del p
 
@@ -412,5 +412,3 @@ class iHIBPvideo(BVO):
             mask = self.scint_mask
 
         return super().getTimeTrace(t=t, mask=mask)
-
-
