@@ -52,6 +52,9 @@
 - Label in plot still need to be added
 - Idem with plot real
 
+### LibTimeTraces
+- **bug**: Corrected the bug where the plotting of a time trace with a baseline correction was overwritting the data in the timetrace_object
+
 ### LibTraker
 - Finally removed, use directly iHIBPsim library
 

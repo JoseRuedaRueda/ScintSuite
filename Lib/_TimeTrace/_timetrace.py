@@ -307,21 +307,21 @@ class TimeTrace:
         }
         # --- Select the proper data:
         if data == 'sum':
-            y = self.sum_of_roi
+            y = self.sum_of_roi.copy()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = 'Counts [a.u.]'
                 else:
                     ax_params['ylabel'] = 'Counts'
         elif data == 'std':
-            y = self.std_of_roi
+            y = self.std_of_roi.copy()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = '$\\sigma [a.u.]$'
                 else:
                     ax_params['ylabel'] = '$\\sigma$'
         else:
-            y = self.mean_of_roi
+            y = self.mean_of_roi.copy()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = 'Mean [a.u.]'
