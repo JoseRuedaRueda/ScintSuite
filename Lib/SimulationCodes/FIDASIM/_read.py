@@ -112,7 +112,9 @@ def read_spec(filename: str, spectra_stark_resolved: bool = True):
             try:
                 data['dcx'] = np.fromfile(fh, dtype=float_type,
                                           count=dim).reshape(nlo, nla, ns)
-            except:
+            except EOFError:
+                pass
+            except ValueError:
                 pass
         else:
             dim = nla*nlo
@@ -127,7 +129,10 @@ def read_spec(filename: str, spectra_stark_resolved: bool = True):
             try:
                 data['dcx'] = np.fromfile(fh, dtype=float_type,
                                           count=dim).reshape(nlo, nla)
-            except:
+            except EOFError:
+                pass
+            
+            except ValueError:
                 pass
     try:
         folder, file = os.path.split(filename)
