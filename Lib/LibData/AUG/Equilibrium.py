@@ -342,108 +342,103 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
 #
 #     return output
 
+def get_ECRH_traces(shot: int, time: float = None, ec_list: list = None):
+    """
+    Retrieves from the AUG database the ECRH timetraces with the power of the
+    ECRH. The power and the injection angles are retrieved from the ECS
+    shotfile while the actual position of the gyrotrons is obtained from TBM
+    shotfile.
 
-# def get_ECRH_traces(shot: int, time: float = None, ec_list: list = None):
-#     """
-#     Retrieves from the AUG database the ECRH timetraces with the power of the
-#     ECRH. The power and the injection angles are retrieved from the ECS
-#     shotfile while the actual position of the gyrotrons is obtained from TBM
-#     shotfile.
-#
-#     Pablo Oyola - pablo.oyola@ipp.mpg.de
-#
-#
-#     @param shot: Shot number
-#     @param ed: edition, default 0 (last)
-#     @param time: Array of times where we want to calculate the field. If None,
-#     the whole time array is retrieved.
-#     @param ec_list: list with the ECRH gyrotrons to use. If None, all the
-#     gyrotrons are read.
-#     """
-#
-#     if ec_list is None:
-#         ec_list = (1, 2, 3, 4, 5, 6, 7, 8)
-#
-#     ec_list = np.atleast_1d(ec_list)
-#
-#     try:
-#         sfecs = dd.shotfile(diagnostic='ECS', pulseNumber=shot,
-#                             edition=0, experiment='AUGD')
-#
-#         sftbm = dd.shotfile(diagnostic='TBM', pulseNumber=shot,
-#                             edition=0, experiment='AUGD')
-#     except:
-#         raise errors.DatabaseError(
-#             'EC shotfiles cannot be opened for #%05d' % shot)
-#
-#     output = dict()
-#     flag_first = False
-#
-#     # --- Reading the data for all the gyrotrons in the list.
-#     warnings.filterwarnings('ignore', category=RuntimeWarning)
-#     for iecrh, ecrh_num in enumerate(ec_list):
-#         if ecrh_num <= 4:
-#             power_name = 'PG%d' % ecrh_num
-#         else:
-#             power_name = 'PG%dN' % (ecrh_num-4)
-#
-#         # Getting the power of the gyrotron.
-#         power = sfecs(power_name)
-#
-#         if np.all(power.data*1e-6 < ECRH_POWER_THRESHOLD):
-#             continue
-#
-#         poloidal_angle_name = 'thpl-G%d' % ecrh_num
-#         toroidal_angle_name = 'phtr-G%d' % ecrh_num
-#
-#         pol_ang = sfecs(poloidal_angle_name)
-#         tor_ang = sfecs(toroidal_angle_name)
-#
-#         if not flag_first:
-#             flag_first = True
-#             timebase = pol_ang.time
-#
-#         power_data = interp1d(power.time, power.data, bounds_error=False,
-#                               fill_value=0.0, assume_sorted=True)(timebase)
-#
-#         polang_data = interp1d(pol_ang.time, pol_ang.data, bounds_error=False,
-#                                fill_value=0.0, assume_sorted=True)(timebase)
-#
-#         torang_data = interp1d(tor_ang.time, tor_ang.data, bounds_error=False,
-#                                fill_value=0.0, assume_sorted=True)(timebase)
-#
-#         del power
-#
-#         output[int(ecrh_num)] = {
-#             'time': timebase,
-#             'power': power_data*1e-6,
-#             'pol_ang': polang_data,
-#             'tor_ang': torang_data,
-#         }
-#
-#         # Getting the deposition position according to the RT controller.
-#         rhopol = sftbm('rhoout%d' % ecrh_num)
-#         Recrh = sftbm('R_out%d' % ecrh_num)
-#         zecrh = sftbm('z_out%d' % ecrh_num)
-#
-#         output[int(ecrh_num)]['time_pos'] = rhopol.time
-#         output[int(ecrh_num)]['rhopol'] = rhopol.data
-#         output[int(ecrh_num)]['R'] = Recrh.time
-#         output[int(ecrh_num)]['z'] = zecrh.time
-#
-#     # Reading the total power
-#     name = 'PECRH'
-#     pecrh = sfecs(name=name)
-#     output['total'] = {
-#         'time': timebase,
-#         'power': interp1d(pecrh.time, pecrh.data,
-#                                           bounds_error=False,
-#                                           fill_value=0.0)(timebase)*1.e-6
-#     }
-#
-#     warnings.filterwarnings('default', category=RuntimeWarning)
-#
-#     return output
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+
+    @param shot: Shot number
+    @param ed: edition, default 0 (last)
+    @param time: Array of times where we want to calculate the field. If None,
+    the whole time array is retrieved.
+    @param ec_list: list with the ECRH gyrotrons to use. If None, all the
+    gyrotrons are read.
+    """
+
+    if ec_list is None:
+        ec_list = (1, 2, 3, 4, 5, 6, 7, 8)
+
+    ec_list = np.atleast_1d(ec_list)
+
+    try:
+        sfecs = sf.SFREAD(shot, 'ECS', edition=0, experiment='AUGD')
+
+        sftbm = sf.SFREAD(shot, 'TBM', edition=0, experiment='AUGD')
+    except:
+        raise errors.DatabaseError(
+            'EC shotfiles cannot be opened for #%05d' % shot)
+
+    output = dict()
+    flag_first = False
+
+    # --- Reading the data for all the gyrotrons in the list.
+    warnings.filterwarnings('ignore', category=RuntimeWarning)
+    for iecrh, ecrh_num in enumerate(ec_list):
+        if ecrh_num <= 4:
+            power_name = 'PG%d' % ecrh_num
+        else:
+            power_name = 'PG%dN' % (ecrh_num-4)
+
+        # Getting the power of the gyrotron.
+        power = sfecs(power_name)
+
+        if np.all(power*1e-6 < ECRH_POWER_THRESHOLD):
+            continue
+
+        poloidal_angle_name = 'thpl-G%d' % ecrh_num
+        toroidal_angle_name = 'phtr-G%d' % ecrh_num
+
+        pol_ang = sfecs(poloidal_angle_name)
+        tor_ang = sfecs(toroidal_angle_name)
+        time_ang = sfecs('T-C')
+        time_power = sfecs('T-B')
+
+        if not flag_first:
+            flag_first = True
+            timebase = time_ang
+
+        power_data = interp1d(time_power, power, bounds_error=False,
+                              fill_value=0.0, assume_sorted=True)(timebase)
+
+        polang_data = interp1d(time_ang, pol_ang, bounds_error=False,
+                               fill_value=0.0, assume_sorted=True)(timebase)
+
+        torang_data = interp1d(time_ang, tor_ang, bounds_error=False,
+                               fill_value=0.0, assume_sorted=True)(timebase)
+
+        del power
+
+        output[int(ecrh_num)] = {
+            'time': timebase,
+            'power': power_data*1e-6,
+            'pol_ang': polang_data,
+            'tor_ang': torang_data,
+        }
+
+        # Getting the deposition position according to the RT controller.
+        rhopol = sftbm('rhoout%d' % ecrh_num)
+        Recrh = sftbm('R_out%d' % ecrh_num)
+        zecrh = sftbm('z_out%d' % ecrh_num)
+        rhoptime = sftbm('time_c')
+
+        output[int(ecrh_num)]['time_pos'] = rhoptime
+        output[int(ecrh_num)]['rhopol'] = rhopol
+        output[int(ecrh_num)]['R'] = Recrh
+        output[int(ecrh_num)]['z'] = zecrh
+
+    # Reading the total power
+    name = 'PECRH'
+    pecrh = sfecs(name=name)
+    output['total'] = {
+        'time': timebase,
+        'power': interp1d(time_power, pecrh,bounds_error=False,
+                          fill_value=0.0)(timebase)*1.e-6
+    }
 
 
 def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None):
@@ -459,7 +454,7 @@ def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None):
     stored in the shotfile will be returned.
     """
 
-    sf_ecs = sf.SFREAD('NIS', shot)
+    sf_ecs = sf.SFREAD('ECS', shot)
     if not sf_ecs.status:
         raise errors.DatabaseError(
             'Cannot get the ECS shotfile for #%05d' % shot)

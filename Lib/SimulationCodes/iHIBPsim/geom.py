@@ -1281,7 +1281,7 @@ class geom:
 
         # Plotting each elements.
         if 'beam' in toplot:
-            ax, line, div = self.beam.plot(view=view, ax=ax, fig=fig)
+            ax = self.beam.plot(view=view, ax=ax, fig=fig)
         if ('scint' in toplot) or ('scintillator' in toplot):
             ax = self.__plot_scintillator(view=view, ax=ax, fig=fig)
 
