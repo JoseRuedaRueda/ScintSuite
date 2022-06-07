@@ -45,7 +45,8 @@ def trace(frames, mask):
     sum_of_roi = np.sum(frames[mask, :], axis=0, dtype=float)
     mean_of_roi = np.mean(frames[mask, :], axis=0, dtype=float)
     std_of_roi = np.std(frames[mask, :], axis=0, dtype=float)
-    return sum_of_roi, mean_of_roi, std_of_roi
+    max_of_roi = frames[mask, :].max(axis=0)
+    return sum_of_roi, mean_of_roi, std_of_roi, max_of_roi
 
 
 def time_trace_cine(cin_object, mask, t1=0, t2=10):
@@ -75,6 +76,7 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
     sum_of_roi = np.zeros(i2 - i1)
     mean_of_roi = np.zeros(i2 - i1)
     std_of_roi = np.zeros(i2 - i1)
+    max_of_roi = np.zeros(i2 - i1)
     # I could call for each time the read_cine_image, but that would imply to
     # open and close several time the file as well as navigate trough it... I
     # will create temporally a copy of that routine, this need to be
@@ -126,11 +128,12 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
         sum_of_roi[itt] = np.sum(dummy[mask])
         mean_of_roi[itt] = np.mean(dummy[mask])
         std_of_roi[itt] = np.std(dummy[mask])
+        max_of_roi[itt] = dummy[mask].max()
         itt = itt + 1
     fid.close()
     toc = time.time()
     print('Elapsed time [s]: ', toc - tic)
-    return time_base, sum_of_roi, mean_of_roi, std_of_roi
+    return time_base, sum_of_roi, mean_of_roi, std_of_roi, max_of_roi
 
 
 class TimeTrace:
@@ -177,6 +180,8 @@ class TimeTrace:
         self.mean_of_roi = None
         ## Numpy array with the std of counts in the ROI
         self.std_of_roi = None
+        ## Numpy array with the max of counts in the ROI
+        self.max_of_roi = None
         ## Binary mask defining the roi
         self.mask = mask
         ## roiPoly object (not initialised by default!!!)
@@ -190,11 +195,12 @@ class TimeTrace:
             if t1 is None:
                 self.time_base = video.exp_dat['tframes'].squeeze()
                 self.sum_of_roi, self.mean_of_roi, self.std_of_roi,\
-                    = trace(video.exp_dat['frames'], mask)
+                    self.max_of_roi = trace(video.exp_dat['frames'], mask)
             else:
                 if video.type_of_file == '.cin':
                     self.time_base, self.sum_of_roi, self.mean_of_roi,\
-                        self.std_of_roi = time_trace_cine(video, mask, t1, t2)
+                        self.std_of_roi, self.max_of_roi =\
+                        time_trace_cine(video, mask, t1, t2)
                 else:
                     raise Exception('Still not implemented, contact ruejo')
 
@@ -285,8 +291,12 @@ class TimeTrace:
 
         Jose Rueda: jrrueda@us.es
 
-        @param data: select which timetrace to plot: sum is the total number of
-        counts in the ROI, std its standard deviation and mean, the mean
+        @param data: select which timetrace to plot:
+            - sum is the total number of counts in the ROI
+            - std its standard deviation
+            - mean, the mean
+            - sum/max: is the sum of the counts divided by the absolute maximum
+
         @param ax_par: Dictionary containing the options for the axis_beauty
         function.
         @param line_par: Dictionary containing the line parameters
@@ -320,6 +330,20 @@ class TimeTrace:
                     ax_params['ylabel'] = '$\\sigma [a.u.]$'
                 else:
                     ax_params['ylabel'] = '$\\sigma$'
+        elif data == 'mean/absmax':
+            y = self.mean_of_roi.copy() / self.max_of_roi.max()
+            if 'ylabel' not in ax_params:
+                if normalised:
+                    ax_params['ylabel'] = '$Mean/absmax [a.u.]$'
+                else:
+                    ax_params['ylabel'] = '$Mean/absmax$'
+        elif data == 'max':
+            y = self.max_of_roi.copy()
+            if 'ylabel' not in ax_params:
+                if normalised:
+                    ax_params['ylabel'] = '$Max$'
+                else:
+                    ax_params['ylabel'] = '$Max [a.u.]$'
         else:
             y = self.mean_of_roi.copy()
             if 'ylabel' not in ax_params:
@@ -449,7 +473,7 @@ class TimeTrace:
         fig, ax = plt.subplots()
         cmap = ssplt.Gamma_II()
         ax.pcolormesh(self.spec['taxis'], self.spec['faxis'],
-                      self.spec['data'], shading='gouraud', cmap=cmap)
+                      np.log(self.spec['data']), shading='gouraud', cmap=cmap)
         ax = ssplt.axis_beauty(ax, options)
         plt.show()
         return ax

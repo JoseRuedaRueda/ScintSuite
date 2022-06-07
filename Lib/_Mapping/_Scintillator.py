@@ -53,7 +53,8 @@ class Scintillator(XYtoPixel):
                 self.units = dummy[:-1]
 
             ## Coordinates of the vertex of the scintillator (X,Y,Z).
-            self.x, self.y, self.z =\
+            self._coord_real['x3'], self._coord_real['x1'], \
+                self._coord_real['x2'] = \
                 np.loadtxt(file, skiprows=3, delimiter=',',
                            max_rows=self.n_vertices, unpack=True)
 
@@ -66,17 +67,13 @@ class Scintillator(XYtoPixel):
                 self.description = [f.readline().strip(), f.readline().strip()]
                 self.n_vertices = int(np.loadtxt(file, max_rows=1, skiprows=4,
                                       comments='!')) * 3
-                self.x, self.y, self.z =\
+                self._coord_real['x3'], self._coord_real['x1'], \
+                    self._coord_real['x2'] = \
                     np.loadtxt(file, skiprows=5, comments='!', unpack=True)
         else:
             raise errors.NotValidInput('Not recognised code')
         ## Coordinates of the vertex of the scintillator in pixels
-        self._coord_pix = None
-        self._coord_real = {
-            'x1': self.y,
-            'x2': self.z,
-            'x3': self.x
-        }
+        self._coord_pix = {}
 
     def get_path_pix(self):
         """
@@ -84,13 +81,13 @@ class Scintillator(XYtoPixel):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
         """
-        xdum = self._coord_pix['x1']
-        ydum = self._coord_pix['x2']
+        xdum = self._coord_pix['x']
+        ydum = self._coord_pix['y']
         if self.code == 'fildsim':
             # FILDSIM geometry does not close the last line, so we have to add
             # it manually
-            x = np.concatenate((xdum, np.array([self.xpixel[0]])))
-            y = np.concatenate((ydum, np.array([self.ypixel[0]])))
+            x = np.concatenate((xdum, np.array([self._coord_pix['x'][0]])))
+            y = np.concatenate((ydum, np.array([self._coord_pix['y'][0]])))
         else:
             x = np.array([xdum[0], xdum[1], xdum[2], xdum[1],
                           xdum[0], xdum[2]])
@@ -128,8 +125,8 @@ class Scintillator(XYtoPixel):
         if self.code == 'fildsim':
             # FILDSIM geometry does not close the last line, so we have to add
             # it manually
-            x = np.concatenate((xdum, np.array([self.xpixel[0]])))
-            y = np.concatenate((ydum, np.array([self.ypixel[0]])))
+            x = np.concatenate((xdum, np.array([self._coord_pix['x'][0]])))
+            y = np.concatenate((ydum, np.array([self._coord_pix['y'][0]])))
         else:
             x = np.array([xdum[0], xdum[1], xdum[2], xdum[1],
                           xdum[0], xdum[2]])
@@ -145,6 +142,7 @@ class Scintillator(XYtoPixel):
                                              ydum[3*i+2], ydum[3*i + 1],
                                              ydum[3*i], ydum[3*i + 2]])))
         ax.plot(x, y, **plt_options)
+        plt.draw()
         return ax
 
     def plot_real(self, ax=None, line_params: dict = {}):
@@ -163,5 +161,6 @@ class Scintillator(XYtoPixel):
 
         if ax is None:
             fig, ax = plt.subplots()
-        ax.plot(self.y, self.z, **plt_options)
+        ax.plot(self._coord_real['x1'], self._coord_real['x2'], **plt_options)
+        plt.draw()
         return ax

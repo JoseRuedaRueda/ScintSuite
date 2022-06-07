@@ -20,9 +20,9 @@ def StrikeMap(id, file):
         -0, 'FILD': would be fild
         -1, 'INPA': would be INPA
     """
-    if id == 0 or id.lower() == 'fild':
+    if id == 0 or id == 'FILD':
         return FILDINPA_Smap(file)
-    elif id == 1 or id.lower() == 'inpa':
+    elif id == 1 or id == 'INPA':
         return Ismap(file)
     else:
         raise errors.NotValidInput('Not understood diagnostic')

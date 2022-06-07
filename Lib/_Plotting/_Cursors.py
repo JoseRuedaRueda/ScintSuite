@@ -10,7 +10,7 @@ class BlittedCursor:
     Adapted from matplolib documentation
     """
 
-    def __init__(self, ax, color='g'):
+    def __init__(self, ax, color='g', verbose=True):
         # First see if we have an ax or a list
         try:
             len(ax)
@@ -31,10 +31,11 @@ class BlittedCursor:
                                     color=color)
         self._creating_background = False
         self.ax[0].figure.canvas.mpl_connect('draw_event', self.on_draw)
-        print('You need to run:')
-        print('blitted_cursor = BlittedCursor(ax)')
-        print("fig.canvas.mpl_connect('motion_notify_event',")
-        print("                       blitted_cursor.on_mouse_move)")
+        if verbose:
+            print('You need to run:')
+            print('blitted_cursor = BlittedCursor(ax)')
+            print("fig.canvas.mpl_connect('motion_notify_event',")
+            print("                       blitted_cursor.on_mouse_move)")
 
     def on_draw(self, event):
         self.create_new_background()
