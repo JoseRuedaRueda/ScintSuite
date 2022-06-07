@@ -71,6 +71,11 @@
 - Integrate_remap change completely inputs and output, now it can handle also any translation of the remap. Please have a look at the new function doc. Take care with the translation if you do not use standard remaps as initial point
 - The small bug on the units of the weights of INPA markers from SINPA was corrected (the correction due to the detector pinhole size was already performed in SINPA)
 
+## 0.9.10: iHIBP videos improvements and TORBEAM sims.
+- Corrected bugs in the iHIBPsim videos read.
+- Added a class to handle the TORBEAM simulations written in UFILE format.
+- Changed ECRH time traces reading into SFUTILS library.
+
 ## 0.9.9: BEP removed from library and work in iHIBP.
 - Removed the full BEP library from the ScintSuite.
 - Rebranded class for the iHIBP video with:

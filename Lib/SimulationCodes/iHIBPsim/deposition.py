@@ -10,6 +10,7 @@ Pablo Oyola - pablo.oyola@ipp.mpg.de
 import numpy as np
 import logging
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import os
 from scipy.interpolate import RectBivariateSpline
 from Lib.LibData import get_rho
@@ -24,7 +25,7 @@ except ModuleNotFoundError:
 # -----------------------------------------------------------------------------
 # Variables.
 # -----------------------------------------------------------------------------
-variables_name = np.array(('ID', 'Rmajor', 'Z', 'phi', 'vR', 'vZ', 'vPhi',
+variables_name = np.array(('ID', 'Rmajor', 'Z', 'phi', 'vR',  'vPhi', 'vZ',
                            'mass', 'charge', 'weight', 'time', 'rhopol0',
                            'Rmajor0', 'Z0', 'scint_X', 'scint_Y', 'scint_Z',
                            'Lambda', 'tPerp', 'Angle', 'intensity'))
@@ -219,7 +220,7 @@ class deposition:
 
         R = data.sel(variable='Rmajor').values
         z = data.sel(variable='Z').values
-        phi = data.sel(variable='Phi').values
+        phi = data.sel(variable='phi').values
         w = np.exp(data.sel(variable='weight').values)
         if view.lower() == 'pol':
             grr, gzz, H = utils.hist2d(R, z, w, bins=bins)
@@ -233,6 +234,7 @@ class deposition:
 
             xlabel = 'X (m)'
             ylabel = 'Y (m)'
+
         else:
             raise ValueError('View = %s not recognized'%view)
 
@@ -251,3 +253,31 @@ class deposition:
             cbar.set_label(zlabel)
 
         return ax
+
+    def plot3d(self, ax=None, **plt_params):
+        """"
+        Plots the deposition using a 3D scatter plot.
+
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+        @param ax: axis to plot the deposition.
+        """
+        # Let's read the data from the file.
+        data = self.read()
+
+        ## Let's generate the axis to plot.
+        ax_was_none = ax is None
+        if ax_was_none:
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection = '3d')
+
+        R = data.sel(variable='Rmajor').values
+        z = data.sel(variable='Z').values
+        phi = data.sel(variable='phi').values
+        w = np.exp(data.sel(variable='weight').values)
+
+        ## To Cartesian coordinates.
+        x = R*np.cos(phi)
+        y = R*np.sin(phi)
+
+        return ax.scatter(x, y, z, c=w)
