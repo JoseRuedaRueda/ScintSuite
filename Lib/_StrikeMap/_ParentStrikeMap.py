@@ -9,6 +9,7 @@ Introduced in version 0.10.0
 from Lib._StrikeMap._readMaps import readSmap
 from Lib._Mapping._Common import XYtoPixel
 from Lib._SideFunctions import createGrid
+from Lib._Plotting._settings import axis_beauty
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.interpolate as scipy_interp
@@ -34,7 +35,16 @@ class GeneralStrikeMap(XYtoPixel):
     def __init__(self, file, variables_to_remap: tuple = None,
                  code: str = None):
         """
+        Read the strike map data and initialise the clas
 
+        @param file: path to the file to be read
+        @param variables_to_remap: tupple with the names of the variables to be
+            used in the remap. By default:
+                - FILD: ('pitch', 'gyroradius')
+                - INPA: ('R0', 'gyroradius')
+                - iHIBP: ('x1', 'x2')
+        @param code: code used to calculate the strike map. If None, would be
+            guesse automatically
         """
         # --- Init the parent class
         XYtoPixel.__init__(self)
@@ -265,6 +275,7 @@ class GeneralStrikeMap(XYtoPixel):
             ax.plot(var.data, 'x')
         else:
             ax.scatter(var.data, var2.data)
+        ax = axis_beauty(ax, params)
         return ax
 
     def _plot_real(self, ax=None,
@@ -275,8 +286,8 @@ class GeneralStrikeMap(XYtoPixel):
 
         Jose Rueda: jrrueda@us.es
 
-        Note, this just plot the grid of points, latter, the children will
-        call this function and add the labels and so on
+        Note, this just plot the grid of points, latter, the public method
+        plot real add the label and so on.
 
         @param ax: Axes where to plot
         @param markers_params: parameters for plt.plot() to plot the markers
@@ -327,6 +338,118 @@ class GeneralStrikeMap(XYtoPixel):
         plt.draw()
         return ax
 
+    # def plot_real(self, ax=None,
+    #               marker_params: dict = {}, line_params: dict = {},
+    #               labels: bool = False,
+    #               rotation_for_x_label: float = 30.0,
+    #               rotation_for_y_label: float = 90.0,
+    #               factor: float = 1.0):
+    #     """
+    #     Plot the strike map (x,y of plot = dimensions in the scintillator).
+    #
+    #     Jose Rueda: jrrueda@us.es
+    #
+    #     @param ax: Axes where to plot
+    #     @param markers_params: parameters for plt.plot() to plot the markers
+    #     @param line_params: parameters for plt.plot() to plot the markers
+    #     @param labels: flag to add the labes (gyroradius, pitch) on the plot
+    #     @param rotation_for_x_label: Rotation angle for the first montecarlo
+    #         variable. For FILD, if everything is 'standard' this would be the
+    #         pitch angle label
+    #     @param rotation_for_y_label: Rotation angle for the second montecarlo
+    #         variable. For FILD, if everything is 'standard' this would be the
+    #         gyroradius label
+    #     @param factor: scaling factor to plot the data. Dimensions will be
+    #         multiplied by this factor. Notice that this is just to compare
+    #         strike maps from different codes for the situations in which a code
+    #         operate in cm and the oder in m.
+    #     """
+    #     # Plot the grid
+    #     ax = self._plot_real(ax=ax, marker_params=marker_params,
+    #                          line_params=line_params, factor=factor)
+    #     # Place the labels:
+    #     if labels:
+    #         calculated_delta = False
+    #         j = 1
+    #         for i in range(self._MC_variables[0].data.size):
+    #             flags = (self(self._MC_variables[0].name)
+    #                      == self._MC_variables[0].data[i])
+    #         # Add the gyroradius label, but just each 2 entries so the plot
+    #         # does not get messy
+    #         if i == j:
+    #             try:
+    #                 delta = abs(self('x1')[flags][1] - self('x1')[flags][0]) \
+    #                     * factor
+    #                 calculated_delta = True
+    #             except IndexError:
+    #                 j += 2
+    #         if (i % 2 == 0) calculated_delta:
+    #             # Delta variable just to adust nicelly the distance (as old
+    #             # fildsim is in cm and new in m)
+    #             ax.text(self('x1')[flags].min() * factor - 0.5 * delta,
+    #                     self('x2')[flags].min() * factor,
+    #                     f'{float(self._MC_variables[0].data[i]):g}',
+    #                     horizontalalignment='right',
+    #                     verticalalignment='center')
+    #     if labels:
+    #         ax.annotate('Gyroradius [cm]',
+    #                     xy=(min(self.y) * factor - delta,
+    #                         ((max(self.z) - min(self.z))/2 + min(self.z))
+    #                         * factor),
+    #                     rotation=rotation_for_gyr_label,
+    #                     horizontalalignment='center',
+    #                     verticalalignment='center')
+    #     if self.diag == 'FILD':
+    #         # Draw the lines of constant pitch. 'Vertical' lines
+    #         for i in range(self.npitch):
+    #             flags = self.pitch == self.unique_pitch[i]
+    #             ax.plot(self.y[flags] * factor, self.z[flags] * factor,
+    #                     **line_options)
+    #             if i == 1:
+    #                 delta = abs(self.z[flags][-1] - self.z[flags][-2]) * factor
+    #             if labels:
+    #                 ax.text((self.y[flags])[-1] * factor,
+    #                         (self.z[flags])[-1] * factor - delta,
+    #                         f'{float(self.unique_pitch[i]):g}',
+    #                         horizontalalignment='center',
+    #                         verticalalignment='top')
+    #         if labels:
+    #             ax.annotate('Pitch [$\\degree$]',
+    #                         xy=(((max(self.y) - min(self.y))/2 + min(self.y))
+    #                             * factor,
+    #                             min(self.z) * factor - 1.5 * delta),
+    #                         rotation=rotation_for_pitch_label,
+    #                         horizontalalignment='center',
+    #                         verticalalignment='center')
+    #     elif self.diag == 'INPA':
+    #         # Draw the lines of constant alpha. 'Vertical' lines
+    #         for i in range(self.nalpha):
+    #             flags = self.alpha == self.unique_alpha[i]
+    #             if i == 0:
+    #                 delta = abs(self.y[flags][1] - self.y[flags][0]) * factor
+    #
+    #             ax.plot(self.y[flags] * factor, self.z[flags] * factor,
+    #                     **line_options)
+    #
+    #             ax.text((self.y[flags])[-1] * factor,
+    #                     (self.z[flags])[-1] * factor - delta,
+    #                     f'{float(self.unique_alpha[i]):g}',
+    #                     horizontalalignment='center',
+    #                     verticalalignment='top')
+    #
+    #         ax.annotate('Alpha [rad]',
+    #                     xy=(((max(self.y) - min(self.y))/2 + min(self.y))
+    #                         * factor,
+    #                         min(self.z) * factor - 1.5*delta),
+    #                     rotation=rotation_for_pitch_label,
+    #                     horizontalalignment='center',
+    #                     verticalalignment='center')
+    #     else:
+    #         raise errors.NotValidInput('Diagnostic not implemented')
+    #
+    #     # Plot some markers in the grid position
+    #     ax.plot(self.y * factor, self.z * factor, **marker_options)
+
     def _plot_pix(self, ax=None,
                   marker_params: dict = {}, line_params: dict = {}):
         """
@@ -345,13 +468,13 @@ class GeneralStrikeMap(XYtoPixel):
         marker_options = {
             'markersize': 3,
             'fillstyle': 'none',
-            'color': 'k',
+            'color': 'w',
             'marker': 'o',
             'linestyle': 'none'
         }
         marker_options.update(marker_params)
         line_options = {
-            'color': 'k',
+            'color': 'w',
             'marker': ''
         }
         line_options.update(line_params)
@@ -377,7 +500,7 @@ class GeneralStrikeMap(XYtoPixel):
                     **line_options)
 
         # Plot some markers in the grid position
-        ax.plot(self._coord_pix['x'].data, self._coord_pix['y'].data,
+        ax.plot(self._coord_pix['x'], self._coord_pix['y'],
                 **marker_options)
         plt.draw()
         return ax
@@ -402,7 +525,9 @@ class GeneralStrikeMap(XYtoPixel):
         # Create the transformation matrix key, if not present
         if 'transformation_matrix' not in self._grid_interp.keys():
             self._grid_interp['transformation_matrix'] = {}
-
+        if variables[0] + '_' + variables[1] in self._grid_interp['transformation_matrix'].keys():
+            logger.warning(
+                'XXX: Transformation matrix already there, not ovrwritting')
         # Initialise the random number generator
         rand = np.random.default_rng()
         generator = rand.uniform

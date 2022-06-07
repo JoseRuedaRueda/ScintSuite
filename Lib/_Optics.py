@@ -196,18 +196,16 @@ def createFocusMatrix(frame, coef_sigma=1.0,
 def defocus(frame, coef_sigma=1.0,
             center: tuple = (0, 0)):
     """
-    Create the translation matrix for the Finite Focusing of the optics
+    Defocus an image using assuming a gaussian focusing factor
 
     Jose Rueda Rueda: jrrueda@us.es
 
     @param frame: original frame
     @param coef_sigma: standard deviation of the focusing, in pixels. Can be
         an array if the focusing is a function of the distance to the optical
-        axis.
+        axis. In this case, sigma = np.polyval(coef_sigma, d), where d is the
+        distance to the optical axis
     @param center: coordinates (in pixels, of the optical axis)
-
-    Warning, can be extremelly memory consuming, if you want to apply finite
-    focus, use the function: defocus
     """
     # conver to numpy array, if the user gave us just a constant sigma
     try:

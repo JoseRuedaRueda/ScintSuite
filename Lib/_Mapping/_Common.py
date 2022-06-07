@@ -201,10 +201,10 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
             # Deduce the needed grid
             dx = x_edges[1] - x_edges[0]
             dy = y_edges[1] - y_edges[0]
-            xmin = x_edges[0] + dx/2
-            xmax = x_edges[-1] - dx/2
-            ymin = y_edges[0] + dy/2
-            ymax = y_edges[-1] - dy/2
+            xmin = x_edges[0] - dx/2
+            xmax = x_edges[-1] + dx/2
+            ymin = y_edges[0] - dy/2
+            ymax = y_edges[-1] + dy/2
             grid_params = {
                 'ymin': ymin,
                 'ymax': ymax,
@@ -213,9 +213,6 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
                 'xmax': xmax,
                 'dx': dx
             }
-            print(grid_params)
-            print(x_edges)
-            print(y_edges)
             smap.interp_grid(frame.shape, MC_number=300,
                              grid_params=grid_params)
         else:

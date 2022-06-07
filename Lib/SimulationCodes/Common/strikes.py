@@ -547,7 +547,7 @@ class Strikes:
                         if self.header['counters'][ia, ig] < 1:
                             continue
                         # Skip if there are not markers of that kind
-                        f = self.data[0, 0][ia, ig].astype(int) == kind
+                        f = self.data[0, 0][:, jk].astype(int) == kind
                         if f.sum() == 0:
                             continue
                         # Count histogram
@@ -1363,6 +1363,7 @@ class Strikes:
         xcenter = 0.5 * (xedges[:-1] + xedges[1:])
         ycenter = 0.5 * (yedges[:-1] + yedges[1:])
         # Interpolate the strike map
+        #@ToDo: Do we need this here??
         smap.setRemapVariables(variables_to_remap, verbose=False)
         if smap._coord_pix['x'] is None:
             smap.calculate_pixel_coordinates(self.CameraCalibration)
@@ -1374,9 +1375,10 @@ class Strikes:
             'ymax': options['ymax'],
             'dy': options['dy'],
         }
-        # smap.interp_grid(frame_shape, method=options['method'],
-        #                  MC_number=options['MC_number'],
-        #                  grid_params=grid_options)
+        #@ToDo: Do we need this here??
+        smap.interp_grid(frame_shape, method=options['method'],
+                         MC_number=options['MC_number'],
+                         grid_params=grid_options)
         name = variables_to_remap[0] + '_' + variables_to_remap[1] + '_remap'
         self.histograms[name] = {
             0: {
