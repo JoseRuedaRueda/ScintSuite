@@ -49,7 +49,8 @@
 - Some where deprecated completely
     - get_energy()
     - plot_strike_points() (it had a deprecation warning since version 8, sot it was time to remove it)
-- Label in plot still need to be added
+- Some change some input naming, examples:
+    - in plot_pix, plot_real, now the labels are rotation_for_x_label and rotation_for_x_label if you want to rotate the labels, x is for the first montercarlo variable, x for the second.
 - Idem with plot real
 
 ### LibTimeTraces

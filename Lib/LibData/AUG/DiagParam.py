@@ -18,7 +18,7 @@ Bt_sign = -1   # +1 Indicates the positive phi direction (counterclockwise)
 It_sign = 1  # -1 Indicates the negative phi direction (clockwise)
 IB_sign = Bt_sign * It_sign
 
-num_of_gyrotrons = 8 # Number of gyrotrons available in AUG.
+num_of_gyrotrons = 8  # Number of gyrotrons available in AUG.
 
 # -----------------------------------------------------------------------------
 #                           FILD PARAMETERS
@@ -67,13 +67,14 @@ IHIBP_scintillator_Y = np.array((-17.0, 0.0))  # [cm]
 iHIBP = {'port_center': [0.687, -3.454, 0.03], 'sector': 13,
          'beta_std': 4.117, 'theta_std': 0.0, 'source_radius': 7.0e-3}
 
-def _iHIBP1_path(shot: int=42000):
+
+def _iHIBP1_path(shot: int = 42000):
     """
     Contain hardcored path of were iHIBP camera data is stored.
     """
 
-    shot_str  = '%05d'%shot
-    shot_path = os.path.join(shot_str[0:2], 'S%05d'%shot)
+    shot_str = '%05d' % shot
+    shot_path = os.path.join(shot_str[0:2], 'S%05d' % shot)
 
     if shot < 99999:
         path = os.path.join('/afs/ipp/home/a/augd/rawfiles/VRT', shot_path)
@@ -81,26 +82,28 @@ def _iHIBP1_path(shot: int=42000):
         raise errors.NotValidInput('Wrong shot number?')
     return path
 
-def _iHIBP1_timepath(shot: int=42000):
+
+def _iHIBP1_timepath(shot: int = 42000):
     """
     Contain hardcored path of were iHIBP camera data is stored.
     """
 
-    shot_str  = '%05d'%shot
-    shot_path = os.path.join(shot_str[0:2], 'S%05d'%shot)
+    shot_str = '%05d' % shot
+    shot_path = os.path.join(shot_str[0:2], 'S%05d' % shot)
 
     if shot < 40395:
         path = os.path.join('/afs/ipp/home/a/augd/rawfiles/VRT', shot_path,
                             'Prot', 'FrameProt', 'HIBP_FrameProt.xml')
     elif shot < 99999:
-        name = 'S%s_HIBP.meta.xml'%shot_str
+        name = 'S%s_HIBP.meta.xml' % shot_str
         path = os.path.join('/afs/ipp/home/a/augd/rawfiles/VRT', shot_path,
                             name)
     else:
         raise errors.NotValidInput('Wrong shot number?')
     return path
 
-def _iHIBP1_extension(shot: int=42000):
+
+def _iHIBP1_extension(shot: int = 42000):
     """
     Contain hardcored extensions of were iHIBP camera data.
     """
@@ -113,7 +116,8 @@ def _iHIBP1_extension(shot: int=42000):
 
 _ihibp1 = {
     'path': _iHIBP1_path,  # Path for the video files
-    'extension': _iHIBP1_extension,  # Extension of the video file, none if png.
+    # Extension of the video file, none if png.
+    'extension': _iHIBP1_extension,
     'path_times': _iHIBP1_timepath
 }
 
@@ -121,6 +125,8 @@ iHIBPext = (_ihibp1,)
 # -----------------------------------------------------------------------------
 # --- INPA
 # -----------------------------------------------------------------------------
+
+
 def _INPA1_path(shot=42000):
     """
     Contain hardcored paths of were INPA data is stored

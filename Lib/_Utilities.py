@@ -257,5 +257,5 @@ def distmat(a, index: tuple):
         https://stackoverflow.com/questions/61628380/calculate-distance-
         from-all-points-in-numpy-array-to-a-single-point-on-the-basis
     """
-    i, j = np.indices(a.shape, sparse=True)
+    i, j = np.indices(a.shape)
     return np.sqrt((i-index[0])**2 + (j-index[1])**2)

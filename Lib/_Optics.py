@@ -215,25 +215,25 @@ def defocus(frame, coef_sigma=1.0,
     # Create the ouput matrix
     n1, n2 = frame.shape
     output = np.zeros((n1, n2))
-
+    # Crete the matrices to get the distances
+    col, row = np.meshgrid(np.arange(n2), np.arange(n1))
     # fill the matrix
     ic = center[0]
     jc = center[1]  # just to save notation
+    axis_distance = np.sqrt((col - jc)**2 + (row - ic)**2)
+    sigma = np.polyval(coef_sigma, axis_distance)
 
-    for i in tqdm(range(n1)):
+    for i in range(n1):
         for j in range(n2):
-            d = math.sqrt((i - ic)**2 + (j - jc)**2)
-            sigma = np.polyval(coef_sigma, d)
-            index_distance = distmat(frame, (i, j))
-            output += np.exp(-index_distance**2 / 2 / sigma*2)\
-                / 2 / math.pi / sigma**2 * frame[i, j]
+            index_distance = (col - j)**2 + (row - i)**2
+            output += np.exp(-index_distance / 2 / sigma[i, j]**2) \
+                / 2 / np.pi / sigma[i, j]**2 * frame[i, j]
     return output
+
 
 # -----------------------------------------------------------------------------
 # --- Transmission factor
 # -----------------------------------------------------------------------------
-
-
 class FnumberTransmission():
     """
     F-number transmission

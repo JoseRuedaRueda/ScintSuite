@@ -20,7 +20,8 @@ from Lib._basicVariable import BasicVariable
 from Lib._Mapping._Common import _fit_to_model_
 from Lib._Paths import Path
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
+import logging
+logger = logging.getLogger('ScintSuite.StrikeMap')
 
 class FILDINPA_Smap(GeneralStrikeMap):
     """
@@ -60,6 +61,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         GeneralStrikeMap.__init__(self,  file,
                                   variables_to_remap=variables_to_remap,
                                   code=code)
+        self.strike_points = None  # Allocate the sapce for latter
 
     def calculate_energy(self, B: float, A: float = 2.01410178,
                          Z: float = 1.0):
@@ -74,7 +76,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
         dummy = get_energy(self('gyroradius'), B=B, A=A, Z=Z) / 1000.0
         self._data['e0'] = BasicVariable(name='e0', units='keV', data=dummy)
 
-    def load_strike_points(self, file=None, verbose: bool = True):
+    def load_strike_points(self, file=None, verbose: bool = True,
+                           calculate_pixel_coordinates: bool = False,
+                           remap_in_pixel_space: bool = False):
         """
         Load the strike points used to calculate the map.
 
@@ -87,6 +91,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
         @param newFILDSIM: Flag to decide if we are using the new FILDSIM or
             the old one
         """
+        # See if the strike points where already there
+        if self.strike_points is not None:
+            logger.warning('1: Strike points present, overwritting.')
         # Get the object we need to fill and the file to be load
         if file is None:
             if self._header['code'].lower() == 'sinpa':
@@ -101,10 +108,14 @@ class FILDINPA_Smap(GeneralStrikeMap):
         self.fileStrikePoints = file
         self.strike_points =\
             Strikes(file=file, verbose=verbose, code=self.code)
+        # If desired, calculate pixel coordinates
+        if calculate_pixel_coordinates:
+            self.strike_points.calculate_pixel_coordinates(
+                self.CameraCalibration)
         # If the code was SINPA, perform the remap, as it is not done in
         # fortran:
         if self._header['code'].lower() == 'sinpa':
-            self.remap_strike_points()
+            self.remap_strike_points(remap_in_pixel_space=remap_in_pixel_space)
 
     def calculate_phase_space_resolution(self, diag_params: dict = {},
                                          min_statistics: int = 100,
@@ -155,12 +166,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         diag_options.update(diag_params)
         # Select the variables
         if variables is None:
-            if self.diagnostic == 'FILD':
-                variables = ('pitch', 'gyroradius')
-            elif self.diagnostic == 'INPA':
-                variables = ('R0', 'gyroradius')
-            else:
-                raise errors.NotImplementedError('To be done')
+            variables = [v.name for v in self._to_remap]
         # --- Get the columns we need
         # Get the number of pairs of strike points launched
         nx, ny = self.shape
@@ -192,6 +198,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 BasicVariable(name=variables[1], units=unitsy)),
             'npoints': np.zeros((nx, ny)),
         }
+        print(variables)
         for key, names in zip(variables, (xnames, ynames)):
             # For the resolution
             self._resolutions[key] = \
@@ -235,8 +242,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
                               stop=data[:, iiy].max() + dy,
                               step=dy)
                 # -- fit the x variable
-                params, self._resolutions['fits_' + variables[0]], \
-                    self._resolutions['norm_' + variables[0]], unc = \
+                params, self._resolutions['fits_' + variables[0]][ix, iy], \
+                    self._resolutions['norm_' + variables[0]][ix, iy], unc = \
                     _fit_to_model_(
                         data[:, iix], bins=xedges,
                         model=diag_options['x_method'],
@@ -250,8 +257,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
                         unc[key]
 
                 # -- fit the y variable
-                params, self._resolutions['fits_' + variables[1]], \
-                    self._resolutions['norm_' + variables[1]], unc = \
+                params, self._resolutions['fits_' + variables[1]][ix, iy], \
+                    self._resolutions['norm_' + variables[1]][ix, iy], unc = \
                     _fit_to_model_(
                         data[:, iiy], bins=yedges,
                         model=diag_options['y_method'],
@@ -505,6 +512,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
         """
         Calculate interpolators scintillator position -> phase space.
 
+        If there is pixel data, it also calculate the interpolators of the
+        pixel space
+
         Jose Rueda: jrrueda@us.es
 
         @param kernel: kernel for the interpolator
@@ -515,8 +525,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
         # --- Select the colums to be used
         # temporal solution to save the coordinates in the array
         coords = np.zeros((self._data['x1'].size, 2))
-        coords[:, 0] = self._coord_real['x1']
-        coords[:, 1] = self._coord_real['x2']
+        coords[:, 0] = self._coord_real['x1'].copy()
+        coords[:, 1] = self._coord_real['x2'].copy()
 
         # Allocate the space
         if variables is None:
@@ -534,8 +544,37 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 scipy_interp.RBFInterpolator(coords,
                                              self._data[key].data,
                                              kernel=kernel, degree=degree)
+        # --- If there is pixel informations, do the same for the pixel space
+        try:
+            # @ToDo: See why this modify R0 and e0 interpolators
+            # coords[:, 0] = self._coord_pix['x'].copy()
+            # coords[:, 1] = self._coord_pix['y'].copy()
+            # var2 = [a + '_pix' for a in variables]
+            # newDict2 = dict.fromkeys(var2)
+            # print(newDict2)
+            # self._map_interpolators.update(newDict2)
+            # for key in variables:
+            #     self._map_interpolators[key+'_pix'] = \
+            #         scipy_interp.RBFInterpolator(coords,
+            #                                      self._data[key].data,
+            #                                      kernel=kernel, degree=degree)
+            coords2 = np.zeros((self._data['x1'].size, 2))
+            coords2[:, 0] = self._coord_pix['x'].copy()
+            coords2[:, 1] = self._coord_pix['y'].copy()
+            var2 = [a + '_pix' for a in variables]
+            newDict2 = dict.fromkeys(var2)
+            print(newDict2)
+            self._map_interpolators.update(newDict2)
+            for key in variables:
+                self._map_interpolators[key+'_pix'] = \
+                    scipy_interp.RBFInterpolator(coords2,
+                                                 self._data[key].data,
+                                                 kernel=kernel, degree=degree)
+        except (KeyError, AttributeError):
+            pass
 
-    def remap_strike_points(self, overwrite: bool = True):
+    def remap_strike_points(self, overwrite: bool = True,
+                            remap_in_pixel_space: bool = False):
         """
         Remap the StrikePoints
 
@@ -549,12 +588,24 @@ class FILDINPA_Smap(GeneralStrikeMap):
         # Get the shape of the map
         nx, ny = self.shape
         # Get the index of the colums containing the scintillation position
-        ix1 = self.strike_points.header['info']['x1']['i']
-        ix2 = self.strike_points.header['info']['x2']['i']
+        if not remap_in_pixel_space:
+            ix1 = self.strike_points.header['info']['x1']['i']
+            ix2 = self.strike_points.header['info']['x2']['i']
+        else:
+            ix1 = self.strike_points.header['info']['xcam']['i']
+            ix2 = self.strike_points.header['info']['ycam']['i']
         # Loop over the deseired variables
-        for k in self._map_interpolators.keys():
+        var_list = [k for k in self._map_interpolators.keys() if k.endswith('pix')==False]
+        for k in var_list:
             # See if we need to overwrite
             name = 'remap_' + k
+            # Get the name of the interpolator to use
+            if remap_in_pixel_space:
+                interpolator = k + '_pix'
+            else:
+                interpolator = k
+            print(interpolator)
+
             was_there = False
             if name in self.strike_points.header['info'].keys():
                 was_there = True
@@ -572,7 +623,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                             self.strike_points.header['counters'][ix, iy]
                         remap_data = np.zeros((n_strikes, 1))
                         remap_data[:, 0] = \
-                            self._map_interpolators[k](
+                            self._map_interpolators[interpolator](
                                 self.strike_points.data[ix, iy][:, [ix1, ix2]])
                         # self.strike_points.data[ip, ir][:, iiy])
                         # append the remapped data to the object
@@ -592,7 +643,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                     'i': Old_number_colums,
                     'units': '@Todo',
                     'lonName': name,
-                    'ShortName': name
+                    'shortName': name
                 }
                 extra_column[name]['i'] = Old_number_colums
                 # Update the header
@@ -659,6 +710,3 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 extra_column[name]['i'] = Old_number_colums
                 # Update the header
                 strikes.header['info'].update(extra_column)
-
-    def plot_pix(self, ax):
-        return self._plot_pix(ax=ax)
