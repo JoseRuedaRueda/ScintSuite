@@ -36,6 +36,6 @@ class BasicVariable():
 
         # Deduce the label for plotting
         if (name is not None) and (units is not None):
-            self.plot_label = '%s [%s]' % (name, units)
+            self.plot_label = '%s [%s]' % (name.lower().capitalize(), units)
         else:
             self.plot_label = None

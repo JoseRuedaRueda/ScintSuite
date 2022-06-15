@@ -248,12 +248,12 @@ class BVO:
                 if t1 < tmin_video:
                     text = 'T1 was not in the video file:' +\
                         'Taking %.3f as initial point' % tmin_video
-                    logger.warninig('8: %s' % text)
+                    logger.warning('8: %s' % text)
                 tmax_video = self.timebase.max()
                 if t2 > tmax_video:
                     text = 'T2 was not in the video file:' +\
                         'Taking %.3f as initial point' % tmax_video
-                    logger.warninig('8: %s' % text)
+                    logger.warning('8: %s' % text)
                 it1 = np.argmin(abs(self.timebase-t1))
                 it2 = np.argmin(abs(self.timebase-t2))
                 frames_number = np.arange(start=it1, stop=it2+1, step=1)
@@ -776,13 +776,7 @@ class BVO:
             raise Exception('Do not give frame number and time!')
         if (frame_number is None) and (t is None):
             raise Exception("Didn't you want to plot something?")
-        # --- Prepare the scale:
-        if scale == 'sqrt':
-            extra_options = {'norm': colors.PowerNorm(0.5)}
-        elif scale == 'log':
-            extra_options = {'norm': colors.LogNorm(clip=True)}
-        else:
-            extra_options = {}
+
         # --- Load the frames
         # If we use the frame number explicitly
         if frame_number is not None:
@@ -795,25 +789,36 @@ class BVO:
             frame_index = self.getFrameIndex(t, flagAverage)
             tf = self.getTime(frame_index, flagAverage)
             dummy = self.getFrame(t, flagAverage)
+        if vmax is None:
+            vmax = dummy.max()
+        # --- Prepare the scale:
+        if scale == 'sqrt':
+            extra_options = {'norm': colors.PowerNorm(0.5, vmax=vmax,
+                                                      vmin=vmin)}
+        elif scale == 'log':
+            extra_options = {'norm': colors.LogNorm(clip=True, vmax=vmax,
+                                                    vmin=vmin)}
+        else:
+            extra_options = {'vmin': vmin, 'vmax': vmax}
         # --- Check the colormap
         if ccmap is None:
             cmap = ssplt.Gamma_II()
         else:
             cmap = ccmap
+
         # --- Check the axes to plot
         if ax is None:
             fig, ax = plt.subplots()
             created = True
         else:
             created = False
-        if vmax is None:
-            vmax = dummy.max()
+
         if scale == 'log':  # If we use log scale, just avoid zeros
             # we are here mixing a bit integers and float... but python will
             # provide
             dummy[dummy < 1.0] = 1.0e-5
 
-        img = ax.imshow(dummy, origin='lower', cmap=cmap, vmin=vmin, vmax=vmax,
+        img = ax.imshow(dummy, origin='lower', cmap=cmap,
                         alpha=alpha, **extra_options)
         # Set the axis limit
         if xlim is not None:

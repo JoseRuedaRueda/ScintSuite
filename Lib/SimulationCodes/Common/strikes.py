@@ -137,7 +137,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
                 header['time'] = float(np.fromfile(fid, 'float32', 1)[0])
                 header['shot'] = int(np.fromfile(fid, 'int32', 1)[0])
         # Read the extra information included in version 2
-        if header['versionID1'] <= 2:
+        if header['versionID1'] >= 2:
             header['FoilElossModel'] = np.fromfile(fid, 'int32', 1)[0]
             if header['FoilElossModel'] == 1:
                 header['FoilElossParameters'] = np.fromfile(fid, 'float64', 2)
@@ -414,8 +414,18 @@ class Strikes:
         if (varx + '_' + vary) in self.histograms.keys():
             logger.warning('1: Histogram present, overwritting')
         # --- Find the needed colums:
-        jx = self.header['info'][varx]['i']
-        jy = self.header['info'][vary]['i']
+        if not varx.endswith('cam'):
+            jx = self.header['info'][varx]['i']
+            jy = self.header['info'][vary]['i']
+        else:
+            # This is to avoid issues with the remap of the camera frame, as
+            # latter we will adopt the IDL criteria for camera frames and all
+            #  is a bit messy. Sorry
+            text = 'varx and vary exchanged'
+            logger.warning('a3: %s' % text)
+            jx = self.header['info'][vary]['i']
+            jy = self.header['info'][varx]['i']
+
         try:   # FILD strike points has no weight
             jw = self.header['info']['weight']['i']
         except KeyError:
@@ -1154,7 +1164,8 @@ class Strikes:
         logger.warning('a0: Only fully tested for SINPA strike points')
         # See if there is already camera positions in the data
         if 'xcam' in self.header['info'].keys():
-            print('The camera values are there, we will overwrite them')
+            text = 'The camera values are there, we will overwrite them'
+            logger.warning('1: %s' % text)
             overwrite = True
             iixcam = self.header['info']['xcam']['i']
             iiycam = self.header['info']['ycam']['i']
@@ -1165,10 +1176,7 @@ class Strikes:
         for ig in range(self.header['ngyr']):
             for ia in range(self.header['nXI']):
                 if self.header['counters'][ia, ig] > 0:
-                    # Yes, I know, it is transpose, this came from ancient IDL
-                    # criteria, to latter being able to calculate the histogram
-                    # in the camera space properly
-                    yp, xp = transform_to_pixel(self.data[ia, ig][:, iix],
+                    xp, yp = transform_to_pixel(self.data[ia, ig][:, iix],
                                                 self.data[ia, ig][:, iiy],
                                                 calibration)
                     if overwrite:

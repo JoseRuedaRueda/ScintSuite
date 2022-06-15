@@ -201,11 +201,11 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
 
     # Getting the names and the SSQ data.
     eqh_ssqnames = sfo('SSQnam')
-    eqh_ssq = sfo('SSQ')
+    eqh_ssq = np.array(sfo('SSQ')).T
 
     # Unpacking the data.
     ssq = dict()
-    for jssq in range(eqh_ssq.shape[0]):
+    for jssq in range(eqh_ssq.shape[1]):
         tmp = b''.join(eqh_ssqnames[:, jssq]).strip()
         lbl = tmp.decode('utf8')
         if lbl.strip() != '':
@@ -222,18 +222,19 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
     ssq['time'] = np.atleast_1d(eqh_time[t0:t1])
     # --- Reading the plasma current.
     try:
-        sfo = sf.SFREAD('MAG', shotnumber, experiment='AUGD', edition=0)
+        sfo = sf.SFREAD('MAG', shotnumber, experiment='AUGD', edition=edition)
     except:
         raise errors.DatabaseError('Error loading the MAG shotfile')
 
     # Getting the raw data.
-    ipa_raw = sfo('Ipa', tBegin=ssq['time'][0], tEnd=ssq['time'][-1])
-    ipa = ipa_raw.data
-    ipa_time = ipa_raw.time
+    ipa_raw = sfo('Ipa')
+    ipa = np.array(ipa_raw)
+    ipa_time = np.array(sfo('T-MAG-1'))
 
     # Getting the calibration.
-    multi = sfo.getParameter('06ULID12', 'MULTIA00').data.astype(dtype=float)
-    shift = sfo.getParameter('06ULID12', 'SHIFTB00').data.astype(dtype=float)
+    parset = sfo.getparset('06ULID12')
+    multi = parset['MULTIA00']
+    shift = parset['SHIFTB00']
 
     ssq['ip'] = ipa * multi + shift  # This provides the current in A.
     ssq['ip'] *= 1.0e-6
@@ -242,18 +243,19 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
     # --- Getting the magnetic field at the axis.
     try:
         sfo = sf.SFREAD('MAI', shotnumber, experiment='AUGD',
-                        edition=0)
+                        edition=edition)
     except:
         raise errors.DatabaseError('MAI shotfile could not be loaded!')
 
     # Getting toroidal field.
-    btf_sf = sfo('BTF', tBegin=ssq['time'][0], tEnd=ssq['time'][-1])
-    btf = btf_sf.data
-    btf_time = btf_sf.time
+    btf_sf = sfo('BTF')
+    btf = np.array(btf_sf)
+    btf_time = np.array(sfo('T-MAG-1'))
 
     # Getting the calibration.
-    multi = sfo.getParameter('14BTF', 'MULTIA00').data.astype(dtype=float)
-    shift = sfo.getParameter('14BTF', 'SHIFTB00').data.astype(dtype=float)
+    parset = sfo.getparset('14BTF')
+    multi = parset['MULTIA00']
+    shift = parset['SHIFTB00']
 
     ssq['bt0'] = multi*btf + shift
     ssq['bttime'] = btf_time
@@ -261,86 +263,80 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
     return ssq
 
 
-# def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
-#                   ed: int = 0, time: float = None, sf=None):
-#     """
-#     Reads from the database the q-profile as reconstrusted from an experiment.
-#
-#     Pablo Oyola - pablo.oyola@ipp.mpg.de
-#
-#     @param shot: Shot number
-#     @param diag: Diag for AUG database, default EQH
-#     @param exp: experiment, default AUGD
-#     @param ed: edition, default 0 (last)
-#     @param time: Array of times where we want to calculate the field
-#     @param sf: shotfile accessing the data from the equilibrium.
-#
-#     @return
-#     """
-#
-#     sf_new = False
-#     if sf is None:
-#         sf_new = True
-#         try:
-#             sf = dd.shotfile(diagnostic=diag, experiment=exp,
-#                              pulseNumber=shot, edition=ed)
-#         except:
-#             raise errors.DatabaseError(
-#                 'Cannot open %05d:%s.%d to get the q-prof' % (shot, diag, ed))
-#
-#     qpsi = sf(name='Qpsi').data
-#     pfl = sf(name='PFL').data
-#     timebasis = sf(name='time').data
-#
-#     PFxx = sf.GetSignal('PFxx').T
-#     ikCAT = np.argmin(abs(PFxx[1:, :] - PFxx[0, :]), axis=0) + 1
-#     psi_ax = np.tile(PFxx[0, ...], (pfl.shape[1], 1)).T
-#     psi_edge = [PFxx[iflux, ii] for ii, iflux in enumerate(ikCAT)]
-#     psi_edge = np.tile(np.array(psi_edge), (pfl.shape[1], 1)).T
-#
-#     rhop = np.sqrt((pfl - psi_ax)/(psi_edge-psi_ax)).squeeze()
-#     output = {}
-#
-#     if time is not None:
-#         time = np.atleast_1d(time)
-#
-#     if time is None:
-#         output = {
-#             'data': qpsi,
-#             'time': timebasis,
-#             'rhop': rhop
-#         }
-#
-#     elif len(time) == 1:
-#         output = {
-#             'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
-#             'time': time.squeeze(),
-#             'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze()
-#         }
-#     elif len(time) == 2:
-#         t0, t1 = np.searchsorted(timebasis, time)
-#         output = {
-#             'data': qpsi[t0:t1, ...].squeeze(),
-#             'time': timebasis[t0:t1].squeeze(),
-#             'rhop': rhop[t0:t1, ...].squeeze(),
-#         }
-#     else:
-#          output = {
-#             'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
-#             'time': time.squeeze(),
-#             'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze(),
-#          }
-#
-#     if sf_new:
-#         sf.close()
-#
-#     output['source'] = { 'diagnostic': diag,
-#                          'experiment': exp,
-#                          'edition': ed,
-#                          'pulseNumber': shot
-#                        }
-#
-#     return output
+def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
+                  ed: int = 0, time: float = None, sfo=None):
+    """
+    Reads from the database the q-profile as reconstrusted from an experiment.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param shot: Shot number
+    @param diag: Diag for AUG database, default EQH
+    @param exp: experiment, default AUGD
+    @param ed: edition, default 0 (last)
+    @param time: Array of times where we want to calculate the field
+    @param sf: shotfile accessing the data from the equilibrium.
+
+    @return
+    """
+    if sfo is None:
+        try:
+            sfo = sf.SFREAD(diag, shot, experiment=exp, edition=ed)
+        except:
+            raise errors.DatabaseError(
+                'Cannot open %05d:%s.%d to get the q-prof' % (shot, diag, ed))
+    qpsi = sfo('Qpsi')
+    pfl = sfo('PFL')
+    timebasis = sfo('time')
+    PFxx = sfo('PFxx')
+    print(qpsi.shape, pfl.shape, timebasis.shape, PFxx.shape)
+    ikCAT = np.argmin(abs(PFxx[1:, :] - PFxx[0, :]), axis=0) + 1
+    psi_ax = PFxx[0, ...]
+    psi_edge = [PFxx[iflux, ii] for ii, iflux in enumerate(ikCAT)]
+    psi_edge = np.tile(np.array(psi_edge), (pfl.shape[0], 1))
+    print(psi_ax.shape, psi_edge.shape)
+    rhop = np.sqrt((pfl - psi_ax)/(psi_edge-psi_ax)).squeeze()
+    output = {}
+
+    if time is not None:
+        time = np.atleast_1d(time)
+
+    if time is None:
+        output = {
+            'data': qpsi,
+            'time': timebasis,
+            'rhop': rhop
+        }
+
+    elif len(time) == 1:
+        output = {
+            'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
+            'time': time.squeeze(),
+            'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze()
+        }
+    elif len(time) == 2:
+        t0, t1 = np.searchsorted(timebasis, time)
+        output = {
+            'data': qpsi[t0:t1, ...].squeeze(),
+            'time': timebasis[t0:t1].squeeze(),
+            'rhop': rhop[t0:t1, ...].squeeze(),
+        }
+    else:
+        output = {
+            'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
+            'time': time.squeeze(),
+            'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze(),
+        }
+
+    output['source'] = {
+        'diagnostic': diag,
+        'experiment': exp,
+        'edition': ed,
+        'pulseNumber': shot
+    }
+
+    return output
+
 
 def get_ECRH_traces(shot: int, time: float = None, ec_list: list = None):
     """
@@ -436,7 +432,7 @@ def get_ECRH_traces(shot: int, time: float = None, ec_list: list = None):
     pecrh = sfecs(name=name)
     output['total'] = {
         'time': timebase,
-        'power': interp1d(time_power, pecrh,bounds_error=False,
+        'power': interp1d(time_power, pecrh, bounds_error=False,
                           fill_value=0.0)(timebase)*1.e-6
     }
 

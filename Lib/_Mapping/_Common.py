@@ -104,6 +104,7 @@ class XYtoPixel:
         self._coord_pix['x'], self._coord_pix['y'] = \
             transform_to_pixel(self._coord_real['x1'], self._coord_real['x2'],
                                cal)
+        self.CameraCalibration = cal
 
 
 # -----------------------------------------------------------------------------
