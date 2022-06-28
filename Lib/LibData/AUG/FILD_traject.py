@@ -1,5 +1,5 @@
 """
-Routines to load and work with FILD4 trajectories.
+Routines to load and work with FILD trajectories.
 
 FILD4 presents some uncertainties on its position that imposibilitates a
 routinary reconstruction of its trajectory. Therefore, this is an "artisan"
@@ -19,6 +19,9 @@ import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter as savgol
 import aug_sfutils as sf
 import Lib.LibData.AUG.DiagParam as params
+import Lib as ss
+import f90nml
+import Lib.errors as errors
 from Lib._Paths import Path
 from Lib._Machine import machine
 paths = Path(machine)
@@ -76,11 +79,10 @@ def get_dist2sep(shot: int = None, R: float = None, z: float = None,
         plt.show()
 
     if plot_dist:
-        fig2, ax2 = plt.subplots(2)
+        fig2, ax2 = plt.subplots(2, sharex = True)
         title = '#'+str(shot)
         fig2.suptitle(title)
         ax2[0].plot(t, R)
-        ax2[0].set_xlabel('Time [s]')
         ax2[0].set_ylabel('R [m]')
         ax2[1].plot(t, dist_sep)
         ax2[1].set_xlabel('Time [s]')
@@ -88,6 +90,67 @@ def get_dist2sep(shot: int = None, R: float = None, z: float = None,
         plt.show()
     return dist_sep
 
+def FILD2sep(shot: int, geomID: int,  insertion: float = None, t: float = None, 
+             diag: str = 'EQH', plot_sep: bool = True, plot_dist: bool = True):
+    """
+    Get the distance of a certain FILD to the separatrix. If no insertion is 
+    given, the logbook value is used.
+    
+    @param shot
+    @param geomID: collimator ID
+    @insertion: in manipulator units [mm]
+    @param t: time array. If None, entire shot
+    @param diag: diagnostic for equilibrium reconstruction
+    @param plot_sep: plot separatrix position
+    @param plot_dist: plot distance to the separatrix
+
+    returns distance to the separatrix in m
+    """
+    geomID = geomID.lower()
+    if insertion is None:
+        lb = ss.dat.FILD_logbook()
+        print('Logbook values are taken:')
+        # Get the used collimator geometries in that shot
+        col_geom = []
+        filds = []
+        for i in range(1,6):
+            try:
+                col_geom.append(lb.getGeomID(shot = shot, FILDid = i).lower())
+                filds.append(i)
+            except:
+                pass
+        # Get the position if the geomety was used
+        if geomID in col_geom:
+            fildID = filds[col_geom == geomID]
+            position = lb.getPosition(shot = shot, FILDid = fildID)
+            print('\nFILD'+str(fildID)+' ('+geomID.upper()+') #'+str(shot)+':')
+            print(position)
+            print('\n')
+        else:
+            raise errors.NotFoundGeomID(geomID+ ' was not used on shot #'
+                                        +str(shot))
+    else:
+        # Change from manipulator units [mm] to m
+        insertion /=1000
+        geom_path = os.path.join(paths.ScintSuite, 'Data',
+                             'Calibrations', 'FILD', 'AUG',
+                             'GeometryDefaultParameters.txt')
+        geom = f90nml.read(geom_path)[geomID]
+        if insertion < geom['max_insertion'] \
+            and insertion > geom['min_insertion']:
+                R = geom['r_parking']-insertion*np.cos(geom['gamma']/180*np.pi)
+                z = geom['z_parking']-insertion*np.sin(geom['gamma']/180*np.pi)
+                position = {'R':R,
+                            'z': z, 
+                            'phi': geom['phi']}
+        else:
+            raise errors.NotValidInput('Insertion outside limits: ['+\
+                                 str(geom['min_insertion'])+'; '+\
+                                 str(geom['max_insertion'])+'] mm')
+                    
+    get_dist2sep(shot = shot, R = position['R'], z = position['z'],
+                 t = t, diag = diag, plot_sep = plot_sep, 
+                 plot_dist = plot_dist)
 
 class FILD4_traject:
     """
@@ -196,8 +259,8 @@ class FILD4_traject:
         # Get the magnetic field in the coil
         if B is None:
             equ = sf.EQU(self.shot, diag=diag)
-            R_coil = params.fild4['coil']['R_coil']
-            Z_coil = params.fild4['coil']['Z_coil']
+            R_coil = params.FILD[3]['coil']['R_coil']
+            Z_coil = params.FILD[3]['coil']['Z_coil']
             br, bz, bt = sf.rz2brzt(equ, r_in=R_coil, z_in=Z_coil,
                                     t_in=self.dat_ps['time_V'])
             B = abs(bt).squeeze()
@@ -239,10 +302,10 @@ class FILD4_traject:
             R_fit = R*np.ones(V.shape)
 
         # Calculate the vel and pos of the probe head
-        l = params.fild4['coil']['l']
-        A = params.fild4['coil']['A']
-        N = params.fild4['coil']['N']
-        theta_parking = params.fild4['coil']['theta_parking']
+        l = params.FILD[3]['coil']['l']
+        A = params.FILD[3]['coil']['A']
+        N = params.FILD[3]['coil']['N']
+        theta_parking = params.FILD[3]['coil']['theta_parking']
 
         # Initial conditions for the integration
         vel = np.empty(time_V.shape)
@@ -290,8 +353,8 @@ class FILD4_traject:
         # Get FILD4 position
         insertion = np.interp(t, self.traject['time'],
                               self.traject['position'])
-        R_pos = params.fild4['coil']['R_parking']-insertion
-        z_pos = params.fild4['coil']['Z_parking']*np.ones(t.shape)
+        R_pos = params.FILD[3]['coil']['R_parking']-insertion
+        z_pos = params.FILD[3]['coil']['Z_parking']*np.ones(t.shape)
         self.dist2sep = get_dist2sep(shot=self.shot, R=R_pos, z=z_pos,
                                      t=t, diag=diag, plot_sep=plot_sep,
                                      plot_dist=False)
@@ -421,9 +484,13 @@ class FILD4_traject:
             id_plot += 1
 
         if R_fit:
-            ax[id_plot].plot(self.traject['time'], self.traject['Resistance'])
+            ax[id_plot].plot(self.traject['time'], self.traject['Resistance'],
+                             label = 'R_fit')
+            ax[id_plot].plot(self.dat_ps['time_V'], 
+                             self.dat_ps['V']/self.dat_ps['I'], label = 'V/I')
             ax[id_plot].grid(True)
             ax[id_plot].set_ylabel('R [Ohm]')
+            ax[id_plot].set_ylim([10,18])
             id_plot += 1
 
         if traject:
