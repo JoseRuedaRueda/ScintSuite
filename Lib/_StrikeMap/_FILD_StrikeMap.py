@@ -17,9 +17,6 @@ class Fsmap(FILDINPA_Smap):
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    Public methods not present in the parent class:
-        - plot_real: plot the strike map in the real space
-        - plot_pix: plot the strike map in the camera sensor plane
     """
 
     pass

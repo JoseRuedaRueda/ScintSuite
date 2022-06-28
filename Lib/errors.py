@@ -64,6 +64,12 @@ class NotFoundAdqFreq_or_ttrig(Exception):
     pass
 
 
+class NotLoadedPositionDatabase(Exception):
+    """Position database was not loaded."""
+
+    pass
+
+
 # --- SINPA/FILDSIM related exception
 class WrongNamelist(Exception):
     """

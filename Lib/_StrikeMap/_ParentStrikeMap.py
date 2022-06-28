@@ -278,184 +278,12 @@ class GeneralStrikeMap(XYtoPixel):
         ax = axis_beauty(ax, params)
         return ax
 
-    def _plot_real(self, ax=None,
-                   marker_params: dict = {}, line_params: dict = {},
-                   factor: float = 1.0):
+    def plot_pix(self, ax=None, marker_params: dict = {},
+                 line_params: dict = {}, labels: bool = True,
+                 rotation_for_x_label: float = 30.0,
+                 rotation_for_y_label: float = 100.0,):
         """
-        Plot the strike map (x,y = dimensions in the scintillator).
-
-        Jose Rueda: jrrueda@us.es
-
-        Note, this just plot the grid of points, latter, the public method
-        plot real add the label and so on.
-
-        @param ax: Axes where to plot
-        @param markers_params: parameters for plt.plot() to plot the markers
-        @param line_params: parameters for plt.plot() to plot the markers
-        @param factor: scaling factor to plot the data. Dimensions will be
-            multiplied by this factor. Notice that this is just to compare
-            strike maps from different codes for the situations in which a code
-            operate in cm and the oder in m.
-        """
-        # Default plot parameters:
-        marker_options = {
-            'markersize': 3,
-            'fillstyle': 'none',
-            'color': 'k',
-            'marker': 'o',
-            'linestyle': 'none'
-        }
-        marker_options.update(marker_params)
-        line_options = {
-            'color': 'k',
-            'marker': ''
-        }
-        line_options.update(line_params)
-
-        if ax is None:
-            fig, ax = plt.subplots()
-        # Draw the line of constant yToRemap variable, if you use default
-        # settings this would be the lines of constant gyroradius
-        # for FILD/INPA
-        for i in range(self._MC_variables[0].data.size):
-            flags = (self(self._MC_variables[0].name)
-                     == self._MC_variables[0].data[i])
-            ax.plot(self('x1')[flags] * factor,
-                    self('x2')[flags] * factor,
-                    **line_options)
-        # Draw the lines of contant xToRemap variable, if you use default
-        # settings those would be lines of contant pitch/R0 (for FILD/INPA)
-        for i in range(self._MC_variables[1].data.size):
-            flags = (self(self._MC_variables[1].name)
-                     == self._MC_variables[1].data[i])
-            ax.plot(self('x1')[flags] * factor,
-                    self('x2')[flags] * factor,
-                    **line_options)
-
-        # Plot some markers in the grid position
-        ax.plot(self('x1') * factor, self('x2') * factor,
-                **marker_options)
-        plt.draw()
-        return ax
-
-    # def plot_real(self, ax=None,
-    #               marker_params: dict = {}, line_params: dict = {},
-    #               labels: bool = False,
-    #               rotation_for_x_label: float = 30.0,
-    #               rotation_for_y_label: float = 90.0,
-    #               factor: float = 1.0):
-    #     """
-    #     Plot the strike map (x,y of plot = dimensions in the scintillator).
-    #
-    #     Jose Rueda: jrrueda@us.es
-    #
-    #     @param ax: Axes where to plot
-    #     @param markers_params: parameters for plt.plot() to plot the markers
-    #     @param line_params: parameters for plt.plot() to plot the markers
-    #     @param labels: flag to add the labes (gyroradius, pitch) on the plot
-    #     @param rotation_for_x_label: Rotation angle for the first montecarlo
-    #         variable. For FILD, if everything is 'standard' this would be the
-    #         pitch angle label
-    #     @param rotation_for_y_label: Rotation angle for the second montecarlo
-    #         variable. For FILD, if everything is 'standard' this would be the
-    #         gyroradius label
-    #     @param factor: scaling factor to plot the data. Dimensions will be
-    #         multiplied by this factor. Notice that this is just to compare
-    #         strike maps from different codes for the situations in which a code
-    #         operate in cm and the oder in m.
-    #     """
-    #     # Plot the grid
-    #     ax = self._plot_real(ax=ax, marker_params=marker_params,
-    #                          line_params=line_params, factor=factor)
-    #     # Place the labels:
-    #     if labels:
-    #         calculated_delta = False
-    #         j = 1
-    #         for i in range(self._MC_variables[0].data.size):
-    #             flags = (self(self._MC_variables[0].name)
-    #                      == self._MC_variables[0].data[i])
-    #         # Add the gyroradius label, but just each 2 entries so the plot
-    #         # does not get messy
-    #         if i == j:
-    #             try:
-    #                 delta = abs(self('x1')[flags][1] - self('x1')[flags][0]) \
-    #                     * factor
-    #                 calculated_delta = True
-    #             except IndexError:
-    #                 j += 2
-    #         if (i % 2 == 0) calculated_delta:
-    #             # Delta variable just to adust nicelly the distance (as old
-    #             # fildsim is in cm and new in m)
-    #             ax.text(self('x1')[flags].min() * factor - 0.5 * delta,
-    #                     self('x2')[flags].min() * factor,
-    #                     f'{float(self._MC_variables[0].data[i]):g}',
-    #                     horizontalalignment='right',
-    #                     verticalalignment='center')
-    #     if labels:
-    #         ax.annotate('Gyroradius [cm]',
-    #                     xy=(min(self.y) * factor - delta,
-    #                         ((max(self.z) - min(self.z))/2 + min(self.z))
-    #                         * factor),
-    #                     rotation=rotation_for_gyr_label,
-    #                     horizontalalignment='center',
-    #                     verticalalignment='center')
-    #     if self.diag == 'FILD':
-    #         # Draw the lines of constant pitch. 'Vertical' lines
-    #         for i in range(self.npitch):
-    #             flags = self.pitch == self.unique_pitch[i]
-    #             ax.plot(self.y[flags] * factor, self.z[flags] * factor,
-    #                     **line_options)
-    #             if i == 1:
-    #                 delta = abs(self.z[flags][-1] - self.z[flags][-2]) * factor
-    #             if labels:
-    #                 ax.text((self.y[flags])[-1] * factor,
-    #                         (self.z[flags])[-1] * factor - delta,
-    #                         f'{float(self.unique_pitch[i]):g}',
-    #                         horizontalalignment='center',
-    #                         verticalalignment='top')
-    #         if labels:
-    #             ax.annotate('Pitch [$\\degree$]',
-    #                         xy=(((max(self.y) - min(self.y))/2 + min(self.y))
-    #                             * factor,
-    #                             min(self.z) * factor - 1.5 * delta),
-    #                         rotation=rotation_for_pitch_label,
-    #                         horizontalalignment='center',
-    #                         verticalalignment='center')
-    #     elif self.diag == 'INPA':
-    #         # Draw the lines of constant alpha. 'Vertical' lines
-    #         for i in range(self.nalpha):
-    #             flags = self.alpha == self.unique_alpha[i]
-    #             if i == 0:
-    #                 delta = abs(self.y[flags][1] - self.y[flags][0]) * factor
-    #
-    #             ax.plot(self.y[flags] * factor, self.z[flags] * factor,
-    #                     **line_options)
-    #
-    #             ax.text((self.y[flags])[-1] * factor,
-    #                     (self.z[flags])[-1] * factor - delta,
-    #                     f'{float(self.unique_alpha[i]):g}',
-    #                     horizontalalignment='center',
-    #                     verticalalignment='top')
-    #
-    #         ax.annotate('Alpha [rad]',
-    #                     xy=(((max(self.y) - min(self.y))/2 + min(self.y))
-    #                         * factor,
-    #                         min(self.z) * factor - 1.5*delta),
-    #                     rotation=rotation_for_pitch_label,
-    #                     horizontalalignment='center',
-    #                     verticalalignment='center')
-    #     else:
-    #         raise errors.NotValidInput('Diagnostic not implemented')
-    #
-    #     # Plot some markers in the grid position
-    #     ax.plot(self.y * factor, self.z * factor, **marker_options)
-
-    def _plot_pix(self, ax=None, marker_params: dict = {},
-                  line_params: dict = {}, labels: bool = True,
-                  rotation_for_x_label: float = 30.0,
-                  rotation_for_y_label: float = 100.0,):
-        """
-        Plot the strike map (x,y = dimensions in the scintillator).
+        Plot the strike map (x,y = dimensions in the camera).
 
         Jose Rueda: jrrueda@us.es
 
@@ -508,9 +336,6 @@ class GeneralStrikeMap(XYtoPixel):
             # Identify if the var[0] is the vertical (gyroradius in old FILD
             # style) or the horizontal (pitch in FILD school)
             for j in range(2):
-                # Get the coodinates
-                x1 = self._coord_pix['x'][flags[1 - j][int(n[j]/2)]]
-                x2 = self._coord_pix['y'][flags[1 - j][int(n[j]/2)]]
                 # Plot the labels
                 k = 0
                 calculated_delta = False
@@ -544,6 +369,104 @@ class GeneralStrikeMap(XYtoPixel):
                         else:
                             ax.text(self._coord_pix['x'][flags[j][i]][0] - 3.0 * delta,
                                     self._coord_pix['y'][flags[j][i]][0],
+                                    self._MC_variables[j].plot_label,
+                                    horizontalalignment='center',
+                                    verticalalignment='center',
+                                    color=line_options['color'],
+                                    rotation=rotation_for_y_label)
+
+        plt.draw()
+        return ax
+
+    def plot_real(self, ax=None, marker_params: dict = {},
+                  line_params: dict = {}, labels: bool = True,
+                  rotation_for_x_label: float = 30.0,
+                  rotation_for_y_label: float = 100.0,):
+        """
+        Plot the strike map (x,y = dimensions in the scintillator).
+
+        Jose Rueda: jrrueda@us.es
+
+        Note, this just plot the grid of points, latter, the children will
+        call this function and add the labels and so on
+
+        @param ax: Axes where to plot
+        @param markers_params: parameters for plt.plot() to plot the markers
+        @param line_params: parameters for plt.plot() to plot the markers
+        @param labels: if true, labels will be added into the plot
+        @param rotation_for_x_label: Rotation to add to the general label of
+            the first MC variable
+        @param rotation_for_y_label: Rotation to add to the general label of
+            the second MC variable
+        """
+        # --- Settings
+        # Default plot parameters:
+        marker_options = {
+            'markersize': 1,
+            'fillstyle': 'none',
+            'color': 'k',
+            'marker': 'o',
+            'linestyle': 'none'
+        }
+        marker_options.update(marker_params)
+        line_options = {
+            'color': 'k',
+            'marker': ''
+        }
+        line_options.update(line_params)
+
+        if ax is None:
+            fig, ax = plt.subplots()
+        # --- Grid plot
+        n = [self._MC_variables[i].data.size for i in range(2)]
+        flags = {0: [], 1: []}
+        for j in range(2):
+            for i in range(n[j]):
+                flags[j].append(self(self._MC_variables[j].name)
+                                == self._MC_variables[j].data[i])
+
+                ax.plot(self._coord_real['x1'][flags[j][-1]],
+                        self._coord_real['x2'][flags[j][-1]],
+                        **line_options)
+        # Plot some markers in the grid position
+        ax.plot(self._coord_real['x1'], self._coord_real['x2'],
+                **marker_options)
+        # --- Labels in the plot
+        if labels:
+            for j in range(2):
+                # Plot the labels
+                k = 0
+                calculated_delta = False
+                # Get the spacing
+                try:
+                    delta = abs(self._coord_real['x1'][flags[j][int(n[j]/2)]][1]
+                                - self._coord_real['x1'][flags[j][int(n[j]/2)]][0])
+                    calculated_delta = True
+                except IndexError:
+                    k += 2
+                for i in range(1, n[j]):
+                    # Add the labels
+                    if (i % 2 == 0) and calculated_delta:
+                        ax.text(self._coord_real['x1'][flags[j][i]][0] - 0.5 * delta,
+                                self._coord_real['x2'][flags[j][i]][0],
+                                '%.2f' % (
+                                    float(self._MC_variables[j].data[i])),
+                                horizontalalignment='right',
+                                verticalalignment='center',
+                                color=line_options['color'])
+                    # Add the general label
+                    if i == int(n[j]/2):
+                        if j == 0:
+                            ax.text(self._coord_real['x1'][flags[j][i]][0] - 1.5*delta,
+                                    self._coord_real['x2'][flags[j][i]][0] + 1.5 * delta,
+                                    self._MC_variables[j].plot_label,
+                                    horizontalalignment='center',
+                                    verticalalignment='center',
+                                    color=line_options['color'],
+                                    rotation=rotation_for_x_label,)
+                        else:
+                            ax.text(self._coord_real['x1'][flags[j][i]][0] - 3.0 * delta,
+                                    self._coord_real['x2'][flags[j][i]][0],
                                     self._MC_variables[j].plot_label,
                                     horizontalalignment='center',
                                     verticalalignment='center',

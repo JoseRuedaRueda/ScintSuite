@@ -5,14 +5,7 @@ Introduced in version 6.0.0
 
 Jose Rueda Rueda: jrrueda@us.es
 """
-import numpy as np
 import f90nml
-
-
-
-
-
-
 
 
 def read_namelist(filename, verbose=False):

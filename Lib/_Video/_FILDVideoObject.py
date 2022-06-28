@@ -57,7 +57,8 @@ class FILDVideo(FIV):
 
     def __init__(self, file: str = None, shot: int = None,
                  diag_ID: int = 1, empty: bool = False,
-                 logbookOptions: dict = {}, Boptions: dict = {}):
+                 logbookOptions: dict = {}, Boptions: dict = {},
+                 verbose: bool = True):
         """
         Initialise the class
 
@@ -88,6 +89,7 @@ class FILDVideo(FIV):
             field, can be machine dependent. Notice that the shot number and
             needed time will be collected from the video object. If you provide
             them also here, the code will fail. Same with R and z
+        @param verbose: flag to print information (overheating + comments)
         """
         if not empty:
             # Guess the filename:
@@ -117,11 +119,21 @@ class FILDVideo(FIV):
                 self.geometryID = FILDlogbook.getGeomID(shot, diag_ID)
                 self.CameraCalibration = \
                     FILDlogbook.getCameraCalibration(shot, diag_ID)
+                try:
+                    self.FILDoperatorComment =\
+                        FILDlogbook.getComment(self.shot)
+                    self.overheating = \
+                        FILDlogbook.getOverheating(self.shot, diag_ID)
+                except AttributeError:
+                    self.FILDoperatorComment = None
+                    self.overheating = None
             else:
                 self.position = None
                 self.orientation = None
                 self.geometryID = None
                 self.CameraCalibration = None
+                self.FILDoperatorComment = None
+                self.overheating = None
                 print('Shot not provided, you need to define FILDposition')
                 print('You need to define FILDorientation')
                 print('You need to define FILDgeometry')
@@ -132,6 +144,13 @@ class FILDVideo(FIV):
             self.BFieldOptions = Boptions
             ## Orientation angles
             self.Bangles = None
+
+            if verbose:
+                if self.FILDoperatorComment is not None:
+                    print('--- FILD Operator comment:')
+                    print(self.FILDoperatorComment[0])
+                if self.overheating is not None:
+                    print('--- Overheating level: %i' % self.overheating)
         else:
             FIV.__init__(self, empty=empty)
 
