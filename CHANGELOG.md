@@ -1,5 +1,5 @@
 ## 1.0.0: San Jacobo release (beta)
-**Installation instructions**: Please run the file 'first_run.py' if you just landed in version 1.0.0, aso some extra files need to be created
+**Installation instructions**: Please run the file 'first_run.py' if you just landed in version 1.0.0, as some extra files need to be created
 ### General comment:
 - The disorder 'gyr', 'rl', 'Gyroradius' etc was eliminated. Now it is called 'gyroradius' at every point of the suite (please if you find any not update, tell jrrueda@us.es)
 - Changelog and readme are now written in markdown format, which is more open and easy
@@ -51,7 +51,6 @@
     - plot_strike_points() (it had a deprecation warning since version 8, sot it was time to remove it)
 - Some change some input naming, examples:
     - in plot_pix, plot_real, now the labels are rotation_for_x_label and rotation_for_x_label if you want to rotate the labels, x is for the first montercarlo variable, x for the second.
-- Idem with plot real
 
 ### LibTimeTraces
 - **bug**: Corrected the bug where the plotting of a time trace with a baseline correction was overwritting the data in the timetrace_object

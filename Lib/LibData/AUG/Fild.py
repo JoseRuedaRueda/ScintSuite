@@ -270,6 +270,11 @@ class FILD_logbook:
             print('Looking for the position database: ', filename)
         dummy = pd.read_excel(filename, engine='openpyxl', header=[0, 1])
         dummy['shot'] = dummy.Shot.Number.values.astype(int)
+        # Check if there is information on the overheating in the file
+        if 'Overheating' not in dummy['FILD1'].keys():
+            self.positionDatabaseVersion = 1
+        else:
+            self.positionDatabaseVersion = 2
         return dummy
 
     def _readGeometryDatabase(self, filename: str, n_header: int = 3,
@@ -474,6 +479,10 @@ class FILD_logbook:
         @param verbose: flag to print in the console the number of shots found
             using that geometry
         """
+        if not self.flagPositionDatabase:
+            t = 'Not found position database, maybe the path to the logbook'\
+                + 'was not given'
+            raise errors.NotLoadedPositionDatabase(t)
         # Minimum insertion
         minin = {
             1: 2.5,
@@ -529,3 +538,71 @@ class FILD_logbook:
             'gamma': dummy['gamma']
         }
         return output
+
+    def getOverheating(self, shot: int, FILDid: int = 1):
+        """
+        Check if a FILD head was overheated during shots
+
+        @param shot: shot number (int) or array of shots
+        @param FILDid: Manipulator number
+
+        @return: integer (or array) indicating the overheating
+            > -1 : No information on the logbook
+            > 0  : No overhating
+            > 1  : Slight overheating
+            > 2  : Strong overheating
+        """
+        # Prepare the shot list
+        if isinstance(shot, int):
+            shotl = np.array([shot])
+        elif isinstance(shot, (tuple, list)):
+            shotl = np.array(shot)
+        elif isinstance(shot, np.ndarray):
+            shotl = shot
+        else:
+            raise errors.NotValidInput('Check shot input')
+
+        # Check the overheating
+        overheating = -np.ones(shotl.size, dtype=int)
+        dummy = self.positionDatabase['FILD%i' % FILDid]
+        if self.positionDatabaseVersion >= 2:
+            for ks, s in enumerate(shotl):
+                if s in self.positionDatabase['shot'].values:
+                    i, = np.where(self.positionDatabase['shot'].values == s)[0]
+                    overheating[ks] = dummy['Overheating'].values[i]
+        else:
+            text = 'This logbook does not contain overheating information'
+            logger.warning('')
+        return overheating
+
+    def getComment(self, shot: int):
+        """
+        Get the comment line
+
+        @param shot: shot number (int) or array of shots
+
+        @return: string containing the comment written by the FILD operator
+        """
+        # Prepare the shot list
+        if isinstance(shot, int):
+            shotl = np.array([shot])
+        elif isinstance(shot, (tuple, list)):
+            shotl = np.array(shot)
+        elif isinstance(shot, np.ndarray):
+            shotl = shot
+        else:
+            raise errors.NotValidInput('Check shot input')
+
+        # Check the overheating
+        comment = []
+        if self.positionDatabaseVersion >= 2:
+            dummy = self.positionDatabase['Comments']['Comments']
+            for ks, s in enumerate(shotl):
+                if s in self.positionDatabase['shot'].values:
+                    i, = np.where(self.positionDatabase['shot'].values == s)[0]
+                    comment.append(dummy.values[i])
+        else:
+            text = 'Comments can not be read in this logbook version'
+            logger.warning('22: %s' % text)
+            comment = ['' for s in shotl]
+        return comment

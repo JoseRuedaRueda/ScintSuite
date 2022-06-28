@@ -17,7 +17,7 @@ class INPA_IF():
     INPA instrument function
 
     yes, contract Instrument Function as IF is maybe not the best in a code
-    but... I like it
+    but... I like it ;)
 
     Jose Rueda: jrrueda@us.es
 

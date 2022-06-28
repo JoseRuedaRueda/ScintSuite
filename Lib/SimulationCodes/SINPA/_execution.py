@@ -9,7 +9,7 @@ import os
 import f90nml
 import numpy as np
 # import math
-import Lib.SimulationCodes.SINPA.reading as reading
+import Lib.SimulationCodes.SINPA._reading as reading
 import Lib.SimulationCodes.Common.fields as simcomFields
 import Lib.SimulationCodes.Common.geometry as simcomGeo
 from Lib._Machine import machine

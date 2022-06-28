@@ -14,7 +14,7 @@ import Lib._Plotting as ssplt
 from tqdm import tqdm
 from Lib._StrikeMap._ParentStrikeMap import GeneralStrikeMap
 from Lib.SimulationCodes.Common.strikes import Strikes
-from Lib.SimulationCodes.SINPA.execution import guess_strike_map_name
+from Lib.SimulationCodes.SINPA._execution import guess_strike_map_name
 from Lib.SimulationCodes.FILDSIM.execution import get_energy
 from Lib._basicVariable import BasicVariable
 from Lib._Mapping._Common import _fit_to_model_

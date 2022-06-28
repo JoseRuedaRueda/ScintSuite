@@ -9,6 +9,13 @@ import numpy as np
 
 
 class INPAStrikes(Strikes):
+    """
+    Strike object tunned for INPA strike points
+
+    Public methods not present in the parent class:
+
+        calculatePitch: calculate the pitch of the markers
+    """
 
     def caclualtePitch(self, Boptions: dict = {}, IPBtSign: float = -1.0):
         """
