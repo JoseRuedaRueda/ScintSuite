@@ -4,59 +4,57 @@ This code is created to analyze the signal from scintillator diagnostics. Suppor
 
 ## Installation and documentation
 ### Prerequisites. Python 3.7 or higher
-Needed packages(Only listed 'non-standard' packages):
+Needed packages. Only listed 'non-standard' packages. See below, there is a script to install them.
 
-#Essentials# (the suite will not work without them):
-    - f90nml: To read FORTRAN namelist in an easy way (needed since version 0.1.10) =pip install f90nml= . This is the suite standard to read and write namelists!!!
-#Optional# (the suite will work but some capabilities will not be available)
-    - cv2 (OpenCv): To load frames from .mp4 files and to export videos =pip install opencv-python=
-    - lmfit: To perform the fits needed for the resolution calculation =pip install lmfit=
-    - cycler: To set default plotting color =pip install cycler=
-    - pyfftw: To have extra capabilities in the spectrogram calculation =pip install pyfftw=
-    - netCDF4: To load and save files from the BEB database =pip install netCDF4=
-    - scipy 1.7.0 or newer, to have the RBF interpolators for the strike points
-    - aug_sfutils > 0.7.0: To load the AUG magnetic field (see AUG python documentation for the different ways of installing this package https://www.aug.ipp.mpg.de/aug/manuals/aug_sfutils/)
-    - mesh: To deal with CAD files
-#Installation# Executing 'first_run.py' in your terminal console should allow you to install everything you need to run the suite
+#### Essentials
+The suite will not work without them:
+- f90nml: To read FORTRAN namelist in an easy way (needed since version 0.1.10) `pip install f90nml`. This is the suite standard to read and write namelists!!!
+
+#### Optional (the suite will work but some capabilities will not be available)
+- cv2 (OpenCv): To load frames from .mp4 files and to export videos `pip install opencv-python`
+- lmfit: To perform the fits needed for the resolution calculation `pip install lmfit`
+- cycler: To set default plotting color `pip install cycler`
+- pyfftw: To have extra capabilities in the spectrogram calculation `pip install pyfftw`
+- scipy 1.7.0 or newer, to have the RBF interpolators for the strike points
+- aug_sfutils > 0.7.0: To load the AUG magnetic field (see AUG python documentation for the different ways of installing this package https://www.aug.ipp.mpg.de/aug/manuals/aug_sfutils/)
+- mesh: To deal with CAD files
+
 ### Cloning the suite and installing
 In order to clone the suite just open a terminal in your home directory and type:
 ```bash
  git clone https://gitlab.mpcdf.mpg.de/ruejo/scintsuite.git ScintSuite
 ```
-
-To install all non-standard packages, you can give a try the script: 'first_run.py'. It will work in personal computers and 'standard installations' although things can go wrong if your system has some particular rights limitations etc. In that case, I fear to say that you are alone.
+To install all non-standard (not machine dependent) packages, you can give a try the script: `first_run.py`. It will work in personal computers and *standard installations* although things can go wrong if your system has some particular rights limitations etc. In that case, I fear to say that you are alone.
 
 ### Importing the suite
-In order to import the ScintSuite as `import Lib as MyAwesomeName`, you need to set in your environment the different paths to the external modules. For example, in the case of AUG, the path towards the AUG-python library. To do this, you just need to run the file path suite. For example, just type in a python terminal `run paths_suite` (being on the main Suite directory). After running it, you should be able to import the suite from everywhere in your computer. However, if your working directory is the root directory of the Suite, there is no need of running this line, you can just execute directly `import Lib as MyAwesomeName` and enjoy (as the function path_suite is called in the Sutie __init__)
+In order to import the ScintSuite as `import Lib as MyAwesomeName`, you need to set in your environment the different paths to the external modules. For example, in the case of AUG, the path towards the AUG-python library. To do this, you just need to run the file path suite. For example, just type in a python terminal `run paths_suite` (being on the main Suite directory). After running it, you should be able to import the suite from everywhere in your computer. However, if your working directory is the root directory of the Suite, there is no need of running this line, you can just execute directly `import Lib as MyAwesomeName` and enjoy (as the function path_suite is called in the Sutie `__init__.py`)
 
 ### Paths
-There are two files containing the paths and routes for the suite:
-- paths_suite.py: Located in the main directory of the suite. This one just contain the routes pointing to the python packages/files needed by the suite. It says to python where to find what it needs. If you need to add something due to the peculiarities of your system, please do it locally in your bash file or open a issue in gitlab, do not modify this file.
-- LibPaths.py: Located inside the Lib folder, there they are all the paths pointing towards the different codes (FILDSIM, INPASIM etc) and the results/strike maps directories.
+There are three files containing the paths and routes for the suite:
+- `paths_suite.py`: Located in the main directory of the suite. This one just contain the routes pointing to the python packages/files needed by the suite. It says to python where to find what it needs. If you need to add something due to the peculiarities of your system, please do it locally in your bash file or open a issue in gitlab, do not modify this file.
+- `LibPaths.py`: Located inside the Lib folder, there they are all the paths pointing towards the different codes (FILDSIM, INPASIM etc) and the results/strike maps directories. Again do not modify this file just to put your custom paths, please.
+- `MyData/Paths.txt`: It could happen that you have FILDSIM, SINPA or whatever installed in a route which is not *the official*. Inside this file, you can set all these paths. The file should be created when you run the script `first_run.py`; although you can always copy it from the `Data/MyDataTemplates folder`.
 
-It could happen that you have FILDSIM, SINPA or whatever installed in a route which is not 'the official'. The suite allows you to define these different paths via the namelist 'Paths.txt' inside the MyData folder (inside Data) Please use always this file and do not modify the LibPaths.py file
-
-#Important# The suite must be installed in your home directory.
+**Important:** The suite must be installed in your home directory. The reason for this is that I found no other way for the Suite to localise this custom directory. Please, if you find a woraround for this, send me an email and we will be happy to implement it.
 
 VRT related paths are hardcoded. There is a significant number of them and overloading LibPaths seems like a poor solution. Blame Javier Hidalgo for this (jhsalaverri@us.es)
 
 ### FILDSIM notes
 - You need to create an empty folder in the root of FILDSIM code with name 'cfg_files' in order to run the remap routine. The namelist of the new calculated strike maps will be stored here, so we do not create thousands of files in the main FILDSIM paths
+- FILDSIM code receive no more support since version 0.8.0. FILDSIM libraries will not be updated further, except some important bug is found. Please use the new code version (uFILDSIM/SINPA)
 
 ### Documentation
 - All objects and methods are documented such that the user can understand what is going on
 - As everything has doc-strings, you can always write in the python terminal <fname>? and you will get all the description of the <fname> method or object
 - The routines in the Example folder are intended to illustrate the use of the different tools in the suite. Please, if you want to play with them, make your own copy on 'MyRoutines', modifying the examples can cause merge conflicts in the future
-- If you have installed Doxygen you can generate the documentation in html and LaTex format just opening a terminal in the Suite root directory and typing  `doxygen Doxyfile`. Once the documentation is generated, you can open the index with the following command `xdg-open doc/index.html`
-
-For a (old and maybe outdated) Doxygen generated documentation, see: <https://hdvirtual.us.es/discovirt/index.php/s/FBjZ9FPfjjwMDS2> download the content and open the index.html file, inside the html folder.
+- If you have installed Doxygen you can generate the documentation in html and LaTex format just opening a terminal in the Suite root directory and typing  `doxygen Doxyfile`. Once the documentation is generated, you can open the index with the following command `xdg-open doc/index.html`. For a (old and outdated) Doxygen generated documentation, see: <https://hdvirtual.us.es/discovirt/index.php/s/FBjZ9FPfjjwMDS2> download the content and open the index.html file, inside the html folder.
 
 ## Active Development
 ### Version control
 Each release will be denoted by 3 numbers: a.b.c meaning:
-    - c: bug fixed and improved comments and documentation. Some new capabilities could be added (see changelog). The higher the number, the better.
-    - b: Significant changes, versions a.b1.c1 and a.b2.c2, should run perfectly with the same inputs.  But some internal routines may have changed, so if you have your own scripts using them 'outside the main loop' something can go wrong for you. The higher b, the more extra capabilities you have
-    - a: indicate major changes in the code, versions with different 'a' may be not compatible, not recommended update to a higher 'a' version close to a conference
+- c: bug fixed and improved comments and documentation. Some new capabilities could be added (see changelog). The higher the number, the better.
+- b: Significant changes, versions a.b1.c1 and a.b2.c2, should run perfectly with the same inputs.  But some internal routines may have changed, so if you have your own scripts using them 'outside the main loop' something can go wrong for you. The higher b, the more extra capabilities you have
+- a: indicate major changes in the code, versions with different 'a' may be not compatible, not recommended update to a higher 'a' version close to a conference
 
 ### Branches
 - master: Stable branch, things should work, may be a delay including new features
@@ -66,7 +64,7 @@ Each release will be denoted by 3 numbers: a.b.c meaning:
 ### Note for developers
 - Before changing anything in a module open a issue in GitLab to start a discussion
 - Indentation must be done via 4 spaces!
-- PEP 8 guide is recommended, if some piece of code is merged without this standard, the maintainers could modify your code to adapt it to this standard
+- PEP 8 guide is recommended, if some piece of code want to be merged without this standard, the maintainers could modify your code to adapt it to this standard (or completely deny your merge request)
   + maximum 80 character-long lines
   + space separation between operators, i.e., =a + b=
   + no blanks at the end of the lines
@@ -94,7 +92,7 @@ All devices are identified by a string:
 
 ## Useful links
 - FILDSIM code: <https://gitlab.mpcdf.mpg.de/jgq/FILDSIM.git>
-- SINPA code: <https://gitlab.mpcdf.mpg.de/ruejo/SINPA>
+- SINPA (uFILDSIM) code: <https://gitlab.mpcdf.mpg.de/ruejo/SINPA>
 - i-HIBPSIM code: <https://gitlab.mpcdf.mpg.de/poyo/ihibpsim>
 - SMap library: <https://datashare.mpcdf.mpg.de/s/yyLR7hCKNBqK34W>
 - Phase correction for magnetics: <https://datashare.mpcdf.mpg.de/s/FiqRIixNMb82HTq>
