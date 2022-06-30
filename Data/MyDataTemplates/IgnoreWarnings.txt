@@ -8,7 +8,7 @@
 !  1: OverWrittingData: Raised when an attribute class will try to overwrite data
 !  2: Old version of a module, but things should work
 !  3: Existing file, to overwrite when saving
-!  4: Non-existing file, to be opened
+!  4: Non-existing file to be opened
 !  5: No fonts found, use matplotlib default
 !  6: SideCalculation could not be computed
 !  7: Calculation likely to be wrong
@@ -16,3 +16,4 @@
 !  9: Calculation requires large amount of memory
 !  'a0': Not fully tested in general case
 !  'a1': Not implemented
+!  22: Data not present in the logbook, returning default

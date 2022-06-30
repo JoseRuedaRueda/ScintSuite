@@ -5,7 +5,7 @@ Lesson 3 of the FILD data-analysis. Video frames will be averaged. Ideally for
 situations with lot of noise
 
 Created for version 0.8.0
-Revised for version 0.9.0
+Revised for version 1.0.0
 """
 import Lib as ss
 
