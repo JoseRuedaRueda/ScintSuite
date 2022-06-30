@@ -6,12 +6,12 @@ logbook
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.7.8. Check for version 0.9.0
+Note; Written for version 0.7.8. Check for version 1.0.0
 
 Notice that this example is AUG oriented. In all supported machines the logbook
 has the same public methods, which works in the same way (same inputs/outputs)
 but each machine can have a particular set of files and options to initialise
-Therefore the example lines around lines 30 can be different in your machine
+Therefore the example lines around lines 21 can be different in your machine
 Please have a look at the help of your logbook object
 """
 import Lib as ss
@@ -54,3 +54,8 @@ print('%i shots found' % shots_Rfild.size)
 print('--- Making second search')
 shots_RFILD_deep_insertion = logbook.getGeomShots('AUG01', maxR=2.19)
 print('%i shots found' % shots_RFILD_deep_insertion.size)
+
+# - Did we have overheating in FILD1 during a given shot?
+overheating = logbook.getOverheating(41255, FILDid=1)
+print('--- Checking overheating:')
+print('Overheating level for shot 41255: %i' % overheating)

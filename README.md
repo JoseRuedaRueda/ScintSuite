@@ -87,8 +87,8 @@ If a new implementation is required, open the appropriate issue in the GIT and l
 
 ## Machine names
 All devices are identified by a string:
-- 'AUG': ASDEX Upgrade
-- 'MU': MAST Upgrade
+- `AUG`: ASDEX Upgrade
+- `MU`: MAST Upgrade
 
 ## Useful links
 - FILDSIM code: <https://gitlab.mpcdf.mpg.de/jgq/FILDSIM.git>

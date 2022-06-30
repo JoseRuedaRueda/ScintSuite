@@ -122,6 +122,8 @@ class FILDVideo(FIV):
                 try:
                     self.FILDoperatorComment =\
                         FILDlogbook.getComment(self.shot)
+                    if len(self.FILDoperatorComment) == 0:
+                        self.FILDoperatorComment = ['']
                     self.overheating = \
                         FILDlogbook.getOverheating(self.shot, diag_ID)
                 except AttributeError:

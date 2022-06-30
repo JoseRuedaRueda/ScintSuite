@@ -695,9 +695,9 @@ class BVO:
         it = None
         if t is not None:
             if not flagAverage:
-                it = np.argmin(np.abs(self.timebase - t))
+                it = np.argmin(np.abs(self.exp_dat['tframes'] - t))
             else:
-                it = np.argmin(np.abs(self.avg_dat - t))
+                it = np.argmin(np.abs(self.exp_dat['tframes'] - t))
         else:
             if not flagAverage:
                 it = np.where(self.exp_dat['nframes'] == frame_number)[0]
@@ -869,4 +869,4 @@ class BVO:
             # Create the mask
             mask = roi.getMask(self.exp_dat['frames'][:, :, 0].squeeze())
 
-        return sstt.TimeTrace(self, mask)
+        return sstt.TimeTrace(self, mask), mask

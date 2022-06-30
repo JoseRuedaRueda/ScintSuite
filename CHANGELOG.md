@@ -64,7 +64,8 @@
 - **bug**: Solved a bug in the get frame index
 - **bug**: Solved a small bug, the .cin files was not being closed in the read_settings structure
 - Export remap: temporally not available, until it is adapted to the new remap structure
-- Translate remap: temporally noy available, until it is adapted to the new remap structure
+- Translate remap: temporally not available, until it is adapted to the new remap structure
+- getTimeTrace now returns also the used mask
 
 ### Others
 - getGyroradius and getEnergy now uses the proper amu to kg conversion and no longer rely on the proton mass

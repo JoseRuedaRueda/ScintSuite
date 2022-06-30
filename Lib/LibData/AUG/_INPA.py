@@ -49,7 +49,10 @@ def guessINPAfilename(shot: int, diag_ID: int = 1):
 
     if shot < 99999:  # PCO camera, stored in AFS
         name = shot_str + extension
-        f = os.path.join(base_dir, shot_str[0:4], name)
+        if shot < 41202:
+            f = os.path.join(base_dir, shot_str[0:4], name)
+        else:
+            f = os.path.join(base_dir, shot_str[0:2], name)
     return f
 
 
