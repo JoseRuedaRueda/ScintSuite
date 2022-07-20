@@ -93,7 +93,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         """
         # See if the strike points where already there
         if self.strike_points is not None:
-            logger.warning('1: Strike points present, overwritting.')
+            logger.warning('11: Strike points present, overwritting.')
         # Get the object we need to fill and the file to be load
         if file is None:
             if self._header['code'].lower() == 'sinpa':

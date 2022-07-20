@@ -10,7 +10,7 @@ import tkinter as tk                       # To open UI windows
 import matplotlib.backends.backend_tkagg as tkagg
 import matplotlib.pyplot as plt
 import Lib._Plotting as libplt
-import Lib._Video. as libvideo
+import Lib._Video as libvideo
 import Lib._Paths as lpaths
 import Lib.SimulationCodes.iHIBPsim.strikes as ihibpstrikes
 
@@ -57,11 +57,11 @@ class app_ihibp_vid:
 
         # --- Create the time slider
         # dt for the slider
-        dt = self.video.exp_dat['tframes'][1] - self.video.exp_dat['tframes'][0]
+        dt = self.video.exp_dat['t'].values[1] - self.video.exp_dat['t'].values[0]
         # Slider creation
         self.tSlider = tk.Scale(tkwindow,
-                                from_=self.video.exp_dat['tframes'][0],
-                                to=self.video.exp_dat['tframes'][-1],
+                                from_=self.video.exp_dat['t'].values[0],
+                                to=self.video.exp_dat['t'].values[-1],
                                 resolution=dt,
                                 command=self.plot_frame,
                                 highlightcolor='red',
@@ -75,7 +75,7 @@ class app_ihibp_vid:
         # Plotting the first video.
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        self.image1 = ax.imshow(self.video.exp_dat['frames'][:, :, 0].squeeze(),
+        self.image1 = ax.imshow(self.video.exp_dat['frames'].values[:, :, 0].squeeze(),
                                  origin='lower', cmap=self.cmaps[defalut_cmap],
                                 aspect='equal')
 
@@ -98,7 +98,7 @@ class app_ihibp_vid:
         self.canvas2 = tkagg.FigureCanvasTkAgg(fig2, master=tkwindow)
         self.ax2 = fig2.add_subplot(111)
         if path is not None:
-            self.image2 = self.strline.plotStrikeLine(self.video.exp_dat['tframes'][0],
+            self.image2 = self.strline.plotStrikeLine(self.video.exp_dat['t'].values[0],
                                                       ax=self.ax2)
         self.toolbarFrame2 = tk.Frame(master=tkwindow)
         self.toolbarFrame2.grid(row=1, column=2, columnspan=1)
@@ -164,8 +164,8 @@ class app_ihibp_vid:
     def plot_frame(self, t: str):
         """Update the plot"""
         t0 = float(t)
-        it = np.abs(self.video.exp_dat['tframes'] - t0).argmin()
-        dummy = self.video.exp_dat['frames'][:, :, it].squeeze()
+        it = np.abs(self.video.exp_dat['t'].values - t0).argmin()
+        dummy = self.video.exp_dat['frames'].values[:, :, it].squeeze()
         self.image1.set_data(dummy)
 
         # Updating the strikeline.

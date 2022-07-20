@@ -25,6 +25,7 @@ from Lib.version_suite import version
 from Lib._Machine import machine
 import Lib._Video._AuxFunctions as _aux
 from scipy.io import netcdf                # To export remap data
+import xarray as xr
 pa = p.Path(machine)
 del p
 
@@ -156,41 +157,6 @@ class FILDVideo(FIV):
         else:
             FIV.__init__(self, empty=empty)
 
-    # def _getB(self, extra_options: dict = {}, use_average: bool = False):
-    #     """
-    #     Get the magnetic field in the FILD position
-    #
-    #     Jose Rueda - jrrueda@us.es
-    #
-    #     @param extra_options: Extra options to be passed to the magnetic field
-    #         calculation. Ideal place to insert all your machine dependent stuff
-    #     @param use_average: flag to use the timebase of the average frames or
-    #         the experimental frames
-    #
-    #     Note: It will overwrite the content of self.Bfield
-    #     """
-    #     if self.position is None:
-    #         raise Exception('FILD position not know')
-    #     # Get the proper timebase
-    #     if use_average:
-    #         time = self.avg_dat['tframes']
-    #     else:
-    #         time = self.exp_dat['tframes']
-    #     # Calculate the magnetic field
-    #     print('Calculating magnetic field (this might take a while): ')
-    #     br, bz, bt, bp =\
-    #         ssdat.get_mag_field(self.shot, self.position['R'],
-    #                             self.position['z'],
-    #                             time=time,
-    #                             **extra_options)
-    #     self.BField = {
-    #         'BR': np.array(br).squeeze(),
-    #         'Bz': np.array(bz).squeeze(),
-    #         'Bt': np.array(bt).squeeze(),
-    #     }
-    #     self.BField['B'] = np.sqrt(self.BField['Bt']**2 + self.BField['BR']**2
-    #                                + self.BField['Bz']**2)
-
     def _getBangles(self):
         """Get the orientation of the field respec to the head"""
         if self.orientation is None:
@@ -200,7 +166,10 @@ class FILDVideo(FIV):
                 self.BField['BR'], self.BField['Bz'], self.BField['Bt'],
                 self.orientation['alpha'], self.orientation['beta']
             )
-        self.Bangles = {'phi': phi, 'theta': theta}
+        self.Bangles = xr.Dataset()
+        self.Bangles['phi'] = \
+            xr.DataArray(phi, dims=('t'), coords={'t': self.BField['t'].values})
+        self.Bangles['theta'] = xr.DataArray(theta, dims=('t'))
 
     def _checkStrikeMapDatabase():
         pass
@@ -228,10 +197,10 @@ class FILDVideo(FIV):
         # Check if the user want to use the average
         if 'use_average' in options.keys():
             use_avg = options['use_average']
-            nt = len(self.avg_dat['tframes'])
+            nt = self.avg_dat['t'].size
         else:
             use_avg = False
-            nt = len(self.exp_dat['tframes'])
+            nt = self.exp_dat['t'].size
 
         # Check if the magnetic field and the angles are ready, only if the map
         # is not given
@@ -248,9 +217,7 @@ class FILDVideo(FIV):
                 self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles['phi'].size != nt:
                 self._getBangles()
-        self.remap_dat, opt = \
-            ssmap.remapAllLoadedFrames(self, **options)
-        self.remap_dat['options'] = opt
+        self.remap_dat = ssmap.remapAllLoadedFrames(self, **options)
 
     def calculateBangles(self, t=None, verbose: bool = True):
         """
@@ -288,19 +255,19 @@ class FILDVideo(FIV):
                 if self.BField is None:
                     self._getB()
                 self._getBangles()
-                phi = self.Bangles['phi']
-                theta = self.Bangles['theta']
+                phi = self.Bangles['phi'].values
+                theta = self.Bangles['theta'].values
                 time = 'all'
         else:
-            tmin = self.remap_dat['tframes'][0]
-            tmax = self.remap_dat['tframes'][-1]
+            tmin = self.remap_dat['t'].values[0]
+            tmax = self.remap_dat['t'].values[-1]
             if t < tmin or t > tmax:
                 raise Exception('Time not present in the remap')
             else:
-                it = np.argmin(abs(self.remap_dat['tframes'] - t))
-                theta = self.remap_dat['theta'][it]
-                phi = self.remap_dat['phi'][it]
-                time = self.remap_dat['tframes'][it]
+                it = np.argmin(abs(self.remap_dat['t'].values - t))
+                theta = self.remap_dat['theta'].values[it]
+                phi = self.remap_dat['phi'].values[it]
+                time = self.remap_dat['t'].values[it]
         if verbose:
             # I include these 'np.array' in order to be compatible with the
             # case of just one time point and multiple ones. It is not the most

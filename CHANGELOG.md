@@ -1,4 +1,4 @@
-## 1.0.0: San Jacobo release (beta)
+## 1.0.0: Salmorejo
 **Installation instructions**: Please run the file 'first_run.py' if you just landed in version 1.0.0, as some extra files need to be created
 ### General comment:
 - The disorder 'gyr', 'rl', 'Gyroradius' etc was eliminated. Now it is called 'gyroradius' at every point of the suite (please if you find any not update, tell jrrueda@us.es)
@@ -7,8 +7,8 @@
 - All (almost) plotting function now return the axes where the data was plotted
 - No longer support for AUG-dd libraries (this caused the magnetics and ECE routines to do not work, will be solved in future releases)
 - calling to LibDat to get the IpBt sign as default argument in pitch functions is eliminated (it was creating an infinite import loop) Now all IpBt default to -1, and the user should take care of that sign when calling a pitch function
-- Use of `logging` module to handle warnings and prints implemented. Up to now, just the basic warnings are inside this framework. minor print will become logger info in future versions
-- Now the remapping can be done in any arbitrary variable, such as energy pitch for FILD or Energy-rho for INPA
+- Use of `logging` module to handle warnings and prints implemented. Up to now, just the basic warnings are inside this framework. minor prints will become logger info in future versions
+- Now the remapping can be done in any arbitrary variable, such as energy pitch for FILD or Energy-rho for INPA. Notice that this causes problems with the 'translation remaps'. WIP
 
 ### LibCAD:
 - write_file_for_fortran based on open3D was deprecated, as this package is no easy to install in cluster and non-personal computers
@@ -16,7 +16,7 @@
 - open3D no longer used nor needed
 
 ### LibData:
-- AUG `get_shot_basic` was adapted to new sfaug library
+- AUG `get_shot_basic()` was adapted to new sfaug library
 
 ### GUIS
 - StrikeMap button fixed, but only SINPA format is supported now (if users ask for it, FILDSIM format could be back, but the new smap archives are done with SINPA so...)
@@ -25,6 +25,7 @@
 ### LibMapping:
 - The strike map object there present is just a wrapper for the new strike maps
 - The remap done with a mask was improved to save memory (now just z values are set to zero instead of cutting the 3 arrays)
+- The rprofmin and other variables to calculate profiles during the remap where eliminated, please use the integrate remap function if you want a profile
 
 ### LibOptics:
 - Included methods to simulated finite focus in the cameras
@@ -54,8 +55,9 @@
 
 ### LibTimeTraces
 - **bug**: Corrected the bug where the plotting of a time trace with a baseline correction was overwritting the data in the timetrace_object
+- Rewritten the object to use xarray as core. This open the door to share a basic object between the TT object and the fast channel one, simplifying the future
 
-### LibTraker
+### LibTracker
 - Finally removed, use directly iHIBPsim library
 
 ### LibVideo: Tiff Support
@@ -66,6 +68,7 @@
 - Export remap: temporally not available, until it is adapted to the new remap structure
 - Translate remap: temporally not available, until it is adapted to the new remap structure
 - getTimeTrace now returns also the used mask
+- exp_dat is now xarrays instead of dictionaries
 
 ### Others
 - getGyroradius and getEnergy now uses the proper amu to kg conversion and no longer rely on the proton mass

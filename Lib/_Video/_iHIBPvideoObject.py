@@ -233,8 +233,8 @@ class iHIBPvideo(BVO):
         # Getting the time correction.
         try:
             self.timecal, _, self.cam_prop = ihibp_get_time_basis(shot=shot)
-
-            self.exp_dat['tframes'] = self.timecal
+            # In order to change a time
+            self.exp_dat['t'] = self.timecal
             self.timebase = self.timecal
         except FileNotFoundError:
             pass
@@ -273,14 +273,15 @@ class iHIBPvideo(BVO):
 
         # --- Getting which is the first illuminated frame:
         tt = sstt.TimeTrace(self, self.scint_mask)
-        flags = tt.time_base > self.exp_dat['t2_noise']
-        time = tt.time_base[flags]
-        self.dsignal_dt = tt.mean_of_roi[flags]
+        flags = tt['t'].values > self.exp_dat.attrs['t2_noise']
+        time = tt['t'].values[flags]
+        self.dsignal_dt = tt['mean_of_roi'].values[flags]
 
         t0_idx = np.where(self.dsignal_dt > signal_threshold)[0][0]
         self.t0     = time[t0_idx]
         print('Using t0 = %.3f as the reference frame'%self.t0)
-        self.frame0 = self.exp_dat['frames'][..., self.getFrameIndex(t=self.t0)]
+        self.frame0 = \
+            self.exp_dat['frames'].values[..., self.getFrameIndex(t=self.t0)]
 
     def plot_frame(self, plotScintillatorPlate: bool=True, **kwargs):
         """"
@@ -327,11 +328,11 @@ class iHIBPvideo(BVO):
             timetrace = self.getTimeTrace(t=self.t0)
 
         # We first rescale the monitor to the range [0, 1]
-        monitor = timetrace.mean_of_roi - timetrace.mean_of_roi.min()
+        monitor = timetrace['mean_of_roi'].values - timetrace['mean_of_roi'].values.min()
         monitor /= monitor.max()
 
         # In case the monitor is not evaluated at the same points:
-        monitor = interp1d(timetrace.time_base, monitor, kind='linear',
+        monitor = interp1d(timetrace['t'], monitor, kind='linear',
                            bounds_error=False, fill_value=0.0)(self.timebase)
         monitor = np.maximum(0.0, monitor)
 
@@ -368,9 +369,9 @@ class iHIBPvideo(BVO):
             raise Exception('A particular time-dependence'+\
                             ' of the noise is required')
 
-        self.exp_dat['original_frames'] = self.exp_dat['frames']
+        self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
         # Getting the Gaussian distance between the frame and the noise.
-        self.dframe = np.maximum(0.0,self.exp_dat['frames'] - self.frame_noise)
+        self.dframe = np.maximum(0.0, self.exp_dat['frames'].values - self.frame_noise)
         # self.exp_dat['frames'] =  self.dframe
 
         # Now, we consider that the error in the noise estimation is the max
@@ -392,6 +393,7 @@ class iHIBPvideo(BVO):
     def getTimeTrace(self, t: float = None, mask=None):
         """
         Calculate the timeTrace of the video.
+        
         This overloads the parent function to include the possibility that if
         neither mask nor time are provided, the scintillator mask is used
         instead.

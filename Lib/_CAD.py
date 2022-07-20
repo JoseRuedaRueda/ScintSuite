@@ -11,7 +11,7 @@ logger = logging.getLogger('ScintSuite.CAD')
 try:
     from stl import mesh
 except ImportError:
-    logger.warning('0: stl not found. CAD file support limited')
+    logger.warning('10: stl not found. CAD file support limited')
 
 
 def write_file_for_fortran_numpymesh(stlfile, outputfile,

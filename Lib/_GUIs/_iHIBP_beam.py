@@ -12,12 +12,6 @@ import matplotlib.pyplot as plt
 from Lib.SimulationCodes.iHIBPsim.crossSections import alkMasses
 from Lib.SimulationCodes.iHIBPsim.geom import gaussian_beam
 
-# try:
-#     import map_equ as meq    # Module to map the equilibrium
-# except:
-#     print('When using iHIBPsim, shotfiles will not loaded. ')
-
-
 class appHIBP_beam:
     """
     Class to hold all the data relative to the plot of the iHIBPsim geometry.

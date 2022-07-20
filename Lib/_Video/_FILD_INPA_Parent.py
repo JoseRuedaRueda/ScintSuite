@@ -21,6 +21,7 @@ import Lib.SimulationCodes.SINPA as ssSINPA
 import Lib._Parameters as sspar
 import Lib.errors as errors
 import Lib._StrikeMap as ssmapnew
+import xarray as xr
 from tqdm import tqdm   # For waitbars
 
 
@@ -87,12 +88,18 @@ class FIV(BVO):
                                 self.position[key2],
                                 time=time,
                                 **extra_options)
-        self.BField = {
-            'BR': np.array(br).squeeze(),
-            'Bz': np.array(bz).squeeze(),
-            'Bt': np.array(bt).squeeze(),
-            'B': np.sqrt(np.array(bp)**2 + np.array(bt)**2).squeeze()
-        }
+        self.BField = xr.Dataset()
+        self.BField['BR'] = xr.DataArray(np.array(br).squeeze(), dims=('t'),
+                                         coords={'t': time})
+        
+        self.BField['Bz'] = xr.DataArray(np.array(bz).squeeze(), dims=('t'))
+        self.BField['Bt'] = xr.DataArray(np.array(bt).squeeze(), dims=('t'))
+        self.BField['B'] = xr.DataArray(
+            np.sqrt(np.array(bp)**2 + np.array(bt)**2).squeeze(), dims=('t'))
+        self.BField.attrs['units'] = 'T'
+        self.BField.attrs['R'] = self.position[key1]
+        self.BField.attrs['z'] = self.position[key2]
+        self.BField.attrs.update(extra_options)
 
     def plot_frame(self, frame_number=None, ax=None, ccmap=None,
                    strike_map: str = 'off', t: float = None,
@@ -260,11 +267,11 @@ class FIV(BVO):
             if len(self.remap_dat['nframes']) == 1:
                 if self.remap_dat['nframes'] == frame_number:
                     if translation is None:
-                        dummy = self.remap_dat['frames'].squeeze()
+                        dummy = self.remap_dat['frames'].values.squeeze()
                     else:
                         dummy = self.remap_dat['translations'][translation[0]]\
                             [translation[1]]['frames'].squeeze()
-                    tf = float(self.remap_dat['tframes'])
+                    tf = float(self.remap_dat['t'].values)
                     frame_index = 0
                 else:
                     raise Exception('Frame not loaded')
@@ -274,18 +281,18 @@ class FIV(BVO):
                     raise Exception('Frame not loaded')
                 if translation is None:
                     dummy = \
-                        self.remap_dat['frames'][:, :, frame_index].squeeze()
+                        self.remap_dat['frames'].values[:, :, frame_index].squeeze()
                 else:
                     dummy = self.remap_dat['translations'][translation[0]]\
                         [translation[1]]['frames'][:, :, frame_index].squeeze()
-                tf = float(self.remap_dat['tframes'][frame_index])
+                tf = float(self.remap_dat['t'].values[frame_index])
         # If we give the time:
         if t is not None:
-            frame_index = np.argmin(np.abs(self.remap_dat['tframes'] - t))
-            tf = self.remap_dat['tframes'][frame_index]
+            frame_index = np.argmin(np.abs(self.remap_dat['t'].values - t))
+            tf = self.remap_dat['t'].values[frame_index]
             if translation is None:
                 dummy = \
-                    self.remap_dat['frames'][:, :, frame_index].squeeze()
+                    self.remap_dat['frames'].values[:, :, frame_index].squeeze()
             else:
                 dummy = self.remap_dat['translations'][translation[0]]\
                     [translation[1]]['frames'][:, :, frame_index].squeeze()
@@ -306,8 +313,8 @@ class FIV(BVO):
         if vmax is None:
             vmax = dummy.max()
         if translation is None:
-            ext = [self.remap_dat['xaxis'][0], self.remap_dat['xaxis'][-1],
-                   self.remap_dat['yaxis'][0], self.remap_dat['yaxis'][-1]]
+            ext = [self.remap_dat['x'].values[0], self.remap_dat['x'].values[-1],
+                   self.remap_dat['y'].values[0], self.remap_dat['y'].values[-1]]
         else:
             ext = [self.remap_dat['translations'][translation[0]][translation[1]]['xaxis'][0],
                    self.remap_dat['translations'][translation[0]][translation[1]]['xaxis'][-1],
@@ -379,20 +386,17 @@ class FIV(BVO):
         line_options.update(line_params)
         # --- Get the data to plot if remap dat is present
         if self.remap_dat is not None:
-            time = self.remap_dat['tframes']
-            phi = self.remap_dat['phi']
-            phi_used = self.remap_dat['phi_used']
-            theta = self.remap_dat['theta']
-            theta_used = self.remap_dat['theta_used']
+            time = self.remap_dat['t'].values
+            phi = self.remap_dat['phi'].values
+            phi_used = self.remap_dat['phi_used'].values
+            theta = self.remap_dat['theta'].values
+            theta_used = self.remap_dat['theta_used'].values
         else:
-            phi = self.Bangles['phi']
+            phi = self.Bangles['phi'].values
             phi_used = None
-            theta = self.Bangles['theta']
+            theta = self.Bangles['theta'].values
             theta_used = None
-            if phi.size == len(self.exp_dat['tframes']):
-                time = self.exp_dat['tframes']
-            else:
-                time = self.avg_dat['tframes']
+            time = self.Bangles['t'].values
         # proceed to plot
         if ax is None:
             fig, ax = plt.subplots(2, sharex=True)
@@ -403,11 +407,11 @@ class FIV(BVO):
         # how-do-i-use-axvfill-with-a-boolean-series
         if theta_used is not None:
             ax[0].fill_between(time, 0, 1,
-                               where=self.remap_dat['existing_smaps'],
+                               where=self.remap_dat['existing_smaps'].values,
                                alpha=0.25, color='g',
                                transform=ax[0].get_xaxis_transform())
             ax[0].fill_between(time, 0, 1,
-                               where=~self.remap_dat['existing_smaps'],
+                               where=~self.remap_dat['existing_smaps'].values,
                                alpha=0.25, color='r',
                                transform=ax[0].get_xaxis_transform())
             ax[0].plot(time, theta_used,
@@ -421,11 +425,11 @@ class FIV(BVO):
         # Plot the phi angle
         if phi_used is not None:
             ax[1].fill_between(time, 0, 1,
-                               where=self.remap_dat['existing_smaps'],
+                               where=self.remap_dat['existing_smaps'].values,
                                alpha=0.25, color='g',
                                transform=ax[1].get_xaxis_transform())
             ax[1].fill_between(time, 0, 1,
-                               where=~self.remap_dat['existing_smaps'],
+                               where=~self.remap_dat['existing_smaps'].values,
                                alpha=0.25, color='r',
                                transform=ax[1].get_xaxis_transform())
             ax[1].plot(time, phi_used,

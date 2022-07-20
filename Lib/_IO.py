@@ -41,7 +41,7 @@ def check_save_file(file):
     if not os.path.isfile(file):
         out = file
     else:
-        logger.warning('3: The file exist!!! you can choose the new name')
+        logger.warning('13: The file exist!!! you can choose the new name')
         dir, name = os.path.split(file)
         dummy, ext = os.path.splitext(name)
         out = ask_to_save(dir, ext)

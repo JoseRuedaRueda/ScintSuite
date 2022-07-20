@@ -37,7 +37,7 @@ class ApplicationShowVid:
         self.data = data
         self.remap_dat = remap_dat
         self.GeomID = GeomID
-        t = data['tframes']
+        t = data['t'].values
         # --- Create a tk container
         frame = tk.Frame(master)
         # Allows to the figure, to resize
@@ -60,11 +60,11 @@ class ApplicationShowVid:
         # --- Open the figure and show the image
         fig = Figure()
         ax = fig.add_subplot(111)
-        self.image = ax.imshow(data['frames'][:, :, 0].squeeze(),
+        self.image = ax.imshow(data['frames'].values[:, :, 0].squeeze(),
                                origin='lower', cmap=self.cmaps[defalut_cmap],
                                aspect='equal')
         self.time = \
-            ax.text(0.8, 0.9, str(round(data['tframes'][0], 3)) + ' s',
+            ax.text(0.8, 0.9, str(round(data['t'].values[0], 3)) + ' s',
                     transform=ax.transAxes, color='w')
         # Place the figure in a canvas
         self.canvas = tkagg.FigureCanvasTkAgg(fig, master=master)
@@ -138,9 +138,9 @@ class ApplicationShowVid:
     def plot_frame(self, t):
         """Update the plot"""
         t0 = float(t)
-        it = np.argmin(abs(self.data['tframes'] - t0))
-        dummy = self.data['frames'][:, :, it].squeeze().copy()
-        self.time.set_text(str(round(self.data['tframes'][it], 3)) + ' s')
+        it = np.argmin(abs(self.data['t'].values - t0))
+        dummy = self.data['frames'].values[:, :, it].squeeze().copy()
+        self.time.set_text(str(round(self.data['t'].values[it], 3)) + ' s')
         self.image.set_data(dummy)
         # If needed, plot the smap
         if self.checkVar1.get():
