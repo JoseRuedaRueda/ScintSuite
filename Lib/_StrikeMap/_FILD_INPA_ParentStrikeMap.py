@@ -713,14 +713,14 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 strikes.header['info'].update(extra_column)
 
     @deprecated('Some input will change name in the final version')
-    def plot_phse_space_resolution_fits(self, var: str = 'Gyroradius',
-                                        ax_params: dict = {},
-                                        ax=None, gyr_index=None, pitch_index=None,
-                                        gyroradius=None, pitch=None,
-                                        kind_of_plot: str = 'normal',
-                                        include_legend: bool = False,
-                                        XI_index=None,
-                                        normalize: bool = False):
+    def plot_phase_space_resolution_fits(self, var: str = 'Gyroradius',
+                                         ax_params: dict = {},
+                                         ax=None, gyr_index=None, pitch_index=None,
+                                         gyroradius=None, pitch=None,
+                                         kind_of_plot: str = 'normal',
+                                         include_legend: bool = False,
+                                         XI_index=None,
+                                         normalize: bool = False):
         """
         Plot the fits done to calculate the resolution
 
@@ -777,8 +777,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
             index_gyr = np.zeros(gyroradius.size, dtype=int)
             for i in range(index_gyr.size):
                 index_gyr[i] = \
-                    np.argmin(np.abs(self.unique_gyroradius - gyroradius[i]))
-            print('Found gyroradius: ', self.unique_gyroradius[index_gyr])
+                    np.argmin(np.abs(self.MC_variables[1].data - gyroradius[i]))
+            print('Found gyroradius: ', self.MC_variables[1].data)
         else:
             # test if it is a number or an array of them
             if gyr_index is not None:
@@ -787,7 +787,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 else:
                     index_gyr = np.array([gyr_index])
             else:
-                index_gyr = np.arange(self.ngyr, dtype=np.int)
+                index_gyr = np.arange(self.MC_variables[1].data.size, dtype=np.int)
 
         if pitch is not None:
             # test if it is a number or an array of them
@@ -798,8 +798,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
             index_pitch = np.zeros(pitch.size, dtype=int)
             for i in range(index_pitch.size):
                 index_pitch[i] = \
-                    np.argmin(np.abs(self.unique_pitch - pitch[i]))
-            print('Found pitches: ', self.unique_pitch[index_pitch])
+                    np.argmin(np.abs(self.MC_variables[1].data - pitch[i]))
+            print('Found pitches: ', self.MC_variables[1].data[index_pitch])
         else:
             # test if it is a number or an array of them
             if pitch_index is not None:
@@ -808,7 +808,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 else:
                     index_pitch = np.array([pitch_index])
             else:
-                index_pitch = np.arange(self.npitch, dtype=np.int)
+                index_pitch = np.arange(self.MC_variables[1].data.size, dtype=np.int)
         # --- Get the maximum value for the normalization
 
         # --- Plot the desired data
@@ -866,10 +866,11 @@ class FILDINPA_Smap(GeneralStrikeMap):
                         raise errors.NotValidInput(
                             'Not kind of plot not understood')
                 else:
-                    print('Not fits for rl: '
-                          + str(round(self.unique_gyroradius[ir], 1))
-                          + 'pitch: '
-                          + str(round(self.unique_pitch[ip], 1)))
+                    pass
+                    # print('Not fits for rl: '
+                    #       + str(round(self.unique_gyroradius[ir], 1))
+                    #       + 'pitch: '
+                    #       + str(round(self.unique_pitch[ip], 1)))
         if include_legend:
             ax.legend()
         if created:
@@ -905,15 +906,14 @@ class FILDINPA_Smap(GeneralStrikeMap):
         fig, ax = plt.subplots(1, 1, figsize=(6, 10),
                                facecolor='w', edgecolor='k')
 
-        if self.diag == 'FILD':
-            # Plot the gyroradius resolution
-            a1 = ax.contourf(self.MC_variables[0].data,
-                             self.MC_variables[1].data,
-                             self._data['collimator_factor_matrix'],
-                             levels=nlev, cmap=cmap)
-            fig.colorbar(a1, ax=ax, label='Collimating factor')
-            ax = ssplt.axis_beauty(ax, ax_options)
+        # Plot the gyroradius resolution
+        a1 = ax.contourf(self.MC_variables[0].data,
+                         self.MC_variables[1].data,
+                         self._data['collimator_factor_matrix'],
+                         levels=nlev, cmap=cmap)
+        fig.colorbar(a1, ax=ax, label='Collimating factor')
+        ax = ssplt.axis_beauty(ax, ax_options)
 
-            plt.tight_layout()
+        plt.tight_layout()
         return
 
