@@ -13,6 +13,7 @@ import Lib.errors as errors
 import Lib._Plotting as ssplt
 from tqdm import tqdm
 from Lib._StrikeMap._ParentStrikeMap import GeneralStrikeMap
+from Lib.decorators import deprecated
 from Lib.SimulationCodes.Common.strikes import Strikes
 from Lib.SimulationCodes.SINPA._execution import guess_strike_map_name
 from Lib.SimulationCodes.FILDSIM.execution import get_energy
@@ -710,3 +711,209 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 extra_column[name]['i'] = Old_number_colums
                 # Update the header
                 strikes.header['info'].update(extra_column)
+
+    @deprecated('Some input will change name in the final version')
+    def plot_phse_space_resolution_fits(self, var: str = 'Gyroradius',
+                                        ax_params: dict = {},
+                                        ax=None, gyr_index=None, pitch_index=None,
+                                        gyroradius=None, pitch=None,
+                                        kind_of_plot: str = 'normal',
+                                        include_legend: bool = False,
+                                        XI_index=None,
+                                        normalize: bool = False):
+        """
+        Plot the fits done to calculate the resolution
+
+        @param var: variable to plot, Gyroradius or Pitch for FILD. Capital
+        letters will be ignored
+        @param ax_param: dictoniary with the axis parameters axis_beauty()
+        @param ax: axis where to plot
+        @param gyr_index: index, or arrays of indeces, of gyroradius to plot
+        @param pitch_index: index, or arrays of indeces, of pitches to plot,
+            this is outdated code, please use XI_index instead
+        @param gyroradius: gyroradius value of array of then to plot. If
+        present, gyr_index will be ignored
+        @param pitch: idem to gyroradius bu for the pitch
+        @param kind_of_plot: kind of plot to make:
+            - normal: scatter plot of the data and fit like a line
+            - bar: bar plot of the data and file like a line
+            - uncertainty: scatter plot of the data and shading area for the
+                fit (3 sigmas)
+            - just_fit: Just a line plot as the fit
+        @param include_legend: flag to include a legend
+        @param XI_index: equivalent to pitch_index, but with the new criteria
+        @param normalize: normalize the output
+        """
+        # --- Initialise plotting options and axis:
+        default_labels = {
+            'gyroradius': {
+                'xlabel': 'Gyroradius [cm]',
+                'ylabel': 'Counts [a.u.]'
+            },
+            'pitch': {
+                'xlabel': 'Pitch [$\\degree$]',
+                'ylabel': 'Counts [a.u.]'
+            }
+        }
+        ax_options = {
+            'grid': 'both',
+        }
+        ax_options.update(default_labels[var.lower()])
+        ax_options.update(ax_params)
+        if ax is None:
+            fig, ax = plt.subplots()
+            created = True
+        else:
+            created = False
+        if (pitch_index is None) and (XI_index is not None):
+            pitch_index = XI_index
+        # --- Localise the values to plot
+        if gyroradius is not None:
+            # test if it is a number or an array of them
+            if isinstance(gyroradius, (list, np.ndarray)):
+                gyroradius = gyroradius
+            else:
+                gyroradius = np.array([gyroradius])
+            index_gyr = np.zeros(gyroradius.size, dtype=int)
+            for i in range(index_gyr.size):
+                index_gyr[i] = \
+                    np.argmin(np.abs(self.unique_gyroradius - gyroradius[i]))
+            print('Found gyroradius: ', self.unique_gyroradius[index_gyr])
+        else:
+            # test if it is a number or an array of them
+            if gyr_index is not None:
+                if isinstance(gyr_index, (list, np.ndarray)):
+                    index_gyr = gyr_index
+                else:
+                    index_gyr = np.array([gyr_index])
+            else:
+                index_gyr = np.arange(self.ngyr, dtype=np.int)
+
+        if pitch is not None:
+            # test if it is a number or an array of them
+            if isinstance(pitch, (list, np.ndarray)):
+                pitch = pitch
+            else:
+                pitch = np.array([pitch])
+            index_pitch = np.zeros(pitch.size, dtype=int)
+            for i in range(index_pitch.size):
+                index_pitch[i] = \
+                    np.argmin(np.abs(self.unique_pitch - pitch[i]))
+            print('Found pitches: ', self.unique_pitch[index_pitch])
+        else:
+            # test if it is a number or an array of them
+            if pitch_index is not None:
+                if isinstance(pitch_index, (list, np.ndarray)):
+                    index_pitch = pitch_index
+                else:
+                    index_pitch = np.array([pitch_index])
+            else:
+                index_pitch = np.arange(self.npitch, dtype=np.int)
+        # --- Get the maximum value for the normalization
+
+        # --- Plot the desired data
+        # This is just to allow the user to ask the variable with capitals
+        # letters or not
+
+        for ir in index_gyr:
+            for ip in index_pitch:
+                # The lmfit model has included a plot function, but is slightly
+                # not optimal so we will plot it 'manually'
+                if self._resolutions['fits_' + var.lower()][ir, ip] is not None:
+                    x = self._resolutions['fits_' + var.lower()][ir, ip].userkws['x']
+                    deltax = x.max() - x.min()
+                    x_fine = np.linspace(x.min() - 0.1 * deltax,
+                                         x.max() + 0.1 * deltax)
+                    name = 'rl: ' + str(round(self.unique_gyroradius[ir], 1))\
+                        + ' $\\lambda$: ' + \
+                        str(round(self.unique_pitch[ip], 1))
+                    normalization = \
+                        self._resolutions['fits']['norm_' + var.lower()][ir, ip]
+                    y = self._resolutions['fits_' + var.lower()][ir, ip].eval(
+                        x=x_fine) * normalization
+                    if kind_of_plot.lower() == 'normal':
+                        # plot the data as scatter plot
+                        scatter = ax.scatter(
+                            x,
+                            normalization * self._resolutions['fits_' + var.lower()][ir, ip].data,
+                            label='__noname__')
+                        # plot the fit as a line
+                        ax.plot(x_fine, y,
+                                color=scatter.get_facecolor()[0, :3],
+                                label=name)
+                    elif kind_of_plot.lower() == 'bar':
+                        bar = ax.bar(
+                            x,
+                            normalization * self._resolutions['fits_' + var.lower()][ir, ip].data,
+                            label='__noname__', width=x[1]-x[0],
+                            alpha=0.25)
+                        ax.plot(x_fine, y,
+                                color=bar.patches[0].get_facecolor()[:3],
+                                label=name)
+                    elif kind_of_plot.lower() == 'just_fit':
+                        ax.plot(x_fine, y, label=name)
+                    elif kind_of_plot.lower() == 'uncertainty':
+                        scatter = ax.scatter(
+                            x,
+                            normalization * self._resolutions['fits_' + var.lower()][ir, ip].data,
+                            label='__noname__')
+                        dely = normalization \
+                            * self._resolutions['fits_' + var.lower()][ir, ip].eval_uncertainty(sigma=3, x=x_fine)
+                        ax.fill_between(x_fine, y-dely, y+dely, alpha=0.25,
+                                        label='3-$\\sigma$ uncertainty band',
+                                        color=scatter.get_facecolor()[0, :3])
+                    else:
+                        raise errors.NotValidInput(
+                            'Not kind of plot not understood')
+                else:
+                    print('Not fits for rl: '
+                          + str(round(self.unique_gyroradius[ir], 1))
+                          + 'pitch: '
+                          + str(round(self.unique_pitch[ip], 1)))
+        if include_legend:
+            ax.legend()
+        if created:
+            ax = ssplt.axis_beauty(ax, ax_options)
+
+    def plot_collimator_factor(self, ax_param: dict = {}, cMap=None,
+                               nlev: int = 20):
+        """
+        Plot the collimator factor.
+
+        Jose Rueda: jrrueda@us.es
+
+        @todo: Implement label size in colorbar
+
+        @param ax_param: parameters for the axis beauty function. Note, labels
+        of the color axis are hard-cored, if you want custom axis labels you
+        would need to draw the plot on your own
+        @param cMap: is None, Gamma_II will be used
+        @param nlev: number of levels for the contour
+        """
+        # --- Initialise the settings:
+        if cMap is None:
+            cmap = ssplt.Gamma_II()
+        else:
+            cmap = cMap
+        ax_options = {
+            'xlabel': '$\\lambda [\\degree]$',
+            'ylabel': '$r_l [cm]$'
+        }
+        ax_options.update(ax_param)
+
+        # --- Open the figure and prepare the map:
+        fig, ax = plt.subplots(1, 1, figsize=(6, 10),
+                               facecolor='w', edgecolor='k')
+
+        if self.diag == 'FILD':
+            # Plot the gyroradius resolution
+            a1 = ax.contourf(self.MC_variables[0].data,
+                             self.MC_variables[1].data,
+                             self._data['collimator_factor_matrix'],
+                             levels=nlev, cmap=cmap)
+            fig.colorbar(a1, ax=ax, label='Collimating factor')
+            ax = ssplt.axis_beauty(ax, ax_options)
+
+            plt.tight_layout()
+        return
+
