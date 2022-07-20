@@ -112,7 +112,7 @@ def load_FILD4_trajectory(shot, path=paths.FILD4_trajectories):
             'insertion': data[:, 1],
         }
         if data[:, 1].max() > ins_lim[1]:
-            logger.warning('6: FILD4 insertion larger than the maximum!!!')
+            logger.warning('16: FILD4 insertion larger than the maximum!!!')
         position = {
             't': data[:, 0],
             'R': R4_lim[0] + (data[:, 1]-ins_lim[0])/(ins_lim[0]-ins_lim[1])

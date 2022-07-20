@@ -1236,7 +1236,7 @@ class geom:
                                         surface_params=kwargs,
                                         plot_pinhole=False)
         else:
-            logger.warning('a1: Head is not plot in non-3D plots.')
+            logger.warning('21: Head is not plot in non-3D plots.')
 
         return ax
 

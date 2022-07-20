@@ -12,7 +12,7 @@ try:
     from cycler import cycler
 except ImportError:
     text = "Not cycler module, default color of lines can't be changed"
-    logger.warning('0: %s' % text)
+    logger.warning('10: %s' % text)
 paths = Path()
 
 __all__ = ['plotSettings', 'axis_beauty']
@@ -41,7 +41,7 @@ def plotSettings(plot_mode='software', usetex=False):
         for font_file in font_files:
             mpl.font_manager.fontManager.addfont(font_file)
     except:
-        logger.warning('5: No fonts founds. Using matplotlib default')
+        logger.warning('15: No fonts founds. Using matplotlib default')
 
     # Set some matplotlib parameters
     mpl.rcParams["savefig.transparent"] = \

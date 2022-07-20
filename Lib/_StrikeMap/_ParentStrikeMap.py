@@ -192,7 +192,7 @@ class GeneralStrikeMap(XYtoPixel):
                     interpolator(grid, self._data[coso].data,
                                  fill_value=1000.0)
             except KeyError:  # the ihibp does not have coll factor
-                logger.warning('6: %s not found!!! skiping' % coso)
+                logger.warning('16: %s not found!!! skiping' % coso)
         # --- Calculate the transformation matrix
         if MC_number > 0:
             self._calculate_transformation_matrix(

@@ -24,10 +24,28 @@ In order to clone the suite just open a terminal in your home directory and type
 ```bash
  git clone https://gitlab.mpcdf.mpg.de/ruejo/scintsuite.git ScintSuite
 ```
-To install all non-standard (not machine dependent) packages, you can give a try the script: `first_run.py`. It will work in personal computers and *standard installations* although things can go wrong if your system has some particular rights limitations etc. In that case, I fear to say that you are alone.
+To install all non-standard (not machine dependent) packages, you can give a try the script: `first_run.py`. It will work in personal computers and *standard installations* although things can go wrong if your system has some particular rights limitations and you are not allowed to change them using =pip install=. In these cases, you should use a virtual environment:
 
-### Importing the suite
-In order to import the ScintSuite as `import Lib as MyAwesomeName`, you need to set in your environment the different paths to the external modules. For example, in the case of AUG, the path towards the AUG-python library. To do this, you just need to run the file path suite. For example, just type in a python terminal `run paths_suite` (being on the main Suite directory). After running it, you should be able to import the suite from everywhere in your computer. However, if your working directory is the root directory of the Suite, there is no need of running this line, you can just execute directly `import Lib as MyAwesomeName` and enjoy (as the function path_suite is called in the Sutie `__init__.py`)
+1. Install virtualenv: `pip install virtualenv`
+2. Create your virtual environment (let us call it SSvirtualenv): `virtualenv -p python3 --system-site-packages SSvirtualenv`
+3. Activate your virtual environment (remember to do this everytime you are using ScintSuite or add it to your login script): `source SSvirtualenv/bin/activate`
+4. Force install the compatible versions using `pip install modulename==X.X.X`. A list of compatible versions is listed here (checked in MAST-U and JET):
+```python
+scipy==1.7.0
+scikit-image==0.16.2
+pyfftw==0.12.0
+pandas==1.3.1
+```
+### Getting started
+**Importing the suite**
+
+*Short story*: Go to the main directory of the suite in your python terminal and run: `import Lib as ss` (or change ss by the name you want)
+
+*Long story*: In order to import the ScintSuite as `import Lib as MyAwesomeName`, you need to set in your environment the different paths to the external modules. For example, in the case of AUG, the path towards the AUG-python library. To do this, you just need to run the file path suite. For example, just type in a python terminal `run paths_suite` (being on the main Suite directory). After running it, you should be able to import the suite from everywhere in your computer. However, if your working directory is the root directory of the Suite, there is no need of running this line, you can just execute directly `import Lib as MyAwesomeName` and enjoy (as the function path_suite is called in the Sutie `__init__.py`)
+
+**Using it**
+
+Please see the examples in the Examples folder of the Suite, it contains the basic lines to execute the suite for each of they main capabilities. Please note than the examples does not contain all possibles ways of doing things iside the code, you will need to dig arround a bit if you need something too specific.
 
 ### Paths
 There are three files containing the paths and routes for the suite:

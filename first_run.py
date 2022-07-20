@@ -18,7 +18,8 @@ def import_or_install(package, name=None):
             __import__(name)
     except ImportError or ModuleNotFoundError:
         print(package, 'not found')
-        i = input('1 to install, otherwhise skip')
+        # i = input('1 to install, otherwhise skip')
+        i = 1
         if int(i) == 1:
             pip.main(['install', package])
 
@@ -50,3 +51,8 @@ import_or_install('netCDF4')
 import_or_install('shapely')
 import_or_install('stl')
 import_or_install('pco-tools')
+import_or_install('xarray')
+import_or_install('tqdm')
+import_or_install('matplotlib')
+import_or_install('scikit-image', 'skimage')
+import_or_install('scikit-learn', 'sklearn')

@@ -8,13 +8,13 @@ def paths_of_the_suite():
     """
     Add to the path all the necessary folders for the suite to run.
 
-    Jose Rueda Rueda: jose.rueda@ipp.mpg.de
+    Jose Rueda Rueda: jrrueda@us.es
 
     @param machine: Machine where we are working
     """
     if os.path.isdir('/common/uda-scratch'):
         machine = 'MU'
-    elif os.path.isdir('/afs/ipp-garching.mpg.de'):
+    elif os.path.isdir('/afs/ipp/aug/ads-diags/common/python/lib'):
         machine = 'AUG'
     else:
         machine = 'Generic'
@@ -53,8 +53,7 @@ def paths_of_the_suite():
                              Machine_libs[machine][lib])])
 
     # Check the cluster where we are working
-    if os.path.isdir('/afs/ipp/aug/ads-diags/common/python/lib'):
-        machine = 'AUG'
+    if machine == 'AUG':
         cluster = os.getenv('HOST')
         if cluster[:4] != 'toki':
             print('We are not in toki')

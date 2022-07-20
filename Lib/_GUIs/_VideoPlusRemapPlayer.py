@@ -49,7 +49,7 @@ class ApplicationShowVidRemap:
         self.remap_dat = remap_dat
         self.GeomID = GeomID
         self.calibration = calibration
-        t = data['tframes']
+        t = data['t'].values
         # --- Create a tk container
         frame = tk.Frame(master)
         # Allows to the figures, to resize
@@ -71,7 +71,7 @@ class ApplicationShowVidRemap:
         # --- Open the figure and show the camera frame
         fig = Figure()
         ax = fig.add_subplot(111)
-        self.image = ax.imshow(data['frames'][:, :, 0].squeeze(),
+        self.image = ax.imshow(data['frames'].values[:, :, 0].squeeze(),
                                origin='lower', cmap=self.cmaps[defalut_cmap],
                                aspect='equal', interpolation=None)
         # Place the figure in a canvas
@@ -246,8 +246,8 @@ class ApplicationShowVidRemap:
     def plot_frame(self, t):
         """Plot the new frame"""
         t0 = np.float64(t)
-        it = np.argmin(abs(self.data['tframes'] - t0))
-        dummy = self.data['frames'][:, :, it].squeeze().copy()
+        it = np.argmin(abs(self.data['t'].values - t0))
+        dummy = self.data['frames'].values[:, :, it].squeeze().copy()
         self.image.set_data(dummy)
         # If needed, plot the smap
         if self.checkVar1.get():
