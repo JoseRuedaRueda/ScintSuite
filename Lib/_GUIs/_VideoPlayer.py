@@ -9,7 +9,6 @@ import Lib.SimulationCodes.SINPA as sssinpa
 import Lib._Mapping as ssmap
 from matplotlib.figure import Figure
 from tkinter import ttk
-from Lib._Machine import machine
 
 
 class ApplicationShowVid:

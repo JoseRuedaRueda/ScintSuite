@@ -14,7 +14,7 @@ import Lib._IO as ssio
 import Lib._SideFunctions as sside
 import Lib.errors as errors
 import logging
-import xrarray as xr
+import xarray as xr
 logger = logging.getLogger('ScintSuite.FILDMapping')
 
 from tqdm import tqdm   # For waitbars
