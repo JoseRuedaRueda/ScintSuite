@@ -67,6 +67,12 @@ VRT related paths are hardcoded. There is a significant number of them and overl
 - The routines in the Example folder are intended to illustrate the use of the different tools in the suite. Please, if you want to play with them, make your own copy on 'MyRoutines', modifying the examples can cause merge conflicts in the future
 - If you have installed Doxygen you can generate the documentation in html and LaTex format just opening a terminal in the Suite root directory and typing  `doxygen Doxyfile`. Once the documentation is generated, you can open the index with the following command `xdg-open doc/index.html`. For a (old and outdated) Doxygen generated documentation, see: <https://hdvirtual.us.es/discovirt/index.php/s/FBjZ9FPfjjwMDS2> download the content and open the index.html file, inside the html folder.
 
+## Data export
+All data exported and saved by the Suite is done in netCDF, as default format. Platform independendent and binary format. 
+
+If the user is *alergic* to the use of programing languages in order to read the netCDF, this NASA program could be usefull: https://www.giss.nasa.gov/tools/panoply/download/ It allows you to open and plot the variables in the netCDF file
+
+
 ## Active Development
 ### Version control
 Each release will be denoted by 3 numbers: a.b.c meaning:
