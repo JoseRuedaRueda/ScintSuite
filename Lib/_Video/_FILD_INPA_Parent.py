@@ -50,8 +50,6 @@ class FIV(BVO):
         - plotBangles: Plot the angles of the B field respect to the head
         - integrate_remap: Perform the integration over a region of the
             phase space
-    
-    @TODO: Define diag and diag_ID in the init
     """
     def __init__(self, **kargs):
         """Init the class"""

@@ -4,22 +4,25 @@ Input/output library
 Contains a miscellany of routines related with the different diagnostics, for
 example the routine to read the scintillator efficiency files, common for all
 """
-
-import numpy as np
 import time
-import Lib._TimeTrace as sstt
-import Lib._Parameters as sspar
-from Lib._Mapping._Calibration import CalParams
-from scipy.io import netcdf
-from Lib.version_suite import version
-from Lib._Paths import Path
-from Lib._Video._FILDVideoObject import FILDVideo
 import os
-import warnings
-import tkinter as tk                       # To open UI windows
 import pickle
 import f90nml
 import logging
+import tarfile
+import numpy as np
+import xarray as xr
+import tkinter as tk                       # To open UI windows
+import Lib._TimeTrace as sstt
+import Lib._Parameters as sspar
+from scipy.io import netcdf
+from Lib._Mapping._Calibration import CalParams
+from Lib.version_suite import version
+from Lib._Paths import Path
+from Lib._Video._FILDVideoObject import FILDVideo
+
+
+# Initialise the objects
 logger = logging.getLogger('ScintSuite.IO')
 paths = Path()
 
@@ -521,6 +524,28 @@ def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
 # -----------------------------------------------------------------------------
 # --- Remaped videos
 # -----------------------------------------------------------------------------
+def load_remap(filename):
+    """
+    Load a tar remap file into a video object
+    """
+    if filename is None:
+        filename = ' '
+        filename = check_open_file(filename)
+    if filename == '' or filename == ():
+        raise Exception('You must select a file!!!')
+    # decompress the file
+    dummyFolder = os.path.join(pa.Results, 'tmp_%i' % np.random.randit(300))
+    os.mkdir(dummyFolder)
+    # extract the file
+    tar = tarfile.open(filename)
+    tar.extractall(path=dummyFolder)
+    tar.close()
+
+    vid = FILDVideo(empty=True)  # Open the empty Object
+    vid.remap_dat = xr.open_dataset(os.path.join(dummyFolder + 'remap.nc'))
+    vid.Bangles = xr.open_dataset(os.path.join(dummyFolder + 'BField.nc'))
+    vid.BField = xr.open_dataset(os.path.join(dummyFolder + 'Bangles.nc'))
+
 def load_FILD_remap(filename: str = None, verbose=True,
                     encoding: str = 'utf-8'):
     """
