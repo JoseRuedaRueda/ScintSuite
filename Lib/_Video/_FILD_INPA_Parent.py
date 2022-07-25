@@ -71,9 +71,9 @@ class FIV(BVO):
             raise Exception('Detector position not know')
         # Get the proper timebase
         if use_average:
-            time = self.avg_dat['tframes']
+            time = self.avg_dat['t'].values
         else:
-            time = self.exp_dat['tframes']
+            time = self.exp_dat['t'].values
         # Calculate the magnetic field
         print('Calculating magnetic field (this might take a while): ')
         if 'R_scintillator' in self.position.keys():  # INPA case
@@ -91,7 +91,7 @@ class FIV(BVO):
         self.BField = xr.Dataset()
         self.BField['BR'] = xr.DataArray(np.array(br).squeeze(), dims=('t'),
                                          coords={'t': time})
-        
+
         self.BField['Bz'] = xr.DataArray(np.array(bz).squeeze(), dims=('t'))
         self.BField['Bt'] = xr.DataArray(np.array(bt).squeeze(), dims=('t'))
         self.BField['B'] = xr.DataArray(
@@ -159,7 +159,7 @@ class FIV(BVO):
         )
         # Get the frame number
         if t is not None:
-            frame_index = np.argmin(abs(self.exp_dat['tframes'] - t))
+            frame_index = np.argmin(abs(self.exp_dat['t'].values - t))
         else:
             frame_index = self.exp_dat['nframes'] == frame_number
         # --- Plot the strike map
