@@ -279,7 +279,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
                                     cmap=None,
                                     nlev: int = 50,
                                     index_x: list = None,
-                                    index_y: list = None):
+                                    index_y: list = None,
+                                    ax_lim: dict = {},
+                                    cmap_lim: dict = {}):
         """
         Plot the phase space resolutions.
 
@@ -292,6 +294,10 @@ class FILDINPA_Smap(GeneralStrikeMap):
         @param nlev: number of levels for the contour
         @param index_gyr: if present, reslution would be plotted along
         gyroradius given by gyroradius[index_gyr]
+        @param ax_lim: Manually set the x and y axes, currently only works for making it bigger, not smaller
+                       Should be given as ax_lim = {'xlim' : [x1,x2], 'ylim' : [y1,y2]}
+        @param cmap_lim: Manually set the upper limit for the color map
+                         Should be given as cmap_lim = {'gyroradius' : ___, 'pitch' : ___}
         """
         # Initialise the plotting settings
         ax_options = {
@@ -304,15 +310,50 @@ class FILDINPA_Smap(GeneralStrikeMap):
         # --- Plot the resolution
         if (index_x is None) and (index_y is None):
             fig, ax = plt.subplots(1, 2, sharex=True)
-            xAxisPlot = self.MC_variables[0].data
-            yAxisPlot = self.MC_variables[1].data
+
             for var, subplot in zip(self._resolutions['variables'], ax):
                 key = var.name
+                xAxisPlot = self.MC_variables[0].data
+                yAxisPlot = self.MC_variables[1].data
+                res_matrix = self._resolutions[key]['sigma'].T
+                if ax_lim:
+                    if ax_lim["xlim"][0] < np.min(self.MC_variables[0].data):
+                        n,m = res_matrix.shape
+                        res_matrix_new = np.full((n,m+1))
+                        res_matrix_new[:,1:] = res_matrix
+                        res_matrix = res_matrix_new
+                        xAxisPlot = np.insert(xAxisPlot,0,ax_lim["xlim"][0])
+                    if ax_lim["xlim"][1] > np.max(self.MC_variables[0].data):
+                        n,m = res_matrix.shape
+                        res_matrix_new = np.full((n,m+1),np.nan)
+                        res_matrix_new[:,:-1] = res_matrix
+                        res_matrix = res_matrix_new
+                        xAxisPlot = np.append(xAxisPlot,ax_lim["xlim"][1])
+                    if ax_lim["ylim"][0] < np.min(self.MC_variables[1].data):
+                        n,m = res_matrix.shape
+                        res_matrix_new = np.full((n+1,m),np.nan)
+                        res_matrix_new[1:,:] = res_matrix
+                        res_matrix = res_matrix_new
+                        yAxisPlot = np.insert(yAxisPlot,0,ax_lim["ylim"][0])
+                    if ax_lim["ylim"][1] > np.max(self.MC_variables[1].data):
+                        n,m = res_matrix.shape
+                        res_matrix_new = np.full((n+1,m),np.nan)
+                        res_matrix_new[:-1,:] = res_matrix
+                        res_matrix = res_matrix_new
+                        yAxisPlot = np.append(yAxisPlot,ax_lim["ylim"][1])
+
+                try:
+                    step = cmap_lim[key] / nlev
+                    nlev_new = np.arange(0,cmap_lim[key] + step, step)
+                except KeyError:
+                    nlev_new = nlev
+
                 cont = subplot.contourf(
                     xAxisPlot, yAxisPlot,
-                    self._resolutions[key]['sigma'].T,
-                    levels=nlev, cmap=cmap
+                    res_matrix,
+                    levels=nlev_new, cmap=cmap
                 )
+                print(levels)
                 subplot = ssplt.axis_beauty(subplot, ax_options)
                 # Now place the color var in the proper position
                 divider = make_axes_locatable(subplot)
@@ -320,6 +361,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 plt.colorbar(cont,
                              label='$\\sigma_{%s} [%s]$' % (key, var.units),
                              cax=cax)
+            plt.tight_layout()
         else:   # Plot along the x - y variable
             if index_x is not None:
                 fig, ax = plt.subplots(1, 2, sharex=True)
@@ -541,10 +583,17 @@ class FILDINPA_Smap(GeneralStrikeMap):
             self._map_interpolators.update(newDict)
 
         for key in variables:
-            self._map_interpolators[key] = \
-                scipy_interp.RBFInterpolator(coords,
-                                             self._data[key].data,
-                                             kernel=kernel, degree=degree)
+            # Sometimes necessary to avoid errors on Cobra, reason is unknown
+            try:
+                self._map_interpolators[key] = \
+                    scipy_interp.RBFInterpolator(coords,
+                                                 self._data[key].data,
+                                                 kernel=kernel, degree=degree)
+            except RuntimeError:
+                self._map_interpolators[key] = \
+                    scipy_interp.RBFInterpolator(coords,
+                                                 self._data[key].data,
+                                                 kernel=kernel, degree=degree)
         # --- If there is pixel informations, do the same for the pixel space
         try:
             # @ToDo: See why this modify R0 and e0 interpolators
@@ -605,7 +654,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 interpolator = k + '_pix'
             else:
                 interpolator = k
-            print(interpolator)
+            #print(interpolator)
 
             was_there = False
             if name in self.strike_points.header['info'].keys():
@@ -798,8 +847,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
             index_pitch = np.zeros(pitch.size, dtype=int)
             for i in range(index_pitch.size):
                 index_pitch[i] = \
-                    np.argmin(np.abs(self.MC_variables[1].data - pitch[i]))
-            print('Found pitches: ', self.MC_variables[1].data[index_pitch])
+                    np.argmin(np.abs(self.MC_variables[0].data - pitch[i]))
+            print('Found pitches: ', self.MC_variables[0].data[index_pitch])
         else:
             # test if it is a number or an array of them
             if pitch_index is not None:
@@ -808,7 +857,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 else:
                     index_pitch = np.array([pitch_index])
             else:
-                index_pitch = np.arange(self.MC_variables[1].data.size, dtype=np.int)
+                index_pitch = np.arange(self.MC_variables[0].data.size, dtype=np.int)
         # --- Get the maximum value for the normalization
 
         # --- Plot the desired data
@@ -819,23 +868,23 @@ class FILDINPA_Smap(GeneralStrikeMap):
             for ip in index_pitch:
                 # The lmfit model has included a plot function, but is slightly
                 # not optimal so we will plot it 'manually'
-                if self._resolutions['fits_' + var.lower()][ir, ip] is not None:
-                    x = self._resolutions['fits_' + var.lower()][ir, ip].userkws['x']
+                if self._resolutions['fits_' + var.lower()][ip, ir] is not None:
+                    x = self._resolutions['fits_' + var.lower()][ip, ir].userkws['x']
                     deltax = x.max() - x.min()
                     x_fine = np.linspace(x.min() - 0.1 * deltax,
                                          x.max() + 0.1 * deltax)
-                    name = 'rl: ' + str(round(self.unique_gyroradius[ir], 1))\
+                    name = 'rl: ' + str(round(self.MC_variables[1].data[ir], 1))\
                         + ' $\\lambda$: ' + \
-                        str(round(self.unique_pitch[ip], 1))
+                        str(round(self.MC_variables[1].data[ip], 1))
                     normalization = \
-                        self._resolutions['fits']['norm_' + var.lower()][ir, ip]
-                    y = self._resolutions['fits_' + var.lower()][ir, ip].eval(
+                        self._resolutions['norm_' + var.lower()][ip, ir]
+                    y = self._resolutions['fits_' + var.lower()][ip, ir].eval(
                         x=x_fine) * normalization
                     if kind_of_plot.lower() == 'normal':
                         # plot the data as scatter plot
                         scatter = ax.scatter(
                             x,
-                            normalization * self._resolutions['fits_' + var.lower()][ir, ip].data,
+                            normalization * self._resolutions['fits_' + var.lower()][ip, ir].data,
                             label='__noname__')
                         # plot the fit as a line
                         ax.plot(x_fine, y,
@@ -844,7 +893,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                     elif kind_of_plot.lower() == 'bar':
                         bar = ax.bar(
                             x,
-                            normalization * self._resolutions['fits_' + var.lower()][ir, ip].data,
+                            normalization * self._resolutions['fits_' + var.lower()][ip, ir].data,
                             label='__noname__', width=x[1]-x[0],
                             alpha=0.25)
                         ax.plot(x_fine, y,
@@ -855,10 +904,10 @@ class FILDINPA_Smap(GeneralStrikeMap):
                     elif kind_of_plot.lower() == 'uncertainty':
                         scatter = ax.scatter(
                             x,
-                            normalization * self._resolutions['fits_' + var.lower()][ir, ip].data,
+                            normalization * self._resolutions['fits_' + var.lower()][ip, ir].data,
                             label='__noname__')
                         dely = normalization \
-                            * self._resolutions['fits_' + var.lower()][ir, ip].eval_uncertainty(sigma=3, x=x_fine)
+                            * self._resolutions['fits_' + var.lower()][ip, ir].eval_uncertainty(sigma=3, x=x_fine)
                         ax.fill_between(x_fine, y-dely, y+dely, alpha=0.25,
                                         label='3-$\\sigma$ uncertainty band',
                                         color=scatter.get_facecolor()[0, :3])
@@ -877,7 +926,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
             ax = ssplt.axis_beauty(ax, ax_options)
 
     def plot_collimator_factor(self, ax_param: dict = {}, cMap=None,
-                               nlev: int = 20):
+                               nlev: int = 20, ax_lim: dict = {},
+                               cmap_lim: float = 0):
         """
         Plot the collimator factor.
 
@@ -890,6 +940,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
         would need to draw the plot on your own
         @param cMap: is None, Gamma_II will be used
         @param nlev: number of levels for the contour
+        @param ax_lim: Manually set the x and y axes, currently only works for making it bigger, not smaller
+                       Should be given as ax_lim = {'xlim' : [x1,x2], 'ylim' : [y1,y2]}
+        @param cmap_lim: Manually set the upper limit for the color map
         """
         # --- Initialise the settings:
         if cMap is None:
@@ -906,10 +959,44 @@ class FILDINPA_Smap(GeneralStrikeMap):
         fig, ax = plt.subplots(1, 1, figsize=(6, 10),
                                facecolor='w', edgecolor='k')
 
+        coll_matrix = np.transpose(self('collimator_factor_matrix'))
+        # In case you want to manually set the axis limits to something bigger
+        xAxisPlot = self.MC_variables[0].data
+        yAxisPlot = self.MC_variables[1].data
+        if ax_lim:
+            if ax_lim["xlim"][0] < np.min(self.MC_variables[0].data):
+                n,m = coll_matrix.shape
+                coll_matrix_new = np.zeros((n,m+1))
+                coll_matrix_new[:,1:] = coll_matrix
+                coll_matrix = coll_matrix_new
+                xAxisPlot = np.insert(xAxisPlot,0,ax_lim["xlim"][0])
+            if ax_lim["xlim"][1] > np.max(self.MC_variables[0].data):
+                n,m = coll_matrix.shape
+                coll_matrix_new = np.zeros((n,m+1))
+                coll_matrix_new[:,:-1] = coll_matrix
+                coll_matrix = coll_matrix_new
+                xAxisPlot = np.append(xAxisPlot,ax_lim["xlim"][1])
+            if ax_lim["ylim"][0] < np.min(self.MC_variables[1].data):
+                n,m = coll_matrix.shape
+                coll_matrix_new = np.zeros((n+1,m))
+                coll_matrix_new[1:,:] = coll_matrix
+                coll_matrix = coll_matrix_new
+                yAxisPlot = np.insert(yAxisPlot,0,ax_lim["ylim"][0])
+            if ax_lim["ylim"][1] > np.max(self.MC_variables[1].data):
+                n,m = coll_matrix.shape
+                coll_matrix_new = np.zeros((n+1,m))
+                coll_matrix_new[:-1,:] = coll_matrix
+                coll_matrix = coll_matrix_new
+                yAxisPlot = np.append(yAxisPlot,ax_lim["ylim"][1])
+
+        if cmap_lim:
+            step = cmap_lim / nlev
+            nlev = np.arange(0,cmap_lim + step, step)
+
         # Plot the gyroradius resolution
-        a1 = ax.contourf(self.MC_variables[0].data,
-                         self.MC_variables[1].data,
-                         self._data['collimator_factor_matrix'],
+        a1 = ax.contourf(xAxisPlot,
+                         yAxisPlot,
+                         coll_matrix,
                          levels=nlev, cmap=cmap)
         fig.colorbar(a1, ax=ax, label='Collimating factor')
         ax = ssplt.axis_beauty(ax, ax_options)
