@@ -481,30 +481,6 @@ class BVO:
         print('\n-... -.-- . / -... -.-- .')
         return
 
-    # def cut_frames(self, px_min: int, px_max: int, py_min: int, py_max: int,
-    #                flag_copy: bool = False):
-    #     """
-    #     Cut the frames in the box: [px_min, px_max, py_min, py_max]
-
-    #     Jose Rueda: jrrueda@us.es
-
-    #     @param px_min: min pixel in the x direction to cut
-    #     @param px_max: max pixel in the x direction to cut
-    #     @param px_min: min pixel in the x direction to cut
-    #     @param px_max: max pixel in the x direction to cut
-    #     @param make flag_copy: flag to copy or not the original frames
-
-    #     Note exp_dat['frames'] are repaced for these cut ones
-    #     """
-    #     if ('original_frames' not in self.exp_dat) and flag_copy:
-    #         self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
-    #     else:
-    #         print('Not making a copy of the original frames')
-    #     frames = \
-    #         self.exp_dat['frames'][px_min:(px_max+1), py_min:(py_max+1), :]
-    #     self.exp_dat['frames'] = frames
-    #     return
-
     def average_frames(self, window):
         """
         Average the frames on a given time window
@@ -865,3 +841,30 @@ class BVO:
             mask = roi.getMask(self.exp_dat['frames'][:, :, 0].squeeze())
 
         return sstt.TimeTrace(self, mask), mask
+
+    def exportVideo(self, filename, flagAverage: bool = False):
+        """
+        Export video file
+
+        Notice: This will create a netcdf with the exp_dat xarray, this is not
+        intended as a replace of the data base, as camera settings and
+        metadata will not be exported. But allows to quickly export the video 
+        to netCDF format to be easily shared among computers
+        
+        @param file: Path to the file where to save the results, if none, a 
+            GUI will appear to select the results
+        @param flagAverage: flag to indicate if we want to save the averaged
+            frames
+        """
+        if filename is None:
+            filename = _ssio.ask_to_save(ext='*.nc')
+            if filename == '' or filename == ():
+                print('You canceled the export')
+                return
+        print('Saving video in: ', filename)
+        # Write the data:
+        if not flagAverage:
+            self.exp_dat.to_netcdf(filename)
+        else:
+            self.avg_dat.to_netcdf(filename)
+    
