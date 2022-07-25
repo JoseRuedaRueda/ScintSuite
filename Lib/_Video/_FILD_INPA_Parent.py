@@ -654,33 +654,34 @@ class FIV(BVO):
 
         @param filename: filename
 
-        Notice, in principle this function should not be called, the method 
+        Notice, in principle this function should not be called, the method
             self.export_remap() will take care of calling this one
         """
         logger.info('Saving Bangles in file %s' % filename)
         self.Bangles.to_netcdf(filename)
-    
+
     def export_Bfield(self, filename):
         """
         Export the B angles into a netCDF files
 
         @param filename: filename
 
-        Notice, in principle this function should not be called, the method 
+        Notice, in principle this function should not be called, the method
             self.export_remap() will take care of calling this one
         """
         logger.info('Saving BField in file %s' % filename)
         self.BField.to_netcdf(filename)
-    
-    def export_remap(self, folder, clean: bool = False, overwrite: bool = False):
+
+    def export_remap(self, folder: str = None, clean: bool = False,
+                     overwrite: bool = False):
         """
         Export video file
 
         Notice: This will create a netcdf with the exp_dat xarray, this is not
         intended as a replace of the data base, as camera settings and
-        metadata will not be exported. But allows to quickly export the video 
+        metadata will not be exported. But allows to quickly export the video
         to netCDF format to be easily shared among computers
-        
+
         @param file: Path to the folder where to save the results. It is
             recomended to leave it as None
         """
@@ -692,11 +693,12 @@ class FIV(BVO):
         magField = os.path.join(folder, 'Bfield.nc')
         magFieldAngles = os.path.join(folder, 'BfieldAngles.nc')
         remap = os.path.join(folder, 'remap.nc')
-        tarFile = os.path.join(folder, str(self.shot) + '_' + self.diag + 
+        tarFile = os.path.join(folder, str(self.shot) + '_' + self.diag +
                                str(self.diag_ID) + '_' + 'remap.tar')
         if os.path.isfile(tarFile) and not overwrite:
             raise Exception('The file exist!')
-        print('Saving results in: ', folder)
+        logger.info('Saving results in: ', folder)
+        os.makedirs(folder, exist_ok=True)
 
         # Create the individual netCDF files
         self.export_Bangles(magFieldAngles)
@@ -715,6 +717,3 @@ class FIV(BVO):
             os.remove(magField)
             os.remove(magFieldAngles)
             os.remove(remap)
-        
-
-
