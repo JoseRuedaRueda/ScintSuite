@@ -14,8 +14,13 @@ from scipy.special import kn as modBessel2nd
 from tqdm import tqdm
 from datetime import date
 from scipy.io import savemat
-import numba as nb
 import pickle
+import logging
+logger = logging.getLogger('ScintSuite.iHIBPsim')
+try:
+    import numba as nb
+except ModuleNotFoundError:
+    logger.wargning('10: You cannot use xcrosssection calculation')
 
 # ----------------------------------------------------------
 # --- Binding energy for different alkali atoms.
