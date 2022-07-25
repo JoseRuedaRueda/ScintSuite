@@ -148,9 +148,9 @@ class BVO:
                     px = np.arange(nx)
                     py = np.arange(ny)
                     self.exp_dat['frames'] = \
-                        xr.DataArray(dummy['frames'], dims=('px', 'py', 't'), 
-                                     coords={'t': dummy['tframes'].squeeze(), 
-                                             'px': px, 
+                        xr.DataArray(dummy['frames'], dims=('px', 'py', 't'),
+                                     coords={'t': dummy['tframes'].squeeze(),
+                                             'px': px,
                                              'py': py})
                     self.exp_dat['nframes'] = \
                         xr.DataArray(np.arange(dummy['nf']), dims=('t'))
@@ -304,8 +304,8 @@ class BVO:
             dtype = M.dtype
             # Storage it
             self.exp_dat['frames'] = \
-                xr.DataArray(M, dims=('px', 'py', 't'), 
-                                coords={'t': tframes.squeeze(), 'px': px, 
+                xr.DataArray(M, dims=('px', 'py', 't'),
+                                coords={'t': tframes.squeeze(), 'px': px,
                                         'py': py})
             self.exp_dat['nframes'] = xr.DataArray(nframes.squeeze(), dims=('t'))
             self.exp_dat.attrs['dtype'] = dtype
@@ -529,10 +529,10 @@ class BVO:
         py = np.arange(ny)
         # Save the frames
         self.avg_dat['frames'] = \
-            xr.DataArray(frames, dims=('px', 'py', 't'), 
+            xr.DataArray(frames, dims=('px', 'py', 't'),
                          coords={'t': time.squeeze(), 'px': px, 'py': py})
         self.avg_dat['nframes'] = \
-            xr.DataArray(np.arange(nw) + 1, dims=('t'))      
+            xr.DataArray(np.arange(nw) + 1, dims=('t'))
 
     def generate_average_window(self, step: float = None, trace: float = None):
         """
