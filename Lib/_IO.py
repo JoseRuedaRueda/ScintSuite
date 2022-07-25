@@ -534,7 +534,7 @@ def load_remap(filename):
     if filename == '' or filename == ():
         raise Exception('You must select a file!!!')
     # decompress the file
-    dummyFolder = os.path.join(pa.Results, 'tmp_%i' % np.random.randit(300))
+    dummyFolder = os.path.join(paths.Results, 'tmp_%i' % np.random.randint(300))
     os.mkdir(dummyFolder)
     # extract the file
     tar = tarfile.open(filename)
@@ -546,146 +546,146 @@ def load_remap(filename):
     vid.Bangles = xr.open_dataset(os.path.join(dummyFolder + 'BField.nc'))
     vid.BField = xr.open_dataset(os.path.join(dummyFolder + 'Bangles.nc'))
 
-def load_FILD_remap(filename: str = None, verbose=True,
-                    encoding: str = 'utf-8'):
-    """
-    Load all the data in a remap file into a video object.
-
-    Jose Rueda Rueda: jrrueda@us.es
-
-    @param filename: netCDF file to read
-    @param verbose: flag to print information in the console
-    @param encoding: encode to decode the strings
-
-    @return vid: FILDvideoObject with the remap loaded
-
-    Notice: Only the modulus of the field is saved, not the complete field, so
-    the dictionary vid.Bfield will not be initialised, call yoursef getBfield
-    if you need it
-    """
-    if filename is None:
-        filename = ' '
-        filename = check_open_file(filename)
-        if filename == '' or filename == ():
-            raise Exception('You must select a file!!!')
-    vid = FILDVideo(empty=True)  # Open the empty file
-
-    with netcdf.netcdf_file(filename, 'r', mmap=False,) as f:
-        var = f.variables.keys()  # list of all available variables
-        history = f.history.decode(encoding)   # Version used for the remap
-        # Get the version numbers
-        if 'versionIDa' in var:  # @Todo: else reading it from history
-            va = f.variables['versionIDa'][:]
-            vb = f.variables['versionIDb'][:]
-            vc = f.variables['versionIDc'][:]
-        # Initialise the dictionaries for saving the data
-        vid.remap_dat = {'options': {}}
-        vid.exp_dat = {}
-        vid.Bangles = {}
-        vid.BField = {}
-        vid.orientation = {}
-        vid.position = {}
-        vid.settings = {}
-        # Read and save the 'standard' data
-        vid.shot = f.variables['shot'][0]  # Shot number
-
-        if 'avg_flag' in var:  # this is a don with version 0.8.0 or greater
-            vid.remap_dat['options']['use_average'] = \
-                bool(f.variables['use_average'][0])
-        else:  # This is done with old suite, only exp_remap was possible
-            vid.remap_dat['options']['use_average'] = False
-
-        if 'geom_ID' in var:
-            vid.geometryID = f.variables['geom_ID'][:]
-
-        vid.remap_dat['tframes'] = f.variables['tframes'][:]
-
-        vid.remap_dat['xaxis'] = f.variables['xaxis'][:]
-        vid.remap_dat['xunits'] = f.variables['xaxis'].units.decode(encoding)
-        vid.remap_dat['xlabel'] = \
-            f.variables['xaxis'].long_name.decode(encoding)
-
-        vid.remap_dat['yaxis'] = f.variables['yaxis'][:]
-        vid.remap_dat['yunits'] = f.variables['yaxis'].units.decode(encoding)
-        vid.remap_dat['ylabel'] = \
-            f.variables['yaxis'].long_name.decode(encoding)
-
-        vid.remap_dat['frames'] = f.variables['frames'][:]
-
-        vid.remap_dat['sprofx'] = f.variables['sprofx'][:]
-        vid.remap_dat['sprofxlabel'] = \
-            f.variables['sprofx'].long_name.decode(encoding)
-
-        vid.remap_dat['sprofy'] = f.variables['sprofy'][:]
-        vid.remap_dat['sprofylabel'] = \
-            f.variables['sprofy'].long_name.decode(encoding)
-
-        vid.CameraCalibration = CalParams()
-        vid.CameraCalibration.xshift = f.variables['xshift'][:]
-        vid.CameraCalibration.yshift = f.variables['yshift'][:]
-        vid.CameraCalibration.xscale = f.variables['xscale'][:]
-        vid.CameraCalibration.yscale = f.variables['yscale'][:]
-        vid.CameraCalibration.deg = f.variables['deg'][:]
-
-        if 't1_noise' in var:
-            vid.exp_dat['t1_noise'] = f.variables['t1_noise'][0]
-            vid.exp_dat['t2_noise'] = f.variables['t2_noise'][0]
-        if 'frame_noise' in var:
-            vid.exp_dat['frame_noise'] = f.variables['frame_noise'][:]
-
-        vid.exp_dat['n_pixels_gt_threshold'] = \
-            f.variables['n_pixels_gt_threshold'][:]
-        vid.exp_dat['threshold_for_counts'] = \
-            f.variables['threshold_for_counts'][:]
-
-        vid.Bangles['theta'] = f.variables['theta'][:]
-        vid.Bangles['phi'] = f.variables['phi'][:]
-
-        vid.BField['B'] = f.variables['bfield'][:]
-
-        vid.remap_dat['theta'] = f.variables['theta'][:]
-        vid.remap_dat['phi'] = f.variables['phi'][:]
-        if 'theta_used' in var:
-            vid.remap_dat['theta_used'] = f.variables['theta'][:]
-            vid.remap_dat['phi_used'] = f.variables['phi'][:]
-
-        vid.remap_dat['options']['rmax'] = f.variables['rmax'][0]
-        vid.remap_dat['options']['rmin'] = f.variables['rmin'][0]
-        vid.remap_dat['options']['dr'] = f.variables['dr'][0]
-
-        vid.remap_dat['options']['pmax'] = f.variables['pmax'][0]
-        vid.remap_dat['options']['pmin'] = f.variables['pmin'][0]
-        vid.remap_dat['options']['dp'] = f.variables['dp'][0]
-
-        vid.remap_dat['options']['pprofmax'] = f.variables['pprofmax'][0]
-        vid.remap_dat['options']['pprofmin'] = f.variables['pprofmin'][0]
-        vid.remap_dat['options']['rprofmin'] = f.variables['rprofmin'][0]
-        vid.remap_dat['options']['rprofmax'] = f.variables['rprofmax'][0]
-
-        vid.position['R'] = f.variables['rfild'][0]
-        vid.position['z'] = f.variables['zfild'][0]
-        if 'phifild' in var:
-            vid.position['phi'] = f.variables['phifild'][0]
-        else:  # if phi is not present, old remap file, tokamak. Phi irrelevant
-            vid.position['phi'] = 0.0
-
-        vid.orientation['alpha'] = f.variables['alpha'][0]
-        vid.orientation['beta'] = f.variables['beta'][0]
-        if 'gamma' in var:
-            vid.orientation['gamma'] = f.variables['gamma'][0]
-        else:  # if phi is not present, old remap file, tokamak. Phi irrelevant
-            vid.orientation['gamma'] = 0.0
-
-        if 'bits' in var:
-            vid.settings['RealBPP'] = f.variables['RealBPP'][0]
-        vid.diag = 'FILD'
-        if 'diag_ID' in var:
-            vid.diag_ID = f.variables['diag_ID'][0]
-        else:
-            print('Assuming FILD1')
-            vid.diag_ID = 1
-
-    if verbose:
-        print(history)
-        print('Shot: ', vid.shot)
-    return vid
+# def load_FILD_remap(filename: str = None, verbose=True,
+#                     encoding: str = 'utf-8'):
+#     """
+#     Load all the data in a remap file into a video object.
+#
+#     Jose Rueda Rueda: jrrueda@us.es
+#
+#     @param filename: netCDF file to read
+#     @param verbose: flag to print information in the console
+#     @param encoding: encode to decode the strings
+#
+#     @return vid: FILDvideoObject with the remap loaded
+#
+#     Notice: Only the modulus of the field is saved, not the complete field, so
+#     the dictionary vid.Bfield will not be initialised, call yoursef getBfield
+#     if you need it
+#     """
+#     if filename is None:
+#         filename = ' '
+#         filename = check_open_file(filename)
+#         if filename == '' or filename == ():
+#             raise Exception('You must select a file!!!')
+#     vid = FILDVideo(empty=True)  # Open the empty file
+#
+#     with netcdf.netcdf_file(filename, 'r', mmap=False,) as f:
+#         var = f.variables.keys()  # list of all available variables
+#         history = f.history.decode(encoding)   # Version used for the remap
+#         # Get the version numbers
+#         if 'versionIDa' in var:  # @Todo: else reading it from history
+#             va = f.variables['versionIDa'][:]
+#             vb = f.variables['versionIDb'][:]
+#             vc = f.variables['versionIDc'][:]
+#         # Initialise the dictionaries for saving the data
+#         vid.remap_dat = {'options': {}}
+#         vid.exp_dat = {}
+#         vid.Bangles = {}
+#         vid.BField = {}
+#         vid.orientation = {}
+#         vid.position = {}
+#         vid.settings = {}
+#         # Read and save the 'standard' data
+#         vid.shot = f.variables['shot'][0]  # Shot number
+#
+#         if 'avg_flag' in var:  # this is a don with version 0.8.0 or greater
+#             vid.remap_dat['options']['use_average'] = \
+#                 bool(f.variables['use_average'][0])
+#         else:  # This is done with old suite, only exp_remap was possible
+#             vid.remap_dat['options']['use_average'] = False
+#
+#         if 'geom_ID' in var:
+#             vid.geometryID = f.variables['geom_ID'][:]
+#
+#         vid.remap_dat['tframes'] = f.variables['tframes'][:]
+#
+#         vid.remap_dat['xaxis'] = f.variables['xaxis'][:]
+#         vid.remap_dat['xunits'] = f.variables['xaxis'].units.decode(encoding)
+#         vid.remap_dat['xlabel'] = \
+#             f.variables['xaxis'].long_name.decode(encoding)
+#
+#         vid.remap_dat['yaxis'] = f.variables['yaxis'][:]
+#         vid.remap_dat['yunits'] = f.variables['yaxis'].units.decode(encoding)
+#         vid.remap_dat['ylabel'] = \
+#             f.variables['yaxis'].long_name.decode(encoding)
+#
+#         vid.remap_dat['frames'] = f.variables['frames'][:]
+#
+#         vid.remap_dat['sprofx'] = f.variables['sprofx'][:]
+#         vid.remap_dat['sprofxlabel'] = \
+#             f.variables['sprofx'].long_name.decode(encoding)
+#
+#         vid.remap_dat['sprofy'] = f.variables['sprofy'][:]
+#         vid.remap_dat['sprofylabel'] = \
+#             f.variables['sprofy'].long_name.decode(encoding)
+#
+#         vid.CameraCalibration = CalParams()
+#         vid.CameraCalibration.xshift = f.variables['xshift'][:]
+#         vid.CameraCalibration.yshift = f.variables['yshift'][:]
+#         vid.CameraCalibration.xscale = f.variables['xscale'][:]
+#         vid.CameraCalibration.yscale = f.variables['yscale'][:]
+#         vid.CameraCalibration.deg = f.variables['deg'][:]
+#
+#         if 't1_noise' in var:
+#             vid.exp_dat['t1_noise'] = f.variables['t1_noise'][0]
+#             vid.exp_dat['t2_noise'] = f.variables['t2_noise'][0]
+#         if 'frame_noise' in var:
+#             vid.exp_dat['frame_noise'] = f.variables['frame_noise'][:]
+#
+#         vid.exp_dat['n_pixels_gt_threshold'] = \
+#             f.variables['n_pixels_gt_threshold'][:]
+#         vid.exp_dat['threshold_for_counts'] = \
+#             f.variables['threshold_for_counts'][:]
+#
+#         vid.Bangles['theta'] = f.variables['theta'][:]
+#         vid.Bangles['phi'] = f.variables['phi'][:]
+#
+#         vid.BField['B'] = f.variables['bfield'][:]
+#
+#         vid.remap_dat['theta'] = f.variables['theta'][:]
+#         vid.remap_dat['phi'] = f.variables['phi'][:]
+#         if 'theta_used' in var:
+#             vid.remap_dat['theta_used'] = f.variables['theta'][:]
+#             vid.remap_dat['phi_used'] = f.variables['phi'][:]
+#
+#         vid.remap_dat['options']['rmax'] = f.variables['rmax'][0]
+#         vid.remap_dat['options']['rmin'] = f.variables['rmin'][0]
+#         vid.remap_dat['options']['dr'] = f.variables['dr'][0]
+#
+#         vid.remap_dat['options']['pmax'] = f.variables['pmax'][0]
+#         vid.remap_dat['options']['pmin'] = f.variables['pmin'][0]
+#         vid.remap_dat['options']['dp'] = f.variables['dp'][0]
+#
+#         vid.remap_dat['options']['pprofmax'] = f.variables['pprofmax'][0]
+#         vid.remap_dat['options']['pprofmin'] = f.variables['pprofmin'][0]
+#         vid.remap_dat['options']['rprofmin'] = f.variables['rprofmin'][0]
+#         vid.remap_dat['options']['rprofmax'] = f.variables['rprofmax'][0]
+#
+#         vid.position['R'] = f.variables['rfild'][0]
+#         vid.position['z'] = f.variables['zfild'][0]
+#         if 'phifild' in var:
+#             vid.position['phi'] = f.variables['phifild'][0]
+#         else:  # if phi is not present, old remap file, tokamak. Phi irrelevant
+#             vid.position['phi'] = 0.0
+#
+#         vid.orientation['alpha'] = f.variables['alpha'][0]
+#         vid.orientation['beta'] = f.variables['beta'][0]
+#         if 'gamma' in var:
+#             vid.orientation['gamma'] = f.variables['gamma'][0]
+#         else:  # if phi is not present, old remap file, tokamak. Phi irrelevant
+#             vid.orientation['gamma'] = 0.0
+#
+#         if 'bits' in var:
+#             vid.settings['RealBPP'] = f.variables['RealBPP'][0]
+#         vid.diag = 'FILD'
+#         if 'diag_ID' in var:
+#             vid.diag_ID = f.variables['diag_ID'][0]
+#         else:
+#             print('Assuming FILD1')
+#             vid.diag_ID = 1
+#
+#     if verbose:
+#         print(history)
+#         print('Shot: ', vid.shot)
+#     return vid

@@ -180,7 +180,7 @@ def remapAllLoadedFrames(video,
         theta = video.Bangles['theta'].values
         # Check that the angles were calculated for the frames (it can happen
         # that the user recalculate the angles after averaging, so they are
-        # evaluated in the original time base). There is a check in the video 
+        # evaluated in the original time base). There is a check in the video
         # object before calling this function, but just in case
         if (phi.size != nframes) or (theta.size != nframes):
             print('Number of frames: ', nframes)
@@ -295,26 +295,26 @@ def remapAllLoadedFrames(video,
     remap_dat['frames'].attrs['dy'] = dy
     remap_dat['frames'].attrs['decimals'] = decimals
     remap_dat['frames'].attrs['smap_folder'] = smap_folder
-    remap_dat['frames'].attrs['use_average'] = use_average
-    remap_dat['frames'].attrs['CodeUsed'] = smap.code   
+    remap_dat['frames'].attrs['use_average'] = int(use_average)
+    remap_dat['frames'].attrs['CodeUsed'] = smap.code
 
-    remap_dat['x'].attrs['units'] = units[var_remap[0]] 
-    remap_dat['x'].attrs['long_name'] = variables_to_remap[0] 
+    remap_dat['x'].attrs['units'] = units[var_remap[0]]
+    remap_dat['x'].attrs['long_name'] = variables_to_remap[0]
 
-    remap_dat['y'].attrs['units'] = units[var_remap[1]] 
-    remap_dat['y'].attrs['long_name'] = variables_to_remap[1] 
-    
+    remap_dat['y'].attrs['units'] = units[var_remap[1]]
+    remap_dat['y'].attrs['long_name'] = variables_to_remap[1]
+
     remap_dat['frames'].attrs['A'] = A
     remap_dat['frames'].attrs['Z'] = Z
-    
+
     remap_dat['phi'] = xr.DataArray(phi, dims=('t'))
     remap_dat['phi'].attrs['long_name'] = 'Calculated phi angle'
     remap_dat['phi'].attrs['units'] = 'Degree'
 
     remap_dat['theta'] = xr.DataArray(theta, dims=('t'))
     remap_dat['theta'].attrs['long_name'] = 'Calculated theta angle'
-    remap_dat['theta'].attrs['units'] = 'Degree'   
-    
+    remap_dat['theta'].attrs['units'] = 'Degree'
+
     remap_dat['phi_used'] = xr.DataArray(phi, dims=('t'))
     remap_dat['phi_used'].attrs['long_name'] = 'Used phi angle'
     remap_dat['phi_used'].attrs['units'] = 'Degree'
