@@ -9,6 +9,8 @@ Needed packages. Only listed 'non-standard' packages. See below, there is a scri
 #### Essentials
 The suite will not work without them:
 - f90nml: To read FORTRAN namelist in an easy way (needed since version 0.1.10) `pip install f90nml`. This is the suite standard to read and write namelists!!!
+- xarray: To handle the data sets (videos, remaps, timetraces, needed since version 1.0.0)
+- numpy > 1.21.0: To support xarray
 
 #### Optional (the suite will work but some capabilities will not be available)
 - cv2 (OpenCv): To load frames from .mp4 files and to export videos `pip install opencv-python`
@@ -18,6 +20,7 @@ The suite will not work without them:
 - scipy 1.7.0 or newer, to have the RBF interpolators for the strike points
 - aug_sfutils > 0.7.0: To load the AUG magnetic field (see AUG python documentation for the different ways of installing this package https://www.aug.ipp.mpg.de/aug/manuals/aug_sfutils/)
 - mesh: To deal with CAD files
+- numba > 0.55.1 to perform fast iHIBPsim xsection calculations
 
 ### Cloning the suite and installing
 In order to clone the suite just open a terminal in your home directory and type:
