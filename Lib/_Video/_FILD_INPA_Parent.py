@@ -5,6 +5,8 @@ Introduced in version 0.9.0
 """
 import os
 import math
+import logging
+import tarfile
 import numpy as np
 import tkinter as tk
 import matplotlib.pyplot as plt
@@ -20,9 +22,16 @@ import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 import Lib.SimulationCodes.SINPA as ssSINPA
 import Lib._Parameters as sspar
 import Lib.errors as errors
+import Lib._IO as ssio
 import Lib._StrikeMap as ssmapnew
 import xarray as xr
 from tqdm import tqdm   # For waitbars
+import Lib._Paths as p
+from Lib._Machine import machine
+pa = p.Path(machine)
+del p
+
+logger = logging.getLogger('ScintSuite.Video')
 
 
 class FIV(BVO):
@@ -41,18 +50,24 @@ class FIV(BVO):
         - plotBangles: Plot the angles of the B field respect to the head
         - integrate_remap: Perform the integration over a region of the
             phase space
-    - Remap units:
-        - frames, xaxis, yaxis in the remap dict: signal per units of gyrorad
-        and Xi. signal/cm/XI_units. For the case of FILD, Xi_units = degree
-        and for the case of INPA, XI_units = meters.
-
-        The basic remap is saved in the remap_dat attribute. But it can be
-        translated to different units using the proper 'translation_functions'
-        this translations are stored in the 'translations' field in the
-        remap_dat. This is a dictionary, with a key for each specie. Inside the
-        specie, we have several dictionaries identified by a number
-            - 1: The yaxis is no longer Gyroradius but energy, in keV
+    
+    @TODO: Define diag and diag_ID in the init
     """
+    def __init__(self, **kargs):
+        """Init the class"""
+        # Init the parent class
+        BVO.__init__(self, **kargs)
+        ## Diag name
+        self.diag = None
+        ## Diag number
+        self.diag_ID = None
+        ## Magnetic field at FILD head
+        self.BField = None
+        ## Particular options for the magnetic field calculation
+        self.BFieldOptions = None
+        ## Orientation angles
+        self.Bangles = None
+
 
     def _getB(self, extra_options: dict = {}, use_average: bool = False):
         """
@@ -634,3 +649,74 @@ class FIV(BVO):
         ssGUI.ApplicationRemap2DAnalyser(root, self, traces)
         root.mainloop()
         root.destroy()
+
+    def export_Bangles(self, filename):
+        """
+        Export the B angles into a netCDF files
+
+        @param filename: filename
+
+        Notice, in principle this function should not be called, the method 
+            self.export_remap() will take care of calling this one
+        """
+        logger.info('Saving Bangles in file %s' % filename)
+        self.Bangles.to_netcdf(filename)
+    
+    def export_Bfield(self, filename):
+        """
+        Export the B angles into a netCDF files
+
+        @param filename: filename
+
+        Notice, in principle this function should not be called, the method 
+            self.export_remap() will take care of calling this one
+        """
+        logger.info('Saving BField in file %s' % filename)
+        self.BField.to_netcdf(filename)
+    
+    def export_remap(self, folder, clean: bool = False, overwrite: bool = False):
+        """
+        Export video file
+
+        Notice: This will create a netcdf with the exp_dat xarray, this is not
+        intended as a replace of the data base, as camera settings and
+        metadata will not be exported. But allows to quickly export the video 
+        to netCDF format to be easily shared among computers
+        
+        @param file: Path to the folder where to save the results. It is
+            recomended to leave it as None
+        """
+        if folder is None:
+            folder = os.path.join(pa.Results, str(self.shot), self.diag,
+                                  str(self.diag_ID))
+
+        # Now get the name of the files:
+        magField = os.path.join(folder, 'Bfield.nc')
+        magFieldAngles = os.path.join(folder, 'BfieldAngles.nc')
+        remap = os.path.join(folder, 'remap.nc')
+        tarFile = os.path.join(folder, str(self.shot) + '_' + self.diag + 
+                               str(self.diag_ID) + '_' + 'remap.tar')
+        if os.path.isfile(tarFile) and not overwrite:
+            raise Exception('The file exist!')
+        print('Saving results in: ', folder)
+
+        # Create the individual netCDF files
+        self.export_Bangles(magFieldAngles)
+        self.export_Bfield(magField)
+        self.remap_dat.to_netcdf(remap)
+
+        # Create the tar file
+        tar = tarfile.open(name=tarFile, mode='w')
+        tar.add(magField)
+        tar.add(magFieldAngles)
+        tar.add(remap)
+        tar.close()
+
+        # Clean if asked
+        if clean:
+            os.remove(magField)
+            os.remove(magFieldAngles)
+            os.remove(remap)
+        
+
+
