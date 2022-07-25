@@ -353,7 +353,6 @@ class FILDINPA_Smap(GeneralStrikeMap):
                     res_matrix,
                     levels=nlev_new, cmap=cmap
                 )
-                print(levels)
                 subplot = ssplt.axis_beauty(subplot, ax_options)
                 # Now place the color var in the proper position
                 divider = make_axes_locatable(subplot)
