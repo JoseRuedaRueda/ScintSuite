@@ -7,6 +7,7 @@ import os
 import math
 import logging
 import tarfile
+import json
 import numpy as np
 import tkinter as tk
 import matplotlib.pyplot as plt
@@ -24,6 +25,7 @@ import Lib._Parameters as sspar
 import Lib.errors as errors
 import Lib._IO as ssio
 import Lib._StrikeMap as ssmapnew
+import Lib.version_suite as version
 import xarray as xr
 from tqdm import tqdm   # For waitbars
 import Lib._Paths as p
@@ -62,7 +64,7 @@ class FIV(BVO):
         ## Magnetic field at FILD head
         self.BField = None
         ## Particular options for the magnetic field calculation
-        self.BFieldOptions = None
+        self.BFieldOptions = {}
         ## Orientation angles
         self.Bangles = None
 
@@ -693,23 +695,48 @@ class FIV(BVO):
         magField = os.path.join(folder, 'Bfield.nc')
         magFieldAngles = os.path.join(folder, 'BfieldAngles.nc')
         remap = os.path.join(folder, 'remap.nc')
+        calibration = os.path.join(folder, 'CameraCalibration.nc')
+        versionFile = os.path.join(folder, 'version.txt')
+        noiseFrame = os.path.join(folder, 'noiseFrame.nc')
+        metaDataFile = os.path.join(folder, 'metadata.txt')
+        orientationFile = os.path.join(folder, 'orientation.json')
+        positionFile = os.path.join(folder, 'position.json')
         tarFile = os.path.join(folder, str(self.shot) + '_' + self.diag +
                                str(self.diag_ID) + '_' + 'remap.tar')
         if os.path.isfile(tarFile) and not overwrite:
             raise Exception('The file exist!')
-        logger.info('Saving results in: ', folder)
+        logger.info('Saving results in: %s', folder)
         os.makedirs(folder, exist_ok=True)
 
         # Create the individual netCDF files
         self.export_Bangles(magFieldAngles)
         self.export_Bfield(magField)
         self.remap_dat.to_netcdf(remap)
+        self.CameraCalibration.save2netCDF(calibration)
+        if 'frame_noise' in self.exp_dat:
+            self.exp_dat['frame_noise'].to_netcdf(noiseFrame)
+        version.exportVersion(versionFile)
+        with open(metaDataFile, 'w') as f:
+            f.write('Shot: %i\n'%self.shot)
+            f.write('diag_ID: %i\n'%self.diag_ID)
+            f.write('geom_ID: %s\n'%self.geometryID)
+            f.write('CameraFileBPP: %s\n'%self.settings['RealBPP'])
 
+        json.dump(self.position, open(positionFile, 'w' ) )
+        json.dump({k:v.tolist() for k,v in self.orientation.items()}, 
+                  open(orientationFile, 'w' ) )
         # Create the tar file
         tar = tarfile.open(name=tarFile, mode='w')
-        tar.add(magField)
-        tar.add(magFieldAngles)
-        tar.add(remap)
+        tar.add(magField, arcname='Bfield.nc')
+        tar.add(magFieldAngles, arcname='BfieldAngles.nc')
+        tar.add(remap, arcname='remap.nc')
+        tar.add(calibration, arcname='CameraCalibration.nc')
+        tar.add(versionFile, arcname='version.txt')
+        tar.add(metaDataFile, arcname='metadata.txt')
+        tar.add(positionFile, arcname='position.json')
+        tar.add(orientationFile, arcname='orientation.json')
+        if 'frame_noise' in self.exp_dat:
+            tar.add(noiseFrame, arcname='noiseFrame.nc')
         tar.close()
 
         # Clean if asked
@@ -717,3 +744,5 @@ class FIV(BVO):
             os.remove(magField)
             os.remove(magFieldAngles)
             os.remove(remap)
+            os.remove(calibration)
+            os.remove(versionFile)

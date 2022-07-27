@@ -24,7 +24,6 @@ import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 from Lib.version_suite import version
 from Lib._Machine import machine
 import Lib._Video._AuxFunctions as _aux
-from scipy.io import netcdf                # To export remap data
 import xarray as xr
 pa = p.Path(machine)
 del p
@@ -191,6 +190,9 @@ class FILDVideo(FIV):
             -# sprofx: signal integrated over the y range given by options
             -# sprofy: signal integrated over the x range given by options
         """
+        # Check if there was some data
+        if self.remap_dat is not None:
+            self.remap_dat = None
         # Check if the user want to use the average
         if 'use_average' in options.keys():
             use_avg = options['use_average']

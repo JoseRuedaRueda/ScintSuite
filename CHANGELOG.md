@@ -21,7 +21,6 @@
 ### GUIS
 - StrikeMap button fixed, but only SINPA format is supported now (if users ask for it, FILDSIM format could be back, but the new smap archives are done with SINPA so...)
 
-
 ### LibMapping:
 - The strike map object there present is just a wrapper for the new strike maps
 - The remap done with a mask was improved to save memory (now just z values are set to zero instead of cutting the 3 arrays)
@@ -68,7 +67,12 @@
 - Export remap: temporally not available, until it is adapted to the new remap structure
 - Translate remap: temporally not available, until it is adapted to the new remap structure
 - getTimeTrace now returns also the used mask
-- exp_dat is now xarrays instead of dictionaries
+- exp_dat, remap_dat are now xarrays instead of dictionaries
+- export_remaps now create a series of netCDF files to simplify reloading of data
+
+### LibIO
+- read_calibration() routine now compatible with distortion calibrations
+- Included load_remap(), to load and handle the new remap exports 
 
 ### Others
 - getGyroradius and getEnergy now uses the proper amu to kg conversion and no longer rely on the proton mass

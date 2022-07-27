@@ -388,8 +388,7 @@ class BVO:
                 t2 = t2_vid
             it1 = np.argmin(abs(self.exp_dat['t'].values - t1))
             it2 = np.argmin(abs(self.exp_dat['t'].values - t2))
-            self.exp_dat.attrs['t1_noise'] = t1
-            self.exp_dat.attrs['t2_noise'] = t2
+
             print('Using frames from the video')
             print(str(it2 - it1 + 1), ' frames will be used to average noise')
             frame = np.mean(self.exp_dat['frames'].values[:, :, it1:(it2 + 1)],
@@ -404,6 +403,8 @@ class BVO:
         # Save the frame in the structure
         self.exp_dat['frame_noise'] = xr.DataArray(frame.squeeze(),
                                                    dims=('px', 'py'))
+        self.exp_dat['frame_noise'].attrs['t1_noise'] = t1
+        self.exp_dat['frame_noise'].attrs['t2_noise'] = t2
         # --- Copy the original frame array:
         if 'original_frames' not in self.exp_dat and flag_copy:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
@@ -414,8 +415,8 @@ class BVO:
             (self.exp_dat['frames'].values.astype(float) - frame[..., None])
         dummy[dummy < 0] = 0.0  # Clean the negative values
         self.exp_dat['frames'].values = dummy.astype(original_dtype)
+ 
         print('-... -.-- . / -... -.-- .')
-
         return frame.astype(original_dtype)
 
     def filter_frames(self, method: str = 'median', options: dict = {},

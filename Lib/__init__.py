@@ -107,6 +107,7 @@ import Lib._ScintillatorCharacterization as scintcharact
 import Lib._GUIs as GUI
 import Lib._Optics as optics
 import Lib._Noise as noise
+import Lib.version_suite as ver
 from Lib.version_suite import version, codename
 __version__ = version
 import Lib._CAD as cad

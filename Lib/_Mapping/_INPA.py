@@ -5,29 +5,34 @@ Jose Rueda Rueda: jrrueda@us.es
 
 Introduced in version 0.8.2
 """
-import time
 import os
+import time
+import logging
 import numpy as np
+import xarray as xr
 import Lib.SimulationCodes.SINPA as ssSINPA
 import Lib._Utilities as ssextra
-from Lib._Machine import machine
-from Lib._Mapping._StrikeMap import StrikeMap
 import Lib._Mapping._Common as common
 import Lib._Paths as p
 import Lib._IO as ssio
 import Lib.errors as errors
-from Lib._SideFunctions import createGrid
 from tqdm import tqdm   # For waitbars
+from Lib._Machine import machine
+from Lib._Mapping._StrikeMap import StrikeMap
+from Lib._SideFunctions import createGrid
+
+__all__ = ['remapAllLoadedFrames']
+
+# --- Initialise the auxiliar objects
 paths = p.Path(machine)
 del p
+logger = logging.getLogger('ScintSuite.INPAMapping')
 
-
+# --- Remapping function
 def remapAllLoadedFrames(video,
                          ymin: float = 1., ymax: float = 5.0, dy: float = 0.05,
                          xmin: float = 1.5, xmax: float = 2.2,
                          dx: float = 0.02,
-                         rprofmin: float = 0.0, rprofmax: float = 200,
-                         xiprofmin: float = 0.0, xiprofmax: float = 200,
                          code_options: dict = {},
                          method: int = 1,
                          verbose: bool = False,
@@ -38,7 +43,9 @@ def remapAllLoadedFrames(video,
                          remap_method: str = 'centers',
                          MC_number: int = 100,
                          allIn: bool = False,
-                         use_average: bool = False):
+                         use_average: bool = False,
+                         variables_to_remap: tuple = ('R0', 'gyroradius'),
+                         A: float = 2.01410178, Z: float = 1.0):
     """
     Remap all loaded frames from an INPA video.
 
@@ -51,10 +58,6 @@ def remapAllLoadedFrames(video,
     @param    ximin: Minimum pitch to consider [º]
     @param    ximax: Maximum pitch to consider [º]
     @param    dxi: bin width in pitch [º]
-    @param    rprofmin: minimum gyrodarius to calculate pitch profiles [cm]
-    @param    rprofmax: maximum gyroradius to calculate pitch profiles [cm]
-    @param    xiprofmin: minimum R for gyroradius profiles [º]
-    @param    xiprofmax: maximum R for gyroradius profiles [º]
     @param    code_options: namelist dictionary with the SINPA options
               just in case we need to run the code. See SINPA library
               and their gitlabs for the necesary options. It is recomended to
@@ -106,15 +109,36 @@ def remapAllLoadedFrames(video,
         database and which don't
     @return   opt: dictionary containing all the input parameters
     """
-    # --- INPUTS CHECK AND PREPARATION
-    # -- Check inputs strike map
     print('.-. . -- .- .--. .--. .. -. --.')
+    # --------------------------------------------------------------------------
+    # --- INPUTS CHECK AND PREPARATION
+    # --------------------------------------------------------------------------
+    acceptedVars = ('energy', 'r0', 'gyroradius')
+    units = {'e0': 'keV', 'R0': 'm', 'gyroradius': 'cm'}
+    var_remap = [v.lower() for v in variables_to_remap]  # force small letter
+    for v in var_remap:
+        if v not in acceptedVars:
+            raise errors.NotValidInput('Variables not accepted for INPA remap')
+    if 'energy' in var_remap:
+        wantEnergy = True
+        for i in range(2):
+            if var_remap[i] == 'energy':
+                var_remap[i] = 'e0'
+    else:
+        wantEnergy = False
+    if 'r0' in var_remap:
+        for i in range(2):
+            if var_remap[i] == 'r0':
+                var_remap[i] = 'R0'
+    
+    # -- Check inputs strike map
     if map is None:
         got_smap = False
     else:
         got_smap = True
         smap = map
-        print('A StrikeMap was given, we will remap all frames with it')
+        logger.info('A StrikeMap was given, we will remap all frames with it')
+        logger.warning('24: Assuming you properly prepared the smap')
 
     if smap_folder is None:
         smap_folder = os.path.join(paths.ScintSuite, 'Data', 'RemapStrikeMaps',
@@ -143,14 +167,16 @@ def remapAllLoadedFrames(video,
     nx, ny, x_edges, y_edges = createGrid(xmin, xmax, dx, ymin, ymax, dy)
     ycen = 0.5 * (y_edges[0:-1] + y_edges[1:])
     xcen = 0.5 * (x_edges[0:-1] + x_edges[1:])
+    # --------------------------------------------------------------------------
     # --- STRIKE MAP SEARCH
+    # --------------------------------------------------------------------------
     exist = np.zeros(nframes, bool)
     name = ' '      # To save the name of the strike map
     name_old = ' '  # To avoid loading twice in a row the same map
     if not got_smap:
         # -- Collect the angles
-        phi = video.Bangles['phi']
-        theta = video.Bangles['theta']
+        phi = video.Bangles['phi'].values
+        theta = video.Bangles['theta'].values
         # Check that the angles were calculated for the frames (it can happen
         # that the user recalculate the angles after averaging, so they are
         # evaluated in the original time base)
@@ -179,9 +205,10 @@ def remapAllLoadedFrames(video,
         # The variable x will be the flag to calculate or not more strike maps
         if nnSmap == 0:
             print('--. .-. . .- -')
-            print('Ideal situation, not a single map needs to be calculated')
+            text = 'Ideal situation, not a single map needs to be calculated'
+            logger.info(text)
         elif nnSmap == nframes:
-            print('Non a single strike map, full calculation needed')
+            logger.info('Non a single strike map, full calculation needed')
         elif nnSmap != 0:
             if not allIn:
                 print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
@@ -204,12 +231,12 @@ def remapAllLoadedFrames(video,
         exist = np.ones(nframes, bool)
         theta_used = np.zeros(nframes, bool)
         phi_used = np.zeros(nframes, bool)
+    # --------------------------------------------------------------------------
     # --- REMAP THE FRAMES
+    # --------------------------------------------------------------------------
     # -- Initialise the variables:
     remaped_frames = np.zeros((nx, ny, nframes))
-    signal_in_ycen = np.zeros((ny, nframes))
-    signal_in_pit = np.zeros((nx, nframes))
-    print('Remapping frames ...')
+    logger.info('Remapping frames ...')
     for iframe in tqdm(range(nframes)):
         if not got_smap:
             name = ssSINPA.execution.find_strike_map_INPA(
@@ -222,8 +249,11 @@ def remapAllLoadedFrames(video,
         # Only reload the strike map if it is needed
         if name != name_old:
             smap = StrikeMap(1, os.path.join(smap_folder, name))
+            if wantEnergy:
+                smap.calculate_energy(video.BField['B'].values[iframe], A, Z)
+            smap.setRemapVariables(var_remap, verbose=False)
+            # -- Calculate the pixel coordinates
             smap.calculate_pixel_coordinates(video.CameraCalibration)
-            # print('Interpolating grid')
             smap.interp_grid(frame_shape, method=method,
                              MC_number=MC_number,
                              grid_params={'ymin': ymin, 'ymax': ymax,
@@ -233,40 +263,56 @@ def remapAllLoadedFrames(video,
         name_old = name
         # remap the frames
         remaped_frames[:, :, iframe] = \
-            common.remap(smap, data['frames'][:, :, iframe],
+            common.remap(smap, data['frames'].values[:, :, iframe],
                          x_edges=x_edges, y_edges=y_edges, mask=mask,
                          method=remap_method)
-        # Calculate the gyroradius and pitch profiles
-        dummy = remaped_frames[:, :, iframe].squeeze()
-        signal_in_ycen[:, iframe] = common.gyr_profile(dummy, xcen, xiprofmin,
-                                                       xiprofmax)
-        signal_in_pit[:, iframe] = common.pitch_profile(dummy, ycen, rprofmin,
-                                                        rprofmax)
+
     if verbose:
         toc = time.time()
         print('Whole time interval remapped in: ', toc-tic, ' s')
         print('Average time per frame: ', (toc-tic) / nframes, ' s')
 
-    output = {
-        'frames': remaped_frames,
-        'xaxis': xcen, 'yaxis': ycen,
-        'xlabel': 'R', 'ylabel': '$r_l$',
-        'xunits': 'm', 'yunits': 'cm',
-        'sprofx': signal_in_pit, 'sprofy': signal_in_ycen,
-        'sprofxlabel': 'Signal integrated in $r_l$',
-        'sprofylabel': 'Signal integrated in R',
-        'phi': phi, 'theta': theta,
-        'theta_used': theta_used, 'phi_used': phi_used,
-        'nframes': video.exp_dat['nframes'],
-        'tframes': video.exp_dat['tframes'],
-        'existing_smaps': exist
-    }
-    opt = {
-        'rmin': ymin, 'rmax': ymax, 'dr': dy, 'ximin': xmin, 'ximax': xmax,
-        'dxi': dx, 'rprofmin': rprofmin, 'rprofmax': rprofmax,
-        'xiprofmin': xiprofmin, 'xiprofmax': xiprofmax,
-        'decimals': decimals,
-        'smap_folder': smap_folder,
-        'use_average': use_average,
-    }
-    return output, opt
+    remap_dat = xr.Dataset()
+    remap_dat['frames'] = \
+        xr.DataArray(remaped_frames, dims=('x', 'y', 't'),
+                     coords={'t': data['t'].values, 'x': xcen, 'y': ycen})
+    remap_dat['frames'].attrs['long_name'] = 'Original remap'
+    remap_dat['frames'].attrs['xmin'] = xmin
+    remap_dat['frames'].attrs['ymin'] = ymin
+    remap_dat['frames'].attrs['xmax'] = xmax
+    remap_dat['frames'].attrs['dx'] = dx
+    remap_dat['frames'].attrs['dy'] = dy
+    remap_dat['frames'].attrs['decimals'] = decimals
+    remap_dat['frames'].attrs['smap_folder'] = smap_folder
+    remap_dat['frames'].attrs['use_average'] = int(use_average)
+    remap_dat['frames'].attrs['CodeUsed'] = smap.code
+    remap_dat['frames'].attrs['A'] = A
+    remap_dat['frames'].attrs['Z'] = Z
+
+    remap_dat['x'].attrs['units'] = units[var_remap[0]]
+    remap_dat['x'].attrs['long_name'] = variables_to_remap[0]
+
+    remap_dat['y'].attrs['units'] = units[var_remap[1]]
+    remap_dat['y'].attrs['long_name'] = variables_to_remap[1]
+
+    remap_dat['phi'] = xr.DataArray(phi, dims=('t'))
+    remap_dat['phi'].attrs['long_name'] = 'Calculated phi angle'
+    remap_dat['phi'].attrs['units'] = 'Degree'
+
+    remap_dat['theta'] = xr.DataArray(theta, dims=('t'))
+    remap_dat['theta'].attrs['long_name'] = 'Calculated theta angle'
+    remap_dat['theta'].attrs['units'] = 'Degree'
+
+    remap_dat['phi_used'] = xr.DataArray(phi, dims=('t'))
+    remap_dat['phi_used'].attrs['long_name'] = 'Used phi angle'
+    remap_dat['phi_used'].attrs['units'] = 'Degree'
+
+    remap_dat['theta_used'] = xr.DataArray(theta, dims=('t'))
+    remap_dat['theta_used'].attrs['long_name'] = 'Used theta angle'
+    remap_dat['theta_used'].attrs['units'] = 'Degree'
+
+    remap_dat['nframes'] = video.exp_dat['nframes'].copy()
+
+    remap_dat['existing_smaps'] = xr.DataArray(exist, dims=('t'))
+
+    return remap_dat

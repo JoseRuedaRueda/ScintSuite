@@ -1,9 +1,12 @@
 """Calibration and database objects."""
+import logging
 import numpy as np
 import pandas as pd
 import Lib.errors as errors
+from scipy.io import netcdf                # To export remap data
 
-
+# Initialise the auxiliary objects
+logger = logging.getLogger('ScintSuite.Calibration')
 # -----------------------------------------------------------------------------
 # --- Aux functions
 # -----------------------------------------------------------------------------
@@ -214,7 +217,7 @@ class CalParams:
         self.xscale = 0.0
         ## pixel/cm in the y direction
         self.yscale = 0.0
-        ## Offset to align 0,0 of the sensor with the scintillator
+        ## Offset to align 0,0 of tssiohe sensor with the scintillator
         self.xshift = 0.0
         ## Offset to align 0,0 of the sensor with the scintillator
         self.yshift = 0.0
@@ -232,7 +235,11 @@ class CalParams:
         self.ycenter = 0.0
 
     def print(self):
-        """Print calibration"""
+        """
+        Print calibration
+        
+        Jose Rueda: jrrueda@us.es
+        """
         print('xscale: ', self.xscale)
         print('yscale: ', self.yscale)
         print('xshift: ', self.xshift)
@@ -242,3 +249,55 @@ class CalParams:
         print('ycenter: ', self.ycenter)
         print('c1: ', self.c1)
         print('c2: ', self.c2)
+
+    def save2netCDF(self, filename):
+        """
+        Save the calibration in a netCDF file
+        """      
+        logger.info('Saving results in: %s', filename)
+        with netcdf.netcdf_file(filename, 'w') as f:
+            # Create the dimensions for the variables:
+            f.createDimension('number', 1)  # For numbers
+            # Save the calibration
+            xscale = f.createVariable('xscale', 'float64', ('number', ))
+            xscale[:] = self.xscale
+            xscale.long_name = 'x scale of the used calibration'
+
+            yscale = f.createVariable('yscale', 'float64', ('number', ))
+            yscale[:] = self.yscale
+            yscale.long_name = 'y scale of the used calibration'
+
+            xshift = f.createVariable('xshift', 'float64', ('number', ))
+            xshift[:] = self.xshift
+            xshift.units = 'px'
+            xshift.long_name = 'x shift of the used calibration'
+
+            yshift = f.createVariable('yshift', 'float64', ('number', ))
+            yshift[:] = self.yshift
+            yshift.units = 'px'
+            yshift.long_name = 'y shift of the used calibration'
+
+            deg = f.createVariable('deg', 'float64', ('number', ))
+            deg[:] = self.deg
+            deg.units = 'degrees'
+            deg.long_name = 'alpha angle the used calibration'
+
+            xcenter = f.createVariable('xcenter', 'float64', ('number', ))
+            xcenter[:] = self.xcenter
+            xcenter.units = 'px'
+            xcenter.long_name = 'x center of the used calibration'       
+            
+            ycenter = f.createVariable('ycenter', 'float64', ('number', ))
+            ycenter[:] = self.ycenter
+            ycenter.units = 'px'
+            ycenter.long_name = 'y center of the used calibration'        
+            
+            c1 = f.createVariable('c1', 'float64', ('number', ))
+            c1[:] = self.c1
+            c1.long_name = 'c1 (distortion) of the used calibration' 
+
+            c2 = f.createVariable('c2', 'float64', ('number', ))
+            c2[:] = self.c2
+            c2.long_name = 'c2 (distortion) of the used calibration'
+
+
