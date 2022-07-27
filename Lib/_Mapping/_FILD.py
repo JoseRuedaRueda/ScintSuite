@@ -1,4 +1,8 @@
-"""Remapping of FILD frames."""
+"""
+Remapping of FILD camera frames
+
+Jose Rueda Rueda: jrrueda@us.es
+"""
 import time
 import os
 import f90nml
@@ -106,7 +110,9 @@ def remapAllLoadedFrames(video,
         database and which don't
     @return   opt: dictionary containing all the input parameters
     """
+    # --------------------------------------------------------------------------
     # --- INPUTS CHECK AND PREPARATION
+    # --------------------------------------------------------------------------
     # -- Acepted variables to remap
     acceptedVars = ('energy', 'pitch', 'gyroradius')
     units = {'e0': 'keV', 'pitch': 'degree', 'gyroradius': 'cm'}
@@ -131,7 +137,7 @@ def remapAllLoadedFrames(video,
         got_smap = True
         smap = map
         logger.info('A StrikeMap was given, we will remap all frames with it')
-        logger.warning('Assuming you properly prepared the smap')
+        logger.warning('24: Assuming you properly prepared the smap')
 
     if smap_folder is None:
         smap_folder = os.path.join(paths.ScintSuite, 'Data', 'RemapStrikeMaps',
@@ -169,8 +175,9 @@ def remapAllLoadedFrames(video,
         sside.createGrid(xmin, xmax, dx, ymin, ymax, dy)
     x = 0.5 * (xedges[0:-1] + xedges[1:])    # Pitch angle in the standard case
     y = 0.5 * (yedges[0:-1] + yedges[1:])    # Gyroradius in the standard case
-
+    # --------------------------------------------------------------------------
     # --- STRIKE MAP SEARCH
+    # --------------------------------------------------------------------------
     exist = np.zeros(nframes, bool)
     name = ' '      # To save the name of the strike map
     name_old = ' '  # To avoid loading twice in a row the same map
@@ -214,7 +221,8 @@ def remapAllLoadedFrames(video,
         # The variable x will be the flag to calculate or not more strike maps
         if nnSmap == 0:
             print('--. .-. . .- -')
-            print('Ideal situation, not a single map needs to be calculated')
+            text = 'Ideal situation, not a single map needs to be calculated'
+            logger.info(text)
         elif nnSmap == nframes:
             print('Non a single strike map, full calculation needed')
         elif nnSmap != 0:
@@ -239,10 +247,12 @@ def remapAllLoadedFrames(video,
         exist = np.ones(nframes, bool)
         theta_used = np.zeros(nframes, bool)
         phi_used = np.zeros(nframes, bool)
+    # --------------------------------------------------------------------------
     # --- REMAP THE FRAMES
+    # --------------------------------------------------------------------------
     # -- Initialise the variables:
     remaped_frames = np.zeros((nx, ny, nframes))
-    print('Remapping frames ...')
+    logger.info('Remapping frames ...')
     for iframe in tqdm(range(nframes)):
         if not got_smap:
             if FILDSIM:
@@ -264,8 +274,6 @@ def remapAllLoadedFrames(video,
             smap.setRemapVariables(var_remap, verbose=False)
             # -- Calculate the pixel coordinates
             smap.calculate_pixel_coordinates(video.CameraCalibration)
-
-            # print('Interpolating grid')
             smap.interp_grid(frame_shape, method=method,
                              MC_number=MC_number,
                              grid_params={'ymin': ymin, 'ymax': ymax,
@@ -297,15 +305,14 @@ def remapAllLoadedFrames(video,
     remap_dat['frames'].attrs['smap_folder'] = smap_folder
     remap_dat['frames'].attrs['use_average'] = int(use_average)
     remap_dat['frames'].attrs['CodeUsed'] = smap.code
+    remap_dat['frames'].attrs['A'] = A
+    remap_dat['frames'].attrs['Z'] = Z
 
     remap_dat['x'].attrs['units'] = units[var_remap[0]]
     remap_dat['x'].attrs['long_name'] = variables_to_remap[0]
 
     remap_dat['y'].attrs['units'] = units[var_remap[1]]
     remap_dat['y'].attrs['long_name'] = variables_to_remap[1]
-
-    remap_dat['frames'].attrs['A'] = A
-    remap_dat['frames'].attrs['Z'] = Z
 
     remap_dat['phi'] = xr.DataArray(phi, dims=('t'))
     remap_dat['phi'].attrs['long_name'] = 'Calculated phi angle'

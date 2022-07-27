@@ -349,5 +349,5 @@ def get_gyroradius(E, B: float, A: float = 2.01410178, Z: int = 1):
     @return r: Larmor radius as taken from FILD strike map [in cm]
     """
     m = ssp.amu2kg * A  # Mass of the ion
-    r = 100. * np.sqrt(2.0 * E * m / ssp.c**2) / Z / B
+    r = 100. * np.sqrt(2.0 * E * m / ssp.ec) / Z / B
     return r

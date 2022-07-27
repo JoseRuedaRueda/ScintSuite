@@ -18,3 +18,4 @@
 !  21: Not implemented
 !  22: Data not present in the logbook, returning default
 !  23: Tokamak environment not recognised, database calls will not work
+!  24: Expected strike map already prepared
