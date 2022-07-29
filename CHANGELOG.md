@@ -17,6 +17,7 @@
 
 ### LibData:
 - AUG `get_shot_basic()` was adapted to new sfaug library
+- INPA PMT channels data was included
 
 ### GUIS
 - StrikeMap button fixed, but only SINPA format is supported now (if users ask for it, FILDSIM format could be back, but the new smap archives are done with SINPA so...)
@@ -72,7 +73,13 @@
 
 ### LibIO
 - read_calibration() routine now compatible with distortion calibrations
-- Included load_remap(), to load and handle the new remap exports 
+- Included load_remap(), to load and handle the new remap exports
+
+### LibFastChannel
+- Was rewritten to derive from the common timetrace class
+
+### LibMachine
+- Made a bit more robust the case of false AUG detections, but still not good enough, we need a better way
 
 ### Others
 - getGyroradius and getEnergy now uses the proper amu to kg conversion and no longer rely on the proton mass
