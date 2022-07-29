@@ -43,7 +43,7 @@ class ApplicationShowProfiles:
         # --- Initialise the data container
         self.data = data
         self.remap_dat = remap_dat
-        t = data['tframes']
+        t = data['t'].values
         # --- Create a tk container
         frame = tk.Frame(master)
         # Allows to the figures, to resize
@@ -224,7 +224,7 @@ class ApplicationShowProfiles:
     def plot_frame(self, t):
         """Plot the new frame"""
         t0 = np.float64(t)
-        it = np.argmin(abs(self.data['tframes'] - t0))
+        it = np.argmin(abs(self.data['t'].values - t0))
         self.gyr.set_ydata(self.remap_dat['sprofy'][:, it].squeeze())
         # If needed, plot the smap
         self.canvas.draw()

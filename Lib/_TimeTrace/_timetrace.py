@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import Lib._Plotting as ssplt
 import Lib._IO as ssio
 from tqdm import tqdm
+import xarray as xr
+from Lib._basicVariable import BasicSignalVariable
 
 
 def trace(frames, mask):
@@ -136,7 +138,7 @@ def time_trace_cine(cin_object, mask, t1=0, t2=10):
     return time_base, sum_of_roi, mean_of_roi, std_of_roi, max_of_roi
 
 
-class TimeTrace:
+class TimeTrace(BasicSignalVariable):
     """Class with information of the time trace"""
 
     def __init__(self, video=None, mask=None, t1: float = None,
@@ -158,6 +160,7 @@ class TimeTrace:
         @param t2: Final time if None, the loaded frames in the video will be
         used
         """
+        BasicSignalVariable.__init__(self)
         # Initialise the times to look for the time trace
         if video is not None:
             if t1 is None and t2 is None:
@@ -168,20 +171,12 @@ class TimeTrace:
                 raise Exception('Only one time was given!')
             elif t1 is not None and t2 is None:
                 raise Exception('Only one time was given!')
-            self.shot = video.shot
+            shot = video.shot
         else:
-            self.shot = None
+            shot = None
         # Initialise the different arrays
-        ## Numpy array with the time base
-        self.time_base = None
-        ## Numpy array with the total counts in the ROI
-        self.sum_of_roi = None
-        ## Numpy array with the mean of counts in the ROI
-        self.mean_of_roi = None
-        ## Numpy array with the std of counts in the ROI
-        self.std_of_roi = None
-        ## Numpy array with the max of counts in the ROI
-        self.max_of_roi = None
+        self._data.attrs['shot'] = shot
+        
         ## Binary mask defining the roi
         self.mask = mask
         ## roiPoly object (not initialised by default!!!)
@@ -193,16 +188,23 @@ class TimeTrace:
         # Calculate the time trace
         if video is not None:
             if t1 is None:
-                self.time_base = video.exp_dat['tframes'].squeeze()
-                self.sum_of_roi, self.mean_of_roi, self.std_of_roi,\
-                    self.max_of_roi = trace(video.exp_dat['frames'], mask)
+                time_base = video.exp_dat['tframes'].squeeze()
+                sum_of_roi, mean_of_roi, std_of_roi,\
+                    max_of_roi = trace(video.exp_dat['frames'], mask)
             else:
                 if video.type_of_file == '.cin':
-                    self.time_base, self.sum_of_roi, self.mean_of_roi,\
-                        self.std_of_roi, self.max_of_roi =\
+                    time_base, sum_of_roi, mean_of_roi,\
+                        std_of_roi, max_of_roi =\
                         time_trace_cine(video, mask, t1, t2)
                 else:
                     raise Exception('Still not implemented, contact ruejo')
+            # Save the trace in the data structure
+            self._data['sum_of_roi'] = \
+                xr.DataArray(sum_of_roi, dims=('t',), 
+                                coords={'t':time_base})
+            self._data['mean_of_roi'] = xr.DataArray(mean_of_roi, dims='t')
+            self._data['std_of_roi'] = xr.DataArray(std_of_roi, dims='t')
+            self._data['max_of_roi'] = xr.DataArray(max_of_roi, dims='t')
 
     def export_to_ascii(self, filename: str = None, precision=3):
         """
@@ -226,62 +228,24 @@ class TimeTrace:
             filename = ssio.check_save_file(filename)
         # --- Prepare the header
         date = datetime.datetime.now()
+        try:
+            shot = self._data.attrs['shot']
+        except KeyError:
+            shot = 0
         line = 'Time trace: ' + date.strftime("%d-%b-%Y (%H:%M:%S.%f)") + \
-               ' shot ' + str(self.shot) + '\n' + \
+               ' shot %i' % shot + '\n' + \
                'Time [s]    ' + \
                'Counts in Roi     ' + \
                'Mean in Roi      Std Roi'
-        length = self.time_base.size
+        length = self['t'].values.size
         # Save the data
-        np.savetxt(filename, np.hstack((self.time_base.reshape(length, 1),
-                                        self.sum_of_roi.reshape(length, 1),
-                                        self.mean_of_roi.reshape(length, 1),
-                                        self.std_of_roi.reshape(length, 1))),
+        np.savetxt(filename, 
+                   np.hstack((self['t'].values.reshape(length, 1),
+                             self['sum_of_roi'].values.reshape(length, 1),
+                             self['mean_of_roi'].values.reshape(length, 1),
+                             self['std_of_roi'].values.reshape(length, 1))),
                    delimiter='   ,   ', header=line,
                    fmt='%.'+str(precision)+'e')
-
-    def calculate_fft(self, params: dict = {}):
-        """
-        Calculate the fft of the time trace
-
-        Jose Rueda Rueda: jrrueda@us.es
-
-        Only the fft of the sum of the counts in the roi is calculated, if you
-        want others to be calculated, open a request in the GitLab
-
-        @param    params: Dictionary containing optional arguments for scipyfft
-        see scipy.fft.rfft for full details
-        @type:    dict
-
-        @return:  nothing, just fill self.fft
-        """
-        N = len(self.time_base)
-        self.fft['faxis'] = rfftfreq(N, self.time_base[2] - self.time_base[1])
-        self.fft['data'] = rfft(self.sum_of_roi, **params)
-        return
-
-    def calculate_spectrogram(self, params: dict = {}):
-        """
-        Calculate the spectrogram of the time trace
-
-        Jose Rueda Rueda: jrrueda@us.es
-
-        Only the spec of the sum of the counts in the roi is calculated, if you
-        want others to be calculated, open a request in the GitLab
-
-        @param    params: Dictionary containing optional arguments for the
-        spectrogram, see scipy.signal.spectrogram for the full details
-        @type:    dict
-
-        @return:  nothing, just fill self.spec
-        """
-        sampling_freq = 1 / (self.time_base[1] - self.time_base[0])
-        # print(sampling_freq)
-        f, t, Sxx = signal.spectrogram(self.sum_of_roi, sampling_freq)
-        self.spec['faxis'] = f
-        self.spec['taxis'] = t + self.time_base[0]
-        self.spec['data'] = Sxx
-        return
 
     def plot_single(self, data: str = 'sum', ax_params: dict = {},
                     line_params: dict = {}, normalised: bool = False, ax=None,
@@ -317,35 +281,36 @@ class TimeTrace:
         }
         # --- Select the proper data:
         if data == 'sum':
-            y = self.sum_of_roi.copy()
+            y = self['sum_of_roi'].values.copy()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = 'Counts [a.u.]'
                 else:
                     ax_params['ylabel'] = 'Counts'
         elif data == 'std':
-            y = self.std_of_roi.copy()
+            y = self['std_of_roi'].values.copy()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = '$\\sigma [a.u.]$'
                 else:
                     ax_params['ylabel'] = '$\\sigma$'
         elif data == 'mean/absmax':
-            y = self.mean_of_roi.copy() / self.max_of_roi.max()
+            y = self['mean_of_roi'].values.copy() \
+                / self['max_of_roi'].values.max()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = '$Mean/absmax [a.u.]$'
                 else:
                     ax_params['ylabel'] = '$Mean/absmax$'
         elif data == 'max':
-            y = self.max_of_roi.copy()
+            y = self['max_of_roi'].values.copy()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = '$Max$'
                 else:
                     ax_params['ylabel'] = '$Max [a.u.]$'
         else:
-            y = self.mean_of_roi.copy()
+            y = self['mean_of_roi'].values.copy()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = 'Mean [a.u.]'
@@ -376,7 +341,7 @@ class TimeTrace:
         else:
             created_ax = False
         line_options.update(line_params)
-        ax.plot(self.time_base, y, **line_options)
+        ax.plot(self['t'], y, **line_options)
         ax_options.update(ax_params)
         ax = ssplt.axis_beauty(ax, ax_options)
         plt.tight_layout()
@@ -410,17 +375,17 @@ class TimeTrace:
         # Open the figure
         fig_tt, [ax_tt1, ax_tt2, ax_tt3] = plt.subplots(3, sharex=True)
         # Plot the sum of the counts in the roi
-        ax_tt1.plot(self.time_base, self.sum_of_roi, **line_options)
+        ax_tt1.plot(self['t'], self['sum_of_roi'].values, **line_options)
         ax_options['ylabel'] = 'Counts'
         ax_tt1 = ssplt.axis_beauty(ax_tt1, ax_options)
 
         # plot the mean of the counts in the roi
-        ax_tt2.plot(self.time_base, self.mean_of_roi, **line_options)
+        ax_tt2.plot(self['t'], self['mean_of_roi'].values, **line_options)
         ax_options['ylabel'] = 'Mean'
         ax_tt2 = ssplt.axis_beauty(ax_tt2, ax_options)
 
         # plot the std of the counts in the roi
-        ax_tt3.plot(self.time_base, self.std_of_roi, **line_options)
+        ax_tt3.plot(self['t'], self['std_of_roi'].values, **line_options)
         ax_options['xlabel'] = 't [s]'
         ax_options['ylabel'] = '$\\sigma$'
         ax_tt3 = ssplt.axis_beauty(ax_tt3, ax_options)
@@ -429,51 +394,3 @@ class TimeTrace:
 
         return [ax_tt1, ax_tt2, ax_tt3]
 
-    def plot_fft(self, options: dict = {}):
-        """
-        Plot the fft of the TimeTrace
-
-        Jose Rueda: jrrueda@us.es
-
-        @param options: options for the axis_beauty method
-        @return fig: figure where the fft is plotted
-        @return ax: axes where the fft is plotted
-        """
-        if 'grid' not in options:
-            options['grid'] = 'both'
-        if 'xlabel' not in options:
-            options['xlabel'] = 'Frequency [Hz]'
-        if 'ylabel' not in options:
-            options['ylabel'] = 'Amplitude'
-        line_options = {'linewidth': 2, 'color': 'r'}
-
-        fig, ax = plt.subplots()
-        ax.plot(self.fft['faxis'], abs(self.fft['data']), **line_options)
-        ax = ssplt.axis_beauty(ax, options)
-        plt.show()
-        return ax
-
-    def plot_spectrogram(self, options: dict = {}):
-        """
-        Plot the spectrogram
-
-        Jose Rueda: jrrueda@us.es
-
-        @param options: options for the axis_beauty method
-        @return fig: figure where the fft is plotted
-        @return ax: axes where the fft is plotted
-        """
-        if 'grid' not in options:
-            options['grid'] = 'both'
-        if 'ylabel' not in options:
-            options['ylabel'] = 'Frequency [Hz]'
-        if 'xlabel' not in options:
-            options['xlabel'] = 'Time [s]'
-
-        fig, ax = plt.subplots()
-        cmap = ssplt.Gamma_II()
-        ax.pcolormesh(self.spec['taxis'], self.spec['faxis'],
-                      np.log(self.spec['data']), shading='gouraud', cmap=cmap)
-        ax = ssplt.axis_beauty(ax, options)
-        plt.show()
-        return ax

@@ -4,16 +4,18 @@
 
 ! Meaning:
 !  'None': Nothing will be hidden
-!  0: Missing a non essential module, like xarray
-!  1: OverWrittingData: Raised when an attribute class will try to overwrite data
-!  2: Old version of a module, but things should work
-!  3: Existing file, to overwrite when saving
-!  4: Non-existing file to be opened
-!  5: No fonts found, use matplotlib default
-!  6: SideCalculation could not be computed
-!  7: Calculation likely to be wrong
-!  8: Not found time point, taking the closest one
-!  9: Calculation requires large amount of memory
-!  'a0': Not fully tested in general case
-!  'a1': Not implemented
+!  10: Missing a non essential module, like xarray
+!  11: OverWrittingData: Raised when an attribute class will try to overwrite data
+!  12: Old version of a module, but things should work
+!  13: Existing file, to overwrite when saving
+!  14: Non-existing file to be opened
+!  15: No fonts found, use matplotlib default
+!  16: SideCalculation could not be computed
+!  17: Calculation likely to be wrong
+!  18: Not found time point, taking the closest one
+!  19: Calculation requires large amount of memory
+!  20: Not fully tested in general case
+!  21: Not implemented
 !  22: Data not present in the logbook, returning default
+!  23: Tokamak environment not recognised, database calls will not work
+!  24: Expected strike map already prepared

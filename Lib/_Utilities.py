@@ -18,9 +18,9 @@ try:
     warnings.filterwarnings('ignore',
                             category=ShapelyDeprecationWarning)
 except ModuleNotFoundError:
-    logging.warning('0: Shapely not found, you cannot calculate intersections')
+    logging.warning('10: Shapely not found, you cannot calculate intersections')
 except ImportError:
-    logging.warning('2: Old version of shapelly, but things should work')
+    logging.warning('12: Old version of shapely, but things should work')
 
 
 # -----------------------------------------------------------------------------

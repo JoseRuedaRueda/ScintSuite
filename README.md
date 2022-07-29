@@ -9,6 +9,8 @@ Needed packages. Only listed 'non-standard' packages. See below, there is a scri
 #### Essentials
 The suite will not work without them:
 - f90nml: To read FORTRAN namelist in an easy way (needed since version 0.1.10) `pip install f90nml`. This is the suite standard to read and write namelists!!!
+- xarray: To handle the data sets (videos, remaps, timetraces, needed since version 1.0.0)
+- numpy > 1.21.0: To support xarray
 
 #### Optional (the suite will work but some capabilities will not be available)
 - cv2 (OpenCv): To load frames from .mp4 files and to export videos `pip install opencv-python`
@@ -18,16 +20,35 @@ The suite will not work without them:
 - scipy 1.7.0 or newer, to have the RBF interpolators for the strike points
 - aug_sfutils > 0.7.0: To load the AUG magnetic field (see AUG python documentation for the different ways of installing this package https://www.aug.ipp.mpg.de/aug/manuals/aug_sfutils/)
 - mesh: To deal with CAD files
+- numba > 0.55.1 to perform fast iHIBPsim xsection calculations
 
 ### Cloning the suite and installing
 In order to clone the suite just open a terminal in your home directory and type:
 ```bash
  git clone https://gitlab.mpcdf.mpg.de/ruejo/scintsuite.git ScintSuite
 ```
-To install all non-standard (not machine dependent) packages, you can give a try the script: `first_run.py`. It will work in personal computers and *standard installations* although things can go wrong if your system has some particular rights limitations etc. In that case, I fear to say that you are alone.
+To install all non-standard (not machine dependent) packages, you can give a try the script: `first_run.py`. It will work in personal computers and *standard installations* although things can go wrong if your system has some particular rights limitations and you are not allowed to change them using =pip install=. In these cases, you should use a virtual environment:
 
-### Importing the suite
-In order to import the ScintSuite as `import Lib as MyAwesomeName`, you need to set in your environment the different paths to the external modules. For example, in the case of AUG, the path towards the AUG-python library. To do this, you just need to run the file path suite. For example, just type in a python terminal `run paths_suite` (being on the main Suite directory). After running it, you should be able to import the suite from everywhere in your computer. However, if your working directory is the root directory of the Suite, there is no need of running this line, you can just execute directly `import Lib as MyAwesomeName` and enjoy (as the function path_suite is called in the Sutie `__init__.py`)
+1. Install virtualenv: `pip install virtualenv`
+2. Create your virtual environment (let us call it SSvirtualenv): `virtualenv -p python3 --system-site-packages SSvirtualenv`
+3. Activate your virtual environment (remember to do this everytime you are using ScintSuite or add it to your login script): `source SSvirtualenv/bin/activate`
+4. Force install the compatible versions using `pip install modulename==X.X.X`. A list of compatible versions is listed here (checked in MAST-U and JET):
+```python
+scipy==1.7.0
+scikit-image==0.16.2
+pyfftw==0.12.0
+pandas==1.3.1
+```
+### Getting started
+**Importing the suite**
+
+*Short story*: Go to the main directory of the suite in your python terminal and run: `import Lib as ss` (or change ss by the name you want)
+
+*Long story*: In order to import the ScintSuite as `import Lib as MyAwesomeName`, you need to set in your environment the different paths to the external modules. For example, in the case of AUG, the path towards the AUG-python library. To do this, you just need to run the file path suite. For example, just type in a python terminal `run paths_suite` (being on the main Suite directory). After running it, you should be able to import the suite from everywhere in your computer. However, if your working directory is the root directory of the Suite, there is no need of running this line, you can just execute directly `import Lib as MyAwesomeName` and enjoy (as the function path_suite is called in the Sutie `__init__.py`)
+
+**Using it**
+
+Please see the examples in the Examples folder of the Suite, it contains the basic lines to execute the suite for each of they main capabilities. Please note than the examples does not contain all possibles ways of doing things iside the code, you will need to dig arround a bit if you need something too specific.
 
 ### Paths
 There are three files containing the paths and routes for the suite:
@@ -48,6 +69,12 @@ VRT related paths are hardcoded. There is a significant number of them and overl
 - As everything has doc-strings, you can always write in the python terminal <fname>? and you will get all the description of the <fname> method or object
 - The routines in the Example folder are intended to illustrate the use of the different tools in the suite. Please, if you want to play with them, make your own copy on 'MyRoutines', modifying the examples can cause merge conflicts in the future
 - If you have installed Doxygen you can generate the documentation in html and LaTex format just opening a terminal in the Suite root directory and typing  `doxygen Doxyfile`. Once the documentation is generated, you can open the index with the following command `xdg-open doc/index.html`. For a (old and outdated) Doxygen generated documentation, see: <https://hdvirtual.us.es/discovirt/index.php/s/FBjZ9FPfjjwMDS2> download the content and open the index.html file, inside the html folder.
+
+## Data export
+All data exported and saved by the Suite is done in netCDF, as default format. Platform independendent and binary format. 
+
+If the user is *alergic* to the use of programing languages in order to read the netCDF, this NASA program could be usefull: https://www.giss.nasa.gov/tools/panoply/download/ It allows you to open and plot the variables in the netCDF file
+
 
 ## Active Development
 ### Version control

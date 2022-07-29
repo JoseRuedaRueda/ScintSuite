@@ -49,7 +49,7 @@ class ApplicationShowVidRemap:
         self.remap_dat = remap_dat
         self.GeomID = GeomID
         self.calibration = calibration
-        t = data['tframes']
+        t = data['t'].values
         # --- Create a tk container
         frame = tk.Frame(master)
         # Allows to the figures, to resize
@@ -71,7 +71,7 @@ class ApplicationShowVidRemap:
         # --- Open the figure and show the camera frame
         fig = Figure()
         ax = fig.add_subplot(111)
-        self.image = ax.imshow(data['frames'][:, :, 0].squeeze(),
+        self.image = ax.imshow(data['frames'].values[:, :, 0].squeeze(),
                                origin='lower', cmap=self.cmaps[defalut_cmap],
                                aspect='equal', interpolation=None)
         # Place the figure in a canvas
@@ -141,12 +141,12 @@ class ApplicationShowVidRemap:
         ax2 = fig2.add_subplot(111)
         # --- Draw the second image
         vmax = remap_dat['frames'].max() * 0.8
-        self.image2 = ax2.imshow(remap_dat['frames'][:, :, 0].squeeze().T,
+        self.image2 = ax2.imshow(remap_dat['frames'].values[:, :, 0].squeeze().T,
                                  origin='lower',
-                                 extent=[remap_dat['xaxis'][0],
-                                         remap_dat['xaxis'][-1],
-                                         remap_dat['yaxis'][0],
-                                         remap_dat['yaxis'][-1]],
+                                 extent=[remap_dat['x'][0],
+                                         remap_dat['x'][-1],
+                                         remap_dat['y'][0],
+                                         remap_dat['y'][-1]],
                                  vmax=vmax, vmin=0,
                                  aspect='auto',
                                  cmap=self.cmaps[defalut_cmap],
@@ -246,8 +246,8 @@ class ApplicationShowVidRemap:
     def plot_frame(self, t):
         """Plot the new frame"""
         t0 = np.float64(t)
-        it = np.argmin(abs(self.data['tframes'] - t0))
-        dummy = self.data['frames'][:, :, it].squeeze().copy()
+        it = np.argmin(abs(self.data['t'].values - t0))
+        dummy = self.data['frames'].values[:, :, it].squeeze().copy()
         self.image.set_data(dummy)
         # If needed, plot the smap
         if self.checkVar1.get():
@@ -255,14 +255,14 @@ class ApplicationShowVidRemap:
             ssplt.remove_lines(self.canvas.figure.axes[0])
             # choose the new one:
             # get parameters of the map
-            theta_used = self.remap_dat['theta_used'][it]
-            phi_used = self.remap_dat['phi_used'][it]
+            theta_used = self.remap_dat['theta_used'].values[it]
+            phi_used = self.remap_dat['phi_used'].values[it]
 
             # Get the full name of the file
             name__smap = sssinpa.execution.guess_strike_map_name(
                 phi_used, theta_used, geomID=self.GeomID,
-                decimals=self.remap_dat['options']['decimals'])
-            smap_folder = self.remap_dat['options']['smap_folder']
+                decimals=self.remap_dat['frames'].attrs['decimals'])
+            smap_folder = self.remap_dat['frames'].attrs['smap_folder']
             full_name_smap = os.path.join(smap_folder, name__smap)
             # Load the map:
             smap = ssmap.StrikeMap(0, full_name_smap)
@@ -276,7 +276,7 @@ class ApplicationShowVidRemap:
             self.canvas.figure.axes[0].set_ylim(self.ylim[0], self.ylim[1])
         self.canvas.draw()
         # Now chane the remap
-        dummy = self.remap_dat['frames'][:, :, it].squeeze().T.copy()
+        dummy = self.remap_dat['frames'].values[:, :, it].squeeze().T.copy()
         self.image2.set_data(dummy)
         self.canvas2.draw()
 
