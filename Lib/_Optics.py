@@ -21,12 +21,12 @@ try:
     from wand.image import Image
 except ModuleNotFoundError:
     text = 'Wand image not found, you cannnot apply distortion to figures'
-    logger.warning('0: %s' % text)
+    logger.warning('10: %s' % text)
 try:
     import lmfit
 except ModuleNotFoundError:
     text = 'lmfit not found. You can not fit'
-    logger.warning('0: %s' % text)
+    logger.warning('10: %s' % text)
 
 
 # -----------------------------------------------------------------------------

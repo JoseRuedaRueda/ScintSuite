@@ -65,7 +65,7 @@ class roipoly:
             print('Please select the vertex of the roi in the figure')
             print('Select each vertex with left click')
             print('Undo your selection with right click')
-            print('Once you finished, right the middle button')
+            print('Once you finished, click the middle button')
             print('You have 216 seconds')
             # Get the points
             dummy = np.array(plt.ginput(-1, timeout=216))

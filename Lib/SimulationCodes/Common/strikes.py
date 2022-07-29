@@ -412,7 +412,7 @@ class Strikes:
             raise Exception('Variables not found')
         # --- Check if the histogram is already there
         if (varx + '_' + vary) in self.histograms.keys():
-            logger.warning('1: Histogram present, overwritting')
+            logger.warning('11: Histogram present, overwritting')
         # --- Find the needed colums:
         if not varx.endswith('cam'):
             jx = self.header['info'][varx]['i']
@@ -645,7 +645,7 @@ class Strikes:
             raise Exception('Variables not found')
         # --- Check if the histogram is already there
         if var in self.histograms.keys():
-            logger.warning('1: Histogram present, overwritting')
+            logger.warning('11: Histogram present, overwritting')
         # --- Find the needed colums:
         dat = self(var)
         w = self('weight')
@@ -1161,11 +1161,11 @@ class Strikes:
 
         warning: Only fully tested for SINPA strike points
         """
-        logger.warning('a0: Only fully tested for SINPA strike points')
+        logger.warning('20: Only fully tested for SINPA strike points')
         # See if there is already camera positions in the data
         if 'xcam' in self.header['info'].keys():
             text = 'The camera values are there, we will overwrite them'
-            logger.warning('1: %s' % text)
+            logger.warning('11: %s' % text)
             overwrite = True
             iixcam = self.header['info']['xcam']['i']
             iiycam = self.header['info']['ycam']['i']

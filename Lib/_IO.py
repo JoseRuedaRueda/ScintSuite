@@ -4,22 +4,29 @@ Input/output library
 Contains a miscellany of routines related with the different diagnostics, for
 example the routine to read the scintillator efficiency files, common for all
 """
-
-import numpy as np
 import time
-import Lib._TimeTrace as sstt
-import Lib._Parameters as sspar
-from Lib._Mapping._Calibration import CalParams
-from scipy.io import netcdf
-from Lib.version_suite import version
-from Lib._Paths import Path
-from Lib._Video._FILDVideoObject import FILDVideo
 import os
-import warnings
-import tkinter as tk                       # To open UI windows
 import pickle
 import f90nml
 import logging
+import tarfile
+import json
+import numpy as np
+import xarray as xr
+import tkinter as tk                       # To open UI windows
+import Lib._TimeTrace as sstt
+import Lib._Parameters as sspar
+import Lib.errors as errors
+import Lib.version_suite as ver
+from scipy.io import netcdf
+from Lib._Mapping._Calibration import CalParams
+from Lib.version_suite import version
+from Lib._Paths import Path
+from Lib._Video._FILDVideoObject import FILDVideo
+from Lib._Video._INPAVideoObject import INPAVideo
+
+
+# Initialise the objects
 logger = logging.getLogger('ScintSuite.IO')
 paths = Path()
 
@@ -41,7 +48,7 @@ def check_save_file(file):
     if not os.path.isfile(file):
         out = file
     else:
-        logger.warning('3: The file exist!!! you can choose the new name')
+        logger.warning('13: The file exist!!! you can choose the new name')
         dir, name = os.path.split(file)
         dummy, ext = os.path.splitext(name)
         out = ask_to_save(dir, ext)
@@ -165,9 +172,13 @@ def read_variable_ncdf(file, varNames, human=True, verbose=True):
     for ivar in range(len(listNames)):
         if verbose:
             print('Reading: ', listNames[ivar])
-        dummy = varfile[listNames[ivar]]
-        out.append(dummy)
-        del dummy
+        try:
+            dummy = varfile[listNames[ivar]]
+            out.append(dummy)
+            del dummy
+        except KeyError:
+            print('Var not found')
+            out.append(None)
     return out
 
 
@@ -272,7 +283,7 @@ def load_mask(filename):
     nx = None
     ny = None
     shot = None
-    file = netcdf.NetCDFFile(filename, 'r', mmap=False)
+    file = netcdf.NetCDFFile(filename, 'r', mmap=False, verbose=False)
     if 'frame' in file.variables.keys():
         frame = file.variables['frame'][:]
     if 'mask' in file.variables.keys():
@@ -321,7 +332,7 @@ def read_timetrace(file=None):
 # -----------------------------------------------------------------------------
 # --- Calibration
 # -----------------------------------------------------------------------------
-def read_calibration(file=None):
+def read_calibration(file=None, verbose: bool = False):
     """
     Read the used calibration from a remap netCDF file
 
@@ -337,13 +348,19 @@ def read_calibration(file=None):
             raise Exception('You must select a file!!!')
     print('-.-. .- .-.. .. -... .-. .- - .. --- -.')
     cal = CalParams()
-    list = ['xshift', 'yshift', 'xscale', 'yscale', 'deg']
-    var = read_variable_ncdf(file, list, human=False)
+    list = ['xshift', 'yshift', 'xscale', 'yscale', 'deg', 'xcenter', 'ycenter',
+            'c1', 'c2']
+    var = read_variable_ncdf(file, list, human=False, verbose=False)
     cal.xshift = var[0].data[:]
     cal.yshift = var[1].data[:]
     cal.xscale = var[2].data[:]
     cal.yscale = var[3].data[:]
     cal.deg = var[4].data[:]
+    if var[5] is not None:
+        cal.xcenter = var[5].data[:]
+        cal.ycenter = var[6].data[:]
+        cal.c1 = var[7].data[:]
+        cal.c2 = var[8].data[:]
     return cal
 
 
@@ -521,6 +538,57 @@ def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
 # -----------------------------------------------------------------------------
 # --- Remaped videos
 # -----------------------------------------------------------------------------
+def load_remap(filename, diag='FILD'):
+    """
+    Load a tar remap file into a video object
+    """
+    if not os.path.isdir(filename):
+        if filename is None:
+            filename = ' '
+            filename = check_open_file(filename)
+        if filename == '' or filename == ():
+            raise Exception('You must select a file!!!')
+    
+        # decompress the file
+        dummyFolder = os.path.join(paths.Results, 'tmp')
+        os.mkdir(dummyFolder)
+        # extract the file
+        tar = tarfile.open(filename)
+        tar.extractall(path=dummyFolder)
+        tar.close()
+    else:
+        dummyFolder = filename
+    if diag.lower() == 'fild':
+        vid = FILDVideo(empty=True)  # Open the empty Object
+    elif diag.lower() == 'inpa':
+        vid = INPAVideo(empty=True)
+    else:
+        raise errors.NotValidInput('Not suported diagnostic')
+    vid.remap_dat = xr.load_dataset(os.path.join(dummyFolder, 'remap.nc'))
+    vid.Bangles = xr.load_dataset(os.path.join(dummyFolder, 'Bfield.nc'))
+    vid.BField = xr.load_dataset(os.path.join(dummyFolder, 'BfieldAngles.nc'))
+    vid.CameraCalibration = \
+        read_calibration(os.path.join(dummyFolder, 'CameraCalibration.nc'))
+    v = ver.readVersion(os.path.join(dummyFolder, 'version.txt'))
+    noise_frame = os.path.join(dummyFolder, 'noiseFrame.nc')
+    position = os.path.join(dummyFolder, 'position.json')
+    orientation = os.path.join(dummyFolder, 'orientation.json')
+    if os.path.isfile(noise_frame):
+        vid.exp_dat = xr.Dataset()
+        vid.exp_dat['frame_noise'] = xr.load_dataarray(noise_frame)
+    with open(os.path.join(dummyFolder, 'metadata.txt'), 'r') as f:
+        vid.shot = int(f.readline().split(':')[-1])
+        vid.diag_ID = int(f.readline().split(':')[-1])
+        vid.diag = diag.upper()
+        vid.geometryID = f.readline().split(':')[-1].split('\n')[0].strip()
+        vid.settings = {}
+        vid.settings['RealBPP'] = int(f.readline().split(':')[-1])
+    vid.position = json.load(open(position))
+    vid.orientation = \
+        {k:np.array(v) for k,v in json.load(open(orientation)).items()}
+    logger.info('Remap generated with version %i.%i.%i'%(v[0], v[1], v[2]))
+    return vid
+
 def load_FILD_remap(filename: str = None, verbose=True,
                     encoding: str = 'utf-8'):
     """

@@ -19,7 +19,7 @@ logger = logging.getLogger('ScintSuite.iHIBPsim')
 try:
     import xarray as xr
 except ModuleNotFoundError:
-    logger.warning('0: Xarray not found. Needed for iHIBPsim.')
+    logger.warning('10: Xarray not found. Needed for iHIBPsim.')
 
 
 # -----------------------------------------------------------------------------

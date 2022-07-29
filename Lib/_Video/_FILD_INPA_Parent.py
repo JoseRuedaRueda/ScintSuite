@@ -5,6 +5,9 @@ Introduced in version 0.9.0
 """
 import os
 import math
+import logging
+import tarfile
+import json
 import numpy as np
 import tkinter as tk
 import matplotlib.pyplot as plt
@@ -20,8 +23,17 @@ import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 import Lib.SimulationCodes.SINPA as ssSINPA
 import Lib._Parameters as sspar
 import Lib.errors as errors
+import Lib._IO as ssio
 import Lib._StrikeMap as ssmapnew
+import Lib.version_suite as version
+import xarray as xr
 from tqdm import tqdm   # For waitbars
+import Lib._Paths as p
+from Lib._Machine import machine
+pa = p.Path(machine)
+del p
+
+logger = logging.getLogger('ScintSuite.Video')
 
 
 class FIV(BVO):
@@ -40,18 +52,22 @@ class FIV(BVO):
         - plotBangles: Plot the angles of the B field respect to the head
         - integrate_remap: Perform the integration over a region of the
             phase space
-    - Remap units:
-        - frames, xaxis, yaxis in the remap dict: signal per units of gyrorad
-        and Xi. signal/cm/XI_units. For the case of FILD, Xi_units = degree
-        and for the case of INPA, XI_units = meters.
-
-        The basic remap is saved in the remap_dat attribute. But it can be
-        translated to different units using the proper 'translation_functions'
-        this translations are stored in the 'translations' field in the
-        remap_dat. This is a dictionary, with a key for each specie. Inside the
-        specie, we have several dictionaries identified by a number
-            - 1: The yaxis is no longer Gyroradius but energy, in keV
     """
+    def __init__(self, **kargs):
+        """Init the class"""
+        # Init the parent class
+        BVO.__init__(self, **kargs)
+        ## Diag name
+        self.diag = None
+        ## Diag number
+        self.diag_ID = None
+        ## Magnetic field at FILD head
+        self.BField = None
+        ## Particular options for the magnetic field calculation
+        self.BFieldOptions = {}
+        ## Orientation angles
+        self.Bangles = None
+
 
     def _getB(self, extra_options: dict = {}, use_average: bool = False):
         """
@@ -70,9 +86,9 @@ class FIV(BVO):
             raise Exception('Detector position not know')
         # Get the proper timebase
         if use_average:
-            time = self.avg_dat['tframes']
+            time = self.avg_dat['t'].values
         else:
-            time = self.exp_dat['tframes']
+            time = self.exp_dat['t'].values
         # Calculate the magnetic field
         print('Calculating magnetic field (this might take a while): ')
         if 'R_scintillator' in self.position.keys():  # INPA case
@@ -87,12 +103,18 @@ class FIV(BVO):
                                 self.position[key2],
                                 time=time,
                                 **extra_options)
-        self.BField = {
-            'BR': np.array(br).squeeze(),
-            'Bz': np.array(bz).squeeze(),
-            'Bt': np.array(bt).squeeze(),
-            'B': np.sqrt(np.array(bp)**2 + np.array(bt)**2).squeeze()
-        }
+        self.BField = xr.Dataset()
+        self.BField['BR'] = xr.DataArray(np.array(br).squeeze(), dims=('t'),
+                                         coords={'t': time})
+
+        self.BField['Bz'] = xr.DataArray(np.array(bz).squeeze(), dims=('t'))
+        self.BField['Bt'] = xr.DataArray(np.array(bt).squeeze(), dims=('t'))
+        self.BField['B'] = xr.DataArray(
+            np.sqrt(np.array(bp)**2 + np.array(bt)**2).squeeze(), dims=('t'))
+        self.BField.attrs['units'] = 'T'
+        self.BField.attrs['R'] = self.position[key1]
+        self.BField.attrs['z'] = self.position[key2]
+        self.BField.attrs.update(extra_options)
 
     def plot_frame(self, frame_number=None, ax=None, ccmap=None,
                    strike_map: str = 'off', t: float = None,
@@ -152,7 +174,7 @@ class FIV(BVO):
         )
         # Get the frame number
         if t is not None:
-            frame_index = np.argmin(abs(self.exp_dat['tframes'] - t))
+            frame_index = np.argmin(abs(self.exp_dat['t'].values - t))
         else:
             frame_index = self.exp_dat['nframes'] == frame_number
         # --- Plot the strike map
@@ -260,11 +282,11 @@ class FIV(BVO):
             if len(self.remap_dat['nframes']) == 1:
                 if self.remap_dat['nframes'] == frame_number:
                     if translation is None:
-                        dummy = self.remap_dat['frames'].squeeze()
+                        dummy = self.remap_dat['frames'].values.squeeze()
                     else:
                         dummy = self.remap_dat['translations'][translation[0]]\
                             [translation[1]]['frames'].squeeze()
-                    tf = float(self.remap_dat['tframes'])
+                    tf = float(self.remap_dat['t'].values)
                     frame_index = 0
                 else:
                     raise Exception('Frame not loaded')
@@ -274,18 +296,18 @@ class FIV(BVO):
                     raise Exception('Frame not loaded')
                 if translation is None:
                     dummy = \
-                        self.remap_dat['frames'][:, :, frame_index].squeeze()
+                        self.remap_dat['frames'].values[:, :, frame_index].squeeze()
                 else:
                     dummy = self.remap_dat['translations'][translation[0]]\
                         [translation[1]]['frames'][:, :, frame_index].squeeze()
-                tf = float(self.remap_dat['tframes'][frame_index])
+                tf = float(self.remap_dat['t'].values[frame_index])
         # If we give the time:
         if t is not None:
-            frame_index = np.argmin(np.abs(self.remap_dat['tframes'] - t))
-            tf = self.remap_dat['tframes'][frame_index]
+            frame_index = np.argmin(np.abs(self.remap_dat['t'].values - t))
+            tf = self.remap_dat['t'].values[frame_index]
             if translation is None:
                 dummy = \
-                    self.remap_dat['frames'][:, :, frame_index].squeeze()
+                    self.remap_dat['frames'].values[:, :, frame_index].squeeze()
             else:
                 dummy = self.remap_dat['translations'][translation[0]]\
                     [translation[1]]['frames'][:, :, frame_index].squeeze()
@@ -306,8 +328,8 @@ class FIV(BVO):
         if vmax is None:
             vmax = dummy.max()
         if translation is None:
-            ext = [self.remap_dat['xaxis'][0], self.remap_dat['xaxis'][-1],
-                   self.remap_dat['yaxis'][0], self.remap_dat['yaxis'][-1]]
+            ext = [self.remap_dat['x'].values[0], self.remap_dat['x'].values[-1],
+                   self.remap_dat['y'].values[0], self.remap_dat['y'].values[-1]]
         else:
             ext = [self.remap_dat['translations'][translation[0]][translation[1]]['xaxis'][0],
                    self.remap_dat['translations'][translation[0]][translation[1]]['xaxis'][-1],
@@ -379,20 +401,17 @@ class FIV(BVO):
         line_options.update(line_params)
         # --- Get the data to plot if remap dat is present
         if self.remap_dat is not None:
-            time = self.remap_dat['tframes']
-            phi = self.remap_dat['phi']
-            phi_used = self.remap_dat['phi_used']
-            theta = self.remap_dat['theta']
-            theta_used = self.remap_dat['theta_used']
+            time = self.remap_dat['t'].values
+            phi = self.remap_dat['phi'].values
+            phi_used = self.remap_dat['phi_used'].values
+            theta = self.remap_dat['theta'].values
+            theta_used = self.remap_dat['theta_used'].values
         else:
-            phi = self.Bangles['phi']
+            phi = self.Bangles['phi'].values
             phi_used = None
-            theta = self.Bangles['theta']
+            theta = self.Bangles['theta'].values
             theta_used = None
-            if phi.size == len(self.exp_dat['tframes']):
-                time = self.exp_dat['tframes']
-            else:
-                time = self.avg_dat['tframes']
+            time = self.Bangles['t'].values
         # proceed to plot
         if ax is None:
             fig, ax = plt.subplots(2, sharex=True)
@@ -403,11 +422,11 @@ class FIV(BVO):
         # how-do-i-use-axvfill-with-a-boolean-series
         if theta_used is not None:
             ax[0].fill_between(time, 0, 1,
-                               where=self.remap_dat['existing_smaps'],
+                               where=self.remap_dat['existing_smaps'].values,
                                alpha=0.25, color='g',
                                transform=ax[0].get_xaxis_transform())
             ax[0].fill_between(time, 0, 1,
-                               where=~self.remap_dat['existing_smaps'],
+                               where=~self.remap_dat['existing_smaps'].values,
                                alpha=0.25, color='r',
                                transform=ax[0].get_xaxis_transform())
             ax[0].plot(time, theta_used,
@@ -421,11 +440,11 @@ class FIV(BVO):
         # Plot the phi angle
         if phi_used is not None:
             ax[1].fill_between(time, 0, 1,
-                               where=self.remap_dat['existing_smaps'],
+                               where=self.remap_dat['existing_smaps'].values,
                                alpha=0.25, color='g',
                                transform=ax[1].get_xaxis_transform())
             ax[1].fill_between(time, 0, 1,
-                               where=~self.remap_dat['existing_smaps'],
+                               where=~self.remap_dat['existing_smaps'].values,
                                alpha=0.25, color='r',
                                transform=ax[1].get_xaxis_transform())
             ax[1].plot(time, phi_used,
@@ -630,3 +649,100 @@ class FIV(BVO):
         ssGUI.ApplicationRemap2DAnalyser(root, self, traces)
         root.mainloop()
         root.destroy()
+
+    def export_Bangles(self, filename):
+        """
+        Export the B angles into a netCDF files
+
+        @param filename: filename
+
+        Notice, in principle this function should not be called, the method
+            self.export_remap() will take care of calling this one
+        """
+        logger.info('Saving Bangles in file %s' % filename)
+        self.Bangles.to_netcdf(filename)
+
+    def export_Bfield(self, filename):
+        """
+        Export the B angles into a netCDF files
+
+        @param filename: filename
+
+        Notice, in principle this function should not be called, the method
+            self.export_remap() will take care of calling this one
+        """
+        logger.info('Saving BField in file %s' % filename)
+        self.BField.to_netcdf(filename)
+
+    def export_remap(self, folder: str = None, clean: bool = False,
+                     overwrite: bool = False):
+        """
+        Export video file
+
+        Notice: This will create a netcdf with the exp_dat xarray, this is not
+        intended as a replace of the data base, as camera settings and
+        metadata will not be exported. But allows to quickly export the video
+        to netCDF format to be easily shared among computers
+
+        @param file: Path to the folder where to save the results. It is
+            recomended to leave it as None
+        """
+        if folder is None:
+            folder = os.path.join(pa.Results, str(self.shot), self.diag,
+                                  str(self.diag_ID))
+
+        # Now get the name of the files:
+        magField = os.path.join(folder, 'Bfield.nc')
+        magFieldAngles = os.path.join(folder, 'BfieldAngles.nc')
+        remap = os.path.join(folder, 'remap.nc')
+        calibration = os.path.join(folder, 'CameraCalibration.nc')
+        versionFile = os.path.join(folder, 'version.txt')
+        noiseFrame = os.path.join(folder, 'noiseFrame.nc')
+        metaDataFile = os.path.join(folder, 'metadata.txt')
+        orientationFile = os.path.join(folder, 'orientation.json')
+        positionFile = os.path.join(folder, 'position.json')
+        tarFile = os.path.join(folder, str(self.shot) + '_' + self.diag +
+                               str(self.diag_ID) + '_' + 'remap.tar')
+        if os.path.isfile(tarFile) and not overwrite:
+            raise Exception('The file exist!')
+        logger.info('Saving results in: %s', folder)
+        os.makedirs(folder, exist_ok=True)
+
+        # Create the individual netCDF files
+        self.export_Bangles(magFieldAngles)
+        self.export_Bfield(magField)
+        self.remap_dat.to_netcdf(remap)
+        self.CameraCalibration.save2netCDF(calibration)
+        if 'frame_noise' in self.exp_dat:
+            self.exp_dat['frame_noise'].to_netcdf(noiseFrame)
+        version.exportVersion(versionFile)
+        with open(metaDataFile, 'w') as f:
+            f.write('Shot: %i\n'%self.shot)
+            f.write('diag_ID: %i\n'%self.diag_ID)
+            f.write('geom_ID: %s\n'%self.geometryID)
+            f.write('CameraFileBPP: %s\n'%self.settings['RealBPP'])
+
+        json.dump(self.position, open(positionFile, 'w' ) )
+        json.dump({k:v.tolist() for k,v in self.orientation.items()}, 
+                  open(orientationFile, 'w' ) )
+        # Create the tar file
+        tar = tarfile.open(name=tarFile, mode='w')
+        tar.add(magField, arcname='Bfield.nc')
+        tar.add(magFieldAngles, arcname='BfieldAngles.nc')
+        tar.add(remap, arcname='remap.nc')
+        tar.add(calibration, arcname='CameraCalibration.nc')
+        tar.add(versionFile, arcname='version.txt')
+        tar.add(metaDataFile, arcname='metadata.txt')
+        tar.add(positionFile, arcname='position.json')
+        tar.add(orientationFile, arcname='orientation.json')
+        if 'frame_noise' in self.exp_dat:
+            tar.add(noiseFrame, arcname='noiseFrame.nc')
+        tar.close()
+
+        # Clean if asked
+        if clean:
+            os.remove(magField)
+            os.remove(magFieldAngles)
+            os.remove(remap)
+            os.remove(calibration)
+            os.remove(versionFile)

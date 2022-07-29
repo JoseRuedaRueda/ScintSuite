@@ -24,7 +24,7 @@ import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 from Lib.version_suite import version
 from Lib._Machine import machine
 import Lib._Video._AuxFunctions as _aux
-from scipy.io import netcdf                # To export remap data
+import xarray as xr
 pa = p.Path(machine)
 del p
 
@@ -140,12 +140,9 @@ class FILDVideo(FIV):
                 print('You need to define FILDorientation')
                 print('You need to define FILDgeometry')
                 print('You need to give the camera parameters')
-            ## Magnetic field at FILD head
-            self.BField = None
-            ## Particular options for the magnetic field calculation
+           
+            # Particular options for the magnetic field calculation
             self.BFieldOptions = Boptions
-            ## Orientation angles
-            self.Bangles = None
 
             if verbose:
                 if self.FILDoperatorComment is not None:
@@ -156,41 +153,6 @@ class FILDVideo(FIV):
         else:
             FIV.__init__(self, empty=empty)
 
-    # def _getB(self, extra_options: dict = {}, use_average: bool = False):
-    #     """
-    #     Get the magnetic field in the FILD position
-    #
-    #     Jose Rueda - jrrueda@us.es
-    #
-    #     @param extra_options: Extra options to be passed to the magnetic field
-    #         calculation. Ideal place to insert all your machine dependent stuff
-    #     @param use_average: flag to use the timebase of the average frames or
-    #         the experimental frames
-    #
-    #     Note: It will overwrite the content of self.Bfield
-    #     """
-    #     if self.position is None:
-    #         raise Exception('FILD position not know')
-    #     # Get the proper timebase
-    #     if use_average:
-    #         time = self.avg_dat['tframes']
-    #     else:
-    #         time = self.exp_dat['tframes']
-    #     # Calculate the magnetic field
-    #     print('Calculating magnetic field (this might take a while): ')
-    #     br, bz, bt, bp =\
-    #         ssdat.get_mag_field(self.shot, self.position['R'],
-    #                             self.position['z'],
-    #                             time=time,
-    #                             **extra_options)
-    #     self.BField = {
-    #         'BR': np.array(br).squeeze(),
-    #         'Bz': np.array(bz).squeeze(),
-    #         'Bt': np.array(bt).squeeze(),
-    #     }
-    #     self.BField['B'] = np.sqrt(self.BField['Bt']**2 + self.BField['BR']**2
-    #                                + self.BField['Bz']**2)
-
     def _getBangles(self):
         """Get the orientation of the field respec to the head"""
         if self.orientation is None:
@@ -200,7 +162,10 @@ class FILDVideo(FIV):
                 self.BField['BR'], self.BField['Bz'], self.BField['Bt'],
                 self.orientation['alpha'], self.orientation['beta']
             )
-        self.Bangles = {'phi': phi, 'theta': theta}
+        self.Bangles = xr.Dataset()
+        self.Bangles['phi'] = \
+            xr.DataArray(phi, dims=('t'), coords={'t': self.BField['t'].values})
+        self.Bangles['theta'] = xr.DataArray(theta, dims=('t'))
 
     def _checkStrikeMapDatabase():
         pass
@@ -225,13 +190,16 @@ class FILDVideo(FIV):
             -# sprofx: signal integrated over the y range given by options
             -# sprofy: signal integrated over the x range given by options
         """
+        # Check if there was some data
+        if self.remap_dat is not None:
+            self.remap_dat = None
         # Check if the user want to use the average
         if 'use_average' in options.keys():
             use_avg = options['use_average']
-            nt = len(self.avg_dat['tframes'])
+            nt = self.avg_dat['t'].size
         else:
             use_avg = False
-            nt = len(self.exp_dat['tframes'])
+            nt = self.exp_dat['t'].size
 
         # Check if the magnetic field and the angles are ready, only if the map
         # is not given
@@ -248,9 +216,7 @@ class FILDVideo(FIV):
                 self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles['phi'].size != nt:
                 self._getBangles()
-        self.remap_dat, opt = \
-            ssmap.remapAllLoadedFrames(self, **options)
-        self.remap_dat['options'] = opt
+        self.remap_dat = ssmap.remapAllLoadedFrames(self, **options)
 
     def calculateBangles(self, t=None, verbose: bool = True):
         """
@@ -288,19 +254,19 @@ class FILDVideo(FIV):
                 if self.BField is None:
                     self._getB()
                 self._getBangles()
-                phi = self.Bangles['phi']
-                theta = self.Bangles['theta']
+                phi = self.Bangles['phi'].values
+                theta = self.Bangles['theta'].values
                 time = 'all'
         else:
-            tmin = self.remap_dat['tframes'][0]
-            tmax = self.remap_dat['tframes'][-1]
+            tmin = self.remap_dat['t'].values[0]
+            tmax = self.remap_dat['t'].values[-1]
             if t < tmin or t > tmax:
                 raise Exception('Time not present in the remap')
             else:
-                it = np.argmin(abs(self.remap_dat['tframes'] - t))
-                theta = self.remap_dat['theta'][it]
-                phi = self.remap_dat['phi'][it]
-                time = self.remap_dat['tframes'][it]
+                it = np.argmin(abs(self.remap_dat['t'].values - t))
+                theta = self.remap_dat['theta'].values[it]
+                phi = self.remap_dat['phi'].values[it]
+                time = self.remap_dat['t'].values[it]
         if verbose:
             # I include these 'np.array' in order to be compatible with the
             # case of just one time point and multiple ones. It is not the most
@@ -497,292 +463,292 @@ class FILDVideo(FIV):
             plt.tight_layout()
         plt.show()
 
-    def export_remap(self, name=None):
-        """
-        Export the dictionary containing the remapped data
+    # def export_remap(self, name=None):
+    #     """
+    #     Export the dictionary containing the remapped data
 
-        Jose Rueda Rueda: jrrueda@us.es
-        """
-        # Test if the file exist:
-        if name is None:
-            name = os.path.join(pa.Results, str(self.shot) + '_'
-                                + self.diag + str(self.diag_ID) + '_remap.nc')
-            name = ssio.check_save_file(name)
-            if name == '' or name == ():
-                print('You canceled the export')
-                return
-        print('Saving results in: ', name)
-        # Write the data:
-        with netcdf.netcdf_file(name, 'w') as f:
-            f.history = 'Done with version ' + version
+    #     Jose Rueda Rueda: jrrueda@us.es
+    #     """
+    #     # Test if the file exist:
+    #     if name is None:
+    #         name = os.path.join(pa.Results, str(self.shot) + '_'
+    #                             + self.diag + str(self.diag_ID) + '_remap.nc')
+    #         name = ssio.check_save_file(name)
+    #         if name == '' or name == ():
+    #             print('You canceled the export')
+    #             return
+    #     print('Saving results in: ', name)
+    #     # Write the data:
+    #     with netcdf.netcdf_file(name, 'w') as f:
+    #         f.history = 'Done with version ' + version
 
-            # Create the dimensions for the variables:
-            f.createDimension('number', 1)  # For numbers
-            f.createDimension('tframes', len(self.remap_dat['tframes']))  # t
-            f.createDimension('xaxis', len(self.remap_dat['xaxis']))  # pitch
-            f.createDimension('yaxis', len(self.remap_dat['yaxis']))  # rl
+    #         # Create the dimensions for the variables:
+    #         f.createDimension('number', 1)  # For numbers
+    #         f.createDimension('tframes', len(self.remap_dat['tframes']))  # t
+    #         f.createDimension('xaxis', len(self.remap_dat['xaxis']))  # pitch
+    #         f.createDimension('yaxis', len(self.remap_dat['yaxis']))  # rl
 
-            # Suite version
-            ver = version.split('.')
-            va = int(ver[0])
-            vb = int(ver[1])
-            vc = int(ver[2])
-            versionIDa = f.createVariable('versionIDa', 'i', ('number', ))
-            versionIDa[:] = va
-            versionIDa.units = ' '
-            versionIDa.long_name = 'Version ID a'
-            versionIDb = f.createVariable('versionIDb', 'i', ('number', ))
-            versionIDb[:] = vb
-            versionIDb.units = ' '
-            versionIDb.long_name = 'Version ID b'
-            versionIDc = f.createVariable('versionIDc', 'i', ('number', ))
-            versionIDc[:] = vc
-            versionIDc.units = ' '
-            versionIDc.long_name = 'Version ID c'
+    #         # Suite version
+    #         ver = version.split('.')
+    #         va = int(ver[0])
+    #         vb = int(ver[1])
+    #         vc = int(ver[2])
+    #         versionIDa = f.createVariable('versionIDa', 'i', ('number', ))
+    #         versionIDa[:] = va
+    #         versionIDa.units = ' '
+    #         versionIDa.long_name = 'Version ID a'
+    #         versionIDb = f.createVariable('versionIDb', 'i', ('number', ))
+    #         versionIDb[:] = vb
+    #         versionIDb.units = ' '
+    #         versionIDb.long_name = 'Version ID b'
+    #         versionIDc = f.createVariable('versionIDc', 'i', ('number', ))
+    #         versionIDc[:] = vc
+    #         versionIDc.units = ' '
+    #         versionIDc.long_name = 'Version ID c'
 
-            # Save shot number
-            shot = f.createVariable('shot', 'i', ('number', ))
-            shot[:] = self.shot
-            shot.units = ' '
-            shot.long_name = 'Shot number'
+    #         # Save shot number
+    #         shot = f.createVariable('shot', 'i', ('number', ))
+    #         shot[:] = self.shot
+    #         shot.units = ' '
+    #         shot.long_name = 'Shot number'
 
-            # Save FILD number
-            diag_ID = f.createVariable('diag_ID', 'i', ('number', ))
-            diag_ID[:] = self.diag_ID
-            diag_ID.units = ' '
-            diag_ID.long_name = 'FILD number'
+    #         # Save FILD number
+    #         diag_ID = f.createVariable('diag_ID', 'i', ('number', ))
+    #         diag_ID[:] = self.diag_ID
+    #         diag_ID.units = ' '
+    #         diag_ID.long_name = 'FILD number'
 
-            # # Save FILD geometry
-            # geom_ID = f.createVariable('geom_ID', 's', )
-            # geom_ID[:] = self.geometryID
-            # geom_ID.units = ' '
-            # geom_ID.long_name = 'FILD geomID'
+    #         # # Save FILD geometry
+    #         # geom_ID = f.createVariable('geom_ID', 's', )
+    #         # geom_ID[:] = self.geometryID
+    #         # geom_ID.units = ' '
+    #         # geom_ID.long_name = 'FILD geomID'
 
-            # Save the flag which indicate if the remap was from average or
-            # real frames
-            avg_flag = f.createVariable('use_average', 'i', ('number', ))
-            avg_flag[:] = int(self.remap_dat['options']['use_average'])
-            avg_flag.units = ' '
-            avg_flag.long_name = 'Flag of frames used to remap (1=avg, 0=exp)'
+    #         # Save the flag which indicate if the remap was from average or
+    #         # real frames
+    #         avg_flag = f.createVariable('use_average', 'i', ('number', ))
+    #         avg_flag[:] = int(self.remap_dat['options']['use_average'])
+    #         avg_flag.units = ' '
+    #         avg_flag.long_name = 'Flag of frames used to remap (1=avg, 0=exp)'
 
-            # Save the time of the remapped frames
-            time = f.createVariable('tframes', 'float64', ('tframes', ))
-            time[:] = self.remap_dat['tframes']
-            time.units = 's'
-            time.long_name = 'Time'
+    #         # Save the time of the remapped frames
+    #         time = f.createVariable('tframes', 'float64', ('tframes', ))
+    #         time[:] = self.remap_dat['tframes']
+    #         time.units = 's'
+    #         time.long_name = 'Time'
 
-            # Save the pitches
-            xaxis = f.createVariable('xaxis', 'float64', ('xaxis', ))
-            xaxis[:] = self.remap_dat['xaxis']
-            xaxis.units = self.remap_dat['xunits']
-            xaxis.long_name = self.remap_dat['xlabel']
+    #         # Save the pitches
+    #         xaxis = f.createVariable('xaxis', 'float64', ('xaxis', ))
+    #         xaxis[:] = self.remap_dat['xaxis']
+    #         xaxis.units = self.remap_dat['xunits']
+    #         xaxis.long_name = self.remap_dat['xlabel']
 
-            # Save the gyroradius
-            yaxis = f.createVariable('yaxis', 'float64', ('yaxis', ))
-            yaxis[:] = self.remap_dat['yaxis']
-            yaxis.units = self.remap_dat['yunits']
-            yaxis.long_name = self.remap_dat['ylabel']
+    #         # Save the gyroradius
+    #         yaxis = f.createVariable('yaxis', 'float64', ('yaxis', ))
+    #         yaxis[:] = self.remap_dat['yaxis']
+    #         yaxis.units = self.remap_dat['yunits']
+    #         yaxis.long_name = self.remap_dat['ylabel']
 
-            # Save the remapped data
-            frames = f.createVariable('frames', 'float64',
-                                      ('xaxis', 'yaxis', 'tframes'))
-            frames[:, :, :] = self.remap_dat['frames']
-            frames.units = 'Counts per axis area'
-            frames.long_name = 'Remapped frames'
+    #         # Save the remapped data
+    #         frames = f.createVariable('frames', 'float64',
+    #                                   ('xaxis', 'yaxis', 'tframes'))
+    #         frames[:, :, :] = self.remap_dat['frames']
+    #         frames.units = 'Counts per axis area'
+    #         frames.long_name = 'Remapped frames'
 
-            # Save the modulus of the magnetic field at the FILD positon
-            bfield = f.createVariable('bfield', 'float64', ('tframes', ))
-            bfield[:] = self.BField['B']
-            bfield.units = 'T'
-            bfield.long_name = 'Field at detector'
+    #         # Save the modulus of the magnetic field at the FILD positon
+    #         bfield = f.createVariable('bfield', 'float64', ('tframes', ))
+    #         bfield[:] = self.BField['B']
+    #         bfield.units = 'T'
+    #         bfield.long_name = 'Field at detector'
 
-            # Save the temporal evolution of the profiles
-            sprofx = f.createVariable('sprofx', 'float64',
-                                      ('xaxis', 'tframes'))
-            sprofx[:, :] = self.remap_dat['sprofx']
-            sprofx.units = 'a.u.'
-            sprofx.long_name = self.remap_dat['sprofxlabel']
+    #         # Save the temporal evolution of the profiles
+    #         sprofx = f.createVariable('sprofx', 'float64',
+    #                                   ('xaxis', 'tframes'))
+    #         sprofx[:, :] = self.remap_dat['sprofx']
+    #         sprofx.units = 'a.u.'
+    #         sprofx.long_name = self.remap_dat['sprofxlabel']
 
-            sprofy = f.createVariable('sprofy', 'float64',
-                                      ('yaxis', 'tframes'))
-            sprofy[:, :] = self.remap_dat['sprofy']
-            sprofy.units = 'a.u.'
-            sprofy.long_name = self.remap_dat['sprofylabel']
+    #         sprofy = f.createVariable('sprofy', 'float64',
+    #                                   ('yaxis', 'tframes'))
+    #         sprofy[:, :] = self.remap_dat['sprofy']
+    #         sprofy.units = 'a.u.'
+    #         sprofy.long_name = self.remap_dat['sprofylabel']
 
-            # Save the calibration
-            xscale = f.createVariable('xscale', 'float64', ('number', ))
-            xscale[:] = self.CameraCalibration.xscale
-            xscale.units = 'px / cm'
-            xscale.long_name = 'x scale of the used calibration'
+    #         # Save the calibration
+    #         xscale = f.createVariable('xscale', 'float64', ('number', ))
+    #         xscale[:] = self.CameraCalibration.xscale
+    #         xscale.units = 'px / cm'
+    #         xscale.long_name = 'x scale of the used calibration'
 
-            yscale = f.createVariable('yscale', 'float64', ('number', ))
-            yscale[:] = self.CameraCalibration.yscale
-            yscale.units = 'px / cm'
-            yscale.long_name = 'y scale of the used calibration'
+    #         yscale = f.createVariable('yscale', 'float64', ('number', ))
+    #         yscale[:] = self.CameraCalibration.yscale
+    #         yscale.units = 'px / cm'
+    #         yscale.long_name = 'y scale of the used calibration'
 
-            xshift = f.createVariable('xshift', 'float64', ('number', ))
-            xshift[:] = self.CameraCalibration.xshift
-            xshift.units = 'px / cm'
-            xshift.long_name = 'x shift of the used calibration'
+    #         xshift = f.createVariable('xshift', 'float64', ('number', ))
+    #         xshift[:] = self.CameraCalibration.xshift
+    #         xshift.units = 'px / cm'
+    #         xshift.long_name = 'x shift of the used calibration'
 
-            yshift = f.createVariable('yshift', 'float64', ('number', ))
-            yshift[:] = self.CameraCalibration.yshift
-            yshift.units = 'px / cm'
-            yshift.long_name = 'y shift of the used calibration'
+    #         yshift = f.createVariable('yshift', 'float64', ('number', ))
+    #         yshift[:] = self.CameraCalibration.yshift
+    #         yshift.units = 'px / cm'
+    #         yshift.long_name = 'y shift of the used calibration'
 
-            deg = f.createVariable('deg', 'float64', ('number', ))
-            deg[:] = self.CameraCalibration.deg
-            deg.units = 'degrees'
-            deg.long_name = 'alpha angle the used calibration'
+    #         deg = f.createVariable('deg', 'float64', ('number', ))
+    #         deg[:] = self.CameraCalibration.deg
+    #         deg.units = 'degrees'
+    #         deg.long_name = 'alpha angle the used calibration'
 
-            # Noise subtraction
-            if 't1_noise' in self.exp_dat.keys():
-                t1_noise = f.createVariable('t1_noise', 'float64', ('number',))
-                t1_noise[:] = self.exp_dat['t1_noise']
-                t1_noise.units = 's'
-                t1_noise.long_name = 't1 for noise subtraction'
+    #         # Noise subtraction
+    #         if 't1_noise' in self.exp_dat.keys():
+    #             t1_noise = f.createVariable('t1_noise', 'float64', ('number',))
+    #             t1_noise[:] = self.exp_dat['t1_noise']
+    #             t1_noise.units = 's'
+    #             t1_noise.long_name = 't1 for noise subtraction'
 
-                t2_noise = f.createVariable('t2_noise', 'float64', ('number',))
-                t2_noise[:] = self.exp_dat['t2_noise']
-                t2_noise.units = 's'
-                t2_noise.long_name = 't2 for noise subtraction'
+    #             t2_noise = f.createVariable('t2_noise', 'float64', ('number',))
+    #             t2_noise[:] = self.exp_dat['t2_noise']
+    #             t2_noise.units = 's'
+    #             t2_noise.long_name = 't2 for noise subtraction'
 
-            if 'frame_noise' in self.exp_dat.keys():
-                nframex, nframey = self.exp_dat['frame_noise'].shape
-                f.createDimension('nx', nframex)
-                f.createDimension('ny', nframey)
-                frame_noise = f.createVariable('frame_noise', 'float64',
-                                               ('nx', 'ny',))
-                frame_noise[:] = self.exp_dat['frame_noise']
-                frame_noise.units = 'counts'
-                frame_noise.long_name = 'frame used for noise subtraction'
+    #         if 'frame_noise' in self.exp_dat.keys():
+    #             nframex, nframey = self.exp_dat['frame_noise'].shape
+    #             f.createDimension('nx', nframex)
+    #             f.createDimension('ny', nframey)
+    #             frame_noise = f.createVariable('frame_noise', 'float64',
+    #                                            ('nx', 'ny',))
+    #             frame_noise[:] = self.exp_dat['frame_noise']
+    #             frame_noise.units = 'counts'
+    #             frame_noise.long_name = 'frame used for noise subtraction'
 
-            # Save the saturated number of pixels
-            n_pixels_gt_threshold = f.createVariable('n_pixels_gt_threshold',
-                                                     'int32', ('tframes', ))
-            n_pixels_gt_threshold[:] = self.exp_dat['n_pixels_gt_threshold']
-            n_pixels_gt_threshold.units = ''
-            n_pixels_gt_threshold.long_name = \
-                'Number of pixels with more counts than threshold'
+    #         # Save the saturated number of pixels
+    #         n_pixels_gt_threshold = f.createVariable('n_pixels_gt_threshold',
+    #                                                  'int32', ('tframes', ))
+    #         n_pixels_gt_threshold[:] = self.exp_dat['n_pixels_gt_threshold']
+    #         n_pixels_gt_threshold.units = ''
+    #         n_pixels_gt_threshold.long_name = \
+    #             'Number of pixels with more counts than threshold'
 
-            threshold_for_counts = f.createVariable('threshold_for_counts',
-                                                    'float64', ('number', ))
-            threshold_for_counts[:] = \
-                self.exp_dat['threshold_for_counts']
-            threshold_for_counts.units = ''
-            threshold_for_counts.long_name = \
-                'Threshold for n_pixels_gt_threshold'
-            # Save the specific FILD variables
-            # Detector orientation
-            theta = f.createVariable('theta', 'float64', ('tframes', ))
-            theta[:] = self.Bangles['theta']
-            theta.units = '$\\degree$'
-            theta.long_name = 'theta'
+    #         threshold_for_counts = f.createVariable('threshold_for_counts',
+    #                                                 'float64', ('number', ))
+    #         threshold_for_counts[:] = \
+    #             self.exp_dat['threshold_for_counts']
+    #         threshold_for_counts.units = ''
+    #         threshold_for_counts.long_name = \
+    #             'Threshold for n_pixels_gt_threshold'
+    #         # Save the specific FILD variables
+    #         # Detector orientation
+    #         theta = f.createVariable('theta', 'float64', ('tframes', ))
+    #         theta[:] = self.Bangles['theta']
+    #         theta.units = '$\\degree$'
+    #         theta.long_name = 'theta'
 
-            theta_used = \
-                f.createVariable('theta_used', 'float64', ('tframes', ))
-            theta_used[:] = self.remap_dat['theta_used']
-            theta_used.units = '$\\degree$'
-            theta_used.long_name = 'theta used'
+    #         theta_used = \
+    #             f.createVariable('theta_used', 'float64', ('tframes', ))
+    #         theta_used[:] = self.remap_dat['theta_used']
+    #         theta_used.units = '$\\degree$'
+    #         theta_used.long_name = 'theta used'
 
-            phi = f.createVariable('phi', 'float64', ('tframes', ))
-            phi[:] = self.Bangles['phi']
-            phi.units = '$\\degree$'
-            phi.long_name = 'phi'
+    #         phi = f.createVariable('phi', 'float64', ('tframes', ))
+    #         phi[:] = self.Bangles['phi']
+    #         phi.units = '$\\degree$'
+    #         phi.long_name = 'phi'
 
-            phi_used = f.createVariable('phi', 'float64', ('tframes', ))
-            phi_used[:] = self.remap_dat['phi_used']
-            phi_used.units = '$\\degree$'
-            phi_used.long_name = 'phi used'
+    #         phi_used = f.createVariable('phi', 'float64', ('tframes', ))
+    #         phi_used[:] = self.remap_dat['phi_used']
+    #         phi_used.units = '$\\degree$'
+    #         phi_used.long_name = 'phi used'
 
-            # Options used for the remapping
-            rmin = f.createVariable('rmin', 'float64', ('number', ))
-            rmin[:] = self.remap_dat['options']['rmin']
-            rmin.units = 'cm'
-            rmin.long_name = 'Minimum r_l for the remap'
+    #         # Options used for the remapping
+    #         rmin = f.createVariable('rmin', 'float64', ('number', ))
+    #         rmin[:] = self.remap_dat['options']['rmin']
+    #         rmin.units = 'cm'
+    #         rmin.long_name = 'Minimum r_l for the remap'
 
-            rmax = f.createVariable('rmax', 'float64', ('number', ))
-            rmax[:] = self.remap_dat['options']['rmax']
-            rmax.units = 'cm'
-            rmax.long_name = 'Maximum r_l for the remap'
+    #         rmax = f.createVariable('rmax', 'float64', ('number', ))
+    #         rmax[:] = self.remap_dat['options']['rmax']
+    #         rmax.units = 'cm'
+    #         rmax.long_name = 'Maximum r_l for the remap'
 
-            dr = f.createVariable('dr', 'float64', ('number', ))
-            dr[:] = self.remap_dat['options']['dr']
-            dr.units = 'cm'
-            dr.long_name = 'dr_l for the remap'
+    #         dr = f.createVariable('dr', 'float64', ('number', ))
+    #         dr[:] = self.remap_dat['options']['dr']
+    #         dr.units = 'cm'
+    #         dr.long_name = 'dr_l for the remap'
 
-            dp = f.createVariable('dp', 'float64', ('number', ))
-            dp[:] = self.remap_dat['options']['dp']
-            dp.units = '$\\degree$'
-            dp.long_name = 'dp for the remap'
+    #         dp = f.createVariable('dp', 'float64', ('number', ))
+    #         dp[:] = self.remap_dat['options']['dp']
+    #         dp.units = '$\\degree$'
+    #         dp.long_name = 'dp for the remap'
 
-            pmin = f.createVariable('pmin', 'float64', ('number', ))
-            pmin[:] = self.remap_dat['options']['pmin']
-            pmin.units = '$\\degree$'
-            pmin.long_name = 'Minimum pitch for the remap'
+    #         pmin = f.createVariable('pmin', 'float64', ('number', ))
+    #         pmin[:] = self.remap_dat['options']['pmin']
+    #         pmin.units = '$\\degree$'
+    #         pmin.long_name = 'Minimum pitch for the remap'
 
-            pmax = f.createVariable('pmax', 'float64', ('number', ))
-            pmax[:] = self.remap_dat['options']['pmax']
-            pmax.units = '$\\degree$'
-            pmax.long_name = 'Maximum pitch for the remap'
+    #         pmax = f.createVariable('pmax', 'float64', ('number', ))
+    #         pmax[:] = self.remap_dat['options']['pmax']
+    #         pmax.units = '$\\degree$'
+    #         pmax.long_name = 'Maximum pitch for the remap'
 
-            pprofmin = f.createVariable('pprofmin', 'float64', ('number',))
-            pprofmin[:] = self.remap_dat['options']['pprofmin']
-            pprofmin.units = '$\\degree$'
-            pprofmin.long_name = 'Minimum pitch to integrate the remap'
+    #         pprofmin = f.createVariable('pprofmin', 'float64', ('number',))
+    #         pprofmin[:] = self.remap_dat['options']['pprofmin']
+    #         pprofmin.units = '$\\degree$'
+    #         pprofmin.long_name = 'Minimum pitch to integrate the remap'
 
-            pprofmax = f.createVariable('pprofmax', 'float64', ('number',))
-            pprofmax[:] = self.remap_dat['options']['pprofmax']
-            pprofmax.units = '$\\degree$'
-            pprofmax.long_name = 'Maximum pitch to integrate the remap'
+    #         pprofmax = f.createVariable('pprofmax', 'float64', ('number',))
+    #         pprofmax[:] = self.remap_dat['options']['pprofmax']
+    #         pprofmax.units = '$\\degree$'
+    #         pprofmax.long_name = 'Maximum pitch to integrate the remap'
 
-            rprofmin = f.createVariable('rprofmin', 'float64', ('number',))
-            rprofmin[:] = self.remap_dat['options']['rprofmin']
-            rprofmin.units = 'cm'
-            rprofmin.long_name = 'Minimum r_l to integrate the remap'
+    #         rprofmin = f.createVariable('rprofmin', 'float64', ('number',))
+    #         rprofmin[:] = self.remap_dat['options']['rprofmin']
+    #         rprofmin.units = 'cm'
+    #         rprofmin.long_name = 'Minimum r_l to integrate the remap'
 
-            rprofmax = f.createVariable('rprofmax', 'float64', ('number',))
-            rprofmax[:] = self.remap_dat['options']['rprofmax']
-            rprofmax.units = 'cm'
-            rprofmax.long_name = 'Maximum r_l to integrate the remap'
+    #         rprofmax = f.createVariable('rprofmax', 'float64', ('number',))
+    #         rprofmax[:] = self.remap_dat['options']['rprofmax']
+    #         rprofmax.units = 'cm'
+    #         rprofmax.long_name = 'Maximum r_l to integrate the remap'
 
-            rfild = f.createVariable('rfild', 'float64', ('number',))
-            rfild[:] = self.position['R']
-            rfild.units = 'm'
-            rfild.long_name = 'R FILD position'
+    #         rfild = f.createVariable('rfild', 'float64', ('number',))
+    #         rfild[:] = self.position['R']
+    #         rfild.units = 'm'
+    #         rfild.long_name = 'R FILD position'
 
-            zfild = f.createVariable('zfild', 'float64', ('number',))
-            zfild[:] = self.position['z']
-            zfild.units = 'm'
-            zfild.long_name = 'z FILD position'
+    #         zfild = f.createVariable('zfild', 'float64', ('number',))
+    #         zfild[:] = self.position['z']
+    #         zfild.units = 'm'
+    #         zfild.long_name = 'z FILD position'
 
-            phifild = f.createVariable('phifild', 'float64', ('number',))
-            phifild[:] = self.position['phi']
-            phifild.units = 'm'
-            phifild.long_name = 'phi FILD position'
+    #         phifild = f.createVariable('phifild', 'float64', ('number',))
+    #         phifild[:] = self.position['phi']
+    #         phifild.units = 'm'
+    #         phifild.long_name = 'phi FILD position'
 
-            alpha = f.createVariable('alpha', 'float64', ('number',))
-            alpha[:] = self.orientation['alpha']
-            alpha.units = '$\\degree$'
-            alpha.long_name = 'alpha orientation'
+    #         alpha = f.createVariable('alpha', 'float64', ('number',))
+    #         alpha[:] = self.orientation['alpha']
+    #         alpha.units = '$\\degree$'
+    #         alpha.long_name = 'alpha orientation'
 
-            beta = f.createVariable('beta', 'float64', ('number',))
-            beta[:] = self.orientation['beta']
-            beta.units = '$\\degree$'
-            beta.long_name = 'beta orientation'
+    #         beta = f.createVariable('beta', 'float64', ('number',))
+    #         beta[:] = self.orientation['beta']
+    #         beta.units = '$\\degree$'
+    #         beta.long_name = 'beta orientation'
 
-            gamma = f.createVariable('gamma', 'float64', ('number',))
-            gamma[:] = self.orientation['gamma']
-            beta.units = '$\\degree$'
-            beta.long_name = 'gamma orientation'
+    #         gamma = f.createVariable('gamma', 'float64', ('number',))
+    #         gamma[:] = self.orientation['gamma']
+    #         beta.units = '$\\degree$'
+    #         beta.long_name = 'gamma orientation'
 
-            # if present, save the bit depth used to save the video
-            try:
-                a = self.settings['RealBPP']
-                bits = f.createVariable('RealBPP', 'i', ('number',))
-                bits[:] = a
-                bits.units = ' '
-                bits.long_name = 'Bits used in the camera'
-            except KeyError:
-                print('Bits info not present in the video object')
-        return
+    #         # if present, save the bit depth used to save the video
+    #         try:
+    #             a = self.settings['RealBPP']
+    #             bits = f.createVariable('RealBPP', 'i', ('number',))
+    #             bits[:] = a
+    #             bits.units = ' '
+    #             bits.long_name = 'Bits used in the camera'
+    #         except KeyError:
+    #             print('Bits info not present in the video object')
+    #     return

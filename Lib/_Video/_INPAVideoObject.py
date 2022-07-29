@@ -11,6 +11,8 @@ Introduced in version 0.8.0
 """
 import os
 import math
+import logging
+import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -27,6 +29,9 @@ from Lib._Machine import machine
 import Lib._Video._AuxFunctions as _aux
 import Lib.errors as errors
 from scipy.io import netcdf                # To export remap data
+
+# Initialise the auxiliar objects
+logger = logging.getLogger('ScintSuite.INPAVideo')
 pa = p.Path(machine)
 del p
 
@@ -120,12 +125,8 @@ class INPAVideo(FIV):
                 print('Shot not provided, you need to define INPAgeometry')
                 print('You need to define INPApositionOrientation')
                 print('You need to give the camera calibration parameters')
-            ## Magnetic field at FILD head
-            self.BField = None
-            ## Particular options for the magnetic field calculation
+            # Save the options for the magnetic field
             self.BFieldOptions = Boptions
-            ## Orientation angles
-            self.Bangles = None
         else:
             FIV.__init__(self, empty=empty)
 
@@ -157,7 +158,11 @@ class INPAVideo(FIV):
         # If you are in other machine and your normal phi is around 0, you will
         # get the jump, sorry, life is hard, AUG was first :)
         phi[phi < 0] += 360.0
-        self.Bangles = {'phi': phi, 'theta': theta}
+        # Save the angles in place
+        self.Bangles = xr.Dataset()
+        self.Bangles['phi'] = \
+            xr.DataArray(phi, dims=('t'), coords={'t': self.BField['t'].values})
+        self.Bangles['theta'] = xr.DataArray(theta, dims=('t'))
 
     def _checkStrikeMapDatabase():
         pass
@@ -182,13 +187,16 @@ class INPAVideo(FIV):
             -# sprofx: signal integrated over the y range given by options
             -# sprofy: signal integrated over the x range given by options
         """
+        # Destroy the previos dataset, if there was some
+        if self.remap_dat is not None:
+            self.remap_dat = None
         # Check if the user want to use the average
         if 'use_average' in options.keys():
             use_avg = options['use_average']
-            nt = len(self.avg_dat['tframes'])
+            nt = self.avg_dat['t'].size
         else:
             use_avg = False
-            nt = len(self.exp_dat['tframes'])
+            nt = self.exp_dat['t'].size
 
         # Check if the magnetic field and the angles are ready, only if the map
         # is not given
@@ -201,13 +209,12 @@ class INPAVideo(FIV):
             # have the proper length (ie they were calculated for the exp_dat
             # not the average)
             if self.BField['BR'].size != nt:
-                print('Need to recalculate the magnetic field')
+                logger.info('Need to recalculate the magnetic field')
                 self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles['phi'].size != nt:
                 self._getBangles()
-        self.remap_dat, opt = \
+        self.remap_dat = \
             ssmap.remapAllLoadedFramesINPA(self, **options)
-        self.remap_dat['options'] = opt
 
     def calculateBangles(self, t='all', verbose: bool = True):
         """
@@ -463,14 +470,6 @@ class INPAVideo(FIV):
             ax[1] = ssplt.axis_beauty(ax[1], ax_params)
             plt.tight_layout()
         plt.show()
-
-    def export_remap(self, name=None):
-        """
-        Export the dictionary containing the remapped data
-
-        Jose Rueda Rueda: jrrueda@us.es
-        """
-        raise errors.NotImplementedError('Sorry, still to be done')
 
     def reloadCameraCalibration(self):
         """

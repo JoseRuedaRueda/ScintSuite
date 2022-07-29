@@ -28,6 +28,7 @@ import Lib._TimeTrace as sstt
 import Lib._GUIs as ssGUI
 import Lib.errors as errors
 import tkinter as tk
+import xarray as xr
 import logging
 logger = logging.getLogger('ScintSuite.Video')
 
@@ -96,11 +97,12 @@ class BVO:
         ## Type of video
         self.type_of_file = None
         ## Loaded experimental data
-        self.exp_dat = {
-            'frames': None,   # Loaded frames
-            'tframes': None,  # Timebase of the loaded frames
-            'nframes': None,  # Frame numbers of the loaded frames
-        }
+        # self.exp_dat = {
+        #     'frames': None,   # Loaded frames
+        #     'tframes': None,  # Timebase of the loaded frames
+        #     'nframes': None,  # Frame numbers of the loaded frames
+        # }
+        self.exp_dat = xr.Dataset()
         ## Remapped data
         self.remap_dat = None
         ## Averaged data
@@ -141,9 +143,17 @@ class BVO:
                     # real exp data, so the video will be loaded all from here
                     # and not reading specific frame will be used
                     self.timebase = dummy['tframes']
-                    self.exp_dat['frames'] = dummy['frames']
-                    self.exp_dat['tframes'] = dummy['tframes']
-                    self.exp_dat['nframes'] = np.arange(dummy['nf'])
+                    self.exp_dat = xr.Dataset()
+                    nx, ny, nt = dummy['frames'].shape
+                    px = np.arange(nx)
+                    py = np.arange(ny)
+                    self.exp_dat['frames'] = \
+                        xr.DataArray(dummy['frames'], dims=('px', 'py', 't'),
+                                     coords={'t': dummy['tframes'].squeeze(),
+                                             'px': px,
+                                             'py': py})
+                    self.exp_dat['nframes'] = \
+                        xr.DataArray(np.arange(dummy['nf']), dims=('t'))
                     self.type_of_file = '.mp4'
                 else:
                     raise Exception('Not recognised file extension')
@@ -248,12 +258,12 @@ class BVO:
                 if t1 < tmin_video:
                     text = 'T1 was not in the video file:' +\
                         'Taking %.3f as initial point' % tmin_video
-                    logger.warning('8: %s' % text)
+                    logger.warning('18: %s' % text)
                 tmax_video = self.timebase.max()
                 if t2 > tmax_video:
                     text = 'T2 was not in the video file:' +\
                         'Taking %.3f as initial point' % tmax_video
-                    logger.warning('8: %s' % text)
+                    logger.warning('18: %s' % text)
                 it1 = np.argmin(abs(self.timebase-t1))
                 it2 = np.argmin(abs(self.timebase-t2))
                 frames_number = np.arange(start=it1, stop=it2+1, step=1)
@@ -261,88 +271,61 @@ class BVO:
             #     raise Exception('Something went wrong, check inputs')
 
             if self.type_of_file == '.cin':
-                if internal:
-                    self.exp_dat['frames'] = \
-                        cin.read_frame(self, frames_number,
+                M = cin.read_frame(self, frames_number,
                                        limitation=limitation, limit=limit)
-                    self.exp_dat['tframes'] = self.timebase[frames_number]
-                    self.exp_dat['nframes'] = frames_number
-                    self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
-                else:
-                    M = cin.read_frame(self, frames_number,
-                                       limitation=limitation, limit=limit)
-                    return M.squeeze()
             elif self.type_of_file == '.png':
-                if internal:
-                    self.exp_dat['frames'] = \
-                        png.read_frame(self, frames_number,
-                                       limitation=limitation, limit=limit)
-                    self.exp_dat['tframes'] = \
-                        self.timebase[frames_number].flatten()
-                    if frames_number is None:
-                        nx, ny, nf = self.exp_dat['frames'].shape
-                        frames_number = np.arange(nf) + 1
-                    self.exp_dat['nframes'] = frames_number
-                    self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
-                else:
-                    M = png.read_frame(self, frames_number,
-                                       limitation=limitation, limit=limit)
-                    return M.squeeze()
+                M = png.read_frame(self, frames_number,
+                                   limitation=limitation, limit=limit)
             elif self.type_of_file == '.tif':
-                if internal:
-                    self.exp_dat['frames'] = \
-                        tif.read_frame(self, frames_number,
+                M = tif.read_frame(self, frames_number,
                                        limitation=limitation, limit=limit)
-                    self.exp_dat['tframes'] = \
-                        self.timebase[frames_number].flatten()
-                    if frames_number is None:
-                        nx, ny, nf = self.exp_dat['frames'].shape
-                        frames_number = np.arange(nf) + 1
-                    self.exp_dat['nframes'] = frames_number
-                    self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
-                else:
-                    M = tif.read_frame(self, frames_number,
-                                       limitation=limitation, limit=limit)
-                    return M.squeeze()
             elif self.type_of_file == '.b16':
-                if internal:
-                    try:
-                        self.exp_dat['frames'] = \
-                            pco.read_frame(self, frames_number,
-                                           limitation=limitation, limit=limit)
-                    except TypeError:
-                        raise Exception('Please insert frame number as array')
-                    self.exp_dat['tframes'] = \
-                        self.timebase[frames_number].flatten()
-                    if frames_number is None:
-                        nx, ny, nf = self.exp_dat['frames'].shape
-                        frames_number = np.arange(nf) + 1
-                    self.exp_dat['nframes'] = frames_number
-                    self.exp_dat['dtype'] = self.exp_dat['frames'].dtype
-                else:
-                    M = tif.read_frame(self, frames_number,
-                                       limitation=limitation, limit=limit)
-                    return M.squeeze()
+                M = pco.read_frame(self, frames_number,
+                                   limitation=limitation, limit=limit)
             else:
                 raise Exception('Not initialised / not implemented file type?')
-            # Count saturated pixels
+            # --- End here if we just want the frame
+            if not internal:
+                return M
+            # --- Save the stuff in the structure
+            # Get the spatial axes
+
+            nx, ny, nt = M.shape
+            px = np.arange(nx)
+            py = np.arange(ny)
+            # Get the time axis
+            tframes = self.timebase[frames_number]
+            # Get the frames number
+            if frames_number is None:
+                nframes = np.arange(nt) + 1
+            else:
+                nframes = frames_number
+            # Get the data-type
+            dtype = M.dtype
+            # Storage it
+            self.exp_dat['frames'] = \
+                xr.DataArray(M, dims=('px', 'py', 't'),
+                                coords={'t': tframes.squeeze(), 'px': px,
+                                        'py': py})
+            self.exp_dat['nframes'] = xr.DataArray(nframes.squeeze(), dims=('t'))
+            self.exp_dat.attrs['dtype'] = dtype
+            # --- Count saturated pixels
             max_scale_frames = 2 ** self.settings['RealBPP'] - 1
             threshold = threshold_saturation * max_scale_frames
             print('Counting "saturated" pixels')
             print('The threshold is set to: ', threshold, ' counts')
             n_pixels_saturated = \
-                np.sum(self.exp_dat['frames'] >= threshold, axis=(0, 1))
-            self.exp_dat['n_pixels_gt_threshold'] = \
-                n_pixels_saturated.astype('int32')
-            self.exp_dat['threshold_for_counts'] = threshold_saturation
+                np.sum(self.exp_dat['frames'].values >= threshold, axis=(0, 1))
+            self.exp_dat['n_pixels_gt_threshold'] = xr.DataArray(
+                n_pixels_saturated.astype('int32'), dims=('t'))
+            self.exp_dat.attrs['threshold_for_counts'] = threshold_saturation
             if verbose:
                 print('Maximum number of saturated pixels in a frame: '
-                      + str(self.exp_dat['n_pixels_gt_threshold'].max()))
+                      + str(self.exp_dat['n_pixels_gt_threshold'].values.max()))
         else:
-            it = np.argmin(abs(self.exp_dat['tframes'] - t1))
-            M = self.exp_dat['frames'][:, :, it].squeeze()
+            it = np.argmin(abs(self.exp_dat['t'].values - t1))
+            M = self.exp_dat['frames'][:, :, it].values.squeeze()
             return M
-        return
 
     def subtract_noise(self, t1: float = None, t2: float = None, frame=None,
                        flag_copy: bool = False):
@@ -367,6 +350,7 @@ class BVO:
         @param  return_noise: If True, the average frame used for the noise
         will be returned
         """
+        # --- Check the inputs
         if self.exp_dat is None:
             raise errors.NoFramesLoaded('Load the frames first')
         print('.--. ... ..-. -')
@@ -375,12 +359,14 @@ class BVO:
             print('t1: ', t1)
             print('t2: ', t2)
             raise errors.NotValidInput('t1 is larger than t2!!!')
+        # --- Get the shapes and indeces
         # Get shape and data type of the experimental data
         nx, ny, nt = self.exp_dat['frames'].shape
         original_dtype = self.exp_dat['frames'].dtype
         # Get the initial and final time loaded in the video:
-        t1_vid = self.exp_dat['tframes'][0]
-        t2_vid = self.exp_dat['tframes'][-1]
+        t1_vid = self.exp_dat['t'].values[0]
+        t2_vid = self.exp_dat['t'].values[-1]
+        # --- Get the nise frame
         # Calculate the noise frame, if needed:
         if (t1 is not None) and (t2 is not None):
             if (t1 < t1_vid and t2 < t1_vid) or (t1 > t2_vid and t2 > t2_vid):
@@ -392,41 +378,45 @@ class BVO:
                     % t1 +\
                     'Taking %5.3f as initial point' % t1
                 t1 = t1_vid
-                logger.warning('8: %s' % text)
+                logger.warning('18: %s' % text)
             if t2 > t2_vid:
                 text = 'Final time loaded: %5.3f \n' % t2_vid +\
                     'Final time requested for noise substraction: %5.3f \n' \
                     % t2 +\
                     'Taking %5.3f as finaal point' % t2
-                logger.warning('8: %s' % text)
+                logger.warning('18: %s' % text)
                 t2 = t2_vid
-            it1 = np.argmin(abs(self.exp_dat['tframes'] - t1))
-            it2 = np.argmin(abs(self.exp_dat['tframes'] - t2))
-            self.exp_dat['t1_noise'] = t1
-            self.exp_dat['t2_noise'] = t2
+            it1 = np.argmin(abs(self.exp_dat['t'].values - t1))
+            it2 = np.argmin(abs(self.exp_dat['t'].values - t2))
+
             print('Using frames from the video')
             print(str(it2 - it1 + 1), ' frames will be used to average noise')
-            frame = np.mean(self.exp_dat['frames'][:, :, it1:(it2 + 1)],
+            frame = np.mean(self.exp_dat['frames'].values[:, :, it1:(it2 + 1)],
                             dtype=original_dtype, axis=2)
-            self.exp_dat['frame_noise'] = frame
-        else:
+
+        else:  # The frame is given by the user
             print('Using noise frame provider by the user')
             nxf, nyf = frame.shape
             if (nxf != nx) or (nyf != ny):
-                raise Exception('The noise frame has not the correct shape')
-            self.exp_dat['frame_noise'] = frame
-        # Create the original frame array:
+                text = 'The noise frame has not the correct shape'
+                raise errors.NotValidInput(text)
+        # Save the frame in the structure
+        self.exp_dat['frame_noise'] = xr.DataArray(frame.squeeze(),
+                                                   dims=('px', 'py'))
+        self.exp_dat['frame_noise'].attrs['t1_noise'] = t1
+        self.exp_dat['frame_noise'].attrs['t2_noise'] = t2
+        # --- Copy the original frame array:
         if 'original_frames' not in self.exp_dat and flag_copy:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
-        # Subtract the noise
+        # --- Subtract the noise
         frame = frame.astype(float)  # Get the average as float to later
-        #                                 subtract and not have issues with < 0
-        self.exp_dat['frames'] = (self.exp_dat['frames'].astype(float)
-                                  - frame[..., None])
-        self.exp_dat['frames'][self.exp_dat['frames'] < 0] = 0.0
-        self.exp_dat['frames'] = self.exp_dat['frames'].astype(original_dtype)
+        #                              subtract and not have issues with < 0
+        dummy = \
+            (self.exp_dat['frames'].values.astype(float) - frame[..., None])
+        dummy[dummy < 0] = 0.0  # Clean the negative values
+        self.exp_dat['frames'].values = dummy.astype(original_dtype)
+ 
         print('-... -.-- . / -... -.-- .')
-
         return frame.astype(original_dtype)
 
     def filter_frames(self, method: str = 'median', options: dict = {},
@@ -468,7 +458,7 @@ class BVO:
             jrr_options.update(options)
             for i in tqdm(range(nt)):
                 self.exp_dat['frames'][:, :, i] = \
-                    ssutilities.neutron_filter(self.exp_dat['frames'][:, :, i],
+                    ssutilities.neutron_filter(self.exp_dat['frames'].values[:, :, i],
                                                **jrr_options)
         elif method == 'median':
             print('Median filter selected!')
@@ -480,40 +470,16 @@ class BVO:
             median_options.update(options)
             for i in tqdm(range(nt)):
                 self.exp_dat['frames'][:, :, i] = \
-                    ndimage.median_filter(self.exp_dat['frames'][:, :, i],
+                    ndimage.median_filter(self.exp_dat['frames'].values[:, :, i],
                                           **median_options)
         elif method == 'gaussian':
             print('Gaussian filter selected!')
             gaussian_options.update(options)
             for i in tqdm(range(nt)):
                 self.exp_dat['frames'][:, :, i] = \
-                    ndimage.gaussian_filter(self.exp_dat['frames'][:, :, i],
+                    ndimage.gaussian_filter(self.exp_dat['frames'].values[:, :, i],
                                             **gaussian_options)
         print('\n-... -.-- . / -... -.-- .')
-        return
-
-    def cut_frames(self, px_min: int, px_max: int, py_min: int, py_max: int,
-                   flag_copy: bool = False):
-        """
-        Cut the frames in the box: [px_min, px_max, py_min, py_max]
-
-        Jose Rueda: jrrueda@us.es
-
-        @param px_min: min pixel in the x direction to cut
-        @param px_max: max pixel in the x direction to cut
-        @param px_min: min pixel in the x direction to cut
-        @param px_max: max pixel in the x direction to cut
-        @param make flag_copy: flag to copy or not the original frames
-
-        Note exp_dat['frames'] are repaced for these cut ones
-        """
-        if ('original_frames' not in self.exp_dat) and flag_copy:
-            self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
-        else:
-            print('Not making a copy of the original frames')
-        frames = \
-            self.exp_dat['frames'][px_min:(px_max+1), py_min:(py_max+1), :]
-        self.exp_dat['frames'] = frames
         return
 
     def average_frames(self, window):
@@ -529,15 +495,21 @@ class BVO:
         frames = np.zeros((nx, ny, nw))
         time = np.zeros(nw)
         for i in range(nw):
-            flags = (self.exp_dat['tframes'] >= window[i, 0])\
-                * (self.exp_dat['tframes'] < window[i, 1])
+            flags = (self.exp_dat['t'].values >= window[i, 0])\
+                * (self.exp_dat['t'].values < window[i, 1])
             frames[..., i] = self.exp_dat['frames'][..., flags].mean(axis=-1)
             time[i] = 0.5 * (window[i, 0] + window[i, 1])
-        self.avg_dat = {
-            'tframes': time,
-            'frames': frames,
-            'nframes': time.size
-        }
+        # Save the data in the dataset
+        self.avg_dat = xr.Dataset()  # Initialise the daaset
+        # Prepare the axis
+        px = np.arange(nx)
+        py = np.arange(ny)
+        # Save the frames
+        self.avg_dat['frames'] = \
+            xr.DataArray(frames, dims=('px', 'py', 't'),
+                         coords={'t': time.squeeze(), 'px': px, 'py': py})
+        self.avg_dat['nframes'] = \
+            xr.DataArray(np.arange(nw) + 1, dims=('t'))
 
     def generate_average_window(self, step: float = None, trace: float = None):
         """
@@ -563,8 +535,8 @@ class BVO:
             of the database and the last of the video
         """
         if step is not None:
-            dummy = np.arange(self.exp_dat['tframes'][0],
-                              self.exp_dat['tframes'][-1] + step, step)
+            dummy = np.arange(self.exp_dat['t'].values[0],
+                              self.exp_dat['t'].values[-1] + step, step)
             window = np.zeros((dummy.size-1, 2))
             window[:, 0] = dummy[:-1]
             window[:, 1] = dummy[1:]
@@ -572,15 +544,15 @@ class BVO:
             # Plot the trace to select the desired time points
             fig, ax = plt.subplots()
             ax.plot(trace['t'], trace['data'])
-            plt.axvline(x=self.exp_dat['tframes'][0], color='k')
-            plt.axvline(x=self.exp_dat['tframes'][-1], color='k')
+            plt.axvline(x=self.exp_dat['t'].values[0], color='k')
+            plt.axvline(x=self.exp_dat['t'].values[-1], color='k')
             points = plt.ginput(-1)
             points = np.array(points)[:, 0]
             # Now fill the windows
             window = np.zeros((points.size + 1, 2))
-            window[0, 0] = self.exp_dat['tframes'][0]
+            window[0, 0] = self.exp_dat['t'].values[0]
             window[1:, 0] = points
-            window[-1, 1] = self.exp_dat['tframes'][-1]
+            window[-1, 1] = self.exp_dat['t'].values[-1]
             window[:-1, 1] = points
         return window
 
@@ -628,7 +600,7 @@ class BVO:
         }
         line_options.update(line_params)
         # Select x,y data
-        x = self.exp_dat['tframes']
+        x = self.exp_dat['t'].values
         if threshold is None:
             y = self.exp_dat['n_pixels_gt_threshold']
             print('Threshold was set to: ',
@@ -695,9 +667,9 @@ class BVO:
         it = None
         if t is not None:
             if not flagAverage:
-                it = np.argmin(np.abs(self.exp_dat['tframes'] - t))
+                it = np.argmin(np.abs(self.exp_dat['t'].values - t))
             else:
-                it = np.argmin(np.abs(self.exp_dat['tframes'] - t))
+                it = np.argmin(np.abs(self.exp_dat['t'].values - t))
         else:
             if not flagAverage:
                 it = np.where(self.exp_dat['nframes'] == frame_number)[0]
@@ -734,7 +706,7 @@ class BVO:
         @param flagAverage: flag to look at the averaged or raw frames
         """
         if not flagAverage:
-            t = float(self.exp_dat['tframes'][it])
+            t = float(self.exp_dat['t'].values[it])
         else:
             t = float(self.avg_dat['tframes'][it])
         return t
@@ -870,3 +842,30 @@ class BVO:
             mask = roi.getMask(self.exp_dat['frames'][:, :, 0].squeeze())
 
         return sstt.TimeTrace(self, mask), mask
+
+    def exportVideo(self, filename, flagAverage: bool = False):
+        """
+        Export video file
+
+        Notice: This will create a netcdf with the exp_dat xarray, this is not
+        intended as a replace of the data base, as camera settings and
+        metadata will not be exported. But allows to quickly export the video 
+        to netCDF format to be easily shared among computers
+        
+        @param file: Path to the file where to save the results, if none, a 
+            GUI will appear to select the results
+        @param flagAverage: flag to indicate if we want to save the averaged
+            frames
+        """
+        if filename is None:
+            filename = _ssio.ask_to_save(ext='*.nc')
+            if filename == '' or filename == ():
+                print('You canceled the export')
+                return
+        print('Saving video in: ', filename)
+        # Write the data:
+        if not flagAverage:
+            self.exp_dat.to_netcdf(filename)
+        else:
+            self.avg_dat.to_netcdf(filename)
+    

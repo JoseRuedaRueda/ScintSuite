@@ -385,7 +385,7 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
     @param dz: correction in the z direction
     """
     text = 'This CXRS fit does not properly describe separatrix behaviour!'
-    logger.warning('7: %s' % text)
+    logger.warning('17: %s' % text)
 
     diags = ('CMZ', 'CEZ', 'CUZ', 'COZ',)
     signals = ('Ti_c', 'Ti_c', 'Ti_c', 'Ti_c', )
