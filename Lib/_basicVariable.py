@@ -4,6 +4,7 @@ Basic variable class
 Jose Rueda Rueda: jrrueda@us.es
 """
 import numpy as np
+import scipy.signal as sp  # signal processing
 import Lib.errors as errors
 import matplotlib.pyplot as plt
 import xarray as xr
@@ -60,51 +61,6 @@ class BasicVariable():
         return self.data.sum(**kwargs)
     
 
-# class BasicTimeVariable(BasicVariable):
-#     """
-#     Simple class to contain the data of a signal (or signal group)
-
-#     Jose Rueda: jrrueda@us.es
-#     """
-#     def __init__(self, name: str = None, units: str = None,
-#                  data: np.ndarray = None, timebase: np.ndarray = None,
-#                  unitsTimebase: str = None):
-#         """
-#         Initialise the class
-
-#         @param name: Name atribute
-#         @param units: Physical units of the variable
-#         @param data: array with the data values
-#         @param timebase: should be a 1D array with nt points, where nt is just
-#             the number of points
-#         @param unitsTimebase: units of the timebase variable
-#         """
-#         # First check if the order is the proper one (just for the case of the
-#         # non-empty data)
-#         if data is not None:
-#             datashape = data.shape
-#             timebaseShape = timebase.size
-#             if timebaseShape != datashape[-1]:
-#                 text = 'Time dimenssion should be the last one of data'
-#                 raise errors.NotValidInput(text)
-
-#         BasicVariable.__init__(self, name=name, units=units, data=data)
-#         self.timebase = BasicVariable(name = 'Time', data=timebase, 
-#                                       units=unitsTimebase)
-    
-#     def plot(self):
-#         """
-#         Basic plot.
-
-#         This is far to be a complete and usable plot routine, and it actually
-#         non intended for it. This is just something quick to see the variable
-#         not more
-#         """
-#         fig, ax = plt.subplots()
-#         ax.plot(self.timebase[:], self[:].T)
-#         return ax
-
-
 class BasicSignalVariable():
     """
     Basic signal variable
@@ -114,43 +70,109 @@ class BasicSignalVariable():
 
     It is not intended to be initialised by itself but to serve as parent class
 
+    Please save always the time variable as the last index, even if axxary
+    handle easily this, the filter/fft/spectrogram routines are not yet ready
+    for this
+
     @add time units
     """
     def __init__(self):
         self._data = xr.Dataset()
     
+    # --------------------------------------------------------------------------
+    # --- Filtering
+    # --------------------------------------------------------------------------
+    def filter(self, signals: list = None, method: str = 'savgol', **kargs):
+        """
+        Filter the time dependent variables
 
-    def calculate_fft(self, params: dict = {}):
+        @param signals: list of signal to be filtered. If none, all signals will
+            be filtered
+
+        @ ToDo: implement some fancy ... index to handle dimensions
+        """
+        # --- Initialisation and settings checking
+        filters = {
+            'savgol': sp.savgol_filter,
+            'median': sp.medfilt,
+        }
+        if method.lower() not in filters.keys():
+            raise errors.NotImplementedError('Method not implemented')
+        if signals is None:
+            signals = []
+            for k in self.keys():
+                if not k.startswith('fft') and not k.startswith('spec'):
+                    # Neglect fft or spectrum:
+                    signals.append(k)
+        
+        for k in signals:
+            if len(self[k].shape) == 1:  # Variable with just time axis
+                self._data['filtered_' + k] = xr.DataArray(
+                        filters[method](self[k].values, **kargs), dims='t')
+            elif len(self[k].shape) == 2:  # Variable with time + something
+                self._data['filtered_' + k] = self._data['filtered_' + k].copy()
+                for i in range(self[k].shape[0]):
+                    self._data['filtered_' + k].values[i, :] = xr.DataArray(
+                        filters[method](self[k].values[i, :], **kargs), 
+                        dims='t')
+            else:
+                raise errors.NotImplementedError('To be done')
+
+
+    
+    # --------------------------------------------------------------------------
+    # --- Frequency anasylis
+    # --------------------------------------------------------------------------
+    def calculate_fft(self, signals: list = None, **kargs):
         """
         Calculate the fft of the time trace
 
         Jose Rueda Rueda: jrrueda@us.es
 
         Only the fft of all the signals in the dataset
-
-        @param    params: Dictionary containing optional arguments for scipyfft
+        @param signals: list of signal for whcih we want the fft. If none, 
+            all signals will be considered
+        @param    kargs: optional arguments for scipyfft
         see scipy.fft.rfft for full details
-        @type:    dict
+
 
         @return:  nothing, just fill self.fft
         """
+        # --- Object cleaning:
         if 'freq_fft' in self.keys():
             logger.warning('11: Overwritting fft data')
             self._data.drop_dims('freq_fft')
+        # --- Prepare the signal names for the fft
+        if signals is None:
+            signals = []
+            for k in self.keys():
+                if not k.startswith('fft') and not k.startswith('spec'):
+                    # Neglect fft or spectrum:
+                    signals.append(k)
+        # --- Prepare the fft axis
         N = len(self['t'].values)
         freq_fft = rfftfreq(N, (self['t'][2] - self['t'][1]).values)
 
         self._data = self._data.assign_coords({'freq_fft': freq_fft})
         self._data['freq_fft'].attrs['long_name'] = 'Frequency'
-        for k in self.keys():
-            if not k.startswith('fft') and not k.startswith('spec'):
-                # The if is to do not catch other fft or spectra qhich can be
-                # present and just catch the signals
+
+        # --- Proceed with the fft
+        for k in signals:
+            if len(self[k].shape) == 1:  # Variable with just time axis
                 self._data['fft_' + k] = xr.DataArray(
-                    rfft(self[k].values, **params), dims='freq_fft')
-                self._data['fft_' + k].attrs['long_name'] = 'Fast Fourier Trans'
+                    rfft(self[k].values, **kargs), dims='freq_fft')
+            elif len(self[k].shape) == 2:  # Variable with time + something
+                dummy = np.zeros((self[k].shape[0], freq_fft.size))
+                for i in range(self[k].shape[0]):
+                    dummy[i, :] = rfft(self[k].values[i, :], **kargs)
+                self._data['fft_' + k] = xr.DataArray(
+                    dummy, dims=(self[k].dims[0], 'freq_fft'))
+            else:
+                raise errors.NotImplementedError('To be done')
+
+            self._data['fft_' + k].attrs['long_name'] = 'Fast Fourier Trans'
     
-    def calculate_spectrogram(self, **kargs):
+    def calculate_spectrogram(self, signals: list = None, **kargs):
         """
         Calculate the spectrogram of the time trace
 
@@ -165,24 +187,49 @@ class BasicSignalVariable():
 
         @return:  nothing, just fill self.spec
         """
+        # --- Object cleaning
         if 'time_spec' in self.keys():
             logger.warning('11: Overwritting spectrogram data')
             self._data.drop_dims(('time_spec', 'freq_spec'))
+        # --- Settings initialization
+        if signals is None:
+            signals = []
+            for k in self.keys():
+                if not k.startswith('fft') and not k.startswith('spec'):
+                    # Neglect fft or spectrum:
+                    signals.append(k)
+        # --- Spectogram calculation
         sampling_freq = 1 / (self['t'][1] - self['t'][0]).values
-        for k in self.keys():
-            if not k.startswith('fft') and not k.startswith('spec'):
-                # The if is to do not catch other fft or spectra qhich can be
-                # present and just catch the signals
+        for k in signals:
+            if len(self[k].shape) == 1:
                 freq_spec, time_spec, Sxx = \
-                    signal.spectrogram(self[k].values, sampling_freq,**kargs)
+                    sp.spectrogram(self[k].values, sampling_freq, **kargs)
                 self._data['spec_' + k] = xr.DataArray(
                     Sxx, dims=('freq_spec', 'time_spec'), 
                     coords={'freq_spec': freq_spec, 
                             'time_spec': time_spec + self['t'][0].values})
+            elif len(self[k].shape) == 2:
+                spectra = []
+                for i in range(self[k].shape[0]):
+                    spectra.append(sp.spectrogram(self[k].values[i,:], 
+                                                  sampling_freq, **kargs))
+                dummy = np.zeros((self[k].shape[0], spectra[0][2].shape[0], 
+                                  spectra[0][2].shape[1]))
+                for i in range(self[k].shape[0]):
+                    dummy[i, ...] = spectra[i][2]
+                self._data['spec_' + k] = xr.DataArray(
+                    dummy, dims=(self[k].dims[0], 'freq_spec', 'time_spec'),
+                    coords={'freq_spec': spectra[0][0], 
+                            'time_spec': spectra[0][1] + self['t'][0].values})
+            else:
+                raise errors.NotImplementedError('To be done')   
 
         self._data['time_spec'].attrs['long_name'] = 'Time'
         self._data['freq_spec'].attrs['long_name'] = 'Frequency'
     
+    # --------------------------------------------------------------------------
+    # --- Plotting
+    # --------------------------------------------------------------------------
     def plot_fft(self, data='sum_of_roi', options: dict = {}):
         """
         Plot the fft of the TimeTrace
@@ -233,7 +280,9 @@ class BasicSignalVariable():
         plt.show()
         return ax
 
-
+    # --------------------------------------------------------------------------
+    # --- Properties and custom access layers 
+    # --------------------------------------------------------------------------
     def keys(self):
         return self._data.keys()
     

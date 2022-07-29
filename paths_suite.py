@@ -15,12 +15,13 @@ def paths_of_the_suite():
     if os.path.isdir('/common/uda-scratch'):
         machine = 'MU'
     elif os.path.isdir('/afs/ipp/aug/ads-diags/common/python/lib'):
-        machine = 'AUG'
+        try:
+            import aug_sfutils
+            machine = 'AUG'
+        except ModuleNotFoundError:
+            machine = 'Generic'
     else:
         machine = 'Generic'
-        print('Not recognised machine')
-        print('Assume that your are using your personal computer')
-        print('Database call will not work')
     # --- Section 0: Name of the auxiliary folders (located at home directory)
     SUITE_DIR = os.getcwd()
     Suite_LIBs = {

@@ -168,9 +168,9 @@ _inpa1 = {
     'path': _INPA1_path,  # Path for the video files
     'extension': _INPA1_extension,  # Extension of the video file, none if png
     'label': '',  # Label for the diagnostic, for FILD6 (rFILD)
-    'diag': '',  # name of the diagnostic for the fast channel
-    'channel': '',  # prefix of the name of each channel (shotfile)
-    'nch': None  # Number of fast channels
+    'diag': 'NPI',  # name of the diagnostic for the fast channel
+    'channel': 'PMT_C',  # prefix of the name of each channel (shotfile)
+    'nch': 8  # Number of fast channels
 }
 
 INPA = (_inpa1,)

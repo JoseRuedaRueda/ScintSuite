@@ -70,7 +70,7 @@ def get_signal_generic(shot: int, diag: str, signame: str, exp: str = 'AUGD',
 # --- SIGNAL OF FAST CHANNELS.
 # -----------------------------------------------------------------------------
 def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
-                     ed: int = 0):
+                     ed: int = 0, exp: str = 'AUGD'):
     """
     Get the signal for the fast channels (PMT, APD)
 
@@ -82,19 +82,28 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
     @param shot: shot file to be opened
     """
     # Check inputs:
-    suported_diag = ['FILD']
+    suported_diag = ['FILD', 'INPA']
     if diag not in suported_diag:
         raise errors.NotValidInput('No understood diagnostic')
 
     # Load diagnostic names:
-    if diag == 'FILD':
+    if diag.lower() == 'fild':
         if (diag_number > 5) or (diag_number < 1):
             print('You requested: ', diag_number)
             raise errors.NotValidInput('Wrong fild number')
         info = params.FILD[diag_number - 1]
         diag_name = info['diag']
         signal_prefix = info['channel']
+        nch = info['nch']    
+    elif diag.lower() == 'inpa':
+        if diag_number != 1:
+            print('You requested: ', diag_number)
+            raise errors.NotValidInput('Wrong INPA number')
+        info = params.INPA[diag_number - 1]
+        diag_name = info['diag']
+        signal_prefix = info['channel']
         nch = info['nch']
+    
 
     # Look which channels we need to load:
     try:    # If we received a numpy array, all is fine
@@ -110,7 +119,7 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
         nch_to_load = ch.size
 
     # Open the shot file
-    fast = sf.SFREAD(diag_name, shot, ed=ed)
+    fast = sf.SFREAD(diag_name, shot, ed=ed, exp=exp)
     dummy_name = signal_prefix + "{0:02}".format(ch[0])
     time = np.array(fast.gettimebase(dummy_name))
     data = []
@@ -121,7 +130,8 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
             channel_dat = np.array(fast(name_channel))
             data.append(channel_dat[:time.size])
         else:
-            data.append(None)
+            pass
+            # data.append(None)
     print('Number of requested channels: ', nch_to_load)
     return {'time': time, 'data': data, 'channels': ch}
 
