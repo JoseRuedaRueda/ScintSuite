@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interpn
 import Lib.LibData as ssdat
-import Lib.LibPlotting as ssplt
+import Lib._Plotting as ssplt
 import Lib.errors as errors
 import math
 
@@ -33,7 +33,7 @@ class fields:
             'R': np.array((0), dtype=np.float64),
             'nR': np.array((1), dtype=np.int32),
             'z': np.array((0), dtype=np.float64),
-            'nZ': np.array((1), dtype=np.int32),
+            'nz': np.array((1), dtype=np.int32),
             'fr': np.array((0), dtype=np.float64),
             'fz': np.array((0), dtype=np.float64),
             'ft': np.array((0), dtype=np.float64),
@@ -49,7 +49,7 @@ class fields:
             'R': np.array((0), dtype=np.float64),
             'nR': np.array((1), dtype=np.int32),
             'z': np.array((0), dtype=np.float64),
-            'nZ': np.array((1), dtype=np.int32),
+            'nz': np.array((1), dtype=np.int32),
             'fr': np.array((0), dtype=np.float64),
             'fz': np.array((0), dtype=np.float64),
             'ft': np.array((0), dtype=np.float64),
@@ -80,21 +80,19 @@ class fields:
         Start the class containing the E-M fields from files.
 
         Pablo Oyola ft. Jose Rueda
-        Note that its follow the i-HIBPsim/SINPA structure
-        (SINPA fields are similar to iHIBPsim fields
-        but with no time dependence):
-        --> nR, nZ, nPhi, nTime: int32 - Grid size in each direction.
+
+        Note that its follow the i-HIBPsim/SINPA structure:
+        --> nR, nz, nPhi, nTime: int32 - Grid size in each direction.
         --> Rmin, Rmax: float64 - Minimum and maximum major radius.
-        --> Zmin, Zmax: float64 - Minimum and maximum vertical pos.
+        --> zmin, zmax: float64 - Minimum and maximum vertical pos.
         --> Phimin, Phimax: float64 - Min. and max. toroidal direction.
         --> Timemin, timemax> float64
-        --> Br[nR, nPhi, nZ]: float64
-        --> Bphi[nR, nPhi, nZ]: float64
-        --> Bz[nR, nPhi, nZ]: float64
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
+        --> Br[nR, nPhi, nz]: float64
+        --> Bphi[nR, nPhi, nz]: float64
+        --> Bz[nR, nPhi, nz]: float64
 
         @param Bfile: Full path to the magnetic field.
+        @param Efile: Full path to the electric field file.
         """
         self.bdims = 0
         self.edims = 0
@@ -103,20 +101,20 @@ class fields:
         if Bfile is not None:
             with open(Bfile, 'rb') as fid:
                 self.Bfield['nR'] = np.fromfile(fid, 'uint32', 1)
-                self.Bfield['nZ'] = np.fromfile(fid, 'uint32', 1)
+                self.Bfield['nz'] = np.fromfile(fid, 'uint32', 1)
                 self.Bfield['nPhi'] = np.fromfile(fid, 'uint32', 1)
                 self.Bfield['nTime'] = np.fromfile(fid, 'uint32', 1)
 
                 self.Bfield['Rmin'] = np.fromfile(fid, 'float64', 1)
                 self.Bfield['Rmax'] = np.fromfile(fid, 'float64', 1)
-                self.Bfield['Zmin'] = np.fromfile(fid, 'float64', 1)
-                self.Bfield['Zmax'] = np.fromfile(fid, 'float64', 1)
+                self.Bfield['zmin'] = np.fromfile(fid, 'float64', 1)
+                self.Bfield['zmax'] = np.fromfile(fid, 'float64', 1)
                 self.Bfield['Phimin'] = np.fromfile(fid, 'float64', 1)
                 self.Bfield['Phimax'] = np.fromfile(fid, 'float64', 1)
                 self.Bfield['Timemin'] = np.fromfile(fid, 'float64', 1)
                 self.Bfield['Timemax'] = np.fromfile(fid, 'float64', 1)
 
-                size2read = self.Bfield['nR'] * self.Bfield['nZ'] \
+                size2read = self.Bfield['nR'] * self.Bfield['nz'] \
                     * self.Bfield['nPhi'] * self.Bfield['nTime']
 
                 br = np.fromfile(fid, 'float64', count=size2read[0])
@@ -132,9 +130,9 @@ class fields:
                     self.Bfield['R'] = np.linspace(self.Bfield['Rmin'][0],
                                                    self.Bfield['Rmax'][0],
                                                    self.Bfield['nR'][0])
-                    self.Bfield['z'] = np.linspace(self.Bfield['Zmin'][0],
-                                                   self.Bfield['Zmax'][0],
-                                                   self.Bfield['nZ'][0])
+                    self.Bfield['z'] = np.linspace(self.Bfield['zmin'][0],
+                                                   self.Bfield['zmax'][0],
+                                                   self.Bfield['nz'][0])
 
                     self.Brinterp = lambda r, z, phi, time: self.Bfield['fr']
                     self.Bzinterp = lambda r, z, phi, time: self.Bfield['fz']
@@ -143,21 +141,21 @@ class fields:
                 elif self.Bfield['nPhi'] == 1 and self.Bfield['nTime'] == 1:
                     self.bdims = 2  # Static 2D fields
                     self.Bfield['fr'] = br.reshape((self.Bfield['nR'][0],
-                                                    self.Bfield['nZ'][0]),
+                                                    self.Bfield['nz'][0]),
                                                    order='F')
                     self.Bfield['fz'] = bz.reshape((self.Bfield['nR'][0],
-                                                    self.Bfield['nZ'][0]),
+                                                    self.Bfield['nz'][0]),
                                                    order='F')
                     self.Bfield['ft'] = bphi.reshape((self.Bfield['nR'][0],
-                                                      self.Bfield['nZ'][0]),
+                                                      self.Bfield['nz'][0]),
                                                      order='F')
 
                     self.Bfield['R'] = np.linspace(self.Bfield['Rmin'][0],
                                                    self.Bfield['Rmax'][0],
                                                    self.Bfield['nR'][0])
-                    self.Bfield['z'] = np.linspace(self.Bfield['Zmin'][0],
-                                                   self.Bfield['Zmax'][0],
-                                                   self.Bfield['nZ'][0])
+                    self.Bfield['z'] = np.linspace(self.Bfield['zmin'][0],
+                                                   self.Bfield['zmax'][0],
+                                                   self.Bfield['nz'][0])
 
                     self.Brinterp = lambda r, z, phi, time: \
                         interpn((self.Bfield['R'], self.Bfield['z']),
@@ -172,23 +170,23 @@ class fields:
                     self.bdims = 3  # Static 3D fields
                     self.Bfield['fr'] = br.reshape((self.Bfield['nR'][0],
                                                     self.Bfield['nPhi'][0],
-                                                    self.Bfield['nZ'][0]),
+                                                    self.Bfield['nz'][0]),
                                                    order='F')
                     self.Bfield['fz'] = bz.reshape((self.Bfield['nR'][0],
                                                     self.Bfield['nPhi'][0],
-                                                    self.Bfield['nZ'][0]),
+                                                    self.Bfield['nz'][0]),
                                                    order='F')
                     self.Bfield['ft'] = bphi.reshape((self.Bfield['nR'][0],
                                                       self.Bfield['nPhi'][0],
-                                                      self.Bfield['nZ'][0]),
+                                                      self.Bfield['nz'][0]),
                                                      order='F')
 
                     self.Bfield['R'] = np.linspace(self.Bfield['Rmin'][0],
                                                    self.Bfield['Rmax'][0],
                                                    self.Bfield['nR'][0])
-                    self.Bfield['z'] = np.linspace(self.Bfield['Zmin'][0],
-                                                   self.Bfield['Zmax'][0],
-                                                   self.Bfield['nZ'][0])
+                    self.Bfield['z'] = np.linspace(self.Bfield['zmin'][0],
+                                                   self.Bfield['zmax'][0],
+                                                   self.Bfield['nz'][0])
                     self.Bfield['Phi'] = np.linspace(self.Bfield['Phimin'][0],
                                                      self.Bfield['Phimax'][0],
                                                      self.Bfield['nPhi'][0])
@@ -209,26 +207,26 @@ class fields:
                     self.bdims = 4  # Full 4D field
                     self.Bfield['fr'] = br.reshape((self.Bfield['nR'][0],
                                                     self.Bfield['nPhi'][0],
-                                                    self.Bfield['nZ'][0],
+                                                    self.Bfield['nz'][0],
                                                     self.Bfield['nTime'][0]),
                                                    order='F')
                     self.Bfield['fz'] = bz.reshape((self.Bfield['nR'][0],
                                                     self.Bfield['nPhi'][0],
-                                                    self.Bfield['nZ'][0],
+                                                    self.Bfield['nz'][0],
                                                     self.Bfield['nTime'][0]),
                                                    order='F')
                     self.Bfield['ft'] = bphi.reshape((self.Bfield['nR'][0],
                                                       self.Bfield['nPhi'][0],
-                                                      self.Bfield['nZ'][0],
+                                                      self.Bfield['nz'][0],
                                                       self.Bfield['nTime'][0]),
                                                      order='F')
 
                     self.Bfield['R'] = np.linspace(self.Bfield['Rmin'][0],
                                                    self.Bfield['Rmax'][0],
                                                    self.Bfield['nR'][0])
-                    self.Bfield['z'] = np.linspace(self.Bfield['Zmin'][0],
-                                                   self.Bfield['Zmax'][0],
-                                                   self.Bfield['nZ'][0])
+                    self.Bfield['z'] = np.linspace(self.Bfield['zmin'][0],
+                                                   self.Bfield['zmax'][0],
+                                                   self.Bfield['nz'][0])
                     self.Bfield['Phi'] = np.linspace(self.Bfield['Phimin'][0],
                                                      self.Bfield['Phimax'][0],
                                                      self.Bfield['nPhi'][0])
@@ -261,20 +259,20 @@ class fields:
         if Efile is not None:
             with open(Efile, 'rb') as fid:
                 self.Efield['nR'] = np.fromfile(fid, 'uint32', 1)
-                self.Efield['nZ'] = np.fromfile(fid, 'uint32', 1)
+                self.Efield['nz'] = np.fromfile(fid, 'uint32', 1)
                 self.Efield['nPhi'] = np.fromfile(fid, 'uint32', 1)
                 self.Efield['nTime'] = np.fromfile(fid, 'uint32', 1)
 
                 self.Efield['Rmin'] = np.fromfile(fid, 'float64', 1)
                 self.Efield['Rmax'] = np.fromfile(fid, 'float64', 1)
-                self.Efield['Zmin'] = np.fromfile(fid, 'float64', 1)
-                self.Efield['Zmax'] = np.fromfile(fid, 'float64', 1)
+                self.Efield['zmin'] = np.fromfile(fid, 'float64', 1)
+                self.Efield['zmax'] = np.fromfile(fid, 'float64', 1)
                 self.Efield['Phimin'] = np.fromfile(fid, 'float64', 1)
                 self.Efield['Phimax'] = np.fromfile(fid, 'float64', 1)
                 self.Efield['Timemin'] = np.fromfile(fid, 'float64', 1)
                 self.Efield['Timemax'] = np.fromfile(fid, 'float64', 1)
 
-                size2read = self.Efield['nR'] * self.Efield['nZ']\
+                size2read = self.Efield['nR'] * self.Efield['nz']\
                     * self.Efield['nPhi'] * self.Efield['nTime']
 
                 er = np.fromfile(fid, 'float64', size2read[0])
@@ -284,21 +282,21 @@ class fields:
                 if self.Efield['nPhi'] == 1 and self.Efield['nTime'] == 1:
                     self.edims = 2
                     self.Efield['fr'] = er.reshape((self.Efield['nR'][0],
-                                                    self.Efield['nZ'][0]),
+                                                    self.Efield['nz'][0]),
                                                    order='F')
                     self.Efield['fz'] = ez.reshape((self.Efield['nR'][0],
-                                                    self.Efield['nZ'][0]),
+                                                    self.Efield['nz'][0]),
                                                    order='F')
                     self.Efield['ft'] = ephi.reshape((self.Efield['nR'][0],
-                                                      self.Efield['nZ'][0]),
+                                                      self.Efield['nz'][0]),
                                                      order='F')
 
                     self.Efield['R'] = np.linspace(self.Efield['Rmin'][0],
                                                    self.Efield['Rmax'][0],
                                                    self.Efield['nR'][0])
-                    self.Efield['z'] = np.linspace(self.Efield['Zmin'][0],
-                                                   self.Efield['Zmax'][0],
-                                                   self.Efield['nZ'][0])
+                    self.Efield['z'] = np.linspace(self.Efield['zmin'][0],
+                                                   self.Efield['zmax'][0],
+                                                   self.Efield['nz'][0])
 
                     self.Erinterp = lambda r, z, phi, time: \
                         interpn((self.Efield['R'], self.Efield['z']),
@@ -313,23 +311,23 @@ class fields:
                     self.edims = 3
                     self.Efield['fr'] = er.reshape((self.Efield['nR'][0],
                                                     self.Efield['nPhi'][0],
-                                                    self.Efield['nZ'][0]),
+                                                    self.Efield['nz'][0]),
                                                    order='F')
                     self.Efield['fz'] = ez.reshape((self.Efield['nR'][0],
                                                     self.Efield['nPhi'][0],
-                                                    self.Efield['nZ'][0]),
+                                                    self.Efield['nz'][0]),
                                                    order='F')
                     self.Efield['ft'] = ephi.reshape((self.Efield['nR'][0],
                                                       self.Efield['nPhi'][0],
-                                                      self.Efield['nZ'][0]),
+                                                      self.Efield['nz'][0]),
                                                      order='F')
 
                     self.Efield['R'] = np.linspace(self.Efield['Rmin'][0],
                                                    self.Efield['Rmax'][0],
                                                    self.Efield['nR'][0])
-                    self.Efield['z'] = np.linspace(self.Efield['Zmin'][0],
-                                                   self.Efield['Zmax'][0],
-                                                   self.Efield['nZ'][0])
+                    self.Efield['z'] = np.linspace(self.Efield['zmin'][0],
+                                                   self.Efield['zmax'][0],
+                                                   self.Efield['nz'][0])
                     self.Efield['phi'] = np.linspace(self.Efield['Phimin'][0],
                                                      self.Efield['Phimax'][0],
                                                      self.Efield['nPhi'][0])
@@ -350,26 +348,26 @@ class fields:
                     self.edims = 4
                     self.Efield['fr'] = er.reshape((self.Efield['nR'][0],
                                                     self.Efield['nPhi'][0],
-                                                    self.Efield['nZ'][0],
+                                                    self.Efield['nz'][0],
                                                     self.Efield['nTime'][0]),
                                                    order='F')
                     self.Efield['fz'] = ez.reshape((self.Efield['nR'][0],
                                                     self.Efield['nPhi'][0],
-                                                    self.Efield['nZ'][0],
+                                                    self.Efield['nz'][0],
                                                     self.Efield['nTime'][0]),
                                                    order='F')
                     self.Efield['ft'] = ephi.reshape((self.Efield['nR'][0],
                                                       self.Efield['nPhi'][0],
-                                                      self.Efield['nZ'][0],
+                                                      self.Efield['nz'][0],
                                                       self.Efield['nTime'][0]),
                                                      order='F')
 
                     self.Efield['R'] = np.linspace(self.Efield['Rmin'][0],
                                                    self.Efield['Rmax'][0],
                                                    self.Efield['nR'][0])
-                    self.Efield['z'] = np.linspace(self.Efield['Zmin'][0],
-                                                   self.Efield['Zmax'][0],
-                                                   self.Efield['nZ'][0])
+                    self.Efield['z'] = np.linspace(self.Efield['zmin'][0],
+                                                   self.Efield['zmax'][0],
+                                                   self.Efield['nz'][0])
                     self.Efield['Phi'] = np.linspace(self.Efield['Phimin'][0],
                                                      self.Efield['Phimax'][0],
                                                      self.Efield['nPhi'][0])
@@ -406,7 +404,7 @@ class fields:
                     edition: int = 0,
                     Rmin: float = 1.03, Rmax: float = 2.65,
                     zmin: float = -1.224, zmax: float = 1.05,
-                    nR: int = 128, nZ: int = 256):
+                    nR: int = 128, nz: int = 256):
         """
         Read field from machine database.
 
@@ -425,7 +423,7 @@ class fields:
         @param zmin: Minimum Z to get the magnetic equilibrium.
         @param zmax: Maximum Z to get the magnetic equilibrium.
         @param nR: Number of points to define the B field grid in R direction.
-        @param nZ: Number of points to define the B field grid in Z direction.
+        @param nz: Number of points to define the B field grid in Z direction.
         """
         self.bdims = 0
         self.edims = 0
@@ -433,7 +431,7 @@ class fields:
 
         # Getting from the database.
         R = np.linspace(Rmin, Rmax, num=nR)
-        z = np.linspace(zmin, zmax, num=nZ)
+        z = np.linspace(zmin, zmax, num=nz)
         RR, zz = np.meshgrid(R, z)
         grid_shape = RR.shape
         br, bz, bt, bp = ssdat.get_mag_field(shotnumber, RR.flatten(),
@@ -458,10 +456,10 @@ class fields:
         self.Bfield['z'] = np.array(z, dtype=np.float64)
         self.Bfield['Rmin'] = np.array((Rmin), dtype=np.float64)
         self.Bfield['Rmax'] = np.array((Rmax), dtype=np.float64)
-        self.Bfield['Zmin'] = np.array((zmin), dtype=np.float64)
-        self.Bfield['Zmax'] = np.array((zmax), dtype=np.float64)
+        self.Bfield['zmin'] = np.array((zmin), dtype=np.float64)
+        self.Bfield['zmax'] = np.array((zmax), dtype=np.float64)
         self.Bfield['nR'] = np.array([nR], dtype=np.int32)
-        self.Bfield['nZ'] = np.array([nZ], dtype=np.int32)
+        self.Bfield['nz'] = np.array([nz], dtype=np.int32)
         self.Bfield['fr'] = Br.astype(dtype=np.float64)
         self.Bfield['fz'] = Bz.astype(dtype=np.float64)
         self.Bfield['ft'] = Bt.astype(dtype=np.float64)
@@ -488,7 +486,7 @@ class fields:
                               exp=exp, diag=diag, edition=edition,
                               Rmin=Rmin, Rmax=Rmax,
                               zmin=zmin, zmax=zmax,
-                              nR=nR, nZ=nZ)
+                              nR=nR, nz=nz)
 
         # Saving the input data to the class.
         self.Bfield_from_shot_flag = True
@@ -505,7 +503,7 @@ class fields:
                                edition: int = 0,
                                Rmin: float = 160.0, Rmax: float = 220.0,
                                zmin: float = 80.0, zmax: float = 120.0,
-                               nR: int = 40, nZ: int = 80):
+                               nR: int = 40, nz: int = 80):
         """
         Read field from machine database, single point
 
@@ -532,13 +530,13 @@ class fields:
         @param zmin: Minimum Z to get the magnetic equilibrium.
         @param zmax: Maximum Z to get the magnetic equilibrium.
         @param nR: Number of points to define the B field grid in R direction.
-        @param nZ: Number of points to define the B field grid in Z direction.
+        @param nz: Number of points to define the B field grid in Z direction.
         """
         self.bdims = 0
 
         # Getting from the database.
         R = np.linspace(Rmin, Rmax, num=nR) / 100.0
-        z = np.linspace(zmin, zmax, num=nZ) / 100.0
+        z = np.linspace(zmin, zmax, num=nz) / 100.0
         RR, zz = np.meshgrid(R, z)
         grid_shape = RR.shape
         br, bz, bt, bp = ssdat.get_mag_field(shotnumber, RR.flatten(),
@@ -563,10 +561,10 @@ class fields:
         self.Bfield['z'] = np.array(z * 100.0, dtype=np.float64)
         self.Bfield['Rmin'] = np.array((Rmin), dtype=np.float64)
         self.Bfield['Rmax'] = np.array((Rmax), dtype=np.float64)
-        self.Bfield['Zmin'] = np.array((zmin), dtype=np.float64)
-        self.Bfield['Zmax'] = np.array((zmax), dtype=np.float64)
+        self.Bfield['zmin'] = np.array((zmin), dtype=np.float64)
+        self.Bfield['zmax'] = np.array((zmax), dtype=np.float64)
         self.Bfield['nR'] = np.array([nR], dtype=np.int32)
-        self.Bfield['nZ'] = np.array([nZ], dtype=np.int32)
+        self.Bfield['nz'] = np.array([nz], dtype=np.int32)
         self.Bfield['fr'] = Br.astype(dtype=np.float64)
         self.Bfield['fz'] = Bz.astype(dtype=np.float64)
         self.Bfield['ft'] = Bt.astype(dtype=np.float64)
@@ -624,7 +622,7 @@ class fields:
     def createFromSingleB(self, B: np.ndarray, Rmin: float = 1.6,
                           Rmax: float = 2.2,
                           zmin: float = 0.8, zmax: float = 1.2,
-                          nR: int = 40, nZ: int = 80):
+                          nR: int = 40, nz: int = 80):
         """
         Create a field for SINPA from a given B vector
 
@@ -642,13 +640,13 @@ class fields:
         @param zmin: Minimum Z to get the magnetic equilibrium.
         @param zmax: Maximum Z to get the magnetic equilibrium.
         @param nR: Number of points to define the B field grid in R direction.
-        @param nZ: Number of points to define the B field grid in Z direction.
+        @param nz: Number of points to define the B field grid in Z direction.
         """
         self.bdims = 0
 
         # Prepare the grid and allocate the field
         R = np.linspace(Rmin, Rmax, num=nR)
-        z = np.linspace(zmin, zmax, num=nZ)
+        z = np.linspace(zmin, zmax, num=nz)
         RR, zz = np.meshgrid(R, z)
         grid_shape = RR.shape
         br = np.zeros(grid_shape)
@@ -674,10 +672,10 @@ class fields:
         self.Bfield['z'] = np.array(z, dtype=np.float64)
         self.Bfield['Rmin'] = np.array((Rmin), dtype=np.float64)
         self.Bfield['Rmax'] = np.array((Rmax), dtype=np.float64)
-        self.Bfield['Zmin'] = np.array((zmin), dtype=np.float64)
-        self.Bfield['Zmax'] = np.array((zmax), dtype=np.float64)
+        self.Bfield['zmin'] = np.array((zmin), dtype=np.float64)
+        self.Bfield['zmax'] = np.array((zmax), dtype=np.float64)
         self.Bfield['nR'] = np.array([nR], dtype=np.int32)
-        self.Bfield['nZ'] = np.array([nZ], dtype=np.int32)
+        self.Bfield['nz'] = np.array([nz], dtype=np.int32)
         self.Bfield['fr'] = Br.astype(dtype=np.float64)
         self.Bfield['fz'] = Bz.astype(dtype=np.float64)
         self.Bfield['ft'] = Bt.astype(dtype=np.float64)
@@ -730,10 +728,10 @@ class fields:
         self.__dict__[key]['z'] = np.array((0.0), dtype=np.float64)
         self.__dict__[key]['Rmin'] = np.array((0.0), dtype=np.float64)
         self.__dict__[key]['Rmax'] = np.array((0.0), dtype=np.float64)
-        self.__dict__[key]['Zmin'] = np.array((0.0), dtype=np.float64)
-        self.__dict__[key]['Zmax'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['zmin'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['zmax'] = np.array((0.0), dtype=np.float64)
         self.__dict__[key]['nR'] = np.array([1], dtype=np.int32)
-        self.__dict__[key]['nZ'] = np.array([1], dtype=np.int32)
+        self.__dict__[key]['nz'] = np.array([1], dtype=np.int32)
         self.__dict__[key]['fx'] = np.array(F[0]).astype(dtype=np.float64)
         self.__dict__[key]['fy'] = np.array(F[1]).astype(dtype=np.float64)
         self.__dict__[key]['fz'] = np.array(F[2]).astype(dtype=np.float64)
@@ -744,7 +742,7 @@ class fields:
                                        u1=np.array((1.0, 0.0, 0.0)),
                                        u2=np.array((0.0, 1.0, 0.0)),
                                        u3=np.array((0.0, 0.0, 1.0)),
-                                       IpBt_sign: float = ssdat.IB_sign,
+                                       IpBt_sign: float = -1.0,
                                        verbose: bool = True,
                                        diagnostic: str = 'FILD'):
         """
@@ -804,10 +802,10 @@ class fields:
         self.__dict__[key]['z'] = np.array((0.0), dtype=np.float64)
         self.__dict__[key]['Rmin'] = np.array((0.0), dtype=np.float64)
         self.__dict__[key]['Rmax'] = np.array((0.0), dtype=np.float64)
-        self.__dict__[key]['Zmin'] = np.array((0.0), dtype=np.float64)
-        self.__dict__[key]['Zmax'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['zmin'] = np.array((0.0), dtype=np.float64)
+        self.__dict__[key]['zmax'] = np.array((0.0), dtype=np.float64)
         self.__dict__[key]['nR'] = np.array([1], dtype=np.int32)
-        self.__dict__[key]['nZ'] = np.array([1], dtype=np.int32)
+        self.__dict__[key]['nz'] = np.array([1], dtype=np.int32)
         self.__dict__[key]['fx'] = np.array(F[0]).astype(dtype=np.float64)
         self.__dict__[key]['fy'] = np.array(F[1]).astype(dtype=np.float64)
         self.__dict__[key]['fz'] = np.array(F[2]).astype(dtype=np.float64)
@@ -817,7 +815,7 @@ class fields:
                          edition: int = 0,
                          Rmin: float = 1.03, Rmax: float = 2.65,
                          zmin: float = -1.224, zmax: float = 1.05,
-                         nR: int = 128, nZ: int = 256):
+                         nR: int = 128, nz: int = 256):
         """
         Fetchs the psi_pol = rho_pol(R, z) map from the AUG database using
         input grid.
@@ -836,11 +834,11 @@ class fields:
         @param zmin: Minimum Z to get the magnetic equilibrium.
         @param zmax: Maximum Z to get the magnetic equilibrium.
         @param nR: Number of points to define the B field grid in R direction.
-        @param nZ: Number of points to define the B field grid in Z direction.
+        @param nz: Number of points to define the B field grid in Z direction.
         """
         # Getting from the database.
         R = np.linspace(Rmin, Rmax, num=nR)
-        z = np.linspace(zmin, zmax, num=nZ)
+        z = np.linspace(zmin, zmax, num=nz)
         RR, zz = np.meshgrid(R, z)
         grid_shape = RR.shape
         psipol = ssdat.get_psipol(shotnumber, RR.flatten(), zz.flatten(),
@@ -853,7 +851,7 @@ class fields:
         self.psipol['R'] = np.array(R, dtype=np.float64)
         self.psipol['z'] = np.array(z, dtype=np.float64)
         self.psipol['nR'] = np.array([nR], dtype=np.int32)
-        self.psipol['nZ'] = np.array([nZ], dtype=np.int32)
+        self.psipol['nz'] = np.array([nz], dtype=np.int32)
         self.psipol['f'] = psipol.astype(dtype=np.float64)
         self.psipol_interp = lambda r, z, phi, time: \
             interpn((self.psipol['R'], self.psipol['z']),
@@ -961,15 +959,15 @@ class fields:
         if bflag:
             # Write header with grid size information:
             self.Bfield['nR'].tofile(fid)
-            self.Bfield['nZ'].tofile(fid)
+            self.Bfield['nz'].tofile(fid)
             self.Bfield['nPhi'].tofile(fid)
             self.Bfield['nTime'].tofile(fid)
 
             # Write grid ends:
             self.Bfield['Rmin'].tofile(fid)
             self.Bfield['Rmax'].tofile(fid)
-            self.Bfield['Zmin'].tofile(fid)
-            self.Bfield['Zmax'].tofile(fid)
+            self.Bfield['zmin'].tofile(fid)
+            self.Bfield['zmax'].tofile(fid)
             self.Bfield['Phimin'].tofile(fid)
             self.Bfield['Phimax'].tofile(fid)
             self.Bfield['Timemin'].tofile(fid)
@@ -987,15 +985,15 @@ class fields:
         elif eflag:
             # Write header with grid size information:
             self.Efield['nR'].tofile(fid)
-            self.Efield['nZ'].tofile(fid)
+            self.Efield['nz'].tofile(fid)
             self.Efield['nPhi'].tofile(fid)
             self.Efield['nTime'].tofile(fid)
 
             # Write grid ends:
             self.Efield['Rmin'].tofile(fid)
             self.Efield['Rmax'].tofile(fid)
-            self.Efield['Zmin'].tofile(fid)
-            self.Efield['Zmax'].tofile(fid)
+            self.Efield['zmin'].tofile(fid)
+            self.Efield['zmax'].tofile(fid)
             self.Efield['Phimin'].tofile(fid)
             self.Efield['Phimax'].tofile(fid)
             self.Efield['Timemin'].tofile(fid)
@@ -1056,9 +1054,9 @@ class fields:
                 raise Exception('Plot not working of 0D fields')
             dims = self.edims
             if dims >= 3:
-                phiMaxIdx = self.Bfield['nPhi']
+                phiMaxIdx = self.Efield['nPhi']
                 if dims >= 4:
-                    timeMaxIdx = self.Bfield['nTime']
+                    timeMaxIdx = self.Efield['nTime']
 
         if fieldName.startswith('b'):
             if self.bdims == 0:
@@ -1087,7 +1085,7 @@ class fields:
                          + self.Efield['fz']**2
                          + self.Efield['ft']**2),
             'psipol': self.psipol['f']
-        }.get(fieldName)
+        }.get(fieldName.lower())
 
         Rplot = {
             'br': self.Bfield['R'],
@@ -1099,7 +1097,7 @@ class fields:
             'b': self.Bfield['R'],
             'e': self.Efield['R'],
             'psipol': self.psipol['R']
-        }.get(fieldName)
+        }.get(fieldName.lower())
 
         Zplot = {
             'br': self.Bfield['z'],
@@ -1111,7 +1109,7 @@ class fields:
             'b': self.Bfield['z'],
             'e': self.Efield['z'],
             'psipol': self.psipol['z']
-        }.get(fieldName)
+        }.get(fieldName.lower())
 
         # For the 3D case, only a 2D projection can be plotted:
         if dims == 3:
@@ -1149,13 +1147,13 @@ class fields:
             'b': 'B [T]',
             'e': 'E [V/m]',
             'psipol': '$\\Psi_{pol}$ [Wb]'
-            }.get(fieldName)
+            }.get(fieldName.lower())
 
         cbar = plt.colorbar(fieldPlotHndl, format=cbar_tick_format)
         cbar.set_label(ccbarname)
 
         # Preparing the axis labels:
-        ax_options['xlabel'] = 'Major radius R [m]'
+        ax_options['xlabel'] = 'R [m]'
         ax_options['ylabel'] = 'Z [m]'
         ax = ssplt.axis_beauty(ax, ax_options)
 

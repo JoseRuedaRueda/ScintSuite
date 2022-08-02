@@ -15,10 +15,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from Lib.LibMachine import machine
-from Lib.LibPaths import Path
-from Lib.LibPlotting import axis_beauty, axisEqual3D, clean3Daxis
-import Lib.LibCAD as libcad
+from Lib._Machine import machine
+from Lib._Paths import Path
+from Lib._Plotting import axis_beauty, axisEqual3D, clean3Daxis
+import Lib._CAD as libcad
 import f90nml
 paths = Path(machine)
 
@@ -210,8 +210,9 @@ def plotLinesElement(geom: dict, ax=None, line_params: dict = {},
                     [geom[key][0, 1] * factor, geom[key][-1, 1] * factor],
                     [geom[key][0, 2] * factor, geom[key][-1, 2] * factor],
                     **line_options)
+    return ax
 
-    
+
 def plotShadedElement(geom: dict, ax=None, surface_params: dict = {},
                       referenceSystem='absolute', plot2D: bool = False,
                       units: str = 'cm', view: str = 'absolute'):
@@ -320,6 +321,7 @@ def plotShadedElement(geom: dict, ax=None, surface_params: dict = {},
                               geom[key][3*it, 2]) * factor
                 verts = [list(zip(x, y, z))]
                 ax.add_collection3d(Poly3DCollection(verts, **surface_options))
+    return ax
 
 
 class Geometry:
@@ -493,6 +495,7 @@ class Geometry:
             axisEqual3D(ax)
             clean3Daxis(ax)
             fig.show()
+        return ax
 
     def plot2Dlines(self, line_params: dict = {}, ax=None,
                     ax_params: dict = {},
@@ -558,6 +561,7 @@ class Geometry:
         if created:
             axis_beauty(ax, ax_options)
             fig.show()
+        return ax
 
     def plot3Dfilled(self, surface_params: dict = {}, ax=None,
                      element_to_plot=[0, 1, 2], plot_pinhole: bool = True,
@@ -665,7 +669,7 @@ class Geometry:
                      element_to_plot=[0, 1, 2], plot_pinhole: bool = True,
                      units: str = 'cm',
                      view: str = 'Scint',
-                     referenceSystem: str ='absolute'):
+                     referenceSystem: str = 'absolute'):
         """
         Plot the geometric elements in 2D.
 
@@ -732,7 +736,7 @@ class Geometry:
                 # plot the plate
                 plotShadedElement(ele, ax=ax, surface_params=surface_options,
                                   plot2D=True, units=units, view=view,
-                                  referenceSystem =referenceSystem)
+                                  referenceSystem=referenceSystem)
 
         # --- Plot pinhole
         if plot_pinhole:
@@ -800,6 +804,5 @@ class Geometry:
         for ele in self.elements:
             if ele['kind'] in element_to_save:
                 libcad.write_triangles_to_stl(ele, units=units ,
-                                                file_name_save = file_name_save 
+                                                file_name_save = file_name_save
                                                 + "_" + file_mod[ele['kind']])
-

@@ -4,7 +4,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import Lib.LibPlotting as ssplt
+import Lib._Plotting as ssplt
 from scipy.interpolate import interp1d, interp2d
 try:
     import netCDF4 as nc4

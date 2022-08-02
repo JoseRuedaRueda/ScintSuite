@@ -80,6 +80,7 @@ class NPA():
         if created:
             ax.set_ylabel('CX flux [a.u.]')
             ax.set_xlabel(var)
+        return ax
 
     def calculatePitch(self, Boptions: dict = {}, IpBtSign: float = -1.0):
         """

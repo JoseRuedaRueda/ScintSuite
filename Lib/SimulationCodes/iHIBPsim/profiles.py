@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 from scipy.interpolate import interpn, UnivariateSpline
 from copy import copy
-from Lib.LibPlotting import Gamma_II
+from Lib._Plotting import Gamma_II
 
 class ihibpProfiles:
     """Class with iHIBPsim profiles."""
