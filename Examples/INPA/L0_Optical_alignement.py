@@ -14,7 +14,7 @@ SINPA coordinates and the calibration
 """
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
-from Lib.LibVideo.TIFfiles import load_tiff
+from Lib._Video._TIFfiles import load_tiff
 import Lib as ss
 
 # -----------------------------------------------------------------------------
@@ -42,36 +42,28 @@ t = [1.74]  # Times to overplot a frame from the video
 XtoY = 1.0
 # modify section 3 if you have a custom format for the calibration image
 # Staring points for the calibration
-xshift = 16.90
-yshift = 70.25
-xscale = 2841.85
-xc = 277.3
-yc = 168.33
-c = -1.8049e-3
-deg = -0.4456
+xshift = 31
+yshift = 75
+xscale = 2615
+xc = 270
+yc = 170
+c = -1.825e-3
+deg = -0.1
 
 
 # Scale maximum
-xshiftmax = 1500
-yshiftmax = 800
-xscalemax = 0
-xcmax = 1280
-ycmax = 800
-cmax = -0.5e-4
-degmax = 45
-# Scale maximum
-xshiftmax = 1500
-yshiftmax = 800
-xscalemax = 5000
+xshiftmax = 50
+yshiftmax = 120
+xscalemax = 3000
 xcmax = 1280
 ycmax = 800
 cmax = -0.5e-4
 degmax = 180
 
 # Scale minimum
-xshiftmin = -1200
-yshiftmin = -800
-xscalemin = -5000
+xshiftmin = 0
+yshiftmin = 20
+xscalemin = 2200
 xcmin = 0
 ycmin = 0
 cmin = -20e-4

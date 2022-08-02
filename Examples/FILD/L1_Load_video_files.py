@@ -6,7 +6,7 @@ possibility to subtract noise
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.1.8.  Revised for version 0.9.0
+Note; Written for version 0.1.8.  Revised for version 1.0.0
 """
 import Lib as ss
 # -----------------------------------------------------------------------------
@@ -29,7 +29,9 @@ tn2 = 1.0     # Final time to average the frames for noise subtraction [s]
 # --- Section 1: Load video
 # -----------------------------------------------------------------------------
 # - open the video file:
-vid = ss.vid.FILDVideo(shot=shot, diag_ID=diag_ID)
+vid = ss.vid.FILDVideo(shot=shot, diag_ID=diag_ID, verbose=True)
+# Set the verbose to False if you do not want the console to print the
+# comment written in the logbook by the FILD operator
 # - read the frames:
 print('Reading camera frames, shot: ', shot)
 vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
@@ -50,4 +52,6 @@ if subtract_noise:
 #                             # Given ax to plot, etc...
 #
 # Of course there are much more, like plotting the number of saturated counts
-# (usefult to see overheating) or other GUIS, just type 'vid?'
+# (usefult to see overheating) or other GUIS, just explore the different
+# plotting routines (write 'vid.' and click tab to see all methods of the
+# object)

@@ -9,8 +9,8 @@ the main results (orbits, strikes, strikeline evolution...)
 
 import os
 import Lib.SimulationCodes.iHIBPsim.nml as nml_lib
-from Lib.LibMachine import machine
-from Lib.LibPaths import Path
+from Lib._Machine import machine
+from Lib._Paths import Path
 from copy import deepcopy
 
 paths = Path(machine)

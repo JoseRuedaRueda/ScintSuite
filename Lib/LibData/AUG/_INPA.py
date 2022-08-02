@@ -9,11 +9,9 @@ import f90nml
 import math
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import warnings
-from Lib.LibMachine import machine
-from Lib.LibPaths import Path
-from Lib.LibMap.Calibration import CalParams, readCameraCalibrationDatabase
+from Lib._Machine import machine
+from Lib._Paths import Path
+from Lib._Mapping._Calibration import CalParams, readCameraCalibrationDatabase
 import Lib.LibData.AUG.DiagParam as params
 import Lib.errors as errors
 paths = Path(machine)
@@ -51,7 +49,10 @@ def guessINPAfilename(shot: int, diag_ID: int = 1):
 
     if shot < 99999:  # PCO camera, stored in AFS
         name = shot_str + extension
-        f = os.path.join(base_dir, shot_str[0:4], name)
+        if shot < 41202:
+            f = os.path.join(base_dir, shot_str[0:4], name)
+        else:
+            f = os.path.join(base_dir, shot_str[0:2], name)
     return f
 
 
