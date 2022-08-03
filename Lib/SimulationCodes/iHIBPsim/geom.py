@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Lib
 import random
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from typing import Union
 import Lib.LibData.AUG.DiagParam as libparms
 import Lib.SimulationCodes.iHIBPsim as libhipsim
@@ -1144,7 +1145,7 @@ class geom:
                 im.append(ax.plot(x, y, **options))
 
         elif view == '3d':
-            raise NotImplemented('Not 3D view for separatrix yet implemented.')
+            raise NotImplementedError('Not 3D view for separatrix yet implemented.')
 
         return im, ax
 
@@ -1169,10 +1170,22 @@ class geom:
         if view == '3d':
             if ax is None:
                 fig = plt.figure()
-                fig.add_subplots(projection='3d')
+                ax = fig.add_subplot(projection='3d')
+
+            surface_options = {
+                'color': 'r',
+                'alpha': 0.5,    # Transparency factor
+                'linewidth': 0.0  # Width of the line, if zero, no contour will be plot
+            }
+
+            surface_options.update(kwargs)
 
             # Use Jose's function...
-            raise NotImplementedError('Waiting for Jose push')
+            x = [self.x0[0], self.x1[0], self.x3[0], self.x2[0]]
+            y = [self.x0[1], self.x1[1], self.x3[1], self.x2[1]]
+            z = [self.x0[2], self.x1[2], self.x3[2], self.x2[2]]
+            verts = [list(zip(x, y, z))]
+            ax.add_collection3d(Poly3DCollection(verts, **surface_options))
         elif view == 'pol':
             options = { 'color': 'g',
                         'alpha': 0.5
@@ -1288,8 +1301,11 @@ class geom:
         if 'head' in toplot:
             ax = self.__plot_head(view=view, ax=ax, fig=fig)
         if 'separatrix' in toplot:
-            im, ax = self.__plot_sep(view=view, ax=ax, fig=fig,
-                                     timepoint=timepoint)
+            try:
+                im, ax = self.__plot_sep(view=view, ax=ax, fig=fig,
+                                         timepoint=timepoint)
+            except ValueError:
+                logger.warning('26: Shotnumber not set. Separatrix not plotted!')
 
         return ax
 

@@ -1,3 +1,10 @@
+## 1.0.1: Adaptation to iHIBPsim 3.0.0
+**From this version onwards, the ScintSuite only works with the iHIPsim 3.0.0 and above**
+- Deposition object for the iHIBPsim: can read and plot basic informative data of the secondary birth profile.
+- Adapted namelists and default values to the new iHIBPsim version.
+- Included Hannah's modifications.
+
+
 ## 1.0.0: Salmorejo
 **Installation instructions**: Please run the file 'first_run.py' if you just landed in version 1.0.0, as some extra files need to be created
 ### General comment:

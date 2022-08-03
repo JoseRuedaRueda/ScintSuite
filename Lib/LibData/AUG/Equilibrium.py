@@ -295,7 +295,7 @@ def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
     psi_edge = [PFxx[iflux, ii] for ii, iflux in enumerate(ikCAT)]
     psi_edge = np.tile(np.array(psi_edge), (pfl.shape[0], 1))
     print(psi_ax.shape, psi_edge.shape)
-    rhop = np.sqrt((pfl - psi_ax)/(psi_edge-psi_ax)).squeeze()
+    rhop = np.sqrt(1.0 - (pfl - psi_ax)/(psi_edge-psi_ax)).squeeze()
     output = {}
 
     if time is not None:

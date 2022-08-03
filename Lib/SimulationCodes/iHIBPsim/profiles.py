@@ -1,3 +1,4 @@
+
 """
 Object with profiles for iHIBPsim.
 
@@ -166,7 +167,7 @@ class ihibpProfiles:
         tmp = {}
         with open(fileName, 'rb') as fid:
             tmp['nR'] = np.fromfile(fid, 'uint32', 1)[0]
-            tmp['nZ'] = np.fromfile(fid, 'uint32', 1)[0]
+            tmp['nz'] = np.fromfile(fid, 'uint32', 1)[0]
             tmp['nPhi'] = np.fromfile(fid, 'uint32', 1)[0]
             tmp['nTime'] = np.fromfile(fid, 'uint32', 1)[0]
 
@@ -179,14 +180,14 @@ class ihibpProfiles:
             tmp['Timemin'] = np.fromfile(fid, 'float64', 1)[0]
             tmp['Timemax'] = np.fromfile(fid, 'float64', 1)[0]
 
-            size2read = tmp['nR']   * tmp['nZ'] *\
+            size2read = tmp['nR']   * tmp['nz'] *\
                         tmp['nPhi'] * tmp['nTime']
 
             data = np.fromfile(fid, 'float64', count=size2read)
 
             # Generating the grids.
             grr  = np.linspace(tmp['Rmin'], tmp['Rmax'], num=tmp['nR'])
-            gzz  = np.linspace(tmp['Zmin'], tmp['Zmax'], num=tmp['nZ'])
+            gzz  = np.linspace(tmp['Zmin'], tmp['Zmax'], num=tmp['nz'])
             gphi = np.linspace(tmp['Phimin'], tmp['Phimax'], num=tmp['nPhi'])
             gtt  = np.linspace(tmp['Timemin'], tmp['Timemax'],
                                num=tmp['nTime'])
@@ -196,7 +197,7 @@ class ihibpProfiles:
             tmp['Phi'] = gphi
             tmp['Time'] = gtt
 
-            grid = np.array((tmp['nR'], tmp['nPhi'], tmp['nZ'], tmp['nTime']))
+            grid = np.array((tmp['nR'], tmp['nPhi'], tmp['nz'], tmp['nTime']))
 
             tmp['f'] = data.reshape(grid, order='F').squeeze()
             tmp['set'] = True # Variable loaded!
@@ -261,7 +262,7 @@ class ihibpProfiles:
 
         with open(filename, 'wb') as fid:
             # Writing the header.
-            gridsize = (tmp['nR'], tmp['nZ'], tmp['nPhi'], tmp['nTime'])
+            gridsize = (tmp['nR'], tmp['nz'], tmp['nPhi'], tmp['nTime'])
             np.array(gridsize, dtype='uint32').tofile(fid)
 
             gridlimits = (tmp['Rmin'], tmp['Rmax'], tmp['Zmin'], tmp['Zmax'],
@@ -274,6 +275,7 @@ class ihibpProfiles:
             np.array(tmp['f'], dtype='float64').ravel(order='F').tofile(fid)
 
         return
+
     def getfromDB(self, shotnumber: int, profName: str, diag: str=None,
                   exp: str='AUGD', time: float=None, edition: int=0):
         """
@@ -457,7 +459,7 @@ class ihibpProfiles:
     def set_grid(self, rmin: float, rmax: float, zmin: float, zmax: float,
                  phimin: float=0.0, phimax:float=2.0*np.pi,
                  tmin: float=None, tmax: float=None, nR: int=128,
-                 nZ: int=256, nphi: int=1, ntime: int=1):
+                 nz: int=256, nphi: int=1, ntime: int=1):
         """
         Sets the internal grid to transform the 1D rhopol into 2D+time such it
         can be readily written into files.
@@ -483,8 +485,8 @@ class ihibpProfiles:
 
                        'zmin': zmin,
                        'zmax': zmax,
-                       'nZ':   nZ,
-                       'Z': np.linspace(zmin, zmax, nZ),
+                       'nz':   nz,
+                       'Z': np.linspace(zmin, zmax, nz),
 
                        'dims': 2
                      }
@@ -548,7 +550,7 @@ class ihibpProfiles:
                                         k=self.interp_order, s=0,
                                         ext='zeros')
 
-        rhopol = rhopol.reshape(self.grids['nR'],self.grids['nZ'],-1)
+        rhopol = rhopol.reshape(self.grids['nR'],self.grids['nz'],-1)
         print(rhopol.shape)
 
         return interpolator(rhopol)
@@ -603,7 +605,7 @@ class ihibpProfiles:
             tmp['phi'] = self.grids['Phi']
             tmp['Time'] = self.grids['Time']
             tmp['nR'] = self.grids['nR']
-            tmp['nZ'] = self.grids['nZ']
+            tmp['nz'] = self.grids['nz']
             tmp['nPhi'] = self.grids['nPhi']
             tmp['nTime'] = self.grids['nTime']
             tmp['f'] = a
