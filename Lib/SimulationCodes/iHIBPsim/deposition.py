@@ -137,7 +137,8 @@ class deposition:
 
         return output
 
-    def plot1d(self, xaxis: str='rmajor', ax=None, bins: int=None, **line_params):
+    def plot1d(self, xaxis: str='rmajor', ax=None, bins: int=None,
+               xmin: float=None, xmax: float=None, **line_params):
         """
         Plot the deposition profile as a function either from major radius or
         the rhopol.
@@ -163,8 +164,11 @@ class deposition:
 
         R = data.sel(variable='Rmajor').values
         w = np.exp(data.sel(variable='weight').values)
+
+        vmin = xmin
+        vmax = xmax
         if xaxis.lower() == 'rmajor':
-            grr, H = utils.hist1d(R, w, bins=bins)
+            grr, H = utils.hist1d(R, w, bins=bins, vmin=vmin, vmax=vmax)
 
             xlabel = 'Major radius (m)'
             ylabel = 'Ion birth density($m^{-3}/m$)'
@@ -281,3 +285,12 @@ class deposition:
         y = R*np.sin(phi)
 
         return ax.scatter(x, y, z, c=w)
+
+    @property
+    def size(self):
+        """
+        Returns the number of particles in the deposition file.
+
+        Pablo Oyola - poyola@us.es
+        """
+        return self.header['N']

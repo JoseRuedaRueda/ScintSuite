@@ -63,8 +63,7 @@ def loadTable2D(filename: str):
         nv = np.fromfile(fid, 'int32', 1)[0]
         T = np.fromfile(fid, 'float64', nT)
         v = np.fromfile(fid, 'float64', nv)
-        sigma = np.fromfile(fid, 'float64', nT*nv).reshape((nv, nT),
-                                                           order='F').T
+        sigma = np.fromfile(fid, 'float64', nT*nv).reshape((nv, nT), order='F')
         output['table_type'] = 2
         output['nBase'] = []
         output['nBase'].append(nT)

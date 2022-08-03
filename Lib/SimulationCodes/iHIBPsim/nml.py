@@ -18,9 +18,12 @@ import os
 from Lib._Machine import machine
 from Lib._Paths import Path
 import f90nml
+import logging
+
+logger = logging.getLogger('ScintSuite.iHIBPsim.nml')
 
 
-IHIBPSIM_ACTION_NAMES = ('tracker', 'ihibpsim', 'shot_remap')
+IHIBPSIM_ACTION_NAMES = ('tracker', 'ihibpsim', 'shot_remap', 'deposition')
 paths = Path(machine)
 
 
@@ -43,6 +46,8 @@ def make_namelist(codename: str, user_nml: dict):
         return make_ihibpsim1_namelist(user_nml)
     elif codename == 'shot_mapper':
         return make_shotmapper_namelist(user_nml)
+    elif codename == 'deposition':
+        return make_deposition_namelist(user_nml)
     else:
         raise NotImplementedError('%s is not implemented!'%codename)
 
@@ -140,7 +145,9 @@ def make_ihibpsim1_namelist(user_nml: dict):
         'profiles': {
             'te_name': '',
             'ne_name': '',
-            'nion_name': ''
+            'nion_name': '',
+            'Tion_name': '',
+            'n0_name': ''
         },
         'tables': {
             'beamattenuationflag': False,
@@ -162,7 +169,7 @@ def make_ihibpsim1_namelist(user_nml: dict):
         },
         'deposition': {
             'nbeamdir': 128,
-            'ndisk': 1,
+            'nmc': 1,
             'rmin': 2.05,
             'rmax': 2.20,
             'storedeposition': False,
@@ -193,6 +200,66 @@ def make_ihibpsim1_namelist(user_nml: dict):
             'save_striking_points': False,
             'file_strikes': 'example.strikes'
         }
+    }
+    # Update the fields, if we just use nml.update(user_nml), if user_nml has
+    # the block 'ORBITS_CONF', but inside it just the field 'save_orbits',
+    # because the user only wants to update that field, it will fail, as all
+    # the block 'ORBITS_CONF' would be replaced by one with just that field, so
+    # we need to perform the comparison one by one
+    for inml in nml:
+        for ikey in nml[inml]:
+            if ikey in user_nml:
+                nml[inml][ikey] = user_nml[ikey]
+    return nml
+
+
+def make_deposition_namelist(user_nml: dict):
+    """
+    Write the namelist to generate the secondary beam deposition.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    @param user_nml: namelist containing the desired fields.
+    """
+    # Default namelist:
+    nml = {
+        'profiles': {
+            'te_name': '',
+            'ne_name': '',
+            'nion_name': '',
+            'Tion_name': '',
+            'n0_name': ''
+        },
+        'tables': {
+            'beamattenuationflag': False,
+            'elec_name': '',
+            'cx_name': '',
+            'prm_name': '',
+            'zeff1': 1.0
+        },
+        'deposition': {
+            'nbeamdir': 128,
+            'nmc': 1,
+            'rmin': 2.05,
+            'rmax': 2.20,
+            'storedeposition': False,
+            'filedeposition': 'output.depos',
+        },
+        'options': { 'verbose': True,
+                   },
+
+        'geometry': {
+            'origin_point': Lib.dat.iHIBP['port_center'],
+            'tilting_beta': Lib.dat.iHIBP['beta_std'],
+            'tilting_theta': Lib.dat.iHIBP['theta_std'],
+            'beammodelorder': 0,
+            'radius': Lib.dat.iHIBP['source_radius'],
+            'sourceradius': Lib.dat.iHIBP['source_radius'],
+            'divergency': 0.0,
+            'mean_energy': 70.0,
+            'std_e': 0.0,
+            'mass': 85.0,
+            'intensity': 1.0e-3
+        },
     }
     # Update the fields, if we just use nml.update(user_nml), if user_nml has
     # the block 'ORBITS_CONF', but inside it just the field 'save_orbits',
@@ -254,7 +321,7 @@ def make_shotmapper_namelist(user_nml: dict):
         },
         'deposition': {
             'nbeamdir': 128,
-            'ndisk': 1,
+            'nmc': 1,
             'rmin': 1.75,
             'rmax': 2.20,
             'storedeposition': False,
@@ -391,6 +458,8 @@ def check_namelist(params:dict, codename: str='ihibpsim',
         return __check_ihibpsim_namelist(params, forceConvention)
     elif codename == 'shot_mapper':
         return __check_shotmapper_namelist(params, forceConvention)
+    elif codename == 'deposition':
+        return __check_deposition_namelist(params, forceConvention)
     else:
         raise ValueError('The code %s is not a valid code name'%codename)
 
@@ -441,9 +510,8 @@ def __check_tracker_namelist(params: dict, forceConvention: bool=True,
     if params['tables']['beamattenuationflag']:
         if (params['tables']['elec_name'] == '') and\
            (params['tables']['CX_name'] == ''):
-               warnings.warn('The beam attenuation module is set, but none '+\
-                             'of the tables are loaded. Disabling...',
-                             category=UserWarning)
+               logger.warning('25: The beam attenuation module is set, but none '+\
+                              'of the tables are loaded. Disabling...')
 
                params['tables']['beamattenuationflag'] = False
 
@@ -465,8 +533,15 @@ def __check_tracker_namelist(params: dict, forceConvention: bool=True,
                         'extension .ne')
 
         if (params['profiles']['nion_name'] == ''):
-            print('The ion density will be considered to be'+\
-                  ' equal to the electron ones')
+            logger.warning('25: The ion density will be considered to be'+\
+                           ' equal to the electron one')
+
+        if (params['profiles']['Tion_name'] == ''):
+            logger.warning('25: The ion temperature will be considered to be'+\
+                           ' equal to the electron one')
+
+        if (params['profiles']['nion_name'] == ''):
+            logger.warning('25: The neutral density will be considered as 0')
 
         if (params['tables']['Zeff1'] <= 0):
             return (-10, 'Only 1/Zeff > 0 is possible!')
@@ -492,9 +567,8 @@ def __check_tracker_namelist(params: dict, forceConvention: bool=True,
                                               params['orbits_conf']\
                                                     ['num_orbits'])
         if params['orbits_conf']['num_orbits'] <= 0:
-            warnings.warn('The number of orbits to store is set to 0 by the '+\
-                          'user. Setting the orbits flag to False.',
-                          category=UserWarning)
+            logger.warning('25: The number of orbits to store is set to '+\
+                           '0 by the user. Setting the orbits flag to False.')
 
             params['orbits_conf']['save_orbit'] = False
         else:
@@ -511,9 +585,9 @@ def __check_tracker_namelist(params: dict, forceConvention: bool=True,
             # Checking the time integration for the orbit storage.
             if params['orbits_conf']['dt_orbit'] < params['integration']['dt']:
                 params['orbits_conf']['dt_orbit'] = params['integration']['dt']
-                warnings.warn('The time step for orbit saving is smaller'+\
-                              ' than the integration time. Setting them equal',
-                              category=UserWarning)
+                logger.warning('25: The time step for orbit saving is smaller'+\
+                              ' than the integration time. Setting them equal')
+
         # Cheking that there is a triangle file to stop the ions.
         if params['scintillator']['triangle_file'] == '':
             return (-16, 'A file containing the triangularization of the '+
@@ -559,7 +633,7 @@ def  __check_ihipbsim_geometry(geom: dict):
         return (-23, 'The geometry module does not contain all the needed data')
 
 
-    if abs(geom['tilting_beta']) >= 90.0:
+    if abs(geom['tilting_beta']) >= 89.0:
         return (-24, 'The toroidal tilt cannot be larger than 90 degrees')
     if abs(geom['tilting_theta']) >= 44.0:
         return (-25, 'The poloidal tilt cannot be larger than 90 degrees')
@@ -578,29 +652,29 @@ def  __check_ihipbsim_geometry(geom: dict):
 
     if geom['beammodelorder'] == 1:
         if geom['radius'] == 0.0:
-            warnings.warn('Setting model for beam to 0: no beam width')
+            logger.warning('25: Setting model for beam to 0: no beam width')
             geom['beammodelorder'] = 0
 
     elif geom['beammodelorder'] == 2:
         if (geom['divergency'] <= 0.0) and (geom['radius'] == 0.0):
-            warnings.warn('Setting model to 0: no beam width nor divergency!')
+            logger.warning('25: Setting model to 0: no beam width nor divergency!')
             geom['beammodelorder'] = 0
         elif geom['divergency'] <= 0.0:
-            warnings.warn('The divergency is set to 0 but the'+\
+            logger.warning('25: The divergency is set to 0 but the'+\
                           ' model includes it. Setting model to 1.')
             geom['beammodelorder'] = 1
     elif geom['beammodelorder'] == 3:
         if (geom['divergency'] <= 0.0) and (geom['radius'] == 0.0) \
             and (geom['std_e'] <= 0.0):
-            warnings.warn('Setting model to 0: no finite effects!')
+            logger.warning('25: Setting model to 0: no finite effects!')
             geom['beammodelorder'] = 0
         if (geom['divergency'] <= 0.0) and (geom['std_e'] <= 0.0):
-            warnings.warn('The divergencies is set to 0 but the'+\
-                          ' model includes it. Setting model to 1.')
+            logger.warning('25: The divergencies is set to 0 but the'+\
+                           ' model includes it. Setting model to 1.')
             geom['beammodelorder'] = 1
         elif (geom['std_e'] <= 0.0):
-            warnings.warn('The energy spread is set to 0, but the model '+\
-                          'includes it. Setting model order = 2')
+            logger.warning('25: The energy spread is set to 0, but the model '+\
+                           'includes it. Setting model order = 2')
             geom['beammodelorder'] = 2
 
     # Checking the beam species parameter:
@@ -628,7 +702,7 @@ def __check_ihibpsim_deposition(depos: dict):
     # Checking the particular modules of ihibpsim:
     # 1. The deposition.
     nparticles = depos['Nbeamdir'] *\
-                 depos['Ndisk']
+                 depos['Nmc']
 
     if nparticles < 1:
         return (-35, 'The number of particles to launch in iHIBPsim must be '+\
@@ -800,9 +874,8 @@ def __check_shotmapper_namelist(params: dict, forceConvention: bool=True):
         if (params['tables']['elec_name'] == '') and\
            (params['tables']['CX_name'] == '') and\
            (params['tables']['prm_name'] == ''):
-               warnings.warn('The beam attenuation module is set, but none '+\
-                             'of the tables are loaded. Disabling...',
-                             category=UserWarning)
+               logger.warning('25: The beam attenuation module is set, '+\
+                              'but none of the tables are loaded. Disabled!')
 
                params['tables']['beamattenuationflag'] = False
 
@@ -820,9 +893,8 @@ def __check_shotmapper_namelist(params: dict, forceConvention: bool=True):
                                               params['orbits_conf']\
                                                     ['num_orbits'])
         if params['orbits_conf']['num_orbits'] <= 0:
-            warnings.warn('The number of orbits to store is set to 0 by the '+\
-                          'user. Setting the orbits flag to False.',
-                          category=UserWarning)
+            logger.warning('25: The number of orbits to store is set to '+\
+                           '0 by the  user. Setting the orbits flag to False.')
 
             params['orbits_conf']['save_orbit'] = False
         else:
@@ -833,9 +905,8 @@ def __check_shotmapper_namelist(params: dict, forceConvention: bool=True):
             # Checking the time integration for the orbit storage.
             if params['orbits_conf']['dt_orbit'] < params['integration']['dt']:
                 params['orbits_conf']['dt_orbit'] = params['integration']['dt']
-                warnings.warn('The time step for orbit saving is smaller'+\
-                              ' than the integration time. Setting them equal',
-                              category=UserWarning)
+                logger.warning('25: The time step for orbit saving is smaller'+\
+                               ' than the integration time. Setting them equal')
 
     err, msg = __check_ihibpsim_deposition(params['deposition'])
     if err != 0:
@@ -847,6 +918,111 @@ def __check_shotmapper_namelist(params: dict, forceConvention: bool=True):
 
     # 7. Check the geometry.
     return __check_ihipbsim_geometry(params['geometry'])
+
+def __check_deposition_namelist(params: dict, forceConvention: bool=True):
+    """
+    Internal routine to check the namelist to run the deposition namelist
+    prior to a run.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    @param params: namelist as a dictionary to be checked.
+    @param forceConvention: this flag will ensure that all files end with
+    an appropriate extension that can be easily recognized by this suite.
+    """
+    # Returns an error code corresponding to the error while parsing the
+    # namelist.
+
+    # Checks that all the elements in the namelist names are in the dictionary.
+    minimal_names =  ('profiles', 'tables', 'deposition', 'scintillator')
+
+    if np.any([ii not in params for ii in minimal_names]):
+        return (-1, 'Namelist not proper structure')
+
+    # Checking if the profiles are set.
+    if params['tables']['beamattenuationflag']:
+        if (params['tables']['elec_name'] == '') and\
+           (params['tables']['CX_name'] == ''):
+               warnings.warn('The beam attenuation module is set, but none '+\
+                             'of the tables are loaded. Disabling...',
+                             category=UserWarning)
+
+               params['tables']['beamattenuationflag'] = False
+
+    if params['tables']['beamattenuationflag']:
+        if (params['profiles']['te_name'] == ''):
+            return (-6, 'Beam attenuation module is set, but not Te given')
+        else:
+            if forceConvention and\
+                (not params['profiles']['te_name'].endswith('.te')):
+                return (-7, 'ForceConvention: The electron density must have '+\
+                        'extension .te')
+
+        if (params['profiles']['ne_name'] == ''):
+            return (-8, 'Beam attenuation module is set, but not ne given')
+        else:
+            if forceConvention and\
+                (not params['profiles']['ne_name'].endswith('.ne')):
+                return (-9, 'ForceConvention: The electron density must have '+\
+                        'extension .ne')
+
+        if (params['profiles']['nion_name'] == ''):
+            logger.warning('25: The ion density will be considered to be'+\
+                           ' equal to the electron one')
+        else:
+            if forceConvention and\
+                (not params['profiles']['nion_name'].endswith('.ni')):
+                return (-49, 'ForceConvention: The ion density must have '+\
+                        'extension .ni')
+
+        if (params['profiles']['Tion_name'] == ''):
+            logger.warning('25: The ion temperature will be considered to be'+\
+                           ' equal to the electron one')
+        else:
+            if forceConvention and\
+                (not params['profiles']['Tion_name'].endswith('.Ti')):
+                return (-50, 'ForceConvention: The ion temperature must have '+\
+                        'extension .Ti')
+
+        if (params['profiles']['n0_name'] == ''):
+            logger.warning('25: The neutral density will be considered as 0')
+        else:
+            if forceConvention and\
+                (not params['profiles']['n0_name'].endswith('.n0')):
+                return (-51, 'ForceConvention: The neutral density must have '+\
+                        'extension .n0')
+
+        if (params['tables']['Zeff1'] <= 0):
+            return (-10, 'Only 1/Zeff > 0 is possible!')
+
+
+    # Checkin the deposition module inputs.
+    if params['deposition']['markerNumber'] < 1:
+        return (-18, 'The number of markers must be at least 1.')
+    if params['deposition']['depos_file'] == '':
+        return (-19, 'The deposition file must be specified!')
+
+    # Checkin the scintillator module inputs.
+    if not os.path.isfile(params['scintillator']['triangle_file']):
+        return (-20, 'The scintillator file must exist!')
+    if params['depostion']['depos_file'] == '':
+        return (-21, 'The file with the deposition must be provided')
+    else:
+        if forceConvention and\
+              (not params['depostion']['depos_file'].endswith('.markers')):
+                return (-22, 'ForceConvention: the initial particle file'+\
+                        ' must end with the extension .markers')
+
+
+
+    # Checking that the deposition is contained within the parameters namelist.
+    err, msg = __check_ihibpsim_deposition(params['deposition'])
+    if (err != 0):
+        return err, msg
+
+    # Checking the geometry part of the namelist.
+    return  __check_ihipbsim_geometry(params['geometry'])
+
 
 #-----------------------------------------------------------------------------
 # Routines to check the files as set in the namelist
@@ -872,6 +1048,8 @@ def check_files(nml: dict, action: str='shot_remap'):
             flags &= os.path.isfile(nml['field_files']['te_name'])
             flags &= os.path.isfile(nml['field_files']['ne_name'])
             flags &= os.path.isfile(nml['field_files']['nion_name'])
+            flags &= os.path.isfile(nml['field_files']['Tion_name'])
+            flags &= os.path.isfile(nml['field_files']['n0_name'])
             flags &= os.path.isfile(nml['field_files']['elec_name'])
             flags &= os.path.isfile(nml['field_files']['CX_name'])
 
@@ -886,6 +1064,8 @@ def check_files(nml: dict, action: str='shot_remap'):
             flags &= os.path.isfile(nml['field_files']['te_name'])
             flags &= os.path.isfile(nml['field_files']['ne_name'])
             flags &= os.path.isfile(nml['field_files']['nion_name'])
+            flags &= os.path.isfile(nml['field_files']['Tion_name'])
+            flags &= os.path.isfile(nml['field_files']['n0_name'])
             flags &= os.path.isfile(nml['field_files']['elec_name'])
             flags &= os.path.isfile(nml['field_files']['CX_name'])
             flags &= os.path.isfile(nml['field_files']['prm_name'])

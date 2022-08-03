@@ -1,6 +1,6 @@
 """Just the version of the suite, to label outputs"""
 import numpy as np
-version = '1.0.0'
+version = '1.0.1'
 codename = 'San Jacobo'
 
 
@@ -25,4 +25,3 @@ def readVersion(filename):
         for i in range(3):
             v[i] = int(f.readline().split(':')[-1])
     return v
-            
