@@ -22,6 +22,9 @@ The suite will not work without them:
 - mesh: To deal with CAD files
 - numba > 0.55.1 to perform fast iHIBPsim xsection calculations
 
+#### Complete list:
+In a clean-typical python installation with anaconda, taking care only of the packages and versions listed above should be enough and the suite will run smoothly, but python package dependence can sometimes a mess. As an indication, in the folder `Data/TestedEnv` you can find the result of the command `pip list` in a python environment where the suite was tested and working fine. So if you find a series of problems with packages versions, try to create your virtual environment and reproduce the installed package list detailed there
+
 ### Cloning the suite and installing
 In order to clone the suite just open a terminal in your home directory and type:
 ```bash
