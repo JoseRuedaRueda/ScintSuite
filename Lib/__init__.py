@@ -93,6 +93,8 @@ import Lib._Tomography as tomo
 import Lib._Video as vid
 import Lib._VRT as vrt
 
+# MHD activity
+import Lib._MHD as mhd
 
 import Lib._Parameters as par
 import Lib._Plotting as plt

@@ -93,7 +93,7 @@
 
 ## 0.9.9: BEP removed from library and work in iHIBP.
 - Removed the full BEP library from the ScintSuite.
-- Rebranded class for the iHIBP video with:
+- Re-branded class for the iHIBP video with:
     - Distorted and aligned scintillator.
     - Plotting time traces of the signal within the scintillator.
     - Basic and advanced methods to substract noise from the signal.

@@ -14,6 +14,7 @@ from Lib._Paths import Path
 from Lib._Machine import machine
 from Lib._Utilities import distmat
 from tqdm import tqdm
+from scipy.ndimage import gaussian_filter
 logger = logging.getLogger('ScintSuite.Optics')
 
 paths = Path(machine)
@@ -207,27 +208,32 @@ def defocus(frame, coef_sigma=1.0,
         distance to the optical axis
     @param center: coordinates (in pixels, of the optical axis)
     """
-    # conver to numpy array, if the user gave us just a constant sigma
     try:
-        len(coef_sigma)
+        _ = len(coef_sigma)
+        lista = True
     except TypeError:
-        coef_sigma = np.array([coef_sigma])
-    # Create the ouput matrix
-    n1, n2 = frame.shape
-    output = np.zeros((n1, n2))
-    # Crete the matrices to get the distances
-    col, row = np.meshgrid(np.arange(n2), np.arange(n1))
-    # fill the matrix
-    ic = center[0]
-    jc = center[1]  # just to save notation
-    axis_distance = np.sqrt((col - jc)**2 + (row - ic)**2)
-    sigma = np.polyval(coef_sigma, axis_distance)
+        lista = False
+    # If the signam is just one number, we will call the scipy convolution,
+    # which is order of magnetude faster
+    if not lista:
+        output = gaussian_filter(frame, coef_sigma)
+    else:
+        # Create the ouput matrix
+        n1, n2 = frame.shape
+        output = np.zeros((n1, n2))
+        # Crete the matrices to get the distances
+        col, row = np.meshgrid(np.arange(n2), np.arange(n1))
+        # fill the new matrix
+        ic = center[0]
+        jc = center[1]  # just to save notation
+        axis_distance = np.sqrt((col - jc)**2 + (row - ic)**2)
+        sigma = np.polyval(coef_sigma, axis_distance)
 
-    for i in range(n1):
-        for j in range(n2):
-            index_distance = (col - j)**2 + (row - i)**2
-            output += np.exp(-index_distance / 2 / sigma[i, j]**2) \
-                / 2 / np.pi / sigma[i, j]**2 * frame[i, j]
+        for i in range(n1):
+            for j in range(n2):
+                index_distance = (col - j)**2 + (row - i)**2
+                output += np.exp(-index_distance / 2 / sigma[i, j]**2) \
+                    / 2 / np.pi / sigma[i, j]**2 * frame[i, j]
     return output
 
 
