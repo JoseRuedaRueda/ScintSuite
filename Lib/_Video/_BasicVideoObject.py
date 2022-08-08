@@ -415,7 +415,7 @@ class BVO:
             (self.exp_dat['frames'].values.astype(float) - frame[..., None])
         dummy[dummy < 0] = 0.0  # Clean the negative values
         self.exp_dat['frames'].values = dummy.astype(original_dtype)
- 
+
         print('-... -.-- . / -... -.-- .')
         return frame.astype(original_dtype)
 
@@ -849,10 +849,10 @@ class BVO:
 
         Notice: This will create a netcdf with the exp_dat xarray, this is not
         intended as a replace of the data base, as camera settings and
-        metadata will not be exported. But allows to quickly export the video 
+        metadata will not be exported. But allows to quickly export the video
         to netCDF format to be easily shared among computers
-        
-        @param file: Path to the file where to save the results, if none, a 
+
+        @param file: Path to the file where to save the results, if none, a
             GUI will appear to select the results
         @param flagAverage: flag to indicate if we want to save the averaged
             frames
@@ -868,4 +868,3 @@ class BVO:
             self.exp_dat.to_netcdf(filename)
         else:
             self.avg_dat.to_netcdf(filename)
-    
