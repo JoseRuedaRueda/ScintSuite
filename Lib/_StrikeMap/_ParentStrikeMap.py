@@ -87,6 +87,7 @@ class GeneralStrikeMap(XYtoPixel):
             variables
         """
         self._to_remap = [self._data[name] for name in variables_to_remap]
+        self._remap_var_names = variables_to_remap
         if verbose:
             print('Please call interp_grid to update the interpolators')
 
@@ -194,6 +195,8 @@ class GeneralStrikeMap(XYtoPixel):
             except KeyError:  # the ihibp does not have coll factor
                 logger.warning('16: %s not found!!! skiping' % coso)
         # --- Calculate the transformation matrix
+        if 'transformation_matrix' not in self._grid_interp.keys():
+            self._grid_interp['transformation_matrix'] = {}
         if MC_number > 0:
             self._calculate_transformation_matrix(
                 MC_number, variables_to_interpolate, grid_options,
@@ -480,7 +483,8 @@ class GeneralStrikeMap(XYtoPixel):
                                          variables: tuple,
                                          grid_options: dict,
                                          frame_shape: tuple,
-                                         limitation: float = 10.0):
+                                         limitation: float = 10.0,
+                                         overwrite: bool = True):
         """
         Calculate the transformation matrix from camera pixel to phase space
 
@@ -496,9 +500,12 @@ class GeneralStrikeMap(XYtoPixel):
         # Create the transformation matrix key, if not present
         if 'transformation_matrix' not in self._grid_interp.keys():
             self._grid_interp['transformation_matrix'] = {}
-        if variables[0] + '_' + variables[1] in self._grid_interp['transformation_matrix'].keys():
+        name = variables[0] + '_' + variables[1]
+        if (name in self._grid_interp['transformation_matrix'].keys()
+                and not overwrite):
             logger.warning(
-                'XXX: Transformation matrix already there, not ovrwritting')
+                'XXX: Transformation matrix already there, skipping')
+            return
         # Initialise the random number generator
         rand = np.random.default_rng()
         generator = rand.uniform
@@ -540,8 +547,9 @@ class GeneralStrikeMap(XYtoPixel):
         # Normalise the transformation matrix
         transform /= MC_number
         transform /= (grid_options['dx'] * grid_options['dy'])
-        self._grid_interp['transformation_matrix'][
-            variables[0] + '_' + variables[1]] = transform
+        self._grid_interp['transformation_matrix'][name] = transform
+        self._grid_interp['transformation_matrix'][name + '_grid'] = \
+            grid_options
 
     @deprecated('Please use directly export_spatial_coordinates. Tbr in 0.11')
     def map_to_txt(self, Geom=None,
