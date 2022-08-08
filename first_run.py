@@ -18,8 +18,7 @@ def import_or_install(package, name=None):
             __import__(name)
     except ImportError or ModuleNotFoundError:
         print(package, 'not found')
-        # i = input('1 to install, otherwhise skip')
-        i = 1
+        i = input('1 to install, otherwhise skip')
         if int(i) == 1:
             pip.main(['install', package])
 
