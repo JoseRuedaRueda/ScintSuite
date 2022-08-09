@@ -65,7 +65,6 @@
 - 'normalise' flags was added to the plot_remap_frame routine, to normalize the plot to unity
 - **bug**: Solved a bug in the get frame index
 - **bug**: Solved a small bug, the .cin files was not being closed in the read_settings structure
-- Export remap: temporally not available, until it is adapted to the new remap structure
 - Translate remap: temporally not available, until it is adapted to the new remap structure
 - getTimeTrace now returns also the used mask
 - exp_dat, remap_dat are now xarrays instead of dictionaries
