@@ -532,8 +532,9 @@ class FIV(BVO):
                          coords={'x': data['x'], 't': data['t']})
         output['integral_over_x'] = \
             xr.DataArray(integral_over_x, dims=('y', 't'),
-                         coords={'x': data['y'], 't': data['t']})
+                         coords={'y': data['y'], 't': data['t']})
         output['time_trace'] =  xr.DataArray(trace, dims=('t'))
+        
         if mask is not None:
             output.attrs['mask'] = mask.astype('int')
         else:
