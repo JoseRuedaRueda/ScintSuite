@@ -82,6 +82,7 @@ def overplot_trace(ax, x, y, line_params={}, ymin=0., ymax=0.95):
     # --- Normalise the y data
     ydummy = (y - y.min()) / (y.max() - y.min()) * (ymax - ymin) + ymin
     ax.plot(x, ydummy, transform=trans, **line_params)
+    plt.draw()
 
 
 def multiline(xs, ys, c, ax=None, line_params: dict = {},

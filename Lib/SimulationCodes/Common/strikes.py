@@ -1041,11 +1041,19 @@ class Strikes:
                 dummy = dummy.copy()/dummy.max()
             # @Todo: change this black for a cmap dependent background
             ax.set_facecolor((0.0, 0.0, 0.0))  # Set black bck
+            if 'cam' in hist_name:
+                extent = [self.histograms[hist_name][kind]['ycen'][0],
+                          self.histograms[hist_name][kind]['ycen'][-1],
+                          self.histograms[hist_name][kind]['xcen'][0],
+                          self.histograms[hist_name][kind]['xcen'][-1]]
+            else:
+                extent = [self.histograms[hist_name][kind]['xcen'][0],
+                          self.histograms[hist_name][kind]['xcen'][-1],
+                          self.histograms[hist_name][kind]['ycen'][0],
+                          self.histograms[hist_name][kind]['ycen'][-1]]
+
             ax.imshow(dummy,
-                      extent=[self.histograms[hist_name][kind]['xcen'][0],
-                              self.histograms[hist_name][kind]['xcen'][-1],
-                              self.histograms[hist_name][kind]['ycen'][0],
-                              self.histograms[hist_name][kind]['ycen'][-1]],
+                      extent=extent,
                       origin='lower', cmap=cmap, aspect=aspect)
         else:
             if normalise:
@@ -1352,7 +1360,7 @@ class Strikes:
         if 'xcam_ycam' not in self.histograms.keys():
             raise Exception('You need to calculate the camera histogram!')
         if options['remap_method'] == 'centers':
-            MC_number = 0  # Turn off the transformation matrix calculation
+            options['MC_number'] = 0  # Turn off the transformation matrix calc
         # chek if there are weights
         if 'xcam_ycam_w' in self.histograms.keys():
             habia_peso = True
@@ -1371,10 +1379,17 @@ class Strikes:
         xcenter = 0.5 * (xedges[:-1] + xedges[1:])
         ycenter = 0.5 * (yedges[:-1] + yedges[1:])
         # Interpolate the strike map
-        #@ToDo: Do we need this here??
-        smap.setRemapVariables(variables_to_remap, verbose=False)
-        if smap._coord_pix['x'] is None:
+        # -- 1: Check if the variables_to_remap are already the ones we want
+        if not (variables_to_remap[0] == smap._remap_var_names[0]
+                and variables_to_remap[1] == smap._remap_var_names[1]):
+            smap.setRemapVariables(variables_to_remap, verbose=False)
+            changed_remap_variables = True
+        else:
+            changed_remap_variables = False
+        # -- 2: Check if the pixel coordiantes are there
+        if smap._coord_pix['x'] is None or changed_remap_variables:
             smap.calculate_pixel_coordinates(self.CameraCalibration)
+        # -- 3: Perform the grid interpolation
         grid_options = {
             'xmin': options['xmin'],
             'xmax': options['xmax'],
@@ -1383,10 +1398,35 @@ class Strikes:
             'ymax': options['ymax'],
             'dy': options['dy'],
         }
-        #@ToDo: Do we need this here??
-        smap.interp_grid(frame_shape, method=options['method'],
-                         MC_number=options['MC_number'],
-                         grid_params=grid_options)
+        if changed_remap_variables or smap._grid_interp is None:
+            # In this case, this is un-avoidable
+            smap.interp_grid(frame_shape, method=options['method'],
+                             MC_number=options['MC_number'],
+                             grid_params=grid_options)
+        else:
+            calc_is_needed = 0  # By default assume not
+            # If we are not going to use MC, no need of recalculate
+            if options['MC_number'] != 0:
+                # See if the map has already a calculated transformation matrix
+                name = variables_to_remap[0] + '_' + variables_to_remap[1]
+                if name not in smap._grid_interp['transformation_matrix'].keys():
+                    calc_is_needed = True
+                else:  # There is a transformation matrix, let's see the axis
+                    tol = 1e-3
+                    diff = \
+                        {key: grid_options[key]
+                         - smap._grid_interp['transformation_matrix']
+                         [name + '_grid'].get(key, 0)
+                         for key in grid_options}
+                    flags = [abs(diff[key]) > tol for key in diff]
+                    flags = np.array(flags)
+                    if flags.sum() > 0:
+                        calc_is_needed = True
+                if calc_is_needed:
+                    smap.interp_grid(frame_shape, method=options['method'],
+                                     MC_number=options['MC_number'],
+                                     grid_params=grid_options)
+
         name = variables_to_remap[0] + '_' + variables_to_remap[1] + '_remap'
         self.histograms[name] = {
             0: {
