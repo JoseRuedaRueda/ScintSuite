@@ -164,7 +164,7 @@ class TimeTrace(BasicSignalVariable):
         # Initialise the times to look for the time trace
         if video is not None:
             if t1 is None and t2 is None:
-                if video.exp_dat['tframes'] is None:
+                if video.exp_dat is None:
                     aa = 'Frames are not loaded, use t1 and t2'
                     raise Exception(aa)
             elif t1 is None and t2 is not None:
@@ -176,7 +176,7 @@ class TimeTrace(BasicSignalVariable):
             shot = None
         # Initialise the different arrays
         self._data.attrs['shot'] = shot
-        
+
         ## Binary mask defining the roi
         self.mask = mask
         ## roiPoly object (not initialised by default!!!)
@@ -188,9 +188,9 @@ class TimeTrace(BasicSignalVariable):
         # Calculate the time trace
         if video is not None:
             if t1 is None:
-                time_base = video.exp_dat['tframes'].squeeze()
+                time_base = video.exp_dat['t'].squeeze()
                 sum_of_roi, mean_of_roi, std_of_roi,\
-                    max_of_roi = trace(video.exp_dat['frames'], mask)
+                    max_of_roi = trace(video.exp_dat['frames'].values, mask)
             else:
                 if video.type_of_file == '.cin':
                     time_base, sum_of_roi, mean_of_roi,\
@@ -200,8 +200,8 @@ class TimeTrace(BasicSignalVariable):
                     raise Exception('Still not implemented, contact ruejo')
             # Save the trace in the data structure
             self._data['sum_of_roi'] = \
-                xr.DataArray(sum_of_roi, dims=('t',), 
-                                coords={'t':time_base})
+                xr.DataArray(sum_of_roi, dims=('t',),
+                             coords={'t':time_base})
             self._data['mean_of_roi'] = xr.DataArray(mean_of_roi, dims='t')
             self._data['std_of_roi'] = xr.DataArray(std_of_roi, dims='t')
             self._data['max_of_roi'] = xr.DataArray(max_of_roi, dims='t')
@@ -239,7 +239,7 @@ class TimeTrace(BasicSignalVariable):
                'Mean in Roi      Std Roi'
         length = self['t'].values.size
         # Save the data
-        np.savetxt(filename, 
+        np.savetxt(filename,
                    np.hstack((self['t'].values.reshape(length, 1),
                              self['sum_of_roi'].values.reshape(length, 1),
                              self['mean_of_roi'].values.reshape(length, 1),
@@ -274,7 +274,6 @@ class TimeTrace(BasicSignalVariable):
         """
         # default plotting options
         ax_options = {
-            'grid': 'both',
             'xlabel': 't [s]'
         }
         line_options = {
@@ -393,4 +392,3 @@ class TimeTrace(BasicSignalVariable):
         plt.show()
 
         return [ax_tt1, ax_tt2, ax_tt3]
-
