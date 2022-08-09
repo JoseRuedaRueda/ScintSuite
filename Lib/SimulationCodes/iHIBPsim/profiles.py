@@ -662,7 +662,7 @@ class ihibpProfiles:
                      }[profName.lower()]
             ax.set_ylabel(ylabel)
 
-        return im
+        return im, ax
 
     def plot2d(self, profName: str, ax, fig,phiSlice: int=0, timeSlice: int=0,
                surf_params: dict={}, setLabels: bool=False):
