@@ -500,8 +500,8 @@ class FIV(BVO):
         else:
             data = self.remap_dat['translations'][specie][translationNumber]
         # First calculate the dif x and y to integrate
-        dx = data['x'][1] - data['x'][0]
-        dy = data['y'][1] - data['y'][0]
+        dx = (data['x'][1] - data['x'][0]).values
+        dy = (data['y'][1] - data['y'][0]).values
         # Find the flags:
         mask_was_none = False
         if mask is None:
