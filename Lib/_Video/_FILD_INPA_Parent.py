@@ -291,7 +291,7 @@ class FIV(BVO):
                 else:
                     raise Exception('Frame not loaded')
             else:
-                frame_index = self.remap_dat['nframes'] == frame_number
+                frame_index = self.remap_dat['nframes'].values == frame_number
                 if np.sum(frame_index) == 0:
                     raise Exception('Frame not loaded')
                 if translation is None:
@@ -500,18 +500,19 @@ class FIV(BVO):
         else:
             data = self.remap_dat['translations'][specie][translationNumber]
         # First calculate the dif x and y to integrate
-        dx = data['xaxis'][1] - data['xaxis'][0]
-        dy = data['yaxis'][1] - data['yaxis'][0]
+        dx = data['x'][1] - data['x'][0]
+        dy = data['y'][1] - data['y'][0]
         # Find the flags:
         mask_was_none = False
         if mask is None:
-            flagsx = (xmin < data['xaxis']) * (data['xaxis'] < xmax)
-            flagsy = (ymin < data['yaxis']) * (data['yaxis'] < ymax)
+            flagsx = (xmin < data['x'].values) * (data['x'].values < xmax)
+            flagsy = (ymin < data['y'].values) * (data['y'].values < ymax)
             mask_was_none = True
         # Perform the integration:
         if mask_was_none:
             # Get the trace (need a better method, but at least this work)
-            dummy = np.sum(data['frames'][flagsx, :, :], axis=0) * dy * dx
+            dummy = np.sum(data['frames'].values[flagsx, :, :], axis=0) * dy \
+                    * dx
             trace = np.sum(dummy[flagsy, :], axis=0)
             integral_over_y = np.sum(data['frames'][:, flagsy, :], axis=1) * dy
             integral_over_x = np.sum(data['frames'][flagsx, :, :], axis=0) * dx
@@ -521,20 +522,22 @@ class FIV(BVO):
             integral_over_y = 0
 
         # save the result
-        output = {
-            'xmin': xmin,
-            'xmax': xmax,
-            'xaxis': data['xaxis'],
-            'ymin': ymin,
-            'ymax': ymax,
-            'yaxis': data['yaxis'],
-            't': self.remap_dat['tframes'],
-            'trace': trace,
-            'mask': mask,
-            'integral_over_x': integral_over_x,
-            'integral_over_y': integral_over_y
-        }
-
+        output = xr.Dataset()
+        output.attrs['xmin'] = xmin
+        output.attrs['xmax'] = xmax
+        output.attrs['ymin'] = ymin
+        output.attrs['ymax'] = ymax
+        output['integral_over_y'] = \
+            xr.DataArray(integral_over_y, dims=('x', 't'),
+                         coords={'x': data['x'], 't': data['t']})
+        output['integral_over_x'] = \
+            xr.DataArray(integral_over_x, dims=('y', 't'),
+                         coords={'x': data['y'], 't': data['t']})
+        output['time_trace'] =  xr.DataArray(trace, dims=('t'))
+        if mask is not None:
+            output.attrs['mask'] = mask.astype('int')
+        else:
+            output.attrs['mask'] = None
         return output
 
     def translate_remap_to_energy(self, Emin: float = 10.0, Emax: float = 99.0,

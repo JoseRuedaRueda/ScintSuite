@@ -30,7 +30,7 @@ class MHDmode():
         # --- Temperatures:
         self._te = ssdat.get_Te(shotnumber=shot, xArrayOutput=True)
         try:
-            self._ti = ssdat.get_Ti(shotnumber=shot, diag='IDI',
+            self._ti = ssdat.get_Ti(shot=shot, diag='IDI',
                                     xArrayOutput=True)
         except:
             logger.warning('XX: Not func Ti, using Te=Ti')
@@ -136,7 +136,7 @@ class MHDmode():
         # --- Plot the line
         for r in rho:
             if r < self.freq[var]['rho'][0] or r < self.freq[var]['rho'][1]:
-                text = 'Requested point outise the rho interval, skipping
+                text = 'Requested point outise the rho interval, skipping'
                 logger.warning('XX: %s', text)
             data = self.freq[var].sel(rho=r, method='nearest')
             ax.plot(data['t'], data.values*factor[units], **line_opitons)
