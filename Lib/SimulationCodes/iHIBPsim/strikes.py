@@ -502,9 +502,15 @@ class strikeLine:
             ax_options['grid'] = 'both'
         if 'linewidth' not in line_options:
             line_options['linewidth'] = 2
-
-        colors=plt.cm.get_cmap('plasma')
-        index= np.linspace(0.01, 0.99, len(self.maps))
+        color_list = []
+        if 'color' not in line_options:
+            colors=plt.cm.get_cmap('plasma')
+            index= np.linspace(0.01, 0.99, len(self.maps))
+            for ii in range(len(self.maps)):
+                color_list.append(colors(index[ii]))
+        else:
+            for ii in range(len(self.maps)):
+                color_list.append(line_options['color'])
 
         legendText_initial = legendText
         axis_was_none = False
@@ -517,8 +523,7 @@ class strikeLine:
 
         if plot_all:
             for ii in range(len(self.maps)):
-                if 'color' not in line_options:
-                    line_options['color'] = colors(index[ii])
+                line_options['color'] = color_list[ii]
                 if legendText_initial is None:
                     legendText = 't = %.3f [s]'%self.maps[ii]['timestamp'][0]
                 else:
