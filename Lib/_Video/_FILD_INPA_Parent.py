@@ -116,6 +116,7 @@ class FIV(BVO):
         self.BField.attrs['z'] = self.position[key2]
         self.BField.attrs.update(extra_options)
 
+        
     def plot_frame(self, frame_number=None, ax=None, ccmap=None,
                    strike_map: str = 'off', t: float = None,
                    verbose: bool = True,
