@@ -15,37 +15,38 @@ SINPA coordinates and the calibration
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 import Lib as ss
+from pco_tools import pco_reader as pco
+
 
 # -----------------------------------------------------------------------------
 # --- Settings
 # -----------------------------------------------------------------------------
 # File with the scintillator
-Scint_file = '/afs/ipp/home/r/ruejo/SINPA/Geometry/AUG02/Element2.txt'   # ####
+Scint_file = '/home/jqw5960/SINPA/Geometry/MU01/Element2.txt'   # ####
 format = 'SINPA'  # Code for which the geometry file is written
 # File with the calibration image (png)
-calib_image = '/afs/ipp/home/r/ruejo/FILD_Calibration_images/FILD1/OldCalibrations/' + \
-    'FILD_reference_800x600_2021_07_05_inserted.png'                     # ####
+calib_image = '/home/jqw5960/mastu/experiments/' + \
+    'CCD_qe_64b_20210810_1107.b16'           # ####
 # modify section 3 if you have a custom format for the calibration image
 # Staring points for the calibration
-xshift = 427
-yshift = 278
-xscale = -5100
-yscale = 5100
-deg = 20.0
+xshift = -11.5
+yshift = 134.6
+xscale = 5718
+deg = 44.49
+# x-scale to y scale
+XtoY = -1.0
 
 # Scale maximum
-xshiftmax = 1200
-yshiftmax = 800
+xshiftmax = 80
+yshiftmax = 500
 xscalemax = 10000
-yscalemax = 10000
-degmax = 45
+degmax = 55
 
 # Scale minimum
-xshiftmin = -1200
-yshiftmin = -800
-xscalemin = -10000
-yscalemin = -10000
-degmin = -45
+xshiftmin = -80
+yshiftmin = -100
+xscalemin = 2000
+degmin = 25
 
 # -----------------------------------------------------------------------------
 # --- Scintillator load and first alignement
@@ -55,17 +56,17 @@ cal = ss.mapping.CalParams()
 cal.xshift = xshift
 cal.yshift = yshift
 cal.xscale = xscale
-cal.yscale = yscale
+cal.yscale = xscale * XtoY
 cal.deg = deg
 scintillator.calculate_pixel_coordinates(cal)
 
 # -----------------------------------------------------------------------------
 # --- Image load and plot
 # -----------------------------------------------------------------------------
-img = ss.vid.PNGfiles.load_png(calib_image)
+img = pco.load(calib_image)
 fig, ax = plt.subplots()
 # adjust the main plot to make room for the sliders
-plt.subplots_adjust(left=0.5, bottom=0.4)
+plt.subplots_adjust(left=0.30, bottom=0.3)
 ax.imshow(img, origin='lower', cmap=plt.get_cmap('gray'))
 
 # -----------------------------------------------------------------------------
@@ -79,7 +80,7 @@ scintillator.plot_pix(ax)
 # --- GUI
 # -----------------------------------------------------------------------------
 # Make a horizontal sliders to control shifts
-axxs = plt.axes([0.1, 0.05, 0.65, 0.03])
+axxs = plt.axes([0.2, 0.05, 0.65, 0.03])
 axxs_slider = Slider(
     ax=axxs,
     label='xshift',
@@ -87,7 +88,7 @@ axxs_slider = Slider(
     valmax=xshiftmax,
     valinit=xshift,
 )
-axys = plt.axes([0.1, 0.15, 0.65, 0.03])
+axys = plt.axes([0.2, 0.15, 0.65, 0.03])
 axys_slider = Slider(
     ax=axys,
     label='yshift',
@@ -96,7 +97,7 @@ axys_slider = Slider(
     valinit=yshift,
 )
 
-# Make a vertically oriented slider to control the scale
+# Make a vertically oriented slider to control the amplitude
 axxsc = plt.axes([0.05, 0.25, 0.0225, 0.63])
 axxsc_slider = Slider(
     ax=axxsc,
@@ -106,16 +107,8 @@ axxsc_slider = Slider(
     valinit=xscale,
     orientation="vertical"
 )
-axysc = plt.axes([0.25, 0.25, 0.0225, 0.63])
-axysc_slider = Slider(
-    ax=axysc,
-    label="yscale",
-    valmin=yscalemin,
-    valmax=yscalemax,
-    valinit=yscale,
-    orientation="vertical"
-)
-axdeg = plt.axes([0.40, 0.25, 0.0225, 0.63])
+
+axdeg = plt.axes([0.20, 0.25, 0.0225, 0.63])
 axdeg_slider = Slider(
     ax=axdeg,
     label="deg",
@@ -131,7 +124,7 @@ def update(val):
     cal.xshift = axxs_slider.val
     cal.yshift = axys_slider.val
     cal.xscale = axxsc_slider.val
-    cal.yscale = axysc_slider.val
+    cal.yscale = XtoY * axxsc_slider.val
     cal.deg = axdeg_slider.val
     scintillator.calculate_pixel_coordinates(cal)
     ss.plt.remove_lines(ax)
@@ -142,7 +135,6 @@ def update(val):
 axxs_slider.on_changed(update)
 axys_slider.on_changed(update)
 axxsc_slider.on_changed(update)
-axysc_slider.on_changed(update)
 axdeg_slider.on_changed(update)
 
 
