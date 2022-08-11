@@ -215,6 +215,10 @@ class INPAVideo(FIV):
                 self._getBangles()
         self.remap_dat = \
             ssmap.remapAllLoadedFramesINPA(self, **options)
+        # Calculate the integral of the remap
+        ouput = self.integrate_remap(xmin=options['xmin'], xmax=options['xmax'],
+                                     ymin=options['ymin'], ymax=options['ymax'])
+        self.remap_dat = xr.merge([self.remap_dat, ouput])
 
     def calculateBangles(self, t='all', verbose: bool = True):
         """

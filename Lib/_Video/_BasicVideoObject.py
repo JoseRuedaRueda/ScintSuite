@@ -215,6 +215,8 @@ class BVO:
                         self.timebase = tif.read_data(self.path)
             if self.type_of_file is None:
                 raise Exception('Not file found!')
+        ## Geometry of the diagnostic head used to record the video
+        self.geometryID = None
 
     def read_frame(self, frames_number=None, limitation: bool = True,
                    limit: int = 2048, internal: bool = True, t1: float = None,
@@ -659,9 +661,13 @@ class BVO:
         root = tk.Tk()
         root.resizable(height=None, width=None)
         if flagAverage:
-            ssGUI.ApplicationShowVid(root, self.avg_dat, self.remap_dat)
+            ssGUI.ApplicationShowVid(root, self.avg_dat, self.remap_dat,
+                                     self.geometryID,
+                                     self.CameraCalibration)
         else:
-            ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat)
+            ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat,
+                                     self.geometryID,
+                                     self.CameraCalibration)
         root.mainloop()
         root.destroy()
 
@@ -709,7 +715,7 @@ class BVO:
         else:
             frame = self.avg_dat['frames'][..., it].squeeze()
 
-        return frame
+        return frame.copy()
 
     def getTime(self, it: int, flagAverage: bool = False):
         """
@@ -734,7 +740,7 @@ class BVO:
                    scale: str = 'linear',
                    alpha: float = 1.0, IncludeColorbar: bool = True,
                    RemoveAxisTicksLabels: bool = False,
-                   flagAverage: bool = False):
+                   flagAverage: bool = False, normalise=None):
         """
         Plot a frame from the loaded frames
 
@@ -755,6 +761,10 @@ class BVO:
         @param alpha: transparency factor, 0.0 is 100 % transparent
         @param RemoveAxisTicksLabels: boolean flag to remove the numbers in the
             axis
+        @param normalise: parameter to normalise the frame when plotting:
+            if normalise == 1 it would be normalised to the maximum
+            if normalise == <number> it would be normalised to this value
+            if normalise == None, nothing will be done
 
         @return ax: the axes where the frame has been drawn
         """
@@ -776,8 +786,16 @@ class BVO:
             frame_index = self.getFrameIndex(t, flagAverage)
             tf = self.getTime(frame_index, flagAverage)
             dummy = self.getFrame(t, flagAverage)
+        if normalise is not None:
+            if normalise == 1:
+                dummy = dummy.astype('float64') / dummy.max()
+            else:
+                dummy = dummy.astype('float64') / normalise
         if vmax is None:
-            vmax = dummy.max()
+            if normalise is not None:
+                vmax = 1.0
+            else:
+                vmax = dummy.max()
         # --- Prepare the scale:
         if scale == 'sqrt':
             extra_options = {'norm': colors.PowerNorm(0.5, vmax=vmax,
@@ -821,13 +839,16 @@ class BVO:
                 horizontalalignment='left',
                 color='w', verticalalignment='bottom',
                 transform=ax.transAxes)
-        plt.text(0.95, 0.9, 't = ' + str(round(tf, 3)) + (' s'),
+        ax.text(0.95, 0.9, 't = ' + str(round(tf, 3)) + (' s'),
                  horizontalalignment='right',
                  color='w', verticalalignment='bottom',
                  transform=ax.transAxes)
         if RemoveAxisTicksLabels:
             ax.axes.xaxis.set_ticklabels([])
             ax.axes.yaxis.set_ticklabels([])
+        else:
+            ax.set_xlabel('Pixel')
+            ax.set_ylabel('Pixel')
         # Shot the figure
         if created:
             fig.show()
