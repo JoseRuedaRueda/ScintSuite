@@ -548,7 +548,7 @@ def load_remap(filename, diag='FILD'):
             filename = check_open_file(filename)
         if filename == '' or filename == ():
             raise Exception('You must select a file!!!')
-    
+
         # decompress the file
         dummyFolder = os.path.join(paths.Results, 'tmp')
         os.mkdir(dummyFolder)

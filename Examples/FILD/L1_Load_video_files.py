@@ -13,7 +13,7 @@ import Lib as ss
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 38686
+shot = 44732
 diag_ID = 1  # FILD manipulator number
 t1 = 0.9     # Initial time to be loaded, [s]
 t2 = 2.5     # Final time to be loaded [s]
