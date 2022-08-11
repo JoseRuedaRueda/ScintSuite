@@ -114,7 +114,7 @@ def remapAllLoadedFrames(video,
     # --- INPUTS CHECK AND PREPARATION
     # --------------------------------------------------------------------------
     # -- Acepted variables to remap
-    acceptedVars = ('energy', 'pitch', 'gyroradius')
+    acceptedVars = ('energy', 'pitch', 'gyroradius', 'e0')
     units = {'e0': 'keV', 'pitch': 'degree', 'gyroradius': 'cm'}
     var_remap = [v.lower() for v in variables_to_remap]  # force small letter
     for v in var_remap:
@@ -122,7 +122,7 @@ def remapAllLoadedFrames(video,
             raise errors.NotValidInput('Variables not accepted for FILD remap')
     # The energy is saved as e0 in the smap object (energy at pinhole) so just
     # change the name: (yes, these lines are ugly and not optimum, but work ;)
-    if 'energy' in var_remap:
+    if ('energy' in var_remap) or ('e0' in var_remap):
         wantEnergy = True
         for i in range(2):
             if var_remap[i] == 'energy':

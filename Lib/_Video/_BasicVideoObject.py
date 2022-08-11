@@ -249,6 +249,9 @@ class BVO:
         @return M: 3D numpy array with the frames M[px,py,nframes] (if the
             internal flag is set to false)
         """
+        # --- Clean video if needed
+        if 't' in self.exp_dat and internal:
+            self.exp_dat = xr.Dataset()
         # --- Select frames to load
         if not read_from_loaded:
             if (frames_number is not None) and (t1 is not None):
@@ -283,7 +286,8 @@ class BVO:
                                        limitation=limitation, limit=limit)
             elif self.type_of_file == '.b16':
                 M = pco.read_frame(self, frames_number,
-                                   limitation=limitation, limit=limit)
+                                   limitation=limitation, limit=limit,
+                                   verbose=verbose)
             else:
                 raise Exception('Not initialised / not implemented file type?')
             # --- End here if we just want the frame
@@ -302,14 +306,25 @@ class BVO:
                 nframes = np.arange(nt) + 1
             else:
                 nframes = frames_number
+            # Quick solve for the case we have just one frame
+            try:
+                if len(tframes) != 1:
+                    tbase = tframes.squeeze()
+                    nbase = nframes.squeeze()
+                else:
+                    tbase = tframes
+                    nbase = nframes
+            except TypeError:
+                tbase = np.array([tframes])
+                nbase = np.array([nframes])
             # Get the data-type
             dtype = M.dtype
             # Storage it
             self.exp_dat['frames'] = \
                 xr.DataArray(M, dims=('px', 'py', 't'),
-                                coords={'t': tframes.squeeze(), 'px': px,
+                                coords={'t': tbase, 'px': px,
                                         'py': py})
-            self.exp_dat['nframes'] = xr.DataArray(nframes.squeeze(), dims=('t'))
+            self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
             self.exp_dat.attrs['dtype'] = dtype
             # --- Count saturated pixels
             max_scale_frames = 2 ** self.settings['RealBPP'] - 1
@@ -417,7 +432,7 @@ class BVO:
             (self.exp_dat['frames'].values.astype(float) - frame[..., None])
         dummy[dummy < 0] = 0.0  # Clean the negative values
         self.exp_dat['frames'].values = dummy.astype(original_dtype)
- 
+
         print('-... -.-- . / -... -.-- .')
         return frame.astype(original_dtype)
 
@@ -870,10 +885,10 @@ class BVO:
 
         Notice: This will create a netcdf with the exp_dat xarray, this is not
         intended as a replace of the data base, as camera settings and
-        metadata will not be exported. But allows to quickly export the video 
+        metadata will not be exported. But allows to quickly export the video
         to netCDF format to be easily shared among computers
-        
-        @param file: Path to the file where to save the results, if none, a 
+
+        @param file: Path to the file where to save the results, if none, a
             GUI will appear to select the results
         @param flagAverage: flag to indicate if we want to save the averaged
             frames
@@ -889,4 +904,3 @@ class BVO:
             self.exp_dat.to_netcdf(filename)
         else:
             self.avg_dat.to_netcdf(filename)
-    

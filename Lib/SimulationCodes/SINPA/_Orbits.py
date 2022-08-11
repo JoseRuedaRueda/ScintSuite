@@ -115,7 +115,7 @@ class OrbitClass:
         """
         return self.data[idx]
 
-    def plot3D(self, per=0.1, ax=None, line_params={}, imax=1000, kind=(2,)):
+    def plot3D(self, per=0.1, ax=None, line_params={}, imax=1000, kind=(2,), factor=1.0):
         """
         Plot the strike points in a 3D axis as scatter points
 
@@ -130,6 +130,7 @@ class OrbitClass:
             -1: Foil colliding but not scintillator collision
             -2: Scintillator colliding
             -9: Not colliding
+        @param factor: factor to multiply the coordinates by
         @ToDo: Include the rl, xi selector
         """
         # --- Default plotting options
@@ -154,9 +155,9 @@ class OrbitClass:
                 random_number = np.random.rand()
                 if random_number < per:
                     imax_plot = min(imax, self.counters[i])
-                    ax.plot(self.data[i]['position'][:imax_plot, 0],
-                            self.data[i]['position'][:imax_plot, 1],
-                            self.data[i]['position'][:imax_plot, 2],
+                    ax.plot(self.data[i]['position'][:imax_plot, 0]*factor,
+                            self.data[i]['position'][:imax_plot, 1]*factor,
+                            self.data[i]['position'][:imax_plot, 2]*factor,
                             **line_options)
         # --- Set properly the axis
         if created:

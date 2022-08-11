@@ -384,7 +384,8 @@ class GeneralStrikeMap(XYtoPixel):
     def plot_real(self, ax=None, marker_params: dict = {},
                   line_params: dict = {}, labels: bool = True,
                   rotation_for_x_label: float = 30.0,
-                  rotation_for_y_label: float = 100.0,):
+                  rotation_for_y_label: float = 100.0,
+                  factor: float = 1.0,):
         """
         Plot the strike map (x,y = dimensions in the scintillator).
 
@@ -401,6 +402,7 @@ class GeneralStrikeMap(XYtoPixel):
             the first MC variable
         @param rotation_for_y_label: Rotation to add to the general label of
             the second MC variable
+        @param factor: Scaling factor for strike map points
         """
         # --- Settings
         # Default plot parameters:
@@ -428,11 +430,11 @@ class GeneralStrikeMap(XYtoPixel):
                 flags[j].append(self(self._MC_variables[j].name)
                                 == self._MC_variables[j].data[i])
 
-                ax.plot(self._coord_real['x1'][flags[j][-1]],
-                        self._coord_real['x2'][flags[j][-1]],
+                ax.plot(self._coord_real['x1'][flags[j][-1]]*factor,
+                        self._coord_real['x2'][flags[j][-1]]*factor,
                         **line_options)
         # Plot some markers in the grid position
-        ax.plot(self._coord_real['x1'], self._coord_real['x2'],
+        ax.plot(self._coord_real['x1']*factor, self._coord_real['x2']*factor,
                 **marker_options)
         # --- Labels in the plot
         if labels:
@@ -443,15 +445,15 @@ class GeneralStrikeMap(XYtoPixel):
                 # Get the spacing
                 try:
                     delta = abs(self._coord_real['x1'][flags[j][int(n[j]/2)]][1]
-                                - self._coord_real['x1'][flags[j][int(n[j]/2)]][0])
+                                - self._coord_real['x1'][flags[j][int(n[j]/2)]][0])*factor
                     calculated_delta = True
                 except IndexError:
                     k += 2
                 for i in range(1, n[j]):
                     # Add the labels
                     if (i % 2 == 0) and calculated_delta:
-                        ax.text(self._coord_real['x1'][flags[j][i]][0] - 0.5 * delta,
-                                self._coord_real['x2'][flags[j][i]][0],
+                        ax.text(self._coord_real['x1'][flags[j][i]][0]*factor - 0.5 * delta,
+                                self._coord_real['x2'][flags[j][i]][0]*factor,
                                 '%.2f' % (
                                     float(self._MC_variables[j].data[i])),
                                 horizontalalignment='right',
@@ -460,16 +462,16 @@ class GeneralStrikeMap(XYtoPixel):
                     # Add the general label
                     if i == int(n[j]/2):
                         if j == 0:
-                            ax.text(self._coord_real['x1'][flags[j][i]][0] - 1.5*delta,
-                                    self._coord_real['x2'][flags[j][i]][0] + 1.5 * delta,
+                            ax.text(self._coord_real['x1'][flags[j][i]][0]*factor - 1.5*delta,
+                                    self._coord_real['x2'][flags[j][i]][0]*factor + 1.5 * delta,
                                     self._MC_variables[j].plot_label,
                                     horizontalalignment='center',
                                     verticalalignment='center',
                                     color=line_options['color'],
                                     rotation=rotation_for_x_label,)
                         else:
-                            ax.text(self._coord_real['x1'][flags[j][i]][0] - 3.0 * delta,
-                                    self._coord_real['x2'][flags[j][i]][0],
+                            ax.text(self._coord_real['x1'][flags[j][i]][0]*factor - 3.0 * delta,
+                                    self._coord_real['x2'][flags[j][i]][0]*factor,
                                     self._MC_variables[j].plot_label,
                                     horizontalalignment='center',
                                     verticalalignment='center',
