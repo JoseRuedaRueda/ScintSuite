@@ -244,7 +244,7 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
             z = frame.flatten()
         else:
             z = frame.copy()
-            z[mask] = 0
+            z[~mask] = 0
             z = z.flatten()
         H, xedges, yedges = np.histogram2d(x, y, bins=[x_edges, y_edges],
                                            weights=z)

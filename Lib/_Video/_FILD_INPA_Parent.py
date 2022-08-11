@@ -116,6 +116,7 @@ class FIV(BVO):
         self.BField.attrs['z'] = self.position[key2]
         self.BField.attrs.update(extra_options)
 
+        
     def plot_frame(self, frame_number=None, ax=None, ccmap=None,
                    strike_map: str = 'off', t: float = None,
                    verbose: bool = True,
@@ -125,7 +126,8 @@ class FIV(BVO):
                    scale: str = 'linear',
                    alpha: float = 1.0, IncludeColorbar: bool = True,
                    RemoveAxisTicksLabels: bool = False,
-                   normalise=None):
+                   normalise=None,
+                   smap_labels: bool = False):
         """
         Plot a frame from the loaded frames
 
@@ -183,7 +185,8 @@ class FIV(BVO):
         if t is not None:
             frame_index = np.argmin(abs(self.exp_dat['t'].values - t))
         else:
-            frame_index = self.exp_dat['nframes'] == frame_number
+            frame_index = self.exp_dat['nframes'].values == frame_number
+
         # --- Plot the strike map
 
         # Save axis limits, if not, if the strike map is larger than
@@ -194,50 +197,83 @@ class FIV(BVO):
         if isinstance(strike_map, (ssmapnew.Ismap, ssmapnew.Fsmap)):
             strike_map.plot_pix(ax=ax)
         elif strike_map == 'auto':
-            # get parameters of the map
-            theta_used = self.remap_dat['theta_used'][frame_index]
-            phi_used = self.remap_dat['phi_used'][frame_index]
-
-            # Get the full name of the file
-            if self.diag == 'FILD' and self.remap_dat['options']['CodeUsed'].lower() == 'fildsim':
-                name__smap = ssFILDSIM.guess_strike_map_name(
-                    phi_used, theta_used, geomID=self.geometryID,
-                    decimals=self.remap_dat['options']['decimals'])
-                id = 0  # To identify the kind of strike map
-            elif self.diag == 'FILD':
-                name__smap = ssSINPA.execution.guess_strike_map_name(
-                    phi_used, theta_used, geomID=self.geometryID,
-                    decimals=self.remap_dat['options']['decimals']
-                    )
-                id = 0  # To identify the kind of strike map
-            elif self.diag == 'SINPA':
-                name__smap = ssSINPA.execution.guess_strike_map_name(
-                    phi_used, theta_used, geomID=self.geometryID,
-                    decimals=self.remap_dat['options']['decimals']
-                    )
-                id = 1  # To identify the kind of strike map
+            full_name_smap = self.get_smap_name(frame_number=frame_number, t=t,
+                                                verbose=verbose)
+            if self.diag.lower() == 'fild':
+                id = 0
             else:
-                raise Exception('Diagnostic not understood')
-            smap_folder = self.remap_dat['options']['smap_folder']
-            full_name_smap = os.path.join(smap_folder, name__smap)
+                id = 1
             # Load the map:
             smap = ssmap.StrikeMap(id, full_name_smap)
             # Calculate pixel coordinates
             smap.calculate_pixel_coordinates(self.CameraCalibration)
             # Plot the map
             smap.plot_pix(ax=ax, marker_params=smap_marker_params,
-                          line_params=smap_line_params)
-            if verbose:
-                theta_calculated = self.remap_dat['theta'][frame_index]
-                phi_calculated = self.remap_dat['phi'][frame_index]
-                print('Calculated theta: ', theta_calculated)
-                print('Used theta: ', theta_used)
-                print('Calculated phi: ', phi_calculated)
-                print('Used phi: ', phi_used)
+                          line_params=smap_line_params, labels=smap_labels)
+
         # Set 'original' limits:
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
         return ax
+
+
+    def get_smap_name(self, frame_number=None, t: float = None, verbose: bool = False):
+        """
+        Get name of the strike map
+
+        Jose Rueda Rueda: jrrueda@us.es
+        Lina Velarde: lvelarde@us.es
+
+        @param frame_number: Number of the frame to get the smap name, relative
+                to the video file, optional
+        @param t: Time instant of the frame to get the smap name, optional
+        @param verbose: If true, info of the theta and phi used will be printed
+
+        @return full_name_smap: Name of the used strike map
+        """
+        # Get the frame number
+        if t is not None:
+            frame_index = np.argmin(abs(self.exp_dat['t'].values - t))
+            theta_used = self.remap_dat['theta_used'].values[frame_index]
+            phi_used = self.remap_dat['phi_used'].values[frame_index]
+        else:
+            frame_index = self.exp_dat['nframes'].values == frame_number
+            theta_used = self.remap_dat['theta_used'].values[frame_index][0]
+            phi_used = self.remap_dat['phi_used'].values[frame_index][0]
+
+        # Get the full name of the file
+        if self.diag == 'FILD' and self.remap_dat['frames'].attrs['CodeUsed'].lower() == 'fildsim':
+            name__smap = ssFILDSIM.guess_strike_map_name(
+                phi_used, theta_used, geomID=self.geometryID,
+                decimals=self.remap_dat['frames'].attrs['decimals'])
+            id = 0  # To identify the kind of strike map
+        elif self.diag == 'FILD':
+            name__smap = ssSINPA.execution.guess_strike_map_name(
+                phi_used, theta_used, geomID=self.geometryID,
+                decimals=self.remap_dat['frames'].attrs['decimals']
+                )
+            id = 0  # To identify the kind of strike map
+        elif self.diag == 'INPA':
+            name__smap = ssSINPA.execution.guess_strike_map_name(
+                phi_used, theta_used, geomID=self.geometryID,
+                decimals=self.remap_dat['frames'].attrs['decimals']
+                )
+            id = 1  # To identify the kind of strike map
+        else:
+            raise Exception('Diagnostic not understood')
+        smap_folder = self.remap_dat['frames'].attrs['smap_folder']
+        full_name_smap = os.path.join(smap_folder, name__smap)
+
+        if verbose:
+            theta_calculated = self.remap_dat['theta'].values[frame_index]
+            phi_calculated = self.remap_dat['phi'].values[frame_index]
+            print('Calculated theta: ', theta_calculated)
+            print('Used theta: ', theta_used)
+            print('Calculated phi: ', phi_calculated)
+            print('Used phi: ', phi_used)
+
+        return full_name_smap
+
 
     def plot_frame_remap(self, frame_number=None, ax=None, ccmap=None,
                          t: float = None, vmin: float = 0, vmax: float = None,
@@ -753,7 +789,7 @@ class FIV(BVO):
             f.write('CameraFileBPP: %s\n'%self.settings['RealBPP'])
 
         json.dump(self.position, open(positionFile, 'w' ) )
-        json.dump({k:v.tolist() for k,v in self.orientation.items()}, 
+        json.dump({k:v.tolist() for k,v in self.orientation.items()},
                   open(orientationFile, 'w' ) )
         # Create the tar file
         tar = tarfile.open(name=tarFile, mode='w')

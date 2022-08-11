@@ -34,20 +34,19 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
     Guess the filename of a video
 
     Jose Rueda Rueda: jrrueda@us.es
-    Lina Velarde: lvelarde@us.es
+
+    Note Juanfran criteria of organising files is assumed: .../<shot>/...
 
     @param shot: shot number
-    @param diag_ID: FILD manipulator number. Will always be 1 for now.
+    @param diag_ID: FILD manipulator number
 
     @return file: the name of the file/folder
     """
-    text = 'MAST-U automatic search for file has not yet been implemented'
-    raise Exception(text)
     base_dir = params.FILD[diag_ID-1]['path']
-    extension = params.FILD[diag_ID-1]['extension']
+    extension = params.FILD[diag_ID-1]['extension'](shot)
     shot_str = str(shot)
     name = shot_str + extension
-    file = os.path.join(base_dir, shot_str[0:2], name)
+    file = os.path.join(base_dir, name)
     return file
 
 
