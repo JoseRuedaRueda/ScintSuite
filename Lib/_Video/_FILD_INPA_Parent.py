@@ -124,7 +124,8 @@ class FIV(BVO):
                    vmax: int = None, xlim: float = None, ylim: float = None,
                    scale: str = 'linear',
                    alpha: float = 1.0, IncludeColorbar: bool = True,
-                   RemoveAxisTicksLabels: bool = False):
+                   RemoveAxisTicksLabels: bool = False,
+                   normalise=None):
         """
         Plot a frame from the loaded frames
 
@@ -161,6 +162,11 @@ class FIV(BVO):
         @param alpha: transparency factor, 0.0 is 100 % transparent
         @param RemoveAxisTicksLabels: boolean flag to remove the numbers in the
             axis
+        @param normalise: parameter to normalise the frame when plotting:
+            if normalise == 1 it would be normalised to the maximum
+            if normalise == <number> it would be normalised to this value
+            if normalise == None, nothing will be done
+
 
         @return ax: the axes where the frame has been drawn
         """
@@ -170,7 +176,8 @@ class FIV(BVO):
             verbose=verbose, vmin=vmin, vmax=vmax, xlim=xlim,
             ylim=ylim, scale=scale, alpha=alpha,
             IncludeColorbar=IncludeColorbar,
-            RemoveAxisTicksLabels=RemoveAxisTicksLabels
+            RemoveAxisTicksLabels=RemoveAxisTicksLabels,
+            normalise=normalise
         )
         # Get the frame number
         if t is not None:
@@ -458,6 +465,9 @@ class FIV(BVO):
         plt.legend()
         return ax
 
+    # --------------------------------------------------------------------------
+    # --- Remap block
+    # --------------------------------------------------------------------------
     def integrate_remap(self, xmin: float = 20.0, xmax: float = 90.0,
                         ymin: float = 1.0, ymax: float = 10.0,
                         mask=None, specie: str = 'D',
@@ -475,7 +485,7 @@ class FIV(BVO):
             integate. If present, xmin-xmax, ymin-ymax will be ignored
 
         @return : Output: Dictionary containing the trace and the settings used
-            to caclualte it
+            to caculalte it
             output = {
                 'xmin': Minimum x used in the integration
                 'xmax': Maximum x used in the integration
@@ -521,24 +531,34 @@ class FIV(BVO):
             integral_over_x = 0
             integral_over_y = 0
 
-        # save the result
+        # -- Save the result
         output = xr.Dataset()
-        output.attrs['xmin'] = xmin
-        output.attrs['xmax'] = xmax
-        output.attrs['ymin'] = ymin
-        output.attrs['ymax'] = ymax
         output['integral_over_y'] = \
             xr.DataArray(integral_over_y, dims=('x', 't'),
                          coords={'x': data['x'], 't': data['t']})
         output['integral_over_x'] = \
             xr.DataArray(integral_over_x, dims=('y', 't'),
                          coords={'y': data['y'], 't': data['t']})
-        output['time_trace'] =  xr.DataArray(trace, dims=('t'))
-        
+        # -- Save the metadata
+        output['integral_over_x'].attrs['xmin'] = xmin
+        output['integral_over_x'].attrs['xmax'] = xmax
+        output['integral_over_x'].attrs['long_name'] = 'Signal'
+        output['integral_over_x'].attrs['units'] = \
+            '#/' + data['y'].attrs['units']
+        output['integral_over_y'].attrs['ymin'] = ymin
+        output['integral_over_y'].attrs['ymax'] = ymax
+        output['integral_over_y'].attrs['long_name'] = 'Signal'
+        output['integral_over_y'].attrs['units'] = \
+            '#/' + data['x'].attrs['units']
+
+        output['integral_over_xy'] = xr.DataArray(trace, dims=('t'))
+        output['integral_over_xy'].attrs['long_name'] = 'Signal'
+        output['integral_over_xy'].attrs['units'] = '#'
+
         if mask is not None:
-            output.attrs['mask'] = mask.astype('int')
+            output['integral_over_xy'].attrs['mask'] = mask.astype('int')
         else:
-            output.attrs['mask'] = None
+            output['integral_over_xy'].attrs['mask'] = None
         return output
 
     def translate_remap_to_energy(self, Emin: float = 10.0, Emax: float = 99.0,
@@ -619,6 +639,9 @@ class FIV(BVO):
             'frames': new_frames
         }
 
+    # --------------------------------------------------------------------------
+    # --- GUIs block
+    # --------------------------------------------------------------------------
     def GUI_profile_analysis(self, translation: tuple = None):
         """Small GUI to explore camera frames"""
         text = 'Press TAB until the time slider is highlighted in red.'\
@@ -654,6 +677,9 @@ class FIV(BVO):
         root.mainloop()
         root.destroy()
 
+    # --------------------------------------------------------------------------
+    # --- Export Block
+    # --------------------------------------------------------------------------
     def export_Bangles(self, filename):
         """
         Export the B angles into a netCDF files

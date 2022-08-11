@@ -1,7 +1,7 @@
 """Just the version of the suite, to label outputs"""
 import numpy as np
-version = '1.0.0'
-codename = 'Salmorejo'
+version = '1.0.1'
+codename = 'Salmorejo con picatostes'
 
 
 def exportVersion(filename):

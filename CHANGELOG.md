@@ -1,3 +1,8 @@
+## 1.0.1: Salmorejo con picatostes
+- Minor bug fix in the GUI which plot the frames
+- Integral of the remap is no automatically calculated in the remap video
+- Minor bug fix and comments improvements
+
 ## 1.0.0: Salmorejo
 **Installation instructions**: Please run the file 'first_run.py' if you just landed in version 1.0.0, as some extra files need to be created
 ### General comment:
