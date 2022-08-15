@@ -3,6 +3,9 @@ Routines to read strike map data from FILDSIM/SINPA
 
 Jose Rueda Rueda
 
+None of these methods is expected to be called directly, is the StrikeMap class
+will call these guys and read the map
+
 Public methods:
 
 Private methods:
@@ -306,7 +309,7 @@ def readSmap(filename, code: str = None):
         elif filename.endswith('.map'):
             code = 'SINPA'
         else:
-            msg = 'File name not code standard, you need to give the time'
+            msg = 'File name not code standard, you need to give the code'
             raise errors.NotValidInput(msg)
     if code == 'SINPA':
         header, data = _readSmapSINPA(filename)

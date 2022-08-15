@@ -19,12 +19,13 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
     old object of the CalibrationDatabase. This one return the database as a
     pandas dataframe to be used in the new logbook, which are considered to be
     the proper way of interacting with the camera calibrations. The
-    object CalibrationDatabase is deprecated for FILD and INPA
+    object CalibrationDatabase (see below) is deprecated for FILD and INPA
 
     Jose Rueda: jrrueda@us.es
 
     @param filename: Complete path to the file with the calibrations
     @param n_header: Number of header lines (5 in the oficial format)
+    @param verbose: if true, print some information in the command line
 
     @return database: Pandas dataframe with the database
     """
@@ -70,6 +71,9 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
     return database
 
 
+# ------------------------------------------------------------------------------
+# --- Calibration database object
+# ------------------------------------------------------------------------------
 class CalibrationDatabase:
     """Database of parameter to align the scintillator."""
 
@@ -97,7 +101,7 @@ class CalibrationDatabase:
                      'xcenter': [], 'ycenter': []}
 
         # Read the file
-        print('Reading Camera database from: ', filename)
+        logger.info('Reading Camera database from: %s', filename)
         with open(filename) as f:
             for i in range(n_header):
                 dummy = f.readline()
@@ -123,11 +127,10 @@ class CalibrationDatabase:
                     continue
         # If the c1 and c2 fields are empty, delete them to avoid issues in the
         # pandas self.dataframe
-        if (len(self.data['c1']) == 0):
+        if len(self.data['c1']) == 0:
             self.data.pop('c1')
             self.data.pop('xcenter')
             self.data.pop('ycenter')
-
 
     def write_database_to_txt(self, file: str = None):
         """
@@ -159,9 +162,16 @@ class CalibrationDatabase:
                        str(self.data['yscale'][i]) + ' ' + \
                        str(self.data['deg'][i]) + ' ' + \
                        self.data['cal_type'][i] + ' ' + \
-                       str(self.data['diag_ID'][i]) + ' ' + '\n'
+                       str(self.data['diag_ID'][i]) + ' '
+                if 'c1' in self.data.keys():
+                    line = line \
+                        + str(self.data['c1'][i]) + ' '\
+                        + str(self.data['xcenter'][i]) + ' '
+                        + str(self.data['ycenter'][i]) + ' ' + '\n'
+                else:
+                    line = line + '\n'
                 f.write(line)
-            print('File: ' + file + ' writen')
+            logger.info('File %s writen', file)
 
     def get_calibration(self, shot, camera, cal_type, diag_ID):
         """
@@ -171,6 +181,7 @@ class CalibrationDatabase:
         @param camera: Camera used
         @param cal_type: Type of calibration we want
         @param diag_ID: ID of the diagnostic we want
+
         @return cal: CalParams() object
         """
         flags = np.zeros(len(self.data['CalID']))
@@ -201,6 +212,9 @@ class CalibrationDatabase:
         return cal
 
 
+# ------------------------------------------------------------------------------
+# --- Calibration parameters object
+# ------------------------------------------------------------------------------
 class CalParams:
     """
     Information to relate points in the camera sensor the scintillator.
@@ -253,6 +267,8 @@ class CalParams:
     def save2netCDF(self, filename):
         """
         Save the calibration in a netCDF file
+
+        Jose Rueda: jrrueda@us.es
         """      
         logger.info('Saving results in: %s', filename)
         with netcdf.netcdf_file(filename, 'w') as f:
