@@ -6,15 +6,12 @@ Pablo Oyola - pablo.oyola@ipp.mpg.de
 
 import os
 import numpy as np
-import warnings
 import matplotlib.pyplot as plt
-import scipy.interpolate as scipy_interp
-import Lib.LibPlotting as ssplt
-from Lib.LibMap.Common import XYtoPixel
-from Lib.LibMap.Calibration import CalParams
+from Lib._Mapping._Common import XYtoPixel
+from Lib._Mapping._Calibration import CalParams
 import Lib.SimulationCodes.iHIBPsim as ihibpsim
-from Lib.LibMachine import machine
-import Lib.LibPaths as p
+from Lib._Machine import machine
+import Lib._Paths as p
 pa = p.Path(machine)
 del p
 

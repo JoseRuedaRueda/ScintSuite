@@ -8,51 +8,74 @@ the routines to calculate the remap
 Jose Rueda Rueda: jrrueda@us.es
 Lina Velarde Gallardo: lvelarde@us.es
 """
-from Lib._Video._FILD_INPA_Parent import FIV
-import os
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
+import xarray as xr
 import tkinter as tk                       # To open UI windows
-import Lib._Plotting as ssplt
-import Lib._Mapping as ssmap
 import Lib._Paths as p
-import Lib._IO as ssio
 import Lib._GUIs as ssGUI             # For GUI elements
 import Lib.LibData as ssdat
-import Lib.SimulationCodes.FILDSIM as ssFILDSIM
-from Lib.version_suite import version
-from Lib._Machine import machine
+import Lib._Mapping as ssmap
+import Lib._Plotting as ssplt
 import Lib._Video._AuxFunctions as _aux
-import xarray as xr
+import Lib.SimulationCodes.FILDSIM as ssFILDSIM
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+from Lib._Video._FILD_INPA_Parent import FIV
+from Lib._Machine import machine
+
+# --- Auxiliary objects
 pa = p.Path(machine)
 del p
 
 
+# ------------------------------------------------------------------------------
+# --- FILD video class
+# ------------------------------------------------------------------------------
 class FILDVideo(FIV):
     """
     Video class for the FILD diagnostic.
 
-    Inside there are the necesary routines to load and remapp a FILD video
+    Inside there are the necessary routines to load and remap a FILD video
 
     Jose Rueda: jrrueda@us.es
 
-    Public Methods (it also contains all present in the BVO):
-        - remap_loaded_frames: Remap the loaded frames
-        - integrate_remap: integrate the remap in the desired region of rl and
-            pitch to get a time trace
-        - plot_frame: plot one of the experimental (or averaged) frames
-        - plot_frame_remap: plot one of the remapped frames
-        - calculateBangles: calculate the orientation of the magnetic field
-            in the head reference system
-        - GUI_frames_and_remap: Shows a GUI with the experimental and remap
-            data. @Todo. Allows this to show the average
-        - plot_profiles_in_time: Plot the evolution of the rl or pitch profiles
-            It can also plot the profiles for an specifit time
-        - plot_orientation: plot the orientation of the magnetic field in the
-            head reference system. If this is executed after the remap, it plot
-            some shaded areas indicated which angles were found in the database
-        - export_remap: Export remap
+       - Public methods (*indicate methods coming from the parent class):
+        - *read_frame: Load a given range of frames
+        - *subtract noise: Use a range of times to average de noise and subtract
+            it to all frames
+        - *filter_frames: apply filters such as median, gaussian, etc
+        - *average_frames: average frames under certain windows
+        - *generate_average_window: generate the windows to average the frames
+        - *return_to_original_frames: remove the noise subtraction etc
+        - *plot_number_saturated_counts: plot the total number of saturated
+            counts in each frame
+        - plot_ frame: plot a given frame. Include the posibility of plotting a
+            StrikeMap
+        - *GUI_frames: display a GUI to explore the video
+        - *getFrameIndex: get the frame number associated to a given time
+        - *getFrame: return the frame associated to a given time
+        - *getTime: return the time associated to a frame index
+        - *getTimeTrace: calculate a video timetrace
+        - *exportVideo: save the dataframes to a netCDF
+        - *get_smap_name: Get the name of the strike map for a given frame
+        - *plot_frame_remap: Plot the frame from the remap
+        - *plotBangles: Plot the angles of the B field respect to the head
+        - *integrate_remap: Perform the integration over a region of the
+            phase space
+        - *translate_remap_to_energy: deprecated in this version of the suite
+        - *GUI_profile_analysis: GUI to analyse the profiles
+        - *GUI_remap_analysis: GUI to analyse the remap
+        - *export_Bangles: export the Bangles to netCDF files
+        - *export_Bfield: export the B field at the head to netCDF files
+        - *export_remap: export the remap into a series of netCDF files
+        - remap_loaded_frames: remap the loaded frames
+        - calculateBangles: Get the angles of the magnetic field
+        - GUI_frames_and_remap: GUI with the frames and the remap
+        - plot_profiles_in_time: Deprecated in this version of the suite
+
+    - Private methods:
+        - *_getB: Get the magnetic field at the detector position
+        - _getBangles: Get the orientation respect the tghe FILD head
     """
 
     def __init__(self, file: str = None, shot: int = None,
@@ -154,7 +177,11 @@ class FILDVideo(FIV):
             FIV.__init__(self, empty=empty)
 
     def _getBangles(self):
-        """Get the orientation of the field respec to the head"""
+        """
+        Get the orientation of the field respec to the head
+
+        Jose Rueda: jrrueda@us.es
+        """
         if self.orientation is None:
             raise Exception('FILD orientation not know')
         phi, theta = \
