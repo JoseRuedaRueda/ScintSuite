@@ -6,22 +6,25 @@ Jose Rueda: jrrueda@us.es
 Introduced in version 0.10.0
 """
 import os
+import logging
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
 import Lib.errors as errors
 import Lib._Plotting as ssplt
 from tqdm import tqdm
-from Lib._StrikeMap._ParentStrikeMap import GeneralStrikeMap
+from Lib._Paths import Path
 from Lib.decorators import deprecated
-from Lib.SimulationCodes.Common.strikes import Strikes
-from Lib.SimulationCodes.SINPA._execution import guess_strike_map_name
-from Lib.SimulationCodes.FILDSIM.execution import get_energy
 from Lib._basicVariable import BasicVariable
 from Lib._Mapping._Common import _fit_to_model_
-from Lib._Paths import Path
+from Lib.SimulationCodes.Common.strikes import Strikes
+from Lib._StrikeMap._ParentStrikeMap import GeneralStrikeMap
+from Lib.SimulationCodes.FILDSIM.execution import get_energy
+from Lib.SimulationCodes.SINPA._execution import guess_strike_map_name
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import logging
+
+
+# --- Initialise auxiliary elements
 logger = logging.getLogger('ScintSuite.StrikeMap')
 
 
@@ -31,12 +34,41 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    New public methods respect to the parent class
+    Public Methods (* means inherited from the father):
+        - *calculate_pixel_coordinates: calculate the map coordinates in the camera
+        - *setRemapVariables: Set the variables to be used when remapping
+        - *interp_grid: Interpolate the smap variables in a given camera frame
+        - *export_spatial_coordinates: save grid point into a .txt
+        - *plot_var: perform a quick plot of a variable (or pair) of the map
+        - *plot_pix: plot the strike map in the camera space
+        - *plot_real: plot the scintillator in the real space
+        - calculate_energy: calculate the energy associated with each gyroradius
         - load_strike_points: Load the points used to create the map
         - calculate_phase_space_resolution: calculate the resolution associated
           with the phase-space variables of the map
         - plot_phase_space_resolution: plot the resolution in the phase space
         - remap_strike_points: remap the loaded strike points
+        - remap_external_strike_points: remap any strike points
+        - plot_phase_space_resolution_fits: plot the resolution in the phase space
+        - plot_collimator_factors: plot the resolution in the phase space
+
+    Private method (* means inherited from the father):
+        - *_calculate_transformation_matrix: Calculate the transformation matrix
+        - _calculate_instrument_function_interpolators: calculate the
+            interpolators for the instrument function
+        - _calculate_mapping_interpolators: Calculate the interpolators to map
+            the strike points
+
+    Properties (* means inherited from the father):
+        - *shape: grid size used in the calculation. Eg, for standard FILD,
+            shape=[npitch, ngyroradius]
+        - *code: Code used to calculate the map
+        - *diagnostic: Detector associated with this map
+        - *file: full path to the file where the map is storaged
+        - *MC_variables: monte carlo variables used to create the map
+
+    Calls (* means inherited from the father):
+        - *variables: smap('my var') will return the values of the variable
     """
 
     def __init__(self, file: str = None, variables_to_remap: tuple = None,
@@ -49,6 +81,21 @@ class FILDINPA_Smap(GeneralStrikeMap):
         Just call the init of the parent object but with the possibility of
         telling the theta and phi, so the code look in the remap database and
         find the closet map
+
+        @param file: strike map file to load (option 1 to load the map)
+        @param variables_to_remap: pair of variables selected for the remap.
+            By default:
+                    - FILD: ('pitch', 'gyroradius')
+                    - INPA: ('R0', 'gyroradius')
+                    - iHIBP: ('x1', 'x2')
+        @param code: code used to calculate the map. If None, would be
+            guessed automatically
+        @param theta: theta angle of the database (option 2 to load the map)
+        @param phi: phi angle of the database (option 2 to load the map)
+        @param GeomID: geometry ID of the database (option 2 to load the map)
+        @param decimals: Number of decimasl to look in the database (opt 2)
+        @param diagnostic: diagnostic to look in the database (opt 2)
+        @param verbose: print some information in the terminal
         """
         if (theta is not None) and (phi is not None):
             if verbose:
@@ -63,7 +110,10 @@ class FILDINPA_Smap(GeneralStrikeMap):
         GeneralStrikeMap.__init__(self,  file,
                                   variables_to_remap=variables_to_remap,
                                   code=code)
-        self.strike_points = None  # Allocate the sapce for latter
+        # --- Allocate for latter
+        self.strike_points = None
+        self.fileStrikePoints = None
+        self._resolutions = None
 
     def calculate_energy(self, B: float, A: float = 2.01410178,
                          Z: float = 1.0):
@@ -73,7 +123,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
         Jose Rueda: jrrueda@us.es
 
         @param B: magnetif field modulus
-        @param A: mass of the ion, in umas
+        @param A: mass of the ion, in amu
+        @param Z: charge, in e units
         """
         dummy = get_energy(self('gyroradius'), B=B, A=A, Z=Z) / 1000.0
         self._data['e0'] = BasicVariable(name='e0', units='keV', data=dummy)
@@ -90,8 +141,14 @@ class FILDINPA_Smap(GeneralStrikeMap):
             self.file variable, so the strike points are supposed to be in
             the same folder than the strike map
         @param verbose: Flag to plot some information about the strike points
-        @param newFILDSIM: Flag to decide if we are using the new FILDSIM or
-            the old one
+        @param calculate_pixel_coordinates: if true the pixel coordinates will
+            be calculated just after loading the points (using the camera
+            calibration storaged in the strike map)
+        @param remap_in_pixel_space: in SINPA, the remap is not done in fortran
+            but must be done in python. By default, it is done just after
+            loading the points. If this flag is true, the remap will be done
+            using the pixel coordinates instead of the strike in the
+            scintillator.
         """
         # See if the strike points where already there
         if self.strike_points is not None:
@@ -148,12 +205,16 @@ class FILDINPA_Smap(GeneralStrikeMap):
         @param min_statistics: Minimum number of points for a given r,p to make
             the fit (if we have less markers, this point will be ignored)
         @param adaptative: If true, the bin width will be adapted such that the
-            number of bins in a sigma of the distribution is 4. If this is the
-            case, dpitch, dgyr, will no longer have an impact
-        @param confidence_level: confidence level for the uncertainty
-            determination
+            number of bins in a sigma of the distribution is bin_per_sigma. If
+            this is the case, dx, dy of the diag_options will no longer have an
+            impact
         @param calculate_uncertainties: flag to calcualte the uncertainties of
             the fit
+        @param confidence_level: confidence level for the uncertainty
+            determination
+        @param variables: Variables where to calculate the resolutions. By
+            default, the ones selected for the remapping will be used
+        @param verbose: Flag to print some information
         """
         if self.strike_points is None:
             print('Trying to load the strike points')
@@ -200,7 +261,6 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 BasicVariable(name=variables[1], units=unitsy)),
             'npoints': np.zeros((nx, ny)),
         }
-        print(variables)
         for key, names in zip(variables, (xnames, ynames)):
             # For the resolution
             self._resolutions[key] = \
@@ -562,6 +622,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
         @param kernel: kernel for the interpolator
         @param degree: degree for the added polynomial
+        @param variables: variables to prepare the interpolators
 
         See RBFInterpolator of Scipy for full documentation
         """
@@ -629,6 +690,11 @@ class FILDINPA_Smap(GeneralStrikeMap):
         Remap the StrikePoints
 
         Jose Rueda: jrrueda@us.es
+
+        @param overwrite: if true, the variable data will be overwritten, even
+            if that remap was already done
+        @param remap_in_pixel_space: flagg to decide if the remap will be done
+            in pixel or real space
         """
         # --- See if the interpolators are defined
         if self._map_interpolators is None:
@@ -654,8 +720,6 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 interpolator = k + '_pix'
             else:
                 interpolator = k
-            #print(interpolator)
-
             was_there = False
             if name in self.strike_points.header['info'].keys():
                 was_there = True
@@ -704,6 +768,10 @@ class FILDINPA_Smap(GeneralStrikeMap):
         Remap the signal (or any external) StrikePoints
 
         Jose Rueda: jrrueda@us.es
+
+        Notice, this is in practical no used, use better the remap method of the
+        strike points object if you want to remap externally calculated (signal)
+        strike points
         """
         # --- See if the interpolators are defined
         if self._map_interpolators is None:
@@ -925,6 +993,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
 
+    @deprecated('Some input will change name in the final version')
     def plot_collimator_factor(self, ax_param: dict = {}, cMap=None,
                                nlev: int = 20, ax_lim: dict = {},
                                cmap_lim: float = 0):
