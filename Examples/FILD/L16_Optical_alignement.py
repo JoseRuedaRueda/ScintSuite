@@ -12,10 +12,10 @@ IMPORTANT: If you select SINPA as code format, the scintillaor coordinate must
 be in the scintillator reference system, if not, there would be a shift between
 SINPA coordinates and the calibration
 """
+import Lib as ss
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
-import Lib as ss
-from pco_tools import pco_reader as pco
+from pco_tools import pco_reader as pco   # For pixefly calibration frames
 
 
 # -----------------------------------------------------------------------------
@@ -63,7 +63,12 @@ scintillator.calculate_pixel_coordinates(cal)
 # -----------------------------------------------------------------------------
 # --- Image load and plot
 # -----------------------------------------------------------------------------
-img = pco.load(calib_image)
+if calib_image.endswith('b16'):
+    img = pco.load(calib_image)
+elif calib_image.endswith('png'):
+    img = ss.vid.png.load_png(calib_image)
+elif calib_image.endswith('tif'):
+    img = ss.vid.tif.load_tiff(calib_image)
 fig, ax = plt.subplots()
 # adjust the main plot to make room for the sliders
 plt.subplots_adjust(left=0.30, bottom=0.3)
