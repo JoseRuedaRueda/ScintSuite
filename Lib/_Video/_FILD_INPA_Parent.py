@@ -433,15 +433,14 @@ class FIV(BVO):
 
         if created:
             if translation is None:
-                ax.set_ylabel('$r_l$ [cm]')
+                ax.set_ylabel('%s [%s]' %
+                              (self.remap_dat['y'].attrs['long_name'].capitalize(),
+                               self.remap_dat['y'].attrs['units']))
+                ax.set_xlabel('%s [%s]' %
+                              (self.remap_dat['x'].attrs['long_name'].capitalize(),
+                               self.remap_dat['x'].attrs['units']))
             elif translation[1] == 1:
                 ax.set_ylabel('E [keV]')
-            if self.diag == 'FILD':
-                ax.set_xlabel('$\\lambda \\ [\\degree]$')
-            elif self.diag == 'INPA':
-                ax.set_xlabel('R [m]')
-            else:
-                pass
             fig.show()
             plt.tight_layout()
         return ax
