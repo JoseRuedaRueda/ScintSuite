@@ -1,6 +1,6 @@
 """Just the version of the suite, to label outputs"""
 import numpy as np
-version = '1.0.1'
+version = '1.0.2'
 codename = 'Salmorejo con picatostes'
 
 

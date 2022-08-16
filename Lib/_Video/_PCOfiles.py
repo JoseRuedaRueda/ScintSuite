@@ -5,8 +5,8 @@ Written by Jose Rueda: jrrueda@us.es
 Adapted by Lina Velarde: lvelarde@us.es
 """
 import os
-import numpy as np
 import logging
+import numpy as np
 logger = logging.getLogger('ScintSuite.Video')
 try:
     from pco_tools import pco_reader as pco

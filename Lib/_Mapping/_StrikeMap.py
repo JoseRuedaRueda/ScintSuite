@@ -11,7 +11,7 @@ __all__ = ['StrikeMap']
 
 def StrikeMap(id, file):
     """
-    Just a wrapper to the Smap library for retrocompatibility
+    Just a wrapper to the Smap library for retro-compatibility
 
     If you are creating a new method or script, base it in the Smap object
     directly, do not use this method please

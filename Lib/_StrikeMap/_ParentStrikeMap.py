@@ -5,30 +5,55 @@ Jose Rueda Rueda: jrrueda@us.es
 
 Introduced in version 0.10.0
 """
-
-from Lib._StrikeMap._readMaps import readSmap
-from Lib._Mapping._Common import XYtoPixel
-from Lib._SideFunctions import createGrid
-from Lib._Plotting._settings import axis_beauty
-import matplotlib.pyplot as plt
+import logging
 import numpy as np
+import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
-from Lib.decorators import deprecated
 import Lib.errors as errors
 from tqdm import tqdm
-from Lib._basicVariable import BasicVariable
-import logging
+from Lib._SideFunctions import createGrid
+from Lib._Mapping._Common import XYtoPixel
+from Lib._StrikeMap._readMaps import readSmap
+from Lib._Plotting._settings import axis_beauty
+from Lib.decorators import deprecated
+
+
+# --- Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.StrikeMap')
 
 
+
+# ------------------------------------------------------------------------------
+# --- General parent of the Strike map class
+# ------------------------------------------------------------------------------
 class GeneralStrikeMap(XYtoPixel):
     """
     General class for StrikeMap handling
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    Public Methods:
-        - setRemapVariables: Set the
+    Public Methods (* means inherited from the father):
+        - *calculate_pixel_coordinates: calculate the map coordinates in the camera
+        - setRemapVariables: Set the variables to be used when remapping
+        - interp_grid: Interpolate the smap variables in a given camera frame
+        - export_spatial_coordinates: save grid point into a .txt
+        - plot_var: perform a quick plot of a variable (or pair) of the map
+        - plot_pix: plot the strike map in the camera space
+        - plot_real: plot the scintillator in the real space
+
+    Private method:
+        - _calculate_transformation_matrix: Calculate the transformation matrix
+
+    Properties:
+        - shape: grid size used in the calculation. Eg, for standard FILD,
+            shape=[npitch, ngyroradius]
+        - code: Code used to calculate the map
+        - diagnostic: Detector associated with this map
+        - file: full path to the file where the map is storaged
+        - MC_variables: monte carlo variables used to create the map
+
+    Calls:
+        - variables: smap('my var') will return the values of the variable
 
     """
 
@@ -44,7 +69,7 @@ class GeneralStrikeMap(XYtoPixel):
                 - INPA: ('R0', 'gyroradius')
                 - iHIBP: ('x1', 'x2')
         @param code: code used to calculate the strike map. If None, would be
-            guesse automatically
+            guessed automatically
         """
         # --- Init the parent class
         XYtoPixel.__init__(self)
@@ -247,13 +272,16 @@ class GeneralStrikeMap(XYtoPixel):
             rot = np.identity(3)
             tras = 0.
         # --- Save the map
-        with open(file_name_save, 'w') as f:
+        with open(filename, 'w') as f:
             for xm, ym, zm in zip(self.x, self.y, self.z):
                 point_rotated = rot.T @ (np.array([xm, ym, zm])) + tras
                 f.write('%f %f %f \n' % (point_rotated[0] * factor,
                                          point_rotated[1] * factor,
                                          point_rotated[2] * factor))
 
+    # --------------------------------------------------------------------------
+    # --- Plotting block
+    # --------------------------------------------------------------------------
     def plot_var(self, varname: str, varname2: str = None):
         """
         Perform a basic and quick plot of a variable data
@@ -481,6 +509,9 @@ class GeneralStrikeMap(XYtoPixel):
         plt.draw()
         return ax
 
+    # --------------------------------------------------------------------------
+    # --- Private methods
+    # --------------------------------------------------------------------------
     def _calculate_transformation_matrix(self, MC_number: int,
                                          variables: tuple,
                                          grid_options: dict,
@@ -553,17 +584,9 @@ class GeneralStrikeMap(XYtoPixel):
         self._grid_interp['transformation_matrix'][name + '_grid'] = \
             grid_options
 
-    @deprecated('Please use directly export_spatial_coordinates. Tbr in 0.11')
-    def map_to_txt(self, Geom=None,
-                   units: str = 'mm',
-                   file_name_save: str = 'Map.txt'):
-        """
-        Wrapper to export_spatial_coordinates, just for retrocompatibility,
-        to be removed in version 0.11.0
-        """
-        self.export_spatial_coordinates(Geom=Geom, units=units,
-                                        file_name_save=file_name_save)
-
+    # --------------------------------------------------------------------------
+    # --- Properties and calls
+    # --------------------------------------------------------------------------
     @property
     def shape(self):
         return self._shape
@@ -590,3 +613,17 @@ class GeneralStrikeMap(XYtoPixel):
 
     def __call__(self, name):
         return self._data[name].data
+
+    # --------------------------------------------------------------------------
+    # --- Deprecated methods
+    # --------------------------------------------------------------------------
+    @deprecated('Please use directly export_spatial_coordinates. Tbr in 1.1.0')
+    def map_to_txt(self, Geom=None,
+                   units: str = 'mm',
+                   file_name_save: str = 'Map.txt'):
+        """
+        Wrapper to export_spatial_coordinates, just for retrocompatibility,
+        to be removed in version 0.11.0
+        """
+        self.export_spatial_coordinates(Geom=Geom, units=units,
+                                        file_name_save=file_name_save)

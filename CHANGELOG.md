@@ -1,3 +1,10 @@
+## 1.0.2: Bug fix and example revision
+- Examples revised by lvelarde
+- **Bux fix** small bug relative to the us of the xarrays in the video object fixed
+- Improvements in code documentation and comments
+- FILD remap now is provided with units
+- read_from_loaded was deprecated from the read_frame() method of the video, please use just getFrame()
+
 ## 1.0.1: Salmorejo con picatostes
 - Minor bug fix in the GUI which plot the frames
 - Integral of the remap is no automatically calculated in the remap video
