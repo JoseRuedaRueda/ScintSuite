@@ -324,6 +324,9 @@ class BVO:
         except TypeError:
             tbase = np.array([tframes])
             nbase = np.array([nframes])
+        if len(tbase.shape) == 2:
+            tbase = tbase.squeeze()
+            nbase = nbase.squeeze()
         # Get the data-type
         dtype = M.dtype
         # Storage it
