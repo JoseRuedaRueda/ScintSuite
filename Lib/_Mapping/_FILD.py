@@ -322,11 +322,11 @@ def remapAllLoadedFrames(video,
     remap_dat['theta'].attrs['long_name'] = 'Calculated theta angle'
     remap_dat['theta'].attrs['units'] = 'Degree'
 
-    remap_dat['phi_used'] = xr.DataArray(phi, dims=('t'))
+    remap_dat['phi_used'] = xr.DataArray(phi_used, dims=('t'))
     remap_dat['phi_used'].attrs['long_name'] = 'Used phi angle'
     remap_dat['phi_used'].attrs['units'] = 'Degree'
 
-    remap_dat['theta_used'] = xr.DataArray(theta, dims=('t'))
+    remap_dat['theta_used'] = xr.DataArray(theta_used, dims=('t'))
     remap_dat['theta_used'].attrs['long_name'] = 'Used theta angle'
     remap_dat['theta_used'].attrs['units'] = 'Degree'
 

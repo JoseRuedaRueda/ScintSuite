@@ -98,6 +98,7 @@ class FILDVideo(FIV):
             if shot is None:
                 shot = _aux.guess_shot(file, ssdat.shot_number_length)
             # Initialise the logbook
+            self.logbookOptions = logbookOptions
             FILDlogbook = ssdat.FILD_logbook(**logbookOptions)  # Logbook
             try:
                 AdqFreq = FILDlogbook.getAdqFreq(shot, diag_ID)
@@ -469,3 +470,14 @@ class FILDVideo(FIV):
             plt.tight_layout()
         plt.show()
 
+    def reloadCameraCalibration(self):
+        """
+        Reload the camera calibration
+
+        Useful if you are iterating with the calibration file
+
+        Jose Rueda: jrrueda@us.es
+        """
+        FILDlogbook = ssdat.FILD_logbook(**self.logbookOptions)
+        self.CameraCalibration = \
+            FILDlogbook.getCameraCalibration(self.shot, self.diag_ID)
