@@ -199,7 +199,7 @@ def remapAllLoadedFrames(video,
             print('Size of theta: ', theta.size)
             raise errors.NotValidInput('Wrong length of phi and theta')
         # -- See if the strike map exist in the folder
-        print('Looking for strikemaps in: ', smap_folder)
+        logger.info('Looking for strikemaps in: ', smap_folder)
         for iframe in tqdm(range(nframes)):
             if FILDSIM:
                 logger.info('This is deprecated, please use SINPA (uFILDSIM)')
@@ -319,7 +319,7 @@ def remapAllLoadedFrames(video,
     remap_dat['y'].attrs['long_name'] = variables_to_remap[1]
 
     remap_dat['frames'].attrs['units'] = '#/(%s $\\cdot$ %s)' \
-        % (remap_dat['x'].attrs['units'], remap_dat['Y'].attrs['units'])
+        % (remap_dat['x'].attrs['units'], remap_dat['y'].attrs['units'])
 
     remap_dat['phi'] = xr.DataArray(phi, dims=('t'))
     remap_dat['phi'].attrs['long_name'] = 'Calculated phi angle'

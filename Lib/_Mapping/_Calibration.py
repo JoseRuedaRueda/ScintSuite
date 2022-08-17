@@ -166,7 +166,7 @@ class CalibrationDatabase:
                 if 'c1' in self.data.keys():
                     line = line \
                         + str(self.data['c1'][i]) + ' '\
-                        + str(self.data['xcenter'][i]) + ' '
+                        + str(self.data['xcenter'][i]) + ' '\
                         + str(self.data['ycenter'][i]) + ' ' + '\n'
                 else:
                     line = line + '\n'
