@@ -41,7 +41,7 @@ geomID = logbook.getGeomID(shot=shot, FILDid=1)
 print('The geometry was: ', geomID)
 # - Where was this FILD?
 position = logbook.getPosition(shot=shot, FILDid=1)
-pprint(position)
+print(position)
 # - Which was its orientation?
 orientation = logbook.getOrientation(shot=shot, FILDid=1)
 # - Which was the camera calibration from that shot?
