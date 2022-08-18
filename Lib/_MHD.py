@@ -96,6 +96,28 @@ class MHDmode():
         self.freq['TAE'] = \
             self._va0['data']/4.0/cnt.pi/self._q['data']/self._R0['data']
 
+    def _calcTAEfreq(self):
+        """
+        Evaluate the central frequency of the EAE gap
+
+        following eq (8) of L. VILLARD NUCLEAR FUSION, Vo1.32,N0.10 (1992)
+        """
+        self.freq['EAE'] = \
+            self._va0['data']/2.0/cnt.pi/self._q['data']/self._R0['data']
+
+    def _calcRSAEfreq(self, n: int, m: int):
+        """
+        Evaluate the central frequency of the RSAE in the zero pressure limit
+
+        following eq from M. A. Van Zeeland, et al. Phys. Plasmas 14, 2007
+
+        Warning, it does not check that the q profile is actually sheared, just
+        take the minimum value
+        """
+        qmin = self._q.min(dim='rho')
+        self.freq['RSAE'] = (m - n * qmin['data']) *\
+            self._va0['data']/2.0/cnt.pi/qmin['data']/self._R0['data']
+
     def plot(self, var: str = 'GAM', rho=0.0, ax=None, line_params={},
              units: str = 'kHz'):
         """
