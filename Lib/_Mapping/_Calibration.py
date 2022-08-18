@@ -253,7 +253,7 @@ class CalParams:
     def print(self):
         """
         Print calibration
-        
+
         Jose Rueda: jrrueda@us.es
         """
         print('xscale: ', self.xscale)
@@ -271,7 +271,7 @@ class CalParams:
         Save the calibration in a netCDF file
 
         Jose Rueda: jrrueda@us.es
-        """      
+        """
         logger.info('Saving results in: %s', filename)
         with netcdf.netcdf_file(filename, 'w') as f:
             # Create the dimensions for the variables:
@@ -303,19 +303,17 @@ class CalParams:
             xcenter = f.createVariable('xcenter', 'float64', ('number', ))
             xcenter[:] = self.xcenter
             xcenter.units = 'px'
-            xcenter.long_name = 'x center of the used calibration'       
-            
+            xcenter.long_name = 'x center of the used calibration'
+
             ycenter = f.createVariable('ycenter', 'float64', ('number', ))
             ycenter[:] = self.ycenter
             ycenter.units = 'px'
-            ycenter.long_name = 'y center of the used calibration'        
-            
+            ycenter.long_name = 'y center of the used calibration'
+
             c1 = f.createVariable('c1', 'float64', ('number', ))
             c1[:] = self.c1
-            c1.long_name = 'c1 (distortion) of the used calibration' 
+            c1.long_name = 'c1 (distortion) of the used calibration'
 
             c2 = f.createVariable('c2', 'float64', ('number', ))
             c2[:] = self.c2
             c2.long_name = 'c2 (distortion) of the used calibration'
-
-
