@@ -205,6 +205,7 @@ class TimeTrace(BasicSignalVariable):
             self._data['mean_of_roi'] = xr.DataArray(mean_of_roi, dims='t')
             self._data['std_of_roi'] = xr.DataArray(std_of_roi, dims='t')
             self._data['max_of_roi'] = xr.DataArray(max_of_roi, dims='t')
+            self._data.attrs['mask'] = mask.astype(int)  # for an easy export
 
     def export_to_ascii(self, filename: str = None, precision=3):
         """

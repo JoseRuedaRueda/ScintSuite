@@ -1,3 +1,7 @@
+## 1.0.3: Salmorejo con Jamon
+### TimeTrace
+- Time trace object now saves the mask also as a data attribute, in order to have an easy export
+
 ## 1.0.2: Bug fix and example revision
 - Examples revised by lvelarde
 - **Bux fix** small bug relative to the us of the xarrays in the video object fixed
