@@ -25,8 +25,10 @@ shot = 44732
 diag_ID = 1  # 6 for rFILD
 t1 = 0.1     # Initial time to be loaded, [s]
 t2 = 0.6     # Final time to be loaded [s]
+t0 = 0.28    # Time instant to plot the remapped frame
 limitation = False  # If true, the suite will not allow to load more than
 limit = 2048        # 'limit' Mb of data. To avoid overloading the resources
+flag_MC = False   # If MC remap is desired
 
 # - Noise subtraction settings:
 subtract_noise = False   # Flag to apply noise subtraction
@@ -39,9 +41,10 @@ Smap_file = '/home/jqw5960/SINPA/runs/ajustefino/results/ajustefino.map'
 
 save_remap = False
 par = {
-    'ymin': 1.2,      # Minimum gyroradius [in cm]
-    'ymax': 16.5,     # Maximum gyroradius [in cm]
-    'dy': 0.5,        # Interval of the gyroradius [in cm]
+    'variables_to_remap': ('pitch','energy'),
+    'ymin': 30,     # Minimum energy [in keV]
+    'ymax': 70,     # Maximum energy [in keV]
+    'dy': 0.5,
     'xmin': 20.0,     # Minimum pitch angle [in degrees]
     'xmax': 90.0,     # Maximum pitch angle [in degrees]
     'dx': 2.0,    # Pitch angle interval
@@ -49,7 +52,6 @@ par = {
     'method': 2,  # 2 Spline, 1 Linear
     'decimals': 1}  # Precision for the strike map (1 is more than enough)
 
-MC_number = 150  # number of MC markers per pixel
 # - Plotting options:
 plot_profiles_in_time = True   # Plot the time evolution of pitch and r
 # -----------------------------------------------------------------------------
@@ -81,11 +83,14 @@ smap.calculate_energy(meanB)
 smap.setRemapVariables(('pitch','e0'))
 # Calculate pixel coordinates of the map
 smap.calculate_pixel_coordinates(vid.CameraCalibration)
-# Calculate the relation pixel - gyr and pitch
-grid = {'ymin': par['ymin'], 'ymax': par['ymax'], 'dy': par['dy'],
-        'xmin': par['xmin'], 'xmax': par['xmax'], 'dx': par['dx']}
-smap.interp_grid(vid.exp_dat['frames'].shape[0:2], method=par['method'],
-                MC_number=MC_number, grid_params=grid, limitation=20)
+
+if flag_MC:
+    MC_number = 150  # number of MC markers per pixel
+    # Calculate the relation pixel - gyr and pitch
+    grid = {'ymin': par['ymin'], 'ymax': par['ymax'], 'dy': par['dy'],
+            'xmin': par['xmin'], 'xmax': par['xmax'], 'dx': par['dx']}
+    smap.interp_grid(vid.exp_dat['frames'].shape[0:2], method=par['method'],
+                    MC_number=MC_number, grid_params=grid, limitation=20)
 # Include this map in the remapping parameters:
 par['map'] = smap
 
@@ -95,6 +100,7 @@ par['map'] = smap
 # - Remap frames:
 vid.remap_loaded_frames(par)
 # - Plot:
+vid.plot_frame_remap(t=t0)
 if plot_profiles_in_time:
     b = vid.integrate_remap(xmax=par['xmax'],ymax=par['ymax']) # rL max is 18
     # Integral in XI
