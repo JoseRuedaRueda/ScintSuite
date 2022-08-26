@@ -175,7 +175,7 @@ def make_ihibpsim1_namelist(user_nml: dict):
             'save_orbits': False,
             'num_orbits': 1.0,
             'file_orbits': 'example.orbit',
-            'dt_orbit': 1.0e-7,
+            'dt_orbit': 1.0e-9,
         },
         'deposition': {
             'nbeamdir': 128,
