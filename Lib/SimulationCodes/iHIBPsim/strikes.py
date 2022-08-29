@@ -660,23 +660,24 @@ class strikeLine:
             warn('The IDA profile cannot be loaded for #%05d' % self.shot)
             return
 
-        Te = sf_ida(name='Te')
         ne = sf_ida(name='ne')
+        Te = sf_ida(name='Te')
+        time_ida = sf_ida.gettimebase('ne')
         tindx_ne = np.zeros((len(self.time),), dtype=int)
         tindx_te = np.zeros((len(self.time),), dtype=int)
         for ii in range(len(tindx)):
-            tindx_ne[ii] = np.abs(ne.time.flatten() - self.time[ii]).argmin()
-            tindx_te[ii] = np.abs(Te.time.flatten() - self.time[ii]).argmin()
+            tindx_ne[ii] = np.abs(time_ida.flatten() - self.time[ii]).argmin()
+            tindx_te[ii] = tindx_ne[ii]
 
-        rhop = sf_ida(name='rhop').data[0, :]
+        rhop = sf_ida(name='rhop')[0, :]
         for ii in range(len(rhop4store)):
             rhop_indx = np.abs(rhop - rhop4store[ii]).argmin()
 
             name = 'ne'+rhopNames[ii]
-            self.shotinfo[name] = ne.data[tindx_ne, rhop_indx]
+            self.shotinfo[name] = ne[tindx_ne, rhop_indx]
 
             name = 'Te'+rhopNames[ii]
-            self.shotinfo[name] = ne.data[tindx_ne, rhop_indx]
+            self.shotinfo[name] = Te[tindx_ne, rhop_indx]
 
 
 # -----------------------------------------------------------------------------

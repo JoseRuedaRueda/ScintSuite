@@ -653,7 +653,7 @@ class orbitFile:
                 output['vR'] = orbitData[:, 3]
                 output['vt'] = orbitData[:, 4]
                 output['vz'] = orbitData[:, 5]
-                output['logW'] = orbitData[:, 7]
+                output['logW'] = orbitData[:, 8]
 
                 # Computing the kinetic energy:
                 output['K'] = orbitData[:, 3] ** 2 + \
@@ -788,7 +788,7 @@ class orbitFile:
             output['vR'] = orbitData[3, :]
             output['vt'] = orbitData[4, :]
             output['vz'] = orbitData[5, :]
-            output['logW'] = orbitData[7, :]
+            output['logW'] = orbitData[8, :]
 
             # Computing the kinetic energy:
             output['K'] = orbitData[3, :]**2 + orbitData[4, :]**2 + \
