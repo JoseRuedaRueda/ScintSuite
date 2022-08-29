@@ -1,11 +1,17 @@
 """Routines for the magnetic equilibrium"""
 import numpy as np
-from scipy.interpolate import interpn, interp1d
+import xarray as xr
 import aug_sfutils as sf
+from scipy.interpolate import interpn, interp1d
 import Lib.errors as errors
+
+# --- Module hardcored parameters
 ECRH_POWER_THRESHOLD = 0.05  # Threshold to consider ECRH on [MW]
 
 
+# -----------------------------------------------------------------------------
+# --- Magnetic field
+# -----------------------------------------------------------------------------
 def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
                   ed: int = 0, time: float = None, equ=None, **kwargs):
     """
@@ -43,6 +49,9 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     return br, bz, bt, bp
 
 
+# -----------------------------------------------------------------------------
+# --- Flux coordinate
+# -----------------------------------------------------------------------------
 def get_mag_axis(shot, time: float = None, diag: str = 'GQH'):
     """
     Get the coordinates of the magnetic axis
@@ -155,6 +164,9 @@ def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
     return psipol
 
 
+# -----------------------------------------------------------------------------
+# --- Basic shot information
+# -----------------------------------------------------------------------------
 def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
                     exp: str = 'AUGD', edition: int = 0,
                     time: float = None):
@@ -263,8 +275,12 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
     return ssq
 
 
+# -----------------------------------------------------------------------------
+# --- q_profile
+# -----------------------------------------------------------------------------
 def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
-                  ed: int = 0, time: float = None, sfo=None):
+                  ed: int = 0, time: float = None, sfo=None,
+                  xArrayOutput: bool = True):
     """
     Reads from the database the q-profile as reconstrusted from an experiment.
 
@@ -289,52 +305,65 @@ def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
     pfl = sfo('PFL')
     timebasis = sfo('time')
     PFxx = sfo('PFxx')
-    print(qpsi.shape, pfl.shape, timebasis.shape, PFxx.shape)
     ikCAT = np.argmin(abs(PFxx[1:, :] - PFxx[0, :]), axis=0) + 1
     psi_ax = PFxx[0, ...]
     psi_edge = [PFxx[iflux, ii] for ii, iflux in enumerate(ikCAT)]
     psi_edge = np.tile(np.array(psi_edge), (pfl.shape[0], 1))
-    print(psi_ax.shape, psi_edge.shape)
-    rhop = np.sqrt(1.0 - (pfl - psi_ax)/(psi_edge-psi_ax)).squeeze()
+    rhop = np.sqrt((pfl - psi_ax)/(psi_edge-psi_ax)).squeeze()
     output = {}
 
     if time is not None:
         time = np.atleast_1d(time)
 
-    if time is None:
-        output = {
-            'data': qpsi,
-            'time': timebasis,
-            'rhop': rhop
-        }
+    if not xArrayOutput:
+        if time is None:
+            output = {
+                'data': qpsi,
+                'time': timebasis,
+                'rhop': rhop
+            }
 
-    elif len(time) == 1:
-        output = {
-            'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
-            'time': time.squeeze(),
-            'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze()
-        }
-    elif len(time) == 2:
-        t0, t1 = np.searchsorted(timebasis, time)
-        output = {
-            'data': qpsi[t0:t1, ...].squeeze(),
-            'time': timebasis[t0:t1].squeeze(),
-            'rhop': rhop[t0:t1, ...].squeeze(),
+        elif len(time) == 1:
+            output = {
+                'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
+                'time': time.squeeze(),
+                'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze()
+            }
+        elif len(time) == 2:
+            t0, t1 = np.searchsorted(timebasis, time)
+            output = {
+                'data': qpsi[t0:t1, ...].squeeze(),
+                'time': timebasis[t0:t1].squeeze(),
+                'rhop': rhop[t0:t1, ...].squeeze(),
+            }
+        else:
+            output = {
+                'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
+                'time': time.squeeze(),
+                'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze(),
+            }
+
+        output['source'] = {
+            'diagnostic': diag,
+            'experiment': exp,
+            'edition': ed,
+            'pulseNumber': shot
         }
     else:
-        output = {
-            'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
-            'time': time.squeeze(),
-            'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze(),
-        }
+        output = xr.Dataset()
+        jend = np.where(np.isnan(rhop[:, 0]))[0][0]
+        output['data'] = xr.DataArray(qpsi[:jend, :], dims=('rho', 't'),
+                                      coords={'rho': rhop[:jend, 0],
+                                      't': timebasis})
+        output['data'].attrs['long_name'] = 'q'
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
 
-    output['source'] = {
-        'diagnostic': diag,
-        'experiment': exp,
-        'edition': ed,
-        'pulseNumber': shot
-    }
-
+        output.attrs['diag'] = diag
+        output.attrs['exp'] = exp
+        output.attrs['ed'] = ed
+        output.attrs['shot'] = shot
     return output
 
 

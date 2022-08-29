@@ -14,13 +14,16 @@ from tkinter import ttk
 class ApplicationShowVid:
     """Class to show the camera frames"""
 
-    def __init__(self, master, data, remap_dat, GeomID='AUG02'):
+    def __init__(self, master, data, remap_dat, GeomID='AUG02',
+                 calibration=None):
         """
         Create the window with the sliders
 
         @param master: Tk() opened
         @param data: the dictionary of experimental frames
         @param remap_dat: the dictionary of remapped data
+        @param GeomID: Geometry id of the detector (to load smaps if needed)
+        @param calibration: Calibration parameters
         """
         # --- List of supported colormaps
         self.cmaps = {
@@ -36,6 +39,7 @@ class ApplicationShowVid:
         self.data = data
         self.remap_dat = remap_dat
         self.GeomID = GeomID
+        self.CameraCalibration=calibration
         t = data['t'].values
         # --- Create a tk container
         frame = tk.Frame(master)
@@ -147,8 +151,8 @@ class ApplicationShowVid:
             ssplt.remove_lines(self.canvas.figure.axes[0])
             # choose the new one:
             # get parameters of the map
-            theta_used = self.remap_dat['theta_used'][it]
-            phi_used = self.remap_dat['phi_used'][it]
+            theta_used = self.remap_dat['theta_used'].values[it]
+            phi_used = self.remap_dat['phi_used'].values[it]
 
             # Get the full name of the file
             name__smap = sssinpa.execution.guess_strike_map_name(
@@ -159,13 +163,11 @@ class ApplicationShowVid:
             # Load the map:
             smap = ssmap.StrikeMap(0, full_name_smap)
             # Calculate pixel coordinates
-            smap.calculate_pixel_coordinates(
-                self.remap_dat['options']['calibration']
-            )
+            smap.calculate_pixel_coordinates(self.CameraCalibration)
             # Plot the map
             self.xlim = self.canvas.figure.axes[0].get_xlim()
             self.ylim = self.canvas.figure.axes[0].get_ylim()
-            smap.plot_pix(ax=self.canvas.figure.axes[0])
+            smap.plot_pix(ax=self.canvas.figure.axes[0], labels=False)
             self.canvas.figure.axes[0].set_xlim(self.xlim[0], self.xlim[1])
             self.canvas.figure.axes[0].set_ylim(self.ylim[0], self.ylim[1])
         self.canvas.draw()

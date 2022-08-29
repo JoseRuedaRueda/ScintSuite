@@ -11,9 +11,9 @@ Under development
 """
 import os
 import f90nml
-from skimage import io                     # To load images
 import numpy as np
 import Lib._Video._AuxFunctions as aux
+from skimage import io                     # To load images
 
 
 def read_data(path):

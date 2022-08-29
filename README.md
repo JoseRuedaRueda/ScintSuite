@@ -9,7 +9,7 @@ Needed packages. Only listed 'non-standard' packages. See below, there is a scri
 #### Essentials
 The suite will not work without them:
 - f90nml: To read FORTRAN namelist in an easy way (needed since version 0.1.10) `pip install f90nml`. This is the suite standard to read and write namelists!!!
-- xarray: To handle the data sets (videos, remaps, timetraces, needed since version 1.0.0)
+- xarray: To handle the data sets (videos, remaps, timetraces, needed since version 1.0.0) [tested with version 0.20.1]
 - numpy > 1.21.0: To support xarray
 
 #### Optional (the suite will work but some capabilities will not be available)
@@ -21,6 +21,9 @@ The suite will not work without them:
 - aug_sfutils > 0.7.0: To load the AUG magnetic field (see AUG python documentation for the different ways of installing this package https://www.aug.ipp.mpg.de/aug/manuals/aug_sfutils/)
 - mesh: To deal with CAD files
 - numba > 0.55.1 to perform fast iHIBPsim xsection calculations
+
+#### Complete list:
+In a clean-typical python installation with anaconda, taking care only of the packages and versions listed above should be enough and the suite will run smoothly, but python package dependence can sometimes a mess. As an indication, in the folder `Data/TestedEnv` you can find the result of the command `pip list` in a python environment where the suite was tested and working fine. So if you find a series of problems with packages versions, try to create your virtual environment and reproduce the installed package list detailed there
 
 ### Cloning the suite and installing
 In order to clone the suite just open a terminal in your home directory and type:
@@ -71,7 +74,7 @@ VRT related paths are hardcoded. There is a significant number of them and overl
 - If you have installed Doxygen you can generate the documentation in html and LaTex format just opening a terminal in the Suite root directory and typing  `doxygen Doxyfile`. Once the documentation is generated, you can open the index with the following command `xdg-open doc/index.html`. For a (old and outdated) Doxygen generated documentation, see: <https://hdvirtual.us.es/discovirt/index.php/s/FBjZ9FPfjjwMDS2> download the content and open the index.html file, inside the html folder.
 
 ## Data export
-All data exported and saved by the Suite is done in netCDF, as default format. Platform independendent and binary format. 
+All data exported and saved by the Suite is done in netCDF, as default format. Platform independendent and binary format.
 
 If the user is *alergic* to the use of programing languages in order to read the netCDF, this NASA program could be usefull: https://www.giss.nasa.gov/tools/panoply/download/ It allows you to open and plot the variables in the netCDF file
 

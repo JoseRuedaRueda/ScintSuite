@@ -1,17 +1,19 @@
 """
-Common auxiliar routines for the FILD and INPA mapping.
+Common auxiliary routines for the FILD and INPA mapping.
 
 Jose Rueda Rueda - jrrueda@us.es
 
 Introduced in version 0.6.0
-
 """
-import numpy as np
+import logging
 import datetime
+import numpy as np
+from Lib.decorators import deprecated
+logger = logging.getLogger('ScintSuite.MappingCommon')
 try:
     import lmfit
-except ImportError:
-    print('lmfit not found, you cannot calculate resolutions')
+except (ImportError, ModuleNotFoundError):
+    logger.wargning('10: You cannot calculate resolutions')
 __all__ = ['transform_to_pixel', 'XYtoPixel', '_fit_to_model_',
            'remap', 'gyr_profile', 'pitch_profile',
            'estimate_effective_pixel_area']
@@ -36,14 +38,14 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
     """
     eps = 1e-6  # Level for the distortion coefficient to be considered as
     #             zero (see below)
-    # Perform the indistorted transformation
+    # Perform the undistorted transformation
     alpha = cal.deg * np.pi / 180
     xpixel = (np.cos(alpha) * x - np.sin(alpha) * y) * cal.xscale + \
         cal.xshift
     ypixel = (np.sin(alpha) * x + np.cos(alpha) * y) * cal.yscale + \
         cal.yshift
     # Apply the distortion
-    if (abs(cal.c1) > eps):
+    if abs(cal.c1) > eps:
         # Get the r array respect to the optical axis
         xp = xpixel - cal.xcenter
         yp = ypixel - cal.ycenter
@@ -68,6 +70,9 @@ class XYtoPixel:
     For example for Scintillator and strike maps, which contain information of
     their coordinates in the real space and of their coordinates in the camera
     (pixel) space
+
+    It is not intended to be initialised directly by the user. The StrikeMap, or
+    scintillator objects will do it. Pease use those child classes.
 
     Jose Rueda: jrrueda@us.es
 
@@ -100,12 +105,48 @@ class XYtoPixel:
         Transfom real coordinates into pixel.
 
         Just a wrapper to the function transform_to_pixel
+
+        Jose Rueda Rueda: jrrueda@us.es
+
+        @param cal: camera calibration to apply
+
+        @return: nothing, just fill the _coord_pix dictionary
         """
         self._coord_pix['x'], self._coord_pix['y'] = \
             transform_to_pixel(self._coord_real['x1'], self._coord_real['x2'],
                                cal)
         self.CameraCalibration = cal
 
+
+def estimate_effective_pixel_area(frame_shape, xscale: float, yscale: float,
+                                  type: int = 0):
+    """
+    Estimate the effective area covered by a pixel.
+
+    Jose Rueda Rueda: jrrueda@us.es based on a routine of Joaquín Galdón
+
+    If there is no distortion:
+    Area_covered_by_1_pixel: A_omega=Area_scint/#pixels inside scintillator
+    #pixels inside scint=L'x_scint*L'y_scint=Lx_scint*xscale*Ly_scint*yscale
+    xscale and yscale are in units of : #pixels/cm
+    So A_omega can be approximated by: A_omega=1/(xscale*yscale) [cm^2 or m^2]
+
+    @param frame_shape: shape of the frame
+    @params yscale: the scale [#pixel/cm] of the calibration to align the map
+    @params xscale: the scale [#pixel/cm] of the calibration to align the map
+    @param type: 0, ignore distortion, 1 include distortion (not done)
+    @return area: Matrix where each element is the area covered by that pixel
+    @todo Include the model of distortion
+    @todo now that the default calibrations are in m^-1, we should remove the
+    1e-4, I am not a fan of including an extra optional argument...
+    """
+    # Initialise the matrix:
+    area = np.zeros(frame_shape)
+
+    if type == 0:
+        area[:] = abs(1./(xscale*yscale)*1.e-4)  # 1e-4 to be in m^2
+
+    return area
 
 # -----------------------------------------------------------------------------
 # --- Fitting functions
@@ -197,9 +238,14 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
     """
     # --- 0: Check inputs
     if smap._grid_interp is None:
-        print('Grid interpolation was not done, performing grid interpolation')
+        text = '27: Interpolators not present in the strike map'\
+               +    ', calculating them with default settings'
+        logger.warning(text)
         if method.lower() == 'mc':
-            # Deduce the needed grid
+            # Deduce the needed grid. This is for the case we need to calculate
+            # a traslation matrix for this new strike map, using as reference
+            # an old grid.
+            # @TODO: check this becuase some times fails in the edge
             dx = x_edges[1] - x_edges[0]
             dy = y_edges[1] - y_edges[0]
             xmin = x_edges[0] - dx/2
@@ -219,32 +265,34 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         else:
             smap.interp_grid(frame.shape, MC_number=0)
 
-    if method == 'MC':
+    if method.lower() == 'mc':  # Monte Carlo approach to the remap
         # Get the name of the transformation matrix to use
         name = smap._to_remap[0].name + '_' + smap._to_remap[1].name
         if mask is None:
             H = np.tensordot(smap._grid_interp['transformation_matrix'][name],
                              frame, 2)
         else:
+            # Set to zero everything outside the mask
             dummy_frame = frame.copy()
             dummy_frame[~mask] = 0
+            # Perform the tensor product as before
             H = np.tensordot(smap._grid_interp['transformation_matrix'][name],
                              dummy_frame, 2)
 
-    else:  # similar to old IDL implementation
+    else:  # similar to old IDL implementation, faster but noisy
         namex = smap._to_remap[0].name
         namey = smap._to_remap[1].name
         # --- 1: Information of the calibration
-        # Get the phase variables of each pixel of each pixel
+        # Get the phase variables at each pixel
         x = smap._grid_interp[namex].flatten()
         y = smap._grid_interp[namey].flatten()
 
-        # --- 3: Remap (via histogram)
+        # --- 2: Remap (via histogram)
         if mask is None:
             z = frame.flatten()
         else:
             z = frame.copy()
-            z[mask] = 0
+            z[~mask] = 0
             z = z.flatten()
         H, xedges, yedges = np.histogram2d(x, y, bins=[x_edges, y_edges],
                                            weights=z)
@@ -256,11 +304,14 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
     return H
 
 
+@deprecated('Deprecated! Please use integrate_remap from the video object')
 def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
                 max_pitch: float, verbose: bool = False,
                 name=None, gyr=None):
     """
     Cut the FILD signal to get a profile along gyroradius.
+
+    DEPRECATED!!!! Please use the integrate_remap method from the video object
 
     @author:  Jose Rueda: jrrueda@us.es
 
@@ -312,11 +363,15 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
     return profile
 
 
+@deprecated('Deprecated! Please use integrate_remap from the video object')
 def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
                   max_gyr: float, verbose: bool = False,
                   name=None, pitch=None):
     """
     Cut the FILD signal to get a profile along pitch.
+
+    DEPRECATED!!!! Please use the integrate_remap method from the video object
+
 
     @author:  Jose Rueda: jrrueda@us.es
 
@@ -382,32 +437,3 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
         else:
             raise Exception('You want to export but no pitch was given')
     return profile
-
-
-def estimate_effective_pixel_area(frame_shape, xscale: float, yscale: float,
-                                  type: int = 0):
-    """
-    Estimate the effective area covered by a pixel.
-
-    Jose Rueda Rueda: jrrueda@us.es based on a routine of Joaquín Galdón
-
-    If there is no distortion:
-    Area_covered_by_1_pixel: A_omega=Area_scint/#pixels inside scintillator
-    #pixels inside scint=L'x_scint*L'y_scint=Lx_scint*xscale*Ly_scint*yscale
-    xscale and yscale are in units of : #pixels/cm
-    So A_omega can be approximated by: A_omega=1/(xscale*yscale) [cm^2]
-
-    @param frame_shape: shape of the frame
-    @params yscale: the scale [#pixel/cm] of the calibration to align the map
-    @params xscale: the scale [#pixel/cm] of the calibration to align the map
-    @param type: 0, ignore distortion, 1 include distortion
-    @return area: Matrix where each element is the area covered by that pixel
-    @todo Include the model of distortion
-    """
-    # Initialise the matrix:
-    area = np.zeros(frame_shape)
-
-    if type == 0:
-        area[:] = abs(1./(xscale*yscale)*1.e-4)  # 1e-4 to be in m^2
-
-    return area

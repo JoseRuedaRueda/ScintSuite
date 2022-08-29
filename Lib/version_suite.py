@@ -1,7 +1,7 @@
 """Just the version of the suite, to label outputs"""
 import numpy as np
-version = '1.0.1'
-codename = 'San Jacobo'
+version = '1.0.2'
+codename = 'Salmorejo con picatostes'
 
 
 def exportVersion(filename):
@@ -13,10 +13,10 @@ def exportVersion(filename):
     v2 = int(v[1])
     v3 = int(v[2])
     with open(filename, 'w') as f:
-        f.write('Version ID1: %i\n'%v1)
-        f.write('Version ID2: %i\n'%v2)
-        f.write('Version ID3: %i\n'%v3)
-        f.write('Codename: %s\n'%codename)
+        f.write('Version ID1: %i\n' % v1)
+        f.write('Version ID2: %i\n' % v2)
+        f.write('Version ID3: %i\n' % v3)
+        f.write('Codename: %s\n' % codename)
 
 
 def readVersion(filename):

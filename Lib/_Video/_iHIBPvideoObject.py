@@ -20,6 +20,7 @@ import Lib._TimeTrace as sstt
 pa = p.Path(machine)
 del p
 
+
 def decision(prob: float, x0: float, dx0: float):
     """
     Decision function choosing whether a pixel is noise or not.
@@ -51,15 +52,16 @@ def guessiHIBPfilename(shot: int):
 
     @return f: the name of the file/folder
     """
-    base_dir  = params.iHIBPext[0]['path'](shot)
+    base_dir = params.iHIBPext[0]['path'](shot)
     extension = params.iHIBPext[0]['extension'](shot)
 
     f = None
     if shot < 99999:  # PCO camera, stored in AFS
-        name = 'S%05d_HIBP.%s'%(shot, extension)
+        name = 'S%05d_HIBP.%s' % (shot, extension)
         f = os.path.join(base_dir, name)
 
     return f
+
 
 # ------------------------------------------------------------------------------
 # TIMEBASE OF THE CAMERA.
@@ -102,7 +104,7 @@ def ihibp_get_time_basis_old(shot: int):
     # Now we read the rest of the entries.
     nframs = len(root)
     timestamp = np.zeros((nframs,), dtype=float)
-    framenum  = np.zeros((nframs,), dtype=int)
+    framenum = np.zeros((nframs,), dtype=int)
     for ii, iele in enumerate(root):
         tmp = iele.attrib
         framenum[ii] = int(tmp['frameNumber'])
@@ -113,8 +115,9 @@ def ihibp_get_time_basis_old(shot: int):
     timestamp -= properties['ts6Time']
 
     # The time so calculated is given in nanoseconds:
-    timestamp = timestamp * 1e-9 # -> to seconds
+    timestamp = timestamp * 1e-9  # -> to seconds
     return timestamp, framenum, properties
+
 
 def ihibp_get_time_basis_new(shot: int):
     """"
@@ -159,7 +162,7 @@ def ihibp_get_time_basis_new(shot: int):
     # Now we read the rest of the entries.
     nframs = len(frames)
     timestamp = np.zeros((nframs,), dtype=float)
-    framenum  = np.zeros((nframs,), dtype=int)
+    framenum = np.zeros((nframs,), dtype=int)
     for ii, iele in enumerate(frames.getchildren()):
         tmp = iele.attrib
         framenum[ii] = int(tmp['number'])
@@ -175,8 +178,9 @@ def ihibp_get_time_basis_new(shot: int):
     timestamp -= properties['ts6']
 
     # The time so calculated is given in nanoseconds:
-    timestamp = timestamp * 1e-9 # -> to seconds
+    timestamp = timestamp * 1e-9  # -> to seconds
     return timestamp, framenum, properties
+
 
 def ihibp_get_time_basis(shot: int):
     """""
@@ -197,14 +201,20 @@ def ihibp_get_time_basis(shot: int):
     else:
         return ihibp_get_time_basis_old(shot=shot)
 
+
+# -----------------------------------------------------------------------------
+# --- iHIBP video object
+# -----------------------------------------------------------------------------
 class iHIBPvideo(BVO):
     """
     Basic video object for the iHIBP camera and data handling.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
     """
-    def __init__(self, shot: int, calib: libcal.CalParams=None,
-                 scobj: Scintillator=None, signal_threshold: float=5.0):
+
+    def __init__(self, shot: int, calib: libcal.CalParams = None,
+                 scobj: Scintillator = None, signal_threshold: float = 5.0,
+                 noiseSubtraction: bool = True, filterFrames: bool = False):
         """
         Initializes the object with the video data if found.
 
@@ -220,6 +230,11 @@ class iHIBPvideo(BVO):
         be considered illuminated the scintillator. The first image that
         fulfills that will be considered the reference frame with no signal and
         used to remove noise.
+        @param noiseSubtraction: if true, the subtract noise function from the
+        parent class will be called automatically in the init
+        @param filterFrames: if true, the filter function from the
+        parent class will be called automatically in the init (with the median
+        filter option)
         """
 
         # --- Try to load the shotfile
@@ -239,7 +254,6 @@ class iHIBPvideo(BVO):
         except FileNotFoundError:
             pass
 
-
         # Let's check whether the user provided the calibration parameters.
         if calib is None:
             print('Retrieving the calibration parameters for iHIBP')
@@ -250,7 +264,12 @@ class iHIBPvideo(BVO):
                                                diag_ID=1)
         else:
             self.calib = calib
-
+        # JRR note: This was created in parallel by Pablo and I will not change
+        # (for now), all the names of this file until having a meeting with
+        # iHIBP team, but in the BVO, the calibration object is present,
+        # So I will just include this field, to ensure homogeneity, and in the
+        # future we will delete the calib one
+        self.CameraCalibration = self.calib
 
         # --- Checking if the scintillator plate is provided:
         if scobj is None:
@@ -261,14 +280,17 @@ class iHIBPvideo(BVO):
             self.scintillator = scobj
 
         # Updating the calibration in the scintillator.
-        self.scintillator.calculate_pixel_coordinates(self.calib)
+        self.scintillator.calculate_pixel_coordinates(self.CameraCalibration)
 
-        # --- Apply now the background noise substraction.
-        self.subtract_noise(t1=-1.0, t2=0.0, flag_copy=True)
+        # --- Apply now the background noise substraction and filtering.
+        if noiseSubtraction:
+            self.subtract_noise(t1=-1.0, t2=0.0, flag_copy=True)
+        if filterFrames:
+            self.filter_frames(method='median')
 
         # --- i-HIBP scintillator distorted.
         self.scint_path = np.array(self.scintillator.get_path_pix()).T[1:, ...]
-        mask = sstt.roipoly(path = self.scint_path)
+        mask = sstt.roipoly(path=self.scint_path)
         self.scint_mask = mask.getMask(self.exp_dat['frames'][..., 0])
 
         # --- Getting which is the first illuminated frame:
@@ -278,12 +300,12 @@ class iHIBPvideo(BVO):
         self.dsignal_dt = tt['mean_of_roi'].values[flags]
 
         t0_idx = np.where(self.dsignal_dt > signal_threshold)[0][0]
-        self.t0     = time[t0_idx]
+        self.t0 = time[t0_idx]
         print('Using t0 = %.3f as the reference frame'%self.t0)
         self.frame0 = \
             self.exp_dat['frames'].values[..., self.getFrameIndex(t=self.t0)]
 
-    def plot_frame(self, plotScintillatorPlate: bool=True, **kwargs):
+    def plot_frame(self, plotScintillatorPlate: bool = True, **kwargs):
         """"
         This function wraps the parent plot_frame function to plot the frame
         along with the scintillator plate.
@@ -295,15 +317,14 @@ class iHIBPvideo(BVO):
         @param kwargs: same arguments than BVO.plot_frame.
         @return ax: axis where the frame has been plot.
         """
-
         ax = super().plot_frame(**kwargs)
 
         if plotScintillatorPlate:
-            self.scintillator.plot_pix(ax=ax, plt_par={'color': 'w'})
+            self.scintillator.plot_pix(ax=ax, line_params={'color': 'w'})
 
         return ax
 
-    def set_background_monitor(self, timetrace: sstt.TimeTrace=None):
+    def set_background_monitor(self, timetrace: sstt.TimeTrace = None):
         """
         This function sets in the class which is going to be the time-dependence
         of the noise caused by the background light emission.
@@ -328,7 +349,8 @@ class iHIBPvideo(BVO):
             timetrace = self.getTimeTrace(t=self.t0)
 
         # We first rescale the monitor to the range [0, 1]
-        monitor = timetrace['mean_of_roi'].values - timetrace['mean_of_roi'].values.min()
+        monitor = timetrace['mean_of_roi'].values \
+            - timetrace['mean_of_roi'].values.min()
         monitor /= monitor.max()
 
         # In case the monitor is not evaluated at the same points:
@@ -339,13 +361,13 @@ class iHIBPvideo(BVO):
         # Then we scale monitor using the frame timetrace value at the initial
         # frame point.
         t0_idx = self.getFrameIndex(t=self.t0)
-        scale  = 1.0 / monitor[t0_idx]
+        scale = 1.0 / monitor[t0_idx]
 
         self.frame_noise = self.frame0[:, :, None] * monitor[None, None, :]
         self.frame_noise *= scale
         self.monitor = monitor
 
-    def substract_noise(self, x0: float=0.5, dx0: float=0.01):
+    def substract_noise(self, x0: float = 0.5, dx0: float = 0.01):
         """
         Substract time-dependent background noise.
 
@@ -393,7 +415,7 @@ class iHIBPvideo(BVO):
     def getTimeTrace(self, t: float = None, mask=None):
         """
         Calculate the timeTrace of the video.
-        
+
         This overloads the parent function to include the possibility that if
         neither mask nor time are provided, the scintillator mask is used
         instead.

@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 32312
+shot = 44732
 diag_ID = 1  # 6 for rFILD
 t1 = 0.20     # Initial time to be loaded, [s]
 t2 = 3.5     # Final time to be loaded [s]
