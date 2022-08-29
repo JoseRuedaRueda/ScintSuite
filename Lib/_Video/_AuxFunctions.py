@@ -6,7 +6,6 @@ Examples: rgb2gray or checking the timebase of the video
 Jose Rueda: jrrueda@us.es
 """
 import re
-import os
 import numpy as np
 
 

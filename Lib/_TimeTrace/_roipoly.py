@@ -8,8 +8,8 @@ Jose Rueda Rueda: jrrueda@us.es
 Notice the package roipoly is really buggy in Spyder IDE, which causes several
 problems in the suite, so we needed to create our own
 """
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 import matplotlib.path as mplPath
 
 
@@ -34,8 +34,9 @@ class roipoly:
         to compute the ROI.
 
         Notice, as a side effect, it will make ax to be the current axis, so be
-        carefull if you use this function inside some other codeflow and you
-        are plottings things elsewhere
+        careful if you use this function inside some other codeflow and you
+        are plotting things elsewhere. This is just for the case where path is
+        not provided
         """
         # If the user provided a ROI via an input path, we can just skip
         # the image opening.

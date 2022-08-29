@@ -6,15 +6,16 @@ possibility to subtract noise
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.3.0. Checked for version 0.9.0
+Note; Written for version 0.3.0. Checked for version 1.0.0
 """
 import Lib as ss
+import matplotlib.pyplot as plt
 from time import time
 # -----------------------------------------------------------------------------
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 39612
+shot = 44732
 diag_ID = 1  # 6 for rFILD
 t1 = 0.2     # Initial time to be loaded, [s]
 t2 = 1.0     # Final time to be loaded [s]
@@ -43,17 +44,12 @@ options_filter = {
 # - Remapping options:
 save_remap = False  # If true, the remap will be saved in a netCDF file
 par = {
-    'rmin': 1.2,      # Minimum gyroradius [in cm]
-    'rmax': 10.5,     # Maximum gyroradius [in cm]
-    'dr': 0.1,        # Interval of the gyroradius [in cm]
-    'pmin': 20.0,     # Minimum pitch angle [in degrees]
-    'pmax': 90.0,     # Maximum pitch angle [in degrees]
-    'dp': 1.0,    # Pitch angle interval
-    # Parameters for the pitch-gryroradius profiles
-    'rprofmin': 1.5,     # Minimum gyroradius for the pitch profile calculation
-    'rprofmax': 4.0,    # Maximum gyroradius for the pitch profile calculation
-    'pprofmin': 20.0,    # Minimum pitch for the gyroradius profile calculation
-    'pprofmax': 90.0,    # Maximum pitch for the gyroradius profile calculation
+    'ymin': 1.2,      # Minimum gyroradius [in cm]
+    'ymax': 16.5,     # Maximum gyroradius [in cm]
+    'dy': 0.1,        # Interval of the gyroradius [in cm]
+    'xmin': 20.0,     # Minimum pitch angle [in degrees]
+    'xmax': 90.0,     # Maximum pitch angle [in degrees]
+    'dx': 1.0,    # Pitch angle interval
     # method for the interpolation
     'method': 2,  # 2 Spline, 1 Linear
     'decimals': 1}  # Precision for the strike map (1 is more than enough)
@@ -86,7 +82,13 @@ if apply_filter:
 vid.remap_loaded_frames(par)
 # - Plot:
 if plot_profiles_in_time:
-    vid.plot_profiles_in_time()
+    b = vid.integrate_remap(xmax=par['xmax'],ymax=par['ymax']) # rL max is 18
+    # Integral in XI
+    fig, ax = plt.subplots()
+    b['integral_over_x'].plot()
+    # Integral in rL
+    fig2, ax2 = plt.subplots()
+    b['integral_over_y'].plot()
 # - Export remapped data
 if save_remap:
     vid.export_remap()

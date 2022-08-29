@@ -9,9 +9,9 @@ routines, in order to preserve the database variables
 """
 import os
 import numpy as np
-from skimage import io                     # To load images
-import Lib._Video._AuxFunctions as aux
 import matplotlib.pyplot as plt
+import Lib._Video._AuxFunctions as aux
+from skimage import io                     # To load images
 
 
 def read_data(path):

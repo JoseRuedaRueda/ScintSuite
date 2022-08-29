@@ -46,12 +46,40 @@ class FIV(BVO):
 
     Note FIV stands for FILD INPA Video
 
-    - Public methods:
-        - plot_frame: Plot a camera frame
-        - plot_frame_remap: Plot a frame from the remap data
+    - Public methods (*indicate methods coming from the parent class):
+        - *read_frame: Load a given range of frames
+        - *subtract noise: Use a range of times to average de noise and subtract
+            it to all frames
+        - *filter_frames: apply filters such as median, gaussian, etc
+        - *average_frames: average frames under certain windows
+        - *generate_average_window: generate the windows to average the frames
+        - *return_to_original_frames: remove the noise subtraction etc
+        - *plot_number_saturated_counts: plot the total number of saturated
+            counts in each frame
+        - plot_ frame: plot a given frame. Include the posibility of plotting a
+            StrikeMap
+        - *GUI_frames: display a GUI to explore the video
+        - *getFrameIndex: get the frame number associated to a given time
+        - *getFrame: return the frame associated to a given time
+        - *getTime: return the time associated to a frame index
+        - *getTimeTrace: calculate a video timetrace
+        - *exportVideo: save the dataframes to a netCDF
+        - get_smap_name: Get the name of the strike map for a given frame
+        - plot_frame_remap: Plot the frame from the remap
         - plotBangles: Plot the angles of the B field respect to the head
         - integrate_remap: Perform the integration over a region of the
             phase space
+        - translate_remap_to_energy: deprecated in this version of the suite
+        - GUI_profile_analysis: GUI to analyse the profiles
+        - GUI_remap_analysis: GUI to analyse the remap
+        - export_Bangles: export the Bangles to netCDF files
+        - export_Bfield: export the B field at the head to netCDF files
+        - export_remap: export the remap into a series of netCDF files
+
+    - Private methods:
+        - _getB: Get the magnetic field at the detector position
+
+
     """
     def __init__(self, **kargs):
         """Init the class"""
@@ -67,7 +95,8 @@ class FIV(BVO):
         self.BFieldOptions = {}
         ## Orientation angles
         self.Bangles = None
-
+        ## Position of the diagnostic
+        self.position = None
 
     def _getB(self, extra_options: dict = {}, use_average: bool = False):
         """
@@ -103,6 +132,7 @@ class FIV(BVO):
                                 self.position[key2],
                                 time=time,
                                 **extra_options)
+        # Save the data in the array
         self.BField = xr.Dataset()
         self.BField['BR'] = xr.DataArray(np.array(br).squeeze(), dims=('t'),
                                          coords={'t': time})
@@ -124,7 +154,10 @@ class FIV(BVO):
                    vmax: int = None, xlim: float = None, ylim: float = None,
                    scale: str = 'linear',
                    alpha: float = 1.0, IncludeColorbar: bool = True,
-                   RemoveAxisTicksLabels: bool = False):
+                   RemoveAxisTicksLabels: bool = False,
+                   flagAverage:bool = False,
+                   normalise=None,
+                   smap_labels: bool = False):
         """
         Plot a frame from the loaded frames
 
@@ -133,9 +166,7 @@ class FIV(BVO):
         Notice that this function just call the plot_frame of the BVO and then
         adds the strike map
 
-        @param frame_number: Number of the frame to plot, relative to the video
-            file, optional
-
+        @param frame_number: Number of the frame to plot (option 1)
         @param ax: Axes where to plot, is none, just a new axes will be created
         @param ccmap: colormap to be used, if none, Gamma_II from IDL
         @param strike_map: StrikeMap to plot:
@@ -148,6 +179,7 @@ class FIV(BVO):
             is a class, it will not check if the calibration was apply etc, so
             it is supposed that the user had given a Smap, ready to be plotted
             -  # 'off': (or any other string) No strike map will be plotted
+        @param t: time point to select the frame (option 2)
         @param verbose: If true, info of the theta and phi used will be printed
         @param smap_marker_params: dictionary with parameters to plot the
             strike_map centroid(see StrikeMap.plot_pix)
@@ -159,8 +191,16 @@ class FIV(BVO):
         @param ylim: tuple with the y-axis limits
         @param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
         @param alpha: transparency factor, 0.0 is 100 % transparent
+        @param IncludeColorbar: flag to include a colorbar
         @param RemoveAxisTicksLabels: boolean flag to remove the numbers in the
             axis
+        @param flagAverage: flag to pick the axis from the experimental or the
+            averaged frames
+        @param normalise: parameter to normalise the frame when plotting:
+            if normalise == 1 it would be normalised to the maximum
+            if normalise == <number> it would be normalised to this value
+            if normalise == None, nothing will be done
+        @param smap_labels: boolean flag to plot the labels of the strike map
 
         @return ax: the axes where the frame has been drawn
         """
@@ -170,13 +210,16 @@ class FIV(BVO):
             verbose=verbose, vmin=vmin, vmax=vmax, xlim=xlim,
             ylim=ylim, scale=scale, alpha=alpha,
             IncludeColorbar=IncludeColorbar,
-            RemoveAxisTicksLabels=RemoveAxisTicksLabels
+            RemoveAxisTicksLabels=RemoveAxisTicksLabels,
+            flagAverage=flagAverage,
+            normalise=normalise
         )
         # Get the frame number
         if t is not None:
             frame_index = np.argmin(abs(self.exp_dat['t'].values - t))
         else:
-            frame_index = self.exp_dat['nframes'] == frame_number
+            frame_index = self.exp_dat['nframes'].values == frame_number
+
         # --- Plot the strike map
 
         # Save axis limits, if not, if the strike map is larger than
@@ -187,50 +230,79 @@ class FIV(BVO):
         if isinstance(strike_map, (ssmapnew.Ismap, ssmapnew.Fsmap)):
             strike_map.plot_pix(ax=ax)
         elif strike_map == 'auto':
-            # get parameters of the map
-            theta_used = self.remap_dat['theta_used'][frame_index]
-            phi_used = self.remap_dat['phi_used'][frame_index]
-
-            # Get the full name of the file
-            if self.diag == 'FILD' and self.remap_dat['options']['CodeUsed'].lower() == 'fildsim':
-                name__smap = ssFILDSIM.guess_strike_map_name(
-                    phi_used, theta_used, geomID=self.geometryID,
-                    decimals=self.remap_dat['options']['decimals'])
-                id = 0  # To identify the kind of strike map
-            elif self.diag == 'FILD':
-                name__smap = ssSINPA.execution.guess_strike_map_name(
-                    phi_used, theta_used, geomID=self.geometryID,
-                    decimals=self.remap_dat['options']['decimals']
-                    )
-                id = 0  # To identify the kind of strike map
-            elif self.diag == 'SINPA':
-                name__smap = ssSINPA.execution.guess_strike_map_name(
-                    phi_used, theta_used, geomID=self.geometryID,
-                    decimals=self.remap_dat['options']['decimals']
-                    )
-                id = 1  # To identify the kind of strike map
+            full_name_smap = self.get_smap_name(frame_number=frame_number, t=t,
+                                                verbose=verbose)
+            if self.diag.lower() == 'fild':
+                id = 0
             else:
-                raise Exception('Diagnostic not understood')
-            smap_folder = self.remap_dat['options']['smap_folder']
-            full_name_smap = os.path.join(smap_folder, name__smap)
+                id = 1
             # Load the map:
             smap = ssmap.StrikeMap(id, full_name_smap)
             # Calculate pixel coordinates
             smap.calculate_pixel_coordinates(self.CameraCalibration)
             # Plot the map
             smap.plot_pix(ax=ax, marker_params=smap_marker_params,
-                          line_params=smap_line_params)
-            if verbose:
-                theta_calculated = self.remap_dat['theta'][frame_index]
-                phi_calculated = self.remap_dat['phi'][frame_index]
-                print('Calculated theta: ', theta_calculated)
-                print('Used theta: ', theta_used)
-                print('Calculated phi: ', phi_calculated)
-                print('Used phi: ', phi_used)
+                          line_params=smap_line_params, labels=smap_labels)
+
         # Set 'original' limits:
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
         return ax
+
+    def get_smap_name(self, frame_number=None, t: float = None,
+                      verbose: bool = False):
+        """
+        Get name of the strike map
+
+        Jose Rueda Rueda: jrrueda@us.es
+        Lina Velarde: lvelarde@us.es
+
+        @param frame_number: Number of the frame to get the smap name, relative
+                to the video file, optional
+        @param t: Time instant of the frame to get the smap name, optional
+        @param verbose: If true, info of the theta and phi used will be printed
+
+        @return full_name_smap: Name of the used strike map
+        """
+        # Get the frame number
+        if t is not None:
+            frame_index = np.argmin(abs(self.exp_dat['t'].values - t))
+            theta_used = self.remap_dat['theta_used'].values[frame_index]
+            phi_used = self.remap_dat['phi_used'].values[frame_index]
+        else:
+            frame_index = self.exp_dat['nframes'].values == frame_number
+            theta_used = self.remap_dat['theta_used'].values[frame_index][0]
+            phi_used = self.remap_dat['phi_used'].values[frame_index][0]
+
+        # Get the full name of the file
+        if self.diag == 'FILD' and self.remap_dat['frames'].attrs['CodeUsed'].lower() == 'fildsim':
+            name__smap = ssFILDSIM.guess_strike_map_name(
+                phi_used, theta_used, geomID=self.geometryID,
+                decimals=self.remap_dat['frames'].attrs['decimals'])
+        elif self.diag == 'FILD':
+            name__smap = ssSINPA.execution.guess_strike_map_name(
+                phi_used, theta_used, geomID=self.geometryID,
+                decimals=self.remap_dat['frames'].attrs['decimals']
+                )
+        elif self.diag == 'INPA':
+            name__smap = ssSINPA.execution.guess_strike_map_name(
+                phi_used, theta_used, geomID=self.geometryID,
+                decimals=self.remap_dat['frames'].attrs['decimals']
+                )
+        else:
+            raise Exception('Diagnostic not understood')
+        smap_folder = self.remap_dat['frames'].attrs['smap_folder']
+        full_name_smap = os.path.join(smap_folder, name__smap)
+
+        if verbose:
+            theta_calculated = self.remap_dat['theta'].values[frame_index]
+            phi_calculated = self.remap_dat['phi'].values[frame_index]
+            print('Calculated theta: ', theta_calculated)
+            print('Used theta: ', theta_used)
+            print('Calculated phi: ', phi_calculated)
+            print('Used phi: ', phi_used)
+
+        return full_name_smap
 
     def plot_frame_remap(self, frame_number=None, ax=None, ccmap=None,
                          t: float = None, vmin: float = 0, vmax: float = None,
@@ -259,7 +331,7 @@ class FIV(BVO):
         @param cbar_tick_format: format for the colorbar ticks
         @param IncludeColorbar: Boolean flag to include the colorbar
         @param color_labels_in_plot: Color for the labels in the plot
-        @param translation: tupple with the desired specie and tranlation to
+        @param translation: tuple with the desired specie and translation to
             plot. Example ('D', 1)
 
         @return ax: the axes where the frame has been drawn
@@ -291,7 +363,7 @@ class FIV(BVO):
                 else:
                     raise Exception('Frame not loaded')
             else:
-                frame_index = self.remap_dat['nframes'] == frame_number
+                frame_index = self.remap_dat['nframes'].values == frame_number
                 if np.sum(frame_index) == 0:
                     raise Exception('Frame not loaded')
                 if translation is None:
@@ -358,21 +430,17 @@ class FIV(BVO):
                  horizontalalignment='right',
                  color=color_labels_in_plot, verticalalignment='bottom',
                  transform=ax.transAxes)
-        # Save axis limits, if not, if the strike map is larger than
-        # the frame (FILD4,5) the output plot will be horrible
-        xlim = ax.get_xlim()
-        ylim = ax.get_ylim()
+
         if created:
             if translation is None:
-                ax.set_ylabel('$r_l$ [cm]')
+                ax.set_ylabel('%s [%s]' %
+                              (self.remap_dat['y'].attrs['long_name'].capitalize(),
+                               self.remap_dat['y'].attrs['units']))
+                ax.set_xlabel('%s [%s]' %
+                              (self.remap_dat['x'].attrs['long_name'].capitalize(),
+                               self.remap_dat['x'].attrs['units']))
             elif translation[1] == 1:
                 ax.set_ylabel('E [keV]')
-            if self.diag == 'FILD':
-                ax.set_xlabel('$\\lambda \\ [\\degree]$')
-            elif self.diag == 'INPA':
-                ax.set_xlabel('R [m]')
-            else:
-                pass
             fig.show()
             plt.tight_layout()
         return ax
@@ -458,6 +526,9 @@ class FIV(BVO):
         plt.legend()
         return ax
 
+    # --------------------------------------------------------------------------
+    # --- Remap block
+    # --------------------------------------------------------------------------
     def integrate_remap(self, xmin: float = 20.0, xmax: float = 90.0,
                         ymin: float = 1.0, ymax: float = 10.0,
                         mask=None, specie: str = 'D',
@@ -467,28 +538,19 @@ class FIV(BVO):
 
         Jose Rueda: jrrueda@us.es
 
-        @param ximin: Minimum value of the x axis to integrate (pitch for FILD)
-        @param ximax: Maximum value of the x axis to integrate (pitch for FILD)
-        @param rlmin: Minimum value of the y axis to integrate (rl for FILD)
-        @param rlmax: Maximum value of the y axis to integrate (rl for FILD)
+        @param xmin: Minimum value of the x axis to integrate (pitch for FILD)
+        @param xmax: Maximum value of the x axis to integrate (pitch for FILD)
+        @param ymin: Minimum value of the y axis to integrate (rl for FILD)
+        @param ymax: Maximum value of the y axis to integrate (rl for FILD)
         @param mask: bynary mask denoting the desired cells of the space to
             integate. If present, xmin-xmax, ymin-ymax will be ignored
+        @param specie: Not used in this version of the suite
+        @param translationNumber: Not used in this version of the suite
 
-        @return : Output: Dictionary containing the trace and the settings used
-            to caclualte it
-            output = {
-                'xmin': Minimum x used in the integration
-                'xmax': Maximum x used in the integration
-                'xaxis': array of x value of the remap
-                'ymin': Minimum y used in the integration
-                'ymax': Maximum y used in the integration
-                'yaxis': array of y values of the remap
-                't': Array of times
-                'trace': trace,  Integral in y, x
-                'mask': mask,    Mask for the integration, if used
-                'integral_over_x': Signal as function of y
-                'integral_over_y': Signal as function of x
-            }
+        @return output: dataset containing the integral:
+            - integral_over_y: integral over the y axis
+            - integral_over_x: integral over the x axis
+            - integral_over_xy: integral over the xy axis
 
         @Todo: Include integrals in x and y when we use a mask
         """
@@ -500,18 +562,19 @@ class FIV(BVO):
         else:
             data = self.remap_dat['translations'][specie][translationNumber]
         # First calculate the dif x and y to integrate
-        dx = data['xaxis'][1] - data['xaxis'][0]
-        dy = data['yaxis'][1] - data['yaxis'][0]
+        dx = (data['x'][1] - data['x'][0]).values
+        dy = (data['y'][1] - data['y'][0]).values
         # Find the flags:
         mask_was_none = False
         if mask is None:
-            flagsx = (xmin < data['xaxis']) * (data['xaxis'] < xmax)
-            flagsy = (ymin < data['yaxis']) * (data['yaxis'] < ymax)
+            flagsx = (xmin < data['x'].values) * (data['x'].values < xmax)
+            flagsy = (ymin < data['y'].values) * (data['y'].values < ymax)
             mask_was_none = True
         # Perform the integration:
         if mask_was_none:
             # Get the trace (need a better method, but at least this work)
-            dummy = np.sum(data['frames'][flagsx, :, :], axis=0) * dy * dx
+            dummy = np.sum(data['frames'].values[flagsx, :, :], axis=0) * dy \
+                    * dx
             trace = np.sum(dummy[flagsy, :], axis=0)
             integral_over_y = np.sum(data['frames'][:, flagsy, :], axis=1) * dy
             integral_over_x = np.sum(data['frames'][flagsx, :, :], axis=0) * dx
@@ -520,21 +583,34 @@ class FIV(BVO):
             integral_over_x = 0
             integral_over_y = 0
 
-        # save the result
-        output = {
-            'xmin': xmin,
-            'xmax': xmax,
-            'xaxis': data['xaxis'],
-            'ymin': ymin,
-            'ymax': ymax,
-            'yaxis': data['yaxis'],
-            't': self.remap_dat['tframes'],
-            'trace': trace,
-            'mask': mask,
-            'integral_over_x': integral_over_x,
-            'integral_over_y': integral_over_y
-        }
+        # -- Save the result
+        output = xr.Dataset()
+        output['integral_over_y'] = \
+            xr.DataArray(integral_over_y, dims=('x', 't'),
+                         coords={'x': data['x'], 't': data['t']})
+        output['integral_over_x'] = \
+            xr.DataArray(integral_over_x, dims=('y', 't'),
+                         coords={'y': data['y'], 't': data['t']})
+        # -- Save the metadata
+        output['integral_over_x'].attrs['xmin'] = xmin
+        output['integral_over_x'].attrs['xmax'] = xmax
+        output['integral_over_x'].attrs['long_name'] = 'Signal'
+        output['integral_over_x'].attrs['units'] = \
+            '#/' + data['y'].attrs['units']
+        output['integral_over_y'].attrs['ymin'] = ymin
+        output['integral_over_y'].attrs['ymax'] = ymax
+        output['integral_over_y'].attrs['long_name'] = 'Signal'
+        output['integral_over_y'].attrs['units'] = \
+            '#/' + data['x'].attrs['units']
 
+        output['integral_over_xy'] = xr.DataArray(trace, dims=('t'))
+        output['integral_over_xy'].attrs['long_name'] = 'Signal'
+        output['integral_over_xy'].attrs['units'] = '#'
+
+        if mask is not None:
+            output['integral_over_xy'].attrs['mask'] = mask.astype('int')
+        else:
+            output['integral_over_xy'].attrs['mask'] = None
         return output
 
     def translate_remap_to_energy(self, Emin: float = 10.0, Emax: float = 99.0,
@@ -615,6 +691,9 @@ class FIV(BVO):
             'frames': new_frames
         }
 
+    # --------------------------------------------------------------------------
+    # --- GUIs block
+    # --------------------------------------------------------------------------
     def GUI_profile_analysis(self, translation: tuple = None):
         """Small GUI to explore camera frames"""
         text = 'Press TAB until the time slider is highlighted in red.'\
@@ -650,6 +729,9 @@ class FIV(BVO):
         root.mainloop()
         root.destroy()
 
+    # --------------------------------------------------------------------------
+    # --- Export Block
+    # --------------------------------------------------------------------------
     def export_Bangles(self, filename):
         """
         Export the B angles into a netCDF files
@@ -684,8 +766,10 @@ class FIV(BVO):
         metadata will not be exported. But allows to quickly export the video
         to netCDF format to be easily shared among computers
 
-        @param file: Path to the folder where to save the results. It is
-            recomended to leave it as None
+        @param folder: Path to the folder where to save the results. It is
+            recommended to leave it as None
+        @param clean: delete the netCDF files and leave only the .tar file
+        @param overwrite: ignore old files, if present
         """
         if folder is None:
             folder = os.path.join(pa.Results, str(self.shot), self.diag,
@@ -723,7 +807,7 @@ class FIV(BVO):
             f.write('CameraFileBPP: %s\n'%self.settings['RealBPP'])
 
         json.dump(self.position, open(positionFile, 'w' ) )
-        json.dump({k:v.tolist() for k,v in self.orientation.items()}, 
+        json.dump({k:v.tolist() for k,v in self.orientation.items()},
                   open(orientationFile, 'w' ) )
         # Create the tar file
         tar = tarfile.open(name=tarFile, mode='w')

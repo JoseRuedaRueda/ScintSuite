@@ -5,8 +5,8 @@ Written by Jose Rueda: jrrueda@us.es
 Adapted by Lina Velarde: lvelarde@us.es
 """
 import os
-import numpy as np
 import logging
+import numpy as np
 logger = logging.getLogger('ScintSuite.Video')
 try:
     from pco_tools import pco_reader as pco
@@ -72,7 +72,7 @@ def read_data(path: str, adfreq: float, t_trig: float):
 
 
 def read_frame(video_object, frames_number=None, limitation: bool = True,
-               limit: int = 2048):
+               limit: int = 2048, verbose: bool = True):
     """
     Read .b16 files
 
@@ -129,7 +129,6 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
                 current_frame = current_frame + 1
                 if current_frame in frames_number:
                     pngname = os.path.join(video_object.path, file)
-                    print(pngname)
                     dummy = pco.load(pngname)
                     M[:, :, counter] = dummy
                     counter = counter + 1

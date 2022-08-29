@@ -1,21 +1,25 @@
 """Scintillator class."""
 import numpy as np
+import Lib.errors as errors
 import matplotlib.pyplot as plt
 from Lib._Mapping._Common import XYtoPixel
-import Lib.errors as errors
 __all__ = ['Scintillator']
 
 
+# ------------------------------------------------------------------------------
+# --- Scintillator object
+# ------------------------------------------------------------------------------
 class Scintillator(XYtoPixel):
     """
     Class with the scintillator information.
 
-    Note, the notation is given by FILDSIM, and it is a bit misleading,
-    in FILDSIM x,y,z axis are defined, the scintillator lies in a plane of
-    constant x, so the only variables to play with are y,z. However, x,
-    y are always used to refer to x horizontal and vertical direction in the
-    camera sensor. We have to live with this. Just ignore the x coordinates
-    of the scintillator data and work with y,z as they were x,y
+    As for the other XYtoPixel coordinated, x1,x2 define the scintillator plate
+    x3 is the normal to the plate, and the object proyection in the camera
+    sensor is given by x,y
+
+    @TODO: either upgrade this class with real modelling of the scintillator
+    material, or remove it, as it is kinda similar to the geometry element of
+    the code library
     """
 
     def __init__(self, file: str, format: str = 'FILDSIM',
@@ -78,6 +82,9 @@ class Scintillator(XYtoPixel):
     def get_path_pix(self):
         """
         Returns the path covered by the scintillator in pixel coordinates.
+
+        This path allows latter to easily define a mask to integrate the video
+        along it
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
         """
@@ -147,7 +154,7 @@ class Scintillator(XYtoPixel):
 
     def plot_real(self, ax=None, line_params: dict = {}):
         """
-        Plot the scintillator, in cm, in the axes ax.
+        Plot the scintillator, in real coordinates in the axes ax.
 
         @param ax: axes where to plot
         @param line_params: dictionary with the parameters to plot
