@@ -77,8 +77,6 @@ class INPAStrikes(Strikes):
                     if overwrite:
                         self.data[ia, ig][:, ipitch0] = pitch.copy()
                     else:
-                        print(self.data[ia, ig].shape)
-                        print(np.atleast_2d(pitch.copy()).T.shape)
                         self.data[ia, ig] = \
                             np.append(self.data[ia, ig],
                                       np.atleast_2d(pitch.copy()).T, axis=1)

@@ -14,10 +14,7 @@ collimator strike points and you will see the nice speed
 import os
 import numpy as np
 import Lib as ss
-from Lib.LibMachine import machine
-from Lib.LibPaths import Path
-paths = Path(machine)
-
+paths = ss.paths
 # -----------------------------------------------------------------------------
 # --- Settings block
 # -----------------------------------------------------------------------------
@@ -26,7 +23,7 @@ geomID = 'FILD1'
 nml_options = {   # Se the PDF documentation for a complete desription of these
     'config':  {  # parameters
         'runid': runid,
-        'geomfolder': os.path.join(paths.SINPA, 'Geometry', geomID),
+        'geomfolder': os.path.join('~/SINPA', 'Geometry', geomID),
         'FILDSIMmode': True,
         'nGeomElements': 2,
         'nxi': 8,

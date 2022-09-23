@@ -520,7 +520,8 @@ class Strikes:
             'ycen': ycen,
             'xedges': xedges,
             'yedges': yedges,
-            'H': data
+            'H': data,
+            'area': deltax * deltay
         }
         if jw is not None:
             dataS /= deltax * deltay
@@ -529,7 +530,8 @@ class Strikes:
                 'ycen': ycen,
                 'xedges': xedges,
                 'yedges': yedges,
-                'H': dataS
+                'H': dataS,
+                'area': deltax * deltay
             }
         if jw0 is not None:
             data0 /= deltax * deltay
@@ -538,7 +540,8 @@ class Strikes:
                 'ycen': ycen,
                 'xedges': xedges,
                 'yedges': yedges,
-                'H': data0
+                'H': data0,
+                'area': deltax * deltay
             }
 
         # Now repeat the same for the different kinds
@@ -594,7 +597,8 @@ class Strikes:
                     'ycen': ycen,
                     'xedges': xedges,
                     'yedges': yedges,
-                    'H': data
+                    'H': data,
+                    'area': deltax * deltay
                 }
                 if jw is not None:
                     dataS /= deltax * deltay
@@ -603,7 +607,8 @@ class Strikes:
                         'ycen': ycen,
                         'xedges': xedges,
                         'yedges': yedges,
-                        'H': dataS
+                        'H': dataS,
+                        'area': deltax * deltay
                     }
                 if jw0 is not None:
                     data0 /= deltax * deltay
@@ -612,7 +617,8 @@ class Strikes:
                         'ycen': ycen,
                         'xedges': xedges,
                         'yedges': yedges,
-                        'H': data0
+                        'H': data0,
+                        'area': deltax * deltay
                     }
 
     def calculate_1d_histogram(self, var: str = 'xcx',
