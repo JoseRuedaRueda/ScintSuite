@@ -206,7 +206,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 -dy: y space used by default in the fit. (gyroradius in fild)
                 -x_method: Function to use in the x fit, default Gauss
                 -y_method: Function to use in the y fit, default Gauss
-            Acepted methods are:
+            Accepted methods are:
                 - Gauss: Gaussian fit
                 - sGauss: squewed Gaussian fit
         @param min_statistics: Minimum number of points for a given r,p to make
