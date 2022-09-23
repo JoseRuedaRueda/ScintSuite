@@ -117,3 +117,19 @@ def createGrid1D(xmin: float, xmax: float, dx: float):
     xedges = xmin - dx/2 + np.arange(nx + 1) * dx
 
     return nx, xedges
+
+
+# ------------------------------------------------------------------------------
+# --- Filters
+# ------------------------------------------------------------------------------
+def running_mean(x, N):
+    """
+
+    Extracted from
+    https://stackoverflow.com/questions/13728392/moving-average-or-running-mean
+    :param x:
+    :param N:
+    :return:
+    """
+    cumsum = numpy.cumsum(numpy.insert(x, 0, 0))
+    return (cumsum[N:] - cumsum[:-N]) / float(N)

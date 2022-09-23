@@ -20,7 +20,8 @@ The suite will not work without them:
 - scipy 1.7.0 or newer, to have the RBF interpolators for the strike points
 - aug_sfutils > 0.7.0: To load the AUG magnetic field (see AUG python documentation for the different ways of installing this package https://www.aug.ipp.mpg.de/aug/manuals/aug_sfutils/)
 - mesh: To deal with CAD files
-- numba > 0.55.1 to perform fast iHIBPsim xsection calculations
+- numba > 0.55.1 to perform fast iHIBPsim xsection calculations and tomography
+- odfpy: To read INPA logbook (which is written in an .ODS file)
 
 #### Complete list:
 In a clean-typical python installation with anaconda, taking care only of the packages and versions listed above should be enough and the suite will run smoothly, but python package dependence can sometimes a mess. As an indication, in the folder `Data/TestedEnv` you can find the result of the command `pip list` in a python environment where the suite was tested and working fine. So if you find a series of problems with packages versions, try to create your virtual environment and reproduce the installed package list detailed there

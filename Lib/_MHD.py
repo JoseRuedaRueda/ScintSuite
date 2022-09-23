@@ -18,7 +18,8 @@ logger = logging.getLogger('ScintSuite.MHD')
 # --- Main class
 # -----------------------------------------------------------------------------
 class MHDmode():
-    def __init__(self, shot: int = 41091, mi=2.013*cnt.m_u):
+    def __init__(self, shot: int = 41091, mi=2.013*cnt.m_u,
+                 loadTi: bool = True):
         """
         Initialise the class and read the plasma profiles
         """
@@ -29,11 +30,14 @@ class MHDmode():
 
         # --- Temperatures:
         self._te = ssdat.get_Te(shotnumber=shot, xArrayOutput=True)
-        try:
-            self._ti = ssdat.get_Ti(shot=shot, diag='IDI',
-                                    xArrayOutput=True)
-        except:
-            logger.warning('XX: Not func Ti, using Te=Ti')
+        if loadTi:
+            try:
+                self._ti = ssdat.get_Ti(shot=shot, diag='IDI',
+                                        xArrayOutput=True)
+            except:
+                logger.warning('XX: Not func Ti, using Te=Ti')
+                self._ti = self._te.copy()
+        else:
             self._ti = self._te.copy()
         # --- q-profile:
         self._q = ssdat.get_q_profile(shot, xArrayOutput=True)
@@ -72,6 +76,7 @@ class MHDmode():
         # --- Calculate the frequencies
         self._calcGAMfreq()
         self._calcTAEfreq()
+        self._calcEAEfreq()
 
     def _calcGAMfreq(self):
         """
@@ -96,7 +101,7 @@ class MHDmode():
         self.freq['TAE'] = \
             self._va0['data']/4.0/cnt.pi/self._q['data']/self._R0['data']
 
-    def _calcTAEfreq(self):
+    def _calcEAEfreq(self):
         """
         Evaluate the central frequency of the EAE gap
 
@@ -119,7 +124,7 @@ class MHDmode():
             self._va0['data']/2.0/cnt.pi/qmin['data']/self._R0['data']
 
     def plot(self, var: str = 'GAM', rho=0.0, ax=None, line_params={},
-             units: str = 'kHz'):
+             units: str = 'kHz', t: tuple = None):
         """
         Plot the mode frequency
 
@@ -161,6 +166,11 @@ class MHDmode():
                 text = 'Requested point outise the rho interval, skipping'
                 logger.warning('XX: %s', text)
             data = self.freq[var].sel(rho=r, method='nearest')
-            ax.plot(data['t'], data.values*factor[units], **line_opitons)
+            if t is None:
+                flags = np.ones(data.t.size, dtype=bool)
+            else:
+                flags = (data.t > t[0]) * (data.t < t[1])
+            ax.plot(data['t'][flags], data.values[flags]*factor[units],
+                    **line_opitons)
         plt.draw()
         plt.show()

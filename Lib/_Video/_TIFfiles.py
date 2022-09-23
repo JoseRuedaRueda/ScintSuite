@@ -11,10 +11,13 @@ Under development
 """
 import os
 import f90nml
+import logging
 import numpy as np
 import Lib._Video._AuxFunctions as aux
 from skimage import io                     # To load images
 
+# --- Auxiliary objects
+logger = logging.getLogger('ScintSuite.Video')
 
 def read_data(path):
     """To Be implemented."""
@@ -105,7 +108,7 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
     @return M: array of frames, [px in x, px in y, number of frames]
     """
     # Frames would have a name as shot-framenumber.png example: 30585-001.png
-    print('Reading TIF files')
+    logger.info('Reading TIF files')
     # check the size of the files, data will be saved as float32
     size_frame = video_object.imageheader['biWidth'] * \
         video_object.imageheader['biWidth'] * 2 / 1024 / 1024

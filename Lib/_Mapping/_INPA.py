@@ -278,9 +278,10 @@ def remapAllLoadedFrames(video,
                      coords={'t': data['t'].values, 'x': xcen, 'y': ycen})
     remap_dat['frames'].attrs['long_name'] = 'Original remap'
     remap_dat['frames'].attrs['xmin'] = xmin
-    remap_dat['frames'].attrs['ymin'] = ymin
     remap_dat['frames'].attrs['xmax'] = xmax
     remap_dat['frames'].attrs['dx'] = dx
+    remap_dat['frames'].attrs['ymin'] = ymin
+    remap_dat['frames'].attrs['ymax'] = ymax
     remap_dat['frames'].attrs['dy'] = dy
     remap_dat['frames'].attrs['decimals'] = decimals
     remap_dat['frames'].attrs['smap_folder'] = smap_folder
@@ -296,7 +297,7 @@ def remapAllLoadedFrames(video,
     remap_dat['y'].attrs['long_name'] = variables_to_remap[1]
 
     remap_dat['frames'].attrs['units'] = '#/(%s $\\cdot$ %s)' \
-        % (remap_dat['x'].attrs['units'], remap_dat['Y'].attrs['units'])
+        % (remap_dat['x'].attrs['units'], remap_dat['y'].attrs['units'])
 
     remap_dat['phi'] = xr.DataArray(phi, dims=('t'))
     remap_dat['phi'].attrs['long_name'] = 'Calculated phi angle'
@@ -306,11 +307,11 @@ def remapAllLoadedFrames(video,
     remap_dat['theta'].attrs['long_name'] = 'Calculated theta angle'
     remap_dat['theta'].attrs['units'] = 'Degree'
 
-    remap_dat['phi_used'] = xr.DataArray(phi, dims=('t'))
+    remap_dat['phi_used'] = xr.DataArray(phi_used, dims=('t'))
     remap_dat['phi_used'].attrs['long_name'] = 'Used phi angle'
     remap_dat['phi_used'].attrs['units'] = 'Degree'
 
-    remap_dat['theta_used'] = xr.DataArray(theta, dims=('t'))
+    remap_dat['theta_used'] = xr.DataArray(theta_used, dims=('t'))
     remap_dat['theta_used'].attrs['long_name'] = 'Used theta angle'
     remap_dat['theta_used'].attrs['units'] = 'Degree'
 
