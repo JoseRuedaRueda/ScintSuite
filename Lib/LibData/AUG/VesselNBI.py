@@ -1,17 +1,17 @@
 """Load the machine vessel"""
+import os
+import math
 import get_gc            # Module to load vessel components
 import aug_sfutils as sfutils
 import numpy as np
-import os
-import math
-from Lib._Paths import Path
+import xarray as xr
 import Lib.LibData.AUG.Equilibrium as equil
 import Lib.LibData.AUG.DiagParam as params
 import matplotlib.pyplot as plt
 import Lib._Plotting as ssplt
 import Lib._Utilities as ssextra
-import Lib._Parameters as sspar
 import Lib.errors as errors
+from Lib._Paths import Path
 
 pa = Path()
 
@@ -264,34 +264,54 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
     return output
 
 
-def getNBI_timeTraces(shotnumber: int, nbilist: int = None):
+def getNBI_timeTraces(shot: int, nbilist: int = None,
+                      xArrayOutput: bool = False):
+    """
+    Get the NBI time trace
+
+    Pablo Oyola ft. Jose Rueda
+
+    @param shot: shotnumber
+    @param nbilist: list of NBI to load, if xArrayOutput == True, will be
+        ignored
+    @param xArrayOutput: if true, an xrarray will be returned
+
+    @return: dict or xarray with the NBI power.
+    """
     if nbilist is None:
         nbilist = (1, 2, 3, 4, 5, 6, 7, 8)
 
     nbilist = np.atleast_1d(nbilist)
     nbi_box = np.asarray(np.floor((nbilist-1)/4), dtype=int)
     nbi_idx = np.asarray(nbilist - (nbi_box)*4 - 1, dtype=int)
-
     try:
-        sf = sfutils.SFREAD('NIS', shotnumber,
+        sf = sfutils.SFREAD('NIS', shot,
                             edition=0, experiment='AUGD')
 
     except:
         raise errors.DatabaseError(
-            'NBI shotfile cannot be opened for #%05d' % shotnumber)
-
-    output = dict()
+            'NBI shotfile cannot be opened for #%05d' % shot)
 
     pniq = sf('PNIQ')*1.0e-6
-    print(pniq.shape)
     timebase = sf.gettimebase('PNIQ')
 
-    for ii, nbinum in enumerate(nbilist):
-        output[nbinum] = pniq[:, nbi_idx[ii], nbi_box[ii]]
+    if xArrayOutput:
+        nt, ni, nbox = pniq.shape
+        dummy = np.zeros((nt, 8))
+        dummy[:, 0:4] = pniq[:, :, 0].squeeze()
+        dummy[:, 4:8] = pniq[:, :, 1].squeeze()
 
-    output['time'] = timebase
-    output['total'] = np.sum(pniq, axis=(1, 2))
-
+        output = xr.DataArray(dummy.T, dims=('number','t'),
+                           coords={'number': np.arange(8) + 1,
+                                   't': timebase})
+        output.attrs['long_name'] = 'NBI power'
+        output.attrs['units'] = 'MW'
+    else:
+        output = dict()
+        for ii, nbinum in enumerate(nbilist):
+            output[nbinum] = pniq[:, nbi_idx[ii], nbi_box[ii]]
+        output['time'] = timebase
+        output['total'] = np.sum(pniq, axis=(1, 2))
     return output
 
 

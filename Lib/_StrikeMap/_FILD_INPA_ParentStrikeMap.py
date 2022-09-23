@@ -114,6 +114,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
         self.strike_points = None
         self.fileStrikePoints = None
         self._resolutions = None
+        self._interpolators_instrument_function = None
+        self.instrument_function = None
 
     def calculate_energy(self, B: float, A: float = 2.01410178,
                          Z: float = 1.0):
@@ -128,6 +130,11 @@ class FILDINPA_Smap(GeneralStrikeMap):
         """
         dummy = get_energy(self('gyroradius'), B=B, A=A, Z=Z) / 1000.0
         self._data['e0'] = BasicVariable(name='e0', units='keV', data=dummy)
+        self._optionsForEnergy = {
+            'B': B,
+            'A': A,
+            'z': Z,
+        }
 
     def load_strike_points(self, file=None, verbose: bool = True,
                            calculate_pixel_coordinates: bool = False,
@@ -264,10 +271,10 @@ class FILDINPA_Smap(GeneralStrikeMap):
         for key, names in zip(variables, (xnames, ynames)):
             # For the resolution
             self._resolutions[key] = \
-                dict.fromkeys(names, np.full((nx, ny), np.nan))
+                {n: np.full((nx, ny), np.nan) for n in names}
             # For the uncertainty
             self._resolutions['unc_' + key] = \
-                dict.fromkeys(names, np.full((nx, ny), np.nan))
+                {n: np.full((nx, ny), np.nan) for n in names}
             # For the normalization
             self._resolutions['norm_' + key] = np.full((nx, ny), np.nan)
             # For the general fits
@@ -277,7 +284,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         self._resolutions['model_' + variables[1]] = diag_options['y_method']
         # --- Core: Calculation of the resolution
         if verbose:
-            print('Calculating resolutions ...')
+            logger.info('Calculating resolutions ...')
         for ix in tqdm(range(nx)):
             for iy in range(ny):
                 # -- Select the data:
@@ -517,7 +524,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
             dummy[name] = {}
             for key in self._resolutions[name].keys():  # Loop in parameters
                 data = self._resolutions[name][key].T.flatten()  # parameter
-                # The transpose is to match dimenssion of the meshgrid
+                # The transpose is to match dimension of the mesh-grid
                 # Now delete the NaN cell
                 flags = np.isnan(data)
                 if np.sum(~flags) > 4:  # If at least we have 4 points
@@ -809,7 +816,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                         # self.strike_points.data[ip, ir][:, iiy])
                         # append the remapped data to the object
                         if was_there:
-                            strikes.data[ix, iy][:, ivar] = remap_data
+                            strikes.data[ix, iy][:, ivar] = remap_data.squeeze()
                         else:
                             strikes.data[ix, iy] = \
                                 np.append(strikes.data[ix, iy],
