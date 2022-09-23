@@ -130,6 +130,11 @@ class FILDINPA_Smap(GeneralStrikeMap):
         """
         dummy = get_energy(self('gyroradius'), B=B, A=A, Z=Z) / 1000.0
         self._data['e0'] = BasicVariable(name='e0', units='keV', data=dummy)
+        self._optionsForEnergy = {
+            'B': B,
+            'A': A,
+            'z': Z,
+        }
 
     def load_strike_points(self, file=None, verbose: bool = True,
                            calculate_pixel_coordinates: bool = False,
@@ -811,7 +816,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                         # self.strike_points.data[ip, ir][:, iiy])
                         # append the remapped data to the object
                         if was_there:
-                            strikes.data[ix, iy][:, ivar] = remap_data
+                            strikes.data[ix, iy][:, ivar] = remap_data.squeeze()
                         else:
                             strikes.data[ix, iy] = \
                                 np.append(strikes.data[ix, iy],

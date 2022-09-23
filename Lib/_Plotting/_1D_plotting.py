@@ -27,6 +27,8 @@ def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=None,
     @param line_param: (optional) Line parameters to plot the central line
     @return ax with the applied settings
     """
+    if ax is None:
+        fig, ax = plt.subplots()
     if u_down is None:
         u_down = u_up
 

@@ -63,6 +63,9 @@ class Fsmap(FILDINPA_Smap):
        - *variables: smap('my var') will return the values of the variable
     """
 
+    # --------------------------------------------------------------------------
+    # --- Weight function calculation / plot
+    # --------------------------------------------------------------------------
     def build_weight_matrix(self, grid_options_scint,
                             grid_options_pinhole,
                             efficiency=None,
@@ -196,18 +199,4 @@ class Fsmap(FILDINPA_Smap):
         self.instrument_function['ys'].attrs['long_name'] = names[1].capitalize()
 
 
-        # # --- Collapse Weight function
-        # if not only_gyroradius:
-        #     W2D = np.zeros((nr_scint * np_scint, nr_pin * np_pin))
-        #     ## todo make this with an elegant numpy reshape, not manually
-        #     print('Reshaping W... ')
-        #     for irs in tqdm(range(nr_scint)):
-        #         for ips in range(np_scint):
-        #             for irp in range(nr_pin):
-        #                 for ipp in range(np_pin):
-        #                     W2D[irs * np_scint + ips, irp * np_pin + ipp] = \
-        #                         res_matrix[irs, ips, irp, ipp]
-        # else:  # The required W2D is directly the integral of res_matrix
-        #     W2D = np.sum(np.sum(res_matrix, axis=3), axis=1)
-        # return res_matrix, W2D
 

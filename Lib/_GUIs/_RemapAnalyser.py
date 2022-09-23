@@ -19,7 +19,7 @@ class ApplicationRemapAnalysis:
         """
         # --- Initialise the data container
         self.vid = vid
-        t = vid.remap_dat['tframes']
+        t = vid.remap_dat['t'].values
         # --- Create a tk container
         frame = tk.Frame(master)
         # Allows to the figure, to resize
@@ -156,14 +156,14 @@ class ApplicationRemapAnalysis:
         """Plot the reference profile"""
         # --- Get the time to plot
         t0 = float(self.t_ref.get())
-        it = np.argmin(abs(self.vid.remap_dat['tframes'] - t0))
+        it = np.argmin(abs(self.vid.remap_dat['t'].values - t0))
         # --- Get the proper variable to plot
         if self.variable_list.get() == 'xi':
             y = self.integral['integral_over_y'][:, it].copy()
-            x = self.integral['xaxis']
+            x = self.integral['x'].values
         else:
             y = self.integral['integral_over_x'][:, it].copy()
-            x = self.integral['yaxis']
+            x = self.integral['y'].values
 
         # Noramlise if needed
         if self.NormaliseToRef.get() or self.NormaliseAbsolute.get():
@@ -178,15 +178,15 @@ class ApplicationRemapAnalysis:
     def update_plot(self, t):
         """Plot the reference profile"""
         t0 = float(t)
-        it = np.argmin(abs(self.vid.remap_dat['tframes'] - t0))
+        it = np.argmin(abs(self.vid.remap_dat['t'].values - t0))
 
         # --- Get the proper variable to plot
         if self.variable_list.get() == 'xi':
             y = self.integral['integral_over_y'][:, it].copy()
-            x = self.integral['xaxis']
+            x = self.integral['x'].values
         else:
             y = self.integral['integral_over_x'][:, it].copy()
-            x = self.integral['yaxis']
+            x = self.integral['y'].values
         if self.NormaliseAbsolute.get():
             y /= y.max()
         else:

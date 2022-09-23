@@ -3,9 +3,14 @@ Methods to collapse matrices into 2 and 1D
 
 Pablo Oyola: poyola@us.es and Jose Rueda: jrrueda@us.es
 """
+import logging
 import numpy as np
-from numba import njit, prange
 
+logger = logging.getLogger('ScintSuite.Tomography')
+try:
+    from numba import njit, prange
+except:
+    logger.wargning('10: You cannot use tomography')
 
 # ------------------------------------------------------------------------------
 # --- Matrix handling

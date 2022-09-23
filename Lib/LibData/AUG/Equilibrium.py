@@ -2,8 +2,8 @@
 import numpy as np
 import xarray as xr
 import aug_sfutils as sf
-from scipy.interpolate import interpn, interp1d
 import Lib.errors as errors
+from scipy.interpolate import interpn, interp1d
 
 # --- Module hardcored parameters
 ECRH_POWER_THRESHOLD = 0.05  # Threshold to consider ECRH on [MW]

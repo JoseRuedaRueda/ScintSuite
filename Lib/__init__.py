@@ -96,6 +96,9 @@ import Lib._VRT as vrt
 # MHD activity
 import Lib._MHD as mhd
 
+# Handle ufiles
+from Lib.ufiles import ufile as Ufile
+
 import Lib._Parameters as par
 import Lib._Plotting as plt
 import Lib._TimeTrace as tt
