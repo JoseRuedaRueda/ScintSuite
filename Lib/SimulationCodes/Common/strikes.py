@@ -1147,8 +1147,11 @@ class Strikes:
         for ig in index_gyr:
             for ia in index_XI:
                 if self.header['counters'][ia, ig] > 0:
-                    flags = np.random.rand(
-                        self.header['counters'][ia, ig]) < per
+                    if isinstance(per, np.ndarray):
+                        flags = per
+                    else:
+                        flags = np.random.rand(
+                                self.header['counters'][ia, ig]) < per
                     x = self.data[ia, ig][flags, xcolumn_to_plot]
                     y = self.data[ia, ig][flags, ycolumn_to_plot]
                     if includeW:
@@ -1159,6 +1162,7 @@ class Strikes:
         # axis beauty:
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
+        plt.draw()
         return ax
 
     def calculate_pixel_coordinates(self, calibration,):
