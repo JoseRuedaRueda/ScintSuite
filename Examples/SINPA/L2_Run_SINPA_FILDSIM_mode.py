@@ -10,14 +10,15 @@ Created for version 0.7.3 of the Suite and version 0.1 of SINPA
 Note: All saving options, orbits, collimator impacts etc are on, so the code
 run will be slow, don't be afraid, disconnect the saving of the orbits and
 collimator strike points and you will see the nice speed
+
+last revision:
+    ScintSuite: version 1.0.4
+    SINPA (uFILDSIM): version 2.3
 """
 import os
 import numpy as np
 import Lib as ss
-from Lib.LibMachine import machine
-from Lib.LibPaths import Path
-paths = Path(machine)
-
+paths = ss.paths
 # -----------------------------------------------------------------------------
 # --- Settings block
 # -----------------------------------------------------------------------------
@@ -28,7 +29,6 @@ nml_options = {   # Se the PDF documentation for a complete desription of these
         'runid': runid,
         'geomfolder': os.path.join(paths.SINPA, 'Geometry', geomID),
         'FILDSIMmode': True,
-        'nGeomElements': 2,
         'nxi': 8,
         'nGyroradius': 5,
         'nMap': 50000,
@@ -36,13 +36,13 @@ nml_options = {   # Se the PDF documentation for a complete desription of these
         'r1': 1.2,
         'restrict_mode': True,
         'mapping': True,
-        'saveOrbits': False,
+        'saveOrbits': True,
         'saveRatio': 0.01,
         'saveOrbitLongMode': False,
         'runfolder': os.path.join(paths.SINPA, 'runs', runid),
         'verbose': True,
-        'IpBt': -1,        # Sign of toroidal current vs field (for pitch)
-        'flag_efield_on': False,  # Add or not electric field
+        'IpBt': -1,              # Sign of toroidal current vs field (for pitch)
+        'flag_efield_on': False, # Add or not electric field
         'save_collimator_strike_points': False,  # Save collimator points
         'backtrace': False  # Flag to backtrace the orbits
     },
@@ -56,13 +56,14 @@ nml_options = {   # Se the PDF documentation for a complete desription of these
     },
 }
 # --- magnetic field definition:
-# Option 1: as FILDSIM
+# Option 1: as FILDSIM, given by the 2 orientation angles
 use_opt1 = True
 theta = 8.2
 phi = -0.5
-# Option 2: directly a field in caterian coordinates
-direction = [-0.15643447,  -0.97552826, 0.1545085]  # Arbitrary field
-
+# Option 2: directly a field in cartesian coordinates
+direction = np.array([-0.15643447,  -0.97552826, 0.1545085])  # Arbitrary field
+# There are more options such as full3D, axisymetric field, uniform
+# cylindrical... just explore the field object
 # -----------------------------------------------------------------------------
 # --- Section 0: Create the directories
 # -----------------------------------------------------------------------------
@@ -76,9 +77,7 @@ os.makedirs(resultsDir, exist_ok=True)
 # -----------------------------------------------------------------------------
 # --- Section 1: Prepare the namelist
 # -----------------------------------------------------------------------------
-print('Hello')
 filename = ss.sinpa.execution.write_namelist(nml_options)
-print(filename)
 # -----------------------------------------------------------------------------
 # --- Section 2: Prepare the magnetic field
 # -----------------------------------------------------------------------------
@@ -97,10 +96,7 @@ else:
     field.createHomogeneousField(direction, field='B')
 # Write the field
 fieldFileName = os.path.join(inputsDir, 'field.bin')
-fid = open(fieldFileName, 'wb')
-field.tofile(fid)
-fid.close()
-
+field.tofile(fieldFileName)
 
 # -----------------------------------------------------------------------------
 # --- Section 2: Run the code

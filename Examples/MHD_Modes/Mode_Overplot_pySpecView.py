@@ -1,5 +1,5 @@
 """
-Example to overplot a theoretical frequency over a PySpecView spectogram
+Example to over-plot a theoretical frequency over a PySpecView spectogram
 """
 import Lib as ss
 # -----------------------------------------------------------------------------

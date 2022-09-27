@@ -15,6 +15,7 @@ import matplotlib.colors as colors
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.interpolate import interp1d
 from Lib._Video._BasicVideoObject import BVO
+from Lib._TimeTrace._timetrace import TimeTrace
 import Lib._GUIs as ssGUI
 import Lib._Mapping as ssmap
 import Lib.LibData as ssdat
@@ -97,7 +98,18 @@ class FIV(BVO):
         self.Bangles = None
         ## Position of the diagnostic
         self.position = None
+        ## NBI traces
+        self._NBIpower = None
+        ## density traces
+        self._ne = None
+        ## ROI of the scintillator
+        self.ROIscintillator = None
+        ## Scintilaltor plate
+        self.scintillator = None
 
+    # --------------------------------------------------------------------------
+    # --- Get shot / magnetic data
+    # --------------------------------------------------------------------------
     def _getB(self, extra_options: dict = {}, use_average: bool = False):
         """
         Get the magnetic field in the FILD position
@@ -146,6 +158,106 @@ class FIV(BVO):
         self.BField.attrs['z'] = self.position[key2]
         self.BField.attrs.update(extra_options)
 
+    def _getNBIpower(self):
+        """Store the power of the NBI"""
+        self._NBIpower = ssdat.getNBI_timeTraces(self.shot,
+                                                 xArrayOutput=True)
+
+    def _getNe(self):
+        """Store plasma density"""
+        self._ne = ssdat.get_ne(self.shot, xArrayOutput=True)
+
+    # --------------------------------------------------------------------------
+    # --- Strike map library handling
+    # --------------------------------------------------------------------------
+    def get_smap_name(self, frame_number=None, t: float = None,
+                      verbose: bool = False):
+        """
+        Get name of the strike map
+
+        Jose Rueda Rueda: jrrueda@us.es
+        Lina Velarde: lvelarde@us.es
+
+        @param frame_number: Number of the frame to get the smap name, relative
+                to the video file, optional
+        @param t: Time instant of the frame to get the smap name, optional
+        @param verbose: If true, info of the theta and phi used will be printed
+
+        @return full_name_smap: Name of the used strike map
+        """
+        # Get the frame number
+        if t is not None:
+            frame_index = np.argmin(abs(self.exp_dat['t'].values - t))
+            theta_used = self.remap_dat['theta_used'].values[frame_index]
+            phi_used = self.remap_dat['phi_used'].values[frame_index]
+        else:
+            frame_index = self.exp_dat['nframes'].values == frame_number
+            theta_used = self.remap_dat['theta_used'].values[frame_index][0]
+            phi_used = self.remap_dat['phi_used'].values[frame_index][0]
+
+        # Get the full name of the file
+        if self.diag == 'FILD' and self.remap_dat['frames'].attrs['CodeUsed'].lower() == 'fildsim':
+            name__smap = ssFILDSIM.guess_strike_map_name(
+                phi_used, theta_used, geomID=self.geometryID,
+                decimals=self.remap_dat['frames'].attrs['decimals'])
+        elif self.diag == 'FILD':
+            name__smap = ssSINPA.execution.guess_strike_map_name(
+                phi_used, theta_used, geomID=self.geometryID,
+                decimals=self.remap_dat['frames'].attrs['decimals']
+                )
+        elif self.diag == 'INPA':
+            name__smap = ssSINPA.execution.guess_strike_map_name(
+                phi_used, theta_used, geomID=self.geometryID,
+                decimals=self.remap_dat['frames'].attrs['decimals']
+                )
+        else:
+            raise Exception('Diagnostic not understood')
+        smap_folder = self.remap_dat['frames'].attrs['smap_folder']
+        full_name_smap = os.path.join(smap_folder, name__smap)
+
+        if verbose:
+            theta_calculated = self.remap_dat['theta'].values[frame_index]
+            phi_calculated = self.remap_dat['phi'].values[frame_index]
+            print('Calculated theta: ', theta_calculated)
+            print('Used theta: ', theta_used)
+            print('Calculated phi: ', phi_calculated)
+            print('Used phi: ', phi_used)
+
+        return full_name_smap
+
+    # --------------------------------------------------------------------------
+    # --- Time Traces
+    # --------------------------------------------------------------------------
+    def getTimeTrace(self, t: float = None, mask=None, ROIname: str = None):
+        """
+        Calculate the timeTrace of the video. Extended method from parent class
+
+        Difference from parent class: if no argument is given, we will use the
+        Scintillator roi and calculate the trace of the whole video
+
+        Jose Rueda Rueda: jrrueda@us.es
+
+        @param t: time of the frame to be plotted for the selection of the roi
+        @param mask: bolean mask of the ROI
+
+        If mask is present, the t argument will be ignored
+
+        @returns timetrace: a timetrace object
+        """
+        if mask is not None or t is not None:
+            trace, mask = super().getTimeTrace(t=t, mask=mask,
+                                           ROIname=ROIname)
+        else:
+            mask = \
+                self.ROIscintillator.getMask(self.exp_dat['frames'][:, :,
+                                             0].squeeze())
+            trace = TimeTrace(self, mask, ROIname='ScintROI')
+
+        return trace, mask
+
+    # --------------------------------------------------------------------------
+    # --- Plotting block
+    # --------------------------------------------------------------------------
     def plot_frame(self, frame_number=None, ax=None, ccmap=None,
                    strike_map: str = 'off', t: float = None,
                    verbose: bool = True,
@@ -248,61 +360,6 @@ class FIV(BVO):
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
         return ax
-
-    def get_smap_name(self, frame_number=None, t: float = None,
-                      verbose: bool = False):
-        """
-        Get name of the strike map
-
-        Jose Rueda Rueda: jrrueda@us.es
-        Lina Velarde: lvelarde@us.es
-
-        @param frame_number: Number of the frame to get the smap name, relative
-                to the video file, optional
-        @param t: Time instant of the frame to get the smap name, optional
-        @param verbose: If true, info of the theta and phi used will be printed
-
-        @return full_name_smap: Name of the used strike map
-        """
-        # Get the frame number
-        if t is not None:
-            frame_index = np.argmin(abs(self.exp_dat['t'].values - t))
-            theta_used = self.remap_dat['theta_used'].values[frame_index]
-            phi_used = self.remap_dat['phi_used'].values[frame_index]
-        else:
-            frame_index = self.exp_dat['nframes'].values == frame_number
-            theta_used = self.remap_dat['theta_used'].values[frame_index][0]
-            phi_used = self.remap_dat['phi_used'].values[frame_index][0]
-
-        # Get the full name of the file
-        if self.diag == 'FILD' and self.remap_dat['frames'].attrs['CodeUsed'].lower() == 'fildsim':
-            name__smap = ssFILDSIM.guess_strike_map_name(
-                phi_used, theta_used, geomID=self.geometryID,
-                decimals=self.remap_dat['frames'].attrs['decimals'])
-        elif self.diag == 'FILD':
-            name__smap = ssSINPA.execution.guess_strike_map_name(
-                phi_used, theta_used, geomID=self.geometryID,
-                decimals=self.remap_dat['frames'].attrs['decimals']
-                )
-        elif self.diag == 'INPA':
-            name__smap = ssSINPA.execution.guess_strike_map_name(
-                phi_used, theta_used, geomID=self.geometryID,
-                decimals=self.remap_dat['frames'].attrs['decimals']
-                )
-        else:
-            raise Exception('Diagnostic not understood')
-        smap_folder = self.remap_dat['frames'].attrs['smap_folder']
-        full_name_smap = os.path.join(smap_folder, name__smap)
-
-        if verbose:
-            theta_calculated = self.remap_dat['theta'].values[frame_index]
-            phi_calculated = self.remap_dat['phi'].values[frame_index]
-            print('Calculated theta: ', theta_calculated)
-            print('Used theta: ', theta_used)
-            print('Calculated phi: ', phi_calculated)
-            print('Used phi: ', phi_used)
-
-        return full_name_smap
 
     def plot_frame_remap(self, frame_number=None, ax=None, ccmap=None,
                          t: float = None, vmin: float = 0, vmax: float = None,
@@ -610,7 +667,7 @@ class FIV(BVO):
         if mask is not None:
             output['integral_over_xy'].attrs['mask'] = mask.astype('int')
         else:
-            output['integral_over_xy'].attrs['mask'] = None
+            output['integral_over_xy'].attrs['mask'] = 0
         return output
 
     def translate_remap_to_energy(self, Emin: float = 10.0, Emax: float = 99.0,
@@ -708,7 +765,7 @@ class FIV(BVO):
         root.mainloop()
         root.destroy()
 
-    def GUI_remap_analysis(self, traces: dict = {}):
+    def GUI_remap_analysis(self, traces=None):
         """
         Small GUI to explore camera frames
 
@@ -725,6 +782,8 @@ class FIV(BVO):
         print('-... . ..- - -.--')
         root = tk.Tk()
         root.resizable(height=None, width=None)
+        if traces is None:
+            traces = self._ne
         ssGUI.ApplicationRemap2DAnalyser(root, self, traces)
         root.mainloop()
         root.destroy()
