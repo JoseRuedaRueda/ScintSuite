@@ -3,6 +3,7 @@ Class containing INPA strike points
 """
 
 from Lib.SimulationCodes.Common.strikes import Strikes
+from Lib.SimulationCodes.FILDSIM.execution import get_gyroradius
 import Lib.LibData as ssdat
 import Lib.errors as errors
 import numpy as np
@@ -16,8 +17,10 @@ class INPAStrikes(Strikes):
 
         calculatePitch: calculate the pitch of the markers
     """
-
-    def caclualtePitch(self, Boptions: dict = {}, IPBtSign: float = -1.0):
+    # -------------------------------------------------------------------------
+    # --- Gyroradius and pitch angle
+    # -------------------------------------------------------------------------
+    def calculatePitch(self, Boptions: dict = {}, IPBtSign: float = -1.0):
         """
         Calculate the pitch of the markers
 
@@ -89,6 +92,57 @@ class INPAStrikes(Strikes):
                     'units': ' []',  # Units
                     'longName': 'Pitch',
                     'shortName': '$\\lambda_{0}$',
+                },
+            }
+            self.header['info'].update(extra_column)
+
+    def calculateGyroradius(self, B, A=2.014, Z=1.0):
+        # Only works for INPA markers, return error if we try with FILD
+        if self.header['FILDSIMmode']:
+            raise errors.NotValidInput('Hey! This is only for INPA')
+        # See if we need to overwrite
+        if 'gyroradius0' in self.header['info'].keys():
+            print('The pitch values are there, we will overwrite them')
+            overwrite = True
+            ir0 = self.header['info']['gyroradius0']['i']
+            irs = self.header['info']['gyroradiuss']['i']
+        else:
+            overwrite = False
+        # Get the index for the needed variables
+        ie0 = self.header['info']['e0']['i']
+        ies = self.header['info']['es']['i']
+        for ig in range(self.header['ngyr']):
+            for ia in range(self.header['nXI']):
+                if self.header['counters'][ia, ig] > 0:
+                    pin = get_gyroradius(self.data[ia, ig][:, ie0]*1000.0, B,
+                                         A, Z)
+                    scint = get_gyroradius(self.data[ia, ig][:, ies]*1000.0, B,
+                                           A, Z)
+                    if overwrite:
+                        self.data[ia, ig][:, ir0] = pin.copy()
+                        self.data[ia, ig][:, irs] = scint.copy()
+                    else:
+                        self.data[ia, ig] = \
+                            np.append(self.data[ia, ig],
+                                      np.atleast_2d(pin.copy()).T, axis=1)
+                        self.data[ia, ig] = \
+                            np.append(self.data[ia, ig],
+                                      np.atleast_2d(scint.copy()).T, axis=1)
+
+        if not overwrite:
+            Old_number_colums = len(self.header['info'])
+            extra_column = {
+                'gyroradius0': {
+                    'i': Old_number_colums,  # Column index in the file
+                    'units': ' []',  # Units
+                    'longName': 'Gyroradius (pin)',
+                    'shortName': '$cm$',
+                },
+                'gyroradiuss': {
+                    'i': Old_number_colums + 1,  # Column index in the file
+                    'units': ' []',  # Units
+                    'longName': 'Gyroradius (scint)',
+                    'shortName': '$cm$',
                 },
             }
             self.header['info'].update(extra_column)

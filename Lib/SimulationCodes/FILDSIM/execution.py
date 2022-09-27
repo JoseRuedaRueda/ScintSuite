@@ -335,7 +335,7 @@ def get_energy(gyroradius, B: float, A: float = 2.01410178, Z: float = 1.0):
     return E
 
 
-def get_gyroradius(E, B: float, A: float = 2.01410178, Z: int = 1):
+def get_gyroradius(E, B: float, A: float = 2.01410178, Z: float = 1.0):
     """
     Calculate the gyroradius given an energy, FILDSIM criteria
 

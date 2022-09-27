@@ -43,6 +43,9 @@ class Fsmap(FILDINPA_Smap):
        - *remap_external_strike_points: remap any strike points
        - *plot_phase_space_resolution_fits: plot the resolution in the phase space
        - *plot_collimator_factors: plot the resolution in the phase space
+       - *plot_instrument_function: Plot the instrument function
+       - build_weight_matrix: Build the instrument function
+
 
     Private method (* means inherited from the father):
        - *_calculate_transformation_matrix: Calculate the transformation matrix
@@ -189,13 +192,13 @@ class Fsmap(FILDINPA_Smap):
         res_matrix[np.isnan(res_matrix)] = 0.0
         # --- Now fill the weight function
         self.instrument_function = xr.DataArray(
-                res_matrix, dims = ('xs', 'ys', 'xp', 'yp'),
-                coords = {'xs':xcenterss, 'ys': ycenterss, 'xp': xcentersp,
+                res_matrix, dims=('xs', 'ys', 'x', 'y'),
+                coords={'xs':xcenterss, 'ys': ycenterss, 'xp': xcentersp,
                         'yp': ycentersp}
         )
         self.instrument_function['xs'].attrs['long_name'] = names[0].capitalize()
-        self.instrument_function['xp'].attrs['long_name'] = names[0].capitalize()
-        self.instrument_function['yp'].attrs['long_name'] = names[1].capitalize()
+        self.instrument_function['x'].attrs['long_name'] = names[0].capitalize()
+        self.instrument_function['y'].attrs['long_name'] = names[1].capitalize()
         self.instrument_function['ys'].attrs['long_name'] = names[1].capitalize()
 
 
