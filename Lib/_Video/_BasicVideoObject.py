@@ -192,7 +192,7 @@ class BVO:
                             break
                     elif f[i].endswith('.tif'):
                         count_tif += 1
-                        if count_tif == 3:
+                        if count_tif == 1:
                             self.type_of_file = '.tif'
                             print('Found tif files!')
                             break
