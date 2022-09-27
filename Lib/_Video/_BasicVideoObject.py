@@ -71,7 +71,7 @@ class BVO:
 
     def __init__(self, file: str = None, shot: int = None,
                  empty: bool = False, adfreq: float = None,
-                 t_trig: float = None):
+                 t_trig: float = None, YOLO: bool = False):
         """
         Initialise the class
 
@@ -91,6 +91,14 @@ class BVO:
             saved in the video and must be provided externally
         @param t_trig: trigger time. Again, this is just needed for the .b16
             format
+        @param YOLO: flag to ignore wrong timed frames. With old AUG adquisition
+            system, sometimes the timebase get corrupt after a given point. if
+            YOLO is false, the program will interact with the user,
+            shown him/her which frames are wrong and create an ad-hoc
+            time base if needed. This is not ideal for the case of automatic
+            remaps etc when the program is runing in the background, as the user
+            is needed. YOLO=True disable this and just ignore these frames
+
 
         Note: The shot parameter is important for latter when loading data from
         the database to remap, etc. See FILDVideoObject to have an examples of
@@ -213,7 +221,7 @@ class BVO:
                 # can load the file size
                 if self.type_of_file == '.png':
                     self.header, self.imageheader, self.settings,\
-                        self.timebase = png.read_data(self.path)
+                        self.timebase = png.read_data(self.path, YOLO)
                 elif self.type_of_file == '.b16':
                     self.header, self.imageheader, self.settings,\
                         self.timebase = pco.read_data(
@@ -228,6 +236,8 @@ class BVO:
         ## Camera calibration to relate the scintillator and the camera sensor,
         # each diagnostic will read its camera calibration from its database
         self.CameraCalibration = None
+        ## Scintillator plate:
+        self.scintillator = None
 
     # --------------------------------------------------------------------------
     # --- Manage Frames
@@ -282,7 +292,7 @@ class BVO:
             it1 = np.argmin(abs(self.timebase-t1))
             it2 = np.argmin(abs(self.timebase-t2))
             frames_number = np.arange(start=it1, stop=it2+1, step=1)
-
+        logger.info('Reading frames: ')
         if self.type_of_file == '.cin':
             M = cin.read_frame(self, frames_number,
                                limitation=limitation, limit=limit)
@@ -377,10 +387,11 @@ class BVO:
             raise errors.NoFramesLoaded('Load the frames first')
         logger.info('.--. ... ..-. -')
         logger.info('Substracting noise')
-        if t1 > t2:
-            print('t1: ', t1)
-            print('t2: ', t2)
-            raise errors.NotValidInput('t1 is larger than t2!!!')
+        if frame is None:
+            if t1 > t2:
+                print('t1: ', t1)
+                print('t2: ', t2)
+                raise errors.NotValidInput('t1 is larger than t2!!!')
         # --- Get the shapes and indexes
         # Get shape and data type of the experimental data
         nx, ny, nt = self.exp_dat['frames'].shape
@@ -425,8 +436,12 @@ class BVO:
         # Save the frame in the structure
         self.exp_dat['frame_noise'] = xr.DataArray(frame.squeeze(),
                                                    dims=('px', 'py'))
-        self.exp_dat['frame_noise'].attrs['t1_noise'] = t1
-        self.exp_dat['frame_noise'].attrs['t2_noise'] = t2
+        if t1 is not None:
+            self.exp_dat['frame_noise'].attrs['t1_noise'] = t1
+            self.exp_dat['frame_noise'].attrs['t2_noise'] = t2
+        else:
+            self.exp_dat['frame_noise'].attrs['t1_noise'] = -150.0
+            self.exp_dat['frame_noise'].attrs['t2_noise'] = -150.0
         # --- Copy the original frame array:
         if 'original_frames' not in self.exp_dat and flag_copy:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
@@ -802,11 +817,14 @@ class BVO:
         if flagAverage:
             ssGUI.ApplicationShowVid(root, self.avg_dat, self.remap_dat,
                                      self.geometryID,
-                                     self.CameraCalibration)
+                                     self.CameraCalibration,
+                                     shot=self.shot)
         else:
             ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat,
-                                     self.geometryID,
-                                     self.CameraCalibration)
+                                     GeomID=self.geometryID,
+                                     calibration=self.CameraCalibration,
+                                     scintillator=self.scintillator,
+                                     shot=self.shot)
         root.mainloop()
         root.destroy()
 
@@ -887,7 +905,7 @@ class BVO:
             t = float(self.avg_dat['tframes'][it])
         return t
 
-    def getTimeTrace(self, t: float = None, mask=None):
+    def getTimeTrace(self, t: float = None, mask=None, ROIname: str =None):
         """
         Calculate the timeTrace of the video
 
@@ -909,7 +927,7 @@ class BVO:
             # Create the mask
             mask = roi.getMask(self.exp_dat['frames'][:, :, 0].squeeze())
 
-        return sstt.TimeTrace(self, mask), mask
+        return sstt.TimeTrace(self, mask, ROIname=ROIname), mask
 
     # --------------------------------------------------------------------------
     # --- Export

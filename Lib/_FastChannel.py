@@ -366,7 +366,6 @@ class FastChannel(BasicSignalVariable):
         BasicSignalVariable.__init__(self)
         raw_data = \
              ssdat.get_fast_channel(diag, diag_ID, channels, shot, exp=exp)
-        print(np.array(raw_data['data']).shape, len(raw_data['channels']))
         self._data['signal'] = xr.DataArray(np.array(raw_data['data']),
             dims=('channel', 't'), coords={'channel': raw_data['channels'],
                                            't': raw_data['time']})

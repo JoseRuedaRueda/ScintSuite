@@ -15,7 +15,7 @@ class ApplicationShowVid:
     """Class to show the camera frames"""
 
     def __init__(self, master, data, remap_dat, GeomID='AUG02',
-                 calibration=None):
+                 calibration=None, scintillator=None, shot: int = None):
         """
         Create the window with the sliders
 
@@ -40,6 +40,7 @@ class ApplicationShowVid:
         self.remap_dat = remap_dat
         self.GeomID = GeomID
         self.CameraCalibration=calibration
+        self.scintillator = scintillator
         t = data['t'].values
         # --- Create a tk container
         frame = tk.Frame(master)
@@ -67,8 +68,14 @@ class ApplicationShowVid:
                                origin='lower', cmap=self.cmaps[defalut_cmap],
                                aspect='equal')
         self.time = \
-            ax.text(0.8, 0.9, str(round(data['t'].values[0], 3)) + ' s',
+            ax.text(0.85, 0.9, str(round(data['t'].values[0], 3)) + ' s',
                     transform=ax.transAxes, color='w')
+        if shot is not None:
+            self.shotLabel = \
+                ax.text(0.05, 0.9, '#%i'%shot,
+                        transform=ax.transAxes, color='w')
+        else:
+            self.shotLabel = None
         # Place the figure in a canvas
         self.canvas = tkagg.FigureCanvasTkAgg(fig, master=master)
         # --- Include the tool bar to zoom and export
@@ -121,6 +128,20 @@ class ApplicationShowVid:
                                      command=self.smap_Button_change,
                                      takefocus=0, state=state)
         self.smap_button.grid(row=3, column=3)
+        # --- Button for the Scintillator:
+        # If there is not scintillator data, deactivate the button
+        if self.scintillator is None:
+            state = tk.DISABLED
+        else:
+            state = tk.NORMAL
+        # Initialise the variable of the button
+        self.checkVar2 = tk.BooleanVar()
+        self.checkVar2.set(False)
+        # Create the button
+        self.scint_button = tk.Button(master, text="Draw Scint",
+                                      command=self.scint_Button_change,
+                                      takefocus=0, state=state)
+        self.scint_button.grid(row=3, column=4)
         # Draw and show
         self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=0, column=0, columnspan=5,
@@ -170,6 +191,9 @@ class ApplicationShowVid:
             smap.plot_pix(ax=self.canvas.figure.axes[0], labels=False)
             self.canvas.figure.axes[0].set_xlim(self.xlim[0], self.xlim[1])
             self.canvas.figure.axes[0].set_ylim(self.ylim[0], self.ylim[1])
+            # Plot the scintillator:
+        if self.checkVar2.get():
+            self.scintillator.plot_pix(ax=self.canvas.figure.axes[0])
         self.canvas.draw()
 
     def set_scale(self):
@@ -187,4 +211,14 @@ class ApplicationShowVid:
         # Now update the value
         self.checkVar1.set(not self.checkVar1.get())
         print('Draw Smap :', self.checkVar1.get())
+        self.canvas.draw()
+
+    def scint_Button_change(self):
+        """Decide to plot or not the scintillator"""
+        # If it was true and we push the button, the smap should be deleted:
+        if self.checkVar2.get():
+            ssplt.remove_lines(self.canvas.figure.axes[0])
+        # Now update the value
+        self.checkVar2.set(not self.checkVar2.get())
+        print('Draw scintillator :', self.checkVar2.get())
         self.canvas.draw()

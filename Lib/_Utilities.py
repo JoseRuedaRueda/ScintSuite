@@ -12,15 +12,20 @@ import math
 import Lib.LibData as ssdat
 import warnings
 import logging
+logger = logging.getLogger('ScintSuite.Utilities')
 try:
     from shapely.geometry import LineString
     from shapely.errors import ShapelyDeprecationWarning
     warnings.filterwarnings('ignore',
                             category=ShapelyDeprecationWarning)
 except ModuleNotFoundError:
-    logging.warning('10: Shapely not found, you cannot calculate intersections')
+    logger.warning('10: Shapely not found, you cannot calculate intersections')
 except ImportError:
-    logging.warning('12: Old version of shapely, but things should work')
+    logger.warning('12: Old version of shapely, but things should work')
+try:
+    from numba import njit, prange
+except:
+    logger.wargning('10: You cannot use neutron filters')
 
 
 # -----------------------------------------------------------------------------
@@ -121,6 +126,34 @@ def neutron_filter(M, nsigma: int = 3):
                 Mo[ix, iy] = mean
 
     return Mo
+
+@njit(nogil=True, parallel=True)
+def neutronAndDeadFilter(M: float, nsigma: float = 3.0, dead: bool = True):
+    """
+    Still too low, need something faster
+    :param M:
+    :param nsigma_neutrons:
+    :param n_sigma_dead:
+    :return:
+    """
+    nx, ny, nt = M.shape
+    new_matrix = np.zeros((nx, ny, nt))
+    for it in prange(nt):
+        frame = M[:, :, it].copy()
+        for ix in range(nsigma, nx-nsigma):
+            for iy in range(nsigma, ny - nsigma):
+                mean = frame[(ix-nsigma):(ix+nsigma),
+                             (iy-nsigma):(iy+nsigma)].mean()
+                std = frame[(ix-nsigma):(ix+nsigma),
+                            (iy-nsigma):(iy+nsigma)].std()
+                if frame[ix, iy] > mean + nsigma * std:
+                    new_matrix[ix, iy, it] = mean
+                elif frame[ix, iy] < mean - nsigma * std and dead:
+                    new_matrix[ix, iy, it] = mean
+                else:
+                    new_matrix[ix, iy, it] = M[ix, iy, it]
+        print(it)
+    return new_matrix
 
 
 # -----------------------------------------------------------------------------

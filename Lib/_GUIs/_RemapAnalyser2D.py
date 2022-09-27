@@ -11,7 +11,7 @@ from tkinter import ttk
 class ApplicationRemap2DAnalyser:
     """Class to show the remap and compare them"""
 
-    def __init__(self, master, vid, traces: dict = {}):
+    def __init__(self, master, vid, traces=None):
         """
         Create the window with the sliders
 
@@ -33,7 +33,7 @@ class ApplicationRemap2DAnalyser:
         defalut_cmap = 'Greys'
         # --- Initialise the data container
         self.remap_dat = vid.remap_dat
-        t = vid.remap_dat['tframes']
+        t = vid.remap_dat.t.values
         # --- Create a tk container
         frame = tk.Frame(master)
         # Allows to the figure, to resize
@@ -60,12 +60,12 @@ class ApplicationRemap2DAnalyser:
         self.image = ax.imshow(self.dummy_frames[:, :, 0].squeeze().T,
                                origin='lower', cmap=self.cmaps[defalut_cmap],
                                aspect='auto',
-                               extent=[vid.remap_dat['xaxis'][0],
-                                       vid.remap_dat['xaxis'][-1],
-                                       vid.remap_dat['yaxis'][0],
-                                       vid.remap_dat['yaxis'][-1]])
+                               extent=[vid.remap_dat['x'].values[0],
+                                       vid.remap_dat['x'].values[-1],
+                                       vid.remap_dat['y'].values[0],
+                                       vid.remap_dat['y'].values[-1]])
         self.time = \
-            ax.text(0.8, 0.9, str(round(vid.remap_dat['tframes'][0], 3))+' s',
+            ax.text(0.8, 0.9, str(round(vid.remap_dat.t.values[0], 3))+' s',
                     transform=ax.transAxes, color='w')
         # Place the figure in a canvas
         self.canvas = tkagg.FigureCanvasTkAgg(fig, master=master)
@@ -77,14 +77,11 @@ class ApplicationRemap2DAnalyser:
         fig2 = Figure()
         ax2 = fig2.add_subplot(111)
         # ax2.set_aspect(0.33, adjustable='box')
-        ax2.set_xlim(vid.remap_dat['tframes'][0], vid.remap_dat['tframes'][-1])
-        for k in traces.keys():
-            if k.startswith('t'):
-                number = k[1]
-                ax2.plot(traces['t'+number], traces['y'+number],
-                         label=traces['l'+number])
+        ax2.set_xlim(vid.remap_dat.t.values[0], vid.remap_dat.t.values[-1])
+        dummy = traces['data'].sel(rho=0.9, method='nearest').values
+        ax2.plot(traces.t, dummy, label='n_e(0.9)')
         ax2.legend()
-        self.v_line = ax2.axvline(x=vid.remap_dat['tframes'][0], color='g')
+        self.v_line = ax2.axvline(x=vid.remap_dat['t'].values[0], color='g')
         self.canvas2 = tkagg.FigureCanvasTkAgg(fig2, master=master)
         self.canvas2.draw()
         self.canvas2.get_tk_widget().grid(row=0, column=0, columnspan=5)
@@ -174,15 +171,15 @@ class ApplicationRemap2DAnalyser:
     def plot_frame(self, t):
         """Update the plot"""
         t0 = float(t)
-        it = np.argmin(abs(self.remap_dat['tframes'] - t0))
+        it = np.argmin(abs(self.remap_dat['t'].values - t0))
         if self.checkVar1.get():
-            dummy = self.dummy_frames[:, :, it].squeeze().copy()
+            dummy = self.dummy_frames[:, :, it].squeeze().copy().astype(float)
             # dummy /= dummy[self.ixi, self.igyr]
             dummy /= self.scale
             dummy -= self.ref_frame
         else:
             dummy = self.dummy_frames[:, :, it].squeeze().copy()
-        self.time.set_text(str(round(self.remap_dat['tframes'][it], 3)) + ' s')
+        self.time.set_text(str(round(self.remap_dat['t'].values[it], 3)) + ' s')
         self.image.set_data(dummy.T)
         self.canvas.draw()
         self.v_line.set_xdata([t0, t0])
@@ -201,13 +198,14 @@ class ApplicationRemap2DAnalyser:
         if not self.checkVar1.get():
             self.checkVar1.set(not self.checkVar1.get())
         t0 = float(self.t_ref.get())
-        it = np.argmin(abs(self.remap_dat['tframes'] - t0))
-        self.ref_frame = self.remap_dat['frames'][:, :, it].squeeze().copy()
+        it = np.argmin(abs(self.remap_dat['t'].values - t0))
+        self.ref_frame = \
+            self.remap_dat['frames'].values[:, :, it].squeeze().copy()
         # --- Get the normalization
         g0 = float(self.Gyr_ref.get())
         x0 = float(self.XI_ref.get())
-        self.igyr = np.argmin(np.abs(self.remap_dat['yaxis'] - g0))
-        self.ixi = np.argmin(np.abs(self.remap_dat['xaxis'] - x0))
+        self.igyr = np.argmin(np.abs(self.remap_dat['y'].values - g0))
+        self.ixi = np.argmin(np.abs(self.remap_dat['x'].values - x0))
         self.scale = self.ref_frame[self.ixi, self.igyr]
         self.ref_frame /= self.scale
         print('Updated Ref frame')
