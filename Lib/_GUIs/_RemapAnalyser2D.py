@@ -78,9 +78,11 @@ class ApplicationRemap2DAnalyser:
         ax2 = fig2.add_subplot(111)
         # ax2.set_aspect(0.33, adjustable='box')
         ax2.set_xlim(vid.remap_dat.t.values[0], vid.remap_dat.t.values[-1])
-        dummy = traces['data'].sel(rho=0.9, method='nearest').values
-        ax2.plot(traces.t, dummy, label='n_e(0.9)')
-        ax2.legend()
+        if traces is not None:
+            dummy = traces['data'].sel(rho=0.9, method='nearest').values
+            ax2.plot(traces.t, dummy, label='n_e(0.9)')
+            ax2.legend()
+
         self.v_line = ax2.axvline(x=vid.remap_dat['t'].values[0], color='g')
         self.canvas2 = tkagg.FigureCanvasTkAgg(fig2, master=master)
         self.canvas2.draw()

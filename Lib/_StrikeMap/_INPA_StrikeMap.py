@@ -40,6 +40,8 @@ class Ismap(FILDINPA_Smap):
        - *remap_external_strike_points: remap any strike points
        - *plot_phase_space_resolution_fits: plot the resolution in the phase space
        - *plot_collimator_factors: plot the resolution in the phase space
+       - * plot_instrument_function: Plot the instrument function
+       - build_weight_matrix: Build the instrument function
        - getRho: get the rho coordinates associated to each point
 
     Private method (* means inherited from the father):
@@ -179,10 +181,10 @@ class Ismap(FILDINPA_Smap):
             gridFI = {
                 'xmin': 1.55,
                 'xmax': 2.20,
-                'dx': 0.03,
+                'dx': 0.015,
                 'ymin': 15.0,
                 'ymax': 100.0,
-                'dy': 2.5
+                'dy': 1.0
             }
         # --- Load/put in place the strikes
         if isinstance(strikes, (str,)):
@@ -250,7 +252,16 @@ class Ismap(FILDINPA_Smap):
         vol = xvol * yvol
         W = np.tensordot(Tmatrix, H, axes=2) / vol
         # save it
-        output = xr.DataArray(W, dims=('xs', 'ys', 'x', 'y'),
+        self.instrument_function = xr.DataArray(W, dims=('xs', 'ys', 'x', 'y'),
                               coords={'xs': gridT['x'], 'ys': gridT['y'],
                                       'x': xCen, 'y': yCen})
-        return output
+        self.instrument_function['xs'].attrs['long_name'] = \
+            variablesScint[0].capitalize()
+        self.instrument_function['x'].attrs['long_name'] = \
+            variablesFI[0].capitalize()
+        self.instrument_function['y'].attrs['long_name'] = \
+            variablesFI[1].capitalize()
+        self.instrument_function['ys'].attrs['long_name'] = \
+            variablesScint[1].capitalize()
+
+        return
