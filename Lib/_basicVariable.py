@@ -82,7 +82,8 @@ class BasicSignalVariable():
     # --------------------------------------------------------------------------
     # --- Filtering
     # --------------------------------------------------------------------------
-    def filter(self, signals: list = None, method: str = 'savgol', **kargs):
+    def filter(self, signals: list = None, method: str = 'savgol',
+               filter_params={}):
         """
         Filter the time dependent variables
 
@@ -96,8 +97,19 @@ class BasicSignalVariable():
             'savgol': sp.savgol_filter,
             'median': sp.medfilt,
         }
+        settings = {
+            'savgol': {
+                'window_length': 201,
+                'polyorder': 3
+            },
+            'median': {
+                'kernel_size': 201,
+            }
+        }
         if method.lower() not in filters.keys():
             raise errors.NotImplementedError('Method not implemented')
+        filter_options = settings[method.lower()].copy()
+        filter_options.update(filter_params)
         if signals is None:
             signals = []
             for k in self.keys():
@@ -108,13 +120,16 @@ class BasicSignalVariable():
         for k in signals:
             if len(self[k].shape) == 1:  # Variable with just time axis
                 self._data['filtered_' + k] = xr.DataArray(
-                        filters[method](self[k].values, **kargs), dims='t')
-            elif len(self[k].shape) == 2:  # Variable with time + something
-                self._data['filtered_' + k] = self._data['filtered_' + k].copy()
-                for i in range(self[k].shape[0]):
-                    self._data['filtered_' + k].values[i, :] = xr.DataArray(
-                        filters[method](self[k].values[i, :], **kargs), 
+                        filters[method](self[k].values, **filter_options),
                         dims='t')
+            elif len(self[k].shape) == 2:  # Variable with time + something
+                self._data['filtered_' + k] = self._data[k].copy()
+                for i in range(self[k].shape[0]):
+                    self._data['filtered_' + k].values[i, :] = \
+                        filters[method](self[k].values[i, :], **filter_options)
+                        # xr.DataArray(
+                        # filters[method](self[k].values[i, :], **kargs),
+                        # dims='t')
             else:
                 raise errors.NotImplementedError('To be done')
 

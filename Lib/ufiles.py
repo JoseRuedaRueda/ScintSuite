@@ -99,12 +99,12 @@ class ufile:
     """
     Class to handle the UFILE content: read/write and parsing the dimensions.
     """
-    def __init__(self, fin: str=None):
+    def __init__(self, fin: str = None):
         """
         Initializes the class for the UFILE. If a name is provided, the object
         proceeds to read its content.
 
-        Giovanni Tardini - git@ipp.mpg.de
+        Taken from Giovanni Tardini code
 
         @param fin: filename of the file to read. If not provided, the class
         is initialized as empty.

@@ -8,6 +8,7 @@ the routines to calculate the remap
 Jose Rueda Rueda: jrrueda@us.es
 Lina Velarde Gallardo: lvelarde@us.es
 """
+import os
 import numpy as np
 import xarray as xr
 import tkinter as tk                       # To open UI windows
@@ -81,7 +82,7 @@ class FILDVideo(FIV):
     def __init__(self, file: str = None, shot: int = None,
                  diag_ID: int = 1, empty: bool = False,
                  logbookOptions: dict = {}, Boptions: dict = {},
-                 verbose: bool = True):
+                 verbose: bool = True, YOLO: bool = False):
         """
         Initialise the class
 
@@ -131,7 +132,7 @@ class FILDVideo(FIV):
                 t_trig = None
             # initialise the parent class
             FIV.__init__(self, file=file, shot=shot, empty=empty,
-                         adfreq=AdqFreq, t_trig=t_trig)
+                         adfreq=AdqFreq, t_trig=t_trig, YOLO=YOLO)
             ## Diagnostic used to record the data
             self.diag = 'FILD'
             ## Diagnostic ID (FILD manipulator number)
@@ -144,21 +145,21 @@ class FILDVideo(FIV):
                 self.CameraCalibration = \
                     FILDlogbook.getCameraCalibration(shot, diag_ID)
                 try:
-                    self.FILDoperatorComment =\
+                    self.operatorComment =\
                         FILDlogbook.getComment(self.shot)
-                    if len(self.FILDoperatorComment) == 0:
-                        self.FILDoperatorComment = ['']
+                    if len(self.operatorComment) == 0:
+                        self.operatorComment = ['']
                     self.overheating = \
                         FILDlogbook.getOverheating(self.shot, diag_ID)
                 except AttributeError:
-                    self.FILDoperatorComment = None
+                    self.operatorComment = None
                     self.overheating = None
             else:
                 self.position = None
                 self.orientation = None
                 self.geometryID = None
                 self.CameraCalibration = None
-                self.FILDoperatorComment = None
+                self.operatorComment = None
                 self.overheating = None
                 print('Shot not provided, you need to define FILDposition')
                 print('You need to define FILDorientation')
@@ -168,10 +169,23 @@ class FILDVideo(FIV):
             # Particular options for the magnetic field calculation
             self.BFieldOptions = Boptions
 
+            # Try to load the scintillator plate
+            if self.geometryID is not None:
+                platename = os.path.join(pa.ScintSuite, 'Data', 'Plates', 'FILD',
+                                         machine, self.geometryID + '.pl')
+                if os.path.isfile(platename):
+                    self.scintillator = ssmap.Scintillator(file=platename)
+                    self.scintillator.calculate_pixel_coordinates(
+                            self.CameraCalibration)
+                    self.ROIscintillator = self.scintillator.get_roi()
+            else:
+                self.scintillator = None
+                self.ROIscintillator = None
+
             if verbose:
-                if self.FILDoperatorComment is not None:
+                if self.operatorComment is not None:
                     print('--- FILD Operator comment:')
-                    print(self.FILDoperatorComment[0])
+                    print(self.operatorComment[0])
                 if self.overheating is not None:
                     print('--- Overheating level: %i' % self.overheating)
         else:
@@ -508,3 +522,7 @@ class FILDVideo(FIV):
         FILDlogbook = ssdat.FILD_logbook(**self.logbookOptions)
         self.CameraCalibration = \
             FILDlogbook.getCameraCalibration(self.shot, self.diag_ID)
+        if self.scintillator is not None:
+            self.scintillator.calculate_pixel_coordinates(self.CameraCalibration)
+            self.ROIscintillator = self.scintillator.get_roi()
+

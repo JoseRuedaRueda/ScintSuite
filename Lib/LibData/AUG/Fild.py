@@ -35,7 +35,7 @@ _geometrdefault = os.path.join(paths.ScintSuite, 'Data',
 _defaultFILDdata = f90nml.read(_geometrdefault)
 
 
-# --- Auxiliar routines to find the path towards the camera files
+# --- Auxiliary routines to find the path towards the camera files
 def guessFILDfilename(shot: int, diag_ID: int = 1):
     """
     Guess the filename of a video
@@ -57,7 +57,7 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
     return file
 
 
-# --- Auxiliar routines to load and plot FILD4 trajectory:
+# --- Auxiliary routines to load and plot FILD4 trajectory:
 @deprecated('Use the FILD4 object')
 def load_FILD4_trajectory(shot, path=paths.FILD4_trajectories):
     """

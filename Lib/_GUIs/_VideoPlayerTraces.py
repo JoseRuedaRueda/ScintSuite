@@ -11,19 +11,15 @@ from matplotlib.figure import Figure
 from tkinter import ttk
 
 
-class ApplicationShowVid:
-    """Class to show the camera frames"""
+class ApplicationShowVidAndTraces:
+    """Class to show the camera frames, thought for INPA video"""
 
-    def __init__(self, master, data, remap_dat, GeomID='AUG02',
-                 calibration=None, scintillator=None, shot: int = None):
+    def __init__(self, master, video):
         """
         Create the window with the sliders
 
         @param master: Tk() opened
-        @param data: the dictionary of experimental frames
-        @param remap_dat: the dictionary of remapped data
-        @param GeomID: Geometry id of the detector (to load smaps if needed)
-        @param calibration: Calibration parameters
+        @param video: The INPA video
         """
         # --- List of supported colormaps
         self.cmaps = {
@@ -36,17 +32,14 @@ class ApplicationShowVid:
         names_cmaps = ['Cai', 'Gamma_II', 'Greys', 'Plasma', 'BWR']
         defalut_cmap = 'Greys'
         # --- Initialise the data container
-        self.data = data
-        self.remap_dat = remap_dat
-        self.GeomID = GeomID
-        self.CameraCalibration=calibration
-        self.scintillator = scintillator
-        t = data['t'].values
+        self.video = video
+
+        t = self.video.exp_dat['t'].values
         # --- Create a tk container
         frame = tk.Frame(master)
         # Allows to the figure, to resize
         tk.Grid.columnconfigure(master, 0, weight=1)
-        tk.Grid.rowconfigure(master, 0, weight=1)
+        tk.Grid.rowconfigure(master, 2, weight=1)
         # --- Create the time slider
         # dt for the slider
         if t is None:
@@ -60,19 +53,46 @@ class ApplicationShowVid:
                                 takefocus=1,
                                 label='Time [s]')
         # Put the slider in place
-        self.tSlider.grid(row=0, column=5)
-        # --- Open the figure and show the image
+        self.tSlider.grid(row=2, column=5)
+        # --- Open the figure and plot the profiles
+        figData = Figure()
+        self.neAxis = figData.add_subplot(211)
+        self.NBIAxis = figData.add_subplot(212)
+        dummy = self.video._ne['data'].sel(rho=0.9, method='nearest').values
+        self.neAxis.plot(self.video._ne.t, dummy, label='n_e(0.9)')
+        self.neAxis.legend()
+        dummy = self.video._NBIpower.sum(dim='number').values
+        self.NBIAxis.plot(self.video._NBIpower.t, dummy, label='Total')
+        dummy = self.video._NBIpower.values[2,:]
+        self.NBIAxis.plot(self.video._NBIpower.t, dummy, label='NBI3')
+        self.NBIAxis.set_xlim(t[0], t[-1])
+        self.neAxis.set_xlim(t[0], t[-1])
+        self.NBIAxis.legend()
+        # Add the vertical lines
+        self.v_line = self.neAxis.axvline(x=self.video.exp_dat['t'][0],
+                                          color='g')
+        self.v_line2 = self.NBIAxis.axvline(x=self.video.exp_dat['t'][0],
+                                            color='g')
+        self.canvasData = tkagg.FigureCanvasTkAgg(figData, master=master)
+
+        self.canvasData.draw()
+        self.canvasData.get_tk_widget().grid(row=0, column=0, columnspan=5,
+                                             rowspan=2,
+                                             sticky=tk.N+tk.S+tk.E+tk.W)
+
+        # --- Open the Frame figure and show the image
         fig = Figure()
         ax = fig.add_subplot(111)
-        self.image = ax.imshow(data['frames'].values[:, :, 0].squeeze(),
+        self.image = ax.imshow(video.exp_dat['frames'].values[:, :,
+                               0].squeeze(),
                                origin='lower', cmap=self.cmaps[defalut_cmap],
                                aspect='equal')
         self.time = \
-            ax.text(0.85, 0.9, str(round(data['t'].values[0], 3)) + ' s',
+            ax.text(0.85, 0.9, '%5.3f s'%video.exp_dat['t'].values[0],
                     transform=ax.transAxes, color='w')
-        if shot is not None:
+        if video.shot is not None:
             self.shotLabel = \
-                ax.text(0.05, 0.9, '#%i'%shot,
+                ax.text(0.05, 0.9, '#%i'%video.shot,
                         transform=ax.transAxes, color='w')
         else:
             self.shotLabel = None
@@ -82,7 +102,7 @@ class ApplicationShowVid:
         # We need a new frame because the toolbar uses 'pack' internally and we
         # are using 'grid' to place our elements, so they are not compatible
         self.toolbarFrame = tk.Frame(master=master)
-        self.toolbarFrame.grid(row=4, column=1, columnspan=5)
+        self.toolbarFrame.grid(row=6, column=1, columnspan=5)
         self.toolbar = \
             tkagg.NavigationToolbar2Tk(self.canvas, self.toolbarFrame)
         self.toolbar.update()
@@ -94,29 +114,29 @@ class ApplicationShowVid:
         self.cmaps_list.set(defalut_cmap)
         self.cmaps_list.bind("<<ComboboxSelected>>",
                              self.change_cmap)
-        self.cmaps_list.grid(row=3, column=2)
+        self.cmaps_list.grid(row=5, column=2)
         self.cmap_list_label = tk.Label(master, text='Select CMap')
-        self.cmap_list_label.grid(row=3, column=1)
+        self.cmap_list_label.grid(row=5, column=1)
         # --- Include the boxes for minimum and maximum of the colormap
         clim = self.image.get_clim()
         self.cmap_min_label = tk.Label(master, text='Min CMap')
-        self.cmap_min_label.grid(row=2, column=1)
+        self.cmap_min_label.grid(row=4, column=1)
         self.cmap_min = tk.Entry(master)
         self.cmap_min.insert(0, str(round(clim[0])))
-        self.cmap_min.grid(row=2, column=2)
+        self.cmap_min.grid(row=4, column=2)
 
         self.cmap_max_label = tk.Label(master, text='Max CMap')
-        self.cmap_max_label.grid(row=2, column=3)
+        self.cmap_max_label.grid(row=4, column=3)
         self.cmap_max = tk.Entry(master)
         self.cmap_max.insert(0, str(round(clim[1])))
-        self.cmap_max.grid(row=2, column=4)
+        self.cmap_max.grid(row=4, column=4)
         # --- Include the button for minimum and maximum of the colormap
         self.cmap_scale_button = tk.Button(master, text='Set Scale',
                                            command=self.set_scale)
-        self.cmap_scale_button.grid(row=2, column=5)
+        self.cmap_scale_button.grid(row=4, column=5)
         # --- Button for the strike map:
         # If there is not remap data, deactivate the button
-        if self.remap_dat is None:
+        if self.video.remap_dat is None:
             state = tk.DISABLED
         else:
             state = tk.NORMAL
@@ -127,10 +147,10 @@ class ApplicationShowVid:
         self.smap_button = tk.Button(master, text="Draw SMap",
                                      command=self.smap_Button_change,
                                      takefocus=0, state=state)
-        self.smap_button.grid(row=3, column=3)
+        self.smap_button.grid(row=5, column=3)
         # --- Button for the Scintillator:
         # If there is not scintillator data, deactivate the button
-        if self.scintillator is None:
+        if self.video.scintillator is None:
             state = tk.DISABLED
         else:
             state = tk.NORMAL
@@ -141,17 +161,17 @@ class ApplicationShowVid:
         self.scint_button = tk.Button(master, text="Draw Scint",
                                       command=self.scint_Button_change,
                                       takefocus=0, state=state)
-        self.scint_button.grid(row=3, column=4)
+        self.scint_button.grid(row=5, column=4)
         # Draw and show
         self.canvas.draw()
-        self.canvas.get_tk_widget().grid(row=0, column=0, columnspan=5,
+        self.canvas.get_tk_widget().grid(row=2, column=0, columnspan=5,
                                          sticky=tk.N+tk.S+tk.E+tk.W)
         # In the last line, the sticky argument, combined with the
         # Grid.columnconfiguration and Grid.rowconfiguration from above
         # allows to the canvas to resize when I resize the window
         # --- Quit button
         self.qButton = tk.Button(master, text="Quit", command=master.quit)
-        self.qButton.grid(row=3, column=5)
+        self.qButton.grid(row=5, column=5)
         frame.grid()
 
     def change_cmap(self, cmap_cname):
@@ -162,29 +182,31 @@ class ApplicationShowVid:
     def plot_frame(self, t):
         """Update the plot"""
         t0 = float(t)
-        it = np.argmin(abs(self.data['t'].values - t0))
-        dummy = self.data['frames'].values[:, :, it].squeeze().copy()
-        self.time.set_text(str(round(self.data['t'].values[it], 3)) + ' s')
+        it = np.argmin(abs(self.video.exp_dat['t'].values - t0))
+        dummy = self.video.exp_dat['frames'].values[:, :, it].squeeze().copy()
+        self.time.set_text(str(round(self.video.exp_dat['t'].values[it], 3)) + ' s')
         self.image.set_data(dummy)
+        self.v_line.set_xdata([t0, t0])
+        self.v_line2.set_xdata([t0, t0])
         # If needed, plot the smap
         if self.checkVar1.get():
             # remove the old one
             ssplt.remove_lines(self.canvas.figure.axes[0])
             # choose the new one:
             # get parameters of the map
-            theta_used = self.remap_dat['theta_used'].values[it]
-            phi_used = self.remap_dat['phi_used'].values[it]
+            theta_used = self.video.remap_dat['theta_used'].values[it]
+            phi_used = self.video.remap_dat['phi_used'].values[it]
 
             # Get the full name of the file
             name__smap = sssinpa.execution.guess_strike_map_name(
-                phi_used, theta_used, geomID=self.GeomID,
-                decimals=self.remap_dat['frames'].attrs['decimals'])
-            smap_folder = self.remap_dat['frames'].attrs['smap_folder']
+                phi_used, theta_used, geomID=self.video.geometryID,
+                decimals=self.video.remap_dat['frames'].attrs['decimals'])
+            smap_folder = self.video.remap_dat['frames'].attrs['smap_folder']
             full_name_smap = os.path.join(smap_folder, name__smap)
             # Load the map:
             smap = ssmap.StrikeMap(0, full_name_smap)
             # Calculate pixel coordinates
-            smap.calculate_pixel_coordinates(self.CameraCalibration)
+            smap.calculate_pixel_coordinates(self.video.CameraCalibration)
             # Plot the map
             self.xlim = self.canvas.figure.axes[0].get_xlim()
             self.ylim = self.canvas.figure.axes[0].get_ylim()
@@ -193,8 +215,9 @@ class ApplicationShowVid:
             self.canvas.figure.axes[0].set_ylim(self.ylim[0], self.ylim[1])
             # Plot the scintillator:
         if self.checkVar2.get():
-            self.scintillator.plot_pix(ax=self.canvas.figure.axes[0])
+            self.video.scintillator.plot_pix(ax=self.canvas.figure.axes[0])
         self.canvas.draw()
+        self.canvasData.draw()
 
     def set_scale(self):
         """Set color scale"""
