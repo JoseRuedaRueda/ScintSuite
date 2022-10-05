@@ -945,15 +945,21 @@ class fields:
         """
         Write the field to files following the i-HIBPsims scheme.
 
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
+        Pablo Oyola - pablo.oyola@ipp.mpg.de ft. jrrueda@us.es
 
-        @param fid: file identifier where the files will be written.
+        @param fid: file identifier where the files will be written. if this is
+            a string, the file will be created.
         @param bflag: states if the magnetic field has to be written.
         Default is True, so magnetic field will be written.
         @param eflag: states if the electric field has to be written.
         Default to False. If this is set to True, the magnetic field
         will not be written.
         """
+        if isinstance(fid, str):
+            fid = open(fid, 'wb')
+            opened = True
+        else:
+            opened = False
         if bflag is False and eflag is False:
             raise Exception('Some flag has to be set to write to file!')
         if bflag:
@@ -1011,6 +1017,8 @@ class fields:
 
         else:
             raise Exception('Not a valid combination of inputs')
+        if opened:
+            fid.close()
 
     def plot(self, fieldName: str, phiSlice: int = None, timeSlice: int = None,
              ax_options: dict = {}, ax=None, cmap=None, nLevels: int = 50,

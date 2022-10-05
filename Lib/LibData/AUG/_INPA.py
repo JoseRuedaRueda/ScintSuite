@@ -5,8 +5,9 @@ Jose Rueda: jrrueda@us.es
 """
 
 import os
-import f90nml
 import math
+import f90nml
+import logging
 import numpy as np
 import pandas as pd
 from Lib._Machine import machine
@@ -15,6 +16,10 @@ from Lib._Mapping._Calibration import CalParams, readCameraCalibrationDatabase
 import Lib.LibData.AUG.DiagParam as params
 import Lib.errors as errors
 paths = Path(machine)
+
+
+# --- Auxiliary objects
+logger = logging.getLogger('ScintSuite.INPAlogbook')
 
 
 # --- Default files:
@@ -90,6 +95,8 @@ class INPA_logbook:
         """
         if verbose:
             print('.-.. --- --. -... --- --- -.-')
+        # Side attributes / space reservation
+        self.logbookVersion = None
         # Load the camera database
         self.CameraCalibrationDatabase = \
             readCameraCalibrationDatabase(cameraFile, verbose=verbose)
@@ -105,8 +112,12 @@ class INPA_logbook:
         # Load the geometry database
         self.geometryDatabase = \
             self._readGeometryDatabase(geometryFile, verbose=verbose)
+
         print('..-. .. -. .- .-.. .-.. -.--')
 
+    # -------------------------------------------------------------------------
+    # --- Reading routines (private)
+    # -------------------------------------------------------------------------
     def _readExcelLogbook(self, filename: str, verbose: bool = True):
         """
         Read the excel containing the position database
@@ -116,9 +127,11 @@ class INPA_logbook:
         """
         if verbose:
             print('Looking for the position database: ', filename)
-        dummy = pd.read_excel(filename, engine='openpyxl', header=[0, 1])
-        dummy['shot'] = dummy.Shot.Shot.values.astype(int)
-
+        dummy = pd.read_excel(filename, engine='odf', header=[0, 1])
+        # dummy['shot'] = dummy.Shot.Shot.values.astype(int)
+        self.logbookVersion = 0  # Up to now, this is no usefull as there is
+        #                          only one format, but this is a place holder
+        #                          for the future, just in case
         return dummy
 
     def _readGeometryDatabase(self, filename: str, n_header: int = 3,
@@ -157,6 +170,9 @@ class INPA_logbook:
         database = pd.DataFrame(data)
         return database
 
+    # -------------------------------------------------------------------------
+    # --- Get routines
+    # -------------------------------------------------------------------------
     def getCameraCalibration(self, shot: int,
                              diag_ID: int = 1, cal_type: str = 'PIX'):
         """
@@ -320,6 +336,38 @@ class INPA_logbook:
                 np.append(shots,
                           self.positionDatabase[flags1].shot.values[flags2][:])
         return shots
+
+    def getComment(self, shot: int):
+        """
+        Get the comment line
+
+        @param shot: shot number (int) or array of shots
+
+        @return: string containing the comment written by the INPA operator
+        """
+        # Prepare the shot list
+        if isinstance(shot, int):
+            shotl = np.array([shot])
+        elif isinstance(shot, (tuple, list)):
+            shotl = np.array(shot)
+        elif isinstance(shot, np.ndarray):
+            shotl = shot
+        else:
+            raise errors.NotValidInput('Check shot input')
+
+        # Check the overheating
+        comment = []
+        if self.logbookVersion >= 0:
+            dummy = self.excelLogbook['Comment']
+            for ks, s in enumerate(shotl):
+                if s in self.excelLogbook['shot'].values:
+                    i, = np.where(self.excelLogbook['shot'].values == s)[0]
+                    comment.append(dummy.values[i])
+        else:
+            text = 'Comments can not be read in this logbook version'
+            logger.warning('22: %s' % text)
+            comment = ['' for s in shotl]
+        return comment
 
     def _getPositionOrientationDefault(self, geomID: str):
         """Get the default postition of an INPA, given the geometry id"""

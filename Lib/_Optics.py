@@ -5,14 +5,16 @@ Jose Rueda Rueda: jrrueda@us.es
 """
 import os
 import math
-import numpy as np
 import logging
-import matplotlib.pyplot as plt
+import numpy as np
 import Lib._IO as ssio
 import Lib.errors as errors
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 from Lib._Paths import Path
 from Lib._Machine import machine
 from Lib._Utilities import distmat
+from Lib._Mapping._Common import XYtoPixel
 from tqdm import tqdm
 from scipy.ndimage import gaussian_filter
 logger = logging.getLogger('ScintSuite.Optics')
@@ -295,3 +297,85 @@ class FnumberTransmission():
         """
 
         return self._fit.eval(x=r)
+
+
+# -----------------------------------------------------------------------------
+# --- Distortion Grid
+# -----------------------------------------------------------------------------
+class DistortGrid(XYtoPixel):
+    """
+    Class to generate distortion grids, to calibrate the camera
+
+    J. Rueda-Rueda : jrrueda@us.es
+    """
+    def __init__(self, x0: float, y0: float, d: float, nx: int = 10,
+                 ny: int = 10):
+        """
+        Generate the grid lines
+
+        @param x0: x bottom left corner of the grid
+        @param y0: y bottom left corner of the grid
+        @param d: grid spacing
+        @param nx: number of grid points in the x direction
+        @param ny: number of grid points in the y direction
+
+        @TODO include rotation
+        """
+        xCorner = x0 + np.arange(nx) * d
+        yCorner = y0 + np.arange(ny) * d
+        # Create the mesh
+        XX, YY = np.meshgrid(xCorner, yCorner, indexing='ij')
+        XYtoPixel.__init__(self)
+        ## Coordinates of the vertex of the scintillator (X,Y,Z).
+        self._coord_real['x1'] = XX
+        self._coord_real['x2'] = YY
+
+    def plot_real(self, ax=None, line_params: dict = {}):
+        """
+        Plot the grid in the real space
+
+        @param ax: axes where to plot, if none, new axis will be created
+        @param line_params: dictionary with the parameters for plt.plot()
+        """
+        # -- Initialise the plotting options
+        line_options = {
+            'color': 'k',
+        }
+        line_options.update(line_params)
+        # -- Create the axis
+        if ax is None:
+            fig, ax = plt.subplots()
+        # -- Plot the grid
+        nx, ny = self._coord_real['x'].shape
+        for ix in range(nx):
+            ax.plot(self._coord_real['x'][ix, :],
+                    self._coord_real['y'][ix, :], **line_options)
+        for iy in range(ny):
+            ax.plot(self._coord_real['x'][:, iy],
+                    self._coord_real['y'][:, iy], **line_options)
+
+    def plot_pix(self, ax=None, line_params: dict = {}):
+        """
+        Plot the grid in the real space
+
+        @param ax: axes where to plot, if none, new axis will be created
+        @param line_params: dictionary with the parameters for plt.plot()
+        """
+        # -- Initialise the plotting options
+        line_options = {
+            'color': 'w',
+            'label': None,
+            'alpha': 0.5
+        }
+        line_options.update(line_params)
+        # -- Create the axis
+        if ax is None:
+            fig, ax = plt.subplots()
+        # -- Plot the grid
+        nx, ny = self._coord_pix['x'].shape
+        for ix in range(nx):
+            ax.plot(self._coord_pix['x'][ix, :],
+                    self._coord_pix['y'][ix, :], **line_options)
+        for iy in range(ny):
+            ax.plot(self._coord_pix['x'][:, iy],
+                    self._coord_pix['y'][:, iy], **line_options)

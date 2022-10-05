@@ -520,7 +520,8 @@ class Strikes:
             'ycen': ycen,
             'xedges': xedges,
             'yedges': yedges,
-            'H': data
+            'H': data,
+            'area': deltax * deltay
         }
         if jw is not None:
             dataS /= deltax * deltay
@@ -529,7 +530,8 @@ class Strikes:
                 'ycen': ycen,
                 'xedges': xedges,
                 'yedges': yedges,
-                'H': dataS
+                'H': dataS,
+                'area': deltax * deltay
             }
         if jw0 is not None:
             data0 /= deltax * deltay
@@ -538,7 +540,8 @@ class Strikes:
                 'ycen': ycen,
                 'xedges': xedges,
                 'yedges': yedges,
-                'H': data0
+                'H': data0,
+                'area': deltax * deltay
             }
 
         # Now repeat the same for the different kinds
@@ -594,7 +597,8 @@ class Strikes:
                     'ycen': ycen,
                     'xedges': xedges,
                     'yedges': yedges,
-                    'H': data
+                    'H': data,
+                    'area': deltax * deltay
                 }
                 if jw is not None:
                     dataS /= deltax * deltay
@@ -603,7 +607,8 @@ class Strikes:
                         'ycen': ycen,
                         'xedges': xedges,
                         'yedges': yedges,
-                        'H': dataS
+                        'H': dataS,
+                        'area': deltax * deltay
                     }
                 if jw0 is not None:
                     data0 /= deltax * deltay
@@ -612,7 +617,8 @@ class Strikes:
                         'ycen': ycen,
                         'xedges': xedges,
                         'yedges': yedges,
-                        'H': data0
+                        'H': data0,
+                        'area': deltax * deltay
                     }
 
     def calculate_1d_histogram(self, var: str = 'xcx',
@@ -1141,8 +1147,11 @@ class Strikes:
         for ig in index_gyr:
             for ia in index_XI:
                 if self.header['counters'][ia, ig] > 0:
-                    flags = np.random.rand(
-                        self.header['counters'][ia, ig]) < per
+                    if isinstance(per, np.ndarray):
+                        flags = per
+                    else:
+                        flags = np.random.rand(
+                                self.header['counters'][ia, ig]) < per
                     x = self.data[ia, ig][flags, xcolumn_to_plot]
                     y = self.data[ia, ig][flags, ycolumn_to_plot]
                     if includeW:
@@ -1153,6 +1162,7 @@ class Strikes:
         # axis beauty:
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
+        plt.draw()
         return ax
 
     def calculate_pixel_coordinates(self, calibration,):

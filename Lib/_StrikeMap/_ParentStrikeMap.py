@@ -580,6 +580,9 @@ class GeneralStrikeMap(XYtoPixel):
         # Normalise the transformation matrix
         transform /= MC_number
         transform /= (grid_options['dx'] * grid_options['dy'])
+        # Save it in place
+        grid_options['x'] = 0.5 * (xedges[:-1] + xedges[1:])
+        grid_options['y'] = 0.5 * (yedges[:-1] + yedges[1:])
         self._grid_interp['transformation_matrix'][name] = transform
         self._grid_interp['transformation_matrix'][name + '_grid'] = \
             grid_options
