@@ -87,7 +87,7 @@ import Lib.SimulationCodes.SINPA as sinpa
 import Lib.SimulationCodes.Common as simcom
 
 # Reconstructions
-import Lib._Tomography as tomo
+from Lib._Tomography._main_class import Tomography
 
 # Handle Video files
 import Lib._Video as vid
@@ -95,6 +95,9 @@ import Lib._VRT as vrt
 
 # MHD activity
 import Lib._MHD as mhd
+
+# Handle ufiles
+from Lib.ufiles import ufile as Ufile
 
 import Lib._Parameters as par
 import Lib._Plotting as plt
@@ -144,31 +147,4 @@ try:
 except:
     print('It was not possible to initialise the plotting settings')
 
-# # -------------------------------------------------------------------------
-# # --- Warnings handling
-# # -------------------------------------------------------------------------
-# # Print the ignored module warnings
-# # Filter the user desired warning
-# try:
-#     file = \
-#         os.path.join(paths.ScintSuite, 'Data',
-#                      'MyData', 'IgnoreWarnings.txt')
-#     to_ignore = f90nml.read(file)['Warnings']
-#     print(to_ignore)
-#     read_file = True
-# except FileNotFoundError:
-#     to_ignore = {'MissingNonEssentialModule': False}
-#     read_file = False
-# if not to_ignore['MissingNonEssentialModule']:
-#     print(len(w))
-#     for i in range(len(w)):
-#         print(w[i].category)
-#         if w[i].category == 'MissingNonEssentialModule':
-#             print(w)
-# Reset the warning filter
-# # Filter the user desired warning
-# if read_file:
-#     if to_ignore['OverWrittingData']:
-#         warnings.filterwarnings('ignore', category=war.OverWrittingData)
-#     if to_ignore['MissingNonEssentialModule']:
-#         warnings.filterwarnings('ignore', category=war.NotInstalledModule)
+

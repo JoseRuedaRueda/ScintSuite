@@ -161,13 +161,18 @@ def get_ne_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
             'data': tmp_ne
         }
     else:
+        tmp_ne = np.atleast_2d(tmp_ne)
+        tmp_unc = np.atleast_2d(tmp_unc)
+        time = np.atleast_1d(time)
+
         output = xr.Dataset()
         output['data'] = xr.DataArray(
-            tmp_ne.T, dims=('rho', 't'),
+            tmp_ne.T/1.0e19, dims=('rho', 't'),
             coords={'rho': rhop[:, 0], 't': time})
         output['data'].attrs['long_name'] = '$n_e$'
         output['data'].attrs['units'] = '$10^{19} m^3$'
-        output['uncertainty'] = xr.DataArray(tmp_unc.T, dims=('rho', 't'))
+        output['uncertainty'] = xr.DataArray(tmp_unc.T/1.0e19, dims=('rho',
+                                                                     't'))
         output['uncertainty'].attrs['long_name'] = '$\\Delta n_e$'
         output['uncertainty'].attrs['units'] = '$10^{19} m^3$'
 

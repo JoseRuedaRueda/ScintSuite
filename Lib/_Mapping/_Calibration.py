@@ -7,6 +7,8 @@ from scipy.io import netcdf                # To export remap data
 
 # Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.Calibration')
+
+
 # -----------------------------------------------------------------------------
 # --- Aux functions
 # -----------------------------------------------------------------------------

@@ -51,6 +51,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         - remap_external_strike_points: remap any strike points
         - plot_phase_space_resolution_fits: plot the resolution in the phase space
         - plot_collimator_factors: plot the resolution in the phase space
+        - plot_instrument_function: Plot the instrument function
 
     Private method (* means inherited from the father):
         - *_calculate_transformation_matrix: Calculate the transformation matrix
@@ -114,6 +115,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
         self.strike_points = None
         self.fileStrikePoints = None
         self._resolutions = None
+        self._interpolators_instrument_function = None
+        self.instrument_function = None
 
     def calculate_energy(self, B: float, A: float = 2.01410178,
                          Z: float = 1.0):
@@ -128,6 +131,11 @@ class FILDINPA_Smap(GeneralStrikeMap):
         """
         dummy = get_energy(self('gyroradius'), B=B, A=A, Z=Z) / 1000.0
         self._data['e0'] = BasicVariable(name='e0', units='keV', data=dummy)
+        self._optionsForEnergy = {
+            'B': B,
+            'A': A,
+            'z': Z,
+        }
 
     def load_strike_points(self, file=None, verbose: bool = True,
                            calculate_pixel_coordinates: bool = False,
@@ -199,7 +207,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 -dy: y space used by default in the fit. (gyroradius in fild)
                 -x_method: Function to use in the x fit, default Gauss
                 -y_method: Function to use in the y fit, default Gauss
-            Acepted methods are:
+            Accepted methods are:
                 - Gauss: Gaussian fit
                 - sGauss: squewed Gaussian fit
         @param min_statistics: Minimum number of points for a given r,p to make
@@ -264,10 +272,10 @@ class FILDINPA_Smap(GeneralStrikeMap):
         for key, names in zip(variables, (xnames, ynames)):
             # For the resolution
             self._resolutions[key] = \
-                dict.fromkeys(names, np.full((nx, ny), np.nan))
+                {n: np.full((nx, ny), np.nan) for n in names}
             # For the uncertainty
             self._resolutions['unc_' + key] = \
-                dict.fromkeys(names, np.full((nx, ny), np.nan))
+                {n: np.full((nx, ny), np.nan) for n in names}
             # For the normalization
             self._resolutions['norm_' + key] = np.full((nx, ny), np.nan)
             # For the general fits
@@ -277,7 +285,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         self._resolutions['model_' + variables[1]] = diag_options['y_method']
         # --- Core: Calculation of the resolution
         if verbose:
-            print('Calculating resolutions ...')
+            logger.info('Calculating resolutions ...')
         for ix in tqdm(range(nx)):
             for iy in range(ny):
                 # -- Select the data:
@@ -336,148 +344,6 @@ class FILDINPA_Smap(GeneralStrikeMap):
         self._calculate_instrument_function_interpolators()
         # self._calculate_position_interpolators()
 
-    def plot_phase_space_resolution(self, ax_params: dict = {},
-                                    cmap=None,
-                                    nlev: int = 50,
-                                    index_x: list = None,
-                                    index_y: list = None,
-                                    ax_lim: dict = {},
-                                    cmap_lim: dict = {}):
-        """
-        Plot the phase space resolutions.
-
-        Jose Rueda: jrrueda@us.es
-
-        @param ax_param: parameters for the axis beauty function. Note, labels
-        of the color axis are hard-cored, if you want custom axis labels you
-        would need to draw the plot on your own
-        @param cMap: is None, Gamma_II will be used
-        @param nlev: number of levels for the contour
-        @param index_gyr: if present, reslution would be plotted along
-        gyroradius given by gyroradius[index_gyr]
-        @param ax_lim: Manually set the x and y axes, currently only works for making it bigger, not smaller
-                       Should be given as ax_lim = {'xlim' : [x1,x2], 'ylim' : [y1,y2]}
-        @param cmap_lim: Manually set the upper limit for the color map
-                         Should be given as cmap_lim = {'gyroradius' : ___, 'pitch' : ___}
-        """
-        # Initialise the plotting settings
-        ax_options = {
-            'xlabel': self.MC_variables[0].plot_label,
-            'ylabel': self.MC_variables[1].plot_label,
-        }
-        ax_options.update(ax_params)
-        if cmap is None:
-            cmap = ssplt.Gamma_II()
-        # --- Plot the resolution
-        if (index_x is None) and (index_y is None):
-            fig, ax = plt.subplots(1, 2, sharex=True)
-
-            for var, subplot in zip(self._resolutions['variables'], ax):
-                key = var.name
-                xAxisPlot = self.MC_variables[0].data
-                yAxisPlot = self.MC_variables[1].data
-                res_matrix = self._resolutions[key]['sigma'].T
-                if ax_lim:
-                    if ax_lim["xlim"][0] < np.min(self.MC_variables[0].data):
-                        n,m = res_matrix.shape
-                        res_matrix_new = np.full((n,m+1))
-                        res_matrix_new[:,1:] = res_matrix
-                        res_matrix = res_matrix_new
-                        xAxisPlot = np.insert(xAxisPlot,0,ax_lim["xlim"][0])
-                    if ax_lim["xlim"][1] > np.max(self.MC_variables[0].data):
-                        n,m = res_matrix.shape
-                        res_matrix_new = np.full((n,m+1),np.nan)
-                        res_matrix_new[:,:-1] = res_matrix
-                        res_matrix = res_matrix_new
-                        xAxisPlot = np.append(xAxisPlot,ax_lim["xlim"][1])
-                    if ax_lim["ylim"][0] < np.min(self.MC_variables[1].data):
-                        n,m = res_matrix.shape
-                        res_matrix_new = np.full((n+1,m),np.nan)
-                        res_matrix_new[1:,:] = res_matrix
-                        res_matrix = res_matrix_new
-                        yAxisPlot = np.insert(yAxisPlot,0,ax_lim["ylim"][0])
-                    if ax_lim["ylim"][1] > np.max(self.MC_variables[1].data):
-                        n,m = res_matrix.shape
-                        res_matrix_new = np.full((n+1,m),np.nan)
-                        res_matrix_new[:-1,:] = res_matrix
-                        res_matrix = res_matrix_new
-                        yAxisPlot = np.append(yAxisPlot,ax_lim["ylim"][1])
-
-                try:
-                    step = cmap_lim[key] / nlev
-                    nlev_new = np.arange(0,cmap_lim[key] + step, step)
-                except KeyError:
-                    nlev_new = nlev
-
-                cont = subplot.contourf(
-                    xAxisPlot, yAxisPlot,
-                    res_matrix,
-                    levels=nlev_new, cmap=cmap
-                )
-                subplot = ssplt.axis_beauty(subplot, ax_options)
-                # Now place the color var in the proper position
-                divider = make_axes_locatable(subplot)
-                cax = divider.append_axes("right", size="5%", pad=0.05)
-                plt.colorbar(cont,
-                             label='$\\sigma_{%s} [%s]$' % (key, var.units),
-                             cax=cax)
-            plt.tight_layout()
-        else:   # Plot along the x - y variable
-            if index_x is not None:
-                fig, ax = plt.subplots(1, 2, sharex=True)
-                # Test if it is a list or array
-                if isinstance(index_x, (list, np.ndarray, tuple)):
-                    pass
-                else:  # it should be just a number
-                    index_x = np.array([index_x])
-                yAxis = self.MC_variables[1].data
-                for var, subplot in zip(self._resolutions['variables'], ax):
-                    key = var.name
-                    cmap = ssplt.Gamma_II()
-                    for i in index_x:
-                        ssplt.p1D_shaded_error(
-                            subplot, yAxis,
-                            self._resolutions[key]['sigma'][i, :],
-                            self._resolutions['unc_' + key]['sigma'][i, :],
-                            color=cmap(i/self.MC_variables[0].data.size),
-                            alpha=0.1,
-                            line_param={
-                                'label': str(self.MC_variables[0].data[i])
-                            })
-                    ax_options = {
-                        'xlabel': self.MC_variables[1].plot_label,
-                        'ylabel': '$\\sigma_{%s} [%s]$' % (key, var.units),
-                    }
-                    ax_options.update(ax_params)
-                    subplot = ssplt.axis_beauty(subplot, ax_options)
-            if index_y is not None:
-                fig, ax = plt.subplots(1, 2, sharex=True)
-                # Test if it is a list or array
-                if isinstance(index_y, (list, np.ndarray, tuple)):
-                    pass
-                else:  # it should be just a number
-                    index_y = np.array([index_y])
-                xAxis = self.MC_variables[0].data
-                for var, subplot in zip(self._resolutions['variables'], ax):
-                    key = var.name
-                    cmap = ssplt.Gamma_II()
-                    for i in index_y:
-                        ssplt.p1D_shaded_error(
-                            subplot, xAxis,
-                            self._resolutions[key]['sigma'][:, i],
-                            self._resolutions['unc_' + key]['sigma'][:, i],
-                            color=cmap(i/self.MC_variables[0].data.size),
-                            alpha=0.1,
-                            line_param={
-                                'label': str(self.MC_variables[0].data[i])
-                            })
-                    ax_options = {
-                        'xlabel': self.MC_variables[0].plot_label,
-                        'ylabel': '$\\sigma_{%s} [%s]$' % (key, var.units),
-                    }
-                    ax_options.update(ax_params)
-                    subplot = ssplt.axis_beauty(subplot, ax_options)
-
     def _calculate_instrument_function_interpolators(self):
         """
         Calculate the interpolators from phase to resolution parameters
@@ -517,7 +383,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
             dummy[name] = {}
             for key in self._resolutions[name].keys():  # Loop in parameters
                 data = self._resolutions[name][key].T.flatten()  # parameter
-                # The transpose is to match dimenssion of the meshgrid
+                # The transpose is to match dimension of the mesh-grid
                 # Now delete the NaN cell
                 flags = np.isnan(data)
                 if np.sum(~flags) > 4:  # If at least we have 4 points
@@ -809,7 +675,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                         # self.strike_points.data[ip, ir][:, iiy])
                         # append the remapped data to the object
                         if was_there:
-                            strikes.data[ix, iy][:, ivar] = remap_data
+                            strikes.data[ix, iy][:, ivar] = remap_data.squeeze()
                         else:
                             strikes.data[ix, iy] = \
                                 np.append(strikes.data[ix, iy],
@@ -828,6 +694,151 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 extra_column[name]['i'] = Old_number_colums
                 # Update the header
                 strikes.header['info'].update(extra_column)
+
+    # --------------------------------------------------------------------------
+    # --- Plotting Block
+    # --------------------------------------------------------------------------
+    def plot_phase_space_resolution(self, ax_params: dict = {},
+                                    cmap=None,
+                                    nlev: int = 50,
+                                    index_x: list = None,
+                                    index_y: list = None,
+                                    ax_lim: dict = {},
+                                    cmap_lim: dict = {}):
+        """
+        Plot the phase space resolutions.
+
+        Jose Rueda: jrrueda@us.es
+
+        @param ax_param: parameters for the axis beauty function. Note, labels
+        of the color axis are hard-cored, if you want custom axis labels you
+        would need to draw the plot on your own
+        @param cMap: is None, Gamma_II will be used
+        @param nlev: number of levels for the contour
+        @param index_gyr: if present, reslution would be plotted along
+        gyroradius given by gyroradius[index_gyr]
+        @param ax_lim: Manually set the x and y axes, currently only works for making it bigger, not smaller
+                       Should be given as ax_lim = {'xlim' : [x1,x2], 'ylim' : [y1,y2]}
+        @param cmap_lim: Manually set the upper limit for the color map
+                         Should be given as cmap_lim = {'gyroradius' : ___, 'pitch' : ___}
+        """
+        # Initialise the plotting settings
+        ax_options = {
+            'xlabel': self.MC_variables[0].plot_label,
+            'ylabel': self.MC_variables[1].plot_label,
+        }
+        ax_options.update(ax_params)
+        if cmap is None:
+            cmap = ssplt.Gamma_II()
+        # --- Plot the resolution
+        if (index_x is None) and (index_y is None):
+            fig, ax = plt.subplots(1, 2, sharex=True)
+
+            for var, subplot in zip(self._resolutions['variables'], ax):
+                key = var.name
+                xAxisPlot = self.MC_variables[0].data
+                yAxisPlot = self.MC_variables[1].data
+                res_matrix = self._resolutions[key]['sigma'].T
+                if ax_lim:
+                    if ax_lim["xlim"][0] < np.min(self.MC_variables[0].data):
+                        n,m = res_matrix.shape
+                        res_matrix_new = np.full((n,m+1))
+                        res_matrix_new[:,1:] = res_matrix
+                        res_matrix = res_matrix_new
+                        xAxisPlot = np.insert(xAxisPlot,0,ax_lim["xlim"][0])
+                    if ax_lim["xlim"][1] > np.max(self.MC_variables[0].data):
+                        n,m = res_matrix.shape
+                        res_matrix_new = np.full((n,m+1),np.nan)
+                        res_matrix_new[:,:-1] = res_matrix
+                        res_matrix = res_matrix_new
+                        xAxisPlot = np.append(xAxisPlot,ax_lim["xlim"][1])
+                    if ax_lim["ylim"][0] < np.min(self.MC_variables[1].data):
+                        n,m = res_matrix.shape
+                        res_matrix_new = np.full((n+1,m),np.nan)
+                        res_matrix_new[1:,:] = res_matrix
+                        res_matrix = res_matrix_new
+                        yAxisPlot = np.insert(yAxisPlot,0,ax_lim["ylim"][0])
+                    if ax_lim["ylim"][1] > np.max(self.MC_variables[1].data):
+                        n,m = res_matrix.shape
+                        res_matrix_new = np.full((n+1,m),np.nan)
+                        res_matrix_new[:-1,:] = res_matrix
+                        res_matrix = res_matrix_new
+                        yAxisPlot = np.append(yAxisPlot,ax_lim["ylim"][1])
+
+                try:
+                    step = cmap_lim[key] / nlev
+                    nlev_new = np.arange(0,cmap_lim[key] + step, step)
+                except KeyError:
+                    nlev_new = nlev
+
+                cont = subplot.contourf(
+                    xAxisPlot, yAxisPlot,
+                    res_matrix,
+                    levels=nlev_new, cmap=cmap
+                )
+                subplot = ssplt.axis_beauty(subplot, ax_options)
+                # Now place the color var in the proper position
+                divider = make_axes_locatable(subplot)
+                cax = divider.append_axes("right", size="5%", pad=0.05)
+                plt.colorbar(cont,
+                             label='$\\sigma_{%s} [%s]$' % (key, var.units),
+                             cax=cax)
+            plt.tight_layout()
+        else:   # Plot along the x - y variable
+            if index_x is not None:
+                fig, ax = plt.subplots(1, 2, sharex=True)
+                # Test if it is a list or array
+                if isinstance(index_x, (list, np.ndarray, tuple)):
+                    pass
+                else:  # it should be just a number
+                    index_x = np.array([index_x])
+                yAxis = self.MC_variables[1].data
+                for var, subplot in zip(self._resolutions['variables'], ax):
+                    key = var.name
+                    cmap = ssplt.Gamma_II()
+                    for i in index_x:
+                        ssplt.p1D_shaded_error(
+                            subplot, yAxis,
+                            self._resolutions[key]['sigma'][i, :],
+                            self._resolutions['unc_' + key]['sigma'][i, :],
+                            color=cmap(i/self.MC_variables[0].data.size),
+                            alpha=0.1,
+                            line_param={
+                                'label': str(self.MC_variables[0].data[i])
+                            })
+                    ax_options = {
+                        'xlabel': self.MC_variables[1].plot_label,
+                        'ylabel': '$\\sigma_{%s} [%s]$' % (key, var.units),
+                    }
+                    ax_options.update(ax_params)
+                    subplot = ssplt.axis_beauty(subplot, ax_options)
+            if index_y is not None:
+                fig, ax = plt.subplots(1, 2, sharex=True)
+                # Test if it is a list or array
+                if isinstance(index_y, (list, np.ndarray, tuple)):
+                    pass
+                else:  # it should be just a number
+                    index_y = np.array([index_y])
+                xAxis = self.MC_variables[0].data
+                for var, subplot in zip(self._resolutions['variables'], ax):
+                    key = var.name
+                    cmap = ssplt.Gamma_II()
+                    for i in index_y:
+                        ssplt.p1D_shaded_error(
+                            subplot, xAxis,
+                            self._resolutions[key]['sigma'][:, i],
+                            self._resolutions['unc_' + key]['sigma'][:, i],
+                            color=cmap(i/self.MC_variables[0].data.size),
+                            alpha=0.1,
+                            line_param={
+                                'label': str(self.MC_variables[0].data[i])
+                            })
+                    ax_options = {
+                        'xlabel': self.MC_variables[0].plot_label,
+                        'ylabel': '$\\sigma_{%s} [%s]$' % (key, var.units),
+                    }
+                    ax_options.update(ax_params)
+                    subplot = ssplt.axis_beauty(subplot, ax_options)
 
     @deprecated('Some input will change name in the final version')
     def plot_phase_space_resolution_fits(self, var: str = 'Gyroradius',
@@ -1072,4 +1083,43 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
         plt.tight_layout()
         return
+
+    def plot_instrument_function(self, xs: float = None, ys: float = None,
+                                 x: float = None, y: float = None,
+                                 ax=None, interpolation: str = 'bicubic',
+                                 ax_params: dict = {},
+                                 cmap=None):
+        """
+
+        :param ax_param:
+        :param cmap:
+        :return:
+        """
+        par = {
+            'xs': xs,
+            'ys': ys,
+            'x': x,
+            'y': y,
+            'method': 'nearest'
+        }
+        par2 = {}
+        for k in par.keys():
+            if par[k] is not None:
+                par2[k] = par[k]
+        print(par2)
+        # - Open the figure, if needed
+        if ax is None:
+            fig, ax = plt.subplots()
+        # - Get the color map
+        if cmap is None:
+            cmap = ssplt.Gamma_II()
+        # - Plot the stuff
+
+        self.instrument_function.sel(**par2).plot.imshow(ax=ax, cmap=cmap,
+                                                        interpolation=interpolation)
+        ax = ssplt.axis_beauty(ax, ax_params,)
+        return ax
+
+
+
 

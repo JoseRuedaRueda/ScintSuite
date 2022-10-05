@@ -289,7 +289,7 @@ class iHIBPvideo(BVO):
             self.filter_frames(method='median')
 
         # --- i-HIBP scintillator distorted.
-        self.scint_path = np.array(self.scintillator.get_path_pix()).T[1:, ...]
+        self.scint_path = self.scintillator.get_path_pix()
         mask = sstt.roipoly(path=self.scint_path)
         self.scint_mask = mask.getMask(self.exp_dat['frames'][..., 0])
 
