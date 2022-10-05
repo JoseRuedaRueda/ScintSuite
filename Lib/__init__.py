@@ -114,6 +114,7 @@ from Lib.version_suite import version, codename
 __version__ = version
 import Lib._CAD as cad
 import Lib._SideFunctions as side
+import Lib.SimulationCodes.torbeam as torbeam
 
 
 machine = m.machine

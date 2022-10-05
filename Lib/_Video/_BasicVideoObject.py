@@ -150,18 +150,21 @@ class BVO:
                     # just a dummy temporal format, not the one to save our
                     # real exp data, so the video will be loaded all from here
                     # and not reading specific frame will be used
-                    self.timebase = dummy['tframes']
+                    self.timebase = dummy['tframes'].squeeze()
+                    self.firstCorrupt = np.where(self.timebase == 0.)[0][1:][0]
+                    self.timebase = self.timebase[:self.firstCorrupt]
                     self.exp_dat = xr.Dataset()
                     nx, ny, nt = dummy['frames'].shape
                     px = np.arange(nx)
                     py = np.arange(ny)
                     self.exp_dat['frames'] = \
-                        xr.DataArray(dummy['frames'], dims=('px', 'py', 't'),
-                                     coords={'t': dummy['tframes'].squeeze(),
+                        xr.DataArray(dummy['frames'][..., :self.firstCorrupt],
+                                     dims=('px', 'py', 't'),
+                                     coords={'t': self.timebase,
                                              'px': px,
                                              'py': py})
                     self.exp_dat['nframes'] = \
-                        xr.DataArray(np.arange(dummy['nf']), dims=('t'))
+                        xr.DataArray(np.arange(len(self.timebase)), dims=('t'))
                     self.type_of_file = '.mp4'
                 else:
                     raise Exception('Not recognised file extension')
