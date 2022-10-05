@@ -64,7 +64,9 @@ class INPAVideo(FIV):
 
     def __init__(self, file: str = None, shot: int = None,
                  diag_ID: int = 1, empty: bool = False,
-                 logbookOptions: dict = {}, Boptions: dict = {}):
+                 logbookOptions: dict = {}, Boptions: dict = {},
+                 verbose: bool = True, loadPlasmaData: bool = True,
+                 YOLO: bool = True):
         """
         Initialise the class
 
@@ -95,6 +97,8 @@ class INPAVideo(FIV):
             field, can be machine dependent. Notice that the shot number and
             needed time will be collected from the video object. If you provide
             them also here, the code will fail. Same with R and z
+        @param verbose: flag to print logbook comments
+        @param loadPlasmaData: Flag to load plasma data
         """
         if not empty:
             # Guess the filename:
@@ -103,7 +107,7 @@ class INPAVideo(FIV):
             if shot is None:
                 shot = _aux.guess_shot(file, ssdat.shot_number_length)
             # initialise the parent class
-            FIV.__init__(self, file=file, shot=shot, empty=empty)
+            FIV.__init__(self, file=file, shot=shot, empty=empty, YOLO=YOLO)
             ## Diagnostic used to record the data
             self.diag = 'INPA'
             ## Diagnostic ID (FILD manipulator number)
@@ -117,19 +121,46 @@ class INPAVideo(FIV):
                 self.geometryID = INPAlogbook.getGeomID(shot, diag_ID)
                 self.CameraCalibration = \
                     INPAlogbook.getCameraCalibration(shot, diag_ID)
+                self.operatorComment = INPAlogbook.getComment(shot)
             else:
                 self.position = None
                 self.orientation = None
                 self.geometryID = None
                 self.CameraCalibration = None
+                self.operatorComment = None
                 print('Shot not provided, you need to define INPAgeometry')
                 print('You need to define INPApositionOrientation')
                 print('You need to give the camera calibration parameters')
+            # Try to load the scintillator plate
+            if self.geometryID is not None:
+                platename = os.path.join(pa.ScintSuite, 'Data', 'Plates',
+                                         'INPA', machine,
+                                         self.geometryID,
+                                         'Scintillator.pl')
+                if os.path.isfile(platename):
+                    self.scintillator = ssmap.Scintillator(file=platename)
+                    self.scintillator.calculate_pixel_coordinates(
+                            self.CameraCalibration)
+                    self.ROIscintillator = self.scintillator.get_roi()
+            else:
+                self.scintillator = None
+                self.ROIscintillator = None
             # Save the options for the magnetic field
             self.BFieldOptions = Boptions
+            # Load the plasma data
+            if loadPlasmaData and self.shot is not None:
+                self._getNe()
+                self._getNBIpower()
+            if verbose:
+                if self.operatorComment is not None:
+                    print('--- INPA Operator comment:')
+                    print(self.operatorComment[0][0])
         else:
             FIV.__init__(self, empty=empty)
 
+    # --------------------------------------------------------------------------
+    # --- Get shot / magnetic data
+    # --------------------------------------------------------------------------
     def _getBangles(self):
         """Get the orientation of the field respec to the head."""
         s1_projection = \
@@ -149,7 +180,6 @@ class INPAVideo(FIV):
              + self.orientation['s3rzt'][1] * self.BField['Bz']
              + self.orientation['s3rzt'][2] * self.BField['Bt'])\
             / self.BField['B']
-        print(s3_projection.mean())
         theta = np.arccos(s3_projection) * 180.0 / math.pi
         phi = np.arctan2(s2_projection, s1_projection) * 180.0 / math.pi
         # For AUG shots, this angle is around 180 degrees, so phi is changing
@@ -167,6 +197,9 @@ class INPAVideo(FIV):
     def _checkStrikeMapDatabase():
         pass
 
+    # --------------------------------------------------------------------------
+    # --- Remap
+    # --------------------------------------------------------------------------
     def remap_loaded_frames(self, options: dict = {}):
         """
         Remap all loaded frames in the video object
@@ -216,8 +249,10 @@ class INPAVideo(FIV):
         self.remap_dat = \
             ssmap.remapAllLoadedFramesINPA(self, **options)
         # Calculate the integral of the remap
-        ouput = self.integrate_remap(xmin=options['xmin'], xmax=options['xmax'],
-                                     ymin=options['ymin'], ymax=options['ymax'])
+        ouput = self.integrate_remap(xmin=self.remap_dat['x'].values[0],
+                                     xmax=self.remap_dat['x'].values[-1],
+                                     ymin=self.remap_dat['y'].values[0],
+                                     ymax=self.remap_dat['y'].values[-1])
         self.remap_dat = xr.merge([self.remap_dat, ouput])
 
     def calculateBangles(self, t='all', verbose: bool = True):
@@ -267,15 +302,15 @@ class INPAVideo(FIV):
                 phi = np.arctan2(s2_projection, s1_projection)
                 time = t
         else:
-            tmin = self.remap_dat['tframes'][0]
-            tmax = self.remap_dat['tframes'][-1]
+            tmin = self.remap_dat['t'][0]
+            tmax = self.remap_dat['t'][-1]
             if t < tmin or t > tmax:
                 raise Exception('Time not present in the remap')
             else:
-                it = np.argmin(abs(self.remap_dat['tframes'] - t))
+                it = np.argmin(abs(self.remap_dat['t'].values - t))
                 theta = self.remap_dat['theta'][it]
                 phi = self.remap_dat['phi'][it]
-                time = self.remap_dat['tframes'][it]
+                time = self.remap_dat['t'][it]
         if verbose:
             # I include these 'np.array' in order to be compatible with the
             # case of just one time point and multiple ones. It is not the most
@@ -287,10 +322,13 @@ class INPAVideo(FIV):
             print('Average phi:', np.array(phi).mean())
         return phi, theta
 
+    # --------------------------------------------------------------------------
+    # --- GUIs
+    # --------------------------------------------------------------------------
     def GUI_frames_and_remap(self):
         """GUI to explore camera and remapped frames"""
         text = 'Press TAB until the time slider is highlighted in red.'\
-            + ' Once that happend, you can move the time with the arrows'\
+            + ' Once that happened, you can move the time with the arrows'\
             + ' of the keyboard, frame by frame'
         print(text)
         root = tk.Tk()
@@ -298,6 +336,18 @@ class INPAVideo(FIV):
         ssGUI.ApplicationShowVidRemap(root, self.exp_dat, self.remap_dat,
                                       self.CameraCalibration,
                                       self.geometryID)
+        root.mainloop()
+        root.destroy()
+
+    def GUI_frames_and_traces(self):
+        """GUI to explore camera and remapped frames"""
+        text = 'Press TAB until the time slider is highlighted in red.' \
+               + ' Once that happened, you can move the time with the arrows' \
+               + ' of the keyboard, frame by frame'
+        print(text)
+        root = tk.Tk()
+        root.resizable(height=None, width=None)
+        ssGUI.ApplicationShowVidAndTraces(root, self)
         root.mainloop()
         root.destroy()
 

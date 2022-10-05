@@ -3,9 +3,15 @@ Strike map for the INPA diagnostic
 
 Jose Rueda: jrrueda@us.es
 """
+import os
+import numpy as np
+import xarray as xr
 import Lib.LibData as ssdat
+import Lib.errors as errors
 from Lib._Machine import machine
+from Lib._SideFunctions import createGrid
 from Lib._basicVariable import BasicVariable
+from Lib.SimulationCodes.Common.strikes import Strikes
 from Lib._StrikeMap._FILD_INPA_ParentStrikeMap import FILDINPA_Smap
 
 
@@ -34,6 +40,8 @@ class Ismap(FILDINPA_Smap):
        - *remap_external_strike_points: remap any strike points
        - *plot_phase_space_resolution_fits: plot the resolution in the phase space
        - *plot_collimator_factors: plot the resolution in the phase space
+       - * plot_instrument_function: Plot the instrument function
+       - build_weight_matrix: Build the instrument function
        - getRho: get the rho coordinates associated to each point
 
     Private method (* means inherited from the father):
@@ -91,12 +99,17 @@ class Ismap(FILDINPA_Smap):
                                variables_to_remap=variables_to_remap,
                                code=code, theta=theta, phi=phi, GeomID=GeomID,
                                verbose=verbose, decimals=decimals)
-
+        # If needed, place rho in place
         if rho_pol is not None:
             self._data['rho_pol'] = rho_pol
         if rho_tor is not None:
             self._data['rho_tor'] = rho_pol
+        # Allocate space for latter
+        self.secondaryStrikes = None
 
+    # --------------------------------------------------------------------------
+    # --- Database interaction
+    #---------------------------------------------------------------------------
     def getRho(self, shot, time, coord: str = 'rho_pol',
                extra_options: dict = {},):
         """
@@ -135,3 +148,120 @@ class Ismap(FILDINPA_Smap):
             units='',
             data=rho,
         )
+
+    # --------------------------------------------------------------------------
+    # --- Weight function calculation
+    # --------------------------------------------------------------------------
+    def build_weight_matrix(self, strikes,
+                            variablesScint: tuple = ('R0', 'e0'),
+                            variablesFI: tuple = ('R0', 'e0'),
+                            weight: str = 'weight0',
+                            gridFI: dict = None,
+                            verbose: bool = True,
+                            ):
+        """
+        Build the INPA weight function
+        :param strikes:
+        :return:
+        Notes:
+        TODO:Include fine resolution via tensor matrix in the middle
+        """
+        # Block 0: Loading and settings ----------------------------------------
+        # --- Check inputs
+        if strikes is None:
+            raise errors.NotValidInput('I need some strikes!')
+        if self.CameraCalibration is None:
+            raise errors.NotFoundCameraCalibration('I need the camera calibr')
+        if self._grid_interp.keys() is None:
+            raise errors.NotValidInput('Need to calculate interpolators first')
+        if 'transformation_matrix' not in self._grid_interp.keys():
+            raise errors.NotValidInput('Need to calculate T matrix first')
+        # --- Initialise default grid
+        if gridFI is None:
+            gridFI = {
+                'xmin': 1.55,
+                'xmax': 2.20,
+                'dx': 0.015,
+                'ymin': 15.0,
+                'ymax': 100.0,
+                'dy': 1.0
+            }
+        # --- Load/put in place the strikes
+        if isinstance(strikes, (str,)):
+            if os.path.isfile(strikes):
+                self.secondaryStrikes = \
+                    Strikes(file=strikes, verbose=verbose, code='SINPA')
+            else:
+                self.secondaryStrikes = \
+                    Strikes(runID=strikes, verbose=verbose, code='SINPA')
+        else:
+            self.secondaryStrikes = strikes
+        # --- Prepare the names
+        nameT = variablesScint[0] + '_' + variablesScint[1]
+        # --- Get the Tmatrix
+        Tmatrix = self._grid_interp['transformation_matrix'][nameT]
+        gridT = self._grid_interp['transformation_matrix'][nameT+'_grid']
+        camera_frame = Tmatrix.shape[2:4]
+        # --- Get the index of the different colums
+        jpx = self.secondaryStrikes.header['info']['ycam']['i']
+        jpy = self.secondaryStrikes.header['info']['xcam']['i']
+        jX = self.secondaryStrikes.header['info'][variablesFI[0]]['i']
+        jY = self.secondaryStrikes.header['info'][variablesFI[1]]['i']
+        jkind = self.secondaryStrikes.header['info']['kind']['i']
+        jw = self.secondaryStrikes.header['info'][weight]['i']
+        # Block 1: Preparation phase -------------------------------------------
+        # --- Prepare the grids
+        # - Edges
+        pxEdges = np.arange(camera_frame[0]+1) - 0.5
+        pyEdges = np.arange(camera_frame[1]+1) - 0.5
+        nx, ny, xedges, yedges = createGrid(**gridFI)
+        # - Centers
+        pxCen = 0.5 * (pxEdges[:-1] + pxEdges[1:])
+        pyCen = 0.5 * (pxEdges[:-1] + pxEdges[1:])
+        xCen = 0.5 * (xedges[:-1] + xedges[1:])
+        yCen = 0.5 * (yedges[:-1] + yedges[1:])
+        # - Volume
+        xvol = xCen[1] - xCen[0]
+        yvol = yCen[1] - yCen[0]
+        # --- Prepare the data
+        flags3 = self.secondaryStrikes.data[0, 0][:, jkind] == 5
+        flags2 = self.secondaryStrikes.data[0, 0][:, jkind] == 6
+        flags = flags2 + flags3
+        nStrikes = flags.sum()
+        dummy = np.zeros((nStrikes, 4))
+        dummy[:, 0] = self.secondaryStrikes.data[0, 0][flags, jpx]
+        dummy[:, 1] = self.secondaryStrikes.data[0, 0][flags, jpy]
+        dummy[:, 2] = self.secondaryStrikes.data[0, 0][flags, jX]
+        dummy[:, 3] = self.secondaryStrikes.data[0, 0][flags, jY]
+        if weight is None:
+            w = self.secondaryStrikes.data[0, 0][flags, jw]
+        else:
+            w = np.ones(nStrikes)
+
+        # --- Calculate the pixel position
+        self.secondaryStrikes.calculate_pixel_coordinates(self.CameraCalibration)
+        # Block 2: Calculation phase -------------------------------------------
+        edges = [pxEdges, pyEdges, xedges, yedges]
+        H, edges_hist = np.histogramdd(
+                dummy,
+                bins=edges,
+                weights=w,
+        )
+
+        # Now perform the tensor product
+        vol = xvol * yvol
+        W = np.tensordot(Tmatrix, H, axes=2) / vol
+        # save it
+        self.instrument_function = xr.DataArray(W, dims=('xs', 'ys', 'x', 'y'),
+                              coords={'xs': gridT['x'], 'ys': gridT['y'],
+                                      'x': xCen, 'y': yCen})
+        self.instrument_function['xs'].attrs['long_name'] = \
+            variablesScint[0].capitalize()
+        self.instrument_function['x'].attrs['long_name'] = \
+            variablesFI[0].capitalize()
+        self.instrument_function['y'].attrs['long_name'] = \
+            variablesFI[1].capitalize()
+        self.instrument_function['ys'].attrs['long_name'] = \
+            variablesScint[1].capitalize()
+
+        return

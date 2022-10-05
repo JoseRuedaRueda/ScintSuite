@@ -3,6 +3,7 @@ import numpy as np
 import Lib.errors as errors
 import matplotlib.pyplot as plt
 from Lib._Mapping._Common import XYtoPixel
+from Lib._TimeTrace._roipoly import roipoly
 __all__ = ['Scintillator']
 
 
@@ -79,6 +80,9 @@ class Scintillator(XYtoPixel):
         ## Coordinates of the vertex of the scintillator in pixels
         self._coord_pix = {}
 
+    # --------------------------------------------------------------------------
+    # --- Mask for video timetraces
+    # --------------------------------------------------------------------------
     def get_path_pix(self):
         """
         Returns the path covered by the scintillator in pixel coordinates.
@@ -110,8 +114,18 @@ class Scintillator(XYtoPixel):
                                              ydum[3*i+2], ydum[3*i + 1],
                                              ydum[3*i], ydum[3*i + 2]])))
 
-        return x, y
+        return np.array((x,y)).T[1:, ...]
 
+    def get_roi(self):
+        """
+        Return a roipoly object with the countour of the scintillator
+        :return: roipoly class
+        """
+        return roipoly(path=self.get_path_pix())
+
+    # --------------------------------------------------------------------------
+    # --- Plotting
+    # --------------------------------------------------------------------------
     def plot_pix(self, ax=None, line_params: dict = {}):
         """
         Plot the scintillator, in pixels, in the axes ax.

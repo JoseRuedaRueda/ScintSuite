@@ -142,69 +142,93 @@ class TimeTrace(BasicSignalVariable):
     """Class with information of the time trace"""
 
     def __init__(self, video=None, mask=None, t1: float = None,
-                 t2: float = None):
+                 t2: float = None, filename: str = None,
+                 ROIname: str = None):
         """
         Initialise the TimeTrace
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        If no times are given, it will use the frames loaded in the video
-        object, if t1 and t2 are present, it will load the corresponding frames
-        If no argument are giving, and empty timetrace object will be created,
-        to be filled by the reading routines
+        There are 3 ways of initalise the TT object:
+            - Option 1: Loaded from a file. just give the path to the netCDF
+            file using the arguments filename
+            - Option 2: pass the video, t1 and t2. The trace will be calculated
+            using the video frames from t1 to t2
+            - Option 3: pass just the vide, the trace will be calculated
+            using all the frames
 
         @param video: Video object used for the calculation of the trace
         @param mask: mask to calculate the trace
         @param t1: Initial time if None, the loaded frames in the video will be
-        used
+            used
         @param t2: Final time if None, the loaded frames in the video will be
-        used
+            used
+        @param ROIname: name of the trace, if present, it will be used as label in
+            the legend plotting. (Useful to overplot different traces). If the
+            trace is loaded from file, this argument will be ignored
         """
         BasicSignalVariable.__init__(self)
-        # Initialise the times to look for the time trace
-        if video is not None:
-            if t1 is None and t2 is None:
-                if video.exp_dat is None:
-                    aa = 'Frames are not loaded, use t1 and t2'
-                    raise Exception(aa)
-            elif t1 is None and t2 is not None:
-                raise Exception('Only one time was given!')
-            elif t1 is not None and t2 is None:
-                raise Exception('Only one time was given!')
-            shot = video.shot
-        else:
-            shot = None
-        # Initialise the different arrays
-        self._data.attrs['shot'] = shot
-
-        ## Binary mask defining the roi
-        self.mask = mask
-        ## roiPoly object (not initialised by default!!!)
-        self.roi = None
-        ## Spectrogram data
-        self.spec = {'taxis': None, 'faxis': None, 'data': None}
-        ## fft data
-        self.fft = {'faxis': None, 'data': None}
-        # Calculate the time trace
-        if video is not None:
-            if t1 is None:
-                time_base = video.exp_dat['t'].squeeze()
-                sum_of_roi, mean_of_roi, std_of_roi,\
-                    max_of_roi = trace(video.exp_dat['frames'].values, mask)
+        if filename is None:
+            # Initialise the times to look for the time trace
+            if video is not None:
+                if t1 is None and t2 is None:
+                    if video.exp_dat is None:
+                        aa = 'Frames are not loaded, use t1 and t2'
+                        raise Exception(aa)
+                elif t1 is None and t2 is not None:
+                    raise Exception('Only one time was given!')
+                elif t1 is not None and t2 is None:
+                    raise Exception('Only one time was given!')
+                shot = video.shot
             else:
-                if video.type_of_file == '.cin':
-                    time_base, sum_of_roi, mean_of_roi,\
-                        std_of_roi, max_of_roi =\
-                        time_trace_cine(video, mask, t1, t2)
+                shot = None
+            # Initialise the different arrays
+            self._data.attrs['shot'] = shot
+
+            ## Binary mask defining the roi
+            self.mask = mask
+            ## roiPoly object (not initialised by default!!!)
+            self.roi = None
+            ## Spectrogram data
+            self.spec = {'taxis': None, 'faxis': None, 'data': None}
+            ## fft data
+            self.fft = {'faxis': None, 'data': None}
+            # Calculate the time trace
+            if video is not None:
+                if t1 is None:
+                    time_base = video.exp_dat['t'].squeeze()
+                    sum_of_roi, mean_of_roi, std_of_roi,\
+                        max_of_roi = trace(video.exp_dat['frames'].values, mask)
                 else:
-                    raise Exception('Still not implemented, contact ruejo')
-            # Save the trace in the data structure
-            self._data['sum_of_roi'] = \
-                xr.DataArray(sum_of_roi, dims=('t',),
-                             coords={'t':time_base})
-            self._data['mean_of_roi'] = xr.DataArray(mean_of_roi, dims='t')
-            self._data['std_of_roi'] = xr.DataArray(std_of_roi, dims='t')
-            self._data['max_of_roi'] = xr.DataArray(max_of_roi, dims='t')
+                    if video.type_of_file == '.cin':
+                        time_base, sum_of_roi, mean_of_roi,\
+                            std_of_roi, max_of_roi =\
+                            time_trace_cine(video, mask, t1, t2)
+                    else:
+                        raise Exception('Still not implemented, contact ruejo')
+                # Save the trace in the data structure
+                self._data['sum_of_roi'] = \
+                    xr.DataArray(sum_of_roi, dims=('t',),
+                                 coords={'t':time_base})
+                self._data['mean_of_roi'] = xr.DataArray(mean_of_roi, dims='t')
+                self._data['std_of_roi'] = xr.DataArray(std_of_roi, dims='t')
+                self._data['max_of_roi'] = xr.DataArray(max_of_roi, dims='t')
+            self._ROIname = ROIname
+            if self._ROIname is not None:
+                self._data.attrs['ROIname'] = ROIname
+            else:
+                self._data.attrs['ROIname'] = ''
+        else:
+            self._data = xr.load_dataset(filename)
+            self.mask = self._data['mask'].values.copy()
+            self._data.drop('mask')
+            try:  # old traces does not have this field
+                self._ROIname = self._data.attrs['ROIname']
+                if self._ROIname == '':
+                    self._ROIname = None
+            except KeyError:
+                self._ROIname = None
+                self._data.attrs['ROIname'] = ''
 
     def export_to_ascii(self, filename: str = None, precision=3):
         """
@@ -247,6 +271,17 @@ class TimeTrace(BasicSignalVariable):
                    delimiter='   ,   ', header=line,
                    fmt='%.'+str(precision)+'e')
 
+    def export_to_netcdf(self, filename: str):
+        """
+        Export the time trace to a netCDF file
+
+        @param filename: str, name of the nc file to be created
+        """
+        dummy = self._data.copy()
+        dummy['mask'] = xr.DataArray(self.mask)
+        dummy.to_netcdf(filename)
+
+
     def plot_single(self, data: str = 'sum', ax_params: dict = {},
                     line_params: dict = {}, normalised: bool = False, ax=None,
                     correct_baseline: str = 'end'):
@@ -278,6 +313,8 @@ class TimeTrace(BasicSignalVariable):
         }
         line_options = {
         }
+        if self._ROIname is not None:
+            line_options['label'] = self._ROIname
         # --- Select the proper data:
         if data == 'sum':
             y = self['sum_of_roi'].values.copy()

@@ -32,7 +32,8 @@ def paths_of_the_suite():
     Machine_libs = {
         'AUG': {
             'AUG_Python': '/afs/ipp/aug/ads-diags/common/python/lib',
-            'Giovanni': '/afs/ipp/home/g/git/python/fbm/'
+            'Giovanni': '/afs/ipp/home/g/git/python/fbm/',
+            'FIDASIM4': os.path.join(os.getenv("HOME"), 'FIDASIM4')
             # 'Suite_AUG': os.path.join(SUITE_DIR, 'Lib/LibData/AUG')
         },
         'MU': {
@@ -50,8 +51,7 @@ def paths_of_the_suite():
     # Machine dependent paths:
     if machine in Machine_libs:
         for lib in Machine_libs[machine].keys():
-            sys.path.extend([os.path.join(SUITE_DIR,
-                             Machine_libs[machine][lib])])
+            sys.path.extend([Machine_libs[machine][lib],])
 
     # Check the cluster where we are working
     if machine == 'AUG':

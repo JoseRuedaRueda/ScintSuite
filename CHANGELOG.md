@@ -1,3 +1,31 @@
+## 1.0.4: Lentejas
+## Tomography
+- Lib Tomography rewritten, now the folding of the W is done via numba, saving 99% of the time
+- New class to perform tomography created
+- Tomography library split in different small files
+## Optics
+- Included a simple grid object, to generate evenly spaced grid (usefull for distortion). The object is a child of XYtoPixel
+## SimulationCodes
+- field.tofile() now accept a string as fid. If this is the case, the method will open itself the file, so there is no longer the need of open the file outside
+## Video
+- INPA video now have a flag to load NBI and ne data when reading the video header
+- *BUG*, corrected a bug when substracting the noise in a video giving just the frame
+- Added and optional argument, YOLO, in the BVO. If true, the code will ignore frames which database is corrupt, typical
+## GUIs
+- Adapted GUIs to the new xArray structures
+- Created GUIS to show raw video and plasma traces
+
+## 1.0.3: Salmorejo con Jamon
+### TimeTrace
+- Time trace object have now a method to export to netCDF
+- Timetrace object allows now to be initialised from a netCDF file
+- read_trace() from the io package was deprecated, as it used the old format for the trace
+- TimeTrace accept now a name as input, to be used to label the plots
+
+### Video
+- FILD video includes now a scintillator attribute
+- getTimeTrace return the time trace using the scintillator as mask, if no time nor mask is passed as input
+
 ## 1.0.2: Bug fix and example revision
 - Examples revised by lvelarde
 - **Bux fix** small bug relative to the us of the xarrays in the video object fixed
