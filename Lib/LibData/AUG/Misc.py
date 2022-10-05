@@ -94,7 +94,7 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
         info = params.FILD[diag_number - 1]
         diag_name = info['diag']
         signal_prefix = info['channel']
-        nch = info['nch']    
+        nch = info['nch']
     elif diag.lower() == 'inpa':
         if diag_number != 1:
             print('You requested: ', diag_number)
@@ -103,7 +103,7 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
         diag_name = info['diag']
         signal_prefix = info['channel']
         nch = info['nch']
-    
+
 
     # Look which channels we need to load:
     try:    # If we received a numpy array, all is fine
