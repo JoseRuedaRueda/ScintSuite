@@ -1,6 +1,14 @@
 # Text file containing information about the camera parameters
-# Last Update: 09/02/2022
+# Last Update: 03/10/2022
 #FORMAT IS:
-#ID CAMERA             SHOT1   SHOT2   XS    YS     Xsc     Ysc     DEG   CAL   diag_ID   c1        xcenter   ycenter
+#ID CAMERA           SHOT1   SHOT2   XS    YS   Xsc   Ysc     DEG    CAL diag_ID  c1        xcenter   ycenter
 
-0   SLOWCAMERA       30000   99999   730  400   4.72   4.72   -89    PIX   1     -5.65e-4     338.75      230
+0   JAI              39810   40166   712    118  -4.4  4.4    89.0    PIX  1    -3.65e-4     340      242
+1   JAI              40167   40425   722    97   -4.4  4.4    90.0    PIX  1    -3.65e-4     350      230
+1   JAI              40747   40935   721    95   -4.4  4.4    90.0    PIX  1    -3.65e-4     349      228
+1   ROTATEDJAI       40936   40984   -22   385   -4.4  4.4    270.7   PIX  2    -3.65e-4     349      248
+2   JAI              40985   41224   698    98   -4.4  4.4    90.5    PIX  1    -3.65e-4     327      235
+3   DMK              41225   41366   1084   165  -6.0  6.0    89.5    PIX  3    -1.81e-4     577      338
+4   DMK              41367   41404   1074   165  -6.0  6.0    89.5    PIX  3    -1.81e-4     564      338
+5   DMK              41405   41509   1078   155  -6.0  6.0    89.5    PIX  3    -1.81e-4     573      336
+6   DMK              41510   99999   1088   150  -6.0  6.0    89.5    PIX  3    -1.81e-4     580      326
