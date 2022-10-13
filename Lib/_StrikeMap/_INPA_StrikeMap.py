@@ -4,15 +4,20 @@ Strike map for the INPA diagnostic
 Jose Rueda: jrrueda@us.es
 """
 import os
+import logging
 import numpy as np
 import xarray as xr
 import Lib.LibData as ssdat
 import Lib.errors as errors
+from tqdm import tqdm
 from Lib._Machine import machine
-from Lib._SideFunctions import createGrid
+from scipy.signal import convolve
+from Lib._SideFunctions import createGrid, gkern
 from Lib._basicVariable import BasicVariable
 from Lib.SimulationCodes.Common.strikes import Strikes
 from Lib._StrikeMap._FILD_INPA_ParentStrikeMap import FILDINPA_Smap
+
+logger = logging.getLogger('ScintSuite.INPAstrikeMap')
 
 
 class Ismap(FILDINPA_Smap):
@@ -157,6 +162,7 @@ class Ismap(FILDINPA_Smap):
                             variablesFI: tuple = ('R0', 'e0'),
                             weight: str = 'weight0',
                             gridFI: dict = None,
+                            sigmaOptics: float = 4.5,
                             verbose: bool = True,
                             ):
         """
@@ -164,7 +170,7 @@ class Ismap(FILDINPA_Smap):
         :param strikes:
         :return:
         Notes:
-        TODO:Include fine resolution via tensor matrix in the middle
+        TODO:Include fine resolution depending of the optical axis
         """
         # Block 0: Loading and settings ----------------------------------------
         # --- Check inputs
@@ -247,6 +253,16 @@ class Ismap(FILDINPA_Smap):
                 bins=edges,
                 weights=w,
         )
+        # Add the finite focus of the optics
+        if sigmaOptics > 0.01:
+            logger.info('Adding finite focus')
+            kernel = gkern(int(6.0*sigmaOptics)+1, sig=sigmaOptics)
+            for kx in tqdm(range(H.shape[2])):
+                for ky in range(H.shape[3]):
+                    H[..., kx, ky] = convolve(H[..., kx, ky].squeeze(), kernel,
+                                              mode='same')
+        else:
+            logger.info('Not considering finite focusing')
 
         # Now perform the tensor product
         vol = xvol * yvol
