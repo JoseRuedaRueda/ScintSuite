@@ -1,7 +1,7 @@
 """
-Decorators for the Scintillator Suite
+Decorators and colorizers for the Scintillator Suite
 """
-
+import sys
 import functools
 import inspect
 import warnings
