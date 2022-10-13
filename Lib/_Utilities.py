@@ -6,9 +6,9 @@ designed to be inserted in the main suite. For example a routine which given
 the pitch a particle have in a given radial location, calculates the pitch
 which will have at the FILD position
 """
-
-import numpy as np
 import math
+import numpy as np
+import xarray as xr
 import Lib.LibData as ssdat
 import warnings
 import logging
@@ -189,9 +189,12 @@ def TP_boundary(shot, z0, t, Rmin=1.5, Rmax=2.1, zmin=-0.9, zmax=0.9):
         mask = abs(rho - rho1) < 0.01
         rr = R[mask]
         r0 = rr.min()
-        print(r[i], r0)
         tp[i] = np.sqrt(1 - r0 / r[i])
-    return r, tp
+    output = xr.DataArray(tp, dims='R', coords={'R': r})
+    output.attrs['long_name'] = '$\\lambda_{b}$'
+    output.attrs['Description'] = '|pitch_TP|= sqrt(Rmin/R)'
+    
+    return output
 
 
 # -----------------------------------------------------------------------------
