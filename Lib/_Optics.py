@@ -11,11 +11,13 @@ import Lib._IO as ssio
 import Lib.errors as errors
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+
 from Lib._Paths import Path
 from Lib._Machine import machine
 from Lib._Utilities import distmat
 from Lib._Mapping._Common import XYtoPixel
 from tqdm import tqdm
+from scipy.sparse import lil_matrix
 from scipy.ndimage import gaussian_filter
 logger = logging.getLogger('ScintSuite.Optics')
 
@@ -173,14 +175,15 @@ def createFocusMatrix(frame, coef_sigma=1.0,
     Warning, can be extremelly memory consuming, if you want to apply finite
     focus, use the function: defocus
     """
-    # conver to numpy array, if the user gave us just a constant sigma
+    # convert to numpy array, if the user gave us just a constant sigma
     try:
         len(coef_sigma)
     except TypeError:
         coef_sigma = np.array([coef_sigma])
     # Create the ouput matrix
     n1, n2 = frame.shape
-    output = np.zeros((n1, n2, n1, n2))
+
+    output = lil_matrix((n1*n2, n1*n2))
 
     # fill the matrix
     ic = center[0]
@@ -188,12 +191,16 @@ def createFocusMatrix(frame, coef_sigma=1.0,
 
     for i in tqdm(range(n1)):
         for j in range(n2):
-            d = math.sqrt((i - ic)**2 + (j - jc)**2)
-            sigma = np.polyval(coef_sigma, d)
-            index_distance = distmat(frame, (i, j))
-            output[i, j, ...] = np.exp(-index_distance**2 / 2 / sigma*2)\
-                / 2 / math.pi / sigma**2
-    return output
+            single_matrix = np.zeros((n1, n2))
+            single_matrix[i, j] = 1.0
+            output[:, j + i*n2] = gaussian_filter(single_matrix, coef_sigma[0]
+                                                  ).flatten()
+            # d = math.sqrt((i - ic)**2 + (j - jc)**2)
+            # sigma = np.polyval(coef_sigma, d)
+            # index_distance = distmat(frame, (i, j))
+            # output[i, j, ...] = np.e**(-index_distance**2 / 2 / sigma*2)\
+            #     / 2 / math.pi / sigma**2
+    return output.tocsr().copy()
 
 
 def defocus(frame, coef_sigma=1.0,
@@ -276,6 +283,7 @@ class FnumberTransmission():
         if file is None:
             file = os.path.join(paths.ScintSuite, 'Data', 'Calibrations',
                                 diag, machine, geomID + '_F_number.txt')
+            print(file)
         R, F = np.loadtxt(file, skiprows=12, unpack=True)
 
         Omega = np.pi / (2 * F)**2

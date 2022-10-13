@@ -641,7 +641,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         """
         # --- See if the interpolators are defined
         if self._map_interpolators is None:
-            print('Interpolators not calcualted. Calculating them')
+            logger.warning('27: Interpolators not calcualted. Calculating them')
             self._calculate_mapping_interpolators()
         # --- Proceed to remap
         # Get the shape of the map

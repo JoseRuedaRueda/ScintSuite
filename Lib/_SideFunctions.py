@@ -131,5 +131,19 @@ def running_mean(x, N):
     :param N:
     :return:
     """
-    cumsum = numpy.cumsum(numpy.insert(x, 0, 0))
+    cumsum = np.cumsum(np.insert(x, 0, 0))
     return (cumsum[N:] - cumsum[:-N]) / float(N)
+
+
+def gkern(l=int(4.5*6)+1, sig=4.5):
+    """
+    Create gaussian kernel with side length `l` and a sigma of `sig`
+
+    Extracted from:
+    https://stackoverflow.com/questions/29731726/
+    how-to-calculate-a-gaussian-kernel-matrix-efficiently-in-numpy
+    """
+    ax = np.linspace(-(l - 1) / 2., (l - 1) / 2., l)
+    gauss = np.exp(-0.5 * np.square(ax) / np.square(sig))
+    kernel = np.outer(gauss, gauss)
+    return kernel / np.sum(kernel)

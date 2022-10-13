@@ -52,7 +52,8 @@ def plotSettings(plot_mode='software', usetex=False):
 
     mpl.rcParams['svg.fonttype'] = 'none'  # to edit fonts in inkscape
 
-    # Try to set the fonttypes, only available in version > 3.5.2
+    mpl.rcParams["backend"] = 'Qt5Agg'
+    # Try to set the font-types, only available in version > 3.5.2
     try:
         # for PDF backend
         plt.rcParams['pdf.fonttype'] = 42
@@ -64,7 +65,7 @@ def plotSettings(plot_mode='software', usetex=False):
         plt.rcParams['svg.fonttype'] = 'none'
     except:
         pass
-    # Latex formating
+    # Latex formatting
     mpl.rc('text', usetex=usetex)
 
     # Default plotting color
@@ -102,7 +103,7 @@ def plotSettings(plot_mode='software', usetex=False):
     mpl.rcParams['ytick.minor.width'] = nml[mode]['minor_tick_width']
 
     # Print and return
-    print('Plotting options initialised')
+    logger.info('Plotting options initialised')
     return
 
 
