@@ -60,7 +60,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             'versionID1': np.fromfile(fid, 'int32', 1)[0],
             'versionID2': np.fromfile(fid, 'int32', 1)[0],
         }
-        if header['versionID1'] <= 2:
+        if header['versionID1'] <= 3:
             # Keys of what we have in the file:
             header['runID'] = np.fromfile(fid, 'S50', 1)[:]
             header['ngyr'] = np.fromfile(fid, 'int32', 1)[0]
@@ -359,8 +359,7 @@ class Strikes:
                                     runID + name)
         self.file = file
         # --- read the file
-        if verbose:
-            print('Reading file: ', file)
+        logger.info('Reading file: %s', file)
         if code.lower() == 'sinpa':
             self.header, self.data = readSINPAstrikes(file, verbose)
         elif code.lower() == 'fildsim':
@@ -434,6 +433,10 @@ class Strikes:
             jw0 = self.header['info']['weight0']['i']
         except KeyError:
             jw0 = None
+        try:   # We can have optics in the camera, which include optical models
+            jwc = self.header['info']['wcam']['i']
+        except KeyError:
+            jwc = None
         try:   # For 2.0 SINPA files with 2 weights
             jk = self.header['info']['kind']['i']
         except KeyError:
@@ -482,6 +485,11 @@ class Strikes:
             self.histograms[varx + '_' + vary + '_w'] = \
                 {0: {}, 5: {}, 6: {}, 7: {}, 8: {}}
             dataS = np.zeros((edgesx.size-1, edgesy.size-1))
+        # For the weight at the camera
+        if jwc is not None:
+            self.histograms[varx + '_' + vary + '_wcam'] = \
+                {0: {}, 5: {}, 6: {}, 7: {}, 8: {}}
+            dataC = np.zeros((edgesx.size-1, edgesy.size-1))
         # We could calculate the complete histogram (case k = 0) as the sum of
         # the individual histogram, this will be more efficient but we would
         # have the issue that the FILD strike points does not have this kind
@@ -510,6 +518,13 @@ class Strikes:
                                            self.data[ia, ig][:, jy],
                                            bins=(edgesx, edgesy), weights=weig)
                         data0 += H
+                    if jwc is not None:
+                        weig = self.data[ia, ig][:, jwc]
+                        H, xedges, yedges = \
+                            np.histogram2d(self.data[ia, ig][:, jx],
+                                           self.data[ia, ig][:, jy],
+                                           bins=(edgesx, edgesy), weights=weig)
+                        dataC += H
         xcen = 0.5 * (xedges[1:] + xedges[:-1])
         ycen = 0.5 * (yedges[1:] + yedges[:-1])
         deltax = xcen[1] - xcen[0]
@@ -543,17 +558,30 @@ class Strikes:
                 'H': data0,
                 'area': deltax * deltay
             }
+        if jwc is not None:
+            dataC /= deltax * deltay
+            self.histograms[varx + '_' + vary + '_wcam'][0] = {
+                'xcen': xcen,
+                'ycen': ycen,
+                'xedges': xedges,
+                'yedges': yedges,
+                'H': dataC,
+                'area': deltax * deltay
+            }
 
         # Now repeat the same for the different kinds
         if jk is not None:
             for kind in [5, 6, 7, 8]:
                 data = np.zeros((edgesx.size-1, edgesy.size-1))
-                # For the weight at thedetecor entrance
+                # For the weight at the detecor entrance
                 if jw0 is not None:
                     data0 = np.zeros((edgesx.size-1, edgesy.size-1))
                 # For the weight at the scintillator
                 if jw is not None:
                     dataS = np.zeros((edgesx.size-1, edgesy.size-1))
+                # For the weight at the camera
+                if jw is not None:
+                    dataC = np.zeros((edgesx.size-1, edgesy.size-1))
                 for ig in range(self.header['ngyr']):
                     for ia in range(self.header['nXI']):
                         # Skip if there is no markers
@@ -587,6 +615,14 @@ class Strikes:
                                                bins=(edgesx, edgesy),
                                                weights=weig)
                             data0 += H
+                        if jwc is not None:
+                            weig = self.data[ia, ig][f, jwc]
+                            H, xedges, yedges = \
+                                np.histogram2d(self.data[ia, ig][f, jx],
+                                               self.data[ia, ig][f, jy],
+                                               bins=(edgesx, edgesy),
+                                               weights=weig)
+                            dataC += H
                 xcen = 0.5 * (xedges[1:] + xedges[:-1])
                 ycen = 0.5 * (yedges[1:] + yedges[:-1])
                 deltax = xcen[1] - xcen[0]
@@ -618,6 +654,16 @@ class Strikes:
                         'xedges': xedges,
                         'yedges': yedges,
                         'H': data0,
+                        'area': deltax * deltay
+                    }
+                if jwc is not None:
+                    dataC /= deltax * deltay
+                    self.histograms[varx + '_' + vary + '_wcam'][kind] = {
+                        'xcen': xcen,
+                        'ycen': ycen,
+                        'xedges': xedges,
+                        'yedges': yedges,
+                        'H': dataC,
                         'area': deltax * deltay
                     }
 
@@ -1244,7 +1290,8 @@ class Strikes:
             overwrite = False
         iix = self.header['info']['x1']['i']
         iiy = self.header['info']['x2']['i']
-        iiw = self.header['info']['weight']['i']
+        logger.warning('Scaling W0, not W scintillator')
+        iiw = self.header['info']['weight0']['i']
         # --- Get the center coordinates in the scintillator space
         alpha = cal.deg * np.pi / 180
         xc = math.cos(alpha) * (cal.xcenter - cal.xshift) / cal.xscale \
@@ -1380,6 +1427,10 @@ class Strikes:
             habia_peso_0 = True
         else:
             habia_peso_0 = False
+        if 'xcam_ycam_wcam' in self.histograms.keys():
+            habia_peso_cam = True
+        else:
+            habia_peso_cam = False
         # --- Prepare the grid
         frame_shape = self.histograms['xcam_ycam'][0]['H'].shape
         nx, ny, xedges, yedges = createGrid(
@@ -1481,6 +1532,21 @@ class Strikes:
                 smap, self.histograms['xcam_ycam_w0'][0]['H'],
                 x_edges=xedges, y_edges=yedges, mask=None,
                 method=options['remap_method'])
+        if habia_peso_cam:
+            name2 = name + '_wcam'
+            self.histograms[name2] = {
+                0: {
+                    'xcen': xcenter,
+                    'xedges': xedges,
+                    'ycen': ycenter,
+                    'yedges': yedges,
+                    'H': None
+                }
+            }
+            self.histograms[name2][0]['H'] = remap(
+                smap, self.histograms['xcam_ycam_wcam'][0]['H'],
+                x_edges=xedges, y_edges=yedges, mask=None,
+                method=options['remap_method'])
 
     @property
     def shape(self):
@@ -1492,5 +1558,4 @@ class Strikes:
             out = self.get(var)
         except KeyError:
             out = None
-        return out
         return out

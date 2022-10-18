@@ -26,6 +26,7 @@ import Lib.LibData as ssdat
 from Lib.version_suite import version
 from Lib._Video._FILD_INPA_Parent import FIV
 from Lib._Machine import machine
+from Lib._Scintillator import Scintillator
 import Lib._Video._AuxFunctions as _aux
 import Lib.errors as errors
 from scipy.io import netcdf                # To export remap data
@@ -138,7 +139,7 @@ class INPAVideo(FIV):
                                          self.geometryID,
                                          'Scintillator.pl')
                 if os.path.isfile(platename):
-                    self.scintillator = ssmap.Scintillator(file=platename)
+                    self.scintillator = Scintillator(file=platename)
                     self.scintillator.calculate_pixel_coordinates(
                             self.CameraCalibration)
                     self.ROIscintillator = self.scintillator.get_roi()
@@ -194,7 +195,7 @@ class INPAVideo(FIV):
             xr.DataArray(phi, dims=('t'), coords={'t': self.BField['t'].values})
         self.Bangles['theta'] = xr.DataArray(theta, dims=('t'))
 
-    def _checkStrikeMapDatabase():
+    def _checkStrikeMapDatabase(self,):
         pass
 
     # --------------------------------------------------------------------------
