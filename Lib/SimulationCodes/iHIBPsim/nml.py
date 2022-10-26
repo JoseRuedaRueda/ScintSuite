@@ -15,8 +15,8 @@ import numpy as np
 import warnings
 import Lib
 import os
-from Lib.LibMachine import machine
-from Lib.LibPaths import Path
+from Lib._Machine import machine
+from Lib._Paths import Path
 import f90nml
 
 

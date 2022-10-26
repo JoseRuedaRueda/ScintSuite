@@ -8,13 +8,10 @@ import os
 import f90nml
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import warnings
-from Lib.LibMachine import machine
-from Lib.LibPaths import Path
-from Lib.LibMap.Calibration import CalParams
+from Lib._Machine import machine
+from Lib._Paths import Path
+from Lib._Mapping._Calibration import CalParams
 import Lib.LibData.MU.DiagParam as params
-import Lib.errors as errors
 paths = Path(machine)
 
 
@@ -37,21 +34,20 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
     Guess the filename of a video
 
     Jose Rueda Rueda: jrrueda@us.es
-    Lina Velarde: lvelarde@us.es
+
+    Note Juanfran criteria of organising files is assumed: .../<shot>/...
 
     @param shot: shot number
-    @param diag_ID: FILD manipulator number. Will always be 1 for now.
+    @param diag_ID: FILD manipulator number
 
     @return file: the name of the file/folder
     """
-    raise Exception('MAST-U automatic search for file has not yet been implemented')
     base_dir = params.FILD[diag_ID-1]['path']
-    extension = params.FILD[diag_ID-1]['extension']
+    extension = params.FILD[diag_ID-1]['extension'](shot)
     shot_str = str(shot)
     name = shot_str + extension
-    file = os.path.join(base_dir, shot_str[0:2], name)
+    file = os.path.join(base_dir, name)
     return file
-
 
 
 # --- FILD object
@@ -354,21 +350,22 @@ class FILD_logbook:
             print('Shot not found in logbook, returning the default values')
             return default
         # --- Get the angle
-        #adqfreq = 23        # Initialise the parameter
         dummy = self.positionDatabase['FILD'+str(FILDid)]
         if 'Gamma [deg]' in dummy.keys():  # Look for angle
-            beta = - dummy['Gamma [deg]'].values[i] # Provisional negative sign.
+            # Provisional negative sign.
+            beta = - dummy['Gamma [deg]'].values[i]
             # Todo: change sign here and in notebook
             print('Provisional comments:')
-            print('Please make sure the beta angle in the notebook is contrary to convention')
-            print('Convention is: negative when anticlockwise, looked from outside the vessel')
+            print(
+                'Please make sure the beta angle in the notebook is contrary to convention')
+            print(
+                'Convention is: negative when anticlockwise, looked from outside the vessel')
         else:  # Take the default approx value
             print('Beta angle not in the logbook, returning default')
             return default
         default['beta'] = beta
 
         return default
-
 
     def getAdqFreq(self, shot: int, diag_ID: int = 1):
         """
@@ -394,7 +391,6 @@ class FILD_logbook:
             print('Shot not found in logbook, returning the default values')
             return default
         # --- Get the postion
-        #adqfreq = 23        # Initialise the parameter
         dummy = self.positionDatabase['FILD'+str(diag_ID)]
         if 'CCDqe freq [Hz]' in dummy.keys():  # Look for adqfreq
             adqfreq = dummy['CCDqe freq [Hz]'].values[i]
@@ -427,7 +423,6 @@ class FILD_logbook:
             print('Shot not found in logbook, returning the default values')
             return default
         # --- Get the postion
-        #t_trig = 23        # Initialise the parameter
         dummy = self.positionDatabase['FILD'+str(diag_ID)]
         if 'CCDqe trigger time [s]' in dummy.keys():  # Look for adqfreq
             adqfreq = dummy['CCDqe trigger time [s]'].values[i]
@@ -435,7 +430,6 @@ class FILD_logbook:
             print('Trigger time not in the logbook, returning default')
             adqfreq = default
         return adqfreq
-
 
     def getGeomShots(self, geomID, maxR: float = None):
         """
@@ -447,8 +441,7 @@ class FILD_logbook:
                 1: 1.8 m
         """
         # Minimum insertion
-        minin = {1: 1.8
-                    }
+        minin = {1: 1.8}
         # get the shot interval for this geometry
         flags_geometry = self.geometryDatabase['GeomID'] == geomID
         n_instalations = sum(flags_geometry)

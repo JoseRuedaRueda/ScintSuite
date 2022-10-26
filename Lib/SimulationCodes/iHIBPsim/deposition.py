@@ -8,22 +8,24 @@ Pablo Oyola - pablo.oyola@ipp.mpg.de
 """
 
 import numpy as np
+import logging
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import os
+from scipy.interpolate import RectBivariateSpline
+from Lib.LibData import get_rho
+import Lib.SimulationCodes.iHIBPsim.hibp_utils as utils
+logger = logging.getLogger('ScintSuite.iHIBPsim')
 try:
     import xarray as xr
 except ModuleNotFoundError:
-    print('Xarray not found. Install it to use iHIBPsim.')
-import matplotlib.pyplot as plt
-import os
+    logger.warning('10: Xarray not found. Needed for iHIBPsim.')
 
-from scipy.interpolate import RectBivariateSpline
-
-from Lib.LibData import get_rho
-import Lib.SimulationCodes.iHIBPsim.hibp_utils as utils
 
 # -----------------------------------------------------------------------------
 # Variables.
 # -----------------------------------------------------------------------------
-variables_name = np.array(('ID', 'Rmajor', 'Z', 'phi', 'vR', 'vZ', 'vPhi',
+variables_name = np.array(('ID', 'Rmajor', 'Z', 'phi', 'vR',  'vPhi', 'vZ',
                            'mass', 'charge', 'weight', 'time', 'rhopol0',
                            'Rmajor0', 'Z0', 'scint_X', 'scint_Y', 'scint_Z',
                            'Lambda', 'tPerp', 'Angle', 'intensity'))
@@ -32,7 +34,7 @@ variables_name = np.array(('ID', 'Rmajor', 'Z', 'phi', 'vR', 'vZ', 'vPhi',
 # -----------------------------------------------------------------------------
 # Auxiliar functions to read the files.
 # -----------------------------------------------------------------------------
-def read_deposition_header(filename: str, version: int=1):
+def read_deposition_header(filename: str, version: int = 1):
     """
     Get the header from the deposition file according to the code version.
 
@@ -113,11 +115,15 @@ class deposition:
 
         self.rhop_interp = RectBivariateSpline(Rin, zin, self.rhopol)
 
-    def read(self):
+    def read(self, xDatasetOutput: bool = False):
         """
         Reads the deposition file and returns the data.
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
+        Jose Rueda - jrrueda@us.es
+
+        @param xDatasetOutput: if true, returns the data as a dataset, with
+            independent dataarrays for each variable
         """
         # Total number of data to read.
         ntotal = self.header['N'] * self.header['nch']
@@ -129,12 +135,25 @@ class deposition:
                                                       self.header['N']),
                                                       order='F')
         # Returns the data as an xarray.
-        output = xr.DataArray(data, dims=('variable', 'marker'),
-                              coords=(self.header['names'],
-                                      np.arange(self.header['N'])))
+        if not xDatasetOutput:
+            output = xr.DataArray(data, dims=('variable', 'marker'),
+                                  coords=(self.header['names'],
+                                          np.arange(self.header['N'])))
+        else:
+            jID = np.array(self.header['names']) == 'ID'
+            ID = data[jID, :].squeeze().astype(int)
+            output = xr.Dataset()
+            for j, name in enumerate(self.header['names']):
+                if name != 'ID':
+                    output[name] = xr.DataArray(data[j, :], coords={'ID': ID},
+                                                dims='ID')
+                    output[name].attrs['long_name'] = name
 
         return output
 
+    # -------------------------------------------------------------------------
+    # --- Plotting Block
+    # -------------------------------------------------------------------------
     def plot1d(self, xaxis: str='rmajor', ax=None, bins: int=None, **line_params):
         """
         Plot the deposition profile as a function either from major radius or
@@ -218,7 +237,7 @@ class deposition:
 
         R = data.sel(variable='Rmajor').values
         z = data.sel(variable='Z').values
-        phi = data.sel(variable='Phi').values
+        phi = data.sel(variable='phi').values
         w = np.exp(data.sel(variable='weight').values)
         if view.lower() == 'pol':
             grr, gzz, H = utils.hist2d(R, z, w, bins=bins)
@@ -232,6 +251,7 @@ class deposition:
 
             xlabel = 'X (m)'
             ylabel = 'Y (m)'
+
         else:
             raise ValueError('View = %s not recognized'%view)
 
@@ -250,3 +270,31 @@ class deposition:
             cbar.set_label(zlabel)
 
         return ax
+
+    def plot3d(self, ax=None, **plt_params):
+        """"
+        Plots the deposition using a 3D scatter plot.
+
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+        @param ax: axis to plot the deposition.
+        """
+        # Let's read the data from the file.
+        data = self.read()
+
+        ## Let's generate the axis to plot.
+        ax_was_none = ax is None
+        if ax_was_none:
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection = '3d')
+
+        R = data.sel(variable='Rmajor').values
+        z = data.sel(variable='Z').values
+        phi = data.sel(variable='phi').values
+        w = np.exp(data.sel(variable='weight').values)
+
+        ## To Cartesian coordinates.
+        x = R*np.cos(phi)
+        y = R*np.sin(phi)
+
+        return ax.scatter(x, y, z, c=w)

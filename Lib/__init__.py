@@ -9,75 +9,171 @@ documentation
 
 @mainpage Scintillator Suite Project
 """
-# Ignore numpy warning
-import warnings
-import numpy as np
-with warnings.catch_warnings(record=True):
-    # Add the paths direactories for python
-    try:
-        from paths_suite import paths_of_the_suite
-        paths_of_the_suite()
-    except:
-        pass
-    # Mapping
-    import Lib.LibMap as mapping
+import os
+import f90nml
+import logging
+## ----------------------------------------------------------------------------
+# --- Filters and color handler, logging
 
-    # Simulations codes
-    import Lib.SimulationCodes.FILDSIM as fildsim
-    import Lib.SimulationCodes.FIDASIM as fidasim
-    import Lib.SimulationCodes.SINPA as sinpa
-    import Lib.SimulationCodes.Common as simcom
+try:
+    home = os.getenv("HOME")
+    file = \
+        os.path.join(home, 'ScintSuite', 'Data',
+                     'MyData', 'IgnoreWarnings.txt')
+    to_ignore = str(f90nml.read(file)['Warnings']['warningstoignore'])
+except FileNotFoundError:
+    to_ignore = 'None'
 
-    # Reconstructions
-    import Lib.LibTomography as tomo
 
-    # Load data
-    import Lib.LibData as dat
-    import Lib.LibVideo as vid
-    import Lib.LibVRT as vrt
+class _NoParsingFilter(logging.Filter):
+    def filter(self, record, to_ignore=to_ignore):
+        return not record.getMessage().startswith(to_ignore)
 
-    import Lib.LibParameters as par
-    import Lib.LibPlotting as plt
-    import Lib.LibTimeTraces as tt
-    import Lib.LibUtilities as extra
-    import Lib.LibFrequencyAnalysis as ftt
-    import Lib.LibPaths as p
-    import Lib.LibMachine as m
-    import Lib.LibTracker as tracker
-    import Lib.LibIO as io
-    import Lib.LibFastChannel as fc
-    import Lib.LibScintillatorCharacterization as scintcharact
-    import Lib.GUIs as GUI
-    import Lib.LibOptics as optics
-    import Lib.LibNoise as noise
-    from Lib.version_suite import version, codename
-    import Lib.LibCAD as cad
-    import Lib.LibSideFunctions as side
 
-    machine = m.machine
-    paths = p.Path(machine)
+class _CustomFormatter(logging.Formatter):
 
-    # Non tokamak independent libraries
-    if machine == 'AUG':
-        import Lib.SimulationCodes.iHIBPsim as ihibp
+    grey = "\x1b[37;20m"
+    yellow = "\x1b[33;20m"
+    red = "\x1b[31;20m"
+    bold_red = "\x1b[31;1m"
+    reset = "\x1b[0m"
+    format = "%(name)s | %(levelname)s | %(message)s"
 
-    # Delte the intermedite variables to 'clean'
-    del p
-    del m
-    # -------------------------------------------------------------------------
-    # --- PRINT SUITE VERSION
-    # -------------------------------------------------------------------------
-    print('-... .. . -. ...- . -. .. -.. ---')
-    print('VERSION: ' + version + ' ' + codename)
-    print('.-- . .-.. .-.. -.-. --- -- .')
+    FORMATS = {
+        logging.DEBUG: grey + format + reset,
+        logging.INFO: grey + format + reset,
+        logging.WARNING: yellow + format + reset,
+        logging.ERROR: red + format + reset,
+        logging.CRITICAL: bold_red + format + reset
+    }
 
-    # -------------------------------------------------------------------------
-    # --- Initialise plotting options
-    # -------------------------------------------------------------------------
-    # It seems that with some matplotlib instalations, this could fail, so let
-    # us make just a try
-    try:
-        plt.plotSettings()
-    except:
-        print('It was not possible to initialise the plotting settings')
-warnings.filterwarnings('default')
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
+
+
+## ----------------------------------------------------------------------------
+# --- Suite Logger. Main logging element
+# Itialise the root logger
+logging.basicConfig()
+
+# Initialise a loger of aug-sfutils. This serve to avoid duplicated entries if
+# we are in AUG. If we are not in AUG, the existence of a hanging not user
+# child logger will make no harm
+logger = logging.getLogger('aug_sfutils')
+if len(logger.handlers) == 0:
+    hnd = logging.StreamHandler()
+    hnd.setFormatter(_CustomFormatter())
+    logger.addHandler(hnd)
+logger.setLevel(logging.ERROR)
+logger.propagate = False
+# Initialise the real logger for the suite
+Suite_logger = logging.getLogger('ScintSuite')
+
+if len(Suite_logger.handlers) == 0:
+    hnd = logging.StreamHandler()
+    hnd.setFormatter(_CustomFormatter())
+    Suite_logger.addHandler(hnd)
+Suite_logger.setLevel(logging.DEBUG)
+Suite_logger.addFilter(_NoParsingFilter())
+Suite_logger.propagate = False
+
+## ----------------------------------------------------------------------------
+# --- Add the paths directories for python
+try:
+    from paths_suite import paths_of_the_suite
+    paths_of_the_suite()
+except (ImportError, ModuleNotFoundError):
+    pass
+
+
+## ----------------------------------------------------------------------------
+# --- Suite modules
+# Custom exceptions
+import Lib.errors as err
+
+# Load data
+import Lib.LibData as dat
+import Lib._ELM as ELM
+
+# Mapping
+import Lib._Mapping as mapping
+
+# Strike Maps
+import Lib._StrikeMap as smap
+
+# Simulations codes
+import Lib.SimulationCodes.FILDSIM as fildsim
+import Lib.SimulationCodes.SINPA as sinpa
+import Lib.SimulationCodes.Common as simcom
+try:
+    import pyLib as fidasim
+except ModuleNotFoundError:
+    pass
+
+# Reconstructions
+from Lib._Tomography._main_class import Tomography as tomography
+
+# Handle Video files
+import Lib._Video as vid
+import Lib._VRT as vrt
+
+# MHD activity
+import Lib._MHD as mhd
+
+# Handle ufiles
+from Lib.ufiles import ufile as Ufile
+
+# Handle Scintillators
+import Lib._Scintillator as scint
+
+import Lib._Parameters as par
+import Lib._Plotting as plt
+import Lib._TimeTrace as tt
+import Lib._Utilities as extra
+import Lib._FrequencyAnalysis as ftt
+import Lib._Paths as p
+import Lib._Machine as m
+import Lib._IO as io
+import Lib._FastChannel as fc
+import Lib._GUIs as GUI
+import Lib._Optics as optics
+import Lib._Noise as noise
+import Lib.version_suite as ver
+from Lib.version_suite import version, codename
+__version__ = version
+__codename__ = codename
+import Lib._CAD as cad
+import Lib._SideFunctions as side
+
+
+machine = m.machine
+paths = p.Path(machine)
+
+# Non tokamak independent libraries
+if machine == 'AUG':
+    import Lib.SimulationCodes.iHIBPsim as ihibp
+
+# Delete the intermediate variables to 'clean'
+del p
+del m
+## ------------------------------------------------------------------------
+# --- PRINT SUITE VERSION
+# -------------------------------------------------------------------------
+logger.info('-... .. . -. ...- . -. .. -.. ---')
+logger.info('VERSION: ' + version + ' ' + codename)
+logger.info('.-- . .-.. .-.. -.-. --- -- .')
+ver.printGITcommit()
+## ------------------------------------------------------------------------
+# --- Initialise plotting options
+# -------------------------------------------------------------------------
+# It seems that with some matplotlib installations, this could fail, so let
+# us make just a try
+try:
+    plt.plotSettings()
+except:
+    logger.warning('28: It was not possible to initialise the plotting ' +
+                   'settings')
+
+

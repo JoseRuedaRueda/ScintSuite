@@ -1,11 +1,12 @@
 """Contains the methods and classes to interact with iHIBPsim - Orbits"""
-
-import numpy as np
-import Lib.LibPlotting as ssplt
-import Lib.LibParameters as sspar
-import matplotlib.pyplot as plt
 import os
+import logging
+import numpy as np
+import Lib._Plotting as ssplt
+import Lib._Parameters as sspar
+import matplotlib.pyplot as plt
 
+logger = logging.getLogger('ScintSuite.ihibpsim')
 
 class orbit:
     def __init__(self, orbitData: dict, identifier: int = None, \
@@ -72,9 +73,9 @@ class orbit:
         y = self.data['y']
         flag_ax_was_none = False
         if imax is None:
-            imax = len(x) - 1
+            imax = len(x)
         if imax > len(x):
-            imax = len(x) - 1
+            imax = len(x)
         if view == '2D':
             # Open the figure
             if ax is None:
@@ -82,19 +83,19 @@ class orbit:
                 flag_ax_was_none = True
             # Plot the Rz, projection
             ax[0].plot(self.data['R'][imin:imax],
-                       self.data['z'][imin:imax],
-                       label='ID: ' + str(self.ID),
-                       **line_options)
+                        self.data['z'][imin:imax],
+                        label='ID: ' + str(self.ID),
+                        **line_options)
             # plot the initial and final points in a different color
-            ax[0].plot(self.data['R'][imax], self.data['z'][imax],
+            ax[0].plot(self.data['R'][imax-1], self.data['z'][imax-1],
                        'o', color='r')
             ax[0].plot(self.data['R'][imin], self.data['z'][imin],
                        'o', color='g')
             # Plot the xy projection
             ax[1].plot(x[imin:imax], y[imin:imax],
-                       label='ID: ' + str(self.ID), **line_options)
+                        label='ID: ' + str(self.ID), **line_options)
             # plot the initial and final points in a different color
-            ax[1].plot(x[imax], y[imax], 'o', color='r')
+            ax[1].plot(x[imax-1], y[imax-1], 'o', color='r')
             ax[1].plot(x[imin], y[imin], 'o', color='g')
         else:
             # Open the figure
@@ -575,6 +576,7 @@ class orbitFile:
         self.idList = np.fromfile(fid, 'int32', self.nOrbits)
 
         if np.all(self.idList == 1):
+            logger.warning('Generating automatically the ID list')
             self.idList = np.arange(len(self.idList))+1
 
         # Checking the file.
@@ -583,7 +585,7 @@ class orbitFile:
 
         # Data in the file seems valid. Let's prepare the offsets
         # so the data access is quicker and easier.
-        self.offsets = np.cumsum(self.stepsPerOrbit, dtype=np.uint32)*8
+        self.offsets = np.cumsum(self.stepsPerOrbit, dtype=np.uint32)*8*self.nCh
         self.offsets = np.concatenate(([0], self.offsets))
 
         # Rewind the file to the beginnig.
@@ -598,6 +600,9 @@ class orbitFile:
         self.nxtOrbit = 0
 
         self.chainLoadFlag = False
+
+    def __del__(self):
+        self.fid.close()
 
     def loadOrbit(self, id: int = None, full_info: bool = True):
         """
@@ -626,7 +631,6 @@ class orbitFile:
             # Getting the ID index location:
             id_location = np.argmin(np.abs(self.idList-id))
             offset = self.offsets[id_location]
-            print(offset)
 
             # Set the cursor at the appropriate point from the beginning.
             self.fid.seek(offset, sspar.SEEK_BOF)
@@ -687,8 +691,10 @@ class orbitFile:
             self.initChainLoad()
 
             for i in range(num_orbits):
-                output.append(self.getNextOrbit())
-
+                try:
+                    output.append(self.getNextOrbit())
+                except:
+                    break
             self.endChainLoad()
 
         return output
@@ -760,7 +766,7 @@ class orbitFile:
             raise Warning('The orbit file is not opened for serial access')
 
         # Reached the end of the file.
-        if self.nxtOrbit > self.idList.size:
+        if self.nxtOrbit >= self.idList.size:
             raise Exception('End of the file orbit reached!')
 
         orbitData = np.fromfile(self.fid, np.float64,

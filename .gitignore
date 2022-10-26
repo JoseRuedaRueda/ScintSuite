@@ -11,6 +11,7 @@
 *.a
 *.png
 *.eps
+*.svg
 *__
 Per_*
 *.pod
@@ -41,3 +42,5 @@ doc/*
 Data/BEP
 DoxiDoc/*
 html/*
+.idea/*
+.spyproject/*

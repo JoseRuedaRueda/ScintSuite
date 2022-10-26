@@ -4,7 +4,8 @@ Obtain the calibration parameters
 Jose Rueda: jrrueda@us.es
 
 Note, a small GUI will come out and you will have some sliders to determine the
-calibration parameters for your scintillator
+calibration parameters for your scintillator. To help with the situation, a
+remap will be done on the fly (so the slider moves a bit slow!)
 
 Lines marked with #### should be change for it to work in your instalation
 
@@ -12,9 +13,11 @@ IMPORTANT: If you select SINPA as code format, the scintillaor coordinate must
 be in the scintillator reference system, if not, there would be a shift between
 SINPA coordinates and the calibration
 """
+import math
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
-from Lib.LibVideo.TIFfiles import load_tiff
+from Lib._Video._TIFfiles import load_tiff
 import Lib as ss
 
 # -----------------------------------------------------------------------------
@@ -37,46 +40,54 @@ diag_ID = 1  # INPA number
 shot = 40412  # Shot number
 tMinNoise = 0.1  # Min time for noise subtraction
 tMaxNoise = 0.4  # Max time for noise subtraction
-t = [1.74]  # Times to overplot a frame from the video
+t = 1.74  # Times to overplot a frame from the video
+tmax = 1.9  # Maximum time to load
 # x-scale to y scale
 XtoY = 1.0
 # modify section 3 if you have a custom format for the calibration image
 # Staring points for the calibration
-xshift = 16.90
-yshift = 70.25
-xscale = 2841.85
-xc = 277.3
-yc = 168.33
-c = -1.8049e-3
-deg = -0.4456
+xshift = 35.85
+yshift = 74.5
+xscale = 2753.7
+xc = 270
+yc = 170
+c = -1.825e-3
+deg = -0.73
 
 
 # Scale maximum
-xshiftmax = 1500
-yshiftmax = 800
-xscalemax = 0
+xshiftmax = 50
+yshiftmax = 120
+xscalemax = 3000
 xcmax = 1280
 ycmax = 800
 cmax = -0.5e-4
-degmax = 45
-# Scale maximum
-xshiftmax = 1500
-yshiftmax = 800
-xscalemax = 5000
-xcmax = 1280
-ycmax = 800
-cmax = -0.5e-4
-degmax = 180
+degmax = 5.0
 
 # Scale minimum
-xshiftmin = -1200
-yshiftmin = -800
-xscalemin = -5000
+xshiftmin = 0
+yshiftmin = 20
+xscalemin = 2200
 xcmin = 0
 ycmin = 0
 cmin = -20e-4
-degmin = -180
+degmin = -5.0
 
+# Remapping options
+par = {
+    'ymin': 10.0,      # Minimum energy [in cm]
+    'ymax': 100.0,     # Maximum energy [in cm]
+    'dy': 2.0,         # Interval of the energy [in cm]
+    'xmin': 1.4,     # Minimum pitch angle [in degrees]
+    'xmax': 2.2,     # Maximum pitch angle [in degrees]
+    'dx': 0.01,    # Pitch angle interval
+    # methods for the interpolation
+    'method': 2,    # 2 Spline, 1 Linear (smap interpolation)
+    'decimals': 0,  # Precision for the strike map (1 is more than enough)
+    'remap_method': 'centers',  # Remap algorithm
+    'MC_number': 0,
+    }
+geomID = 'iAUG01'
 # -----------------------------------------------------------------------------
 # --- Scintillator load and first alignement
 # -----------------------------------------------------------------------------
@@ -92,6 +103,7 @@ cal.deg = deg
 scintillator.calculate_pixel_coordinates(cal)
 foil.calculate_pixel_coordinates(cal)
 smap.calculate_pixel_coordinates(cal)
+
 # -----------------------------------------------------------------------------
 # --- Image load and plot
 # -----------------------------------------------------------------------------
@@ -103,22 +115,51 @@ else:
     img = plt.imread(calib_image)
     img = img[::-1, :]
 vid = ss.vid.INPAVideo(shot=shot, diag_ID=diag_ID)
-vid.read_frame()
+vid.read_frame(t1=0.0, t2=tmax)
 fig, ax = plt.subplots()
 # adjust the main plot to make room for the sliders
-plt.subplots_adjust(left=0.5, bottom=0.4)
+plt.subplots_adjust(left=0.4, bottom=0.5)
 ax.imshow(img, origin='lower', cmap=plt.get_cmap('gray'))
 ss.plt.axis_beauty(ax, {'grid': 'both'})
-# Plot the frames
-
-for tt in t:
-    vid.plot_frame(ax=ax, alpha=0.25, t=tt, IncludeColorbar=False)
+# Plot the frame
+vid.plot_frame(ax=ax, alpha=0.25, t=t, IncludeColorbar=False)
 # -----------------------------------------------------------------------------
 # --- Plot the scintillator plate
 # -----------------------------------------------------------------------------
 scintillator.plot_pix(ax)
-smap.plot_pix(ax)
+smap.plot_pix(ax, labels=False)
 foil.plot_pix(ax)
+# -----------------------------------------------------------------------------
+# --- Remap te frame and plot the profiles
+# -----------------------------------------------------------------------------
+# Get the mangnetic field to translate the map into energy
+Geom = ss.simcom.geometry.Geometry(geomID)
+rPinXYZ = Geom.ExtraGeometryParams['rPin']
+Rpin = math.sqrt(rPinXYZ[0]**2 + rPinXYZ[1]**2)
+br, bz, bt, bp = \
+    ss.dat.get_mag_field(shot, Rpin, rPinXYZ[2], time=t)
+Bmod = np.sqrt(bt**2 + bp**2)[0]
+# now yes, calculate the energy
+smap.calculate_energy(Bmod)
+smap.setRemapVariables(('R0', 'e0'))
+smap.calculate_pixel_coordinates(vid.CameraCalibration)
+par['map'] = smap
+vid.remap_loaded_frames(par)
+# - Calculate the profiles
+R_profile = vid.remap_dat['frames'].sum(dim='y')
+energy_profile = vid.remap_dat['frames'].sum(dim='x')
+flags_R = vid.remap_dat['x'].values > 1.87
+flags_E = vid.remap_dat['y'].values > 62.0
+dummy = vid.remap_dat['frames'].sel(t=t, method='nearest')
+# - Axis for the profiles
+axR0 = plt.axes([0.5, 0.12, 0.25, 0.25])  # Total energy distribution
+profile_high_e = np.sum(dummy.values[:, flags_E], axis=(1))
+profile_high_R = np.sum(dummy.values[flags_R, :], axis=(0))
+axR0.plot(R_profile['x'], R_profile.sel(t=t, method='nearest'))
+axR0.plot(R_profile['x'], profile_high_e)
+axEs = plt.axes([0.75, 0.12, 0.25, 0.25])
+axEs.plot(energy_profile['y'], energy_profile.sel(t=t, method='nearest'))
+axEs.plot(energy_profile['y'], profile_high_R)
 # -----------------------------------------------------------------------------
 # --- GUI
 # -----------------------------------------------------------------------------
@@ -142,7 +183,7 @@ axys_slider = Slider(
     orientation="vertical"
 )
 
-axxsc = plt.axes([0.21, 0.25, 0.01, 0.63])
+axxsc = plt.axes([0.19, 0.25, 0.01, 0.63])
 axxsc_slider = Slider(
     ax=axxsc,
     label="xscale",
@@ -151,7 +192,7 @@ axxsc_slider = Slider(
     valinit=xscale,
     orientation="vertical"
 )
-axdeg = plt.axes([0.40, 0.25, 0.01, 0.63])
+axdeg = plt.axes([0.26, 0.25, 0.01, 0.63])
 axdeg_slider = Slider(
     ax=axdeg,
     label="deg",
@@ -207,7 +248,33 @@ def update(val):
 
     scintillator.plot_pix(ax)
     foil.plot_pix(ax)
-    smap.plot_pix(ax)
+    smap.plot_pix(ax, labels=False)
+    # -- remap again
+    par.pop('map')
+    smap.calculate_pixel_coordinates(cal)
+    smap.interp_grid(vid.exp_dat['frames'].shape[:2], method=par['method'],
+                     MC_number=par['MC_number'],
+                     grid_params={'ymin': par['ymin'],
+                                  'ymax': par['ymax'],
+                                  'dy': par['dy'],
+                                  'xmin': par['xmin'],
+                                  'xmax': par['xmax'],
+                                  'dx': par['dx']})
+    par['map'] = smap
+    vid.remap_loaded_frames(par)
+    # - Calculate the profiles
+    R_profile = vid.remap_dat['frames'].sum(dim='y')
+    energy_profile = vid.remap_dat['frames'].sum(dim='x')
+    # - Re-plot the profiles
+    ss.plt.remove_lines(axR0)
+    ss.plt.remove_lines(axEs)
+    axR0.plot(R_profile['x'], R_profile.sel(t=t, method='nearest'))
+    axEs.plot(energy_profile['y'], energy_profile.sel(t=t, method='nearest'))
+    dummy = vid.remap_dat['frames'].sel(t=t, method='nearest')
+    profile_high_e = np.sum(dummy.values[:, flags_E], axis=(1))
+    profile_high_R = np.sum(dummy.values[flags_R, :], axis=(0))
+    axR0.plot(R_profile['x'], profile_high_e)
+    axEs.plot(energy_profile['y'], profile_high_R)
     plt.draw_all()
 
 

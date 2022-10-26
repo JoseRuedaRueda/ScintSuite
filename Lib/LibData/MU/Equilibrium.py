@@ -1,7 +1,5 @@
 """Routines for the magnetic equilibrium"""
-import warnings
 import numpy as np
-from scipy.interpolate import interpn, interp1d
 from pyEquilibrium.equilibrium import equilibrium
 
 
@@ -13,6 +11,8 @@ def get_mag_field(shot: int, Rin, zin, time: float, **kwargs):
 
     Note: No extra arguments are expected, **kwargs is just included for
     compatibility of the call to this method in other databases (machines)
+
+    Note2: MU FILD1 is located around z=0.159m
 
     @param shot: Shot number
     @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
@@ -35,10 +35,11 @@ def get_mag_field(shot: int, Rin, zin, time: float, **kwargs):
     bt = np.zeros(time.shape)
 
     for ii in range(len(time)):
-        efit_eq = equilibrium(shot = \
-                    "/common/uda-scratch/lkogan/efitpp_eshed/epm{:0>6}.nc".\
-                    format(shot) if shot<44849 else shot,
-                    device='MASTU', time = time[ii])
+        efit_eq = equilibrium(
+            shot="/common/uda-scratch/lkogan/efitpp_eshed/epm{:0>6}.nc".
+            format(shot) if shot < 44849 else shot,
+            device='MASTU', time=time[ii]
+        )
         br[ii] = efit_eq.BR(Rin, zin)
         bz[ii] = efit_eq.BZ(Rin, zin)
         bp[ii] = efit_eq.Bp(Rin, zin)

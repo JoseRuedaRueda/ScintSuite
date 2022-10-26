@@ -5,26 +5,40 @@
 ! Geom name: AUG01
 ! Description: First rFILD installation
 &AUG01
-  R = 2.18
-  z = 0.3
-  phi = 169.75
+  R = 2.180
+  z = 0.328
+  phi = 169.75    
+
+  R_parking = 4.015
+  z_parking = 0.328
+  phi_parking = 169.75
 
   alpha = 0.0
   beta = 171.3
   gamma = 0.0
+  
+  max_insertion = 2000.0
+  min_insertion = 0.0
 /
 
 ! Geom name: AUG02
 ! Description: Default FILD1 collimator
 
 &AUG02
-  R = 2.18
-  z = 0.3
-  phi = 169.75
+  R = 2.180
+  z = 0.328
+  phi = 169.75  
+  
+  R_parking = 4.015
+  z_parking = 0.328
+  phi_parking = 169.75
 
   alpha = 0.0
   beta = -12.0
   gamma = 0.0
+  
+  max_insertion = 2000.0
+  min_insertion = 0.0
 /
 
 ! Geom name: AUG03
@@ -33,27 +47,41 @@
 &AUG03
   R = 2.18
   z = 0.3
-  phi = 57.25
+  phi = = 57.25
+
+  R_parking = 2.236
+  z_parking = 0.3
+  phi_parking = 57.25
 
   alpha = 0.0
   beta = -12.0
   gamma = 0.0
+  
+  min_insertion = -0.0554
+  max_insertion = 0.035
 /
 
-! Geom name: id4
+! Geom name: AUG04
 ! Description: Default FILD4 collimator
 
 &AUG04
   R = 2.035
-  z = -0.462
+  z = -0.437
   phi = 169.75
+
+  R_parking = 2.082
+  z_parking = -0.437
+  phi_parking = 169.75
 
   alpha = 0.0
   beta = -12.0
   gamma = 0.0
+  
+  min_insertion = 0.0
+  max_insertion = 0.067
 /
 
-! Geom name: id5
+! Geom name: AUG05
 ! Description: Default FILD5 collimator
 
 &AUG05
@@ -61,7 +89,35 @@
   z = -0.798
   phi = 147.25
 
+  R_parking = 1.795
+  z_parking = -0.794
+  phi_parking = 147.25
+
   alpha = 0.0
   beta = -12.0
-  gamma = 0.0
+  gamma = 48.58
+  
+  min_insertion = 0.0
+  max_insertion = 0.025
 /
+
+! Geom name: AUG06
+! Description: Double collimator FILD1
+
+&AUG06
+  R = 2.180
+  z = 0.328
+  phi = 169.75    
+
+  R_parking = 4.015
+  z_parking = 0.328
+  phi_parking = 169.75
+
+  alpha = 0.0
+  beta = 171.3
+  gamma = 0.0
+  
+  max_insertion = 2000.0
+  min_insertion = 0.0
+/
+

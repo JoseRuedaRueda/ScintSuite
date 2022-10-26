@@ -1,13 +1,12 @@
-"""Routines to interact with the AUG database"""
-import dd                # Module to load shotfiles
+'eV'"""Routines to interact with the AUG database"""
 import numpy as np
-import map_equ as meq    # Module to map the equilibrium
+import xarray as xr
 import aug_sfutils as sfutils
-import warnings
-from tqdm import tqdm
 from scipy.interpolate import interp1d, interp2d, UnivariateSpline
-from Lib.LibPaths import Path
+from Lib._Paths import Path
 from Lib.LibData.AUG.Equilibrium import get_rho, get_shot_basics
+import logging
+logger = logging.getLogger('ScintSuite.Data')
 pa = Path()
 
 
@@ -15,19 +14,21 @@ pa = Path()
 # --- Electron density and temperature profiles.
 # -----------------------------------------------------------------------------
 def get_ne(shotnumber: int, time: float = None, exp: str = 'AUGD',
-           diag: str = 'IDA', edition: int = 0, sf=None):
+           diag: str = 'IDA', edition: int = 0, sf=None,
+           xArrayOutput: bool = False):
 
     """
     Wrapper to the different diagnostics to read the electron density profile.
     It supports IDA and PED profiles.
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Pablo Oyola - pablo.oyola@ipp.mpg.de and J. Rueda: jrrueda@us.es
 
     @param shot: Shot number
     @param time: Time point to read the profile.
     @param exp: Experiment name.
     @param diag: diagnostic from which 'ne' will extracted.
     @param edition: edition of the shotfile to be read.
+    @param xArrayOutput: flag to return the output as dictionary of xarray
 
     @return output: a dictionary containing the electron density evaluated
     in the input times and the corresponding rhopol base.
@@ -38,14 +39,14 @@ def get_ne(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
     if diag == 'PED':
         return get_ne_ped(shotnumber=shotnumber, time=time, exp=exp,
-                          edition=edition, sf=sf)
+                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
     elif diag == 'IDA':
         return get_ne_ida(shotnumber=shotnumber, time=time, exp=exp,
-                          edition=edition, sf=sf)
+                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
 
 
 def get_ne_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None):
+               edition: int = 0, sf=None, xArrayOutput: bool = False):
     """
     Reads from the PED shotfile the electron density profile.
 
@@ -74,21 +75,39 @@ def get_ne_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
     except:
         raise Exception('Cannot read ne in #05d' % shotnumber)
 
-    if (timebase > time.max()) or (timebase < time.min()):
-        raise Exception('Time window cannot be located in PED shotfile!')
+    if time is not None:
+        time = np.atleast_1d(time)
+        if (timebase > time.max()) or (timebase < time.min()):
+            raise Exception('Time window cannot be located in PED shotfile!')
 
-    output = {
-        'rhop': rhop,
-        'data': ne,
-        'uncertainty': ne_unc,
-        'time': timebase,
-             }
+    if not xArrayOutput:
+        output = {
+            'rhop': rhop,
+            'data': ne,
+            'uncertainty': ne_unc,
+            'time': timebase,
+                 }
+    else:
+        output = xr.Dataset()
+        output['data'] = xr.DataArray(
+            ne.T, dims=('rho', 't'),
+            coords={'rho': rhop, 't': timebase})
+        output['data'].attrs['long_name'] = '$n_e$'
+        output['data'].attrs['units'] = '$10^{19} m^3$'
+        output['uncertainty'] = xr.DataArray(ne_unc.T, dims=('rho', 't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta n_e$'
+        output['uncertainty'].attrs['units'] = '$10^{19} m^3$'
 
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'PED'
+        output.attrs['shot'] = shotnumber
     return output
 
 
 def get_ne_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None):
+               edition: int = 0, sf=None, xArrayOutput: bool = False):
     """
     Wrap to get AUG electron density using the IDA profiles.
 
@@ -120,28 +139,54 @@ def get_ne_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
         raise Exception('Cannot read the density from the IDA #%05d'%shotnumber)
 
     # We will return the data in the same spatial basis as provided by IDA.
-    output = {'rhop': rhop[:, 0]}
-
     if time is None:
         time = timebase
-        output['data'] = ne
-        output['time'] = time
-        output['uncertainty'] = ne_unc
+        tmp_ne = ne
+        tmp_unc = ne_unc
     else:
-        output['time'] = time
-        output['data'] = interp1d(timebase, ne, kind='linear', axis=0,
-                                  bounds_error=False, fill_value=np.nan,
-                                  assume_sorted=True)(time).T
-        output['uncertainty'] = interp1d(timebase, ne_unc,
-                                         kind='linear', axis=0,
-                                         bounds_error=False, fill_value=np.nan,
-                                         assume_sorted=True)(time).T
+        tmp_ne = interp1d(timebase, ne, kind='linear', axis=0,
+                          bounds_error=False, fill_value=np.nan,
+                          assume_sorted=True)(time).T
+        tmp_unc = interp1d(timebase, ne_unc,
+                           kind='linear', axis=0,
+                           bounds_error=False,
+                           fill_value=np.nan,
+                           assume_sorted=True)(time).T
 
+    if not xArrayOutput:
+        output = {
+            'rhop': rhop[:, 0],
+            'time': time,
+            'uncertainty': tmp_unc,
+            'data': tmp_ne
+        }
+    else:
+        tmp_ne = np.atleast_2d(tmp_ne)
+        tmp_unc = np.atleast_2d(tmp_unc)
+        time = np.atleast_1d(time)
+
+        output = xr.Dataset()
+        output['data'] = xr.DataArray(
+            tmp_ne.T/1.0e19, dims=('rho', 't'),
+            coords={'rho': rhop[:, 0], 't': time})
+        output['data'].attrs['long_name'] = '$n_e$'
+        output['data'].attrs['units'] = '$10^{19} m^3$'
+        output['uncertainty'] = xr.DataArray(tmp_unc.T/1.0e19, dims=('rho',
+                                                                     't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta n_e$'
+        output['uncertainty'].attrs['units'] = '$10^{19} m^3$'
+
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'IDA'
+        output.attrs['shot'] = shotnumber
     return output
 
 
 def get_Te(shotnumber: int, time: float = None, exp: str = 'AUGD',
-           diag: str = 'IDA', edition: int = 0, sf=None):
+           diag: str = 'IDA', edition: int = 0, sf=None,
+           xArrayOutput: bool = False):
 
     """
     Wrapper to the different diagnostics to read the electron density profile.
@@ -164,14 +209,14 @@ def get_Te(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
     if diag == 'PED':
         return get_Te_ped(shotnumber=shotnumber, time=time, exp=exp,
-                          edition=edition, sf=sf)
+                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
     elif diag == 'IDA':
         return get_Te_ida(shotnumber=shotnumber, time=time, exp=exp,
-                          edition=edition, sf=sf)
+                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
 
 
 def get_Te_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None):
+               edition: int = 0, sf=None, xArrayOutput: bool = False):
     """
     Reads from the PED shotfile the electron density profile.
 
@@ -204,19 +249,35 @@ def get_Te_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
     except:
         sf.close()
         raise Exception('Cannot read Te in #%05d' % shotnumber)
+    if not xArrayOutput:
+        output = {
+            'rhop': rhop,
+            'data': te,
+            'uncertainty': te_unc,
+            'time': timebasis
+                 }
+    else:
+        output = xr.Dataset()
+        output['data'] = xr.DataArray(
+            te.T, dims=('rho', 't'),
+            coords={'rho': rhop[:, 0], 't': timebasis})
+        output['data'].attrs['long_name'] = '$T_e$'
+        output['data'].attrs['units'] = 'eV'
+        output['uncertainty'] = xr.DataArray(te_unc.T, dims=('rho', 't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta T_e$'
+        output['uncertainty'].attrs['units'] = '$eV$'
 
-    output = {
-        'rhop': rhop,
-        'data': te,
-        'uncertainty': te_unc,
-        'time': timebasis
-             }
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'PED'
+        output.attrs['shot'] = shotnumber
 
     return output
 
 
 def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None):
+               edition: int = 0, sf=None, xArrayOutput: bool = False):
     """
     Wrap to get AUG electron temperature from the IDA shotfile.
 
@@ -251,22 +312,43 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
 
     # We will return the data in the same spatial basis as provided by IDA.
-    output = {'rhop': rhop[:, 0], 'time': timebase}
-
     if time is None:
         time = timebase
-        output['data'] = te
-        output['time'] = time
-        output['uncertainty'] = te_unc
+        tmp_te = te
+        tmp_unc = te_unc
     else:
-        output['time'] = time
-        output['data'] = interp1d(timebase, te, kind='linear', axis=0,
-                                  bounds_error=False, fill_value=np.nan,
-                                  assume_sorted=True)(time).T
-        output['uncertainty'] = interp1d(timebase, te_unc,
-                                         kind='linear', axis=0,
-                                         bounds_error=False, fill_value=np.nan,
-                                         assume_sorted=True)(time).T
+        tmp_te = interp1d(timebase, te, kind='linear', axis=0,
+                          bounds_error=False, fill_value=np.nan,
+                          assume_sorted=True)(time).T
+        tmp_unc = interp1d(timebase, te_unc,
+                           kind='linear', axis=0,
+                           bounds_error=False, fill_value=np.nan,
+                           assume_sorted=True)(time).T
+    if not xArrayOutput:
+        output = {
+            'rhop': rhop[:, 0],
+            'time': time,
+            'data': tmp_te,
+            'uncertainty': tmp_unc}
+    else:
+        output = xr.Dataset()
+        tmp_te = np.atleast_2d(tmp_te)
+        time = np.atleast_1d(time)
+        output['data'] = xr.DataArray(
+            tmp_te.T, dims=('rho', 't'),
+            coords={'rho': rhop[:, 0], 't': time})
+        output['data'].attrs['long_name'] = '$T_e$'
+        output['data'].attrs['units'] = 'eV'
+        tmp_unc = np.atleast_2d(tmp_unc)
+        output['uncertainty'] = xr.DataArray(tmp_unc.T, dims=('rho', 't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta T_e$'
+        output['uncertainty'].attrs['units'] = '$eV$'
+
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'IDA'
+        output.attrs['shot'] = shotnumber
 
     return output
 
@@ -275,7 +357,7 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
 # --- Ion temperature
 # -----------------------------------------------------------------------------
 def get_Ti(shot: int, time: float = None, diag: str = 'IDI', exp: str = 'AUGD',
-           edition: int = 0, sf=None):
+           edition: int = 0, sf=None, xArrayOutput: bool = False):
     """"
     Wrapper to all the routines to read the ion temperature.
 
@@ -296,16 +378,16 @@ def get_Ti(shot: int, time: float = None, diag: str = 'IDI', exp: str = 'AUGD',
 
     if diag == 'IDI':
         return get_Ti_idi(shotnumber=shot, time=time, exp=exp,
-                          edition=edition, sf=sf)
+                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
     elif diag == 'CXRS':
         return get_Ti_cxrs(shotnumber=shot, time=time, exp=exp,
-                           edition=edition)
+                           edition=edition, xArrayOutput=xArrayOutput)
     else:
         raise Exception('Diagnostic non supported!')
 
 
 def get_Ti_idi(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None):
+               edition: int = 0, sf=None, xArrayOutput: bool = False):
     """
     Wrap to get AUG ion temperature from the IDI shotfile.
 
@@ -337,24 +419,46 @@ def get_Ti_idi(shotnumber: int, time: float = None, exp: str = 'AUGD',
     except:
         raise Exception('Cannot read the density from the IDA #%05d' % shotnumber)
 
-
-    # We will return the data in the same spatial basis as provided by IDA.
-    output = {'rhop': rhop[:, 0], 'time': timebase}
+    # We will return the data in the same spatial basis as provided by IDI.
 
     if time is None:
         time = timebase
-        output['data'] = ti
-        output['time'] = time
-        output['uncertainty'] = ti_unc
+        tmp_ti = ti
+        tmp_unc = ti_unc
     else:
-        output['time'] = time
-        output['data'] = interp1d(timebase, ti, kind='linear', axis=0,
-                                  bounds_error=False, fill_value=np.nan,
-                                  assume_sorted=True)(time).T
-        output['uncertainty'] = interp1d(timebase, ti_unc,
-                                         kind='linear', axis=0,
-                                         bounds_error=False, fill_value=np.nan,
-                                         assume_sorted=True)(time).T
+        tmp_ti = interp1d(timebase, ti, kind='linear', axis=0,
+                          bounds_error=False, fill_value=np.nan,
+                          assume_sorted=True)(time).T
+        tmp_unc = interp1d(timebase, ti_unc,
+                           kind='linear', axis=0,
+                           bounds_error=False, fill_value=np.nan,
+                           assume_sorted=True)(time).T
+    if not xArrayOutput:
+        output = {
+            'rhop': rhop[:, 0],
+            'time': time,
+            'data': tmp_ti,
+            'uncertainty': tmp_unc
+        }
+    else:
+        output = xr.Dataset()
+        tmp_ti = np.atleast_2d(tmp_ti)
+        tmp_unc = np.atleast_2d(tmp_unc)
+        time = np.atleast_1d(time)
+        output['data'] = xr.DataArray(
+            tmp_ti.T, dims=('rho', 't'),
+            coords={'rho': rhop[:, 0], 't': time})
+        output['data'].attrs['long_name'] = '$T_i$'
+        output['data'].attrs['units'] = 'eV'
+        output['uncertainty'] = xr.DataArray(tmp_unc.T, dims=('rho', 't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta T_i$'
+        output['uncertainty'].attrs['units'] = '$eV$'
+
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'IDI'
+        output.attrs['shot'] = shotnumber
     return output
 
 
@@ -384,7 +488,8 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
     dict containing a correction for each diagnostic
     @param dz: correction in the z direction
     """
-    warnings.warn('This CXRS fit does not properly describe separatrix behaviour!')
+    text = 'This CXRS fit does not properly describe separatrix behaviour!'
+    logger.warning('17: %s' % text)
 
     diags = ('CMZ', 'CEZ', 'CUZ', 'COZ',)
     signals = ('Ti_c', 'Ti_c', 'Ti_c', 'Ti_c', )
@@ -705,7 +810,8 @@ def get_tor_rotation(shotnumber: int, time: float = None, diag: str = 'IDI',
 
 
 def get_tor_rotation_idi(shotnumber: int, time: float = None,
-                         exp: str = 'AUGD', edition: int = 0, sf=None):
+                         exp: str = 'AUGD', edition: int = 0, sf=None,
+                         xArrayOutput: bool = False):
 
     """
     Reads from the IDI shotfile the toroidal rotation velocity.
@@ -737,11 +843,25 @@ def get_tor_rotation_idi(shotnumber: int, time: float = None,
         timebase = timebase[t0:t1]
 
     # --- Saving to a dictionary and output:
-    output = {
-        'data': data,
-        'time': timebase,
-        'rhop': np.array(sf.getareabase('vt')[t0, ...])
-    }
+    if not xArrayOutput:
+        output = {
+            'data': data,
+            'time': timebase,
+            'rhop': np.array(sf.getareabase('vt')[t0, ...])
+        }
+    else:
+        output = xr.Dataset()
+        time = np.atleast_1d(timebase)
+        output['data'] = xr.DataArray(
+                data.T, dims=('rho', 't'),
+                coords={'rho': np.array(sf.getareabase('vt')[..., 0]),
+                        't': timebase})
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'IDI'
+        output.attrs['shot'] = shotnumber
+
 
     return output
 
@@ -1103,6 +1223,7 @@ def get_tor_rotation_ped(shotnumber: int, time: float = None,
 
     return output
 
+
 def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
                   equ_diag: dict = None, prof_diag: dict = None):
     """
@@ -1148,12 +1269,12 @@ def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
     zaxis = shotbasics['Zmag']
 
     # Getting the poloidal flux matrix:
-    equ = meq.equ_map(shotnumber, diag=equ_diag['diag'],
+    equ = sfutils.EQU(shotnumber, diag=equ_diag['diag'],
                       exp=equ_diag['exp'], ed=equ_diag['edition'])
 
     Rpfm = equ.Rmesh
     zpfm = equ.Zmesh
-    time = equ.t_eq
+    time = equ.time
     t0, t1 = np.searchsorted(time, (tBegin, tEnd))
     equ.read_pfm()
     pfm = equ.pfm[:, :, t0:t1].copy()
@@ -1205,385 +1326,385 @@ def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
 # -----------------------------------------------------------------------------
 # --- ECE data.
 # -----------------------------------------------------------------------------
-def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = False,
-            rhopLimits: float = None):
-    """
-    Retrieves from the database the ECE data and the calibrations to obtain
-    the electron temperature perturbations.
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    @param shotnumber: shot Number to get the ECE data.
-    @param timeWindow: time window to get the data.
-    @param fast: fast reading implies that the position of each of the
-    radiometers is averaged along the time window making it faster.
-    @param rhopLimits: limits in rho poloidal to retrieve the ECE. If None,
-    the limits are set to [-1.0, 1.0], where the sign is conventional to
-    HFS (-) and LFS (+)
-    """
-
-    # --- Opening the shotfiles.
-    exp = 'AUGD'  # Only the AUGD data retrieve is supported with the dd.
-    dt = 2*5.0e-3  # To get a bit more on the edges to make a better interp.
-    method = 'linear'  # Interpolation method
-    try:
-        sf_cec = dd.shotfile(diagnostic='CEC', pulseNumber=shotnumber,
-                         experiment=exp,  edition=0) # Slow channel - ECE data.
-        sf_rmc = dd.shotfile(diagnostic='RMC', pulseNumber=shotnumber,
-                         experiment=exp,  edition=0) # Fast channel - ECE data.
-    except:
-        raise Exception('Shotfile not existent for ECE/RMD/RMC')
-
-    try:
-        eqh = dd.shotfile(diagnostic='EQH', pulseNumber=shotnumber,
-                          experiment=exp, edition=0)
-        equ = meq.equ_map(shotnumber, diag='EQH', exp='AUGD',
-                          ed=0)
-    except:
-        eqh = dd.shotfile(diagnostic='EQI', pulseNumber=shotnumber,
-                          experiment=exp, edition=0)
-        equ = meq.equ_map(shotnumber, diag='EQI', exp='AUGD',
-                          ed=0)
-
-    # Getting the calibration.
-    try:
-        cal_shot = dd.getLastShotNumber(diagnostic=b'RMD',
-                                        pulseNumber=shotnumber,
-                                        experiment=b'AUGD')
-
-        sf_rmd = dd.shotfile(diagnostic='RMD', pulseNumber=cal_shot,
-                             experiment='AUGD', edition=0)
-    except:
-        raise Exception('Could not retrieve the ECE calibration')
-
-    # --- Time base retrieval.
-    try:
-        # Getting the fastest time basis.
-        time = sf_rmc(name='TIME-AD0')
-    except:
-        raise Exception('Time base not available in shotfile!')
-
-    if timeWindow is None:
-        timeWindow = [time[0], time[-1]]
-
-    warnings.filterwarnings('ignore')
-    timeWindow[0] = np.maximum(time[0], timeWindow[0])
-    timeWindow[1] = np.minimum(time[-1], timeWindow[-1])
-
-    # --- Getting the calibration from RMD
-    mult_cal = sf_rmd.getParameter('eCAL-A1', 'MULTIA00').data
-    mult_cal = np.append(mult_cal,
-                         sf_rmd.getParameter('eCAL-A2', 'MULTIA00').data)
-
-    shift_cal = sf_rmd.getParameter('eCAL-A1', 'SHIFTB00').data
-    shift_cal = np.append(shift_cal,
-                          sf_rmd.getParameter('eCAL-A2', 'SHIFTB00').data)
-
-    # Getting the availability.
-    avail_cec = sf_cec.getParameter('parms-A', 'AVAILABL').data.astype(bool)
-    avail_rmd = sf_rmd.getParameter('parms-A', 'AVAILABL').data.astype(bool)
-    avail_rmc = sf_rmc.getParameter('parms-A', 'AVAILABL').data.astype(bool)
-    avail_flag = np.array((avail_cec * avail_rmd * avail_rmc), dtype=bool)
-
-    del avail_cec
-    del avail_rmd
-    del avail_rmc
-
-    # Getting the positions (R, Z) -> rho_pol
-    rA_rmd = sf_rmd(name='R-A', tBegin=timeWindow[0]-dt,
-                    tEnd=timeWindow[1]+dt)
-    zA_rmd = sf_rmd(name='z-A', tBegin=timeWindow[0]-dt,
-                    tEnd=timeWindow[1]+dt)
-
-    if fast:
-        rA = np.mean(rA_rmd.data, axis=0)
-        zA = np.mean(zA_rmd.data, axis=0)
-        time_avg = np.mean(timeWindow)
-        rhop = equ.rz2rho(rA, zA, t_in=time_avg, coord_out='rho_pol',
-                          extrapolate=True).flatten()
-        rhot = equ.rz2rho(rA, zA, t_in=time_avg, coord_out='rho_tor',
-                          extrapolate=True).flatten()
-    else:
-        # As the R and z are not calculated for all the points that ECE is
-        # measuring, we build here an interpolator.
-        rA_interp = interp1d(rA_rmd.time, rA_rmd.data, axis=0,
-                             fill_value=np.nan, kind=method,
-                             assume_sorted=True, bounds_error=False)
-        zA_interp = interp1d(zA_rmd.time, zA_rmd.data, axis=0,
-                             fill_value=np.nan, kind=method,
-                             assume_sorted=True, bounds_error=False)
-
-        # Getting the rho_pol equivalent to the positions.
-
-        rhop = np.zeros(rA_rmd.data.shape)
-        rhot = np.zeros(rA_rmd.data.shape)
-        for ii in tqdm(np.arange(rA_rmd.data.shape[0])):
-            rhop[ii, :] = equ.rz2rho(rA_rmd.data[ii, :], zA_rmd.data[ii, :],
-                                     t_in=rA_rmd.time[ii],
-                                     coord_out='rho_pol',
-                                     extrapolate=True)
-            rhot[ii, :] = equ.rz2rho(rA_rmd.data[ii, :], zA_rmd.data[ii, :],
-                                     t_in=rA_rmd.time[ii],
-                                     coord_out='rho_tor',
-                                     extrapolate=True)
-
-        # Creating the interpolators.
-        rhop_interp = interp1d(rA_rmd.time, rhop, axis=0,
-                               fill_value=np.nan, kind=method,
-                               assume_sorted=True, bounds_error=False)
-        rhot_interp = interp1d(rA_rmd.time, rhot, axis=0,
-                               fill_value=np.nan, kind=method,
-                               assume_sorted=True, bounds_error=False)
-    equ.Close()
-    sf_rmd.close()
-
-    # --- Getting the electron temperature from the RMC shotfile.
-    Trad_rmc1 = sf_rmc(name='Trad-A1',
-                       tBegin=timeWindow[0], tEnd=timeWindow[1])
-    Trad_rmc2 = sf_rmc(name='Trad-A2',
-                       tBegin=timeWindow[0], tEnd=timeWindow[1])
-
-    sf_rmc.close()
-    time = Trad_rmc1.time
-    Trad_rmc = np.append(Trad_rmc1.data, Trad_rmc2.data, axis=1)
-
-    # With the new time-basis, we compute the actual positions of the ECE
-    # radiometers in time.
-    if fast:
-        Rece = rA
-        Zece = zA
-        RhoP_ece = rhop
-        RhoT_ece = rhot
-    else:
-        Rece = rA_interp(time)
-        Zece = zA_interp(time)
-        RhoP_ece = rhop_interp(time)
-        RhoT_ece = rhot_interp(time)
-        del rA_interp
-        del zA_interp
-        del rhop_interp
-        del rhot_interp
-
-    del Trad_rmc1  # Releasing some memory.
-    del Trad_rmc2  # Releasing some memory.
-    del rA_rmd
-    del zA_rmd
-    del rhop
-    del rhot
-
-    # --- Applying the calibration.
-    Trad = np.zeros(Trad_rmc.shape)       # Electron temp [eV]
-    Trad_norm = np.zeros(Trad_rmc.shape)  # Norm'd by the maximum.
-    for ii in range(Trad_rmc.shape[1]):
-        Trad[:, ii] = Trad_rmc[:, ii]*mult_cal[ii] + shift_cal[ii]
-        meanTe = np.mean(Trad[:, ii])
-        Trad_norm[:, ii] = Trad[:, ii]/meanTe
-
-    del Trad_rmc  # Release the uncalibrated signal from memory.
-
-    # --- Checking that the slow channel is consistent with the fast-channels.
-    Trad_slow = sf_cec('Trad-A', tBegin=timeWindow[0], tEnd=timeWindow[1])
-    sf_cec.close()
-    meanECE = np.mean(Trad_slow.data, axis=0)
-    maxRMD = np.max(Trad, axis=0)
-    minRMD = np.min(Trad, axis=0)
-    RmeanRMD = np.mean(Rece.flatten())
-
-    # We erase the channels that have and average in the slow channels that
-    # are not within the RMD signals. Also, take away those not within the
-    # vessel.
-    avail_flag &= ((meanECE > minRMD) & (meanECE < maxRMD)) & (RmeanRMD > 1.03)
-    del meanECE
-    del maxRMD
-    del minRMD
-
-    # --- Applying the rhop limits.
-    if rhopLimits is None:
-        rhopLimits = [-1.0, 1.0]
-
-    if fast:
-        avail_flag &= ((RhoP_ece > rhopLimits[0]) &
-                       (RhoP_ece < rhopLimits[1]))
-
-        Rece = Rece[avail_flag]
-        Zece = Zece[avail_flag]
-        RhoP_ece = RhoP_ece[avail_flag]
-        RhoT_ece = RhoT_ece[avail_flag]
-        Trad = Trad[:, avail_flag]
-        Trad_norm = Trad_norm[:, avail_flag]
-    else:
-        flags = ((RhoP_ece > rhopLimits[0]) & (RhoP_ece < rhopLimits[1]))
-        avail_flag &= np.all(flags, axis=0)  # If the channel is continuously
-        #                                    # outside, then discard it.
-        Rece = Rece[:, avail_flag]
-        Zece = Zece[:, avail_flag]
-        RhoP_ece = RhoP_ece[:, avail_flag]
-        RhoT_ece = RhoT_ece[:, avail_flag]
-        Trad = Trad[:, avail_flag]
-        Trad_norm = Trad_norm[:, avail_flag]
-
-        # Now, set to NaN the values that are outside the limits.
-        flags = not flags[:, avail_flag]
-        Rece[flags] = np.nan
-        Zece[flags] = np.nan
-        RhoP_ece[flags] = np.nan
-        RhoT_ece[flags] = np.nan
-        Trad[flags] = np.nan
-        Trad_norm[flags] = np.nan
-
-    # --- Adding a conventional sign to the rhopol and rhotor.
-    # Getting the axis center.
-
-    eqh_time = np.asarray(eqh(name='time').data)
-    eqh_ssqnames = eqh.GetSignal(name='SSQnam')
-    eqh_ssq = eqh.GetSignal(name='SSQ')
-
-    t0 = (np.abs(eqh_time - timeWindow[0])).argmin() - 1
-    t1 = (np.abs(eqh_time - timeWindow[1])).argmin() + 1
-
-    ssq = dict()
-    for jssq in range(eqh_ssq.shape[1]):
-        tmp = b''.join(eqh_ssqnames[jssq, :]).strip()
-        lbl = tmp.decode('utf8')
-        if lbl.strip() != '':
-            ssq[lbl] = eqh_ssq[t0:t1, jssq]
-
-    if 'Rmag' not in ssq:
-        print('Warning: Proceed with care, magnetic axis radius not found.\n \
-              Using the geometrical axis.')
-        if fast:
-            Raxis = 1.65
-        else:
-            Raxis = 1.65 * np.ones(Rece.shape[0])  # [m]
-    else:
-        Raxis_eqh = ssq['Rmag']
-
-        if fast:
-            Raxis = np.mean(Raxis_eqh)
-            sign_array = Rece < Raxis
-            RhoP_ece[sign_array] = - RhoP_ece[sign_array]
-        else:
-            eqh_time = eqh_time[t0:t1]
-            Raxis = interp1d(eqh_time, Raxis_eqh,
-                             fill_value='extrapolate', kind=method,
-                             assume_sorted=True, bounds_error=False)(time)
-
-            # If R_ECE < R(magnetic axis), then the rhopol is negative.
-            for ii in range(Trad.shape[1]):
-                sign_array = Rece[:, ii] < Raxis
-                RhoP_ece[sign_array, ii] = - RhoP_ece[sign_array, ii]
-
-    eqh.close()
-    warnings.filterwarnings('default')
-
-    # --- Saving output.
-    output = {
-        'time': np.asarray(time, dtype=np.float32),
-        'r': np.asarray(Rece, dtype=np.float32),
-        'z': np.asarray(Zece, dtype=np.float32),
-        'rhop': np.asarray(RhoP_ece, dtype=np.float32),
-        'rhot': np.asarray(RhoT_ece, dtype=np.float32),
-        'Trad': np.asarray(Trad, dtype=np.float32),
-        'Trad_norm': np.asarray(Trad_norm, dtype=np.float32),
-        'Raxis': np.asarray(Raxis, dtype=np.float32),
-        'fast_rhop': fast,
-        'active': avail_flag,
-        'channels': (np.arange(len(avail_flag))+1)[avail_flag],
-        'shotnumber': shotnumber
-    }
-
-    return output
-
-def correctShineThroughECE(ecedata: dict, diag: str = 'PED', exp: str = 'AUGD',
-                           edition: int = 0):
-    """
-    For a given data-set of the ECE data, a new entry will be provided with
-    the temperature divided by the electron temperature gradient, trying to
-    correct the shine-through effect.
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    @param ecedata: dictionary with the data from the ECE.
-    @param diag: Diagnostic from which the eletron gradient will be retrieved.
-    By default is set to PED in AUGD, because its separatrix value are more
-    reliable. If the PED shotfile is not found, then the IDA shotfile will be
-    opened.
-    @parad exp: experiment from which the electron temperature will be
-    extracted. By default, AUGD.
-    @param ed: Edition to retrieve from equilibrium. The latest is taken by
-    default.
-    """
-    # --- Trying to open the PED shotfile.
-    using_PED = False
-    if diag == 'PED':
-        sf = dd.shotfile(diagnostic='PED', experiment=exp,
-                         pulseNumber=ecedata['shotnumber'],
-                         edition=edition)
-
-        name_te = 'TeFit'
-        name_rhop = 'rhoFit'
-        using_PED = True
-    else:
-        sf = dd.shotfile(diagnostic='IDA', experiment='AUGD',
-                         pulseNumber=ecedata['shotnumber'],
-                         edition=edition)
-
-        name_te = 'dTe_dr'
-        name_rhop = 'rhop'
-
-    rhop = sf(name=name_rhop, tBegin=ecedata['fft']['time'][0],
-              tEnd=ecedata['fft']['time'][-1])
-
-    te_data = sf(name=name_te, tBegin=ecedata['fft']['time'][0],
-                 tEnd=ecedata['fft']['time'][-1])
-
-    if using_PED:
-        dte = np.abs(np.diff(te_data.data.squeeze()))
-        drhop = np.diff(rhop.data.squeeze())
-        dtedrho = dte/drhop
-        rhop_c = (rhop.data.squeeze()[1:] + rhop.data.squeeze()[:-1])/2.0
-
-        dte_eval = interp1d(rhop_c, dtedrho, kind='linear',
-                            bounds_error=False, fill_value='extrapolate')\
-                            (np.abs(ecedata['rhop']))
-
-        ecedata['fft']['dTe'] = dtedrho
-        ecedata['fft']['dTe_base'] = rhop_c
-
-        ecedata['fft']['spec_dte'] = ecedata['fft']['spec']
-        for ii in range(ecedata['fft']['spec_dte'].shape[0]):
-            for jj in range(ecedata['fft']['spec_dte'].shape[1]):
-                ecedata['fft']['spec_dte'][ii, jj, :] /= dte_eval
-
-    else:
-        time = sf(name='time')
-        t0 = np.maximum(0,
-                        np.abs(time.flatten()
-                               - ecedata['fft']['time'][0]).argmin() - 1)
-        t1 = np.minimum(len(time)-1,
-                        np.abs(time.flatten()
-                               - ecedata['fft']['time'][-1]).argmin() + 1)
-
-        t0 = np.asarray(t0, dtype=int)
-        t1 = np.asarray(t1, dtype=int)
-
-        # Reducing the size, to make easier the interpolation.
-
-        time = time[t0:t1]
-        te_data = te_data.data[t0:t1, :]
-        rhop = rhop[t0, :]
-
-        dte_eval_fun = interp2d(time, rhop, np.abs(te_data.T))
-
-        dte_eval = np.abs(dte_eval_fun(ecedata['fft']['time'],
-                                       np.abs((ecedata['rhop']))).T)
-
-        ecedata['fft']['dTe_base'] = rhop
-        ecedata['fft']['dTe'] = np.abs(np.mean(te_data, axis=0))
-        ecedata['fft']['spec_dte'] = ecedata['fft']['spec']
-        print(ecedata['fft']['spec_dte'].shape)
-        print(dte_eval.shape)
-        print(ecedata['fft']['time'].shape, ecedata['rhop'].shape)
-        for ii in range(ecedata['fft']['spec'].shape[1]):
-            ecedata['fft']['spec_dte'][:, ii, :] /= dte_eval
-    return ecedata
+# def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = False,
+#             rhopLimits: float = None):
+#     """
+#     Retrieves from the database the ECE data and the calibrations to obtain
+#     the electron temperature perturbations.
+#
+#     Pablo Oyola - pablo.oyola@ipp.mpg.de
+#
+#     @param shotnumber: shot Number to get the ECE data.
+#     @param timeWindow: time window to get the data.
+#     @param fast: fast reading implies that the position of each of the
+#     radiometers is averaged along the time window making it faster.
+#     @param rhopLimits: limits in rho poloidal to retrieve the ECE. If None,
+#     the limits are set to [-1.0, 1.0], where the sign is conventional to
+#     HFS (-) and LFS (+)
+#     """
+#
+#     # --- Opening the shotfiles.
+#     exp = 'AUGD'  # Only the AUGD data retrieve is supported with the dd.
+#     dt = 2*5.0e-3  # To get a bit more on the edges to make a better interp.
+#     method = 'linear'  # Interpolation method
+#     try:
+#         sf_cec = dd.shotfile(diagnostic='CEC', pulseNumber=shotnumber,
+#                          experiment=exp,  edition=0) # Slow channel - ECE data.
+#         sf_rmc = dd.shotfile(diagnostic='RMC', pulseNumber=shotnumber,
+#                          experiment=exp,  edition=0) # Fast channel - ECE data.
+#     except:
+#         raise Exception('Shotfile not existent for ECE/RMD/RMC')
+#
+#     try:
+#         eqh = dd.shotfile(diagnostic='EQH', pulseNumber=shotnumber,
+#                           experiment=exp, edition=0)
+#         equ = meq.equ_map(shotnumber, diag='EQH', exp='AUGD',
+#                           ed=0)
+#     except:
+#         eqh = dd.shotfile(diagnostic='EQI', pulseNumber=shotnumber,
+#                           experiment=exp, edition=0)
+#         equ = meq.equ_map(shotnumber, diag='EQI', exp='AUGD',
+#                           ed=0)
+#
+#     # Getting the calibration.
+#     try:
+#         cal_shot = dd.getLastShotNumber(diagnostic=b'RMD',
+#                                         pulseNumber=shotnumber,
+#                                         experiment=b'AUGD')
+#
+#         sf_rmd = dd.shotfile(diagnostic='RMD', pulseNumber=cal_shot,
+#                              experiment='AUGD', edition=0)
+#     except:
+#         raise Exception('Could not retrieve the ECE calibration')
+#
+#     # --- Time base retrieval.
+#     try:
+#         # Getting the fastest time basis.
+#         time = sf_rmc(name='TIME-AD0')
+#     except:
+#         raise Exception('Time base not available in shotfile!')
+#
+#     if timeWindow is None:
+#         timeWindow = [time[0], time[-1]]
+#
+#     warnings.filterwarnings('ignore')
+#     timeWindow[0] = np.maximum(time[0], timeWindow[0])
+#     timeWindow[1] = np.minimum(time[-1], timeWindow[-1])
+#
+#     # --- Getting the calibration from RMD
+#     mult_cal = sf_rmd.getParameter('eCAL-A1', 'MULTIA00').data
+#     mult_cal = np.append(mult_cal,
+#                          sf_rmd.getParameter('eCAL-A2', 'MULTIA00').data)
+#
+#     shift_cal = sf_rmd.getParameter('eCAL-A1', 'SHIFTB00').data
+#     shift_cal = np.append(shift_cal,
+#                           sf_rmd.getParameter('eCAL-A2', 'SHIFTB00').data)
+#
+#     # Getting the availability.
+#     avail_cec = sf_cec.getParameter('parms-A', 'AVAILABL').data.astype(bool)
+#     avail_rmd = sf_rmd.getParameter('parms-A', 'AVAILABL').data.astype(bool)
+#     avail_rmc = sf_rmc.getParameter('parms-A', 'AVAILABL').data.astype(bool)
+#     avail_flag = np.array((avail_cec * avail_rmd * avail_rmc), dtype=bool)
+#
+#     del avail_cec
+#     del avail_rmd
+#     del avail_rmc
+#
+#     # Getting the positions (R, Z) -> rho_pol
+#     rA_rmd = sf_rmd(name='R-A', tBegin=timeWindow[0]-dt,
+#                     tEnd=timeWindow[1]+dt)
+#     zA_rmd = sf_rmd(name='z-A', tBegin=timeWindow[0]-dt,
+#                     tEnd=timeWindow[1]+dt)
+#
+#     if fast:
+#         rA = np.mean(rA_rmd.data, axis=0)
+#         zA = np.mean(zA_rmd.data, axis=0)
+#         time_avg = np.mean(timeWindow)
+#         rhop = equ.rz2rho(rA, zA, t_in=time_avg, coord_out='rho_pol',
+#                           extrapolate=True).flatten()
+#         rhot = equ.rz2rho(rA, zA, t_in=time_avg, coord_out='rho_tor',
+#                           extrapolate=True).flatten()
+#     else:
+#         # As the R and z are not calculated for all the points that ECE is
+#         # measuring, we build here an interpolator.
+#         rA_interp = interp1d(rA_rmd.time, rA_rmd.data, axis=0,
+#                              fill_value=np.nan, kind=method,
+#                              assume_sorted=True, bounds_error=False)
+#         zA_interp = interp1d(zA_rmd.time, zA_rmd.data, axis=0,
+#                              fill_value=np.nan, kind=method,
+#                              assume_sorted=True, bounds_error=False)
+#
+#         # Getting the rho_pol equivalent to the positions.
+#
+#         rhop = np.zeros(rA_rmd.data.shape)
+#         rhot = np.zeros(rA_rmd.data.shape)
+#         for ii in tqdm(np.arange(rA_rmd.data.shape[0])):
+#             rhop[ii, :] = equ.rz2rho(rA_rmd.data[ii, :], zA_rmd.data[ii, :],
+#                                      t_in=rA_rmd.time[ii],
+#                                      coord_out='rho_pol',
+#                                      extrapolate=True)
+#             rhot[ii, :] = equ.rz2rho(rA_rmd.data[ii, :], zA_rmd.data[ii, :],
+#                                      t_in=rA_rmd.time[ii],
+#                                      coord_out='rho_tor',
+#                                      extrapolate=True)
+#
+#         # Creating the interpolators.
+#         rhop_interp = interp1d(rA_rmd.time, rhop, axis=0,
+#                                fill_value=np.nan, kind=method,
+#                                assume_sorted=True, bounds_error=False)
+#         rhot_interp = interp1d(rA_rmd.time, rhot, axis=0,
+#                                fill_value=np.nan, kind=method,
+#                                assume_sorted=True, bounds_error=False)
+#     equ.Close()
+#     sf_rmd.close()
+#
+#     # --- Getting the electron temperature from the RMC shotfile.
+#     Trad_rmc1 = sf_rmc(name='Trad-A1',
+#                        tBegin=timeWindow[0], tEnd=timeWindow[1])
+#     Trad_rmc2 = sf_rmc(name='Trad-A2',
+#                        tBegin=timeWindow[0], tEnd=timeWindow[1])
+#
+#     sf_rmc.close()
+#     time = Trad_rmc1.time
+#     Trad_rmc = np.append(Trad_rmc1.data, Trad_rmc2.data, axis=1)
+#
+#     # With the new time-basis, we compute the actual positions of the ECE
+#     # radiometers in time.
+#     if fast:
+#         Rece = rA
+#         Zece = zA
+#         RhoP_ece = rhop
+#         RhoT_ece = rhot
+#     else:
+#         Rece = rA_interp(time)
+#         Zece = zA_interp(time)
+#         RhoP_ece = rhop_interp(time)
+#         RhoT_ece = rhot_interp(time)
+#         del rA_interp
+#         del zA_interp
+#         del rhop_interp
+#         del rhot_interp
+#
+#     del Trad_rmc1  # Releasing some memory.
+#     del Trad_rmc2  # Releasing some memory.
+#     del rA_rmd
+#     del zA_rmd
+#     del rhop
+#     del rhot
+#
+#     # --- Applying the calibration.
+#     Trad = np.zeros(Trad_rmc.shape)       # Electron temp [eV]
+#     Trad_norm = np.zeros(Trad_rmc.shape)  # Norm'd by the maximum.
+#     for ii in range(Trad_rmc.shape[1]):
+#         Trad[:, ii] = Trad_rmc[:, ii]*mult_cal[ii] + shift_cal[ii]
+#         meanTe = np.mean(Trad[:, ii])
+#         Trad_norm[:, ii] = Trad[:, ii]/meanTe
+#
+#     del Trad_rmc  # Release the uncalibrated signal from memory.
+#
+#     # --- Checking that the slow channel is consistent with the fast-channels.
+#     Trad_slow = sf_cec('Trad-A', tBegin=timeWindow[0], tEnd=timeWindow[1])
+#     sf_cec.close()
+#     meanECE = np.mean(Trad_slow.data, axis=0)
+#     maxRMD = np.max(Trad, axis=0)
+#     minRMD = np.min(Trad, axis=0)
+#     RmeanRMD = np.mean(Rece.flatten())
+#
+#     # We erase the channels that have and average in the slow channels that
+#     # are not within the RMD signals. Also, take away those not within the
+#     # vessel.
+#     avail_flag &= ((meanECE > minRMD) & (meanECE < maxRMD)) & (RmeanRMD > 1.03)
+#     del meanECE
+#     del maxRMD
+#     del minRMD
+#
+#     # --- Applying the rhop limits.
+#     if rhopLimits is None:
+#         rhopLimits = [-1.0, 1.0]
+#
+#     if fast:
+#         avail_flag &= ((RhoP_ece > rhopLimits[0]) &
+#                        (RhoP_ece < rhopLimits[1]))
+#
+#         Rece = Rece[avail_flag]
+#         Zece = Zece[avail_flag]
+#         RhoP_ece = RhoP_ece[avail_flag]
+#         RhoT_ece = RhoT_ece[avail_flag]
+#         Trad = Trad[:, avail_flag]
+#         Trad_norm = Trad_norm[:, avail_flag]
+#     else:
+#         flags = ((RhoP_ece > rhopLimits[0]) & (RhoP_ece < rhopLimits[1]))
+#         avail_flag &= np.all(flags, axis=0)  # If the channel is continuously
+#         #                                    # outside, then discard it.
+#         Rece = Rece[:, avail_flag]
+#         Zece = Zece[:, avail_flag]
+#         RhoP_ece = RhoP_ece[:, avail_flag]
+#         RhoT_ece = RhoT_ece[:, avail_flag]
+#         Trad = Trad[:, avail_flag]
+#         Trad_norm = Trad_norm[:, avail_flag]
+#
+#         # Now, set to NaN the values that are outside the limits.
+#         flags = not flags[:, avail_flag]
+#         Rece[flags] = np.nan
+#         Zece[flags] = np.nan
+#         RhoP_ece[flags] = np.nan
+#         RhoT_ece[flags] = np.nan
+#         Trad[flags] = np.nan
+#         Trad_norm[flags] = np.nan
+#
+#     # --- Adding a conventional sign to the rhopol and rhotor.
+#     # Getting the axis center.
+#
+#     eqh_time = np.asarray(eqh(name='time').data)
+#     eqh_ssqnames = eqh.GetSignal(name='SSQnam')
+#     eqh_ssq = eqh.GetSignal(name='SSQ')
+#
+#     t0 = (np.abs(eqh_time - timeWindow[0])).argmin() - 1
+#     t1 = (np.abs(eqh_time - timeWindow[1])).argmin() + 1
+#
+#     ssq = dict()
+#     for jssq in range(eqh_ssq.shape[1]):
+#         tmp = b''.join(eqh_ssqnames[jssq, :]).strip()
+#         lbl = tmp.decode('utf8')
+#         if lbl.strip() != '':
+#             ssq[lbl] = eqh_ssq[t0:t1, jssq]
+#
+#     if 'Rmag' not in ssq:
+#         print('Warning: Proceed with care, magnetic axis radius not found.\n \
+#               Using the geometrical axis.')
+#         if fast:
+#             Raxis = 1.65
+#         else:
+#             Raxis = 1.65 * np.ones(Rece.shape[0])  # [m]
+#     else:
+#         Raxis_eqh = ssq['Rmag']
+#
+#         if fast:
+#             Raxis = np.mean(Raxis_eqh)
+#             sign_array = Rece < Raxis
+#             RhoP_ece[sign_array] = - RhoP_ece[sign_array]
+#         else:
+#             eqh_time = eqh_time[t0:t1]
+#             Raxis = interp1d(eqh_time, Raxis_eqh,
+#                              fill_value='extrapolate', kind=method,
+#                              assume_sorted=True, bounds_error=False)(time)
+#
+#             # If R_ECE < R(magnetic axis), then the rhopol is negative.
+#             for ii in range(Trad.shape[1]):
+#                 sign_array = Rece[:, ii] < Raxis
+#                 RhoP_ece[sign_array, ii] = - RhoP_ece[sign_array, ii]
+#
+#     eqh.close()
+#     warnings.filterwarnings('default')
+#
+#     # --- Saving output.
+#     output = {
+#         'time': np.asarray(time, dtype=np.float32),
+#         'r': np.asarray(Rece, dtype=np.float32),
+#         'z': np.asarray(Zece, dtype=np.float32),
+#         'rhop': np.asarray(RhoP_ece, dtype=np.float32),
+#         'rhot': np.asarray(RhoT_ece, dtype=np.float32),
+#         'Trad': np.asarray(Trad, dtype=np.float32),
+#         'Trad_norm': np.asarray(Trad_norm, dtype=np.float32),
+#         'Raxis': np.asarray(Raxis, dtype=np.float32),
+#         'fast_rhop': fast,
+#         'active': avail_flag,
+#         'channels': (np.arange(len(avail_flag))+1)[avail_flag],
+#         'shotnumber': shotnumber
+#     }
+#
+#     return output
+#
+# def correctShineThroughECE(ecedata: dict, diag: str = 'PED', exp: str = 'AUGD',
+#                            edition: int = 0):
+#     """
+#     For a given data-set of the ECE data, a new entry will be provided with
+#     the temperature divided by the electron temperature gradient, trying to
+#     correct the shine-through effect.
+#
+#     Pablo Oyola - pablo.oyola@ipp.mpg.de
+#
+#     @param ecedata: dictionary with the data from the ECE.
+#     @param diag: Diagnostic from which the eletron gradient will be retrieved.
+#     By default is set to PED in AUGD, because its separatrix value are more
+#     reliable. If the PED shotfile is not found, then the IDA shotfile will be
+#     opened.
+#     @parad exp: experiment from which the electron temperature will be
+#     extracted. By default, AUGD.
+#     @param ed: Edition to retrieve from equilibrium. The latest is taken by
+#     default.
+#     """
+#     # --- Trying to open the PED shotfile.
+#     using_PED = False
+#     if diag == 'PED':
+#         sf = dd.shotfile(diagnostic='PED', experiment=exp,
+#                          pulseNumber=ecedata['shotnumber'],
+#                          edition=edition)
+#
+#         name_te = 'TeFit'
+#         name_rhop = 'rhoFit'
+#         using_PED = True
+#     else:
+#         sf = dd.shotfile(diagnostic='IDA', experiment='AUGD',
+#                          pulseNumber=ecedata['shotnumber'],
+#                          edition=edition)
+#
+#         name_te = 'dTe_dr'
+#         name_rhop = 'rhop'
+#
+#     rhop = sf(name=name_rhop, tBegin=ecedata['fft']['time'][0],
+#               tEnd=ecedata['fft']['time'][-1])
+#
+#     te_data = sf(name=name_te, tBegin=ecedata['fft']['time'][0],
+#                  tEnd=ecedata['fft']['time'][-1])
+#
+#     if using_PED:
+#         dte = np.abs(np.diff(te_data.data.squeeze()))
+#         drhop = np.diff(rhop.data.squeeze())
+#         dtedrho = dte/drhop
+#         rhop_c = (rhop.data.squeeze()[1:] + rhop.data.squeeze()[:-1])/2.0
+#
+#         dte_eval = interp1d(rhop_c, dtedrho, kind='linear',
+#                             bounds_error=False, fill_value='extrapolate')\
+#                             (np.abs(ecedata['rhop']))
+#
+#         ecedata['fft']['dTe'] = dtedrho
+#         ecedata['fft']['dTe_base'] = rhop_c
+#
+#         ecedata['fft']['spec_dte'] = ecedata['fft']['spec']
+#         for ii in range(ecedata['fft']['spec_dte'].shape[0]):
+#             for jj in range(ecedata['fft']['spec_dte'].shape[1]):
+#                 ecedata['fft']['spec_dte'][ii, jj, :] /= dte_eval
+#
+#     else:
+#         time = sf(name='time')
+#         t0 = np.maximum(0,
+#                         np.abs(time.flatten()
+#                                - ecedata['fft']['time'][0]).argmin() - 1)
+#         t1 = np.minimum(len(time)-1,
+#                         np.abs(time.flatten()
+#                                - ecedata['fft']['time'][-1]).argmin() + 1)
+#
+#         t0 = np.asarray(t0, dtype=int)
+#         t1 = np.asarray(t1, dtype=int)
+#
+#         # Reducing the size, to make easier the interpolation.
+#
+#         time = time[t0:t1]
+#         te_data = te_data.data[t0:t1, :]
+#         rhop = rhop[t0, :]
+#
+#         dte_eval_fun = interp2d(time, rhop, np.abs(te_data.T))
+#
+#         dte_eval = np.abs(dte_eval_fun(ecedata['fft']['time'],
+#                                        np.abs((ecedata['rhop']))).T)
+#
+#         ecedata['fft']['dTe_base'] = rhop
+#         ecedata['fft']['dTe'] = np.abs(np.mean(te_data, axis=0))
+#         ecedata['fft']['spec_dte'] = ecedata['fft']['spec']
+#         print(ecedata['fft']['spec_dte'].shape)
+#         print(dte_eval.shape)
+#         print(ecedata['fft']['time'].shape, ecedata['rhop'].shape)
+#         for ii in range(ecedata['fft']['spec'].shape[1]):
+#             ecedata['fft']['spec_dte'][:, ii, :] /= dte_eval
+#     return ecedata

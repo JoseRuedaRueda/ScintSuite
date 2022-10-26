@@ -6,7 +6,7 @@ possibility to subtract noise and timetraces will be calculated
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.3.0. Revised for version 0.9.0
+Note; Written for version 0.3.0. Revised for version 1.0.0
 """
 import Lib as ss
 import matplotlib.pyplot as plt
@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 32312
+shot = 44732
 diag_ID = 1  # 6 for rFILD
 t1 = 0.20     # Initial time to be loaded, [s]
 t2 = 3.5     # Final time to be loaded [s]
@@ -37,7 +37,7 @@ plt_TT = True  # Plot the TT
 # --- Section 1: Load video
 # -----------------------------------------------------------------------------
 # - open the video file:
-vid = ss.vid.FILDVideo(shot=shot, diag_ID=diag_ID)
+vid = ss.vid.FILDVideo(shot=shot, diag_ID=diag_ID, verbose=True)
 # - read the frames:
 print('Reading camera frames: ')
 vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
@@ -51,18 +51,21 @@ if subtract_noise:
 # -----------------------------------------------------------------------------
 # --- Section 3: Calculate the TT
 # -----------------------------------------------------------------------------
-# - Plot the frame
-ax_ref = vid.plot_frame(t=t0)
-fig_ref = plt.gcf()
-# - Define roi
-# Note: if you want the figure to re-appear after the selection of the roi,
-# call create roi with the option re_display=True
-roi = ss.tt.roipoly(fig_ref, ax_ref)
-# Create the mask
-mask = roi.getMask(vid.exp_dat['frames'][:, :, 0].squeeze())
-# Calculate the TimeTrace
-time_trace = ss.tt.TimeTrace(vid, mask)
-# Save the timetraces and roi
+# -- Old way, it should still work, but is complicating things for nothing
+# # - Plot the frame
+# ax_ref = vid.plot_frame(t=t0)
+# fig_ref = plt.gcf()
+# # - Define roi
+# # Note: if you want the figure to re-appear after the selection of the roi,
+# # call create roi with the option re_display=True
+# roi = ss.tt.roipoly(fig_ref, ax_ref)
+# # Create the mask
+# mask = roi.getMask(vid.exp_dat['frames'][:, :, 0].squeeze())
+# # Calculate the TimeTrace
+# time_trace = ss.tt.TimeTrace(vid, mask)
+# -- New direct way
+time_trace, mask = vid.getTimeTrace(t=t0)
+# -- Save the timetraces and roi
 if save_TT:
     print('Choose the name for the TT file (select .txt!!!): ')
     time_trace.export_to_ascii()

@@ -1,8 +1,8 @@
 """Hydrogen and lithium ionization formulae"""
 
 import numpy as np
-import Lib.LibParameters as sspar
-import Lib.LibPlotting as ssplt
+import Lib._Parameters as sspar
+import Lib._Plotting as ssplt
 import matplotlib.pyplot as plt
 
 # Importing libraries with the Cs and the rubidium cross sections.
@@ -14,6 +14,13 @@ from scipy.special import kn as modBessel2nd
 from tqdm import tqdm
 from datetime import date
 from scipy.io import savemat
+import pickle
+import logging
+logger = logging.getLogger('ScintSuite.iHIBPsim')
+try:
+    import numba as nb
+except ModuleNotFoundError:
+    logger.wargning('10: You cannot use xcrosssection calculation')
 
 # ----------------------------------------------------------
 # --- Binding energy for different alkali atoms.
@@ -1253,13 +1260,19 @@ def RbI_RbII_electron(Ecm: float):
                           fill_value='extrapolate', assume_sorted=True,
                           bounds_error=False)
 
+    sigma = np.zeros_like(Ecm)
+    flags = Ecm <= E[1]
+    sigma[flags] = -np.inf
+    sigma[~flags] = sig_interp(np.log(Ecm[~flags]))
+    plt.plot(Ecm, np.exp(sigma))
+
     output = {
                 'base': Ecm,
                 'base_units': 'eV',
                 'base_name': 'Energy',
                 'base_short': '$E_{CM}$',
                 'base_type': 'e',
-                'sigma': np.exp(sig_interp(np.log(Ecm))),
+                'sigma':np.exp(sigma),
                 'units': '$cm^2$',
                 'atom':  {
                          'name': 'Rubidium',
@@ -1284,15 +1297,22 @@ def RbI_RbIII_electron(Ecm: float):
     @param Ecm: center-of-mass energy of the impact [eV]
     @return output: dictionary with the cross section data.
     """
-    E = [98.0, 118.0, 138.0, 168.0, 188.0, 248.0, 298.0, 398.0, 498.0, 598.0,
-         698.0, 798.0, 898.0, 998.0, 1248.0, 1498.0, 1998.0, 2998.0]
+    E = np.array([118.0, 138.0, 168.0, 188.0, 248.0, 298.0, 398.0,
+                  498.0, 598.0, 698.0, 798.0, 898.0, 998.0, 1248.0, 1498.0,
+                  1998.0, 2998.0])
 
-    sigma = [0.00, 0.00, 1.00, 2.60 , 5.27, 10.1, 13.3, 17.2, 20.0, 21.4,
-             20.9, 20.6, 20.3, 19.7, 18.5, 17.1, 15.7, 11.9]*1.0e-19 # cm^2
+    sigma = np.array([0.00, 1.00, 2.60 , 5.27, 10.1, 13.3, 17.2, 20.0, 21.4,
+                      20.9, 20.6, 20.3, 19.7, 18.5, 17.1, 15.7, 11.9])*1.0e-19 # cm^2
+
 
     sig_interp = interp1d(np.log(E), np.log(sigma), kind='linear',
                           fill_value='extrapolate', assume_sorted=True,
                           bounds_error=False)
+
+    sigma = np.zeros_like(Ecm)
+    flags = Ecm <= E[1]
+    sigma[flags] = -np.inf
+    sigma[~flags] = sig_interp(np.log(Ecm[~flags]))
 
     output = {
                 'base': Ecm,
@@ -1300,7 +1320,7 @@ def RbI_RbIII_electron(Ecm: float):
                 'base_name': 'Energy',
                 'base_short': '$E_{CM}$',
                 'base_type': 'e',
-                'sigma': np.exp(sig_interp(np.log(Ecm))),
+                'sigma': np.exp(sigma),
                 'units': '$cm^2$',
                 'atom':  {
                          'name': 'Rubidium',
@@ -1325,15 +1345,20 @@ def RbI_RbIV_electron(Ecm: float):
     @param Ecm: center-of-mass energy of the impact [eV]
     @return output: dictionary with the cross section data.
     """
-    E = [158.0, 198.0, 248.0, 298.0, 398.0, 498.0, 598.0, 698.0, 798.0, 898.0,
-         998.0, 1248.0, 1498.0, 1998.0, 2998.0]
+    E = np.array([198.0, 248.0, 298.0, 398.0, 498.0, 598.0, 698.0, 798.0, 898.0,
+         998.0, 1248.0, 1498.0, 1998.0, 2998.0])
 
-    sigma = [0.00, 0.00, 3.50, 7.30, 24.1, 36.9, 41.8, 47.3, 51.1, 50.1,
-             49.8, 46.3, 43.2, 38.8, 27.6]*1.0e-20 # cm^2
+    sigma = np.array([0.00, 3.50, 7.30, 24.1, 36.9, 41.8, 47.3, 51.1, 50.1,
+             49.8, 46.3, 43.2, 38.8, 27.6])*1.0e-20 # cm^2
 
     sig_interp = interp1d(np.log(E), np.log(sigma), kind='linear',
                           fill_value='extrapolate', assume_sorted=True,
                           bounds_error=False)
+    sigma = np.zeros_like(Ecm)
+    flags = Ecm < E[1]
+    sigma[flags] = -np.inf
+    sigma[~flags] = sig_interp(np.log(Ecm[~flags]))
+
 
     output = {
                 'base': Ecm,
@@ -1341,7 +1366,7 @@ def RbI_RbIV_electron(Ecm: float):
                 'base_name': 'Energy',
                 'base_short': '$E_{CM}$',
                 'base_type': 'e',
-                'sigma': np.exp(sig_interp(np.log(Ecm))),
+                'sigma': np.exp(sigma),
                 'units': '$cm^2$',
                 'atom':  {
                          'name': 'Rubidium',
@@ -1604,7 +1629,8 @@ def reactionRate(xsection: dict, massA: float, massB: float,
             # If the temperature is comparable to the rest mass energy,
             # the Maxwellian distribution must be replaced by its relativistic
             # counterpart.
-            if T[iT]/(massB_si*sspar.c**2.0) > 0.01:
+            if T[iT]/(massB_si*sspar.c**2.0) < 0.01:
+                print('hola')
                 fmaxwell = lambda v: maxwell_jutner(v, T[iT], massB_si)
             else:
                 fmaxwell = lambda v: maxwell(v, T[iT], massB_si)
@@ -1613,7 +1639,7 @@ def reactionRate(xsection: dict, massA: float, massB: float,
             # We perform the 1D integral.
             # The integrand is:
             func = lambda v: v**3.0*sigmaCM(v)*fmaxwell(v)
-            output['rate'][iT] = quad(func, 0., 3e8)[0]*4.0*np.pi*1.0e-4
+            output['rate'][iT] = quad(func, 0., sspar.c)[0]*4.0*np.pi*1.0e-4
 
     output['units'] = '$m^{-3}s^{-1}$'
     output['atom'] = xsection['atom']
@@ -1636,13 +1662,16 @@ def create_HIBP_tables():
     Pablo Oyola - pablo.oyola@ipp.mpg.de
     """
 
-    #cs = createAlkaliData('Cs', 0)
-    #savemat("Cs133_tables.mat", cs)
+    cs = createAlkaliData('Cs', 133, impurities=False)
+    with open("./Data/MyData/Cs133_tables.mat", 'wb') as fid:
+        pickle.dump(cs, fid)
 
-    rb85 = createAlkaliData('Rb', 85)
-    savemat("Rb85_tables.mat", rb85)
 
-    return rb85
+    # rb85 = createAlkaliData('Rb', 85, impurities=False)
+    # with open("./Data/MyData/Rb85_tables.mat", 'wb') as fid:
+    #     pickle.dump(rb85, fid)
+
+    return cs#, rb85
 
 
 def createAlkaliData(name: str, mass: float, T: float = None,
@@ -1674,10 +1703,16 @@ def createAlkaliData(name: str, mass: float, T: float = None,
     """
     #--- Checking the inputs.
     if T is None:
-        T = np.logspace(1.0, 5.0, num=64)
+        T = np.logspace(0.0, 5.0, num=200)
 
     if vel is None:
-        vel = np.linspace(1.0e6, 6.0e6, num=10)
+        Emin = 10.0
+        Emax = 100.0
+
+        vmin = np.sqrt(2.0*Emin*1e3*sspar.ec/(mass*sspar.amu2kg))
+        vmax = np.sqrt(2.0*Emax*1e3*sspar.ec/(mass*sspar.amu2kg))
+
+        vel = np.linspace(vmin, vmax, num=20)
 
     #--- Chcking the line options input:
     if line_options is None:
@@ -2030,15 +2065,15 @@ def createRbData(A, T: float, vel: float, plotflag: bool = True,
     else:
         raise Exception('Non valid mass number for stable Rubidium!')
 
-    E = np.logspace(0, 7, num=101)
+    E = np.logspace(0, 5, num=1024)
     # Ionization potentials of Rb
     chi = np.array((Rb0_5s1, RbI_4p6))
     occNum = np.array((1, 6))
 
     #--- Electron impact ionization.
     rb0_rbI_electron_data    = Lotz_cross_section(E, chi, occNum)
-    rb0_rbI_CX_data          = Cs0_CX_H(E)
-    rbI_rbN_electron_data   = RbI_RbN_electron(E)
+    rb0_rbI_CX_data          = Rb0_CX_H(E)
+    rbI_rbN_electron_data    = RbI_RbN_electron(E)
 
     #--- Ion impact ionization.
     # We approximate the ion-impact ionization from the H formulae

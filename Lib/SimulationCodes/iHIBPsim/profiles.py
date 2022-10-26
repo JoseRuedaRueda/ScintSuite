@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 from scipy.interpolate import interpn, UnivariateSpline
 from copy import copy
-from Lib.LibPlotting import Gamma_II
+from Lib._Plotting import Gamma_II
 
 class ihibpProfiles:
     """Class with iHIBPsim profiles."""
@@ -271,7 +271,7 @@ class ihibpProfiles:
             np.array(gridlimits, dtype='float64').tofile(fid)
 
             # Writing the profile data.
-            np.array(tmp['f'].T, dtype='float64').ravel(order='F').tofile(fid)
+            np.array(tmp['f'], dtype='float64').ravel(order='F').tofile(fid)
 
         return
     def getfromDB(self, shotnumber: int, profName: str, diag: str=None,

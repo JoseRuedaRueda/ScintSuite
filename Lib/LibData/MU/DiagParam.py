@@ -1,7 +1,5 @@
 """Diagnostics and parameters of MAST Upgrade and kiwi"""
 
-import numpy as np
-import warnings
 # -----------------------------------------------------------------------------
 # --- MU parameters
 # -----------------------------------------------------------------------------
@@ -18,9 +16,8 @@ IB_sign = Bt_sign * It_sign
 # -----------------------------------------------------------------------------
 # All values except for beta, are extracted from XXXXXXXXXXX:
 #
-fild1 = {'adqfreq':23, 't_trig':-2.5,
-         }
-
-
+fild1 = {'adqfreq': 23, 't_trig': -2.5,
+         'extension': lambda shot: '', 'label': 'FILD1', 'camera': 'CCD',
+         'path': '/home/jrivero/FILD_MASTu_data/FILD_CCD',}
 
 FILD = (fild1,)
