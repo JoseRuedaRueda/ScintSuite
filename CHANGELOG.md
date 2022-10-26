@@ -1,6 +1,6 @@
 # 1.1.0: Melon con Jamon
 ## FIDASIM library
-- FIDASIM library is no longer distributed inside the suite. Please download it from the main repo of FIDASIM4
+- FIDASIM library distributed with the suite is no longer mantained. Please download it from the main repo of FIDASIM4
 ## Logging
 - Logging output was colorised to distinguish between info and warning
 ## Scintillator
@@ -14,10 +14,11 @@
 ## Strike Map Library
 - Defocusing included in the calculation of the INPA instrument function via convolution
 ## Video
-- corrected the reading of the shutter time in NS from png file, it was being storaged in s
+- corrected the reading of the shutter time in NS from png file, it was being stored in s
 ## Others
 - Small typos corrected in documentation
 - Updated readme
+- git commit now shown in starting of the Suite and saved in the version file
 # 1.0.4: Lentejas
 ## Tomography
 - Lib Tomography rewritten, now the folding of the W is done via numba, saving 99% of the time
