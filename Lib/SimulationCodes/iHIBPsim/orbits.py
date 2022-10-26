@@ -1,11 +1,12 @@
 """Contains the methods and classes to interact with iHIBPsim - Orbits"""
-
+import os
+import logging
 import numpy as np
 import Lib._Plotting as ssplt
 import Lib._Parameters as sspar
 import matplotlib.pyplot as plt
-import os
 
+logger = logging.getLogger('ScintSuite.ihibpsim')
 
 class orbit:
     def __init__(self, orbitData: dict, identifier: int = None, \
@@ -575,6 +576,7 @@ class orbitFile:
         self.idList = np.fromfile(fid, 'int32', self.nOrbits)
 
         if np.all(self.idList == 1):
+            logger.warning('Generating automatically the ID list')
             self.idList = np.arange(len(self.idList))+1
 
         # Checking the file.

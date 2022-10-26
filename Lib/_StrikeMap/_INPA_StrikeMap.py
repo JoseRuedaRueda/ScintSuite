@@ -164,12 +164,30 @@ class Ismap(FILDINPA_Smap):
                             gridFI: dict = None,
                             sigmaOptics: float = 4.5,
                             verbose: bool = True,
+                            normFactor: float = 1.0,
                             ):
         """
         Build the INPA weight function
-        :param strikes:
-        :return:
+
+        For a complete documentation of how each submatrix is defined from the
+        physics point of view, please see full and detailed INPA notes
+
+        @param strikes: SINPA strikes from the FIDASIM simulation with constant
+            FBM. Notice that it can also be just a string pointing towards the
+            strike file
+        @param variablesScint: tuple of variable to spawn the scintillator space
+        @param variablesFI: tuple of variables to spawn the FI space
+        @param weigt: name of the weight to be selected
+        @param gridFI: grid for the variables in the FI phase space
+        @param sigmaOptics: fine resolution sigma of the optical system
+        @param verbose: flag to incldue information in the console
+        @param normFactor: Overal factor to scale the weight matrix
         Notes:
+        - Scintillator grid cannot be included as input because is taken from
+            the transformation matrix
+        - The normFactor is though to be used as the constant value of the
+            FBM set for the FIDASIM simulation, to eliminate this constant dummy
+            factor
         TODO:Include fine resolution depending of the optical axis
         """
         # Block 0: Loading and settings ----------------------------------------
@@ -266,7 +284,7 @@ class Ismap(FILDINPA_Smap):
 
         # Now perform the tensor product
         vol = xvol * yvol
-        W = np.tensordot(Tmatrix, H, axes=2) / vol
+        W = np.tensordot(Tmatrix, H, axes=2) / vol / normFactor
         # save it
         self.instrument_function = xr.DataArray(W, dims=('xs', 'ys', 'x', 'y'),
                               coords={'xs': gridT['x'], 'ys': gridT['y'],
