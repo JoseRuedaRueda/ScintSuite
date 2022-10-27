@@ -1171,6 +1171,222 @@ orderStrikes = {
                 },
             },
         },  # End of FILD MODE version 0
+        4: {
+            'scintillator': {
+                1: {
+                    'x': {
+                        'i': 0,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'X Strike position tokamak system',
+                        'shortName': 'x',
+                    },
+                    'y': {
+                        'i': 1,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'Y Strike position tokamak system',
+                        'shortName': 'y',
+                    },
+                    'z': {
+                        'i': 2,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'Z Strike position tokamak system',
+                        'shortName': 'z'
+                    },
+                    'weight': {
+                        'i': 3,  # Column index in the file
+                        'units': ' [au]',  # Units
+                        'longName': 'Weight',
+                        'shortName': 'Weight',
+                    },
+                    'beta': {
+                        'i': 4,  # Column index in the file
+                        'units': ' [rad]',  # Units
+                        'longName': 'Gyrophase',
+                        'shortName': '$\\beta$',
+                    },
+                    'xi0': {
+                        'i': 5,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'X initial tokamak system',
+                        'shortName': '$x_{i}$',
+                    },
+                    'yi0': {
+                        'i': 6,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'Y initial tokamak system',
+                        'shortName': '$y_{i}$',
+                    },
+                    'zi0': {
+                        'i': 7,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'Z initial tokamak system',
+                        'shortName': '$z_{i}$',
+                    },
+                    'x3': {
+                        'i': 8,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'X strike scintillator system',
+                        'shortName': '$x_{s}$',
+                    },
+                    'x1': {
+                        'i': 9,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'Y strike scintillator system',
+                        'shortName': '$y_{s}$',
+                    },
+                    'x2': {
+                        'i': 10,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'Z strike scintillator system',
+                        'shortName': '$z_{s}$',
+                    },
+                    'theta': {
+                        'i': 11,  # Column index in the file
+                        'units': ' [deg]',  # Units
+                        'longName': 'Incident angle on the scintillator',
+                        'shortName': '$\\phi_i$',
+                    },
+                },
+                2: {
+                    'x': {
+                        'i': 0,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'X Strike position tokamak system',
+                        'shortName': 'x',
+                    },
+                    'y': {
+                        'i': 1,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'Y Strike position tokamak system',
+                        'shortName': 'y',
+                    },
+                    'z': {
+                        'i': 2,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'Z Strike position tokamak system',
+                        'shortName': 'z'
+                    },
+                    'weight': {
+                        'i': 3,  # Column index in the file
+                        'units': ' [au]',  # Units
+                        'longName': 'Weight',
+                        'shortName': 'Weight',
+                    },
+                    'beta': {
+                        'i': 4,  # Column index in the file
+                        'units': ' [rad]',  # Units
+                        'longName': 'Gyrophase',
+                        'shortName': '$\\beta$',
+                    },
+                    'xi0': {
+                        'i': 5,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'X initial tokamak system',
+                        'shortName': '$x_{i}$',
+                    },
+                    'yi0': {
+                        'i': 6,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'Y initial tokamak system',
+                        'shortName': '$y_{i}$',
+                    },
+                    'zi0': {
+                        'i': 7,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'Z initial tokamak system',
+                        'shortName': '$z_{i}$',
+                    },
+                    'x3': {
+                        'i': 8,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'X strike scintillator system',
+                        'shortName': '$x_{s}$',
+                    },
+                    'x1': {
+                        'i': 9,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'Y strike scintillator system',
+                        'shortName': '$y_{s}$',
+                    },
+                    'x2': {
+                        'i': 10,  # Column index in the file
+                        'units': ' [m]',  # Units
+                        'longName': 'Z strike scintillator system',
+                        'shortName': '$z_{s}$',
+                    },
+                    'theta': {
+                        'i': 11,  # Column index in the file
+                        'units': ' [deg]',  # Units
+                        'longName': 'Incident angle on the scintillator',
+                        'shortName': '$\\phi_i$',
+                    },
+                    'v1': {
+                        'i': 12,  # Column index in the file
+                        'units': ' ',  # Units
+                        'longName': 'Projection of v final in e1',
+                        'shortName': '$\\phi_i$',
+                    },
+                    'v2': {
+                        'i': 13,  # Column index in the file
+                        'units': ' ',  # Units
+                        'longName': 'Projection of v final in e2',
+                        'shortName': '$\\phi_i$',
+                    },
+                }
+            },
+            'collimator': {
+                'x': {
+                    'i': 0,  # Column index in the file
+                    'units': ' [m]',  # Units
+                    'longName': 'X Strike position tokamak system',
+                    'shortName': 'x',
+                },
+                'y': {
+                    'i': 1,  # Column index in the file
+                    'units': ' [m]',  # Units
+                    'longName': 'Y Strike position tokamak system',
+                    'shortName': 'y',
+                },
+                'z': {
+                    'i': 2,  # Column index in the file
+                    'units': ' [m]',  # Units
+                    'longName': 'Z Strike position tokamak system',
+                    'shortName': 'z'
+                },
+                'weight': {
+                    'i': 3,  # Column index in the file
+                    'units': ' [au]',  # Units
+                    'longName': 'Weight',
+                    'shortName': 'Weight',
+                },
+            },
+            'wrong': {
+                'x': {
+                    'i': 0,  # Column index in the file
+                    'units': ' [m]',  # Units
+                    'longName': 'X end position tokamak system',
+                    'shortName': 'x',
+                },
+                'y': {
+                    'i': 1,  # Column index in the file
+                    'units': ' [m]',  # Units
+                    'longName': 'Y end position tokamak system',
+                    'shortName': 'y',
+                },
+                'z': {
+                    'i': 2,  # Column index in the file
+                    'units': ' [m]',  # Units
+                    'longName': 'Z end position tokamak system',
+                    'shortName': 'z'
+                },
+                'weight': {
+                    'i': 3,  # Column index in the file
+                    'units': ' [au]',  # Units
+                    'longName': 'Weight',
+                    'shortName': 'Weight',
+                },
+            },
+        },  # End of FILD MODE version 0
     },
     'fildsim_FILD': {
         0: {
