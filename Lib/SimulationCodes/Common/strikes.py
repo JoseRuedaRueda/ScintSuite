@@ -60,7 +60,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             'versionID1': np.fromfile(fid, 'int32', 1)[0],
             'versionID2': np.fromfile(fid, 'int32', 1)[0],
         }
-        if header['versionID1'] <= 3:
+        if header['versionID1'] <= 4:
             # Keys of what we have in the file:
             header['runID'] = np.fromfile(fid, 'S50', 1)[:]
             header['ngyr'] = np.fromfile(fid, 'int32', 1)[0]
@@ -70,6 +70,8 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             header['FILDSIMmode'] = \
                 np.fromfile(fid, 'int32', 1)[0].astype(bool)
             header['ncolumns'] = np.fromfile(fid, 'int32', 1)[0]
+            if header['versionID1'] >= 4:
+                header['kindOfFile'] = np.fromfile(fid, 'int32', 1)[0]
             header['counters'] = \
                 np.zeros((header['nXI'], header['ngyr']), int)
             data = np.empty((header['nXI'], header['ngyr']),
@@ -91,16 +93,28 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             else:
                 key_to_look = 'sinpa_INPA'
             while not found_header:
-                try:
-                    header['info'] = deepcopy(
-                        order[key_to_look][id_version][plate.lower()])
-                    found_header = True
-                except KeyError:
-                    id_version -= 1
-                # if the id_version is already -1, just stop, something
-                # went wrong
-                if id_version < 0:
-                    raise Exception('Not undestood SINPA version')
+                if header['versionID1'] < 4:
+                    try:
+                        header['info'] = deepcopy(
+                            order[key_to_look][id_version][plate.lower()])
+                        found_header = True
+                    except KeyError:
+                        id_version -= 1
+                    # if the id_version is already -1, just stop, something
+                    # went wrong
+                    if id_version < 0:
+                        raise Exception('Not undestood SINPA version')
+                else:
+                    try:
+                        header['info'] = deepcopy(
+                            order[key_to_look][id_version][plate.lower()][header['kindOfFile']])
+                        found_header = True
+                    except KeyError:
+                        id_version -= 1
+                    # if the id_version is already -1, just stop, something
+                    # went wrong
+                    if id_version < 0:
+                        raise Exception('Not undestood SINPA version')
             # Load the data from each gyroradius and xi values. If the loaded
             # plate is scintillator, get the edge of the markers distribution,
             # for the latter histogram calculation

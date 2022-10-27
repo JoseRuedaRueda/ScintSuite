@@ -6,7 +6,7 @@ import numpy as np
 from Lib._Machine import machine
 from Lib._Paths import Path
 
-version = '1.1.0'
+version = '1.1.1'
 codename = 'Melon con Jamon'
 
 logger = logging.getLogger('ScintSuite.Version')

@@ -1,3 +1,7 @@
+# 1.1.1: Melon con Jamon
+## Simulation codes
+- Added compatibility with SINPA 4
+
 # 1.1.0: Melon con Jamon
 ## FIDASIM library
 - FIDASIM library distributed with the suite is no longer mantained. Please download it from the main repo of FIDASIM4
