@@ -19,7 +19,7 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
                        levels: float = None, label_surf: bool = True,
                        coord_type: str = 'rho_pol',
                        axis_ratio: str = 'equal',
-                       units: str = 'm', color=None):
+                       units: str = 'm', color=None, view: str = 'pol'):
     """
     Plot the flux surfaces of a given shot in AUG for a given time point.
 
@@ -43,6 +43,8 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
     @param axis_ratio: axis ratio, 'auto' or 'equal'
     @param color: if present,all the lines will be plotted in this color
     @param units: units for the R, Z axis, only cm and m supported
+    
+    Note: labeling does not work with toroidal view, neither colors, WIP @ TODO
     """
     if units == 'm':
         factor = 1.
@@ -76,11 +78,15 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
 
     rho = np.reshape(rho, (256, 128))
     # --- Plotting the flux surfaces.
-
-    CS = ax.contour(factor * R, factor * z, rho, levels, linewidths=linewidth,
-                    colors=color)
-    if label_surf:
-        ax.clabel(CS, inline=1, fontsize=10)
+    if view.lower() == 'pol' or view.lower() == 'poloidal':
+        CS = ax.contour(factor * R, factor * z, rho, levels,
+                        linewidths=linewidth,
+                        colors=color)
+        if label_surf:
+            ax.clabel(CS, inline=1, fontsize=10)
+    else:
+        raise Exception('Not yet implemented')
+            
     ax.set_aspect(axis_ratio)
     if heredado:
         ax.set_xlim(xlim)

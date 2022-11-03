@@ -208,6 +208,7 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
         for key in unc_output.keys():
             unc_output[key] =\
                 0.5 * abs(uncertainty[key][0][1] - uncertainty[key][2][1])
+                # TODO: Isn't this conflicting with the confidence interval above?
     else:
         unc_output = par.copy()
         for key in unc_output.keys():
