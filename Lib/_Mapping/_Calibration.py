@@ -1,6 +1,7 @@
 """Calibration and database objects."""
 import logging
 import numpy as np
+import xarray as xr
 import pandas as pd
 import Lib.errors as errors
 from scipy.io import netcdf                # To export remap data
@@ -72,6 +73,45 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
     database = pd.DataFrame(data)
     return database
 
+def readCcalibrationFile(filename):
+    """
+    Read the time/position dependent calibration files
+    @param filename: file to be read
+    :return: 
+    """
+    pass
+
+def readTimeDependentCalibration(filename):
+    fields = {
+        1: ['time', 'xshift', 'yshift', 'xscale', 'yscale',
+            'deg', 'c1', 'xcenter', 'ycenter']
+    }
+    with open(filename) as f:
+        logger.info('Reading calibration file: %s'%filename)
+        # Read the header lines
+        dummy = f.readline()  # Intro line
+        dummy = f.readline()  # Date line
+        kind, ver = f.readline().split('#')[0].split()
+        ver=int(ver)
+        camera = f.readline().split('#')[0].strip()
+        geomID = f.readline().split('#')[0].strip()
+        dummy = f.readline()  # info line
+        data = {}
+        for k in fields[ver]:
+            data[k] = []
+        # Database itself
+        for line in f:
+            dummy = line.split()
+            for j, k in enumerate(fields[ver]):
+                data[k].append(float(dummy[j]))
+    # Transform to xarray
+    calibration = xr.Dataset()
+    for k in data.keys():
+        calibration[k] = xr.DataArray(data[k], dims='t',
+                                     coords={'t':data['time']})
+    calibration.attrs['Camera'] = camera
+    calibration.attrs['geomID'] = geomID
+    return calibration
 
 # ------------------------------------------------------------------------------
 # --- Calibration database object

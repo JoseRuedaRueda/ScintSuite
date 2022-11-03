@@ -540,7 +540,6 @@ class FILDINPA_Smap(GeneralStrikeMap):
             coords2[:, 1] = self._coord_pix['y'].copy()
             var2 = [a + '_pix' for a in variables]
             newDict2 = dict.fromkeys(var2)
-            print(newDict2)
             self._map_interpolators.update(newDict2)
             for key in variables:
                 self._map_interpolators[key+'_pix'] = \
@@ -649,6 +648,13 @@ class FILDINPA_Smap(GeneralStrikeMap):
         # Get the index of the colums containing the scintillation position
         ix1 = strikes.header['info']['x1']['i']
         ix2 = strikes.header['info']['x2']['i']
+        # Try to get the pixel position
+        try:
+            ix1pix = strikes.header['info']['xcam']['i']
+            ix2pix = strikes.header['info']['ycam']['i']
+            camera = True
+        except KeyError:
+            camera = False
         # Loop over the deseired variables
         for k in self._map_interpolators.keys():
             # See if we need to overwrite
@@ -669,9 +675,14 @@ class FILDINPA_Smap(GeneralStrikeMap):
                         n_strikes = \
                             strikes.header['counters'][ix, iy]
                         remap_data = np.zeros((n_strikes, 1))
-                        remap_data[:, 0] = \
-                            self._map_interpolators[k](
-                                strikes.data[ix, iy][:, [ix1, ix2]])
+                        if (not k.endswith('pix')) and camera:
+                            remap_data[:, 0] = \
+                                self._map_interpolators[k](
+                                    strikes.data[ix, iy][:, [ix1, ix2]])
+                        elif k.endswith('pix') and camera:
+                            remap_data[:, 0] = \
+                                self._map_interpolators[k](
+                                    strikes.data[ix, iy][:, [ix1pix, ix2pix]])
                         # self.strike_points.data[ip, ir][:, iiy])
                         # append the remapped data to the object
                         if was_there:
@@ -688,8 +699,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 extra_column[name] = {
                     'i': Old_number_colums,
                     'units': '@Todo',
-                    'lonName': name,
-                    'ShortName': name
+                    'longName': name,
+                    'shortName': name
                 }
                 extra_column[name]['i'] = Old_number_colums
                 # Update the header

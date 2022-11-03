@@ -10,7 +10,7 @@ The strike map object present in this module is no longer the main strike map
 since version 1.0.0 this is just a wrapper. Please use the _StrikeMap library
 directly if you need a strike map.
 """
-from Lib._Mapping._Calibration import CalParams, CalibrationDatabase
+from Lib._Mapping._Calibration import CalParams, CalibrationDatabase, readTimeDependentCalibration
 from Lib._Mapping._StrikeMap import StrikeMap
 from Lib._Mapping._Common import *
 from Lib._Mapping._FILD import *
