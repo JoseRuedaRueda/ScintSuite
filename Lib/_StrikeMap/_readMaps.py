@@ -3,6 +3,9 @@ Routines to read strike map data from FILDSIM/SINPA
 
 Jose Rueda Rueda
 
+None of these methods is expected to be called directly, is the StrikeMap class
+will call these guys and read the map
+
 Public methods:
 
 Private methods:
@@ -245,8 +248,8 @@ def _readSmapFILDSIM(filename: str):
     if ncol != len(header['variables']['name']):
         raise Exception('Wrong number of columns in the file')
     # Take only rows where markers arrived
-    ix = np.where(np.array(header['variables']['name']) == 'x')
-    ind = ~np.isnan(dummy[:, ix])
+    ix = np.where(np.array(header['variables']['name']) == 'x1')
+    ind = ~np.isnan(dummy[:, ix]).squeeze()
     # Save the data in the output dictionary:
     data = dict.fromkeys(header['variables']['name'])
     counter = 0
@@ -256,10 +259,10 @@ def _readSmapFILDSIM(filename: str):
             data=dummy[ind, counter]
             )
         counter += 1
-    header['unique_pitch'] = np.unique(data['pitch'])
+    header['unique_pitch'] = np.unique(data['pitch'].data)
     header['npitch'] = header['unique_pitch'].size
     # Get the unique values of gyroradius and pitch/alpha
-    header['unique_gyroradius'] = np.unique(data['gyroradius'])
+    header['unique_gyroradius'] = np.unique(data['gyroradius'].data)
     header['ngyroradius'] = header['unique_gyroradius'].size
     # Get the shape, which is the grid size of launchig the markers
     header['shape'] = (header['npitch'], header['ngyroradius'])
@@ -306,7 +309,7 @@ def readSmap(filename, code: str = None):
         elif filename.endswith('.map'):
             code = 'SINPA'
         else:
-            msg = 'File name not code standard, you need to give the time'
+            msg = 'File name not code standard, you need to give the code'
             raise errors.NotValidInput(msg)
     if code == 'SINPA':
         header, data = _readSmapSINPA(filename)

@@ -16,10 +16,16 @@ It contains several subpackages:
 General user should not need each individual function of the package, just use
 the BVO, FILDVideo, VRTvideo, guess_filename as defined below
 """
+# Load the video objects
 from Lib._Video._BasicVideoObject import BVO
 from Lib._Video._FILDVideoObject import FILDVideo
 from Lib._Video._INPAVideoObject import INPAVideo
 from Lib._Video._VRTVideoObject import VRTVideo
-from Lib._Machine import machine
-if machine == 'AUG':
+# Load the auxiliar libraries
+import Lib._Video._PNGfiles as png
+import Lib._Video._TIFfiles as tif
+import Lib._Video._PCOfiles as pco
+
+from Lib._Machine import machine as _machine
+if _machine == 'AUG':
     from Lib._Video._iHIBPvideoObject import iHIBPvideo

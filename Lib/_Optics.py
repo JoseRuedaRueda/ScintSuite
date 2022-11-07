@@ -5,15 +5,20 @@ Jose Rueda Rueda: jrrueda@us.es
 """
 import os
 import math
-import numpy as np
 import logging
-import matplotlib.pyplot as plt
+import numpy as np
 import Lib._IO as ssio
 import Lib.errors as errors
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+
 from Lib._Paths import Path
 from Lib._Machine import machine
 from Lib._Utilities import distmat
+from Lib._Mapping._Common import XYtoPixel
 from tqdm import tqdm
+from scipy.sparse import lil_matrix
+from scipy.ndimage import gaussian_filter
 logger = logging.getLogger('ScintSuite.Optics')
 
 paths = Path(machine)
@@ -170,14 +175,15 @@ def createFocusMatrix(frame, coef_sigma=1.0,
     Warning, can be extremelly memory consuming, if you want to apply finite
     focus, use the function: defocus
     """
-    # conver to numpy array, if the user gave us just a constant sigma
+    # convert to numpy array, if the user gave us just a constant sigma
     try:
         len(coef_sigma)
     except TypeError:
         coef_sigma = np.array([coef_sigma])
     # Create the ouput matrix
     n1, n2 = frame.shape
-    output = np.zeros((n1, n2, n1, n2))
+
+    output = lil_matrix((n1*n2, n1*n2))
 
     # fill the matrix
     ic = center[0]
@@ -185,12 +191,16 @@ def createFocusMatrix(frame, coef_sigma=1.0,
 
     for i in tqdm(range(n1)):
         for j in range(n2):
-            d = math.sqrt((i - ic)**2 + (j - jc)**2)
-            sigma = np.polyval(coef_sigma, d)
-            index_distance = distmat(frame, (i, j))
-            output[i, j, ...] = np.exp(-index_distance**2 / 2 / sigma*2)\
-                / 2 / math.pi / sigma**2
-    return output
+            single_matrix = np.zeros((n1, n2))
+            single_matrix[i, j] = 1.0
+            output[:, j + i*n2] = gaussian_filter(single_matrix, coef_sigma[0]
+                                                  ).flatten()
+            # d = math.sqrt((i - ic)**2 + (j - jc)**2)
+            # sigma = np.polyval(coef_sigma, d)
+            # index_distance = distmat(frame, (i, j))
+            # output[i, j, ...] = np.e**(-index_distance**2 / 2 / sigma*2)\
+            #     / 2 / math.pi / sigma**2
+    return output.tocsr().copy()
 
 
 def defocus(frame, coef_sigma=1.0,
@@ -207,27 +217,32 @@ def defocus(frame, coef_sigma=1.0,
         distance to the optical axis
     @param center: coordinates (in pixels, of the optical axis)
     """
-    # conver to numpy array, if the user gave us just a constant sigma
     try:
-        len(coef_sigma)
+        _ = len(coef_sigma)
+        lista = True
     except TypeError:
-        coef_sigma = np.array([coef_sigma])
-    # Create the ouput matrix
-    n1, n2 = frame.shape
-    output = np.zeros((n1, n2))
-    # Crete the matrices to get the distances
-    col, row = np.meshgrid(np.arange(n2), np.arange(n1))
-    # fill the matrix
-    ic = center[0]
-    jc = center[1]  # just to save notation
-    axis_distance = np.sqrt((col - jc)**2 + (row - ic)**2)
-    sigma = np.polyval(coef_sigma, axis_distance)
+        lista = False
+    # If the signam is just one number, we will call the scipy convolution,
+    # which is order of magnetude faster
+    if not lista:
+        output = gaussian_filter(frame, coef_sigma)
+    else:
+        # Create the ouput matrix
+        n1, n2 = frame.shape
+        output = np.zeros((n1, n2))
+        # Crete the matrices to get the distances
+        col, row = np.meshgrid(np.arange(n2), np.arange(n1))
+        # fill the new matrix
+        ic = center[0]
+        jc = center[1]  # just to save notation
+        axis_distance = np.sqrt((col - jc)**2 + (row - ic)**2)
+        sigma = np.polyval(coef_sigma, axis_distance)
 
-    for i in range(n1):
-        for j in range(n2):
-            index_distance = (col - j)**2 + (row - i)**2
-            output += np.exp(-index_distance / 2 / sigma[i, j]**2) \
-                / 2 / np.pi / sigma[i, j]**2 * frame[i, j]
+        for i in range(n1):
+            for j in range(n2):
+                index_distance = (col - j)**2 + (row - i)**2
+                output += np.exp(-index_distance / 2 / sigma[i, j]**2) \
+                    / 2 / np.pi / sigma[i, j]**2 * frame[i, j]
     return output
 
 
@@ -268,6 +283,7 @@ class FnumberTransmission():
         if file is None:
             file = os.path.join(paths.ScintSuite, 'Data', 'Calibrations',
                                 diag, machine, geomID + '_F_number.txt')
+            print(file)
         R, F = np.loadtxt(file, skiprows=12, unpack=True)
 
         Omega = np.pi / (2 * F)**2
@@ -289,3 +305,85 @@ class FnumberTransmission():
         """
 
         return self._fit.eval(x=r)
+
+
+# -----------------------------------------------------------------------------
+# --- Distortion Grid
+# -----------------------------------------------------------------------------
+class DistortGrid(XYtoPixel):
+    """
+    Class to generate distortion grids, to calibrate the camera
+
+    J. Rueda-Rueda : jrrueda@us.es
+    """
+    def __init__(self, x0: float, y0: float, d: float, nx: int = 10,
+                 ny: int = 10):
+        """
+        Generate the grid lines
+
+        @param x0: x bottom left corner of the grid
+        @param y0: y bottom left corner of the grid
+        @param d: grid spacing
+        @param nx: number of grid points in the x direction
+        @param ny: number of grid points in the y direction
+
+        @TODO include rotation
+        """
+        xCorner = x0 + np.arange(nx) * d
+        yCorner = y0 + np.arange(ny) * d
+        # Create the mesh
+        XX, YY = np.meshgrid(xCorner, yCorner, indexing='ij')
+        XYtoPixel.__init__(self)
+        ## Coordinates of the vertex of the scintillator (X,Y,Z).
+        self._coord_real['x1'] = XX
+        self._coord_real['x2'] = YY
+
+    def plot_real(self, ax=None, line_params: dict = {}):
+        """
+        Plot the grid in the real space
+
+        @param ax: axes where to plot, if none, new axis will be created
+        @param line_params: dictionary with the parameters for plt.plot()
+        """
+        # -- Initialise the plotting options
+        line_options = {
+            'color': 'k',
+        }
+        line_options.update(line_params)
+        # -- Create the axis
+        if ax is None:
+            fig, ax = plt.subplots()
+        # -- Plot the grid
+        nx, ny = self._coord_real['x'].shape
+        for ix in range(nx):
+            ax.plot(self._coord_real['x'][ix, :],
+                    self._coord_real['y'][ix, :], **line_options)
+        for iy in range(ny):
+            ax.plot(self._coord_real['x'][:, iy],
+                    self._coord_real['y'][:, iy], **line_options)
+
+    def plot_pix(self, ax=None, line_params: dict = {}):
+        """
+        Plot the grid in the real space
+
+        @param ax: axes where to plot, if none, new axis will be created
+        @param line_params: dictionary with the parameters for plt.plot()
+        """
+        # -- Initialise the plotting options
+        line_options = {
+            'color': 'w',
+            'label': None,
+            'alpha': 0.5
+        }
+        line_options.update(line_params)
+        # -- Create the axis
+        if ax is None:
+            fig, ax = plt.subplots()
+        # -- Plot the grid
+        nx, ny = self._coord_pix['x'].shape
+        for ix in range(nx):
+            ax.plot(self._coord_pix['x'][ix, :],
+                    self._coord_pix['y'][ix, :], **line_options)
+        for iy in range(ny):
+            ax.plot(self._coord_pix['x'][:, iy],
+                    self._coord_pix['y'][:, iy], **line_options)

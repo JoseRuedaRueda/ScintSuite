@@ -6,21 +6,26 @@ designed to be inserted in the main suite. For example a routine which given
 the pitch a particle have in a given radial location, calculates the pitch
 which will have at the FILD position
 """
-
-import numpy as np
 import math
+import numpy as np
+import xarray as xr
 import Lib.LibData as ssdat
 import warnings
 import logging
+logger = logging.getLogger('ScintSuite.Utilities')
 try:
     from shapely.geometry import LineString
     from shapely.errors import ShapelyDeprecationWarning
     warnings.filterwarnings('ignore',
                             category=ShapelyDeprecationWarning)
 except ModuleNotFoundError:
-    logging.warning('10: Shapely not found, you cannot calculate intersections')
+    logger.warning('10: Shapely not found, you cannot calculate intersections')
 except ImportError:
-    logging.warning('12: Old version of shapely, but things should work')
+    logger.warning('12: Old version of shapely, but things should work')
+try:
+    from numba import njit, prange
+except:
+    logger.wargning('10: You cannot use neutron filters')
 
 
 # -----------------------------------------------------------------------------
@@ -122,6 +127,34 @@ def neutron_filter(M, nsigma: int = 3):
 
     return Mo
 
+@njit(nogil=True, parallel=True)
+def neutronAndDeadFilter(M: float, nsigma: float = 3.0, dead: bool = True):
+    """
+    Still too low, need something faster
+    :param M:
+    :param nsigma_neutrons:
+    :param n_sigma_dead:
+    :return:
+    """
+    nx, ny, nt = M.shape
+    new_matrix = np.zeros((nx, ny, nt))
+    for it in prange(nt):
+        frame = M[:, :, it].copy()
+        for ix in range(nsigma, nx-nsigma):
+            for iy in range(nsigma, ny - nsigma):
+                mean = frame[(ix-nsigma):(ix+nsigma),
+                             (iy-nsigma):(iy+nsigma)].mean()
+                std = frame[(ix-nsigma):(ix+nsigma),
+                            (iy-nsigma):(iy+nsigma)].std()
+                if frame[ix, iy] > mean + nsigma * std:
+                    new_matrix[ix, iy, it] = mean
+                elif frame[ix, iy] < mean - nsigma * std and dead:
+                    new_matrix[ix, iy, it] = mean
+                else:
+                    new_matrix[ix, iy, it] = M[ix, iy, it]
+        print(it)
+    return new_matrix
+
 
 # -----------------------------------------------------------------------------
 # --- Trapped passing boundary
@@ -156,9 +189,12 @@ def TP_boundary(shot, z0, t, Rmin=1.5, Rmax=2.1, zmin=-0.9, zmax=0.9):
         mask = abs(rho - rho1) < 0.01
         rr = R[mask]
         r0 = rr.min()
-        print(r[i], r0)
         tp[i] = np.sqrt(1 - r0 / r[i])
-    return r, tp
+    output = xr.DataArray(tp, dims='R', coords={'R': r})
+    output.attrs['long_name'] = '$\\lambda_{b}$'
+    output.attrs['Description'] = '|pitch_TP|= sqrt(Rmin/R)'
+    
+    return output
 
 
 # -----------------------------------------------------------------------------

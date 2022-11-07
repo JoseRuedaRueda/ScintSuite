@@ -20,30 +20,31 @@ import Lib as ss
 
 
 # -----------------------------------------------------------------------------
-# Section 0: Settings
+# --- Section 0: Settings
 # -----------------------------------------------------------------------------
-# -- Paths (change them to your own paths)
-strike_map = '/afs/ipp-garching.mpg.de/home/r/ruejo/FILDSIM/results/' +\
-    'AUG_map_-000.60000_007.50000_strike_map.dat'
-# -- Discharge and FILD settings
-shot = 32312
-t0 = 0.29
-diag_ID = 1     # FILD Number
+# - General settings
+shot = 44732
+diag_ID = 1  # 6 for rFILD
+tn1 = 0.1     # Initial time to average the frames for noise subtraction [s]
+tn2 = 0.35     # Final time to average the frames for noise subtraction [s]
+t0 = 0.24
+# - Remapping options:
+# Smap_file = '/afs/ipp/home/r/ruejo/FILDSIM/results/39612_1p99s_strike_map.dat'  #!#
+strike_map = '/home/jqw5960/SINPA/runs/ajustefino/results/ajustefino.map'
 # -- Remap settings:
 par = {
-    'rmin': 1.2,      # Minimum gyroradius [in cm]
-    'rmax': 10.5,     # Maximum gyroradius [in cm]
-    'dr': 0.05,        # Interval of the gyroradius [in cm]
-    'pmin': 20.0,     # Minimum pitch angle [in degrees]
-    'pmax': 90.0,     # Maximum pitch angle [in degrees]
-    'dp': 1.0,    # Pitch angle interval
+    'ymin': 1.2,      # Minimum gyroradius [in cm]
+    'ymax': 16.5,     # Maximum gyroradius [in cm]
+    'dy': 0.5,        # Interval of the gyroradius [in cm]
+    'xmin': 20.0,     # Minimum pitch angle [in degrees]
+    'xmax': 90.0,     # Maximum pitch angle [in degrees]
+    'dx': 2.0,    # Pitch angle interval
     # method for the interpolation
     'method': 2,  # 2 Spline, 1 Linear
-}
+    'decimals': 1}  # Precision for the strike map (1 is more than enough)
+
 MC_markers = 300  # Number of MC markers to use. 0 Deactivate the MC remap
-# -- Noise subtraction
-tn1 = 0.15
-tn2 = 0.19
+
 # -- Plot settings
 p1 = True  # Plot the original frame
 p2 = True  # Plot comparison between both methods
@@ -60,7 +61,7 @@ noise_frame = cin.subtract_noise(t1=tn1, t2=tn2)
 # flag: read_from_loaded, if the desired time in the loaded window. In this
 # case the readed frame will already have the noise subtracted!!!
 dummy = np.array([np.argmin(abs(cin.timebase-t0))])
-ref_frame = cin.read_frame(dummy, internal=False)
+ref_frame = cin.read_frame(dummy, internal=False).squeeze()
 ref_frame = ref_frame.astype(np.float) - noise_frame
 frame_shape = ref_frame.shape
 if p1:
@@ -73,15 +74,15 @@ if p1:
 smap = ss.mapping.StrikeMap(0, strike_map)
 smap.calculate_pixel_coordinates(cin.CameraCalibration)
 grid_params = {   # parameters for the montacarlo inversion
-    'ymin': par['rmin'],
-    'ymax': par['rmax'],
-    'dy': par['dr'],
-    'xmin': par['pmin'],
-    'xmax': par['pmax'],
-    'dx': par['dp']
+    'ymin': par['ymin'],
+    'ymax': par['ymax'],
+    'dy': par['dy'],
+    'xmin': par['xmin'],
+    'xmax': par['xmax'],
+    'dx': par['dx']
 }
 
-smap.interp_grid(ref_frame.shape, plot=False, method=2, MC_number=MC_markers,
+smap.interp_grid(ref_frame.shape, method=2, MC_number=MC_markers,
                  grid_params=grid_params)
 if p1:
     smap.plot_pix(ax_ref)
@@ -91,10 +92,10 @@ if p1:
 # -----------------------------------------------------------------------------
 # We need to prepare the gyr and pitch profiles outside, this calculation is
 # done outside to avoid losing time in the remaping of the whole shot
-ngyr = int((par['rmax']-par['rmin'])/par['dr']) + 1
-npit = int((par['pmax']-par['pmin'])/par['dp']) + 1
-p_edges = par['pmin'] - par['dp']/2 + np.arange(npit + 1) * par['dp']
-g_edges = par['rmin'] - par['dr']/2 + np.arange(ngyr + 1) * par['dr']
+ngyr = int((par['ymax']-par['ymin'])/par['dy']) + 1
+npit = int((par['xmax']-par['xmin'])/par['dx']) + 1
+p_edges = par['xmin'] - par['dx']/2 + np.arange(npit + 1) * par['dx']
+g_edges = par['ymin'] - par['dy']/2 + np.arange(ngyr + 1) * par['dy']
 gyr = 0.5 * (g_edges[0:-1] + g_edges[1:])
 pitch = 0.5 * (p_edges[0:-1] + p_edges[1:])
 
@@ -104,10 +105,10 @@ centroid = {'remap': ss.mapping.remap(smap, ref_frame, x_edges=p_edges,
                                       y_edges=g_edges, method='centers')}
 
 # Sum the remap to obtain the profiles in pitch or gyroradius
-MC['gyr_profile'] = np.sum(MC['remap'], axis=0) * par['dp']
-MC['pitch_profile'] = np.sum(MC['remap'], axis=1) * par['dr']
-centroid['gyr_profile'] = np.sum(centroid['remap'], axis=0) * par['dp']
-centroid['pitch_profile'] = np.sum(centroid['remap'], axis=1) * par['dr']
+MC['gyr_profile'] = np.sum(MC['remap'], axis=0) * par['dx']
+MC['pitch_profile'] = np.sum(MC['remap'], axis=1) * par['dy']
+centroid['gyr_profile'] = np.sum(centroid['remap'], axis=0) * par['dx']
+centroid['pitch_profile'] = np.sum(centroid['remap'], axis=1) * par['dy']
 
 # Plot the remapped frame
 if p2:
@@ -115,15 +116,15 @@ if p2:
     fig, ax = plt.subplots(2, 2)
     # MC remap 2D
     remap = ax[0, 0].imshow(MC['remap'].T, cmap=cmap, origin='lower',
-                            extent=[par['pmin'], par['pmax'],
-                                    par['rmin'], par['rmax']],
+                            extent=[par['xmin'], par['xmax'],
+                                    par['ymin'], par['ymax']],
                             aspect='auto')
     ax[0, 0].set_xlabel('Pitch [$\\degree$]')
     ax[0, 0].set_ylabel('Gyroradius [cm]')
     # centroid remap 2d
     remap2 = ax[0, 1].imshow(centroid['remap'].T, cmap=cmap, origin='lower',
-                             extent=[par['pmin'], par['pmax'],
-                                     par['rmin'], par['rmax']],
+                             extent=[par['xmin'], par['xmax'],
+                                     par['ymin'], par['ymax']],
                              aspect='auto')
     ax[0, 1].set_xlabel('Pitch [$\\degree$]')
     ax[0, 1].set_ylabel('Gyroradius [cm]')

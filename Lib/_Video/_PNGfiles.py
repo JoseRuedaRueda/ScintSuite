@@ -9,12 +9,12 @@ routines, in order to preserve the database variables
 """
 import os
 import numpy as np
-from skimage import io                     # To load images
-import Lib._Video._AuxFunctions as aux
 import matplotlib.pyplot as plt
+import Lib._Video._AuxFunctions as aux
+from skimage import io                     # To load images
 
 
-def read_data(path):
+def read_data(path, YOLO: bool = False):
     """
     Read info for a case where the measurements are stored as png
 
@@ -24,6 +24,13 @@ def read_data(path):
     with all the info we can extract from the png
 
     @param path: path to the folder where the pngs are located
+    @param YOLO: flag to ignore wrong timed frames. With old AUG adquisition
+        system, sometimes the timebase get corrupt after a given point. if YOLO
+        is false, the program will interact with the user, shown him/her which
+        frames are wrong and create an ad-hoc time base if needed. This is not
+        ideal for the case of automatic remaps etc when the program is runing in
+        the background, as the user is needed. YOLO=True disable this and just
+        ignore these frames
     @return time_base: time base of the frames (s)
     @return image_header: dictionary containing the info about the image size,
     and shape
@@ -59,8 +66,7 @@ def read_data(path):
     else:
         dummy = np.loadtxt(f[0], skiprows=2, comments='(')
         header = {'ImageCount': int(dummy[-1, 0])}
-        # @ToDo, this should be /1e9, right?
-        settings = {'ShutterNs': dummy[0, 2] / 1000.0}
+        settings = {'ShutterNs': dummy[0, 2] / 1000.0 * 1.0e9}
         # Possible bytes per pixels for the camera
         BPP = {'uint8': 8, 'uint16': 16, 'uint32': 32, 'uint64': 64}
         try:
@@ -93,28 +99,34 @@ def read_data(path):
         # these cases, call the check time base function:
         if aux.check_timebase(time_base):
             print('The time base seems broken!!!!')
-            print('Time is not always increasing!')
-            print('What do you want to do?: ')
-            print('1: Plot the time base')
-            print('Otherwhise: Continue without plotting')
-            p = input('Enter the answer: ')
-            if int(p) == 1:
-                fig, ax = plt.subplots()
-                ax.plot(time_base, label='Original')
-                ax.set_ylabel('Time [s]')
-                ax.set_xlabel('Frame number')
-                fig.show()
-                # note, spyder is bugged, so the figure will not be shown until
-                # the end of the execution, therefore, I include here this
-                # ginput with a limit of 1s, this will force the window to
-                # appear and the user will not notice this 1 second stop :-)
-                plt.ginput(timeout=1)
+            if not YOLO:
+                print('Time is not always increasing!')
+                print('What do you want to do?: ')
+                print('1: Plot the time base')
+                print('Otherwhise: Continue without plotting')
+                p = input('Enter the answer: ')
+                if int(p) == 1:
+                    fig, ax = plt.subplots()
+                    ax.plot(time_base, label='Original')
+                    ax.set_ylabel('Time [s]')
+                    ax.set_xlabel('Frame number')
+                    fig.show()
+                    # note, spyder is bugged, so the figure will not be shown
+                    # until the end of the execution, therefore, I include
+                    # here this ginput with a limit of 1s, this will force the
+                    # window to appear and the user will not notice this
+                    # 1 second stop :-)
+                    plt.ginput(timeout=1)
 
-            print('Now what?: ')
-            print('0: Ignore those frames')
-            print('1: Include a fake time base for those frames')
-            print('Otherwise: Continue with this weird time base')
-            a = int(input('Enter the answer: '))
+                print('Now what?: ')
+                print('0: Ignore those frames')
+                print('1: Include a fake time base for those frames')
+                print('Otherwise: Continue with this weird time base')
+                a = int(input('Enter the answer: '))
+            else:
+                print('You are in YOLO mode, ignoring those frames')
+                a = 0
+                p = 0
             if a == 0 or a == 1:  # Find the first point where this was broken
                 dif = np.diff(time_base)
                 flags = dif < 0
@@ -135,6 +147,7 @@ def read_data(path):
                 ax.plot(time_base, label='Considered')
                 fig.show()
                 plt.ginput(timeout=1)
+
     return header, imageheader, settings, time_base[:].flatten()
 
 

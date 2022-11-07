@@ -1,9 +1,63 @@
-## 1.0.1: Adaptation to iHIBPsim 3.0.0
-**From this version onwards, the ScintSuite only works with the iHIPsim 3.0.0 and above**
-- Deposition object for the iHIBPsim: can read and plot basic informative data of the secondary birth profile.
-- Adapted namelists and default values to the new iHIBPsim version.
-- Included Hannah's modifications.
+# 1.1.0: Melon con Jamon
+## FIDASIM library
+- FIDASIM library distributed with the suite is no longer mantained. Please download it from the main repo of FIDASIM4
+## Logging
+- Logging output was colorised to distinguish between info and warning
+## Scintillator
+- New library combining scintillator efficiency and characterization
+## Optics
+- Output of the defocusing matrix is now a sparse matrix, to save memory (still not recommended to be used)
+## Side Functions
+- Included a function to generate a gaussian kernel for convolutions gkern
+## Scintillator
+- New library combining scintillator efficiency and characterization
+## Strike Map Library
+- Defocusing included in the calculation of the INPA instrument function via convolution
+## Video
+- corrected the reading of the shutter time in NS from png file, it was being stored in s
+## Others
+- Small typos corrected in documentation
+- Updated readme
+- git commit now shown in starting of the Suite and saved in the version file
+# 1.0.4: Lentejas
+## Tomography
+- Lib Tomography rewritten, now the folding of the W is done via numba, saving 99% of the time
+- New class to perform tomography created
+- Tomography library split in different small files
+## Optics
+- Included a simple grid object, to generate evenly spaced grid (usefull for distortion). The object is a child of XYtoPixel
+## SimulationCodes
+- field.tofile() now accept a string as fid. If this is the case, the method will open itself the file, so there is no longer the need of open the file outside
+## Video
+- INPA video now have a flag to load NBI and ne data when reading the video header
+- *BUG*, corrected a bug when substracting the noise in a video giving just the frame
+- Added and optional argument, YOLO, in the BVO. If true, the code will ignore frames which database is corrupt, typical
+## GUIs
+- Adapted GUIs to the new xArray structures
+- Created GUIS to show raw video and plasma traces
 
+## 1.0.3: Salmorejo con Jamon
+### TimeTrace
+- Time trace object have now a method to export to netCDF
+- Timetrace object allows now to be initialised from a netCDF file
+- read_trace() from the io package was deprecated, as it used the old format for the trace
+- TimeTrace accept now a name as input, to be used to label the plots
+
+### Video
+- FILD video includes now a scintillator attribute
+- getTimeTrace return the time trace using the scintillator as mask, if no time nor mask is passed as input
+
+## 1.0.2: Bug fix and example revision
+- Examples revised by lvelarde
+- **Bux fix** small bug relative to the us of the xarrays in the video object fixed
+- Improvements in code documentation and comments
+- FILD remap now is provided with units
+- read_from_loaded was deprecated from the read_frame() method of the video, please use just getFrame()
+
+## 1.0.1: Salmorejo con picatostes
+- Minor bug fix in the GUI which plot the frames
+- Integral of the remap is no automatically calculated in the remap video
+- Minor bug fix and comments improvements
 
 ## 1.0.0: Salmorejo
 **Installation instructions**: Please run the file 'first_run.py' if you just landed in version 1.0.0, as some extra files need to be created
@@ -72,7 +126,6 @@
 - 'normalise' flags was added to the plot_remap_frame routine, to normalize the plot to unity
 - **bug**: Solved a bug in the get frame index
 - **bug**: Solved a small bug, the .cin files was not being closed in the read_settings structure
-- Export remap: temporally not available, until it is adapted to the new remap structure
 - Translate remap: temporally not available, until it is adapted to the new remap structure
 - getTimeTrace now returns also the used mask
 - exp_dat, remap_dat are now xarrays instead of dictionaries
@@ -92,6 +145,8 @@
 - getGyroradius and getEnergy now uses the proper amu to kg conversion and no longer rely on the proton mass
 - Integrate_remap change completely inputs and output, now it can handle also any translation of the remap. Please have a look at the new function doc. Take care with the translation if you do not use standard remaps as initial point
 - The small bug on the units of the weights of INPA markers from SINPA was corrected (the correction due to the detector pinhole size was already performed in SINPA)
+- Included new sub-library MHD, to calculate/plot basic mode parameters such as mode frequencies
+
 
 ## 0.9.10: iHIBP videos improvements and TORBEAM sims.
 - Corrected bugs in the iHIBPsim videos read.
@@ -100,7 +155,7 @@
 
 ## 0.9.9: BEP removed from library and work in iHIBP.
 - Removed the full BEP library from the ScintSuite.
-- Rebranded class for the iHIBP video with:
+- Re-branded class for the iHIBP video with:
     - Distorted and aligned scintillator.
     - Plotting time traces of the signal within the scintillator.
     - Basic and advanced methods to substract noise from the signal.

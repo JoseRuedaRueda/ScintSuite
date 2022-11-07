@@ -5,8 +5,8 @@ Written by Jose Rueda: jrrueda@us.es
 Adapted by Lina Velarde: lvelarde@us.es
 """
 import os
-import numpy as np
 import logging
+import numpy as np
 logger = logging.getLogger('ScintSuite.Video')
 try:
     from pco_tools import pco_reader as pco
@@ -22,8 +22,11 @@ def read_data(path: str, adfreq: float, t_trig: float):
     Lina Velarde: lvelarde@us.es
 
     Return a series of dictionaries similar to the case of a cin file,
-    with all the info we can extract from the pco files
+    with all the info we can extract from the pco files.
 
+    The timebase has been modified to account for the first frame being lost.
+    So 1/adqfreq has been added. Might be necessary to adjust this by +-1/adqfreq.
+    
     @param path: path to the folder where the pngs are located
     @return time_base: time base of the frames (s)
     @return image_header: dictionary containing the info about the image size,
@@ -66,13 +69,30 @@ def read_data(path: str, adfreq: float, t_trig: float):
     except KeyError:
         raise Exception('Expected uint8,16,32,64 in the frames')
     # Generation of time_base
-    time_base = np.arange(counter, dtype=float)/adfreq + t_trig
+    time_base = np.arange(counter, dtype=float)/adfreq + t_trig + 1/adfreq
 
     return header, imageheader, settings, time_base[:].flatten()
 
 
+def load_pco(filename: str):
+    """
+    Load the png with an order compatible with IDL
+
+    IDL load things internally in a way different from python. In order the new
+    suite to be compatible with all FILD calibrations of the last 15 years,
+    an inversion should be done to load png in the same way as IDL
+
+    @param filename: full path pointing to the png
+    """
+    dummy =  pco.load(filename)
+    if len(dummy.shape) > 2:     # We have an rgb png, transform it to gray
+        dummy = aux.rgb2gray(dummy)
+
+    return dummy[::-1, :]
+
+
 def read_frame(video_object, frames_number=None, limitation: bool = True,
-               limit: int = 2048):
+               limit: int = 2048, verbose: bool = True):
     """
     Read .b16 files
 
@@ -107,7 +127,7 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
         counter = 0
         for file in sorted(os.listdir(video_object.path)):
             if file.endswith('.b16'):
-                M[:, :, counter] = pco.load(
+                M[:, :, counter] = load_pco(
                     os.path.join(video_object.path, file))
                 # print(file)
                 counter = counter + 1
@@ -129,8 +149,7 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
                 current_frame = current_frame + 1
                 if current_frame in frames_number:
                     pngname = os.path.join(video_object.path, file)
-                    print(pngname)
-                    dummy = pco.load(pngname)
+                    dummy = load_pco(pngname)
                     M[:, :, counter] = dummy
                     counter = counter + 1
         print('Number of loaded frames: ', counter)
