@@ -332,11 +332,14 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
             'uncertainty': tmp_unc}
     else:
         output = xr.Dataset()
+        tmp_te = np.atleast_2d(tmp_te)
+        time = np.atleast_1d(time)
         output['data'] = xr.DataArray(
             tmp_te.T, dims=('rho', 't'),
             coords={'rho': rhop[:, 0], 't': time})
         output['data'].attrs['long_name'] = '$T_e$'
         output['data'].attrs['units'] = 'eV'
+        tmp_unc = np.atleast_2d(tmp_unc)
         output['uncertainty'] = xr.DataArray(tmp_unc.T, dims=('rho', 't'))
         output['uncertainty'].attrs['long_name'] = '$\\Delta T_e$'
         output['uncertainty'].attrs['units'] = '$eV$'
@@ -439,6 +442,9 @@ def get_Ti_idi(shotnumber: int, time: float = None, exp: str = 'AUGD',
         }
     else:
         output = xr.Dataset()
+        tmp_ti = np.atleast_2d(tmp_ti)
+        tmp_unc = np.atleast_2d(tmp_unc)
+        time = np.atleast_1d(time)
         output['data'] = xr.DataArray(
             tmp_ti.T, dims=('rho', 't'),
             coords={'rho': rhop[:, 0], 't': time})
@@ -804,7 +810,8 @@ def get_tor_rotation(shotnumber: int, time: float = None, diag: str = 'IDI',
 
 
 def get_tor_rotation_idi(shotnumber: int, time: float = None,
-                         exp: str = 'AUGD', edition: int = 0, sf=None):
+                         exp: str = 'AUGD', edition: int = 0, sf=None,
+                         xArrayOutput: bool = False):
 
     """
     Reads from the IDI shotfile the toroidal rotation velocity.
@@ -836,11 +843,25 @@ def get_tor_rotation_idi(shotnumber: int, time: float = None,
         timebase = timebase[t0:t1]
 
     # --- Saving to a dictionary and output:
-    output = {
-        'data': data,
-        'time': timebase,
-        'rhop': np.array(sf.getareabase('vt')[t0, ...])
-    }
+    if not xArrayOutput:
+        output = {
+            'data': data,
+            'time': timebase,
+            'rhop': np.array(sf.getareabase('vt')[t0, ...])
+        }
+    else:
+        output = xr.Dataset()
+        time = np.atleast_1d(timebase)
+        output['data'] = xr.DataArray(
+                data.T, dims=('rho', 't'),
+                coords={'rho': np.array(sf.getareabase('vt')[..., 0]),
+                        't': timebase})
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'IDI'
+        output.attrs['shot'] = shotnumber
+
 
     return output
 

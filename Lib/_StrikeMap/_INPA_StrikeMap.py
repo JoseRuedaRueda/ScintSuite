@@ -4,15 +4,20 @@ Strike map for the INPA diagnostic
 Jose Rueda: jrrueda@us.es
 """
 import os
+import logging
 import numpy as np
 import xarray as xr
 import Lib.LibData as ssdat
 import Lib.errors as errors
+from tqdm import tqdm
 from Lib._Machine import machine
-from Lib._SideFunctions import createGrid
+from scipy.signal import convolve
+from Lib._SideFunctions import createGrid, gkern
 from Lib._basicVariable import BasicVariable
 from Lib.SimulationCodes.Common.strikes import Strikes
 from Lib._StrikeMap._FILD_INPA_ParentStrikeMap import FILDINPA_Smap
+
+logger = logging.getLogger('ScintSuite.INPAstrikeMap')
 
 
 class Ismap(FILDINPA_Smap):
@@ -157,14 +162,33 @@ class Ismap(FILDINPA_Smap):
                             variablesFI: tuple = ('R0', 'e0'),
                             weight: str = 'weight0',
                             gridFI: dict = None,
+                            sigmaOptics: float = 4.5,
                             verbose: bool = True,
+                            normFactor: float = 1.0,
                             ):
         """
         Build the INPA weight function
-        :param strikes:
-        :return:
+
+        For a complete documentation of how each submatrix is defined from the
+        physics point of view, please see full and detailed INPA notes
+
+        @param strikes: SINPA strikes from the FIDASIM simulation with constant
+            FBM. Notice that it can also be just a string pointing towards the
+            strike file
+        @param variablesScint: tuple of variable to spawn the scintillator space
+        @param variablesFI: tuple of variables to spawn the FI space
+        @param weigt: name of the weight to be selected
+        @param gridFI: grid for the variables in the FI phase space
+        @param sigmaOptics: fine resolution sigma of the optical system
+        @param verbose: flag to incldue information in the console
+        @param normFactor: Overal factor to scale the weight matrix
         Notes:
-        TODO:Include fine resolution via tensor matrix in the middle
+        - Scintillator grid cannot be included as input because is taken from
+            the transformation matrix
+        - The normFactor is though to be used as the constant value of the
+            FBM set for the FIDASIM simulation, to eliminate this constant dummy
+            factor
+        TODO:Include fine resolution depending of the optical axis
         """
         # Block 0: Loading and settings ----------------------------------------
         # --- Check inputs
@@ -247,10 +271,20 @@ class Ismap(FILDINPA_Smap):
                 bins=edges,
                 weights=w,
         )
+        # Add the finite focus of the optics
+        if sigmaOptics > 0.01:
+            logger.info('Adding finite focus')
+            kernel = gkern(int(6.0*sigmaOptics)+1, sig=sigmaOptics)
+            for kx in tqdm(range(H.shape[2])):
+                for ky in range(H.shape[3]):
+                    H[..., kx, ky] = convolve(H[..., kx, ky].squeeze(), kernel,
+                                              mode='same')
+        else:
+            logger.info('Not considering finite focusing')
 
         # Now perform the tensor product
         vol = xvol * yvol
-        W = np.tensordot(Tmatrix, H, axes=2) / vol
+        W = np.tensordot(Tmatrix, H, axes=2) / vol / normFactor
         # save it
         self.instrument_function = xr.DataArray(W, dims=('xs', 'ys', 'x', 'y'),
                               coords={'xs': gridT['x'], 'ys': gridT['y'],

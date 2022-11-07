@@ -173,11 +173,15 @@ class FILDVideo(FIV):
             if self.geometryID is not None:
                 platename = os.path.join(pa.ScintSuite, 'Data', 'Plates', 'FILD',
                                          machine, self.geometryID + '.pl')
-                if os.path.isfile(platename):
-                    self.scintillator = ssmap.Scintillator(file=platename)
-                    self.scintillator.calculate_pixel_coordinates(
-                            self.CameraCalibration)
-                    self.ROIscintillator = self.scintillator.get_roi()
+                platename2 = os.path.join(pa.ScintSuite, 'Data', 'Plates',
+                                         'FILD',
+                                         machine, self.geometryID + '.txt')
+                for plate in [platename, platename2]:
+                    if os.path.isfile(plate):
+                        self.scintillator = ssmap.Scintillator(file=plate)
+                        self.scintillator.calculate_pixel_coordinates(
+                                self.CameraCalibration)
+                        self.ROIscintillator = self.scintillator.get_roi()
             else:
                 self.scintillator = None
                 self.ROIscintillator = None

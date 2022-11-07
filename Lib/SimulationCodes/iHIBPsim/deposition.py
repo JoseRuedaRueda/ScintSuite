@@ -115,11 +115,15 @@ class deposition:
 
         self.rhop_interp = RectBivariateSpline(Rin, zin, self.rhopol)
 
-    def read(self):
+    def read(self, xDatasetOutput: bool = False):
         """
         Reads the deposition file and returns the data.
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
+        Jose Rueda - jrrueda@us.es
+
+        @param xDatasetOutput: if true, returns the data as a dataset, with
+            independent dataarrays for each variable
         """
         # Total number of data to read.
         ntotal = self.header['N'] * self.header['nch']
@@ -131,14 +135,31 @@ class deposition:
                                                       self.header['N']),
                                                       order='F')
         # Returns the data as an xarray.
-        output = xr.DataArray(data, dims=('variable', 'marker'),
-                              coords=(self.header['names'],
-                                      np.arange(self.header['N'])))
+        if not xDatasetOutput:
+            output = xr.DataArray(data, dims=('variable', 'marker'),
+                                  coords=(self.header['names'],
+                                          np.arange(self.header['N'])))
+        else:
+            jID = np.array(self.header['names']) == 'ID'
+            ID = data[jID, :].squeeze().astype(int)
+            output = xr.Dataset()
+            for j, name in enumerate(self.header['names']):
+                if name != 'ID':
+                    output[name] = xr.DataArray(data[j, :], coords={'ID': ID},
+                                                dims='ID')
+                    output[name].attrs['long_name'] = name
 
         return output
 
+<<<<<<< HEAD
     def plot1d(self, xaxis: str='rmajor', ax=None, bins: int=None,
                xmin: float=None, xmax: float=None, **line_params):
+=======
+    # -------------------------------------------------------------------------
+    # --- Plotting Block
+    # -------------------------------------------------------------------------
+    def plot1d(self, xaxis: str='rmajor', ax=None, bins: int=None, **line_params):
+>>>>>>> dev-branch
         """
         Plot the deposition profile as a function either from major radius or
         the rhopol.

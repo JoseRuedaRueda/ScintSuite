@@ -24,6 +24,7 @@ from Lib._Video._VRTVideoObject import VRTVideo
 # Load the auxiliar libraries
 import Lib._Video._PNGfiles as png
 import Lib._Video._TIFfiles as tif
+import Lib._Video._PCOfiles as pco
 
 from Lib._Machine import machine as _machine
 if _machine == 'AUG':

@@ -66,8 +66,7 @@ def read_data(path, YOLO: bool = False):
     else:
         dummy = np.loadtxt(f[0], skiprows=2, comments='(')
         header = {'ImageCount': int(dummy[-1, 0])}
-        # @ToDo, this should be /1e9, right?
-        settings = {'ShutterNs': dummy[0, 2] / 1000.0}
+        settings = {'ShutterNs': dummy[0, 2] / 1000.0 * 1.0e9}
         # Possible bytes per pixels for the camera
         BPP = {'uint8': 8, 'uint16': 16, 'uint32': 32, 'uint64': 64}
         try:
