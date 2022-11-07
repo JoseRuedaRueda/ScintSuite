@@ -145,7 +145,7 @@
 - getGyroradius and getEnergy now uses the proper amu to kg conversion and no longer rely on the proton mass
 - Integrate_remap change completely inputs and output, now it can handle also any translation of the remap. Please have a look at the new function doc. Take care with the translation if you do not use standard remaps as initial point
 - The small bug on the units of the weights of INPA markers from SINPA was corrected (the correction due to the detector pinhole size was already performed in SINPA)
-- Included new sub-library MHD, to calculate/plot basic mode parameters such as mode frequencies 
+- Included new sub-library MHD, to calculate/plot basic mode parameters such as mode frequencies
 
 
 ## 0.9.10: iHIBP videos improvements and TORBEAM sims.
