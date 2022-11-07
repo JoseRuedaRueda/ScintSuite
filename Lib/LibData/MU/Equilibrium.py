@@ -12,6 +12,8 @@ def get_mag_field(shot: int, Rin, zin, time: float, **kwargs):
     Note: No extra arguments are expected, **kwargs is just included for
     compatibility of the call to this method in other databases (machines)
 
+    Note2: MU FILD1 is located around z=0.159m
+
     @param shot: Shot number
     @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
     @param zin: Array of z positions where to evaluate (in pairs with Rin) [m]

@@ -8,53 +8,61 @@ will be derived. Each of these derived video object will contain the individual
 routines to remap iHIBP, FILD or INPA data.
 """
 import os
+import logging
 import numpy as np
+import xarray as xr
+import tkinter as tk
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from tqdm import tqdm                      # For waitbars
-from scipy import ndimage                  # To filter the images
 import Lib._IO as _ssio
+import Lib._GUIs as ssGUI
+import Lib.LibData as ssdat
+import Lib.errors as errors
+import Lib._Plotting as ssplt
+import Lib._TimeTrace as sstt
 import Lib._Video._CinFiles as cin
 import Lib._Video._PNGfiles as png
 import Lib._Video._PCOfiles as pco
 import Lib._Video._MP4files as mp4
 import Lib._Video._TIFfiles as tif
-import Lib._Video._AuxFunctions as aux
-import Lib.LibData as ssdat
 import Lib._Utilities as ssutilities
-import Lib._Plotting as ssplt
-import Lib._TimeTrace as sstt
-import Lib._GUIs as ssGUI
-import Lib.errors as errors
-import tkinter as tk
-import xarray as xr
-import logging
+import Lib._Video._AuxFunctions as aux
+from tqdm import tqdm                      # For waitbars
+from scipy import ndimage                  # To filter the images
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+
+# --- Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.Video')
 
 
+# ------------------------------------------------------------------------------
+# --- Main class of the video object
+# ------------------------------------------------------------------------------
 class BVO:
     """
     Basic Video Class.
 
     Parent class for INPA, FILD, VRT and iHIBP videos. Allows to read the
-    frames, filter them an perform the basic plotting
+    frames, filter them and perform the basic plotting
 
     Public Methods:
         - read_frame: Load a given range of frames
         - subtract noise: Use a range of times to average de noise and subtract
             it to all frames
         - filter_frames: apply filters such as median, gaussian, etc
-        - cut frames: cut the frames
         - average_frames: average frames under certain windows
         - generate_average_window: generate the windows to average the frames
-        - return to the original frames: remove the noise subtraction etc
+        - return_to_original_frames: remove the noise subtraction etc
         - plot_number_saturated_counts: plot the total number of saturated
             counts in each frame
+        - plot_ frame: plot a given frame
         - GUI_frames: display a GUI to explore the video
         - getFrameIndex: get the frame number associated to a given time
         - getFrame: return the frame associated to a given time
-        - plot_ frame: plot a given frame
+        - getTime: return the time associated to a frame index
+        - getTimeTrace: calculate a video timetrace
+        - exportVideo: save the dataframes to a netCDF
 
     Public Properties:
         - size: Size (number of elements) of the video
@@ -63,7 +71,7 @@ class BVO:
 
     def __init__(self, file: str = None, shot: int = None,
                  empty: bool = False, adfreq: float = None,
-                 t_trig: float = None):
+                 t_trig: float = None, YOLO: bool = False):
         """
         Initialise the class
 
@@ -78,6 +86,19 @@ class BVO:
             in the name of the loaded file
         @param empty: if true, just an empty video object will be created, this
             is to latter use routines of the child objects such as load_remap.
+        @param adfreq: acquisition frequency of the video. This is needed just
+            for the video saved in .b16 format, where this information is not
+            saved in the video and must be provided externally
+        @param t_trig: trigger time. Again, this is just needed for the .b16
+            format
+        @param YOLO: flag to ignore wrong timed frames. With old AUG adquisition
+            system, sometimes the timebase get corrupt after a given point. if
+            YOLO is false, the program will interact with the user,
+            shown him/her which frames are wrong and create an ad-hoc
+            time base if needed. This is not ideal for the case of automatic
+            remaps etc when the program is runing in the background, as the user
+            is needed. YOLO=True disable this and just ignore these frames
+
 
         Note: The shot parameter is important for latter when loading data from
         the database to remap, etc. See FILDVideoObject to have an examples of
@@ -97,11 +118,6 @@ class BVO:
         ## Type of video
         self.type_of_file = None
         ## Loaded experimental data
-        # self.exp_dat = {
-        #     'frames': None,   # Loaded frames
-        #     'tframes': None,  # Timebase of the loaded frames
-        #     'nframes': None,  # Frame numbers of the loaded frames
-        # }
         self.exp_dat = xr.Dataset()
         ## Remapped data
         self.remap_dat = None
@@ -138,7 +154,7 @@ class BVO:
                     file, name = os.path.split(file)
                 elif file.endswith('.mp4'):
                     dummy = mp4.read_file(file, verbose=False)
-                    # mp4 files are handle different as they are suppose to be
+                    # mp4 files are handle different as they are supposed to be
                     # just a dummy temporal format, not the one to save our
                     # real exp data, so the video will be loaded all from here
                     # and not reading specific frame will be used
@@ -169,9 +185,9 @@ class BVO:
                     f.extend(filenames)
                     break
 
-                # To stablish the format, count to 3 to make sure there are not
+                # To establish the format, count to 3 to make sure there are no
                 # other types of files randomly inserted in the same folder
-                # that mislead the type_of_file
+                # that mislead the type_of_file.
                 count_png = 0
                 count_tif = 0
                 count_pco = 0
@@ -184,7 +200,7 @@ class BVO:
                             break
                     elif f[i].endswith('.tif'):
                         count_tif += 1
-                        if count_tif == 3:
+                        if count_tif == 1:
                             self.type_of_file = '.tif'
                             print('Found tif files!')
                             break
@@ -205,7 +221,7 @@ class BVO:
                 # can load the file size
                 if self.type_of_file == '.png':
                     self.header, self.imageheader, self.settings,\
-                        self.timebase = png.read_data(self.path)
+                        self.timebase = png.read_data(self.path, YOLO)
                 elif self.type_of_file == '.b16':
                     self.header, self.imageheader, self.settings,\
                         self.timebase = pco.read_data(
@@ -215,120 +231,136 @@ class BVO:
                         self.timebase = tif.read_data(self.path)
             if self.type_of_file is None:
                 raise Exception('Not file found!')
+        ## Geometry of the diagnostic head used to record the video
+        self.geometryID = None
+        ## Camera calibration to relate the scintillator and the camera sensor,
+        # each diagnostic will read its camera calibration from its database
+        self.CameraCalibration = None
+        ## Scintillator plate:
+        self.scintillator = None
 
+    # --------------------------------------------------------------------------
+    # --- Manage Frames
+    # --------------------------------------------------------------------------
     def read_frame(self, frames_number=None, limitation: bool = True,
                    limit: int = 2048, internal: bool = True, t1: float = None,
-                   t2: float = None, threshold_saturation=0.95,
-                   read_from_loaded: bool = False, verbose: bool = True):
+                   t2: float = None, threshold_saturation: float = 0.95,
+                   verbose: bool = True):
         """
-        Call the read_frame function.
+        Read the video frames
 
-        Just a wrapper to call the read_frame function, depending of the
+        Just a wrapper to call the read_frame function, depending on the
         format in which the experimental data has been recorded
 
-        @param frames_number: np array with the frame numbers to load
-        @param limitation: maximum size allowed to the output variable,
-        in Mbytes, to avoid overloading the memory trying to load the whole
-        video of 100 Gb
-        @param limit: bool flag to decide if we apply the limitation or if we
-        operate in YOLO mode
+        @param frames_number: array or list with the frame numbers to load
+        @param limitation: bool flag to decide if we apply the limitation or if
+            we operate in YOLO mode
+        @param limit: maximum size allowed for the output variable,
+            in Mbytes, to avoid overloading the memory trying to load the whole
+            video of 100 Gb
         @param internal: If True, the frames will be stored in the 'frames'
-        variable of the video object. Else, it will be returned just as output
-        (usefull if you need to load another frame and you do not want to
-        overwrite your frames already loaded)
+            variable of the video object. Else, it will be returned just as
+            output (useful if you need to load another frame and you do not
+            want to overwrite your frames already loaded)
         @param t1: Initial time to load frames (alternative to frames number)
         @param t2: Final time to load frames (alternative to frames number), if
-        just t1 is given , only one frame will be loaded
-        @param read_from_loaded: If true, it will return the frame closer to t1
-        , independently of the flag 'internal' (usefull to extract noise
-        corrected frames from the video object :-))
+            just t1 is given , only one frame will be loaded
         @param verbose: flag to print the numer of saturated frames found
 
         @return M: 3D numpy array with the frames M[px,py,nframes] (if the
             internal flag is set to false)
         """
+        # --- Clean video if needed
+        if 't' in self.exp_dat and internal:
+            self.exp_dat = xr.Dataset()
         # --- Select frames to load
-        if not read_from_loaded:
-            if (frames_number is not None) and (t1 is not None):
-                raise Exception('You cannot give frames number and time')
-            elif (t1 is not None) and (t2 is None):
-                frames_number = np.array([np.argmin(abs(self.timebase-t1))])
-            elif (t1 is not None) and (t2 is not None):
-                tmin_video = self.timebase.min()
-                if t1 < tmin_video:
-                    text = 'T1 was not in the video file:' +\
-                        'Taking %.3f as initial point' % tmin_video
-                    logger.warning('18: %s' % text)
-                tmax_video = self.timebase.max()
-                if t2 > tmax_video:
-                    text = 'T2 was not in the video file:' +\
-                        'Taking %.3f as initial point' % tmax_video
-                    logger.warning('18: %s' % text)
-                it1 = np.argmin(abs(self.timebase-t1))
-                it2 = np.argmin(abs(self.timebase-t2))
-                frames_number = np.arange(start=it1, stop=it2+1, step=1)
-            # else:
-            #     raise Exception('Something went wrong, check inputs')
-
-            if self.type_of_file == '.cin':
-                M = cin.read_frame(self, frames_number,
-                                       limitation=limitation, limit=limit)
-            elif self.type_of_file == '.png':
-                M = png.read_frame(self, frames_number,
-                                   limitation=limitation, limit=limit)
-            elif self.type_of_file == '.tif':
-                M = tif.read_frame(self, frames_number,
-                                       limitation=limitation, limit=limit)
-            elif self.type_of_file == '.b16':
-                M = pco.read_frame(self, frames_number,
-                                   limitation=limitation, limit=limit)
-            else:
-                raise Exception('Not initialised / not implemented file type?')
-            # --- End here if we just want the frame
-            if not internal:
-                return M
-            # --- Save the stuff in the structure
-            # Get the spatial axes
-
-            nx, ny, nt = M.shape
-            px = np.arange(nx)
-            py = np.arange(ny)
-            # Get the time axis
-            tframes = self.timebase[frames_number]
-            # Get the frames number
-            if frames_number is None:
-                nframes = np.arange(nt) + 1
-            else:
-                nframes = frames_number
-            # Get the data-type
-            dtype = M.dtype
-            # Storage it
-            self.exp_dat['frames'] = \
-                xr.DataArray(M, dims=('px', 'py', 't'),
-                                coords={'t': tframes.squeeze(), 'px': px,
-                                        'py': py})
-            self.exp_dat['nframes'] = xr.DataArray(nframes.squeeze(), dims=('t'))
-            self.exp_dat.attrs['dtype'] = dtype
-            # --- Count saturated pixels
-            max_scale_frames = 2 ** self.settings['RealBPP'] - 1
-            threshold = threshold_saturation * max_scale_frames
-            print('Counting "saturated" pixels')
-            print('The threshold is set to: ', threshold, ' counts')
-            n_pixels_saturated = \
-                np.sum(self.exp_dat['frames'].values >= threshold, axis=(0, 1))
-            self.exp_dat['n_pixels_gt_threshold'] = xr.DataArray(
-                n_pixels_saturated.astype('int32'), dims=('t'))
-            self.exp_dat.attrs['threshold_for_counts'] = threshold_saturation
-            if verbose:
-                print('Maximum number of saturated pixels in a frame: '
-                      + str(self.exp_dat['n_pixels_gt_threshold'].values.max()))
+        if (frames_number is not None) and (t1 is not None):
+            raise errors.NotValidInput('You cannot give frames number and time')
+        elif (t1 is not None) and (t2 is None):
+            frames_number = np.array([np.argmin(abs(self.timebase-t1))])
+        elif (t1 is not None) and (t2 is not None):
+            tmin_video = self.timebase.min()
+            if t1 < tmin_video:
+                text = 'T1 was not in the video file:' +\
+                    'Taking %.3f as initial point' % tmin_video
+                logger.warning('18: %s' % text)
+            tmax_video = self.timebase.max()
+            if t2 > tmax_video:
+                text = 'T2 was not in the video file:' +\
+                    'Taking %.3f as initial point' % tmax_video
+                logger.warning('18: %s' % text)
+            it1 = np.argmin(abs(self.timebase-t1))
+            it2 = np.argmin(abs(self.timebase-t2))
+            frames_number = np.arange(start=it1, stop=it2+1, step=1)
+        logger.info('Reading frames: ')
+        if self.type_of_file == '.cin':
+            M = cin.read_frame(self, frames_number,
+                               limitation=limitation, limit=limit)
+        elif self.type_of_file == '.png':
+            M = png.read_frame(self, frames_number,
+                               limitation=limitation, limit=limit)
+        elif self.type_of_file == '.tif':
+            M = tif.read_frame(self, frames_number,
+                               limitation=limitation, limit=limit)
+        elif self.type_of_file == '.b16':
+            M = pco.read_frame(self, frames_number,
+                               limitation=limitation, limit=limit,
+                               verbose=verbose)
         else:
-            it = np.argmin(abs(self.exp_dat['t'].values - t1))
-            M = self.exp_dat['frames'][:, :, it].values.squeeze()
+            raise Exception('Not initialised / not implemented file type?')
+        # --- End here if we just want the frame
+        if not internal:
             return M
+        # --- Save the stuff in the structure
+        # Get the spatial axes
+        nx, ny, nt = M.shape
+        px = np.arange(nx)
+        py = np.arange(ny)
+        # Get the time axis
+        tframes = self.timebase[frames_number]
+        # Get the frames number
+        if frames_number is None:
+            nframes = np.arange(nt) + 1
+        else:
+            nframes = frames_number
+        # Quick solve for the case we have just one frame
+        try:
+            if len(tframes) != 1:
+                tbase = tframes.squeeze()
+                nbase = nframes.squeeze()
+            else:
+                tbase = tframes
+                nbase = nframes
+        except TypeError:
+            tbase = np.array([tframes])
+            nbase = np.array([nframes])
+        if len(tbase.shape) == 2:
+            tbase = tbase.squeeze()
+            nbase = nbase.squeeze()
+        # Get the data-type
+        dtype = M.dtype
+        # Storage it
+        self.exp_dat['frames'] = \
+            xr.DataArray(M, dims=('px', 'py', 't'), coords={'t': tbase,
+                                                            'px': px, 'py': py})
+        self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
+        self.exp_dat.attrs['dtype'] = dtype
+        # --- Count saturated pixels
+        max_scale_frames = 2 ** self.settings['RealBPP'] - 1
+        threshold = threshold_saturation * max_scale_frames
+        print('Counting "saturated" pixels')
+        print('The threshold is set to: ', threshold, ' counts')
+        n_pixels_saturated = \
+            np.sum(self.exp_dat['frames'].values >= threshold, axis=(0, 1))
+        self.exp_dat['n_pixels_gt_threshold'] = xr.DataArray(
+            n_pixels_saturated.astype('int32'), dims=('t'))
+        self.exp_dat.attrs['threshold_for_counts'] = threshold_saturation
+        if verbose:
+            print('Maximum number of saturated pixels in a frame: '
+                  + str(self.exp_dat['n_pixels_gt_threshold'].values.max()))
 
-    def subtract_noise(self, t1: float = None, t2: float = None, frame=None,
-                       flag_copy: bool = False):
+    def subtract_noise(self, t1: float = None, t2: float = None,
+                       frame: np.ndarray = None, flag_copy: bool = False):
         """
         Subtract noise from camera frames.
 
@@ -347,19 +379,20 @@ class BVO:
         @param t2: Maximum time to average the noise
         @param frame: Optional, frame containing the noise to be subtracted
         @param flag_copy: If true, a copy of the frame will be stored
-        @param  return_noise: If True, the average frame used for the noise
-        will be returned
+
+        @return  frame: the frame used for the noise subtraction
         """
         # --- Check the inputs
         if self.exp_dat is None:
             raise errors.NoFramesLoaded('Load the frames first')
-        print('.--. ... ..-. -')
-        print('Substracting noise')
-        if t1 > t2:
-            print('t1: ', t1)
-            print('t2: ', t2)
-            raise errors.NotValidInput('t1 is larger than t2!!!')
-        # --- Get the shapes and indeces
+        logger.info('.--. ... ..-. -')
+        logger.info('Substracting noise')
+        if frame is None:
+            if t1 > t2:
+                print('t1: ', t1)
+                print('t2: ', t2)
+                raise errors.NotValidInput('t1 is larger than t2!!!')
+        # --- Get the shapes and indexes
         # Get shape and data type of the experimental data
         nx, ny, nt = self.exp_dat['frames'].shape
         original_dtype = self.exp_dat['frames'].dtype
@@ -389,13 +422,13 @@ class BVO:
             it1 = np.argmin(abs(self.exp_dat['t'].values - t1))
             it2 = np.argmin(abs(self.exp_dat['t'].values - t2))
 
-            print('Using frames from the video')
-            print(str(it2 - it1 + 1), ' frames will be used to average noise')
+            logger.info('Using frames from the video')
+            logger.info('%i frames will be used to average noise', it2 - it1 + 1)
             frame = np.mean(self.exp_dat['frames'].values[:, :, it1:(it2 + 1)],
                             dtype=original_dtype, axis=2)
 
         else:  # The frame is given by the user
-            print('Using noise frame provider by the user')
+            logger.info('Using noise frame provider by the user')
             nxf, nyf = frame.shape
             if (nxf != nx) or (nyf != ny):
                 text = 'The noise frame has not the correct shape'
@@ -403,8 +436,12 @@ class BVO:
         # Save the frame in the structure
         self.exp_dat['frame_noise'] = xr.DataArray(frame.squeeze(),
                                                    dims=('px', 'py'))
-        self.exp_dat['frame_noise'].attrs['t1_noise'] = t1
-        self.exp_dat['frame_noise'].attrs['t2_noise'] = t2
+        if t1 is not None:
+            self.exp_dat['frame_noise'].attrs['t1_noise'] = t1
+            self.exp_dat['frame_noise'].attrs['t2_noise'] = t2
+        else:
+            self.exp_dat['frame_noise'].attrs['t1_noise'] = -150.0
+            self.exp_dat['frame_noise'].attrs['t2_noise'] = -150.0
         # --- Copy the original frame array:
         if 'original_frames' not in self.exp_dat and flag_copy:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
@@ -415,8 +452,8 @@ class BVO:
             (self.exp_dat['frames'].values.astype(float) - frame[..., None])
         dummy[dummy < 0] = 0.0  # Clean the negative values
         self.exp_dat['frames'].values = dummy.astype(original_dtype)
- 
-        print('-... -.-- . / -... -.-- .')
+
+        logger.info('-... -.-- . / -... -.-- .')
         return frame.astype(original_dtype)
 
     def filter_frames(self, method: str = 'median', options: dict = {},
@@ -425,7 +462,7 @@ class BVO:
         Filter the camera frames
 
         @param method: method to be used:
-            -# jrr: neutron method of the extra package (not recomended,
+            -# jrr: neutron method of the extra package (not recommended,
                 extremelly slow)
             -# median: median filter from the scipy.ndimage package
             -# gaussian: gaussian filter from the scipy.ndimage package
@@ -434,9 +471,9 @@ class BVO:
                 nsigma: 3 Number of sigmas to consider a pixel as neutron
             -# median:
                 size: 4, number of pixels considered
-        @param make copy: flag to copy or not the original frames
+        @param flag_copy: flag to copy or not the original frames
         """
-        print('Filtering frames')
+        logger.info('Filtering frames')
         # default options:
         jrr_options = {
             'nsigma': 3
@@ -450,18 +487,18 @@ class BVO:
         if ('original_frames' not in self.exp_dat) and flag_copy:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
         else:
-            print('Not making a copy')
+            logger.info('Not making a copy')
         # Filter frames
         nx, ny, nt = self.exp_dat['frames'].shape
         if method == 'jrr':
-            print('Removing pixels affected by neutrons')
+            logger.info('Removing pixels affected by neutrons')
             jrr_options.update(options)
             for i in tqdm(range(nt)):
                 self.exp_dat['frames'][:, :, i] = \
                     ssutilities.neutron_filter(self.exp_dat['frames'].values[:, :, i],
                                                **jrr_options)
         elif method == 'median':
-            print('Median filter selected!')
+            logger.info('Median filter selected!')
             # if footprint is present in the options given by user, delete size
             # from the default options, to avoid issues in the median filter
             if 'footprint' in options:
@@ -473,34 +510,41 @@ class BVO:
                     ndimage.median_filter(self.exp_dat['frames'].values[:, :, i],
                                           **median_options)
         elif method == 'gaussian':
-            print('Gaussian filter selected!')
+            logger.info('Gaussian filter selected!')
             gaussian_options.update(options)
             for i in tqdm(range(nt)):
                 self.exp_dat['frames'][:, :, i] = \
                     ndimage.gaussian_filter(self.exp_dat['frames'].values[:, :, i],
                                             **gaussian_options)
-        print('\n-... -.-- . / -... -.-- .')
+        logger.info('\\n-... -.-- . / -... -.-- .')
         return
 
     def average_frames(self, window):
         """
         Average the frames on a given time window
 
+        Averaged frames will be saved in a Dataset in the attribute: 'avg_dat'
+        of the video object
+
         Jose Rueda: jrrueda@us.es
 
-        The window is generated by the method 'generate_average_window'
+        The window must be generated by the method 'generate_average_window'
+
+        @param window: window generated by 'generate_average_window'
         """
+        # --- Get the shape and allocate the variables
         nw, dummy = window.shape
         nx, ny, nt = self.exp_dat['frames'].shape
         frames = np.zeros((nx, ny, nw))
         time = np.zeros(nw)
+        # --- average the frames
         for i in range(nw):
             flags = (self.exp_dat['t'].values >= window[i, 0])\
                 * (self.exp_dat['t'].values < window[i, 1])
             frames[..., i] = self.exp_dat['frames'][..., flags].mean(axis=-1)
             time[i] = 0.5 * (window[i, 0] + window[i, 1])
-        # Save the data in the dataset
-        self.avg_dat = xr.Dataset()  # Initialise the daaset
+        # --- Save the data in the dataset
+        self.avg_dat = xr.Dataset()  # Initialise the dataset
         # Prepare the axis
         px = np.arange(nx)
         py = np.arange(ny)
@@ -517,10 +561,10 @@ class BVO:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param step: width of the averaged window
-        @param trace: dictionary containing the timetrace to plot and use to
-            create the windows (see below). It should contain 't', the timebase
-            and 'data' the 1 dimensional trace to plot
+        @param step: width of the average window
+        @param trace: xr.DataArray containing the timetrace to plot and use to
+            create the windows (see below). It should contain 't', as a
+            coordinate and be 1D
 
         Note:
             - If step is not None, the windows will have a width of 'step',
@@ -530,7 +574,7 @@ class BVO:
             in the dictionary will be plotted and the user will be able to
             select as many points as wanted. The windows will be created
             between the point t_i and t_[i+1]. Notice that the first window
-            will alway be between the first point loaded of the video and the
+            will always be between the first point loaded of the video and the
             first point of the database. The last window between the last point
             of the database and the last of the video
         """
@@ -543,9 +587,11 @@ class BVO:
         else:
             # Plot the trace to select the desired time points
             fig, ax = plt.subplots()
-            ax.plot(trace['t'], trace['data'])
+            ax.plot(trace['t'].values, trace.values)
             plt.axvline(x=self.exp_dat['t'].values[0], color='k')
             plt.axvline(x=self.exp_dat['t'].values[-1], color='k')
+            ax.set_lim(self.exp_dat['t'].values[0]*0.95,
+                       self.exp_dat['t'].values[-1]*1.05)
             points = plt.ginput(-1)
             points = np.array(points)[:, 0]
             # Now fill the windows
@@ -571,6 +617,9 @@ class BVO:
             self.exp_dat['frames'] = self.exp_dat['original_frames'].copy()
         return
 
+    # --------------------------------------------------------------------------
+    # --- Plotting a GUIs
+    # --------------------------------------------------------------------------
     def plot_number_saturated_counts(self, ax_params: dict = {},
                                      line_params: dict = {},
                                      threshold=None,
@@ -623,6 +672,165 @@ class BVO:
         ax = ssplt.axis_beauty(ax, ax_options)
         return ax
 
+    def plot_frame(self, frame_number=None, ax=None, ccmap=None,
+                   t: float = None,
+                   verbose: bool = True,
+                   vmin: int = 0, vmax: int = None,
+                   xlim: float = None, ylim: float = None,
+                   scale: str = 'linear',
+                   alpha: float = 1.0, IncludeColorbar: bool = True,
+                   RemoveAxisTicksLabels: bool = False,
+                   flagAverage: bool = False, normalise=None):
+        """
+        Plot a frame from the loaded frames
+
+        Jose Rueda Rueda: jrrueda@us.es
+
+        Notice, you can plot a given frame giving its frame number or giving
+        its time
+
+        @param frame_number: Number of the frame to plot (option 1)
+        @param ax: Axes where to plot, is none, just a new axes will be created
+        @param ccmap: colormap to be used, if none, Gamma_II from IDL
+        @param t: time point to select the frame (option 2)
+        @param verbose: If true, info of the theta and phi used will be printed
+        @param vmin: Minimum value for the color scale to plot
+        @param vmax: Maximum value for the color scale to plot
+        @param xlim: tuple with the x-axis limits
+        @param ylim: tuple with the y-axis limits
+        @param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
+        @param alpha: transparency factor, 0.0 is 100 % transparent
+        @param IncludeColorbar: flag to include a colorbar
+        @param RemoveAxisTicksLabels: boolean flag to remove the numbers in the
+            axis
+        @param flagAverage: flag to pick the axis from the experimental or the
+            averaged frames
+        @param normalise: parameter to normalise the frame when plotting:
+            if normalise == 1 it would be normalised to the maximum
+            if normalise == <number> it would be normalised to this value
+            if normalise == None, nothing will be done
+
+        @return ax: the axes where the frame has been drawn
+        """
+        # --- Check inputs:
+        if (frame_number is not None) and (t is not None):
+            raise Exception('Do not give frame number and time!')
+        if (frame_number is None) and (t is None):
+            raise Exception("Didn't you want to plot something?")
+
+        # --- Load the frames
+        # If we use the frame number explicitly
+        if frame_number is not None:
+            frame_index = self.getFrameIndex(frame_number=frame_number,
+                                             flagAverage=flagAverage)
+            tf = self.getTime(frame_index, flagAverage)
+            dummy = self.getFrame(tf, flagAverage)
+        # If we give the time:
+        if t is not None:
+            frame_index = self.getFrameIndex(t, flagAverage)
+            tf = self.getTime(frame_index, flagAverage)
+            dummy = self.getFrame(t, flagAverage)
+        if normalise is not None:
+            if normalise == 1:
+                dummy = dummy.astype('float64') / dummy.max()
+            else:
+                dummy = dummy.astype('float64') / normalise
+        if vmax is None:
+            if normalise is not None:
+                vmax = 1.0
+            else:
+                vmax = dummy.max()
+        # --- Prepare the scale:
+        if scale == 'sqrt':
+            extra_options = {'norm': colors.PowerNorm(0.5, vmax=vmax,
+                                                      vmin=vmin)}
+        elif scale == 'log':
+            extra_options = {'norm': colors.LogNorm(clip=True, vmax=vmax,
+                                                    vmin=vmin)}
+        else:
+            extra_options = {'vmin': vmin, 'vmax': vmax}
+        # --- Check the colormap
+        if ccmap is None:
+            cmap = ssplt.Gamma_II()
+        else:
+            cmap = ccmap
+
+        # --- Check the axes to plot
+        if ax is None:
+            fig, ax = plt.subplots()
+            created = True
+        else:
+            created = False
+
+        if scale == 'log':  # If we use log scale, just avoid zeros
+            # we are here mixing a bit integers and float... but python3 will
+            # provide
+            dummy[dummy < 1.0] = 1.0e-5
+
+        img = ax.imshow(dummy, origin='lower', cmap=cmap,
+                        alpha=alpha, **extra_options)
+        # Set the axis limit
+        if xlim is not None:
+            ax.set_xlim(xlim)
+        if ylim is not None:
+            ax.set_ylim(ylim)
+
+        if IncludeColorbar:
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="5%", pad=0.05)
+            plt.colorbar(img, label='Counts', cax=cax)
+        ax.text(0.05, 0.9, '#' + str(self.shot),
+                horizontalalignment='left',
+                color='w', verticalalignment='bottom',
+                transform=ax.transAxes)
+        ax.text(0.95, 0.9, 't = ' + str(round(tf, 3)) + (' s'),
+                 horizontalalignment='right',
+                 color='w', verticalalignment='bottom',
+                 transform=ax.transAxes)
+        if RemoveAxisTicksLabels:
+            ax.axes.xaxis.set_ticklabels([])
+            ax.axes.yaxis.set_ticklabels([])
+        else:
+            ax.set_xlabel('Pixel')
+            ax.set_ylabel('Pixel')
+        # Shot the figure
+        if created:
+            fig.show()
+            plt.tight_layout()
+        return ax
+
+    def GUI_frames(self, flagAverage: bool = False):
+        """
+        Small GUI to explore camera frames
+
+        @param flagAverage: flag to decide if we need to use the averaged frames
+            of the experimental ones in the GUI
+        """
+        text = 'Press TAB until the time slider is highlighted in red.'\
+            + ' Once that happend, you can move the time with the arrows'\
+            + ' of the keyboard, frame by frame'
+        logger.info('--. ..- ..')
+        logger.info(text)
+        logger.info('-... . ..- - -.--')
+        root = tk.Tk()
+        root.resizable(height=None, width=None)
+        if flagAverage:
+            ssGUI.ApplicationShowVid(root, self.avg_dat, self.remap_dat,
+                                     self.geometryID,
+                                     self.CameraCalibration,
+                                     shot=self.shot)
+        else:
+            ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat,
+                                     GeomID=self.geometryID,
+                                     calibration=self.CameraCalibration,
+                                     scintillator=self.scintillator,
+                                     shot=self.shot)
+        root.mainloop()
+        root.destroy()
+
+    # --------------------------------------------------------------------------
+    # --- Properties
+    # --------------------------------------------------------------------------
     @property
     def size(self):
         """Get the size of the loaded frames."""
@@ -633,23 +841,9 @@ class BVO:
         """Shape of the loaded frames"""
         return self.exp_dat['frames'].shape
 
-    def GUI_frames(self, flagAverage: bool = False):
-        """Small GUI to explore camera frames"""
-        text = 'Press TAB until the time slider is highlighted in red.'\
-            + ' Once that happend, you can move the time with the arrows'\
-            + ' of the keyboard, frame by frame'
-        print('--. ..- ..')
-        print(text)
-        print('-... . ..- - -.--')
-        root = tk.Tk()
-        root.resizable(height=None, width=None)
-        if flagAverage:
-            ssGUI.ApplicationShowVid(root, self.avg_dat, self.remap_dat)
-        else:
-            ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat)
-        root.mainloop()
-        root.destroy()
-
+    # --------------------------------------------------------------------------
+    # --- Others
+    # --------------------------------------------------------------------------
     def getFrameIndex(self, t: float = None, frame_number: int = None,
                       flagAverage: bool = False):
         """
@@ -694,7 +888,7 @@ class BVO:
         else:
             frame = self.avg_dat['frames'][..., it].squeeze()
 
-        return frame
+        return frame.copy()
 
     def getTime(self, it: int, flagAverage: bool = False):
         """
@@ -711,115 +905,7 @@ class BVO:
             t = float(self.avg_dat['tframes'][it])
         return t
 
-    def plot_frame(self, frame_number=None, ax=None, ccmap=None,
-                   t: float = None,
-                   verbose: bool = True,
-                   vmin: int = 0, vmax: int = None,
-                   xlim: float = None, ylim: float = None,
-                   scale: str = 'linear',
-                   alpha: float = 1.0, IncludeColorbar: bool = True,
-                   RemoveAxisTicksLabels: bool = False,
-                   flagAverage: bool = False):
-        """
-        Plot a frame from the loaded frames
-
-        Jose Rueda Rueda: jrrueda@us.es
-
-        Notice, you can plot a given frame giving its frame number or giving
-        its time
-
-        @param frame_number: Number of the frame to plot
-        @param ax: Axes where to plot, is none, just a new axes will be created
-        @param ccmap: colormap to be used, if none, Gamma_II from IDL
-        @param verbose: If true, info of the theta and phi used will be printed
-        @param vmin: Minimum value for the color scale to plot
-        @param vmax: Maximum value for the color scale to plot
-        @param xlim: tuple with the x-axis limits
-        @param ylim: tuple with the y-axis limits
-        @param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
-        @param alpha: transparency factor, 0.0 is 100 % transparent
-        @param RemoveAxisTicksLabels: boolean flag to remove the numbers in the
-            axis
-
-        @return ax: the axes where the frame has been drawn
-        """
-        # --- Check inputs:
-        if (frame_number is not None) and (t is not None):
-            raise Exception('Do not give frame number and time!')
-        if (frame_number is None) and (t is None):
-            raise Exception("Didn't you want to plot something?")
-
-        # --- Load the frames
-        # If we use the frame number explicitly
-        if frame_number is not None:
-            frame_index = self.getFrameIndex(frame_number=frame_number,
-                                             flagAverage=flagAverage)
-            tf = self.getTime(frame_index, flagAverage)
-            dummy = self.getFrame(tf, flagAverage)
-        # If we give the time:
-        if t is not None:
-            frame_index = self.getFrameIndex(t, flagAverage)
-            tf = self.getTime(frame_index, flagAverage)
-            dummy = self.getFrame(t, flagAverage)
-        if vmax is None:
-            vmax = dummy.max()
-        # --- Prepare the scale:
-        if scale == 'sqrt':
-            extra_options = {'norm': colors.PowerNorm(0.5, vmax=vmax,
-                                                      vmin=vmin)}
-        elif scale == 'log':
-            extra_options = {'norm': colors.LogNorm(clip=True, vmax=vmax,
-                                                    vmin=vmin)}
-        else:
-            extra_options = {'vmin': vmin, 'vmax': vmax}
-        # --- Check the colormap
-        if ccmap is None:
-            cmap = ssplt.Gamma_II()
-        else:
-            cmap = ccmap
-
-        # --- Check the axes to plot
-        if ax is None:
-            fig, ax = plt.subplots()
-            created = True
-        else:
-            created = False
-
-        if scale == 'log':  # If we use log scale, just avoid zeros
-            # we are here mixing a bit integers and float... but python will
-            # provide
-            dummy[dummy < 1.0] = 1.0e-5
-
-        img = ax.imshow(dummy, origin='lower', cmap=cmap,
-                        alpha=alpha, **extra_options)
-        # Set the axis limit
-        if xlim is not None:
-            ax.set_xlim(xlim)
-        if ylim is not None:
-            ax.set_ylim(ylim)
-
-        if IncludeColorbar:
-            divider = make_axes_locatable(ax)
-            cax = divider.append_axes("right", size="5%", pad=0.05)
-            plt.colorbar(img, label='Counts', cax=cax)
-        ax.text(0.05, 0.9, '#' + str(self.shot),
-                horizontalalignment='left',
-                color='w', verticalalignment='bottom',
-                transform=ax.transAxes)
-        plt.text(0.95, 0.9, 't = ' + str(round(tf, 3)) + (' s'),
-                 horizontalalignment='right',
-                 color='w', verticalalignment='bottom',
-                 transform=ax.transAxes)
-        if RemoveAxisTicksLabels:
-            ax.axes.xaxis.set_ticklabels([])
-            ax.axes.yaxis.set_ticklabels([])
-        # Shot the figure
-        if created:
-            fig.show()
-            plt.tight_layout()
-        return ax
-
-    def getTimeTrace(self, t: float = None, mask=None):
+    def getTimeTrace(self, t: float = None, mask=None, ROIname: str =None):
         """
         Calculate the timeTrace of the video
 
@@ -841,18 +927,21 @@ class BVO:
             # Create the mask
             mask = roi.getMask(self.exp_dat['frames'][:, :, 0].squeeze())
 
-        return sstt.TimeTrace(self, mask), mask
+        return sstt.TimeTrace(self, mask, ROIname=ROIname), mask
 
+    # --------------------------------------------------------------------------
+    # --- Export
+    # --------------------------------------------------------------------------
     def exportVideo(self, filename, flagAverage: bool = False):
         """
         Export video file
 
         Notice: This will create a netcdf with the exp_dat xarray, this is not
-        intended as a replace of the data base, as camera settings and
-        metadata will not be exported. But allows to quickly export the video 
+        intended as a replacement of the database, as camera settings and
+        metadata will not be exported. But allows to quickly export the video
         to netCDF format to be easily shared among computers
-        
-        @param file: Path to the file where to save the results, if none, a 
+
+        @param file: Path to the file where to save the results, if none, a
             GUI will appear to select the results
         @param flagAverage: flag to indicate if we want to save the averaged
             frames
@@ -868,4 +957,3 @@ class BVO:
             self.exp_dat.to_netcdf(filename)
         else:
             self.avg_dat.to_netcdf(filename)
-    

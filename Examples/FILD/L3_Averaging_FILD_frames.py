@@ -11,7 +11,7 @@ import Lib as ss
 
 # --- Settings
 # - General settings
-shot = 39612
+shot = 44732
 diag_ID = 1  # 6 for rFILD
 t1 = 0.2     # Initial time to be loaded, [s]
 t2 = 1.0     # Final time to be loaded [s]

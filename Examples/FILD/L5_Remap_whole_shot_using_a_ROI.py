@@ -6,7 +6,7 @@ possibility to subtract noise
 
 jose Rueda: jrrueda@us.es
 
-Note; Written for version 0.3.0. Revised for version 0.8.0
+Note; Written for version 0.3.0. Revised for version 1.0.0
 """
 import Lib as ss
 import matplotlib.pyplot as plt
@@ -15,32 +15,27 @@ from time import time
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 38612
+shot = 44732
 diag_ID = 1  # 6 for rFILD
-t1 = 3.6     # Initial time to be loaded, [s]
-t2 = 7.0     # Final time to be loaded [s]
+t1 = 0.1     # Initial time to be loaded, [s]
+t2 = 0.9     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
 # - Noise subtraction settings:
 subtract_noise = True   # Flag to apply noise subtraction
-tn1 = 3.600     # Initial time to average the frames for noise subtraction [s]
-tn2 = 3.605     # Final time to average the frames for noise subtraction [s]
+tn1 = 0.24     # Initial time to average the frames for noise subtraction [s]
+tn2 = 0.28     # Final time to average the frames for noise subtraction [s]
 
 # - Remapping options:
 save_remap = False  # If true, the remap will be saved in a netCDF file
 par = {
-    'rmin': 1.2,      # Minimum gyroradius [in cm]
-    'rmax': 10.5,     # Maximum gyroradius [in cm]
-    'dr': 0.05,       # Interval of the gyroradius [in cm]
-    'pmin': 20.0,     # Minimum pitch angle [in degrees]
-    'pmax': 90.0,     # Maximum pitch angle [in degrees]
-    'dp': 1.0,        # Pitch angle interval
-    # Parameters for the pitch-gryroradius profiles
-    'rprofmin': 1.5,     # Minimum gyroradius for the pitch profile calculation
-    'rprofmax': 4.0,     # Maximum gyroradius for the pitch profile calculation
-    'pprofmin': 20.0,    # Minimum pitch for the gyroradius profile calculation
-    'pprofmax': 90.0,    # Maximum pitch for the gyroradius profile calculation
+    'ymin': 1.2,      # Minimum gyroradius [in cm]
+    'ymax': 16.5,     # Maximum gyroradius [in cm]
+    'dy': 0.1,        # Interval of the gyroradius [in cm]
+    'xmin': 20.0,     # Minimum pitch angle [in degrees]
+    'xmax': 90.0,     # Maximum pitch angle [in degrees]
+    'dx': 1.0,    # Pitch angle interval
     # method for the interpolation
     'method': 2,  # 2 Spline, 1 Linear
     'decimals': 1}  # Precision for the strike map (1 is more than enough)
@@ -48,7 +43,7 @@ par = {
 # Note, if the smap_folder variable is not present, the program will look for
 # the strike maps in the path given by ss.paths.StrikeMaps
 use_roi = True     # Flag to decide if we must use a ROI
-t0 = 5.02         # time points to define the ROI for the remap
+t0 = 0.24        # time points to define the ROI for the remap
 save_ROI = False   # Export the TT and the ROI used
 # - Plotting options:
 plot_profiles_in_time = True   # Plot the time evolution of pitch and r
@@ -91,7 +86,13 @@ par['mask'] = mask
 vid.remap_loaded_frames(par)
 # - Plot:
 if plot_profiles_in_time:
-    vid.plot_profiles_in_time()
+    b = vid.integrate_remap(xmax=par['xmax'],ymax=par['ymax']) # rL max is 18
+    # Integral in XI
+    fig, ax = plt.subplots()
+    b['integral_over_x'].plot()
+    # Integral in rL
+    fig2, ax2 = plt.subplots()
+    b['integral_over_y'].plot()
 
 # -----------------------------------------------------------------------------
 # --- Section 5: Export data

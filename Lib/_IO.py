@@ -4,8 +4,8 @@ Input/output library
 Contains a miscellany of routines related with the different diagnostics, for
 example the routine to read the scintillator efficiency files, common for all
 """
-import time
 import os
+import time
 import pickle
 import f90nml
 import logging
@@ -283,7 +283,7 @@ def load_mask(filename):
     nx = None
     ny = None
     shot = None
-    file = netcdf.NetCDFFile(filename, 'r', mmap=False, verbose=False)
+    file = netcdf.NetCDFFile(filename, 'r', mmap=False)
     if 'frame' in file.variables.keys():
         frame = file.variables['frame'][:]
     if 'mask' in file.variables.keys():
@@ -303,30 +303,30 @@ def load_mask(filename):
 # -----------------------------------------------------------------------------
 # --- TimeTraces
 # -----------------------------------------------------------------------------
-def read_timetrace(file=None):
-    """
-    Read a timetrace created with the suite
-
-    Jose Rueda: jrrueda@us.es
-
-    Note: If just a txt file is passed as input, only the trace will be loaded,
-    as the mask and extra info are not saved in the txt. netcdf files are
-    preferred
-
-    @todo: implement netcdf part
-
-    @param filename: full path to the file to load, if none, a window will
-    pop-up to do this selection
-    """
-    if file is None:
-        file = ' '
-        file = check_open_file(file)
-        if file == '':
-            raise Exception('You must select a file!!!')
-    TT = sstt.TimeTrace()
-    TT.time_base, TT.sum_of_roi, TT.mean_of_roi, TT.std_of_roi =\
-        np.loadtxt(file, skiprows=2, unpack=True, delimiter='   ,   ')
-    return TT
+# def read_timetrace(file=None):
+#     """
+#     Read a timetrace created with the suite
+#
+#     Jose Rueda: jrrueda@us.es
+#
+#     Note: If just a txt file is passed as input, only the trace will be loaded,
+#     as the mask and extra info are not saved in the txt. netcdf files are
+#     preferred
+#
+#     @todo: implement netcdf part
+#
+#     @param filename: full path to the file to load, if none, a window will
+#     pop-up to do this selection
+#     """
+#     if file is None:
+#         file = ' '
+#         file = check_open_file(file)
+#         if file == '':
+#             raise Exception('You must select a file!!!')
+#     TT = sstt.TimeTrace()
+#     TT.time_base, TT.sum_of_roi, TT.mean_of_roi, TT.std_of_roi =\
+#         np.loadtxt(file, skiprows=2, unpack=True, delimiter='   ,   ')
+#     return TT
 
 
 # -----------------------------------------------------------------------------
@@ -346,7 +346,7 @@ def read_calibration(file=None, verbose: bool = False):
         file = check_open_file(file)
         if file == '':
             raise Exception('You must select a file!!!')
-    print('-.-. .- .-.. .. -... .-. .- - .. --- -.')
+    logger.info('-.-. .- .-.. .. -... .-. .- - .. --- -.')
     cal = CalParams()
     list = ['xshift', 'yshift', 'xscale', 'yscale', 'deg', 'xcenter', 'ycenter',
             'c1', 'c2']
@@ -548,10 +548,10 @@ def load_remap(filename, diag='FILD'):
             filename = check_open_file(filename)
         if filename == '' or filename == ():
             raise Exception('You must select a file!!!')
-    
+
         # decompress the file
         dummyFolder = os.path.join(paths.Results, 'tmp')
-        os.mkdir(dummyFolder)
+        os.makedirs(dummyFolder, exist_ok=True)
         # extract the file
         tar = tarfile.open(filename)
         tar.extractall(path=dummyFolder)
@@ -587,6 +587,9 @@ def load_remap(filename, diag='FILD'):
     vid.orientation = \
         {k:np.array(v) for k,v in json.load(open(orientation)).items()}
     logger.info('Remap generated with version %i.%i.%i'%(v[0], v[1], v[2]))
+    if diag.lower() == 'inpa':
+        vid._getNBIpower()
+        vid._getNe()
     return vid
 
 def load_FILD_remap(filename: str = None, verbose=True,

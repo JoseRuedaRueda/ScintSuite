@@ -4,12 +4,12 @@ This code is created to analyze the signal from scintillator diagnostics. Suppor
 
 ## Installation and documentation
 ### Prerequisites. Python 3.7 or higher
-Needed packages. Only listed 'non-standard' packages. See below, there is a script to install them.
+Needed packages. Only listed *non-standard* packages. See below, there is a script to install them.
 
 #### Essentials
 The suite will not work without them:
 - f90nml: To read FORTRAN namelist in an easy way (needed since version 0.1.10) `pip install f90nml`. This is the suite standard to read and write namelists!!!
-- xarray: To handle the data sets (videos, remaps, timetraces, needed since version 1.0.0)
+- xarray: To handle the data sets (videos, remaps, timetraces, needed since version 1.0.0) [tested with version 0.20.1]
 - numpy > 1.21.0: To support xarray
 
 #### Optional (the suite will work but some capabilities will not be available)
@@ -20,7 +20,11 @@ The suite will not work without them:
 - scipy 1.7.0 or newer, to have the RBF interpolators for the strike points
 - aug_sfutils > 0.7.0: To load the AUG magnetic field (see AUG python documentation for the different ways of installing this package https://www.aug.ipp.mpg.de/aug/manuals/aug_sfutils/)
 - mesh: To deal with CAD files
-- numba > 0.55.1 to perform fast iHIBPsim xsection calculations
+- numba > 0.55.1 to perform fast iHIBPsim xsection calculations and tomography
+- odfpy: To read INPA logbook (which is written in an .ODS file)
+
+#### Complete list:
+In a clean-typical python installation with anaconda, taking care only of the packages and versions listed above should be enough and the suite will run smoothly, but python package dependence can sometimes a mess. As an indication, in the folder `Data/TestedEnv` you can find the result of the command `pip list` in a python environment where the suite was tested and working fine. So if you find a series of problems with packages versions, try to create your virtual environment and reproduce the installed package list detailed there. The files are labeled with the Suite version for which they were tested and 'Optx', meaning 'Option x', as different user can have different list of packages which could work.
 
 ### Cloning the suite and installing
 In order to clone the suite just open a terminal in your home directory and type:
@@ -39,6 +43,7 @@ scikit-image==0.16.2
 pyfftw==0.12.0
 pandas==1.3.1
 ```
+Once the python modules are created, you need to create the folder `MyData` inside the Data folder, and copy in it the .txt files which are located in `Data/MyDataTemplates`. These are the configuration files of the Suite, they are needed to import the sutie and can be modified (the ones in MYData folder) to change the behaviour of the plotting, warning, paths... If you installed the sutie with the script: `first_run.py` this step was done already, so you can ignore it
 ### Getting started
 **Importing the suite**
 
@@ -71,7 +76,7 @@ VRT related paths are hardcoded. There is a significant number of them and overl
 - If you have installed Doxygen you can generate the documentation in html and LaTex format just opening a terminal in the Suite root directory and typing  `doxygen Doxyfile`. Once the documentation is generated, you can open the index with the following command `xdg-open doc/index.html`. For a (old and outdated) Doxygen generated documentation, see: <https://hdvirtual.us.es/discovirt/index.php/s/FBjZ9FPfjjwMDS2> download the content and open the index.html file, inside the html folder.
 
 ## Data export
-All data exported and saved by the Suite is done in netCDF, as default format. Platform independendent and binary format. 
+All data exported and saved by the Suite is done in netCDF, as default format. Platform independendent and binary format.
 
 If the user is *alergic* to the use of programing languages in order to read the netCDF, this NASA program could be usefull: https://www.giss.nasa.gov/tools/panoply/download/ It allows you to open and plot the variables in the netCDF file
 

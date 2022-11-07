@@ -42,3 +42,5 @@ doc/*
 Data/BEP
 DoxiDoc/*
 html/*
+.idea/*
+.spyproject/*

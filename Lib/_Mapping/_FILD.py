@@ -3,25 +3,26 @@ Remapping of FILD camera frames
 
 Jose Rueda Rueda: jrrueda@us.es
 """
-import time
 import os
+import time
 import f90nml
+import logging
 import numpy as np
+import xarray as xr
+import Lib._IO as ssio
+import Lib._Paths as p
+import Lib.errors as errors
+import Lib._Utilities as ssextra
+import Lib._SideFunctions as sside
+import Lib._Mapping._Common as common
 import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 import Lib.SimulationCodes.SINPA as ssSINPA
-import Lib._Utilities as ssextra
+from tqdm import tqdm   # For waitbars
 from Lib._Machine import machine
 from Lib._Mapping._StrikeMap import StrikeMap
-import Lib._Mapping._Common as common
-import Lib._Paths as p
-import Lib._IO as ssio
-import Lib._SideFunctions as sside
-import Lib.errors as errors
-import logging
-import xarray as xr
-logger = logging.getLogger('ScintSuite.FILDMapping')
 
-from tqdm import tqdm   # For waitbars
+# --- Initialise the auxiliary objects
+logger = logging.getLogger('ScintSuite.FILDMapping')
 paths = p.Path(machine)
 del p
 __all__ = ['remapAllLoadedFrames']
@@ -49,72 +50,75 @@ def remapAllLoadedFrames(video,
     Jose Rueda Rueda: jrrueda@us.es
 
     @param    video: Video object (see LibVideoFiles)
-    @param    rmin: minimum gyroradius to consider [cm]
-    @param    rmax: maximum gyroradius to consider [cm]
-    @param    dr: bin width in the radial direction
-    @param    pmin: Minimum pitch to consider [º]
-    @param    pmax: Maximum pitch to consider [º]
-    @param    dp: bin width in pitch [º]
-    @param    rprofmin: minimum gyrodarius to calculate pitch profiles [cm]
-    @param    rprofmax: maximum gyroradius to calculate pitch profiles [cm]
-    @param    pprofmin: minimum pitch for gyroradius profiles [º]
-    @param    pprofmax: maximum pitch for gyroradius profiles [º]
+    @param    ymin: minimum y-axis value to consider (gyroradius by default)
+    @param    ymax: maximum y-axis value to consider (gyroradius by default)
+    @param    dy: bin width in the y direction
+    @param    xmin: Minimum x-axis value to consider (pitch for standard)
+    @param    xmax: Maximum x-axis value to consider (pitch for standard)
+    @param    dx: bin width in the x direction
     @param    code_options: namelist dictionary with the FILDSIM/SINPA options
               just in case we need to run the code. See FILDSIM/SINPA library
-              and their gitlabs for the necesary options. It is recomended to
+              and their gitlabs for the necessary options. It is recommended to
               leave this like {}, as the code will load the options used to
               generate the library, so the new calculated strike maps will be
-              consistent with the old ones
-    @param    verbose: Print the elapsed time
+              consistent with the old ones. Hence, use this argument just if it
+              you really needed.
     @param    method: method to interpolate the strike maps, default 1: linear
+    @param    verbose: flag to print the elapsed time
+    @param    mask: binary mask defining the region of the scintillator we want
+              to map. If it is a string pointing to a file, the mask saved in
+              that file will be loaded
     @param    decimals: Number of decimals to look for the strike map
     @param    smap_folder: Folder where to look for strike maps, if none
               the code will look in ...Suite/Data/RemapStrikeMaps/FILD/<geomID>
               with the <geomID> stored in the video object
-    @param    map: Strike map to be used, if none, we will look in the folder
-              for the right strike map
-    @param    mask: binary mask defining the region of the scintillator we want
-              to map. If it is a string pointing to a file, the mask saved in
-              that file will be loaded
+    @param    map: Strike map to be used, if none, we will look for the right
+              strike map in the smap_folder
     @param    remap_method: 'MC' or 'centers', the method to be used for the
-              remapping of the frames (MC recomended for tomography, but it
-              needs 3 minutes per new strike map...)
-    @param    number of MC markers for the MC remap
-    @param    allIn: boolean flag to disconect the interaction with the user,
-              where looking for the strike map in the database, we will take
+              remapping of the frames. MC recommended for tomography, but it
+              needs 3 minutes per new strike map. Centers recommended for a
+              general video overview
+    @param    MC_number: number of MC markers for the MC remap
+    @param    allIn: boolean flag to disconnect the interaction with the user.
+              When looking for the strike map in the database, we will take
               the closer one available in time, without expecting an answer for
               the user. This option was implemented to remap large number of
               shots 'automatically' without interaction from the user needed.
               Option not used if you give an input strike map
     @param    use_average: if true, use the averaged frames instead of the
               raw ones
+    @param    variables_to_remap: tupple containing the name of the variables
+              where we want to perform the remap. By default, they are 'pitch'
+              and 'gyroradius'. 'energy' can substitute tthe gyroradius.
+              Note that the code will not check if this is physically non-sense,
+              ie, you can give as an input the pair ('energy', 'gyroradius') and
+              a remap will be done, but of course it will be non-sense.
+    @param    A: Ion mass, in uma. Only used if we want to use energy to remap
+    @param    Z: Ion charge, in e units. Only used if we want to use energy
 
-    @return   output: dictionary containing all the outputs:
+    @return   output: xarray dataset containing the following dataArrays:
         -# 'frames': remaped_frames [xaxis(pitch), yaxis(r), taxis]
-        -# 'xaxis': pitch,
-        -# 'yaxis': gyr,
-        -# 'xlabel': 'Pitch', label to plot
-        -# 'ylabel': '$r_l$', label to plot
-        -# 'xunits': '{}^o', units of the pitch
-        -# 'yunits': 'cm', units of the gyroradius
-        -# 'sprofx': signal integrated in gyroradius vs time
-        -# 'sprofy': signal_integrated in pitch vs time
-        -# 'sprofxlabel': label for sprofx
-        -# 'sprofylabel': label for sprofy
+        -# 'x': coord, pitch by default
+        -# 'y': coord, gyroradius by default
+        -# 't': coord, time of the frames
+        -# 'integral_in_x': signal integrated in x axis
+        -# 'integral_in_y': signal integrated in y axis
+        -# 'integral_in_xy': signal integrated in xy axis
         -# 'phi': phi, calculated phi angle, FILDSIM [deg]
         -# 'theta': theta, calculated theta angle FILDSIM [deg]
         -# 'theta_used': theta_used for the remap [deg]
         -# 'phi_used': phi_used for the remap [deg]
-        -# 'tframes': time of the frames
         -# 'existing_smaps': array indicating which smaps where found in the
         database and which don't
-    @return   opt: dictionary containing all the input parameters
+    The remap options such as the code used, the number of decimals or the
+    location of the database of smaps are saved as attributes of the 'frames'
+    dataArray
     """
     # --------------------------------------------------------------------------
     # --- INPUTS CHECK AND PREPARATION
     # --------------------------------------------------------------------------
-    # -- Acepted variables to remap
-    acceptedVars = ('energy', 'pitch', 'gyroradius')
+    # -- Accepted variables to remap
+    acceptedVars = ('energy', 'pitch', 'gyroradius', 'e0')
     units = {'e0': 'keV', 'pitch': 'degree', 'gyroradius': 'cm'}
     var_remap = [v.lower() for v in variables_to_remap]  # force small letter
     for v in var_remap:
@@ -122,7 +126,7 @@ def remapAllLoadedFrames(video,
             raise errors.NotValidInput('Variables not accepted for FILD remap')
     # The energy is saved as e0 in the smap object (energy at pinhole) so just
     # change the name: (yes, these lines are ugly and not optimum, but work ;)
-    if 'energy' in var_remap:
+    if ('energy' in var_remap) or ('e0' in var_remap):
         wantEnergy = True
         for i in range(2):
             if var_remap[i] == 'energy':
@@ -195,7 +199,7 @@ def remapAllLoadedFrames(video,
             print('Size of theta: ', theta.size)
             raise errors.NotValidInput('Wrong length of phi and theta')
         # -- See if the strike map exist in the folder
-        print('Looking for strikemaps in: ', smap_folder)
+        logger.info('Looking for strikemaps in: %s', smap_folder)
         for iframe in tqdm(range(nframes)):
             if FILDSIM:
                 logger.info('This is deprecated, please use SINPA (uFILDSIM)')
@@ -314,6 +318,9 @@ def remapAllLoadedFrames(video,
     remap_dat['y'].attrs['units'] = units[var_remap[1]]
     remap_dat['y'].attrs['long_name'] = variables_to_remap[1]
 
+    remap_dat['frames'].attrs['units'] = '#/(%s $\\cdot$ %s)' \
+        % (remap_dat['x'].attrs['units'], remap_dat['y'].attrs['units'])
+
     remap_dat['phi'] = xr.DataArray(phi, dims=('t'))
     remap_dat['phi'].attrs['long_name'] = 'Calculated phi angle'
     remap_dat['phi'].attrs['units'] = 'Degree'
@@ -322,11 +329,11 @@ def remapAllLoadedFrames(video,
     remap_dat['theta'].attrs['long_name'] = 'Calculated theta angle'
     remap_dat['theta'].attrs['units'] = 'Degree'
 
-    remap_dat['phi_used'] = xr.DataArray(phi, dims=('t'))
+    remap_dat['phi_used'] = xr.DataArray(phi_used, dims=('t'))
     remap_dat['phi_used'].attrs['long_name'] = 'Used phi angle'
     remap_dat['phi_used'].attrs['units'] = 'Degree'
 
-    remap_dat['theta_used'] = xr.DataArray(theta, dims=('t'))
+    remap_dat['theta_used'] = xr.DataArray(theta_used, dims=('t'))
     remap_dat['theta_used'].attrs['long_name'] = 'Used theta angle'
     remap_dat['theta_used'].attrs['units'] = 'Degree'
 

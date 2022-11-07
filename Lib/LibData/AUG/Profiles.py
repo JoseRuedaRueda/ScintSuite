@@ -1,5 +1,6 @@
-"""Routines to interact with the AUG database"""
+'eV'"""Routines to interact with the AUG database"""
 import numpy as np
+import xarray as xr
 import aug_sfutils as sfutils
 from scipy.interpolate import interp1d, interp2d, UnivariateSpline
 from Lib._Paths import Path
@@ -13,19 +14,21 @@ pa = Path()
 # --- Electron density and temperature profiles.
 # -----------------------------------------------------------------------------
 def get_ne(shotnumber: int, time: float = None, exp: str = 'AUGD',
-           diag: str = 'IDA', edition: int = 0, sf=None):
+           diag: str = 'IDA', edition: int = 0, sf=None,
+           xArrayOutput: bool = False):
 
     """
     Wrapper to the different diagnostics to read the electron density profile.
     It supports IDA and PED profiles.
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Pablo Oyola - pablo.oyola@ipp.mpg.de and J. Rueda: jrrueda@us.es
 
     @param shot: Shot number
     @param time: Time point to read the profile.
     @param exp: Experiment name.
     @param diag: diagnostic from which 'ne' will extracted.
     @param edition: edition of the shotfile to be read.
+    @param xArrayOutput: flag to return the output as dictionary of xarray
 
     @return output: a dictionary containing the electron density evaluated
     in the input times and the corresponding rhopol base.
@@ -36,14 +39,14 @@ def get_ne(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
     if diag == 'PED':
         return get_ne_ped(shotnumber=shotnumber, time=time, exp=exp,
-                          edition=edition, sf=sf)
+                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
     elif diag == 'IDA':
         return get_ne_ida(shotnumber=shotnumber, time=time, exp=exp,
-                          edition=edition, sf=sf)
+                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
 
 
 def get_ne_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None):
+               edition: int = 0, sf=None, xArrayOutput: bool = False):
     """
     Reads from the PED shotfile the electron density profile.
 
@@ -77,18 +80,34 @@ def get_ne_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
         if (timebase > time.max()) or (timebase < time.min()):
             raise Exception('Time window cannot be located in PED shotfile!')
 
-    output = {
-        'rhop': rhop,
-        'data': ne,
-        'uncertainty': ne_unc,
-        'time': timebase,
-             }
+    if not xArrayOutput:
+        output = {
+            'rhop': rhop,
+            'data': ne,
+            'uncertainty': ne_unc,
+            'time': timebase,
+                 }
+    else:
+        output = xr.Dataset()
+        output['data'] = xr.DataArray(
+            ne.T, dims=('rho', 't'),
+            coords={'rho': rhop, 't': timebase})
+        output['data'].attrs['long_name'] = '$n_e$'
+        output['data'].attrs['units'] = '$10^{19} m^3$'
+        output['uncertainty'] = xr.DataArray(ne_unc.T, dims=('rho', 't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta n_e$'
+        output['uncertainty'].attrs['units'] = '$10^{19} m^3$'
 
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'PED'
+        output.attrs['shot'] = shotnumber
     return output
 
 
 def get_ne_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None):
+               edition: int = 0, sf=None, xArrayOutput: bool = False):
     """
     Wrap to get AUG electron density using the IDA profiles.
 
@@ -120,28 +139,54 @@ def get_ne_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
         raise Exception('Cannot read the density from the IDA #%05d'%shotnumber)
 
     # We will return the data in the same spatial basis as provided by IDA.
-    output = {'rhop': rhop[:, 0]}
-
     if time is None:
         time = timebase
-        output['data'] = ne
-        output['time'] = time
-        output['uncertainty'] = ne_unc
+        tmp_ne = ne
+        tmp_unc = ne_unc
     else:
-        output['time'] = time
-        output['data'] = interp1d(timebase, ne, kind='linear', axis=0,
-                                  bounds_error=False, fill_value=np.nan,
-                                  assume_sorted=True)(time).T
-        output['uncertainty'] = interp1d(timebase, ne_unc,
-                                         kind='linear', axis=0,
-                                         bounds_error=False, fill_value=np.nan,
-                                         assume_sorted=True)(time).T
+        tmp_ne = interp1d(timebase, ne, kind='linear', axis=0,
+                          bounds_error=False, fill_value=np.nan,
+                          assume_sorted=True)(time).T
+        tmp_unc = interp1d(timebase, ne_unc,
+                           kind='linear', axis=0,
+                           bounds_error=False,
+                           fill_value=np.nan,
+                           assume_sorted=True)(time).T
 
+    if not xArrayOutput:
+        output = {
+            'rhop': rhop[:, 0],
+            'time': time,
+            'uncertainty': tmp_unc,
+            'data': tmp_ne
+        }
+    else:
+        tmp_ne = np.atleast_2d(tmp_ne)
+        tmp_unc = np.atleast_2d(tmp_unc)
+        time = np.atleast_1d(time)
+
+        output = xr.Dataset()
+        output['data'] = xr.DataArray(
+            tmp_ne.T/1.0e19, dims=('rho', 't'),
+            coords={'rho': rhop[:, 0], 't': time})
+        output['data'].attrs['long_name'] = '$n_e$'
+        output['data'].attrs['units'] = '$10^{19} m^3$'
+        output['uncertainty'] = xr.DataArray(tmp_unc.T/1.0e19, dims=('rho',
+                                                                     't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta n_e$'
+        output['uncertainty'].attrs['units'] = '$10^{19} m^3$'
+
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'IDA'
+        output.attrs['shot'] = shotnumber
     return output
 
 
 def get_Te(shotnumber: int, time: float = None, exp: str = 'AUGD',
-           diag: str = 'IDA', edition: int = 0, sf=None):
+           diag: str = 'IDA', edition: int = 0, sf=None,
+           xArrayOutput: bool = False):
 
     """
     Wrapper to the different diagnostics to read the electron density profile.
@@ -164,14 +209,14 @@ def get_Te(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
     if diag == 'PED':
         return get_Te_ped(shotnumber=shotnumber, time=time, exp=exp,
-                          edition=edition, sf=sf)
+                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
     elif diag == 'IDA':
         return get_Te_ida(shotnumber=shotnumber, time=time, exp=exp,
-                          edition=edition, sf=sf)
+                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
 
 
 def get_Te_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None):
+               edition: int = 0, sf=None, xArrayOutput: bool = False):
     """
     Reads from the PED shotfile the electron density profile.
 
@@ -204,19 +249,35 @@ def get_Te_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
     except:
         sf.close()
         raise Exception('Cannot read Te in #%05d' % shotnumber)
+    if not xArrayOutput:
+        output = {
+            'rhop': rhop,
+            'data': te,
+            'uncertainty': te_unc,
+            'time': timebasis
+                 }
+    else:
+        output = xr.Dataset()
+        output['data'] = xr.DataArray(
+            te.T, dims=('rho', 't'),
+            coords={'rho': rhop[:, 0], 't': timebasis})
+        output['data'].attrs['long_name'] = '$T_e$'
+        output['data'].attrs['units'] = 'eV'
+        output['uncertainty'] = xr.DataArray(te_unc.T, dims=('rho', 't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta T_e$'
+        output['uncertainty'].attrs['units'] = '$eV$'
 
-    output = {
-        'rhop': rhop,
-        'data': te,
-        'uncertainty': te_unc,
-        'time': timebasis
-             }
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'PED'
+        output.attrs['shot'] = shotnumber
 
     return output
 
 
 def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None):
+               edition: int = 0, sf=None, xArrayOutput: bool = False):
     """
     Wrap to get AUG electron temperature from the IDA shotfile.
 
@@ -251,22 +312,43 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
 
     # We will return the data in the same spatial basis as provided by IDA.
-    output = {'rhop': rhop[:, 0], 'time': timebase}
-
     if time is None:
         time = timebase
-        output['data'] = te
-        output['time'] = time
-        output['uncertainty'] = te_unc
+        tmp_te = te
+        tmp_unc = te_unc
     else:
-        output['time'] = time
-        output['data'] = interp1d(timebase, te, kind='linear', axis=0,
-                                  bounds_error=False, fill_value=np.nan,
-                                  assume_sorted=True)(time).T
-        output['uncertainty'] = interp1d(timebase, te_unc,
-                                         kind='linear', axis=0,
-                                         bounds_error=False, fill_value=np.nan,
-                                         assume_sorted=True)(time).T
+        tmp_te = interp1d(timebase, te, kind='linear', axis=0,
+                          bounds_error=False, fill_value=np.nan,
+                          assume_sorted=True)(time).T
+        tmp_unc = interp1d(timebase, te_unc,
+                           kind='linear', axis=0,
+                           bounds_error=False, fill_value=np.nan,
+                           assume_sorted=True)(time).T
+    if not xArrayOutput:
+        output = {
+            'rhop': rhop[:, 0],
+            'time': time,
+            'data': tmp_te,
+            'uncertainty': tmp_unc}
+    else:
+        output = xr.Dataset()
+        tmp_te = np.atleast_2d(tmp_te)
+        time = np.atleast_1d(time)
+        output['data'] = xr.DataArray(
+            tmp_te.T, dims=('rho', 't'),
+            coords={'rho': rhop[:, 0], 't': time})
+        output['data'].attrs['long_name'] = '$T_e$'
+        output['data'].attrs['units'] = 'eV'
+        tmp_unc = np.atleast_2d(tmp_unc)
+        output['uncertainty'] = xr.DataArray(tmp_unc.T, dims=('rho', 't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta T_e$'
+        output['uncertainty'].attrs['units'] = '$eV$'
+
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'IDA'
+        output.attrs['shot'] = shotnumber
 
     return output
 
@@ -275,7 +357,7 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
 # --- Ion temperature
 # -----------------------------------------------------------------------------
 def get_Ti(shot: int, time: float = None, diag: str = 'IDI', exp: str = 'AUGD',
-           edition: int = 0, sf=None):
+           edition: int = 0, sf=None, xArrayOutput: bool = False):
     """"
     Wrapper to all the routines to read the ion temperature.
 
@@ -296,16 +378,16 @@ def get_Ti(shot: int, time: float = None, diag: str = 'IDI', exp: str = 'AUGD',
 
     if diag == 'IDI':
         return get_Ti_idi(shotnumber=shot, time=time, exp=exp,
-                          edition=edition, sf=sf)
+                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
     elif diag == 'CXRS':
         return get_Ti_cxrs(shotnumber=shot, time=time, exp=exp,
-                           edition=edition)
+                           edition=edition, xArrayOutput=xArrayOutput)
     else:
         raise Exception('Diagnostic non supported!')
 
 
 def get_Ti_idi(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None):
+               edition: int = 0, sf=None, xArrayOutput: bool = False):
     """
     Wrap to get AUG ion temperature from the IDI shotfile.
 
@@ -337,24 +419,46 @@ def get_Ti_idi(shotnumber: int, time: float = None, exp: str = 'AUGD',
     except:
         raise Exception('Cannot read the density from the IDA #%05d' % shotnumber)
 
-
-    # We will return the data in the same spatial basis as provided by IDA.
-    output = {'rhop': rhop[:, 0], 'time': timebase}
+    # We will return the data in the same spatial basis as provided by IDI.
 
     if time is None:
         time = timebase
-        output['data'] = ti
-        output['time'] = time
-        output['uncertainty'] = ti_unc
+        tmp_ti = ti
+        tmp_unc = ti_unc
     else:
-        output['time'] = time
-        output['data'] = interp1d(timebase, ti, kind='linear', axis=0,
-                                  bounds_error=False, fill_value=np.nan,
-                                  assume_sorted=True)(time).T
-        output['uncertainty'] = interp1d(timebase, ti_unc,
-                                         kind='linear', axis=0,
-                                         bounds_error=False, fill_value=np.nan,
-                                         assume_sorted=True)(time).T
+        tmp_ti = interp1d(timebase, ti, kind='linear', axis=0,
+                          bounds_error=False, fill_value=np.nan,
+                          assume_sorted=True)(time).T
+        tmp_unc = interp1d(timebase, ti_unc,
+                           kind='linear', axis=0,
+                           bounds_error=False, fill_value=np.nan,
+                           assume_sorted=True)(time).T
+    if not xArrayOutput:
+        output = {
+            'rhop': rhop[:, 0],
+            'time': time,
+            'data': tmp_ti,
+            'uncertainty': tmp_unc
+        }
+    else:
+        output = xr.Dataset()
+        tmp_ti = np.atleast_2d(tmp_ti)
+        tmp_unc = np.atleast_2d(tmp_unc)
+        time = np.atleast_1d(time)
+        output['data'] = xr.DataArray(
+            tmp_ti.T, dims=('rho', 't'),
+            coords={'rho': rhop[:, 0], 't': time})
+        output['data'].attrs['long_name'] = '$T_i$'
+        output['data'].attrs['units'] = 'eV'
+        output['uncertainty'] = xr.DataArray(tmp_unc.T, dims=('rho', 't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta T_i$'
+        output['uncertainty'].attrs['units'] = '$eV$'
+
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'IDI'
+        output.attrs['shot'] = shotnumber
     return output
 
 
@@ -706,7 +810,8 @@ def get_tor_rotation(shotnumber: int, time: float = None, diag: str = 'IDI',
 
 
 def get_tor_rotation_idi(shotnumber: int, time: float = None,
-                         exp: str = 'AUGD', edition: int = 0, sf=None):
+                         exp: str = 'AUGD', edition: int = 0, sf=None,
+                         xArrayOutput: bool = False):
 
     """
     Reads from the IDI shotfile the toroidal rotation velocity.
@@ -738,11 +843,25 @@ def get_tor_rotation_idi(shotnumber: int, time: float = None,
         timebase = timebase[t0:t1]
 
     # --- Saving to a dictionary and output:
-    output = {
-        'data': data,
-        'time': timebase,
-        'rhop': np.array(sf.getareabase('vt')[t0, ...])
-    }
+    if not xArrayOutput:
+        output = {
+            'data': data,
+            'time': timebase,
+            'rhop': np.array(sf.getareabase('vt')[t0, ...])
+        }
+    else:
+        output = xr.Dataset()
+        time = np.atleast_1d(timebase)
+        output['data'] = xr.DataArray(
+                data.T, dims=('rho', 't'),
+                coords={'rho': np.array(sf.getareabase('vt')[..., 0]),
+                        't': timebase})
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'IDI'
+        output.attrs['shot'] = shotnumber
+
 
     return output
 
@@ -1103,6 +1222,7 @@ def get_tor_rotation_ped(shotnumber: int, time: float = None,
     }
 
     return output
+
 
 def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
                   equ_diag: dict = None, prof_diag: dict = None):

@@ -103,6 +103,12 @@ def read_element(file, code: str = 'SINPA'):
         geom['trianglesScint'] = None
         geom['vertex'] = None
         geom['vertexScint'] = None
+        if len(geom['triangles'].shape) == 2:
+            # we have a 2D iHIBPsim file
+            geom['wallDim'] = 2
+        else:
+            geom['wallDim'] = 3
+
     else:
         raise Exception('Sorry, code not understood')
     return geom
@@ -760,30 +766,48 @@ class Geometry:
 
         return ax
 
-    def writeGeometry(self, folder):
+    def writeGeometry(self, path):
         """
         Write the geometry into the folder
 
-        Note: Only working for SINPA code
+        Note: Only working for SINPA/iHIBPsim code
         """
-        if self.code.lower() != 'sinpa':
-            raise Exception('Code not implemented')
-        for i in range(self.size):
-            name = os.path.join(folder, 'Element' + str(i + 1) + '.txt')
+        if self.code.lower() == 'sinpa':
+            for i in range(self.size):
+                name = os.path.join(path, 'Element' + str(i + 1) + '.txt')
+                with open(name, 'w') as f:
+                    f.writelines([self[i]['name'] + '\n'])
+                    f.writelines([self[i]['description'][0] + '\n',
+                                  self[i]['description'][1] + '\n'])
+                    f.writelines([str(self[i]['kind']) + '\n',
+                                  str(self[i]['n']) + '\n'])
+                    for it in range(3 * self[i]['n']):
+                        f.writelines([str(self[i]['triangles'][it, 0]) + ' ',
+                                      str(self[i]['triangles'][it, 1]) + ' ',
+                                      str(self[i]['triangles'][it, 2]) + '\n'])
+            # Write the namelist
+            file = os.path.join(path, 'ExtraGeometryParams.txt')
+            f90nml.write({'ExtraGeometryParams': self.ExtraGeometryParams}, 
+                         file, force=True)
+        elif self.code.lower() == 'ihibpsim':
+            if os.path.isdir(path):
+                name = os.path.join(path, 'wall.txt')
+            else:
+                name = path
+
             with open(name, 'w') as f:
-                f.writelines([self[i]['name'] + '\n'])
-                f.writelines([self[i]['description'][0] + '\n',
-                              self[i]['description'][1] + '\n'])
-                f.writelines([str(self[i]['kind']) + '\n',
-                              str(self[i]['n']) + '\n'])
-                for it in range(3 * self[i]['n']):
-                    f.writelines([str(self[i]['triangles'][it, 0]) + ' ',
-                                  str(self[i]['triangles'][it, 1]) + ' ',
-                                  str(self[i]['triangles'][it, 2]) + '\n'])
-        # Write the namelist
-        file = os.path.join(folder, 'ExtraGeometryParams.txt')
-        f90nml.write({'ExtraGeometryParams': self.ExtraGeometryParams}, file,
-                     force=True)
+                f.writelines('%i  ! Number of elements\n'%self[0]['n'])
+                if self['wallDim'] == 3:
+                    for j in range(3 * self[0]['n']):
+                        f.writelines([str(self[0]['triangles'][j, 0]) + ' ',
+                                      str(self[0]['triangles'][j, 1]) + ' ',
+                                      str(self[0]['triangles'][j, 2]) + '\n'])
+                if self['wallDim'] == 2:
+                    for j in range(2 * self[0]['n']):
+                        f.writelines([str(self[0]['triangles'][j, 0]) + ' ',
+                                      str(self[0]['triangles'][j, 1]) + '\n'])
+
+                
 
     def elements_to_stl(self, element_to_save=[0, 1, 2], units: str = 'cm'
                            ,file_name_save: str = 'Test'):
@@ -806,3 +830,6 @@ class Geometry:
                 libcad.write_triangles_to_stl(ele, units=units ,
                                                 file_name_save = file_name_save
                                                 + "_" + file_mod[ele['kind']])
+
+##
+
