@@ -1,4 +1,25 @@
-## 1.0.4: Lentejas
+# 1.1.0: Melon con Jamon
+## FIDASIM library
+- FIDASIM library distributed with the suite is no longer mantained. Please download it from the main repo of FIDASIM4
+## Logging
+- Logging output was colorised to distinguish between info and warning
+## Scintillator
+- New library combining scintillator efficiency and characterization
+## Optics
+- Output of the defocusing matrix is now a sparse matrix, to save memory (still not recommended to be used)
+## Side Functions
+- Included a function to generate a gaussian kernel for convolutions gkern
+## Scintillator
+- New library combining scintillator efficiency and characterization
+## Strike Map Library
+- Defocusing included in the calculation of the INPA instrument function via convolution
+## Video
+- corrected the reading of the shutter time in NS from png file, it was being stored in s
+## Others
+- Small typos corrected in documentation
+- Updated readme
+- git commit now shown in starting of the Suite and saved in the version file
+# 1.0.4: Lentejas
 ## Tomography
 - Lib Tomography rewritten, now the folding of the W is done via numba, saving 99% of the time
 - New class to perform tomography created

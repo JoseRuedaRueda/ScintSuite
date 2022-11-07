@@ -199,7 +199,7 @@ def remapAllLoadedFrames(video,
             print('Size of theta: ', theta.size)
             raise errors.NotValidInput('Wrong length of phi and theta')
         # -- See if the strike map exist in the folder
-        logger.info('Looking for strikemaps in: ', smap_folder)
+        logger.info('Looking for strikemaps in: %s', smap_folder)
         for iframe in tqdm(range(nframes)):
             if FILDSIM:
                 logger.info('This is deprecated, please use SINPA (uFILDSIM)')

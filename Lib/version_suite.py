@@ -1,7 +1,15 @@
 """Just the version of the suite, to label outputs"""
+import git
+import logging
+import datetime
 import numpy as np
-version = '1.0.4'
-codename = 'Salmorejo con picatostes'
+from Lib._Machine import machine
+from Lib._Paths import Path
+
+version = '1.1.0'
+codename = 'Melon con Jamon'
+
+logger = logging.getLogger('ScintSuite.Version')
 
 
 def exportVersion(filename):
@@ -12,11 +20,18 @@ def exportVersion(filename):
     v1 = int(v[0])
     v2 = int(v[1])
     v3 = int(v[2])
+    data = readGITcommit()
     with open(filename, 'w') as f:
         f.write('Version ID1: %i\n' % v1)
         f.write('Version ID2: %i\n' % v2)
         f.write('Version ID3: %i\n' % v3)
         f.write('Codename: %s\n' % codename)
+        f.write('Branch: %s\n' % data['branch'])
+        f.write('Commit: %s\n' % data['latest_comit'])
+        f.write('Commit message: %s\n' % data['latest_comit_message'])
+        f.write('Date: %s\n' % data['date'])
+        f.write('Commit responsible: %s\n' % data['author'])
+        f.write('Mail: %s\n' % data['email'])
 
 
 def readVersion(filename):
@@ -25,3 +40,37 @@ def readVersion(filename):
         for i in range(3):
             v[i] = int(f.readline().split(':')[-1])
     return v
+
+
+def readGITcommit():
+    """
+    Read the information of the latest Suite Commit
+
+    @return out: Dictionary containing the name and author of the commit
+    """
+    p = Path(machine).ScintSuite
+    repo = git.Repo(p)
+    branch = repo.head.reference
+    out = {
+        'branch': branch.name,
+        'latest_comit': branch.commit.hexsha,
+        'latest_comit_message': branch.commit.message,
+        'date': datetime.datetime.fromtimestamp(branch.commit.committed_date),
+        'author': branch.commit.author.name,
+        'email': branch.commit.author.email,
+    }
+    return out
+
+
+def printGITcommit():
+    """
+    Print the information of the latest suite commit
+    :return:
+    """
+    data = readGITcommit()
+    logger.info('Branch: %s', data['branch'])
+    logger.info('Commit: %s', data['latest_comit'])
+    logger.info('Commit message: %s', data['latest_comit_message'])
+    logger.info('Date: %s', data['date'])
+    logger.info('Commit responsible: %s', data['author'])
+    logger.info('Mail: %s', data['email'])

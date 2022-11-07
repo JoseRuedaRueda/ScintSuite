@@ -80,6 +80,8 @@ def load_tiff(filename: str):
     """
     Load the tiff files
 
+    Assume there is only one frame per file
+
     @param filename: full path pointing to the tiff
 
     @return frame: loaded frame
@@ -90,11 +92,25 @@ def load_tiff(filename: str):
 
     return dummy[::-1, :]
 
+def load_tiff_singleFile(filename: str):
+    """
+    Load the tiff files
+
+    Assume all frames are stored in the same file, and we have b/w camera
+
+    @param filename: full path pointing to the tiff
+
+    @return frame: loaded frame
+    """
+    dummy = io.imread(filename)
+
+    return np.moveaxis(dummy[:, ::-1, :], 0, 2)
+
 
 def read_frame(video_object, frames_number=None, limitation: bool = True,
                limit: int = 2048):
     """
-    Read .png files
+    Read .tiff files
 
     Jose Rueda: jrrueda@us.es
 
@@ -112,6 +128,13 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
     # check the size of the files, data will be saved as float32
     size_frame = video_object.imageheader['biWidth'] * \
         video_object.imageheader['biWidth'] * 2 / 1024 / 1024
+    # Count how many tiff files we have in the folder
+    totalCounter = 0
+    for file in sorted(os.listdir(video_object.path)):
+        if file.endswith('.tif'):
+            totalCounter += 1
+    if totalCounter == 0:
+        raise Exception('My dear friend, there are no tiff files')
     if frames_number is None:
         # In this case, we load everything
         if limitation and \
@@ -123,12 +146,18 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
                       video_object.imageheader['biHeight'],
                       video_object.header['ImageCount']),
                      dtype=video_object.imageheader['framesDtype'])
+        # Count how many tiff files we have in the folder
         counter = 0
         for file in sorted(os.listdir(video_object.path)):
             if file.endswith('.tif'):
-                M[:, :, counter] = load_tiff(
-                    os.path.join(video_object.path, file))
-                counter = counter + 1
+                if totalCounter > 1:
+                    M[:, :, counter] = load_tiff(
+                        os.path.join(video_object.path, file))
+                    counter = counter + 1
+                else:
+                    M = load_tiff_singleFile(
+                            os.path.join(video_object.path, file))
+                    break
             if counter == video_object.header['ImageCount']:
                 break
     else:

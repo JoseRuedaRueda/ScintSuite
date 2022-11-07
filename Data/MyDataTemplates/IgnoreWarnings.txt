@@ -22,3 +22,4 @@
 !  25: An ill-formatted input set for the iHIBP code(s)
 !  26: Cannot find database entry (shotnumber, ...) so the respective option is ignored.
 !  27: Interpolators not present in the strike map, calculating them with default settings
+!  28: It was not possible to initialise the plotting settings
