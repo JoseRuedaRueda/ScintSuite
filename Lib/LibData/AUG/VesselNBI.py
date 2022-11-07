@@ -7,6 +7,7 @@ import numpy as np
 import xarray as xr
 import Lib.LibData.AUG.Equilibrium as equil
 import Lib.LibData.AUG.DiagParam as params
+import Lib.LibData.AUG._nbi_geom as nbigeom
 import matplotlib.pyplot as plt
 import Lib._Plotting as ssplt
 import Lib._Utilities as ssextra
@@ -251,8 +252,6 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
         flags[t0:t1] = True
 
     # --- Filtering the outputs.
-    print(aux.shape)
-    print(flags.shape)
     aux = np.logical_and(flags, aux)
     data = pniq[t0_0:t1_0, nbion_idx, nbion_box]
     output = {
@@ -360,7 +359,7 @@ def getNBI_total(shot: int, tBeg: float = None, tEnd: float = None):
 class NBI:
     """Class with the information and data from an NBI"""
 
-    def __init__(self, nnbi: int, shot: int = 32312, diaggeom=True):
+    def __init__(self, nnbi: int, shot: int = 32312, diaggeom: bool=True):
         """
         Initialize the class
 
@@ -382,7 +381,7 @@ class NBI:
         if diaggeom:
             self.coords = NBI_diaggeom_coordinates(nnbi)
         else:
-            raise errors.NotImplementedError('Option not yet implemented')
+            self.coords = nbigeom.get_nbi_geom(nnbi)
 
     def calc_pitch_profile(self, shot: int, time: float, rmin: float = 1.3,
                            rmax: float = 2.2, delta: float = 0.04,

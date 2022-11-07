@@ -14,8 +14,9 @@ import numpy as np
 import Lib.LibData.AUG.DiagParam as params
 from Lib._Paths import Path
 import Lib.errors as errors
+import xarray as xr
+from datetime import datetime
 pa = Path()
-
 
 # -----------------------------------------------------------------------------
 # --- GENERIC SIGNAL RETRIEVING.
@@ -42,12 +43,12 @@ def get_signal_generic(shot: int, diag: str, signame: str, exp: str = 'AUGD',
     sfo = sf.SFREAD(shot, diag, edition=edition, experiment=exp)
 
     if not sfo.status:
-        raise Exception('The signal data cannot be read for #%05d:%s:%s(%d)'
+        raise errors.DatabaseError('The signal data cannot be read for #%05d:%s:%s(%d)'
                         % (shot, diag, signame, edition))
 
     data = sfo(name=signame)
     if data is None:
-        raise ValueError('Cannot find signal %s' % signame)
+        raise errors.DatabaseError('Cannot find signal %s' % signame)
     time = sfo.gettimebase(signame)
 
     if tBegin is None:
@@ -200,3 +201,148 @@ def get_ELM_timebase(shot: int, time: float = None, edition: int = 0,
     tELM['n'] = len(tELM['t_onset'])
 
     return tELM
+
+
+# -----------------------------------------------------------------------------
+# --- OTHER USEFUL SIGNALS.
+# -----------------------------------------------------------------------------
+def get_neutron(shot: int, time: float = None, exp: str = 'AUGD', 
+                xArrayOutput: bool = False):
+    """"
+    Reads the neutron rates for a given AUG shot in a given time interval.
+
+    Pablo Oyola - poyola@us.es
+
+    @param shot: shotnumber to get the neutron rate.
+    @param time: time where to retrieve the neutron rate. 
+        - If None, all the time points are return
+        - If a single time point is provided, then it is interpolated to
+         that point
+        - If two time points are given, then the signal is returned in that 
+        time range.
+        - If a time basis is provided, then the windowed average is used.
+    """
+
+    if time is None:
+        tBegin = None
+        tEnd   = None
+        time_mode = 0
+    else:
+        time = np.atleast_1d(time)
+        if len(time) == 1:
+            tBegin = time - 1.0e-2
+            tEnd   = time + 1.0e-2
+            time_mode = 1
+
+        elif len(time) == 2:
+            tBegin, tEnd = time.tolist()
+            time_mode = 2
+        else:
+            tBegin, tEnd = time.min(), time.max()
+            time_mode = 3
+    
+    # Reading the data from the shotfile.
+    time_out, data = get_signal_generic(shot=shot, diag='ENR', 
+                                        signame='NRATE_II', exp=exp,
+                                        tBegin=tBegin, tEnd=tEnd)
+    
+    if time_mode == 1:
+        data = np.interp(time, time_out, data)
+        time_out = time
+    elif time_mode == 2:
+        bins = len(time)
+        ranges = [tBegin, tEnd]
+        data = np.histogram(time_out, bins=bins, range=ranges,
+                            weights=data)
+        norm = np.histogram(time_out, bins=bins, range=ranges)
+
+        data /= norm
+        time_out = np.linspace(tBegin, tEnd, bins)
+
+    # We also compute the total neutron emitted during the whole time range
+    if time_mode != 1:
+        tot = np.trapz(data, time_out)
+    else:
+        tot = None
+
+    # Preparing the output.
+    if xArrayOutput:
+        time = xr.DataArray(time_out, attrs={'units': 's'},
+                            name='Time')
+
+        attrs = { 'units': 'neutron/s',
+                  'diag': 'ENR',
+                  'exp': exp,
+                  'total': tot
+                }
+        output = xr.DataArray(data, coords=(time,), 
+                              dims=(time.name,), 
+                              attrs=attrs, name='Neutron rate')
+    else:
+        output = { 'time': time,
+                   'data': data,
+                   'units': 'neutron/s',
+                   'diag': 'ENR',
+                   'exp': exp,
+                   'base_units': 's',
+                   'total': tot
+                 }
+
+    return output
+    
+
+def get_neutron_history(shot_0: int, shot_1: int):
+    """
+    Compute for all the shot in the range of shots given, the evolution of the
+    neutron emitted.
+
+    Pablo Oyola - poyola@us.es
+
+    @param shot_0: starting shot.
+    @param shot_1: ending shot to return.
+    """
+
+    if shot_0 == shot_1:
+        shots = (shot_0,)
+    else:
+        shots = np.arange(shot_0, shot_1+1)
+    
+    shots = np.array(shots, dtype=int)
+    nshots = len(shots)
+
+    # Calling systematically the database to get the total 
+    # neutron rate.
+    neutron_evol = np.zeros_like(shots)
+    abstime = np.zeros_like(shots, dtype=object)
+    flags = np.ones_like(shots, dtype=bool)
+    for ii, ishot in enumerate(shots):
+        try:
+            tmp = get_neutron(ishot, xArrayOutput=True)
+            neutron_evol[ii] = tmp.total
+        except errors.DatabaseError:
+            neutron_evol[ii] = 0.0
+            flags[ii] = False
+        
+        jou = sf.journal.getEntryForShot(int(ishot))
+        if 'upddate' not in jou:
+            abstime[ii] = np.nan
+            flags[ii] = False
+        else:
+            abstime[ii] = datetime.strptime(jou['upddate'].decode(), 
+                                            '%Y-%m-%d %H:%M:%S\n')
+
+    # Removing useless points
+    abstime = abstime[flags]
+    neutron_evol = neutron_evol[flags]
+    time = np.zeros_like(neutron_evol, dtype=float)
+
+    # Preparing the output:
+    for ii in range(len(neutron_evol)):
+        time[ii] = (abstime[ii] - abstime[0]).total_seconds()
+
+    sortidx = np.argsort(time)
+    time = time[sortidx]
+    neutron_evol = neutron_evol[sortidx]
+
+    return time, neutron_evol
+    
