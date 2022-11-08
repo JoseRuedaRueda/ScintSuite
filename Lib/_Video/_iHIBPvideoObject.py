@@ -52,7 +52,7 @@ def guessiHIBPfilename(shot: int):
     @param shot: shot number
 
     @return filename_video: the name of the file/folder
-    @return filename_time: the name of the xml file 
+    @return filename_time: the name of the xml file
     @return properties: video properties
     """
     datadir='/afs/ipp-garching.mpg.de/home/a/augd/rawfiles/LIV/%2i/%5i/'%(shot/1000,shot)
@@ -158,7 +158,7 @@ class iHIBPvideo(BVO):
 
     def __init__(self, shot: int, calib: libcal.CalParams = None,
                  scobj: Scintillator = None, signal_threshold: float = 5.0,
-                 noiseSubtraction: bool = True, filterFrames: bool = False, 
+                 noiseSubtraction: bool = True, filterFrames: bool = False,
                  frame = None, timestamp = None):
         """
         Initializes the object with the video data if found.
@@ -187,7 +187,7 @@ class iHIBPvideo(BVO):
         if not os.path.isfile(fn):
             raise errors.DatabaseError('Cannot find video for shot #%05d'%shot)
         #get time correction
-        try: 
+        try:
             self.timecal, self.nf = ihibp_get_time_basis(fn = ft, shot=shot)
         except FileNotFoundError:
             pass
@@ -224,7 +224,7 @@ class iHIBPvideo(BVO):
 
         # Updating the calibration in the scintillator.
         self.scintillator.calculate_pixel_coordinates(self.CameraCalibration)
-        
+
         if self.properties['description'] == 'raw video':
             noiseSubtraction = True
             filterFrames = True
@@ -245,7 +245,7 @@ class iHIBPvideo(BVO):
             flags = tt['t'].values > self.exp_dat['frame_noise'].attrs['t2_noise']
             time = tt['t'].values[flags]
             self.dsignal_dt = tt['mean_of_roi'].values[flags]
-    
+
             t0_idx = np.where(self.dsignal_dt > signal_threshold)[0][0]
             self.t0 = time[t0_idx]
             print('Using t0 = %.3f as the reference frame'%self.t0)

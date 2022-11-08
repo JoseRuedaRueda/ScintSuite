@@ -18,6 +18,7 @@ from os import listdir
 from warnings import warn
 from Lib.LibData import get_rho
 import Lib.SimulationCodes.iHIBPsim.hibp_utils as utils
+from Lib._Mapping._Common import XYtoPixel
 try:
     import netCDF4 as nc4
 except ImportError:
@@ -318,10 +319,10 @@ def readStrikeMapFile(filename: str, flip_y: bool = False, header: bool=True):
 # -----------------------------------------------------------------------------
 # --- Strikeline object.
 # -----------------------------------------------------------------------------
-class strikeLine:
+class strikeLine(XYtoPixel):
     def __init__(self, filename: str, shotnumber: int = None,
                  diag: str = 'EQH', exp: str = 'AUGD', ed: int = 0,
-                 scint: float = None):
+                 scint: float = None, cal = None):
         """
         Initializes the object strike line. This can contain several strike
         lines, as they are written altogether.
@@ -669,8 +670,8 @@ class strikeLine:
             warn('The IDA profile cannot be loaded for #%05d' % self.shot)
             return
 
-        Te = sf_ida(name='Te')
         ne = sf_ida(name='ne')
+        Te = sf_ida(name='Te')
         time_ida = sf_ida.gettimebase('ne')
         tindx_ne = np.zeros((len(self.time),), dtype=int)
         tindx_te = np.zeros((len(self.time),), dtype=int)
