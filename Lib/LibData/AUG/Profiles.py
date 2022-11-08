@@ -1,4 +1,4 @@
-'eV'"""Routines to interact with the AUG database"""
+"""Routines to interact with the AUG database"""
 import numpy as np
 import xarray as xr
 import aug_sfutils as sfutils

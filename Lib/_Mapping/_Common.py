@@ -99,6 +99,7 @@ class XYtoPixel:
             'x': None,
             'y': None
         }
+        self.CameraCalibration = None
 
     def calculate_pixel_coordinates(self, cal):
         """
