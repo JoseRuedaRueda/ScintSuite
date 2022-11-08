@@ -153,23 +153,21 @@ class BVO:
                 elif file.endswith('.png') or file.endswith('.tif'):
                     file, name = os.path.split(file)
                 elif file.endswith('.mp4'):
-                    dummy = mp4.read_file(file, verbose=False)
-                    # mp4 files are handle different as they are supposed to be
-                    # just a dummy temporal format, not the one to save our
-                    # real exp data, so the video will be loaded all from here
-                    # and not reading specific frame will be used
+                    print('reading mp4 video file...')
+                    dummy = mp4.read_file(self, file)
+
                     self.timebase = dummy['tframes']
                     self.exp_dat = xr.Dataset()
-                    nx, ny, nt = dummy['frames'].shape
+                    nt, nx, ny = dummy['frames'].shape
                     px = np.arange(nx)
                     py = np.arange(ny)
+
                     self.exp_dat['frames'] = \
-                        xr.DataArray(dummy['frames'], dims=('px', 'py', 't'),
+                        xr.DataArray(dummy['frames'], dims=('t', 'px', 'py'),
                                      coords={'t': dummy['tframes'].squeeze(),
                                              'px': px,
                                              'py': py})
-                    self.exp_dat['nframes'] = \
-                        xr.DataArray(np.arange(dummy['nf']), dims=('t'))
+                    self.exp_dat['frames'] = self.exp_dat['frames'].transpose('px', 'py', 't')
                     self.type_of_file = '.mp4'
                 else:
                     raise Exception('Not recognised file extension')
