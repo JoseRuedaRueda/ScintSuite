@@ -158,12 +158,12 @@ def ihibp_get_time_basis_new(shot: int):
             pass
 
     # Getting the frames.
-    frames = root.getchildren()[2]
+    frames = list(root)[2]
     # Now we read the rest of the entries.
     nframs = len(frames)
     timestamp = np.zeros((nframs,), dtype=float)
     framenum = np.zeros((nframs,), dtype=int)
-    for ii, iele in enumerate(frames.getchildren()):
+    for ii, iele in enumerate(frames):
         tmp = iele.attrib
         framenum[ii] = int(tmp['number'])
         timestamp[ii] = float(int(tmp['timestamp']))
@@ -213,7 +213,7 @@ class iHIBPvideo(BVO):
     """
 
     def __init__(self, shot: int, calib: libcal.CalParams = None,
-                 scobj: Scintillator = None, signal_threshold: float = 5.0,
+                 scobj: Scintillator = None, signal_threshold: float = 0.0,
                  noiseSubtraction: bool = True, filterFrames: bool = False):
         """
         Initializes the object with the video data if found.
@@ -249,7 +249,7 @@ class iHIBPvideo(BVO):
         try:
             self.timecal, _, self.cam_prop = ihibp_get_time_basis(shot=shot)
             # In order to change a time
-            self.exp_dat['t'] = self.timecal
+            self.exp_dat['t'] = self.timecal[:self.firstCorrupt]
             self.timebase = self.timecal
         except FileNotFoundError:
             pass
@@ -295,8 +295,9 @@ class iHIBPvideo(BVO):
 
         # --- Getting which is the first illuminated frame:
         tt = sstt.TimeTrace(self, self.scint_mask)
-        flags = tt['t'].values > self.exp_dat.attrs['t2_noise']
-        time = tt['t'].values[flags]
+        if noiseSubtraction:
+            flags = tt['t'].values > self.exp_dat['frame_noise'].attrs['t2_noise']
+            time = tt['t'].values[flags]
         self.dsignal_dt = tt['mean_of_roi'].values[flags]
 
         t0_idx = np.where(self.dsignal_dt > signal_threshold)[0][0]
