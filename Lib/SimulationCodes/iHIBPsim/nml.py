@@ -156,6 +156,16 @@ def make_ihibpsim1_namelist(user_nml: dict):
             'prm_name': '',
             'zeff1': 1.0
         },
+
+        'shot': {
+            'shotnumber': 0,     # Setting this, the code will retrieve
+                                 # the last shot.
+            'diagmagn': '',
+            'expprof': 'AUGD',
+            'diagprof': 'IDA',
+            'time': ''
+        },
+
         'integration': {
             'dt': 1.0e-9,
             'max_step': 20000000,
@@ -165,7 +175,7 @@ def make_ihibpsim1_namelist(user_nml: dict):
             'save_orbits': False,
             'num_orbits': 1.0,
             'file_orbits': 'example.orbit',
-            'dt_orbit': 1.0e-7,
+            'dt_orbit': 1.0e-9,
         },
         'deposition': {
             'nbeamdir': 128,

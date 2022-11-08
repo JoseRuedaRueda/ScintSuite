@@ -495,7 +495,7 @@ class strikeLine(XYtoPixel):
             imap = np.abs(self.time.flatten() - timeStamp).argmin()
 
         # --- Initialise the plotting parameters
-        ax_options['ratio'] = 'equal'
+#        ax_options['ratio'] = 'equal'
         # The ratio must be always equal
         if 'fontsize' not in ax_options:
             ax_options['fontsize'] = 16
@@ -503,6 +503,15 @@ class strikeLine(XYtoPixel):
             ax_options['grid'] = 'both'
         if 'linewidth' not in line_options:
             line_options['linewidth'] = 2
+        color_list = []
+        if 'color' not in line_options:
+            colors=plt.cm.get_cmap('plasma')
+            index= np.linspace(0.01, 0.99, len(self.maps))
+            for ii in range(len(self.maps)):
+                color_list.append(colors(index[ii]))
+        else:
+            for ii in range(len(self.maps)):
+                color_list.append(line_options['color'])
 
         legendText_initial = legendText
         axis_was_none = False
@@ -515,11 +524,11 @@ class strikeLine(XYtoPixel):
 
         if plot_all:
             for ii in range(len(self.maps)):
+                line_options['color'] = color_list[ii]
                 if legendText_initial is None:
                     legendText = 't = %.3f [s]'%self.maps[ii]['timestamp'][0]
                 else:
-                    legendText = 't = %.3f [s]'%self.maps[ii]['timestamp'][0]+\
-                                 legendText_initial
+                    legendText = legendText_initial
                 if plot_weight:
                     ax[0].plot(self.maps[ii]['x1']*100,
                                self.maps[ii]['x2']*100,
@@ -570,7 +579,7 @@ class strikeLine(XYtoPixel):
                         label=legendText, **line_options)
 
         if axis_was_none:
-            ax_options['ratio'] = 'equal'
+        #    ax_options['ratio'] = 'equal'
             ax_options['xlabel'] = 'X [cm]'
             ax_options['ylabel'] = 'Y [cm]'
 
@@ -599,9 +608,9 @@ class strikeLine(XYtoPixel):
 
         if legend_on:
             if plot_weight:
-                ax[0].legend()
+                ax[0].legend(loc='best', bbox_to_anchor=(0.8, 1.05))
             else:
-                ax.legend()
+                ax.legend(loc='best', bbox_to_anchor=(0.8, 1.05))
 
         plt.tight_layout()
 
