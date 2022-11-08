@@ -37,6 +37,7 @@ def loadTable1D(filename: str):
         output['base_name'] = 'Temperature'
         output['base_units'] = 'eV'
         output['units'] = '$m^3/s$'
+        output['reaction'] = filename.split('/')[-1].split('.')[0]
 
         # --- Creating the interpolating object.
         output['interp'] = interp1d(np.log(output['base']),
@@ -82,14 +83,14 @@ def loadTable2D(filename: str):
         output['base_shortname'].append('T')
         output['base_shortname'].append('v')
         output['units'] = '$m^3/s$'
+        output['reaction'] = filename.split('/')[-1].split('.')[0]
 
         # --- Creating the interpolating object.
         output['interp'] = interp2d(np.log(output['base'][0]),
                                     output['base'][1],
                                     np.log(output['sigma']),
                                     kind='linear',
-                                    bounds_error=False,
-                                    fill_value='extrapolate')
+                                    bounds_error=False)#,fill_value='extrapolate')
 
     return output
 
@@ -203,18 +204,22 @@ def plotTable2D(table: dict, v: float = None, ax=None, ax_options: dict = {},
         ax_options['xscale'] = 'linear'
         ax_options['yscale'] = 'linear'
 
-    if v is None:
-        v = table['base'][1]
+    v_all = table['base'][1]
+    T = table['base'][0]
 
     # --- Interpolating the tables to the input velocities.
-    TT, VV = np.meshgrid(table['base'][0], v)
-    sigma = table['interp'](TT, VV).reshape(VV.shape)
+    sigma = np.exp(table['interp'](np.log(T), v_all))
     print(str(sigma.shape))
 
     # --- Plotting the reaction-rates.
-    for ii in range(len(v)):
-        ax.plot(table['base'][0], sigma[ii, :], **line_options,
-                label=table['base_shortname'][1]+'='+str(v[ii]))
+    if v == None:
+        for ii in range(len(v_all)):
+            ax.plot(T, table['sigma'][ii, :], **line_options,
+                    label=table['reaction'] + ', ' + table['base_shortname'][1]+' = %.2e' %v_all[ii])
+    else:
+        it = np.argmin(abs(v_all-v))
+        ax.plot(T, sigma[it, :], **line_options,
+                label = table['reaction'] + ', ' + table['base_shortname'][1] + ' = %.2e' %v_all[it])
 
     if grid and axis_was_none:
         ax.grid(True, which='minor', linestyle=':')
@@ -222,6 +227,7 @@ def plotTable2D(table: dict, v: float = None, ax=None, ax_options: dict = {},
         ax.grid(True, which='major')
 
     ax = ssplt.axis_beauty(ax, ax_options)
+    plt.legend()
     plt.tight_layout()
 
     return ax
