@@ -392,7 +392,9 @@ class BVO:
                 raise errors.NotValidInput('t1 is larger than t2!!!')
         # --- Get the shapes and indexes
         # Get shape and data type of the experimental data
-        nx, ny, nt = self.exp_dat['frames'].shape
+        nx = self.exp_dat['px'].size
+        ny = self.exp_dat['py'].size
+        nt = self.exp_dat['t'].size
         original_dtype = self.exp_dat['frames'].dtype
         # Get the initial and final time loaded in the video:
         t1_vid = self.exp_dat['t'].values[0]
@@ -422,13 +424,19 @@ class BVO:
 
             logger.info('Using frames from the video')
             logger.info('%i frames will be used to average noise', it2 - it1 + 1)
-            frame = np.mean(self.exp_dat['frames'].values[:, :, it1:(it2 + 1)],
-                            dtype=original_dtype, axis=2)
+            frame = self.exp_dat['frames'].isel(t=slice(it1, it2)).mean(dim='t')
+            #frame = np.mean(self.exp_dat['frames'].values[:, :, it1:(it2 + 1)],
+            #                dtype=original_dtype, axis=2)
 
         else:  # The frame is given by the user
             logger.info('Using noise frame provider by the user')
-            nxf, nyf = frame.shape
+            try:
+                nxf = frame.px.size
+                nyf = frame.py.size
+            except AttributeError:
+                nxf, nyf = frame.shape
             if (nxf != nx) or (nyf != ny):
+                print(nx, nxf, ny, nyf)
                 text = 'The noise frame has not the correct shape'
                 raise errors.NotValidInput(text)
         # Save the frame in the structure
@@ -446,9 +454,13 @@ class BVO:
         # --- Subtract the noise
         frame = frame.astype(float)  # Get the average as float to later
         #                              subtract and not have issues with < 0
-        dummy = \
-            (self.exp_dat['frames'].values.astype(float) - frame[..., None])
-        dummy[dummy < 0] = 0.0  # Clean the negative values
+        frameDA = xr.DataArray(frame, dims=('px', 'py'), \
+                               coords = {'px': self.exp_dat['px'], \
+                                         'py': self.exp_dat['py']})
+        #dummy = \
+        #    (self.exp_dat['frames'].values.astype(float) - frame[..., None])
+        dummy = self.exp_dat['frames'].astype(float) - frameDA
+        dummy.values[dummy.values < 0] = 0.0  # Clean the negative values
         self.exp_dat['frames'].values = dummy.astype(original_dtype)
 
         logger.info('-... -.-- . / -... -.-- .')

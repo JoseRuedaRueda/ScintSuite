@@ -228,12 +228,12 @@ class iHIBPvideo(BVO):
         if self.properties['description'] == 'raw video':
             noiseSubtraction = True
             filterFrames = True
-            self.properties['description'] = 'averaged frames subtracted and median filtered with size 3'
+            self.properties['description'] = 'zero-th frame subtracted and median filtered with size 5'
         # --- Apply now the background noise substraction and filtering.
         if noiseSubtraction:
-            self.subtract_noise(t1=-1.0, t2=0.0, flag_copy=True)
+            self.subtract_noise(frame = self.exp_dat['frames'].isel(t=0), flag_copy=True)
         if filterFrames:
-            self.filter_frames(method='median')
+            self.filter_frames(method='median', options = {'size': 5})
 
         # --- i-HIBP scintillator distorted.
         self.scint_path = self.scintillator.get_path_pix()
