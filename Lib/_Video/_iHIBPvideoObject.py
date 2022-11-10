@@ -158,7 +158,7 @@ class iHIBPvideo(BVO):
 
     def __init__(self, shot: int, calib: libcal.CalParams = None,
                  scobj: Scintillator = None, signal_threshold: float = 5.0,
-                 noiseSubtraction: bool = True, filterFrames: bool = False,
+                 noiseSubtraction: bool = False, filterFrames: bool = False,
                  frame = None, timestamp = None):
         """
         Initializes the object with the video data if found.
@@ -228,6 +228,7 @@ class iHIBPvideo(BVO):
         if self.properties['description'] == 'raw video':
             noiseSubtraction = True
             filterFrames = True
+            self.properties['description'] = 'averaged frames subtracted and median filtered with size 3'
         # --- Apply now the background noise substraction and filtering.
         if noiseSubtraction:
             self.subtract_noise(t1=-1.0, t2=0.0, flag_copy=True)
