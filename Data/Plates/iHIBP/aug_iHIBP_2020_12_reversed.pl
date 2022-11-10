@@ -59,4 +59,4 @@ N_vertices=55
 Normal_vector
 1.,   0.,   0.
 Unit
-mm
+m
