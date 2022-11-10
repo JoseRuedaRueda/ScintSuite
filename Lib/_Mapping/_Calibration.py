@@ -175,7 +175,7 @@ class CalibrationDatabase:
                 f.write(line)
             logger.info('File %s writen', file)
 
-    def get_calibration(self, shot, camera, cal_type, diag_ID):
+    def get_calibration(self, shot, diag_ID):
         """
         Give the calibration parameter of a precise database entry.
 
@@ -190,8 +190,6 @@ class CalibrationDatabase:
         for i in range(len(self.data['CalID'])):
             if (self.data['shot1'][i] <= shot) * \
                     (self.data['shot2'][i] >= shot) * \
-                    (self.data['camera'][i] == camera) * \
-                    (self.data['cal_type'][i] == cal_type) * \
                     (self.data['diag_ID'][i] == diag_ID):
                 flags[i] = True
 

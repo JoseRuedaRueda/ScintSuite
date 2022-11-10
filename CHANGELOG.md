@@ -1,3 +1,16 @@
+#1.1.1:
+## iHIBPVideo
+- changed guessiHIBPfilename to use correct video filename for different discharges
+- fixed ihibp_get_time_basis to give correct timebase
+- videos will be subtracted by zero-th frame and median filtered with size 5
+## BasicVideoObject
+- subtract_noise now uses DataArrays to allow arbitrary order of dimensions
+## _MP4files
+- read mp4 video files with ffmpeg
+## Calibration
+- changed iHIBP camera calibration database
+- calibration uniquely given by shotnumber and diag_ID = 1
+
 # 1.1.0: Melon con Jamon
 ## FIDASIM library
 - FIDASIM library distributed with the suite is no longer mantained. Please download it from the main repo of FIDASIM4
