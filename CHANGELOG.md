@@ -10,6 +10,10 @@
 ## Calibration
 - changed iHIBP camera calibration database
 - calibration uniquely given by shotnumber and diag_ID = 1
+## DiagParam
+- changed origin point of ihibp beam
+## Plates
+- changed ihibp Scintillator plate to match experimental geometry 
 
 # 1.1.0: Melon con Jamon
 ## FIDASIM library
