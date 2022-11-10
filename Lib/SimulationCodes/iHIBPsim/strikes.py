@@ -319,7 +319,7 @@ def readStrikeMapFile(filename: str, flip_y: bool = False, header: bool=True):
 # -----------------------------------------------------------------------------
 # --- Strikeline object.
 # -----------------------------------------------------------------------------
-class strikeLine(XYtoPixel):
+class strikeLine:
     def __init__(self, filename: str, shotnumber: int = None,
                  diag: str = 'EQH', exp: str = 'AUGD', ed: int = 0,
                  scint: float = None, cal = None):
