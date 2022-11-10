@@ -103,6 +103,19 @@ class Scintillator(XYtoPixel):
             ## Normal vector
             self.normal_vector = np.loadtxt(file, skiprows=4 + self.n_vertices,
                                             delimiter=',', max_rows=1)
+
+            # Transforming to meters.
+            factor = {'m': 1.0,
+                      'cm': 0.01,
+                      'mm': 0.001,
+                      'inch': 0.01/2.54}.get(self.units)
+
+            self._coord_real['x1'] *= factor
+            self._coord_real['x2'] *= factor
+            self._coord_real['x3'] *= factor
+            self.units = 'm'
+
+
         elif format.lower() == 'sinpa':
             with open(file, 'r') as f:
                 self.name = f.readline().strip(),
@@ -219,7 +232,7 @@ class Scintillator(XYtoPixel):
         plt.draw()
         return ax
 
-    def plot_real(self, ax=None, line_params: dict = {}):
+    def plot_real(self, ax=None, line_params: dict = {}, units: str=None):
         """
         Plot the scintillator, in real coordinates in the axes ax.
 
@@ -233,8 +246,16 @@ class Scintillator(XYtoPixel):
         }
         plt_options.update(line_params)
 
+        # Selectin the units for plotting.
+        factor = { 'm': 1.0,
+                   'cm': 100.0,
+                   'mm': 1000.0,
+                   'inch': 100.0/2.54
+                 }.get(units)
+
         if ax is None:
             fig, ax = plt.subplots()
-        ax.plot(self._coord_real['x1'], self._coord_real['x2'], **plt_options)
+        ax.plot(self._coord_real['x1']*factor,
+                self._coord_real['x2']*factor, **plt_options)
         plt.draw()
         return ax

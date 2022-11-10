@@ -566,9 +566,9 @@ class strikes:
 
         # Checking the size of the scintillator.
         xlims = np.array([self.scint._coord_real['x1'].min(),
-                          self.scint._coord_real['x1'].max()])
+                          self.scint._coord_real['x1'].max()]) *100.0
         ylims = np.array([self.scint._coord_real['x2'].min(),
-                          self.scint._coord_real['x2'].max()])
+                          self.scint._coord_real['x2'].max()]) *100.0
 
         ranges = np.array([xlims, ylims])
 
@@ -582,7 +582,8 @@ class strikes:
 
 
         # Plotting on top the scintillator.
-        self.scint.plot_real(ax=ax, line_params={'color' : 'w'})
+        self.scint.plot_real(ax=ax, line_params={'color' : 'w'},
+                             units='cm')
         ax.set_xlim(xlims)
         ax.set_ylim(ylims)
 
