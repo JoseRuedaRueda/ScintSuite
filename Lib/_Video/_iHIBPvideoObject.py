@@ -41,19 +41,18 @@ def decision(prob: float, x0: float, dx0: float):
 
     return f
 
-
-# --- Auxiliar routines to find the path towards the camera files
 def guessiHIBPfilename(shot: int):
     """
     Guess the filename of a video
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Hannah Lindl - hannah.lindl@ipp.mpg.de
 
-    @param shot: shot number
 
-    @return filename_video: the name of the file/folder
-    @return filename_time: the name of the xml file
-    @return properties: video properties
+    :param shot: shot number
+
+    :return filename_video: the name of the file/folder
+    :return filename_time: the name of the xml file
+    :return properties: video properties
     """
     datadir='/afs/ipp-garching.mpg.de/home/a/augd/rawfiles/LIV/%2i/%5i/'%(shot/1000,shot)
     if shot < 41225:
@@ -81,12 +80,15 @@ def guessiHIBPfilename(shot: int):
         filename_time = datadir + '%i_cam_ihibp_side.xml' %(shot)
         width, height = 1024, 768
         fps = 60
+
     properties = dict()
     properties['width'] = width
     properties['height'] = height
     properties['fps'] = fps
     properties['description'] = description
     return filename_video, filename_time, properties
+
+
 
 # ------------------------------------------------------------------------------
 # TIMEBASE OF THE CAMERA.
@@ -228,10 +230,12 @@ class iHIBPvideo(BVO):
         if self.properties['description'] == 'raw video':
             noiseSubtraction = True
             filterFrames = True
-            self.properties['description'] = 'zero-th frame subtracted and median filtered with size 5'
+            self.properties['description'] = 'zero-th frame subtracted ' + \
+                                             'and median filtered with size 5'
         # --- Apply now the background noise substraction and filtering.
         if noiseSubtraction:
-            self.subtract_noise(frame = self.exp_dat['frames'].isel(t=0), flag_copy=True)
+            self.subtract_noise(frame = self.exp_dat['frames'].isel(t=0),
+                                flag_copy=True)
         if filterFrames:
             self.filter_frames(method='median', options = {'size': 5})
 
