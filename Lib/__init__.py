@@ -146,7 +146,6 @@ __version__ = version
 __codename__ = codename
 import Lib._CAD as cad
 import Lib._SideFunctions as side
-import Lib.SimulationCodes.torbeam as torbeam
 
 
 machine = m.machine
@@ -154,6 +153,7 @@ paths = p.Path(machine)
 
 # Non tokamak independent libraries
 if machine == 'AUG':
+    import Lib.SimulationCodes.torbeam as torbeam
     import Lib.SimulationCodes.iHIBPsim as ihibp
 
 # Delete the intermediate variables to 'clean'
