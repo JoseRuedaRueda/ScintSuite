@@ -16,6 +16,9 @@ import os
 import xml.etree.ElementTree as et
 from Lib._Video import BVO
 import Lib.errors as errors
+import matplotlib.patches as patches
+import lmfit
+from tqdm import tqdm
 
 try:
     from yaml import CLoader as yaml_load
@@ -240,13 +243,66 @@ class beam_cameras(BVO):
             self.subtract_noise(frame=self.exp_dat.isel(t=0),
                                 flag_copy=True)
 
-    def prepare_rois(self):
+        # Setting to None the internal line data.
+        self.line = None
+
+    def plot_frame(self, rois: bool=True, beam_line: bool=False,
+                   **kwargs):
+        """
+        Plots a given frame of the video.
+
+        This function overloads the parent one in order to add the beam line
+        and the ROIs.
+
+        Pablo Oyola - poyola@us.es
+
+        :param rois: plot the rois. True by default.
+        :param beamline: plot the beam line. False by default.
+        :param frame_number: frame number to plot.
+        :param kwargs: keyword arguments to pass down to the parent class.
         """
 
-        """
-        pass
+        # Plots the frame using the base class.
+        ax = super().plot_frame(**kwargs)
 
-    def get_beam_line(self, time: float=None, pix_avg: int=5):
+        colors = ['r', 'b', 'g', 'm', 'c']
+
+        if rois:
+            if self.camcal['roi'] is None:
+                logger.warning('There are not any ROIs declared!')
+
+            for iroi in range(self.camcal['roi'].shape[-1]):
+                x0, y0, x1, y1 = self.camcal['roi']
+                width = x1 - x0
+                height = y1 - y0
+
+                # Create a Rectangle patch
+                rect = patches.Rectangle((x0, y0), width, height,
+                                         linewidth=1, edgecolor=colors[iroi],
+                                         facecolor=colors[iroi],
+                                         alpha=0.20,
+                                         label='ROI#%d'%iroi)
+
+                # Add the patch to the Axes
+                ax.add_patch(rect)
+        if beam_line:
+            if self.line is None:
+                logger.warning('The line has not been precomputed!')
+
+            if kwargs['t'] is not None:
+                frame_num =  self.getFrameIndex(kwargs['t'], False)
+            else:
+                frame_num = kwargs['frame_number']
+
+
+            # Plotting the beam line.
+            ax.plot(self.line[frame_num, 0, ...],
+                    self.line[frame_num, 1, ...],
+                    color='b', label='Fitted line', zorder=100)
+
+        return
+
+    def get_beam_line(self, time: float=None, graphic_bar: bool=False):
         """
         Computes the beam line by fitting it to a Gaussian function.
 
@@ -276,6 +332,42 @@ class beam_cameras(BVO):
 
             time = self.timebase[t0:t1]
 
-        # We make a rolling average of the frames to
+        # Number of ROIs
+        nroi = self.camcal['roi'].shape[-1]
+
+        # Preparing the results array.
+        amp    = np.zeros((nroi, time.size))
+        fwhm   = np.zeros((nroi, time.size))
+        center = np.zeros((nroi, time.size))
+
+        # Looping over the ROIs.
+        for iroi in range(nroi):
+            xroi = np.arange(self.camcal['roi'][1], self.camcal['roi'][3] + 1)
+            yroi = np.arange(self.camcal['roi'][0], self.camcal['roi'][2] + 1)
+            data = self.exp_dat[xroi, yroi, :]
+
+            # Looping in time.
+            for ii, itime in tqdm(enumerate(time), disable=not graphic_bar,
+                                  desc='Parsing ROI #%d'%iroi):
+                if self.camcal['orientation'] == 'vertical':
+                    frame = data.sel(time = itime).mean(axis = 0).values
+                    x = yroi
+                else:
+                    frame = data.sel(time = itime).mean(axis = 1).values
+                    x = xroi
+
+                # Fitting it to a Gaussian.
+                fitter = lmfit.models.Gaussian()
+                pars = fitter.guess(frame, x=x)
+                res = fitter.fit(frame, pars, x=x)
+
+                amp[iroi, ii]    = res.parameters['amplitude'].value
+                fwhm[iroi, ii]   = res.parameters['fwhm'].value
+                center[iroi, ii] = res.parameters['center'].value
+
+
+
+
+
 
 

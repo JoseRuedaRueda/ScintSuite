@@ -3,7 +3,7 @@ top:
     ver_begin: 88
     hor_begin: 98
     diff: 110
-    roi_average: 'vertical'
+    orientation: 'vertical'
     roi: [[325, 100, 450, 200], [325, 300, 450, 400]]
 
 side:
@@ -11,7 +11,7 @@ side:
     ver_begin: 17
     hor_begin: 28
     diff: 52
-    roi_average: 'horizontal'
+    orientation: 'horizontal'
     roi: [[240, 310, 280, 410], [400, 310, 440, 410]]
 
 oblique:
@@ -19,6 +19,6 @@ oblique:
     ver_begin: 32
     hor_begin: 18
     diff: 43
-    roi_average: None
+    orientation: None
     roi: None
 
