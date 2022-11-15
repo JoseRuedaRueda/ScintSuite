@@ -462,9 +462,9 @@ class strikes:
 
             ax.set_xlabel(labels[0])
             ax.set_ylabel(labels[1])
-
-            cbar = fig.colorbar(mappable=im, ax=ax)
-            cbar.set_label(histlabel)
+            if ax_was_none:
+                cbar = fig.colorbar(mappable=im, ax=ax)
+                cbar.set_label(histlabel)
         return ax, im
 
     def plot3d(self, weighted: bool = False, npoints:int = 2000,
