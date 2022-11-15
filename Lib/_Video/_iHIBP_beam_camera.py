@@ -108,7 +108,7 @@ def read_mp4_ffmpeg(filename: str, fn_time: str=None):
     else:
         raise NotImplementedError('Unknown format')
 
-    out, = ffmpeg.input(filename).output('pipe:',
+    out = ffmpeg.input(filename).output('pipe:',
                                          format='rawvideo',
                                          pix_fmt=pix_fmt).run(capture_stdout=True)[0]
 
@@ -137,7 +137,7 @@ def read_mp4_ffmpeg(filename: str, fn_time: str=None):
 
     return output
 
-def get_filenames(self, shot: int, camera_name: str):
+def get_filenames(shot: int, camera_name: str):
     """
     From the shotnumber, this function returns both the filename of the video
     and the filename of the XML containing the time data.
@@ -148,20 +148,13 @@ def get_filenames(self, shot: int, camera_name: str):
     :param shot: shotnumber to get the actual video filenames.
     """
 
-    datadir = '/afs/ipp/u/augd/rawfiles/VRT/%2i/S%5i/' % (shot/1000, shot,)
-    filename_video = os.path.join(datadir, 'S%5i_%s.mp4') % (shot, camera_name,)
-    if shot < 40396:
-        filename_time = os.path.join(datadir, 'Prot',
-                                     'FrameProt',
-                                     '%s_FrameProt.xml' % camera_name)
-    else:
-        filename_time = os.path.join(datadir,
-                                     'S%5i_%s.meta.xml' % (shot, camera_name))
-
+    datadir = '/afs/ipp-garching.mpg.de/home/a/augd/rawfiles/LIV/%2i/%5i/' % (shot/1000, shot,)
+    filename_video = os.path.join(datadir, '%5i_cam_%s.mp4'% (shot, camera_name,))
+    filename_time = os.path.join(datadir, '%5i_cam_%s.xml' % (shot, camera_name,))
     return filename_video, filename_time
 
 
-class beam_cameras(BVO):
+class beam_camera(BVO):
     """
     This is a class allowing to handle the iHIBP beam cameras and get from
     them the displacement of the beam line.
@@ -196,7 +189,7 @@ class beam_cameras(BVO):
         ## Shot number
         self.shot = shot
 
-        fn, ft, self.properties = get_filenames(shot=shot, camera=[])
+        fn, ft = get_filenames(shot=shot, camera_name='ihibp_'+camera)
         if not os.path.isfile(fn):
             raise errors.DatabaseError('Cannot find video for shot #%05d'%shot)
 
@@ -228,20 +221,22 @@ class beam_cameras(BVO):
 
         # We now load the calibration for the cameras.
         with open('./Data/Calibrations/iHIBP/beam_watchdog.yml', 'rt') as fid:
-            data = yaml_load(fid)
+            data = yaml_load(fid).get_data()
 
         # Getting the interesting camera data.
         self.camcal = data[camera.lower()]
 
+        self.camcal['roi'] = np.array(self.camcal['roi'])
+
         # We now remove the initial noise by substracting either the average
         # frame from beginning to 0.0 seconds (shot starts) or just
         # removing the first frame.
-        if remove_bg:
-            self.subtract_noise(t1=self.exp_dat.t[0],
-                                t2=0.0, flag_copy=True)
-        else:
-            self.subtract_noise(frame=self.exp_dat.isel(t=0),
-                                flag_copy=True)
+        # if remove_bg:
+        #     self.subtract_noise(t1=self.exp_dat.t[0],
+        #                         t2=0.0, flag_copy=True)
+        # else:
+        #     self.subtract_noise(frame=self.exp_dat.isel(t=0),
+        #                         flag_copy=True)
 
         # Setting to None the internal line data.
         self.line = None
@@ -265,20 +260,20 @@ class beam_cameras(BVO):
         # Plots the frame using the base class.
         ax = super().plot_frame(**kwargs)
 
-        colors = ['r', 'b', 'g', 'm', 'c']
+        colors = ['r', 'y', 'g', 'm', 'c']
 
         if rois:
             if self.camcal['roi'] is None:
                 logger.warning('There are not any ROIs declared!')
 
-            for iroi in range(self.camcal['roi'].shape[-1]):
-                x0, y0, x1, y1 = self.camcal['roi']
+            for iroi in range(self.camcal['roi'].shape[0]):
+                x0, y0, x1, y1 = self.camcal['roi'][iroi]
                 width = x1 - x0
                 height = y1 - y0
 
                 # Create a Rectangle patch
                 rect = patches.Rectangle((x0, y0), width, height,
-                                         linewidth=1, edgecolor=colors[iroi],
+                                         linewidth=0, edgecolor=colors[iroi],
                                          facecolor=colors[iroi],
                                          alpha=0.20,
                                          label='ROI#%d'%iroi)

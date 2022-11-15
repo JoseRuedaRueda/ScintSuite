@@ -414,6 +414,50 @@ class strikeLine:
         elif self.map_method == 3:
             self.map_name = 'R, z (2D)'
 
+    def plot_rhopol_strikemap(self, timestamp: float=None, ax=None,
+                              ax_options: dict={}, line_options: dict = {}):
+        """
+        Plots using the rhopol coordinate the points of interest.
+
+        Pablo Oyola - poyola@us.es
+        """
+        if timestamp is None:
+            imap = 0
+        else:
+            imap = np.searchsorted(self.time.flatten(), timestamp)
+
+        # --- Initialise the plotting parameters
+        ax_options['ratio'] = 'equal'
+        # The ratio must be always equal
+        if 'fontsize' not in ax_options:
+            ax_options['fontsize'] = 16
+        if 'grid' not in ax_options:
+            ax_options['grid'] = 'both'
+        if 'linewidth' not in line_options:
+            line_options['linewidth'] = 2
+
+        if ax is None:
+            fig, ax = plt.subplots(1)
+
+        rhopolplot = np.linspace(start=self.maps[imap]['map_s'].min(),
+                                 stop=self.maps[imap]['map_s'].max(),
+                                 num=10)
+
+        cmap2 = cm.get_cmap('jet', len(rhopolplot))
+
+        x1_plot = np.zeros(len(rhopolplot))
+        x2_plot = np.zeros(len(rhopolplot))
+        w_plot = np.zeros(len(rhopolplot))
+        for ii in range(len(x1_plot)):
+            irho = np.abs(self.maps[imap]['map_s']-rhopolplot[ii]).argmin()
+            x1_plot[ii] = self.maps[imap]['x1'][irho]
+            x2_plot[ii] = self.maps[imap]['x2'][irho]
+            w_plot[ii] = self.maps[imap]['w'][irho]
+
+            ax.plot(x1_plot[ii]*100, x2_plot[ii]*100, 'o',
+                    markersize=5., label='R = %.2f m'%rhopolplot[ii],
+                    zorder=5e10, color=cmap2(ii))
+
     def plotStrikeLine(self, timeStamp: float = None, ax=None,
                        ax_options: dict = {}, line_options: dict = {},
                        legendText: str = None):

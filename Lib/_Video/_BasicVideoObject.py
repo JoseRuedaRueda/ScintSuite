@@ -419,8 +419,8 @@ class BVO:
                     'Taking %5.3f as finaal point' % t2
                 logger.warning('18: %s' % text)
                 t2 = t2_vid
-            it1 = np.argmin(abs(self.exp_dat['t'].values - t1))
-            it2 = np.argmin(abs(self.exp_dat['t'].values - t2))
+            it1 = np.argmin(np.abs(self.exp_dat['t'].values - t1))
+            it2 = np.argmin(np.abs(self.exp_dat['t'].values - t2))
 
             logger.info('Using frames from the video')
             logger.info('%i frames will be used to average noise', it2 - it1 + 1)

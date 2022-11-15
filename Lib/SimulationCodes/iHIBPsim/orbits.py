@@ -106,8 +106,8 @@ class orbit:
             ax.plot(x[imin:imax], y[imin:imax],
                     self.data['z'][imin:imax],
                     **line_options)
-            ax.scatter(x[imin], y[imin], self.data['z'][imin], color = 'g', label ='initial')
-            ax.scatter(x[imax-1], y[imax-1], self.data['z'][imax-1], color = 'r', label ='Final')
+            # ax.scatter(x[imin], y[imin], self.data['z'][imin], color = 'g', label ='initial')
+            # ax.scatter(x[imax-1], y[imax-1], self.data['z'][imax-1], color = 'r', label ='Final')
             ax.legend()
 
 
