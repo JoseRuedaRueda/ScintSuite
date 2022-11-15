@@ -419,8 +419,9 @@ class BVO:
                     'Taking %5.3f as finaal point' % t2
                 logger.warning('18: %s' % text)
                 t2 = t2_vid
-            it1 = np.argmin(np.abs(self.exp_dat['t'].values - t1))
-            it2 = np.argmin(np.abs(self.exp_dat['t'].values - t2))
+
+            it1 = np.argmin(np.abs(self.exp_dat.t.values - t1))
+            it2 = np.argmin(np.abs(self.exp_dat.t.values - t2))
 
             logger.info('Using frames from the video')
             logger.info('%i frames will be used to average noise', it2 - it1 + 1)
@@ -690,7 +691,7 @@ class BVO:
                    scale: str = 'linear',
                    alpha: float = 1.0, IncludeColorbar: bool = True,
                    RemoveAxisTicksLabels: bool = False,
-                   flagAverage: bool = False, normalise=None):
+                   flagAverage: bool = False, normalise=None, extent: float=None):
         """
         Plot a frame from the loaded frames
 
@@ -776,6 +777,9 @@ class BVO:
             # we are here mixing a bit integers and float... but python3 will
             # provide
             dummy[dummy < 1.0] = 1.0e-5
+
+        if extent is not None:
+            extra_options['extent'] = extent
 
         img = ax.imshow(dummy, origin='lower', cmap=cmap,
                         alpha=alpha, **extra_options)
