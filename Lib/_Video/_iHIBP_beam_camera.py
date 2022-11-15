@@ -110,7 +110,8 @@ def read_mp4_ffmpeg(filename: str, fn_time: str=None):
 
     out = ffmpeg.input(filename).output('pipe:',
                                          format='rawvideo',
-                                         pix_fmt=pix_fmt).run(capture_stdout=True)[0]
+                                         pix_fmt=pix_fmt).run(capture_stdout=True,
+                                                              capture_stderr=True)[0]
 
     video = np.right_shift(np.frombuffer(out, dtype).reshape(shape),
                            pix_shift)
@@ -231,18 +232,18 @@ class beam_camera(BVO):
         # We now remove the initial noise by substracting either the average
         # frame from beginning to 0.0 seconds (shot starts) or just
         # removing the first frame.
-        # if remove_bg:
-        #     self.subtract_noise(t1=self.exp_dat.t[0],
-        #                         t2=0.0, flag_copy=True)
-        # else:
-        #     self.subtract_noise(frame=self.exp_dat.isel(t=0),
-        #                         flag_copy=True)
+        if remove_bg:
+            self.subtract_noise(t1=self.exp_dat.t[0].values,
+                                t2=0.0, flag_copy=True)
+        else:
+            self.subtract_noise(frame=self.exp_dat.isel(t=0),
+                                flag_copy=True)
 
         # Setting to None the internal line data.
         self.line = None
 
     def plot_frame(self, rois: bool=True, beam_line: bool=False,
-                   **kwargs):
+                   calibrated: bool=False, **kwargs):
         """
         Plots a given frame of the video.
 
@@ -257,17 +258,32 @@ class beam_camera(BVO):
         :param kwargs: keyword arguments to pass down to the parent class.
         """
 
-        # Plots the frame using the base class.
-        ax = super().plot_frame(**kwargs)
-
         colors = ['r', 'y', 'g', 'm', 'c']
+
+        extent = [0, self.exp_dat.py.size, 0, self.exp_dat.px.size]
+        extent = np.array(extent, dtype=float)
+        if calibrated:
+            factor = self.camcal['diff'] / 10.0
+            units = 'cm'
+            extent /= factor
+        else:
+            factor = 1.0
+            units  = 'pixel'
+
+
+
+        # Plots the frame using the base class.
+        ax = super().plot_frame(**kwargs, extent=extent)
+
+        ax.set_xlabel('X [%s]'%units)
+        ax.set_ylabel('Y [%s]'%units)
 
         if rois:
             if self.camcal['roi'] is None:
                 logger.warning('There are not any ROIs declared!')
 
             for iroi in range(self.camcal['roi'].shape[0]):
-                x0, y0, x1, y1 = self.camcal['roi'][iroi]
+                x0, y0, x1, y1 = self.camcal['roi'][iroi] / factor
                 width = x1 - x0
                 height = y1 - y0
 
@@ -275,7 +291,7 @@ class beam_camera(BVO):
                 rect = patches.Rectangle((x0, y0), width, height,
                                          linewidth=0, edgecolor=colors[iroi],
                                          facecolor=colors[iroi],
-                                         alpha=0.20,
+                                         alpha=0.50,
                                          label='ROI#%d'%iroi)
 
                 # Add the patch to the Axes
@@ -285,19 +301,41 @@ class beam_camera(BVO):
                 logger.warning('The line has not been precomputed!')
 
             if kwargs['t'] is not None:
-                frame_num =  self.getFrameIndex(kwargs['t'], False)
+                idx = np.abs(self.line.t - kwargs['t']).argmin().values
             else:
-                frame_num = kwargs['frame_number']
-
+                time = self.getTime(kwargs['frame_number'])
+                idx = np.abs(self.line.t - time).argmin()
 
             # Plotting the beam line.
-            ax.plot(self.line[frame_num, 0, ...],
-                    self.line[frame_num, 1, ...],
-                    color='b', label='Fitted line', zorder=100)
+            if(self.camcal['orientation'] == 'vertical'):
+                ax.plot(self.line.line[:, idx]/factor, self.line.x/factor,
+                        color='b', label='Fitted line', zorder=100)
+                ax.plot(self.line.line_up[:, idx]/factor, self.line.x/factor,
+                        color='m', label='1st edge', zorder=100)
+                ax.plot(self.line.line_dw[:, idx]/factor, self.line.x/factor,
+                        color='m', label='2nd edge', zorder=100)
+
+                beta = self.line.beta_pix[idx].values*180.0/np.pi
+                ax.text(0.05, 0.10, '$\\beta_{pix}$ = ' +\
+                        str(round(float(beta), 2)) + (' º'),
+                        horizontalalignment='left',
+                        color='w', verticalalignment='bottom',
+                        transform=ax.transAxes)
+
+
+                alpha = self.line.div_pix[idx].values*180.0/np.pi
+                ax.text(0.05, 0.05, '$\\alpha$ = ' +\
+                        str(round(float(alpha), 2)) + (' º'),
+                        horizontalalignment='left',
+                        color='w', verticalalignment='bottom',
+                        transform=ax.transAxes)
+            else:
+                ax.plot(self.line.x, self.line.line[:, idx],
+                        color='b', label='Fitted line', zorder=100)
 
         return
 
-    def get_beam_line(self, time: float=None, graphic_bar: bool=False):
+    def get_roi_fit(self, time: float=None, graphic_bar: bool=False):
         """
         Computes the beam line by fitting it to a Gaussian function.
 
@@ -311,7 +349,7 @@ class beam_camera(BVO):
         if time is None:
             time = self.timebase
 
-        time = np.atleast_1d(time, dtype=float)
+        time = np.atleast_1d(time)
 
         if np.any(time > self.timebase.max()):
             raise ValueError('Some of the time points are higher than ' + \
@@ -326,9 +364,12 @@ class beam_camera(BVO):
             t1 = np.abs(self.timebase - time.max()).argmin()
 
             time = self.timebase[t0:t1]
+        elif time.size == 1:
+            t0 = np.abs(self.timebase - time[0]).argmin()
+            time = np.array((self.timebase[t0],))
 
         # Number of ROIs
-        nroi = self.camcal['roi'].shape[-1]
+        nroi = self.camcal['roi'].shape[0]
 
         # Preparing the results array.
         amp    = np.zeros((nroi, time.size))
@@ -337,29 +378,178 @@ class beam_camera(BVO):
 
         # Looping over the ROIs.
         for iroi in range(nroi):
-            xroi = np.arange(self.camcal['roi'][1], self.camcal['roi'][3] + 1)
-            yroi = np.arange(self.camcal['roi'][0], self.camcal['roi'][2] + 1)
-            data = self.exp_dat[xroi, yroi, :]
+            xroi = np.arange(self.camcal['roi'][iroi][1],
+                             self.camcal['roi'][iroi][3] + 1)
+            yroi = np.arange(self.camcal['roi'][iroi][0],
+                             self.camcal['roi'][iroi][2] + 1)
+            data = self.exp_dat.isel(px=xroi, py=yroi)
 
             # Looping in time.
             for ii, itime in tqdm(enumerate(time), disable=not graphic_bar,
-                                  desc='Parsing ROI #%d'%iroi):
+                                  desc='Parsing ROI #%d'%iroi,
+                                  total=time.size):
                 if self.camcal['orientation'] == 'vertical':
-                    frame = data.sel(time = itime).mean(axis = 0).values
+                    frame = data.sel(t = itime).mean(dim = 'px').frames.values.astype('float64')
                     x = yroi
                 else:
-                    frame = data.sel(time = itime).mean(axis = 1).values
+                    frame = data.sel(t = itime).mean(dim = 'py').frames.values.astype('float64')
                     x = xroi
 
                 # Fitting it to a Gaussian.
-                fitter = lmfit.models.Gaussian()
+                fitter = lmfit.models.GaussianModel()
                 pars = fitter.guess(frame, x=x)
                 res = fitter.fit(frame, pars, x=x)
 
-                amp[iroi, ii]    = res.parameters['amplitude'].value
-                fwhm[iroi, ii]   = res.parameters['fwhm'].value
-                center[iroi, ii] = res.parameters['center'].value
+                amp[iroi, ii]    = res.params['amplitude'].value
+                fwhm[iroi, ii]   = res.params['fwhm'].value
+                center[iroi, ii] = res.params['center'].value
 
+        return amp, fwhm, center, time
+
+    def make_beam_line(self, time: float=None, sigma: float=1.0,
+                       graphic_bar: bool=False):
+        """
+        This function will build the line for all the points in the camera and
+        store it internally.
+
+        Pablo Oyola - poyola@us.es
+        """
+
+        _, self.line_fwhm, self.line_center, time = \
+            self.get_roi_fit(time=time, graphic_bar=graphic_bar)
+
+        self.line = xr.Dataset()
+
+        slopes = np.zeros((self.line_fwhm.shape[1], ))
+        interc = np.zeros((self.line_fwhm.shape[1], ))
+        slopes1 = np.zeros((self.line_fwhm.shape[1], ))
+        interc1 = np.zeros((self.line_fwhm.shape[1], ))
+        slopes2 = np.zeros((self.line_fwhm.shape[1], ))
+        interc2 = np.zeros((self.line_fwhm.shape[1], ))
+        x = np.zeros((self.camcal['roi'].shape[0], ))
+
+
+        for iroi in range(self.camcal['roi'].shape[0]):
+            xroi = np.arange(self.camcal['roi'][iroi][1],
+                             self.camcal['roi'][iroi][3] + 1)
+            yroi = np.arange(self.camcal['roi'][iroi][0],
+                             self.camcal['roi'][iroi][2] + 1)
+
+            # From the ROIs we get the center location where they are evaluated.
+            if self.camcal['orientation'] == 'vertical':
+                x[iroi] = xroi.mean()
+            else:
+                x[iroi] = yroi.mean()
+
+        # From this fit, we compute for all the time points the line passing
+        # by all the ROIs center.
+        for ii, itime in enumerate(time):
+            # Fitting the central line.
+            slopes[ii], interc[ii] = np.polyfit(x,
+                                                self.line_center[:, ii],
+                                                deg=1).tolist()
+
+            # Fitting a line to the edge profile of the line.
+            y_up = self.line_center[:, ii] + sigma * self.line_fwhm[:, ii]
+            slopes1[ii], interc1[ii] = np.polyfit(x, y_up, deg=1).tolist()
+
+            y_dw = self.line_center[:, ii] - sigma * self.line_fwhm[:, ii]
+            slopes2[ii], interc2[ii] = np.polyfit(x, y_dw, deg=1).tolist()
+
+
+
+        self.line['slopes'] = xr.DataArray(slopes, dims=('t',),
+                                          coords=(time,))
+
+        self.line['interc'] = xr.DataArray(interc, dims=('t',),
+                                           coords=(time,))
+
+
+        # Building up the lines.
+        px0 = self.exp_dat.px.values.min()
+        px1 = self.exp_dat.px.values.max()
+        py0 = self.exp_dat.py.values.min()
+        py1 = self.exp_dat.py.values.max()
+
+        if self.camcal['orientation'] == 'vertical':
+            limits = np.array((px0, px1))
+        else:
+            limits = np.array((py0, py1))
+
+        # We build the central line.
+        central_line = self.line.slopes.values[:, None] * limits[None, :] + \
+                       self.line.interc.values[:, None]
+
+        upperlim = slopes1[:, None] * limits[None, :] + \
+                   interc1[:, None]
+        lowerlim = slopes2[:, None] * limits[None, :] + \
+                   interc2[:, None]
+
+        coords = (limits, time)
+        dims   = ('x', 't')
+
+        self.line['line'] = xr.DataArray(central_line.T,
+                                         coords=coords,
+                                         dims=dims)
+        self.line['line_up'] = xr.DataArray(upperlim.T,
+                                            coords=coords,
+                                            dims=dims)
+        self.line['line_dw'] = xr.DataArray(lowerlim.T,
+                                            coords=coords,
+                                            dims=dims)
+
+
+        # Computing the deflection angle in pixel coordinates.
+        if self.camcal['orientation'] == 'vertical':
+            norm = np.sqrt(self.line.slopes**2 + 1)
+            u_dir_x = 1.0/norm
+            u_dir_y = self.line.slopes/norm
+            u_dir_pix = np.array([u_dir_x, u_dir_y])
+
+            coords = [np.array(('x', 'y')), time]
+            dims   = ['pixcoord', 't']
+            attrs  = { 'desc': 'Direction in pixel coordinates',
+                       'units': 'pixel',
+                     }
+
+            self.line['u_dir_pix'] = xr.DataArray(u_dir_pix, coords=coords,
+                                                  dims=dims, attrs=attrs)
+
+            coords = [time]
+            dims   = ['t']
+            attrs  = { 'desc':  'Angle with the Xpixels axis',
+                       'units': 'rad',
+                     }
+
+            angle = np.arccos(1.0/norm)
+            self.line['beta_pix'] = xr.DataArray(angle, coords=coords,
+                                                 dims=dims, attrs=attrs)
+
+            # We compute now the beam divergence.
+            norm1 = np.sqrt(slopes1**2 + 1)
+            u_dir_x1 = 1.0/norm1
+            u_dir_y1 = slopes1/norm
+            u1 = np.array([u_dir_x1, u_dir_y1])
+
+            norm2 = np.sqrt(slopes2**2 + 1)
+            u_dir_x2 = 1.0/norm2
+            u_dir_y2 = slopes2/norm
+            u2 = np.array([u_dir_x2, u_dir_y2])
+
+            alpha = np.arccos(np.sqrt(u1[0, :] * u2[0, :] + \
+                                      u1[1, :] * u2[1, :])) /2.0
+            coords = [time]
+            dims   = ['t']
+            attrs  = { 'desc':  'Divergence from top camera',
+                       'units': 'rad',
+                     }
+
+            angle = np.arccos(1.0/norm)
+            self.line['div_pix'] = xr.DataArray(alpha, coords=coords,
+                                                 dims=dims, attrs=attrs)
+
+        else:
+            raise NotImplementedError('Working on it, sorry')
 
 
 
