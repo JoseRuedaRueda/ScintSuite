@@ -202,9 +202,9 @@ class iHIBPvideo(BVO):
         # Let's check whether the user provided the calibration parameters.
         if calib is None:
             print('Retrieving the calibration parameters for iHIBP')
-            caldb = libcal.CalibrationDatabase(pa.ihibp_calibration_db)
-            self.calib = caldb.get_calibration(shot=shot,
-                                               diag_ID=1)
+            caldb = libcal.get_database(pa.ihibp_calibration_db)
+            self.calib = libcal.get_calibration_method(caldb, shot=shot,
+                                               diag_ID=1, method = 'non-poly')
         else:
             self.calib = calib
         # JRR note: This was created in parallel by Pablo and I will not change
