@@ -37,7 +37,7 @@ class Path:
                                                  'Data',
                                                  'Calibrations',
                                                  'iHIBP',
-                                                 'calibration_database.txt')
+                                                 'calibration_database.calib3')
         self.ihibp_scint_plate = os.path.join(self.ScintSuite,
                                               'Data', 'Plates', 'iHIBP',
                                               'aug_iHIBP_2020_12_reversed.pl')
