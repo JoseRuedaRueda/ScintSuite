@@ -81,24 +81,24 @@ class Fsmap(FILDINPA_Smap):
         Introduced in version 1.1.0
         Based on the old build_weight_matrix from the FILDSIM library
 
-        @param xscint: x
-        @param yscint: y
-        @param xpin: x
-        @param ypin: y
-        @param efficiency: ScintillatorEfficiency() object. If None, efficiency
+        :param  xscint: x
+        :param  yscint: y
+        :param  xpin: x
+        :param  ypin: y
+        :param  efficiency: ScintillatorEfficiency() object. If None, efficiency
         will not be included
-        @param spoints: path pointing to the strike point file. Not needed if smap
+        :param  spoints: path pointing to the strike point file. Not needed if smap
         is a strike map object with the resolutions already calculated
-        @param diag_params: Parametes for the resolution calculation, useless if
+        :param  diag_params: Parametes for the resolution calculation, useless if
         the input strike map has the resolutions already calcualted See
         StrikeMap.calculate_resolutions() for the whole list of options
-        @param B: Magnetic field, used to translate between radius and energy, for
+        :param  B: Magnetic field, used to translate between radius and energy, for
         the efficiency evaluation
-        @param A: Mass in amu, used to translate between radius and energy, for the
+        :param  A: Mass in amu, used to translate between radius and energy, for the
         efficiency evaluation
-        @param Z: charge in elecrton charges, used to translate between radius and
+        :param  Z: charge in elecrton charges, used to translate between radius and
         energy, for the efficiency evaluation
-        @param only_gyroradius: flag to decide if the output will be the matrix
+        :param  only_gyroradius: flag to decide if the output will be the matrix
         just relating giroradius in the pinhole and the scintillator, ie, pitch
         integrated
 

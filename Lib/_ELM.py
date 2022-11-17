@@ -24,13 +24,13 @@ def getELM_times(shotnumber: int, time: float = None, diag: str = 'MAC',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shotnumber: pulse number to study the ELM.
-    @param time: time window to analyze. If None, the whole time window
+    :param  shotnumber: pulse number to study the ELM.
+    :param  time: time window to analyze. If None, the whole time window
     is used.
-    @param diag: diagnostic to read the data to be analyzed.
-    @param signal: name of the signal to use.
-    @param exp: experiment where the shotfile is stored.
-    @param edition: edition to open.
+    :param  diag: diagnostic to read the data to be analyzed.
+    :param  signal: name of the signal to use.
+    :param  exp: experiment where the shotfile is stored.
+    :param  edition: edition to open.
     """
     warnings.filterwarnings('ignore', category=RuntimeWarning)
     try:
@@ -60,14 +60,14 @@ def getELM_times_from_signal_raw(elm_start: dict, time: float, signal: float,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param elm_start: dictionary containing the data of the ELM onset and the
+    :param  elm_start: dictionary containing the data of the ELM onset and the
     ELM timing.
-    @param time: time basis of signal to get the ELM starting points and apply
+    :param  time: time basis of signal to get the ELM starting points and apply
     ELM synchr.
-    @param signal: signal for the ELM synchronization.
-    @param buildCorr: flag to compute the ELM correlation. Default to False
+    :param  signal: signal for the ELM synchronization.
+    :param  buildCorr: flag to compute the ELM correlation. Default to False
     (the correlation, although fast, implies some extra time).
-    @param delay_start:
+    :param  delay_start:
 
     """
 
@@ -224,9 +224,9 @@ def ELM_buildCorrelation(ELMsignal: float, axis: int=0):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param ELMsignal: float matrix with the ELM signal as a matrix with
+    :param  ELMsignal: float matrix with the ELM signal as a matrix with
     nELMs x time_base. Notice that the time basis must be the same!
-    @param axis: axis along the ELMs are located.
+    :param  axis: axis along the ELMs are located.
     """
 
     if axis != 0:
@@ -253,10 +253,10 @@ def ELM_similarity(elm_dict: dict, threshold: float = 0.96, elm_idx: int=None):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param elm_dict: dictionary with the ELM entry (at least).
-    @param threshold: threshold to claim correlation between the ELMs and take
+    :param  elm_dict: dictionary with the ELM entry (at least).
+    :param  threshold: threshold to claim correlation between the ELMs and take
     them.
-    @param elm_idx: if different from None, all the ELMs in positive correlation
+    :param  elm_idx: if different from None, all the ELMs in positive correlation
     with the given ELM index are taken. Otherwise, the pair of ELMs with the
     largest correlation is taken as initial feed for the algorithm.
     """
@@ -323,11 +323,11 @@ def ELMsync(time: float, signal: float, elm_dict:dict, average = False):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param time: new time basis to analyze.
-    @param signal: signal to apply the ELM synchronization. The time axis
+    :param  time: new time basis to analyze.
+    :param  signal: signal to apply the ELM synchronization. The time axis
     must be the first axis. This enables multiple signals to be synced
     simultaneously.
-    @param elm_dict: dictionary with the ELM data (output of ELM_similarity.)
+    :param  elm_dict: dictionary with the ELM data (output of ELM_similarity.)
     """
 
     time   = np.atleast_1d(time)

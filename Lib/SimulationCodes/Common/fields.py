@@ -91,8 +91,8 @@ class fields:
         --> Bphi[nR, nPhi, nz]: float64
         --> Bz[nR, nPhi, nz]: float64
 
-        @param Bfile: Full path to the magnetic field.
-        @param Efile: Full path to the electric field file.
+        :param  Bfile: Full path to the magnetic field.
+        :param  Efile: Full path to the electric field file.
         """
         self.bdims = 0
         self.edims = 0
@@ -412,18 +412,18 @@ class fields:
         ft.
         Jose Rueda: jrrueda@us.es
 
-        @param shotnumber: Shot from which to extract the magnetic equilibrium.
-        @param time: Time point to fetch the equilibrium.
-        @param exp: Experiment where the equilibria is stored.
-        @param diag: Diagnostic from which extracting the equilibrium.
-        @param edition: Edition of the equilibrium to retrieve. Set to 0 by
+        :param  shotnumber: Shot from which to extract the magnetic equilibrium.
+        :param  time: Time point to fetch the equilibrium.
+        :param  exp: Experiment where the equilibria is stored.
+        :param  diag: Diagnostic from which extracting the equilibrium.
+        :param  edition: Edition of the equilibrium to retrieve. Set to 0 by
         default, which will take from the AUG DB the latest version.
-        @param Rmin: Minimum radius to get the magnetic equilibrium.
-        @param Rmax: Maximum radius to get the magnetic equilibrium.
-        @param zmin: Minimum Z to get the magnetic equilibrium.
-        @param zmax: Maximum Z to get the magnetic equilibrium.
-        @param nR: Number of points to define the B field grid in R direction.
-        @param nz: Number of points to define the B field grid in Z direction.
+        :param  Rmin: Minimum radius to get the magnetic equilibrium.
+        :param  Rmax: Maximum radius to get the magnetic equilibrium.
+        :param  zmin: Minimum Z to get the magnetic equilibrium.
+        :param  zmax: Maximum Z to get the magnetic equilibrium.
+        :param  nR: Number of points to define the B field grid in R direction.
+        :param  nz: Number of points to define the B field grid in Z direction.
         """
         self.bdims = 0
         self.edims = 0
@@ -517,20 +517,20 @@ class fields:
         2D grid, so we will be creating a 'toroidally homogeneous field' (if
         this term exist).
 
-        @param shotnumber: Shot from which to extract the magnetic equilibrium.
-        @param time: Time point to fetch the equilibrium.
-        @param R0: R where to calculate the magnetic field [m]
-        @param Z0: Z where to calculate the
-        @param exp: Experiment where the equilibria is stored.
-        @param diag: Diagnostic from which extracting the equilibrium.
-        @param edition: Edition of the equilibrium to retrieve. Set to 0 by
+        :param  shotnumber: Shot from which to extract the magnetic equilibrium.
+        :param  time: Time point to fetch the equilibrium.
+        :param  R0: R where to calculate the magnetic field [m]
+        :param  Z0: Z where to calculate the
+        :param  exp: Experiment where the equilibria is stored.
+        :param  diag: Diagnostic from which extracting the equilibrium.
+        :param  edition: Edition of the equilibrium to retrieve. Set to 0 by
         default, which will take from the AUG DB the latest version.
-        @param Rmin: Minimum radius to get the magnetic equilibrium.
-        @param Rmax: Maximum radius to get the magnetic equilibrium.
-        @param zmin: Minimum Z to get the magnetic equilibrium.
-        @param zmax: Maximum Z to get the magnetic equilibrium.
-        @param nR: Number of points to define the B field grid in R direction.
-        @param nz: Number of points to define the B field grid in Z direction.
+        :param  Rmin: Minimum radius to get the magnetic equilibrium.
+        :param  Rmax: Maximum radius to get the magnetic equilibrium.
+        :param  zmin: Minimum Z to get the magnetic equilibrium.
+        :param  zmax: Maximum Z to get the magnetic equilibrium.
+        :param  nR: Number of points to define the B field grid in R direction.
+        :param  nz: Number of points to define the B field grid in Z direction.
         """
         self.bdims = 0
 
@@ -634,13 +634,13 @@ class fields:
         2D grid, so we will be creating a 'toroidally homogeneous field' (if
         this term exist).
 
-        @param B: Magnetic field to be used [Br,Bz,Bphi] [T]
-        @param Rmin: Minimum radius to get the magnetic equilibrium.
-        @param Rmax: Maximum radius to get the magnetic equilibrium.
-        @param zmin: Minimum Z to get the magnetic equilibrium.
-        @param zmax: Maximum Z to get the magnetic equilibrium.
-        @param nR: Number of points to define the B field grid in R direction.
-        @param nz: Number of points to define the B field grid in Z direction.
+        :param  B: Magnetic field to be used [Br,Bz,Bphi] [T]
+        :param  Rmin: Minimum radius to get the magnetic equilibrium.
+        :param  Rmax: Maximum radius to get the magnetic equilibrium.
+        :param  zmin: Minimum Z to get the magnetic equilibrium.
+        :param  zmax: Maximum Z to get the magnetic equilibrium.
+        :param  nR: Number of points to define the B field grid in R direction.
+        :param  nz: Number of points to define the B field grid in Z direction.
         """
         self.bdims = 0
 
@@ -710,8 +710,8 @@ class fields:
 
         @todo: include interpolators, maybe translation to polar??
 
-        @param F: array with field, [fx, fy, fz]
-        @param field: 'B' or 'E', the field you want to generate
+        :param  F: array with field, [fx, fy, fz]
+        :param  field: 'B' or 'E', the field you want to generate
         """
         if field.lower() == 'b':
             self.bdims = 0
@@ -755,16 +755,16 @@ class fields:
 
         @todo: include interpolators, maybe translation to polar??
 
-        @param theta: Theta angle, in degrees, as defined in FILDSIM. See
+        :param  theta: Theta angle, in degrees, as defined in FILDSIM. See
             extended documentation
-        @param phi: Phi angle, in degrees, as defined in FILDSIM. See
+        :param  phi: Phi angle, in degrees, as defined in FILDSIM. See
             extended documentation
-        @param field_mod: modulus of the field to generate
-        @param field: 'B' or 'E', the field you want to generate
-        @param u1: u1 vector of the reference system
-        @param u2: u2 vector for the referece system
-        @param u3: u3 vector for the reference system
-        @param diagnostic: string identifying the diagnostic (to determine the
+        :param  field_mod: modulus of the field to generate
+        :param  field: 'B' or 'E', the field you want to generate
+        :param  u1: u1 vector of the reference system
+        :param  u2: u2 vector for the referece system
+        :param  u3: u3 vector for the reference system
+        :param  diagnostic: string identifying the diagnostic (to determine the
             meaining of the angles)
 
         Note: Please see SINPA documentation for a nice drawing of the
@@ -823,18 +823,18 @@ class fields:
         Jose Rueda: jrrueda@us.es
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param time: Time point from which magnetic equilibrium will be read.
-        @param shotnumber: Shot from which to extract the magnetic equilibria
-        @param exp: Experiment where the equilibria is stored.
-        @param diag: Diagnostic from which extracting the equilibrium.
-        @param edition: Edition of the equilibrium to retrieve. Set to 0 by
+        :param  time: Time point from which magnetic equilibrium will be read.
+        :param  shotnumber: Shot from which to extract the magnetic equilibria
+        :param  exp: Experiment where the equilibria is stored.
+        :param  diag: Diagnostic from which extracting the equilibrium.
+        :param  edition: Edition of the equilibrium to retrieve. Set to 0 by
         default, which will take from the AUG DB the latest version.
-        @param Rmin: Minimum radius to get the magnetic equilibrium.
-        @param Rmax: Maximum radius to get the magnetic equilibrium.
-        @param zmin: Minimum Z to get the magnetic equilibrium.
-        @param zmax: Maximum Z to get the magnetic equilibrium.
-        @param nR: Number of points to define the B field grid in R direction.
-        @param nz: Number of points to define the B field grid in Z direction.
+        :param  Rmin: Minimum radius to get the magnetic equilibrium.
+        :param  Rmax: Maximum radius to get the magnetic equilibrium.
+        :param  zmin: Minimum Z to get the magnetic equilibrium.
+        :param  zmax: Maximum Z to get the magnetic equilibrium.
+        :param  nR: Number of points to define the B field grid in R direction.
+        :param  nz: Number of points to define the B field grid in Z direction.
         """
         # Getting from the database.
         R = np.linspace(Rmin, Rmax, num=nR)
@@ -868,16 +868,16 @@ class fields:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param R: Major radius to evaluate the magnetic field.
-        @param z: Vertical position to evaluate the magnetic field.
-        @param phi: Toroidal location to evaluate the magnetic field.
+        :param  R: Major radius to evaluate the magnetic field.
+        :param  z: Vertical position to evaluate the magnetic field.
+        :param  phi: Toroidal location to evaluate the magnetic field.
         If the system is in 2D, it will be ignored.
-        @param t: Time to evaluate the magnetic field. If the magnetic
+        :param  t: Time to evaluate the magnetic field. If the magnetic
         field is only stored for a single time, it will be ignored.
 
-        @return Br: Radial component of the magnetic field.
-        @return Bz: Vertical component of the magnetic field.
-        @return Bphi: Toroidal component of the magnetic field.
+        :return Br: Radial component of the magnetic field.
+        :return Bz: Vertical component of the magnetic field.
+        :return Bphi: Toroidal component of the magnetic field.
 
         """
         if self.bdims != 0:
@@ -898,16 +898,16 @@ class fields:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param R: Major radius to evaluate the electric field.
-        @param z: Vertical position to evaluate the electric field.
-        @param phi: Toroidal location to evaluate the electric field.
+        :param  R: Major radius to evaluate the electric field.
+        :param  z: Vertical position to evaluate the electric field.
+        :param  phi: Toroidal location to evaluate the electric field.
         If the system is in 2D, it will be ignored.
-        @param t: Time to evaluate the electric field. If the electric
+        :param  t: Time to evaluate the electric field. If the electric
         field is only stored for a single time, it will be ignored.
 
-        @return Er: Radial component of the magelectricnetic field.
-        @return Ez: Vertical component of the electric field.
-        @return Ephi: Toroidal component of the electric field.
+        :return Er: Radial component of the magelectricnetic field.
+        :return Ez: Vertical component of the electric field.
+        :return Ephi: Toroidal component of the electric field.
         """
         if self.edims != 0:
             Er = self.Erinterp(R, z, phi, t)
@@ -925,14 +925,14 @@ class fields:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param R: Major radius to evaluate the poloidal flux.
-        @param z: Vertical position to evaluate the poloidal flux.
-        @param phi: Toroidal location to evaluate the poloidal flux.
+        :param  R: Major radius to evaluate the poloidal flux.
+        :param  z: Vertical position to evaluate the poloidal flux.
+        :param  phi: Toroidal location to evaluate the poloidal flux.
         If the system is in 2D, it will be ignored.
-        @param t: Time to evaluate the poloidal flux. If the poloidal
+        :param  t: Time to evaluate the poloidal flux. If the poloidal
         flux is only stored for a single time, it will be ignored.
 
-        @return psipol: Poloidal flux at the input points.
+        :return psipol: Poloidal flux at the input points.
         """
         if self.psipol_on:
             psipol = self.psipol_interp(R, z, phi, t)
@@ -947,11 +947,11 @@ class fields:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de ft. jrrueda@us.es
 
-        @param fid: file identifier where the files will be written. if this is
+        :param  fid: file identifier where the files will be written. if this is
             a string, the file will be created.
-        @param bflag: states if the magnetic field has to be written.
+        :param  bflag: states if the magnetic field has to be written.
         Default is True, so magnetic field will be written.
-        @param eflag: states if the electric field has to be written.
+        :param  eflag: states if the electric field has to be written.
         Default to False. If this is set to True, the magnetic field
         will not be written.
         """
@@ -1030,12 +1030,12 @@ class fields:
         'B', 'E' or ''Psipol') into some axis, ax, or the routine creates one
         for the plotting.
 
-        @param fieldName: Name of the field to be plotted.
-        @param ax_options: options for the function axis_beauty.
-        @param ax: Axis to plot the data.
-        @param cmap: Colormap to use. Gamma_II is set by default.
-        @param ax: Return the axis where the plot has been done.
-        @param plot_vessel: Flag to plot the vessel
+        :param  fieldName: Name of the field to be plotted.
+        :param  ax_options: options for the function axis_beauty.
+        :param  ax: Axis to plot the data.
+        :param  cmap: Colormap to use. Gamma_II is set by default.
+        :param  ax: Return the axis where the plot has been done.
+        :param  plot_vessel: Flag to plot the vessel
         """
         # --- Initialise the plotting parameters
         ax_params = {

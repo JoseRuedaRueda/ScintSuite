@@ -1,5 +1,5 @@
 """
-Contain INPA object.
+Contain routines to interact with the AUG - INPA database
 
 Jose Rueda: jrrueda@us.es
 """
@@ -10,15 +10,15 @@ import f90nml
 import logging
 import numpy as np
 import pandas as pd
-from Lib._Machine import machine
-from Lib._Paths import Path
-from Lib._Mapping._Calibration import CalParams, readCameraCalibrationDatabase
-import Lib.LibData.AUG.DiagParam as params
 import Lib.errors as errors
-paths = Path(machine)
+import Lib.LibData.AUG.DiagParam as params
+from Lib._Paths import Path
+from Lib._Machine import machine
+from Lib._Mapping._Calibration import CalParams, readCameraCalibrationDatabase
 
 
 # --- Auxiliary objects
+paths = Path(machine)
 logger = logging.getLogger('ScintSuite.INPAlogbook')
 
 
@@ -39,14 +39,14 @@ _defaultINPAdata = f90nml.read(_geometrdefault)
 # --- Auxiliar routines to find the path towards the camera files
 def guessINPAfilename(shot: int, diag_ID: int = 1):
     """
-    Guess the filename of a video
+    Guess the filename of a video file/folder
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param shot: shot number
-    @param diag_ID: INPA number
+    :param  shot: shot number
+    :param  diag_ID: INPA number
 
-    @return f: the name of the file/folder
+    :return f: the name of the file/folder
     """
     base_dir = params.INPA[diag_ID-1]['path'](shot)
     extension = params.INPA[diag_ID-1]['extension'](shot)
@@ -71,10 +71,17 @@ class INPA_logbook:
     Introduced in version 0.8.1
 
     Public methods:
-        - getCameraCalibration(): find the camera parameters
-        - getGeomID(): Get the id of the geometry installed in a manipulator
+        - getCameraCalibration(): find the camera parameters for a given shot
+        - getGeomID(): Get the id of the geometry installed for a given shot
         - getPositionOrientation(): get the position and orientation of INPA
-        - getGeomShots(): find all shots where a given collimator was installed
+        - getGeomShots(): find all shots where a given geometry was installed
+        - getComment(): Get the comment from the INPA logbook for a given shot
+
+    Private methods:
+        - _readExcelLogbook(): Read the INPA excel logbook
+        - _readGeometryDatabase(): Read the geometry database
+        - _getPositionOrientationDefault(): Return the default pos/orientation
+
     """
 
     def __init__(self,
@@ -83,13 +90,13 @@ class INPA_logbook:
                  logbookFile: str = _INPALogbook,
                  verbose: bool = True):
         """
-        Initialise the object
+        Initialise the object.
 
         Read the three data bases and save them in atributes of the object
 
-        @param cameraFile: path to the ACSII file containing the data
-        @param geometryFile: path to the ACSII file containing the data
-        @param logbookFile: path to the excel file containing the data (the
+        :param  cameraFile: path to the ACSII file containing the data
+        :param  geometryFile: path to the ACSII file containing the data
+        :param  logbookFile: path to the excel file containing the data (the
             url poiting to the internet logbook. It can be a path to a local
             excel)
         """
@@ -108,7 +115,7 @@ class INPA_logbook:
             self.excelLogbook = \
                 self._readExcelLogbook(logbookFile, verbose=verbose)
         except FileNotFoundError:
-            print('No excel logbook found')
+            logger.warning('29: No excel logbook found')
         # Load the geometry database
         self.geometryDatabase = \
             self._readGeometryDatabase(geometryFile, verbose=verbose)
@@ -122,17 +129,22 @@ class INPA_logbook:
         """
         Read the excel containing the position database
 
-        @param filename: path or url pointing to the logbook
-        @param verbose: flag to print some info
+        :param  filename: path or url pointing to the logbook
+        :param  verbose: flag to print some info
+
+        :return excelLogbook: Pandas object with the excell logbook
+
+        Note:
+            - Will set the internal variable logbookVersion
         """
         if verbose:
             print('Looking for the position database: ', filename)
-        dummy = pd.read_excel(filename, engine='odf', header=[0, 1])
+        excelLogbook = pd.read_excel(filename, engine='odf', header=[0, 1])
         # dummy['shot'] = dummy.Shot.Shot.values.astype(int)
         self.logbookVersion = 0  # Up to now, this is no usefull as there is
         #                          only one format, but this is a place holder
         #                          for the future, just in case
-        return dummy
+        return excelLogbook
 
     def _readGeometryDatabase(self, filename: str, n_header: int = 3,
                               verbose: bool = True):
@@ -142,12 +154,12 @@ class INPA_logbook:
         See the help PDF located at the readme file for a full description of
         each available parameter
 
-        @author Jose Rueda Rueda: jrrueda@us.es
+        Jose Rueda Rueda: jrrueda@us.es
 
-        @param filename: Complete path to the file with the calibrations
-        @param n_header: Number of header lines (5 in the oficial format)
+        :param  filename: Complete path to the file with the calibrations
+        :param  n_header: Number of header lines (5 in the oficial format)
 
-        @return database: Pandas dataframe with the database
+        :return database: Pandas dataframe with the database
         """
         data = {'CalID': [], 'shot1': [], 'shot2': [],
                 'GeomID': [], 'diag_ID': []}
@@ -178,14 +190,16 @@ class INPA_logbook:
         """
         Get the camera calibration parameters for a shot
 
-        @param shot: Shot number for which we want the calibration
-        @param cal_type: Type of calibration we want
-        @param diag_ID: ID of the diagnostic we want
-        @param FILDid: alias for diag_ID, to be consistent with the rest of the
+        Jose Rueda Rueda: jrrueda@us.es
+
+        :param  shot: Shot number for which we want the calibration
+        :param  cal_type: Type of calibration we want
+        :param  diag_ID: ID of the diagnostic we want
+        :param  FILDid: alias for diag_ID, to be consistent with the rest of the
             functions in the logbook but also keep retrocompatibility. Notice
             that if diag_ID is not None, diag_ID value will prevail
 
-        @return cal: CalParams() object
+        :return cal: CalParams() object
         """
         # --- Select the possible entries
         flags = (self.CameraCalibrationDatabase['shot1'] <= shot) & \
@@ -222,8 +236,12 @@ class INPA_logbook:
         """
         Get the geometry id of the INPA detector for a given shot
 
-        @param shot: integer, shot number
-        @param FILDid: manipulator number
+        Jose Rueda Rueda: jrrueda@us.es
+
+        :param  shot: integer, shot number
+        :param  FILDid: manipulator number
+
+        :return GeomID: str, geometry ID installed for that shot
         """
         flags = (self.geometryDatabase['shot1'] <= shot) & \
             (self.geometryDatabase['shot2'] >= shot) & \
@@ -235,8 +253,8 @@ class INPA_logbook:
             raise errors.FoundSeveralGeomID(
                 'More than onw entry found, revise')
         else:
-            id = self.geometryDatabase[flags].GeomID.values[0]
-        return id
+            GeomID = self.geometryDatabase[flags].GeomID.values[0]
+        return GeomID
 
     def getPositionOrientation(self, shot: int, diag_ID: int = 1):
         """
@@ -244,11 +262,14 @@ class INPA_logbook:
 
         Jose Rueda - jrrueda@us.es
 
-        @param shot: shot number to look in the database
-        @param FILDid: manipulator id
+        :param  shot: shot number to look in the database
+        :param  diag_ID: INPA id number
 
-        Note: The INPA does not move, as FILD, so just take the default from
-        the installation
+        :return position: Dict with scintillator and pinhole position
+        :return orientation: Dict with scintillator reference vectors
+
+        Note:
+            - The INPA does not move, so just take the default values from geom
         """
         # Get always the default as a reference:
         geomID = self.getGeomID(shot, diag_ID)
@@ -282,18 +303,16 @@ class INPA_logbook:
                                          (default['s3'] * uz).sum(),
                                          (default['s3'] * uphi).sum()])
         return position, orientation
-
-    def getGeomShots(self, geomID, maxR: float = None, verbose: bool = True):
         """
         Return all shots in the database position database with a geomID
 
-        @param geomID: ID of the geometry we are insterested in
-        @param maxR: if present, only shots for which R < maxR will be
+        :param  geomID: ID of the geometry we are insterested in
+        :param  maxR: if present, only shots for which R < maxR will be
             considered. Default values are, for each manipulator:
                 1: 2.5 m
                 2: 2.2361 m
                 5: 1.795 m
-        @param verbose: flag to print in the console the number of shots found
+        :param  verbose: flag to print in the console the number of shots found
             using that geometry
         """
         # Minimum insertion
@@ -341,9 +360,9 @@ class INPA_logbook:
         """
         Get the comment line
 
-        @param shot: shot number (int) or array of shots
+        :param  shot: shot number (int) or array of shots
 
-        @return: string containing the comment written by the INPA operator
+        :return comment: string (or list) with comments written by the operator
         """
         # Prepare the shot list
         if isinstance(shot, int):
@@ -370,7 +389,7 @@ class INPA_logbook:
         return comment
 
     def _getPositionOrientationDefault(self, geomID: str):
-        """Get the default postition of an INPA, given the geometry id"""
+        """Get the default postition of an INPA, given the geometry id."""
         dummy = _defaultINPAdata[geomID]
         out = {
           # Pinhole position

@@ -28,13 +28,13 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param x: np.array of positions to be transformed, x coordinate
-    @param y: np.array of positions to be transformed, y coordinate
-    @param cal: Object containing all the information for the
+    :param  x: np.array of positions to be transformed, x coordinate
+    :param  y: np.array of positions to be transformed, y coordinate
+    :param  cal: Object containing all the information for the
     transformation, see class CalParams()
 
-    @return xpixel: x positions in pixels
-    @return ypixel: y position in pixels
+    :return xpixel: x positions in pixels
+    :return ypixel: y position in pixels
     """
     eps = 1e-6  # Level for the distortion coefficient to be considered as
     #             zero (see below)
@@ -108,9 +108,9 @@ class XYtoPixel:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param cal: camera calibration to apply
+        :param  cal: camera calibration to apply
 
-        @return: nothing, just fill the _coord_pix dictionary
+        :return: nothing, just fill the _coord_pix dictionary
         """
         self._coord_pix['x'], self._coord_pix['y'] = \
             transform_to_pixel(self._coord_real['x1'], self._coord_real['x2'],
@@ -131,11 +131,11 @@ def estimate_effective_pixel_area(frame_shape, xscale: float, yscale: float,
     xscale and yscale are in units of : #pixels/cm
     So A_omega can be approximated by: A_omega=1/(xscale*yscale) [cm^2 or m^2]
 
-    @param frame_shape: shape of the frame
-    @params yscale: the scale [#pixel/cm] of the calibration to align the map
-    @params xscale: the scale [#pixel/cm] of the calibration to align the map
-    @param type: 0, ignore distortion, 1 include distortion (not done)
-    @return area: Matrix where each element is the area covered by that pixel
+    :param  frame_shape: shape of the frame
+    :param s yscale: the scale [#pixel/cm] of the calibration to align the map
+    :param s xscale: the scale [#pixel/cm] of the calibration to align the map
+    :param  type: 0, ignore distortion, 1 include distortion (not done)
+    :return area: Matrix where each element is the area covered by that pixel
     @todo Include the model of distortion
     @todo now that the default calibrations are in m^-1, we should remove the
     1e-4, I am not a fan of including an extra optional argument...
@@ -160,17 +160,17 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
 
     Jose Rueda: jrrueda@us.es
 
-    @param bins: Can be the desired number of bins or the edges
-    @param model: 'Gauss' Pure Gaussian, 'sGauss' Screw Gaussian
-    @param normalize: flag to normalise the number of counts in the bins
+    :param  bins: Can be the desired number of bins or the edges
+    :param  model: 'Gauss' Pure Gaussian, 'sGauss' Screw Gaussian
+    :param  normalize: flag to normalise the number of counts in the bins
         between 0, 1; to improve fit performance
-    @param confidence_level: confidence level for the uncertainty determination
-    @param uncertainties: flag to calcualte the uncertainties of the fit
+    :param  confidence_level: confidence level for the uncertainty determination
+    :param  uncertainties: flag to calcualte the uncertainties of the fit
 
-    @return par: Dictionary containing the fit parameters
-    @return results: the lmfit model object with the results
-    @return normalization: The used normalization for the histogram
-    @return unc_output: The width of the confidence interval. Notice that this
+    :return par: Dictionary containing the fit parameters
+    :return results: the lmfit model object with the results
+    :return normalization: The used normalization for the histogram
+    :return unc_output: The width of the confidence interval. Notice that this
         is half the average of the upper and lower limits, so symmetric
         confidence interval is assumed. If you need non symstric conficende
         intervals you would need to run conf_interval of the fit on your own
@@ -208,6 +208,7 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
         for key in unc_output.keys():
             unc_output[key] =\
                 0.5 * abs(uncertainty[key][0][1] - uncertainty[key][2][1])
+                # TODO: Isn't this conflicting with the confidence interval above?
     else:
         unc_output = par.copy()
         for key in unc_output.keys():
@@ -228,11 +229,11 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
     Edges are only needed if you select the centers method, if not, they will
     be 'inside' the transformation matrix already
 
-    @param smap: StrikeMap() object with the strike map
-    @param frame: the frame to be remapped
-    @param x_edges: edges of the x coordinate, for FILD, pitch [º]
-    @param y_edges: edges of the y coordinate, for FILD, gyroradius [cm]
-    @param method: procedure for the remap
+    :param  smap: StrikeMap() object with the strike map
+    :param  frame: the frame to be remapped
+    :param  x_edges: edges of the x coordinate, for FILD, pitch [º]
+    :param  y_edges: edges of the y coordinate, for FILD, gyroradius [cm]
+    :param  method: procedure for the remap
         - MC: Use the transformation matrix calculated with markers at the chip
         - centers: Consider just the center of each pixel (Old IDL method)
     """
@@ -315,14 +316,14 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
 
     @author:  Jose Rueda: jrrueda@us.es
 
-    @param    remap_frame: np.array with the remapped frame
-    @param    pitch_centers: np array produced by the remap function
-    @param    min_pitch: minimum pitch to include
-    @param    max_pitch: Maximum pitch to include
-    @param    verbose: if true, the actual pitch interval will be printed
-    @param    name: if given, the profile will be exported in ASCII format
-    @param    gyr: the gyroradius values, to export
-    @return   profile:  the profile in gyroradius
+    :param     remap_frame: np.array with the remapped frame
+    :param     pitch_centers: np array produced by the remap function
+    :param     min_pitch: minimum pitch to include
+    :param     max_pitch: Maximum pitch to include
+    :param     verbose: if true, the actual pitch interval will be printed
+    :param     name: if given, the profile will be exported in ASCII format
+    :param     gyr: the gyroradius values, to export
+    :return   profile:  the profile in gyroradius
     @raises   ExceptionName: exception if the desired pitch range is not in the
     frame
     """
@@ -375,28 +376,28 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
 
     @author:  Jose Rueda: jrrueda@us.es
 
-    @param    remap_frame: np.array with the remapped frame
+    :param     remap_frame: np.array with the remapped frame
     @type:    ndarray
 
-    @param    gyr_centers: np array produced by the remap function
+    :param     gyr_centers: np array produced by the remap function
     @type:    ndarray
 
-    @param    min_gyr: minimum pitch to include
+    :param     min_gyr: minimum pitch to include
     @type:    float
 
-    @param    max_gyr: Maximum pitch to include
+    :param     max_gyr: Maximum pitch to include
     @type:    float
 
-    @param    verbose: if true, the actual pitch interval will be printed
+    :param     verbose: if true, the actual pitch interval will be printed
     @type:    bool
 
-    @param    name: Full path to the file to export the profile. if present,
+    :param     name: Full path to the file to export the profile. if present,
     file willbe written
 
-    @param    pitch: array of pitches used in the remapped, only used if the
+    :param     pitch: array of pitches used in the remapped, only used if the
     export option is activated
 
-    @return   profile:  pitch profile of the signal
+    :return   profile:  pitch profile of the signal
 
     @raises   ExceptionName: exception if the desired gyroradius range is not
     in the frame

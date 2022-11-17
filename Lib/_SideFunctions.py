@@ -25,8 +25,8 @@ def update_case_insensitive(a, b):
     Please, Pablo, do not kill me for this extremelly uneficient way of doing
     this
 
-    @params a: Main dictionary
-    @params b: Dictionary with the extra information to include in a
+    :param s a: Main dictionary
+    :param s b: Dictionary with the extra information to include in a
     """
     keys_a_lower = [key.lower() for key in a.keys()]
     keys_a = [key for key in a.keys()]
@@ -59,11 +59,11 @@ def line_fit_3D(x, y, z):
     Note, a regression is performed with OLS, so do not give a huge amount of
     points or your computer will be destroyed
 
-    @param x: array of x coordinates
-    @param y: array of y coordinates
-    @param z: array of z coordinates
+    :param  x: array of x coordinates
+    :param  y: array of y coordinates
+    :param  z: array of z coordinates
 
-    @return out: dict containing:
+    :return out: dict containing:
         -# v: the director vector
         -# p: the mean point of the dataset (point of the line)
     """
@@ -95,7 +95,7 @@ def createGrid(xmin: float, xmax: float, dx: float, ymin: float, ymax: float,
     """
     Create the grid following the criteria stablished in the remap functions
 
-    @param ...
+    :param  ...
 
     @Todo: finish the documentation
     """
@@ -109,9 +109,9 @@ def createGrid1D(xmin: float, xmax: float, dx: float):
     """
     Create the grid following the criteria stablished in the remap functions
 
-    @param xmin: minimum grid value (center)
-    @param xmax: maximum grid value (center)
-    @param dx: grid spacing
+    :param  xmin: minimum grid value (center)
+    :param  xmax: maximum grid value (center)
+    :param  dx: grid spacing
     """
     nx = int((xmax - xmin) / dx) + 1
     xedges = xmin - dx/2 + np.arange(nx + 1) * dx

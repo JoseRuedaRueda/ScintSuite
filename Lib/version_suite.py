@@ -6,7 +6,7 @@ import numpy as np
 from Lib._Machine import machine
 from Lib._Paths import Path
 
-version = '1.1.0'
+version = '1.1.1'
 codename = 'Melon con Jamon'
 
 logger = logging.getLogger('ScintSuite.Version')
@@ -46,7 +46,7 @@ def readGITcommit():
     """
     Read the information of the latest Suite Commit
 
-    @return out: Dictionary containing the name and author of the commit
+    :return out: Dictionary containing the name and author of the commit
     """
     p = Path(machine).ScintSuite
     repo = git.Repo(p)
