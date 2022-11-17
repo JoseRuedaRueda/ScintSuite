@@ -50,11 +50,11 @@ def OLS_inversion(X, y):
 
     Jose Rueda: jrrueda@us.es
 
-    @param X: Design matrix
-    @param y: signal
-    @return beta: best fit coefficients
-    @return MSE: Mean squared error
-    @return r2: R2 score
+    :param  X: Design matrix
+    :param  y: signal
+    :return beta: best fit coefficients
+    :return MSE: Mean squared error
+    :return r2: R2 score
     """
     beta = np.linalg.lstsq(X, y, rcond=None)[0]
     y_pred = X @ beta
@@ -70,12 +70,12 @@ def nnols_inversion(X, y, param: dict = {}):
 
     Jose Rueda: jrrueda@us.es
 
-    @param X: Design matrix
-    @param y: signal
-    @param param: dictionary with options for the nnls solver (see scipy)
-    @return beta: best fit coefficients
-    @return MSE: Mean squared error
-    @return r2: R2 score
+    :param  X: Design matrix
+    :param  y: signal
+    :param  param: dictionary with options for the nnls solver (see scipy)
+    :return beta: best fit coefficients
+    :return MSE: Mean squared error
+    :return r2: R2 score
     """
     beta, dummy = nnls(X, y, **param)
     y_pred = X @ beta
@@ -91,12 +91,12 @@ def Ridge_inversion(X, y, alpha):
 
     Jose Rueda: jrrueda@us.es
 
-    @param X: Design matrix
-    @param y: signal
-    @param alpha: hyperparameter
-    @return ridge.coef_: best fit coefficients
-    @return MSE: Mean squared error
-    @return r2: R2 score
+    :param  X: Design matrix
+    :param  y: signal
+    :param  alpha: hyperparameter
+    :return ridge.coef_: best fit coefficients
+    :return MSE: Mean squared error
+    :return r2: R2 score
     """
     ridge = Ridge(alpha)
     ridge.fit(X, y)
@@ -116,25 +116,25 @@ def Ridge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
 
     Jose Rueda: jrrueda@us.es
 
-    @param X: Design matrix
-    @param y: signal
-    @param alpha_min: minimum value for the hyper-parameter scan
-    @param alpha_max: maximum value for the hyper-parameter scan
-    @param n_alpha: number of points in the scan
-    @param log_spaced: if true, points will be logspaced
-    @param line_param: dictionary with the line plotting parameters
-    @param FS: FontSize
-    @param folder_to_save: if not None, in each iteration the calculated
+    :param  X: Design matrix
+    :param  y: signal
+    :param  alpha_min: minimum value for the hyper-parameter scan
+    :param  alpha_max: maximum value for the hyper-parameter scan
+    :param  n_alpha: number of points in the scan
+    :param  log_spaced: if true, points will be logspaced
+    :param  line_param: dictionary with the line plotting parameters
+    :param  FS: FontSize
+    :param  folder_to_save: if not None, in each iteration the calculated
            inversion will be saved, in pickle format, inside the folder
 
-    @return out: Dictionay with fields:
+    :return out: Dictionay with fields:
         -# beta: array of coefficients [nfeatures, nalphas]
         -# MSE: arrays of MSEs
         -# r2: arrays of r2
         -# residual: arrays of residual
         -# norm: norm of the coefficients
         -# alpha: Used hyperparameters
-    @return figures: Dictionay with the figures created by the method:
+    :return figures: Dictionay with the figures created by the method:
         -# Merit: r2 and MSE vs hyperparam
         -# L_curve: f norm vs residual
     """
@@ -206,13 +206,13 @@ def nnRidge(X, y, alpha, param: dict = {}):
     """
     Perfom a non-negative Ridge inversion
 
-    @param X: Design matrix
-    @param y: signal
-    @param alpha: hyperparameter
-    @param param. dictionary with extra parameters for scipy.nnls
-    @return ridge.coef_: best fit coefficients
-    @return MSE: Mean squared error
-    @return r2: R2 score
+    :param  X: Design matrix
+    :param  y: signal
+    :param  alpha: hyperparameter
+    :param  param. dictionary with extra parameters for scipy.nnls
+    :return ridge.coef_: best fit coefficients
+    :return MSE: Mean squared error
+    :return r2: R2 score
     """
     # Auxiliar arrays:
     n1, n2 = X.shape
@@ -239,25 +239,25 @@ def nnRidge_scan(X, y, alpha_min: float, alpha_max: float, n_alpha: int = 20,
 
     Jose Rueda: jrrueda@us.es
 
-    @param X: Design matrix
-    @param y: signal
-    @param alpha_min: minimum value for the hyper-parameter scan
-    @param alpha_max: maximum value for the hyper-parameter scan
-    @param n_alpha: number of points in the scan
-    @param log_spaced: if true, points will be logspaced
-    @param line_param: dictionary with the line plotting parameters
-    @param FS: FontSize
-    @param folder_to_save: if not None, in each iteration the calculated
+    :param  X: Design matrix
+    :param  y: signal
+    :param  alpha_min: minimum value for the hyper-parameter scan
+    :param  alpha_max: maximum value for the hyper-parameter scan
+    :param  n_alpha: number of points in the scan
+    :param  log_spaced: if true, points will be logspaced
+    :param  line_param: dictionary with the line plotting parameters
+    :param  FS: FontSize
+    :param  folder_to_save: if not None, in each iteration the calculated
        inversion will be saved, in pickle format, inside the folder
 
-    @return out: Dictionay with fields:
+    :return out: Dictionay with fields:
         -# beta: array of coefficients [nfeatures, nalphas]
         -# MSE: arrays of MSEs
         -# r2: arrays of r2
         -# residual: arrays of residual
         -# norm: norm of the coefficients
         -# alpha: Used hyperparameters
-    @return figures: Dictionay with the figures created by the method:
+    :return figures: Dictionay with the figures created by the method:
         -# Merit: r2 and MSE vs hyperparam
         -# L_curve: f norm vs residual
     """
@@ -332,14 +332,14 @@ def Elastic_Net(X, y, alpha, l1_ratio=0.05, positive=True, max_iter=1000):
 
     Jose Rueda: jrrueda@us.es
 
-    @param X: Design matrix
-    @param y: signal
-    @param alpha: hyperparameter
-    @param l1_ratio: hyperparameter of the ElasticNet
-    @param positive: flag to force positive coefficients
-    @return reg.coef_: best fit coefficients
-    @return MSE: Mean squared error
-    @return r2: R2 score
+    :param  X: Design matrix
+    :param  y: signal
+    :param  alpha: hyperparameter
+    :param  l1_ratio: hyperparameter of the ElasticNet
+    :param  positive: flag to force positive coefficients
+    :return reg.coef_: best fit coefficients
+    :return MSE: Mean squared error
+    :return r2: R2 score
     """
     # --- Initialise the regresor
     reg = ElasticNet(alpha=alpha, positive=positive, l1_ratio=l1_ratio,
@@ -362,15 +362,15 @@ def Elastic_net_scan(X, y, alpha_min: float, alpha_max: float,
 
     Jose Rueda: jrrueda@us.es
 
-    @param X: Design matrix
-    @param y: signal
-    @param alpha_min: minimum value for the hyper-parameter scan
-    @param alpha_max: maximum value for the hyper-parameter scan
-    @param n_alpha: number of points in the scan
-    @param log_spaced: if true, points will be logspaced
-    @param line_param: dictionary with the line plotting parameters
-    @param FS: FontSize
-    @return out: Dictionay with fields:
+    :param  X: Design matrix
+    :param  y: signal
+    :param  alpha_min: minimum value for the hyper-parameter scan
+    :param  alpha_max: maximum value for the hyper-parameter scan
+    :param  n_alpha: number of points in the scan
+    :param  log_spaced: if true, points will be logspaced
+    :param  line_param: dictionary with the line plotting parameters
+    :param  FS: FontSize
+    :return out: Dictionay with fields:
         -# beta: array of coefficients [nfeatures, nalphas]
         -# MSE: arrays of MSEs
         -# r2: arrays of r2
@@ -378,7 +378,7 @@ def Elastic_net_scan(X, y, alpha_min: float, alpha_max: float,
         -# norm: norm of the coefficients
         -# alpha: Used hyperparameters
         -# l1_ratio: l1 hyperparameter (ratio LASSO Ridge)
-    @return figures: Dictionay with the figures created by the method:
+    :return figures: Dictionay with the figures created by the method:
         -# Merit: r2 and MSE vs hyperparam
         -# L_curve: f norm vs residual
         -# L_curve_alpha: f norm vs hyperparameter
@@ -493,8 +493,8 @@ def L_curve_fit(norm, residual, a1_min=-1000, a1_max=0,
 
     Jose Rueda: jrrueda@us.es
 
-    @param residual: residual of the tomography scan
-    @param norm: norm of the coefficients of the tomography scan
+    :param  residual: residual of the tomography scan
+    :param  norm: norm of the coefficients of the tomography scan
     """
     x_fit = np.log(residual)
     min_x = x_fit.min()
@@ -550,42 +550,42 @@ def prepare_X_y_FILD(frame, smap, s_opt: dict, p_opt: dict,
 
     Jose Rueda: jrrueda@us.es
 
-    @param    frame: camera frame (in photons /s) you can put directly the
+    :param     frame: camera frame (in photons /s) you can put directly the
     camera frame if you want a.u
-    @param    smap: Scintillator map, with resolution calculated
-    @param    s_opt: Parameters for the scintillator grid
-    @param    p_opt: Parameters for the pinhole grid
-    @param    verbose: Print some notes on the console
-    @param    plt_frame: Plot the frame and noise suppressed frame (todo)
-    @param    LIMIT_REGION_FCOL: Limit the pinhole grid to points with fcol>0
-    @param    efficiency: efficiency dictionary, or path to the efficiency file
-    @param    median_filter: apply median filter to the remap frame
-    @param    filter options: options for the median filter, for the remap
-    @param    remap_method: Method to perform the remap, center or MC, MC is
+    :param     smap: Scintillator map, with resolution calculated
+    :param     s_opt: Parameters for the scintillator grid
+    :param     p_opt: Parameters for the pinhole grid
+    :param     verbose: Print some notes on the console
+    :param     plt_frame: Plot the frame and noise suppressed frame (todo)
+    :param     LIMIT_REGION_FCOL: Limit the pinhole grid to points with fcol>0
+    :param     efficiency: efficiency dictionary, or path to the efficiency file
+    :param     median_filter: apply median filter to the remap frame
+    :param     filter options: options for the median filter, for the remap
+    :param     remap_method: Method to perform the remap, center or MC, MC is
               hihgly recomended to avoid remap noise
-    @param    is_remap: if true, it will means that the frame input is not the
+    :param     is_remap: if true, it will means that the frame input is not the
               camer frame but the (r pitch) distribution at the pinhole,
               in this case, no remap will be done here and 'frame' will be
               directly consider as signal for the tomography (useful if we are
               dealing with shyntetic data). In this case, frame should be
               [npitch, nradius], as in the remap
-    @param B: Magnetic field, used to translate between radius and energy, for
+    :param  B: Magnetic field, used to translate between radius and energy, for
     the efficiency evaluation
-    @param A: Mass in amu, used to translate between radius and energy, for the
+    :param  A: Mass in amu, used to translate between radius and energy, for the
     efficiency evaluation
-    @param Z: charge in elecrton charges, used to translate between radius and
+    :param  Z: charge in elecrton charges, used to translate between radius and
     energy, for the efficiency evaluation
-    @param only_gyroradius: flag to decide if the output will be the matrix
+    :param  only_gyroradius: flag to decide if the output will be the matrix
     just relating giroradius in the pinhole and the scintillator, ie, pitch
     integrated
 
-    @return s1D: The 2D remapped ordered in a 1D array, (for the inversion)
-    @return W2D: The weight function, ordered just in 2D [scint, pinhole]
-    @return W4D: The W, in its 4 dimmensions
-    @return scint_grid: Grid used in the scintillator
-    @return pgrid: Grid used in the pinhole, can be different from the input if
+    :return s1D: The 2D remapped ordered in a 1D array, (for the inversion)
+    :return W2D: The weight function, ordered just in 2D [scint, pinhole]
+    :return W4D: The W, in its 4 dimmensions
+    :return scint_grid: Grid used in the scintillator
+    :return pgrid: Grid used in the pinhole, can be different from the input if
     LIMIT_REGION_FCOL is activated
-    @return rep_frame: Remapped frame (signal)
+    :return rep_frame: Remapped frame (signal)
     """
     print('.--. ... ..-. -')
     print('Preparing W and the measurement')

@@ -82,9 +82,9 @@ def load_tiff(filename: str):
 
     Assume there is only one frame per file
 
-    @param filename: full path pointing to the tiff
+    :param  filename: full path pointing to the tiff
 
-    @return frame: loaded frame
+    :return frame: loaded frame
     """
     dummy = io.imread(filename)
     if len(dummy.shape) > 2:     # We have an rgb tiff, transform it to gray
@@ -98,9 +98,9 @@ def load_tiff_singleFile(filename: str):
 
     Assume all frames are stored in the same file, and we have b/w camera
 
-    @param filename: full path pointing to the tiff
+    :param  filename: full path pointing to the tiff
 
-    @return frame: loaded frame
+    :return frame: loaded frame
     """
     dummy = io.imread(filename)
 
@@ -114,14 +114,14 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
 
     Jose Rueda: jrrueda@us.es
 
-    @param video_object: Video class with the info of the video.  See the video
+    :param  video_object: Video class with the info of the video.  See the video
         object of the BasicVideoObject.py file
-    @param frames_number: array with the number of the frames to be loaded,
+    :param  frames_number: array with the number of the frames to be loaded,
     if none, all frames will be loaded
-    @param limitation: if we want to set a limitation of the size we can load
-    @param limit: Limit to the size, in megabytes
+    :param  limitation: if we want to set a limitation of the size we can load
+    :param  limit: Limit to the size, in megabytes
 
-    @return M: array of frames, [px in x, px in y, number of frames]
+    :return M: array of frames, [px in x, px in y, number of frames]
     """
     # Frames would have a name as shot-framenumber.png example: 30585-001.png
     logger.info('Reading TIF files')

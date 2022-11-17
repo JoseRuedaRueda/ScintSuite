@@ -44,10 +44,10 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
 
     Note AUG criteria of organising files is assumed: .../38/38760/...
 
-    @param shot: shot number
-    @param diag_ID: FILD manipulator number
+    :param  shot: shot number
+    :param  diag_ID: FILD manipulator number
 
-    @return file: the name of the file/folder
+    :return file: the name of the file/folder
     """
     base_dir = params.FILD[diag_ID-1]['path']
     extension = params.FILD[diag_ID-1]['extension'](shot)
@@ -68,8 +68,8 @@ def load_FILD4_trajectory(shot, path=paths.FILD4_trajectories):
     Note: This is a temporal function, in the future will be replaced by one to
     load trajectories from shotfiles
 
-    @param shot: Shot number to load
-    @param path: Path to the main folder with FILD4 trajectories
+    :param  shot: Shot number to load
+    :param  path: Path to the main folder with FILD4 trajectories
     """
     # --- Load the power supply output data
     shot_str = str(shot)
@@ -140,18 +140,18 @@ def plot_FILD4_trajectory(shot, PS_output=False, ax=None, ax_PS=None,
 
     Note: this is in beta phase, improvement suggestions are wellcome
 
-    @param shot: shot you want to plot
-    @param PS_output: flag to plot the output of the power supply
-    @param ax: axes where to plot the trajectory. If none, new axis will be
+    :param  shot: shot you want to plot
+    :param  PS_output: flag to plot the output of the power supply
+    :param  ax: axes where to plot the trajectory. If none, new axis will be
                created
-    @param ax_PS: Array of two axes where we want to plot the PS data. ax_PS[0]
+    :param  ax_PS: Array of two axes where we want to plot the PS data. ax_PS[0]
                   will be for the voltaje while ax_PS[1] for the intensity. If
                   None, new axis  will be created
-    @param line_params: Line parameters for the trajectory plotting
-    @param line_params_PS: Line parameters for the PS plots. Note: same dict
+    :param  line_params: Line parameters for the trajectory plotting
+    :param  line_params_PS: Line parameters for the PS plots. Note: same dict
                            will be used for the Voltaje and intensity plots, be
                            carefull if you select the 'color'
-    @param overlay: Flag to overlay the trajectory over the current plot. The
+    :param  overlay: Flag to overlay the trajectory over the current plot. The
                     insertion will be plotted in arbitrary units on top of it.
                     ax input is mandatory for this
     """
@@ -232,9 +232,9 @@ class FILD_logbook:
 
         Read the three data bases and save them in atributes of the object
 
-        @param cameraFile: path to the ACSII file containing the data
-        @param geometryFile: path to the ACSII file containing the data
-        @param positionFile: path to the excel file containing the data (the
+        :param  cameraFile: path to the ACSII file containing the data
+        :param  geometryFile: path to the ACSII file containing the data
+        :param  positionFile: path to the excel file containing the data (the
             url poiting to the internet logbook. It can be a path to a local
             excel)
         """
@@ -263,8 +263,8 @@ class FILD_logbook:
         """
         Read the excel containing the position database
 
-        @param filename: path or url pointing to the logbook
-        @param verbose: flag to print some info
+        :param  filename: path or url pointing to the logbook
+        :param  verbose: flag to print some info
         """
         if verbose:
             print('Looking for the position database: ', filename)
@@ -287,10 +287,10 @@ class FILD_logbook:
 
         @author Jose Rueda Rueda: jrrueda@us.es
 
-        @param filename: Complete path to the file with the calibrations
-        @param n_header: Number of header lines (5 in the oficial format)
+        :param  filename: Complete path to the file with the calibrations
+        :param  n_header: Number of header lines (5 in the oficial format)
 
-        @return database: Pandas dataframe with the database
+        :return database: Pandas dataframe with the database
         """
         data = {'CalID': [], 'shot1': [], 'shot2': [],
                 'GeomID': [], 'diag_ID': []}
@@ -318,14 +318,14 @@ class FILD_logbook:
         """
         Get the camera calibration parameters for a shot
 
-        @param shot: Shot number for which we want the calibration
-        @param cal_type: Type of calibration we want
-        @param diag_ID: ID of the diagnostic we want
-        @param FILDid: alias for diag_ID, to be consistent with the rest of the
+        :param  shot: Shot number for which we want the calibration
+        :param  cal_type: Type of calibration we want
+        :param  diag_ID: ID of the diagnostic we want
+        :param  FILDid: alias for diag_ID, to be consistent with the rest of the
             functions in the logbook but also keep retrocompatibility. Notice
             that if diag_ID is not None, diag_ID value will prevail
 
-        @return cal: CalParams() object
+        :return cal: CalParams() object
         """
         # --- Settings
         if diag_ID is None:
@@ -364,8 +364,8 @@ class FILD_logbook:
         """
         Get the geometry id of the FILD manipulator for a given shot
 
-        @param shot: integer, shot number
-        @param FILDid: manipulator number
+        :param  shot: integer, shot number
+        :param  FILDid: manipulator number
         """
         flags = (self.geometryDatabase['shot1'] <= shot) & \
             (self.geometryDatabase['shot2'] >= shot) & \
@@ -386,8 +386,8 @@ class FILD_logbook:
 
         Jose Rueda - jrrueda@us.es
 
-        @param shot: shot number to look in the database
-        @param FILDid: manipulator id
+        :param  shot: shot number to look in the database
+        :param  FILDid: manipulator id
         """
         # Get always the default as a reference:
         geomID = self.getGeomID(shot, FILDid)
@@ -460,8 +460,8 @@ class FILD_logbook:
         Note that in AUG the orientation of the diagnostic never changes, so
         this function just return always the default parameters
 
-        @param shot: shot number to look in the database
-        @param FILDid: manipulator id
+        :param  shot: shot number to look in the database
+        :param  FILDid: manipulator id
         """
         geomID = self.getGeomID(shot, FILDid)
         return self._getOrientationDefault(geomID)
@@ -470,13 +470,13 @@ class FILD_logbook:
         """
         Return all shots in the database position database with a geomID
 
-        @param geomID: ID of the geometry we are insterested in
-        @param maxR: if present, only shots for which R < maxR will be
+        :param  geomID: ID of the geometry we are insterested in
+        :param  maxR: if present, only shots for which R < maxR will be
             considered. Default values are, for each manipulator:
                 1: 2.5 m
                 2: 2.2361 m
                 5: 1.795 m
-        @param verbose: flag to print in the console the number of shots found
+        :param  verbose: flag to print in the console the number of shots found
             using that geometry
         """
         if not self.flagPositionDatabase:
@@ -543,10 +543,10 @@ class FILD_logbook:
         """
         Check if a FILD head was overheated during shots
 
-        @param shot: shot number (int) or array of shots
-        @param FILDid: Manipulator number
+        :param  shot: shot number (int) or array of shots
+        :param  FILDid: Manipulator number
 
-        @return: integer (or array) indicating the overheating
+        :return: integer (or array) indicating the overheating
             > -1 : No information on the logbook
             > 0  : No overhating
             > 1  : Slight overheating
@@ -579,9 +579,9 @@ class FILD_logbook:
         """
         Get the comment line
 
-        @param shot: shot number (int) or array of shots
+        :param  shot: shot number (int) or array of shots
 
-        @return: string containing the comment written by the FILD operator
+        :return: string containing the comment written by the FILD operator
         """
         # Prepare the shot list
         if isinstance(shot, int):

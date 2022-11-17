@@ -48,9 +48,9 @@ def read_spectral_response(file: str = None, plot: bool = False):
     for the future: allow for unit changes (ie, receive the response in units
     different from the A/W)
 
-    @param file: full path to the txt file
-    @param plot: bool to plot or not
-    @return out: dict containing:
+    :param  file: full path to the txt file
+    :param  plot: bool to plot or not
+    :return out: dict containing:
         -# lambda: wavelength [nm]
         -# response: spectral response [A/W]
     """
@@ -86,8 +86,8 @@ def read_sphere_data(file: str = None, plot: bool = False):
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param file: full path to the file with the data
-    @param plot: flag to decide if we must plot
+    :param  file: full path to the file with the data
+    :param  plot: flag to decide if we must plot
     """
     # check if the file exist
     if file is None:
@@ -124,7 +124,7 @@ def manual_find_grid_points(image):
 
     Jose Rueda: jrrueda@us.es
 
-    @param image: frame with the grid
+    :param  image: frame with the grid
     """
     print('Left mouse: add a point')
     print('Right mouse: remove a point')
@@ -166,11 +166,11 @@ def createFocusMatrix(frame, coef_sigma=1.0,
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param frame: original frame
-    @param coef_sigma: standard deviation of the focusing, in pixels. Can be
+    :param  frame: original frame
+    :param  coef_sigma: standard deviation of the focusing, in pixels. Can be
         an array if the focusing is a function of the distance to the optical
         axis.
-    @param center: coordinates (in pixels, of the optical axis)
+    :param  center: coordinates (in pixels, of the optical axis)
 
     Warning, can be extremelly memory consuming, if you want to apply finite
     focus, use the function: defocus
@@ -210,12 +210,12 @@ def defocus(frame, coef_sigma=1.0,
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param frame: original frame
-    @param coef_sigma: standard deviation of the focusing, in pixels. Can be
+    :param  frame: original frame
+    :param  coef_sigma: standard deviation of the focusing, in pixels. Can be
         an array if the focusing is a function of the distance to the optical
         axis. In this case, sigma = np.polyval(coef_sigma, d), where d is the
         distance to the optical axis
-    @param center: coordinates (in pixels, of the optical axis)
+    :param  center: coordinates (in pixels, of the optical axis)
     """
     try:
         _ = len(coef_sigma)
@@ -270,11 +270,11 @@ class FnumberTransmission():
             -diag, machine, geomID: give the 'info' of the file to look and the
             code will look in the data folder
 
-        @param file: Full path to the file to open (optional)
-        @param diag: Diagnostic type, to look in the data folder (FILD or INPA)
-        @param machine: machine, to look in the data folder
-        @param geomID: diagnostic geometry ID to look in the data folder
-        @param fit_model: fit function to use in the fitting, default, 2nd
+        :param  file: Full path to the file to open (optional)
+        :param  diag: Diagnostic type, to look in the data folder (FILD or INPA)
+        :param  machine: machine, to look in the data folder
+        :param  geomID: diagnostic geometry ID to look in the data folder
+        :param  fit_model: fit function to use in the fitting, default, 2nd
             order polynomial (poly2)
 
         For the fit, it is assumed that the tramission is always maximum in the
@@ -300,7 +300,7 @@ class FnumberTransmission():
         """
         Evaluate the f_number coefficient as a given radius in the object plane
 
-        @param: r (can be an array), the radial positions where to evaluate the
+        :param : r (can be an array), the radial positions where to evaluate the
             f_number
         """
 
@@ -321,11 +321,11 @@ class DistortGrid(XYtoPixel):
         """
         Generate the grid lines
 
-        @param x0: x bottom left corner of the grid
-        @param y0: y bottom left corner of the grid
-        @param d: grid spacing
-        @param nx: number of grid points in the x direction
-        @param ny: number of grid points in the y direction
+        :param  x0: x bottom left corner of the grid
+        :param  y0: y bottom left corner of the grid
+        :param  d: grid spacing
+        :param  nx: number of grid points in the x direction
+        :param  ny: number of grid points in the y direction
 
         @TODO include rotation
         """
@@ -342,8 +342,8 @@ class DistortGrid(XYtoPixel):
         """
         Plot the grid in the real space
 
-        @param ax: axes where to plot, if none, new axis will be created
-        @param line_params: dictionary with the parameters for plt.plot()
+        :param  ax: axes where to plot, if none, new axis will be created
+        :param  line_params: dictionary with the parameters for plt.plot()
         """
         # -- Initialise the plotting options
         line_options = {
@@ -366,8 +366,8 @@ class DistortGrid(XYtoPixel):
         """
         Plot the grid in the real space
 
-        @param ax: axes where to plot, if none, new axis will be created
-        @param line_params: dictionary with the parameters for plt.plot()
+        :param  ax: axes where to plot, if none, new axis will be created
+        :param  line_params: dictionary with the parameters for plt.plot()
         """
         # -- Initialise the plotting options
         line_options = {

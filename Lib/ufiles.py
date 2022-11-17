@@ -17,9 +17,9 @@ def wr_for(arr_in, fmt='%13.6E', n_lin=6):
 
     Giovanni Tardini - git@ipp.mpg.de
 
-    @param arr_in: array to be written in an UFILE.
-    @param fmt: format of the output.
-    @param n_lin: number of maximum numbers per line.
+    :param  arr_in: array to be written in an UFILE.
+    :param  fmt: format of the output.
+    :param  n_lin: number of maximum numbers per line.
     """
 
     arr_flat = arr_in.T.ravel()
@@ -43,7 +43,7 @@ def ssplit(ll):
 
     Giovanni Tardini - git@ipp.mpg.de
 
-    @param ll: one line of text containing numbers.
+    :param  ll: one line of text containing numbers.
     """
 
     tmp = ll.replace('-', ' -')
@@ -61,8 +61,8 @@ def lines2fltarr(lines, dtyp=None):
 
     Giovanni Tardini - git@ipp.mpg.de
 
-    @param lines: set of lines to be converted into a 1D array.
-    @param dtyp: type of the output.
+    :param  lines: set of lines to be converted into a 1D array.
+    :param  dtyp: type of the output.
     """
     data = []
     for line in lines:
@@ -80,9 +80,9 @@ def fltarr_len(lines, nx: int, dtyp=None):
 
     Giovanni Tardini - git@ipp.mpg.de
 
-    @param lines: set of lines to be converted into a 1D array.
-    @param nx: maximum lenght of the output array.
-    @param dtyp: type of the output.
+    :param  lines: set of lines to be converted into a 1D array.
+    :param  nx: maximum lenght of the output array.
+    :param  dtyp: type of the output.
     """
     data = []
     for jlin, line in enumerate(lines):
@@ -106,7 +106,7 @@ class ufile:
 
         Taken from Giovanni Tardini code
 
-        @param fin: filename of the file to read. If not provided, the class
+        :param  fin: filename of the file to read. If not provided, the class
         is initialized as empty.
         """
         self.f = {}
@@ -120,7 +120,7 @@ class ufile:
 
         Giovanni Tarding - git@ipp.mpg.de
 
-        @param fin: input filename to read
+        :param  fin: input filename to read
         """
 
         # Loading all the lines from the file.
@@ -211,7 +211,7 @@ class ufile:
 
         Giovanni Tarding - git@ipp.mpg.de
 
-        @param axis: axis along which to perform the average.
+        :param  axis: axis along which to perform the average.
         """
         self.ext = self.ext + '_AVG%d' %axis
         if axis == 0:
@@ -232,8 +232,8 @@ class ufile:
 
         Giovanni Tarding - git@ipp.mpg.de
 
-        @param udir: directory to write the UFILE.
-        @param dev:  target directory to write the UFILE accordingly.
+        :param  udir: directory to write the UFILE.
+        :param  dev:  target directory to write the UFILE accordingly.
         """
         self.shot = int(self.shot)
 

@@ -83,20 +83,20 @@ class FILDINPA_Smap(GeneralStrikeMap):
         telling the theta and phi, so the code look in the remap database and
         find the closet map
 
-        @param file: strike map file to load (option 1 to load the map)
-        @param variables_to_remap: pair of variables selected for the remap.
+        :param file: strike map file to load (option 1 to load the map)
+        :param variables_to_remap: pair of variables selected for the remap.
             By default:
                     - FILD: ('pitch', 'gyroradius')
                     - INPA: ('R0', 'gyroradius')
                     - iHIBP: ('x1', 'x2')
-        @param code: code used to calculate the map. If None, would be
+        :param code: code used to calculate the map. If None, would be
             guessed automatically
-        @param theta: theta angle of the database (option 2 to load the map)
-        @param phi: phi angle of the database (option 2 to load the map)
-        @param GeomID: geometry ID of the database (option 2 to load the map)
-        @param decimals: Number of decimasl to look in the database (opt 2)
-        @param diagnostic: diagnostic to look in the database (opt 2)
-        @param verbose: print some information in the terminal
+        :param theta: theta angle of the database (option 2 to load the map)
+        :param phi: phi angle of the database (option 2 to load the map)
+        :param  GeomID: geometry ID of the database (option 2 to load the map)
+        :param  decimals: Number of decimasl to look in the database (opt 2)
+        :param  diagnostic: diagnostic to look in the database (opt 2)
+        :param  verbose: print some information in the terminal
         """
         if (theta is not None) and (phi is not None):
             if verbose:
@@ -125,9 +125,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
         Jose Rueda: jrrueda@us.es
 
-        @param B: magnetif field modulus
-        @param A: mass of the ion, in amu
-        @param Z: charge, in e units
+        :param  B: magnetif field modulus
+        :param  A: mass of the ion, in amu
+        :param  Z: charge, in e units
         """
         dummy = get_energy(self('gyroradius'), B=B, A=A, Z=Z) / 1000.0
         self._data['e0'] = BasicVariable(name='e0', units='keV', data=dummy)
@@ -145,14 +145,14 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
         Jose Rueda: ruejo@ipp.mpg.de
 
-        @param file: File to be loaded. If none, name will be deduced from the
+        :param  file: File to be loaded. If none, name will be deduced from the
             self.file variable, so the strike points are supposed to be in
             the same folder than the strike map
-        @param verbose: Flag to plot some information about the strike points
-        @param calculate_pixel_coordinates: if true the pixel coordinates will
+        :param  verbose: Flag to plot some information about the strike points
+        :param  calculate_pixel_coordinates: if true the pixel coordinates will
             be calculated just after loading the points (using the camera
             calibration storaged in the strike map)
-        @param remap_in_pixel_space: in SINPA, the remap is not done in fortran
+        :param  remap_in_pixel_space: in SINPA, the remap is not done in fortran
             but must be done in python. By default, it is done just after
             loading the points. If this flag is true, the remap will be done
             using the pixel coordinates instead of the strike in the
@@ -201,7 +201,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param diag_options: Dictionary with the diagnostic specific parameters
+        :param  diag_options: Dictionary with the diagnostic specific parameters
         like for example the method used to fit the pitch. It contains:
                 -dx: x space used by default in the fit. (pitch in fild)
                 -dy: y space used by default in the fit. (gyroradius in fild)
@@ -210,19 +210,19 @@ class FILDINPA_Smap(GeneralStrikeMap):
             Accepted methods are:
                 - Gauss: Gaussian fit
                 - sGauss: squewed Gaussian fit
-        @param min_statistics: Minimum number of points for a given r,p to make
+        :param  min_statistics: Minimum number of points for a given r,p to make
             the fit (if we have less markers, this point will be ignored)
-        @param adaptative: If true, the bin width will be adapted such that the
+        :param  adaptative: If true, the bin width will be adapted such that the
             number of bins in a sigma of the distribution is bin_per_sigma. If
             this is the case, dx, dy of the diag_options will no longer have an
             impact
-        @param calculate_uncertainties: flag to calcualte the uncertainties of
+        :param  calculate_uncertainties: flag to calcualte the uncertainties of
             the fit
-        @param confidence_level: confidence level for the uncertainty
+        :param  confidence_level: confidence level for the uncertainty
             determination
-        @param variables: Variables where to calculate the resolutions. By
+        :param  variables: Variables where to calculate the resolutions. By
             default, the ones selected for the remapping will be used
-        @param verbose: Flag to print some information
+        :param  verbose: Flag to print some information
         """
         if self.strike_points is None:
             print('Trying to load the strike points')
@@ -486,9 +486,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
         Jose Rueda: jrrueda@us.es
 
-        @param kernel: kernel for the interpolator
-        @param degree: degree for the added polynomial
-        @param variables: variables to prepare the interpolators
+        :param  kernel: kernel for the interpolator
+        :param  degree: degree for the added polynomial
+        :param  variables: variables to prepare the interpolators
 
         See RBFInterpolator of Scipy for full documentation
         """
@@ -556,9 +556,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
         Jose Rueda: jrrueda@us.es
 
-        @param overwrite: if true, the variable data will be overwritten, even
+        :param  overwrite: if true, the variable data will be overwritten, even
             if that remap was already done
-        @param remap_in_pixel_space: flagg to decide if the remap will be done
+        :param  remap_in_pixel_space: flagg to decide if the remap will be done
             in pixel or real space
         """
         # --- See if the interpolators are defined
@@ -721,16 +721,16 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
         Jose Rueda: jrrueda@us.es
 
-        @param ax_param: parameters for the axis beauty function. Note, labels
+        :param  ax_param: parameters for the axis beauty function. Note, labels
         of the color axis are hard-cored, if you want custom axis labels you
         would need to draw the plot on your own
-        @param cMap: is None, Gamma_II will be used
-        @param nlev: number of levels for the contour
-        @param index_gyr: if present, reslution would be plotted along
+        :param  cMap: is None, Gamma_II will be used
+        :param  nlev: number of levels for the contour
+        :param  index_gyr: if present, reslution would be plotted along
         gyroradius given by gyroradius[index_gyr]
-        @param ax_lim: Manually set the x and y axes, currently only works for making it bigger, not smaller
+        :param  ax_lim: Manually set the x and y axes, currently only works for making it bigger, not smaller
                        Should be given as ax_lim = {'xlim' : [x1,x2], 'ylim' : [y1,y2]}
-        @param cmap_lim: Manually set the upper limit for the color map
+        :param  cmap_lim: Manually set the upper limit for the color map
                          Should be given as cmap_lim = {'gyroradius' : ___, 'pitch' : ___}
         """
         # Initialise the plotting settings
@@ -863,25 +863,25 @@ class FILDINPA_Smap(GeneralStrikeMap):
         """
         Plot the fits done to calculate the resolution
 
-        @param var: variable to plot, Gyroradius or Pitch for FILD. Capital
+        :param  var: variable to plot, Gyroradius or Pitch for FILD. Capital
         letters will be ignored
-        @param ax_param: dictoniary with the axis parameters axis_beauty()
-        @param ax: axis where to plot
-        @param gyr_index: index, or arrays of indeces, of gyroradius to plot
-        @param pitch_index: index, or arrays of indeces, of pitches to plot,
+        :param  ax_param: dictoniary with the axis parameters axis_beauty()
+        :param  ax: axis where to plot
+        :param  gyr_index: index, or arrays of indeces, of gyroradius to plot
+        :param  pitch_index: index, or arrays of indeces, of pitches to plot,
             this is outdated code, please use XI_index instead
-        @param gyroradius: gyroradius value of array of then to plot. If
+        :param  gyroradius: gyroradius value of array of then to plot. If
         present, gyr_index will be ignored
-        @param pitch: idem to gyroradius bu for the pitch
-        @param kind_of_plot: kind of plot to make:
+        :param  pitch: idem to gyroradius bu for the pitch
+        :param  kind_of_plot: kind of plot to make:
             - normal: scatter plot of the data and fit like a line
             - bar: bar plot of the data and file like a line
             - uncertainty: scatter plot of the data and shading area for the
                 fit (3 sigmas)
             - just_fit: Just a line plot as the fit
-        @param include_legend: flag to include a legend
-        @param XI_index: equivalent to pitch_index, but with the new criteria
-        @param normalize: normalize the output
+        :param  include_legend: flag to include a legend
+        :param  XI_index: equivalent to pitch_index, but with the new criteria
+        :param  normalize: normalize the output
         """
         # --- Initialise plotting options and axis:
         default_labels = {
@@ -1026,14 +1026,14 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
         @todo: Implement label size in colorbar
 
-        @param ax_param: parameters for the axis beauty function. Note, labels
+        :param  ax_param: parameters for the axis beauty function. Note, labels
         of the color axis are hard-cored, if you want custom axis labels you
         would need to draw the plot on your own
-        @param cMap: is None, Gamma_II will be used
-        @param nlev: number of levels for the contour
-        @param ax_lim: Manually set the x and y axes, currently only works for making it bigger, not smaller
+        :param  cMap: is None, Gamma_II will be used
+        :param  nlev: number of levels for the contour
+        :param  ax_lim: Manually set the x and y axes, currently only works for making it bigger, not smaller
                        Should be given as ax_lim = {'xlim' : [x1,x2], 'ylim' : [y1,y2]}
-        @param cmap_lim: Manually set the upper limit for the color map
+        :param  cmap_lim: Manually set the upper limit for the color map
         """
         # --- Initialise the settings:
         if cMap is None:
@@ -1130,7 +1130,3 @@ class FILDINPA_Smap(GeneralStrikeMap):
                                                         interpolation=interpolation)
         ax = ssplt.axis_beauty(ax, ax_params,)
         return ax
-
-
-
-

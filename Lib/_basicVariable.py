@@ -26,9 +26,9 @@ class BasicVariable():
         """
         Just store everything on place
 
-        @param name: Name atribute
-        @param units: Physical units of the variable
-        @param data: array with the data values
+        :param  name: Name atribute
+        :param  units: Physical units of the variable
+        :param  data: array with the data values
         """
         self.name = name
         self.units = units
@@ -87,7 +87,7 @@ class BasicSignalVariable():
         """
         Filter the time dependent variables
 
-        @param signals: list of signal to be filtered. If none, all signals will
+        :param  signals: list of signal to be filtered. If none, all signals will
             be filtered
 
         @ ToDo: implement some fancy ... index to handle dimensions
@@ -145,13 +145,13 @@ class BasicSignalVariable():
         Jose Rueda Rueda: jrrueda@us.es
 
         Only the fft of all the signals in the dataset
-        @param signals: list of signal for whcih we want the fft. If none, 
+        :param  signals: list of signal for whcih we want the fft. If none, 
             all signals will be considered
-        @param    kargs: optional arguments for scipyfft
+        :param     kargs: optional arguments for scipyfft
         see scipy.fft.rfft for full details
 
 
-        @return:  nothing, just fill self.fft
+        :return:  nothing, just fill self.fft
         """
         # --- Object cleaning:
         if 'freq_fft' in self.keys():
@@ -196,11 +196,11 @@ class BasicSignalVariable():
         Only the spec of the sum of the counts in the roi is calculated, if you
         want others to be calculated, open a request in the GitLab
 
-        @param    params: Dictionary containing optional arguments for the
+        :param     params: Dictionary containing optional arguments for the
         spectrogram, see scipy.signal.spectrogram for the full details
         @type:    dict
 
-        @return:  nothing, just fill self.spec
+        :return:  nothing, just fill self.spec
         """
         # --- Object cleaning
         if 'time_spec' in self.keys():
@@ -251,9 +251,9 @@ class BasicSignalVariable():
 
         Jose Rueda: jrrueda@us.es
 
-        @param options: options for the axis_beauty method
-        @return fig: figure where the fft is plotted
-        @return ax: axes where the fft is plotted
+        :param  options: options for the axis_beauty method
+        :return fig: figure where the fft is plotted
+        :return ax: axes where the fft is plotted
         """
         if 'grid' not in options:
             options['grid'] = 'both'
@@ -275,9 +275,9 @@ class BasicSignalVariable():
 
         Jose Rueda: jrrueda@us.es
 
-        @param options: options for the axis_beauty method
-        @return fig: figure where the fft is plotted
-        @return ax: axes where the fft is plotted
+        :param  options: options for the axis_beauty method
+        :return fig: figure where the fft is plotted
+        :return ax: axes where the fft is plotted
         """
         if 'grid' not in options:
             options['grid'] = 'both'

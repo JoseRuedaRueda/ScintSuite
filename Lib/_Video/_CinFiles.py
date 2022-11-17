@@ -12,10 +12,10 @@ def read_header(filename: str, verbose: bool = False):
 
     Jose Rueda: ruejo@ipp.mpg.de
 
-    @param filename: name of the file to open (path to file, not just the name)
-    @param verbose: Optional, to display the content of the header
+    :param  filename: name of the file to open (path to file, not just the name)
+    :param  verbose: Optional, to display the content of the header
 
-    @return cin_header: dictionary containing header information:
+    :return cin_header: dictionary containing header information:
         - 'Type': String idenifying the cin file
         - 'Headersize': Size in bites of the header
         - 'Compression':  integer flag to say if the file was compressed or not
@@ -98,11 +98,11 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
 
     Jose Rueda: jrrueda@us.es
 
-    @param filename: name of the file to read (full path)
-    @param bit_pos: Position of the file where the setting structure starts
-    @param verbose: verbose results or not
+    :param  filename: name of the file to read (full path)
+    :param  bit_pos: Position of the file where the setting structure starts
+    :param  verbose: verbose results or not
 
-    @return cin_settings: dictionary containing all the camera settings. See
+    :return cin_settings: dictionary containing all the camera settings. See
     inline comments at the end of the function
     @todo Check if the coefficient matrix of UF is ok or must be transposed
     """
@@ -771,11 +771,11 @@ def read_image_header(filename: str, bit_pos: int, verbose: bool = False):
 
     Jose Rueda: jrrueda@us.es
 
-    @param filename: name of the .cin file (full path to the file)
-    @param bit_pos: position of the file where the image header starts
-    @param verbose: flag to display content of the header
+    :param  filename: name of the .cin file (full path to the file)
+    :param  bit_pos: position of the file where the image header starts
+    :param  verbose: flag to display content of the header
 
-    @return cin_image_header: Image header (dictionary), see in-line comments
+    :return cin_image_header: Image header (dictionary), see in-line comments
     for a full description of each dictionary field
     """
     # --- Open file and go to the position of the image header
@@ -823,11 +823,11 @@ def read_time_base(filename: str, header: dict, settings: dict):
 
     Jose Rueda: jrrueda@us.es
 
-    @param filename: name of the file to open (full path)
-    @param header: header created by the function read_header
-    @param settings: setting dictionary created by read_settings
+    :param  filename: name of the file to open (full path)
+    :param  header: header created by the function read_header
+    :param  settings: setting dictionary created by read_settings
 
-    @return cin_time: np array with the time point for each recorded frame
+    :return cin_time: np array with the time point for each recorded frame
     """
     # Open file and go to the position of the image header
     fid = open(filename, 'r')
@@ -865,16 +865,16 @@ def read_frame(cin_object, frames_number, limitation: bool = True,
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param cin_object: Video Object with the file information. See the video
+    :param  cin_object: Video Object with the file information. See the video
         object of the BasicVideoObject.py file
-    @param frames_number: np array with the frame numbers to load
-    @param limitation: maximum size allowed to the output variable,
+    :param  frames_number: np array with the frame numbers to load
+    :param  limitation: maximum size allowed to the output variable,
     in Mbytes, to avoid overloading the memory trying to load the whole
     video of 100 Gb
-    @param limit: bool flag to decide if we apply the limitation of we
+    :param  limit: bool flag to decide if we apply the limitation of we
     operate in mode: YOLO
 
-    @return M: 3D numpy array with the frames M[px,py,nframes]
+    :return M: 3D numpy array with the frames M[px,py,nframes]
 
     Note: Only works for uncompresssed gray cin files
     """

@@ -24,10 +24,10 @@ def calculate_rotation_matrix(n, u1=None, verbose=True):
     also fulfil uy = R @ u1. In this way the scintillator will finish properly
     aligned after the rotation
 
-    @param n: unit vector
-    @param u1: Unit vector normal to n
+    :param  n: unit vector
+    :param  u1: Unit vector normal to n
 
-    @return M: Rotation matrix
+    :return M: Rotation matrix
     """
     # --- Check the unit vector
     modn = math.sqrt(np.sum(n * n))

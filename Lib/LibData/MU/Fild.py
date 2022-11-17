@@ -37,10 +37,10 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
 
     Note Juanfran criteria of organising files is assumed: .../<shot>/...
 
-    @param shot: shot number
-    @param diag_ID: FILD manipulator number
+    :param  shot: shot number
+    :param  diag_ID: FILD manipulator number
 
-    @return file: the name of the file/folder
+    :return file: the name of the file/folder
     """
     base_dir = params.FILD[diag_ID-1]['path']
     extension = params.FILD[diag_ID-1]['extension'](shot)
@@ -79,9 +79,9 @@ class FILD_logbook:
 
         Read the three data bases and save them in atributes of the object
 
-        @param cameraFile: path to the ACSII file containing the data
-        @param geometryFile: path to the ACSII file containing the data
-        @param positionFile: path to the excel file containing the data (the
+        :param  cameraFile: path to the ACSII file containing the data
+        :param  geometryFile: path to the ACSII file containing the data
+        :param  positionFile: path to the excel file containing the data (the
             url poiting to the internet logbook. It can be a path to a local
             excel)
         """
@@ -116,10 +116,10 @@ class FILD_logbook:
 
         @author Jose Rueda Rueda: jrrueda@us.es
 
-        @param filename: Complete path to the file with the calibrations
-        @param n_header: Number of header lines (5 in the oficial format)
+        :param  filename: Complete path to the file with the calibrations
+        :param  n_header: Number of header lines (5 in the oficial format)
 
-        @return database: Pandas dataframe with the database
+        :return database: Pandas dataframe with the database
         """
         data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
                 'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
@@ -153,8 +153,8 @@ class FILD_logbook:
         """
         Read the excel containing the position database
 
-        @param filename: path or url pointing to the logbook
-        @param verbose: flag to print some info
+        :param  filename: path or url pointing to the logbook
+        :param  verbose: flag to print some info
         """
         if verbose:
             print('Looking for the position database: ', filename)
@@ -172,10 +172,10 @@ class FILD_logbook:
 
         @author Jose Rueda Rueda: jrrueda@us.es
 
-        @param filename: Complete path to the file with the calibrations
-        @param n_header: Number of header lines (5 in the oficial format)
+        :param  filename: Complete path to the file with the calibrations
+        :param  n_header: Number of header lines (5 in the oficial format)
 
-        @return database: Pandas dataframe with the database
+        :return database: Pandas dataframe with the database
         """
         data = {'CalID': [], 'shot1': [], 'shot2': [],
                 'GeomID': [], 'diag_ID': []}
@@ -202,11 +202,11 @@ class FILD_logbook:
         """
         Get the camera calibration parameters for a shot
 
-        @param shot: Shot number for which we want the calibration
-        @param cal_type: Type of calibration we want
-        @param diag_ID: ID of the diagnostic we want
+        :param  shot: Shot number for which we want the calibration
+        :param  cal_type: Type of calibration we want
+        :param  diag_ID: ID of the diagnostic we want
 
-        @return cal: CalParams() object
+        :return cal: CalParams() object
 
         @todo: overcome the need of camera inputs
         """
@@ -239,8 +239,8 @@ class FILD_logbook:
         """
         Get the geometry id of the FILD manipulator for a given shot
 
-        @param shot: integer, shot number
-        @param FILDid: manipulator number
+        :param  shot: integer, shot number
+        :param  FILDid: manipulator number
         """
         flags = (self.geometryDatabase['shot1'] <= shot) & \
             (self.geometryDatabase['shot2'] >= shot) & \
@@ -260,8 +260,8 @@ class FILD_logbook:
 
         Jose Rueda - jrrueda@us.es
 
-        @param shot: shot number to look in the database
-        @param FILDid: manipulator id
+        :param  shot: shot number to look in the database
+        :param  FILDid: manipulator id
         """
         # Get always the default as a reference:
         geomID = self.getGeomID(shot, FILDid)
@@ -333,8 +333,8 @@ class FILD_logbook:
 
         In MU the beta angle can change.
 
-        @param shot: shot number to look in the database
-        @param FILDid: manipulator id
+        :param  shot: shot number to look in the database
+        :param  FILDid: manipulator id
         """
         geomID = self.getGeomID(shot, FILDid)
         default = self._getOrientationDefault(geomID)
@@ -374,8 +374,8 @@ class FILD_logbook:
         Jose Rueda - jrrueda@us.es
         Lina Velarde - lvelarde@us.es
 
-        @param shot: shot number to look in the database
-        @param FILDid: manipulator id
+        :param  shot: shot number to look in the database
+        :param  FILDid: manipulator id
         """
         # Get always the default as a reference:
         default = params.FILD[diag_ID-1]['adqfreq']
@@ -406,8 +406,8 @@ class FILD_logbook:
         Jose Rueda - jrrueda@us.es
         Lina Velarde - lvelarde@us.es
 
-        @param shot: shot number to look in the database
-        @param FILDid: manipulator id
+        :param  shot: shot number to look in the database
+        :param  FILDid: manipulator id
         """
         # Get always the default as a reference:
         default = params.FILD[diag_ID-1]['t_trig']
@@ -435,8 +435,8 @@ class FILD_logbook:
         """
         Return all shots in the database position database with a geomID
 
-        @param geomID: ID of the geometry we are insterested in. E.g.: MU02.
-        @param maxR: if present, only shots for which R < maxR will be
+        :param  geomID: ID of the geometry we are insterested in. E.g.: MU02.
+        :param  maxR: if present, only shots for which R < maxR will be
             considered. Default values are, for each manipulator:
                 1: 1.8 m
         """

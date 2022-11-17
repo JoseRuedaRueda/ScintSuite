@@ -38,17 +38,17 @@ def sfft(tvec, x, nfft, resolution=1000, window='hann', fmin=0, fmax=np.infty,
 
     Taken from pyspecview from Giovanni Tardini
 
-    @param tvec: array with the time basis
-    @param x: array with the data points
-    @param nfft: length of the SFFT window
-    @param resolution: horizontal resolution of the spectrogram
-    @param window: window type to calculate the spectrogram
-    @param fmin: Minimum frequency for the spectra (in units of tvec**-1)
-    @param fmax: Maximum frequency for the spectra (in units of tvec**-1)
-    @param tmin: Minimum time for the spectra (in units of tvec)
-    @param tmax: Maximum time for the spectra (in units of tvec)
-    @param pass_DC: remove constant background
-    @param complex_spectrum: To return a complex or real spectra
+    :param  tvec: array with the time basis
+    :param  x: array with the data points
+    :param  nfft: length of the SFFT window
+    :param  resolution: horizontal resolution of the spectrogram
+    :param  window: window type to calculate the spectrogram
+    :param  fmin: Minimum frequency for the spectra (in units of tvec**-1)
+    :param  fmax: Maximum frequency for the spectra (in units of tvec**-1)
+    :param  tmin: Minimum time for the spectra (in units of tvec)
+    :param  tmax: Maximum time for the spectra (in units of tvec)
+    :param  pass_DC: remove constant background
+    :param  complex_spectrum: To return a complex or real spectra
     """
     # --- Check inputs types
     if x.dtype in [np.cdouble, np.csingle]:
@@ -160,17 +160,17 @@ def stft(tvec, x, nfft, resolution=1000, window='gauss', fmin=-np.infty,
 
     Taken from pyspecview from Giovanni Tardini
 
-    @param tvec: array with the time basis
-    @param x: array with the data points
-    @param nfft: length of the SFFT window
-    @param resolution: horizontal resolution of the spectrogram
-    @param window: window type to calculate the spectrogram
-    @param fmin: Minimum frequency for the spectra (in units of tvec**-1)
-    @param fmax: Maximum frequency for the spectra (in units of tvec**-1)
-    @param tmin: Minimum time for the spectra (in units of tvec)
-    @param tmax: Maximum time for the spectra (in units of tvec)
-    @param pass_DC: remove constant background
-    @param complex_spectrum: To return a complex or real spectra
+    :param  tvec: array with the time basis
+    :param  x: array with the data points
+    :param  nfft: length of the SFFT window
+    :param  resolution: horizontal resolution of the spectrogram
+    :param  window: window type to calculate the spectrogram
+    :param  fmin: Minimum frequency for the spectra (in units of tvec**-1)
+    :param  fmax: Maximum frequency for the spectra (in units of tvec**-1)
+    :param  tmin: Minimum time for the spectra (in units of tvec)
+    :param  tmax: Maximum time for the spectra (in units of tvec)
+    :param  pass_DC: remove constant background
+    :param  complex_spectrum: To return a complex or real spectra
     """
     if x.dtype in [np.double, np.cdouble]:
         raise Exception('use dtype single or csingle')
@@ -273,16 +273,16 @@ def stft2(tvec, x, nfft, resolution=1000, window='hann', pass_DC=True,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param tvec: time vector where the signal 'x' is defined.
-    @param x: time-dependent signal to build the spectrogram.
-    @param resolution: time resolution to build the spectogram.
-    @param window: type of windowing to apply.
-    @param pass_DC: sets the amplitude (and phase) to 0 for the first element
+    :param  tvec: time vector where the signal 'x' is defined.
+    :param  x: time-dependent signal to build the spectrogram.
+    :param  resolution: time resolution to build the spectogram.
+    :param  window: type of windowing to apply.
+    :param  pass_DC: sets the amplitude (and phase) to 0 for the first element
     in the frequency array returned (i.e., f = 0).
-    @param complex_spectrum: returns the complex_spectrum. True by default.
-    @return data: bidimensional array with the spectrogram.
-    @return freq: frequency array.
-    @return time: time array.
+    :param  complex_spectrum: returns the complex_spectrum. True by default.
+    :return data: bidimensional array with the spectrogram.
+    :return freq: frequency array.
+    :return time: time array.
     """
 
     nt = len(tvec)
@@ -325,14 +325,14 @@ def istft2(tvec: float, fvec: float, x, tRes: float, nyqFreq: float,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param tvec: Time vector where the spectrogram is built.
-    @param fvec: Frequency vector where the spectrogram is built.
-    @param tRes: frequency resolution originally used to build the spectrogram.
-    @param nyqFreq: original Nyquist frequency.
-    @param window: window to use.
-    @param resolution: time resolution used.
-    @param tmin: Minimal time to use in the reconstruction.
-    @param tmax: Maximal time to use in the reconstruction.
+    :param  tvec: Time vector where the spectrogram is built.
+    :param  fvec: Frequency vector where the spectrogram is built.
+    :param  tRes: frequency resolution originally used to build the spectrogram.
+    :param  nyqFreq: original Nyquist frequency.
+    :param  window: window to use.
+    :param  resolution: time resolution used.
+    :param  tmin: Minimal time to use in the reconstruction.
+    :param  tmax: Maximal time to use in the reconstruction.
     """
     nf = len(fvec)
     nt = len(tvec)
@@ -416,13 +416,13 @@ def get_nfft(tau0, specType, nt, windowType, dt):
 
     by Giovanni Tardini
 
-    @param x: Time resolution parameter
-    @param specType: kind of spectrum.
-    @param nt: Number of time points.
-    @param windowType: kind of window applied.
-    @param dt: time step.
+    :param  x: Time resolution parameter
+    :param  specType: kind of spectrum.
+    :param  nt: Number of time points.
+    :param  windowType: kind of window applied.
+    :param  dt: time step.
 
-    @return nfft: number of points to overlap.
+    :return nfft: number of points to overlap.
     """
     if specType in ('sparse', 'frequency', 'stfft', 'sfft'):
         tau0 = 1.20 - tau0
@@ -445,12 +445,12 @@ def myCPSD(sig1, sig2, time1, freq1, time2, freq2):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param sig1: complex matrix. Spectrogram of the 1st signal.
-    @param sig2: complex matrix. Spectrogram of the 2nd signal.
-    @param time1: Time basis of the first signal. Also time output.
-    @param freq1: Frequency basis of the first signal. Also the freq. output.
-    @param time2: Time basis onto which the 2nd signal is defined.
-    @param freq2: Frequency basis of the 2nd signal is defined.
+    :param  sig1: complex matrix. Spectrogram of the 1st signal.
+    :param  sig2: complex matrix. Spectrogram of the 2nd signal.
+    :param  time1: Time basis of the first signal. Also time output.
+    :param  freq1: Frequency basis of the first signal. Also the freq. output.
+    :param  time2: Time basis onto which the 2nd signal is defined.
+    :param  freq2: Frequency basis of the 2nd signal is defined.
     """
 
     # --- We interpolate the signal 2 into the time and frequency basis of the
@@ -484,47 +484,47 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param time: array with the time points (equispaced)
-    @param freq: arraq with the frequency points (equispaced)
-    @param spec: spectrogram 2D array.
-    @param origin: starting frequency to start the search. The initial time
+    :param  time: array with the time points (equispaced)
+    :param  freq: arraq with the frequency points (equispaced)
+    :param  spec: spectrogram 2D array.
+    :param  origin: starting frequency to start the search. The initial time
     point will be taken from the initial time point in the array 'time' or,
     whenever provided, from the 'timeLims'.
-    @param target: if provided, the algorithm will look for the shortest path
+    :param  target: if provided, the algorithm will look for the shortest path
     until arriving this target frequency. It forces the code to go through all
     the nodes. Generally, unrecommended.
-    @param freqLims: frequency windows to look for the modes. If None, all the
+    :param  freqLims: frequency windows to look for the modes. If None, all the
     frequency window is used instead.
-    @param timeLims: time windows to look for the peaks. This can be useful for
+    :param  timeLims: time windows to look for the peaks. This can be useful for
     ELM synchronization. If None, the whole time window is used.
-    @param costFunction: callable function to provided two nodes dictionaries,
+    :param  costFunction: callable function to provided two nodes dictionaries,
     and must provide a POSITIVE value for any kind of input that allows to
     measure the cost of jumping between two nodes. If not provided, a standard
     function is always provided ($\\Delta f^$)
-    @param peakFilterFnc: function to filter peaks. It must admit as inputs
+    :param  peakFilterFnc: function to filter peaks. It must admit as inputs
     the frequency axis, the smoothed data for each time slice, the peak
     position array and the peak properties.
-    @param tOverlap: sum over time when looking for peaks. If None, the sum
+    :param  tOverlap: sum over time when looking for peaks. If None, the sum
     is set to dt.
-    @param smooth: sets if the data is smoothed before searching for peaks.
+    :param  smooth: sets if the data is smoothed before searching for peaks.
     By default, it is set to True.
-    @param smooth_opts: dictionary containing the options for the sav-golay
+    :param  smooth_opts: dictionary containing the options for the sav-golay
     filter. If not provided, windows_length = 5 and the polynomial order is set
     to 3.
-    @param peak_opts: dictionary containing the options for the peak searching.
+    :param  peak_opts: dictionary containing the options for the peak searching.
         @see{scipy.signal.find_peaks}
-    @param verbose: writes into the console the partial results.
-    @param plot: plots to a new axis the results from the frequency tracking.
-    @param plotOpts: dictionary with options to plot the spectrogram. The
+    :param  verbose: writes into the console the partial results.
+    :param  plot: plots to a new axis the results from the frequency tracking.
+    :param  plotOpts: dictionary with options to plot the spectrogram. The
     'plasma' colormap is used as deafault is none is provided.
-    @param graph_TimeConnect: Time window in which the connection of the nodes.
+    :param  graph_TimeConnect: Time window in which the connection of the nodes.
     If None is provided, then it is taken to be 5*dt, i.e., only the 5 closest
     time slices are connected among themselves.
-    @param freqThr: above the threshold, the routine will disconnect the nodes
+    :param  freqThr: above the threshold, the routine will disconnect the nodes
     with a frequency jump above this.
-    @param k_exp: exponent to weight the frequency contribution to the jump.
+    :param  k_exp: exponent to weight the frequency contribution to the jump.
     Only useful, when cost function is not provided as input.
-    @param lineOpts: plotting options for the frequency tracker curve. Only
+    :param  lineOpts: plotting options for the frequency tracker curve. Only
     used whenever the plot flat is True. If not provided, color is set to
     white.
     """
@@ -932,7 +932,7 @@ class Vertex:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param node: ID of the node.
+        :param  node: ID of the node.
         """
         self.id = node
         self.adjacent = defaultdict(list)
@@ -974,8 +974,8 @@ class Vertex:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param neighbor: identification of the neighbour (a string, number,...)
-        @param weight: the weight to go from one point to the next. Only
+        :param  neighbor: identification of the neighbour (a string, number,...)
+        :param  weight: the weight to go from one point to the next. Only
         non-negative values. 0 implies direct connection, Inf means no
         connection at all. In the latter, it will not be added to the list.
         """
@@ -1005,7 +1005,7 @@ class Vertex:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param neigbor: name or identification of the neighbour whose weight
+        :param  neigbor: name or identification of the neighbour whose weight
         is wanted to be known.
         """
         return self.adjacent[neighbor]
@@ -1064,8 +1064,8 @@ class Graph:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param node_id: identificator of the node.
-        @return new_vertex: Vertex class created.
+        :param  node_id: identificator of the node.
+        :return new_vertex: Vertex class created.
         """
 
         # --- Check that there are no collisions.
@@ -1086,7 +1086,7 @@ class Graph:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param node: node identificator to get the Vertex class.
+        :param  node: node identificator to get the Vertex class.
         """
         if node in self.vert_dict:
             return self.vert_dict[node]
@@ -1100,10 +1100,10 @@ class Graph:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param frm: node-id of the starting node.
-        @param to:  node-id of the ending node.
-        @param cost: weighting of the node-node connection.
-        @param forceAdd: force to add the two new vertices 'frm'&'to' into the
+        :param  frm: node-id of the starting node.
+        :param  to:  node-id of the ending node.
+        :param  cost: weighting of the node-node connection.
+        :param  forceAdd: force to add the two new vertices 'frm'&'to' into the
         list. By default it will add them.
         """
 
@@ -1136,8 +1136,8 @@ class Graph:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param agraph: graph class containing the collection of vertices.
-        @param start: starting vertex.
+        :param  agraph: graph class containing the collection of vertices.
+        :param  start: starting vertex.
         """
 
         # Set the distance to the origin of the starting vertex to 0
@@ -1191,8 +1191,8 @@ def graph_shortest(v, path):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param v: ending vertex.
-    @param path: vertex path back to the origin. A collection of the IDs.
+    :param  v: ending vertex.
+    :param  path: vertex path back to the origin. A collection of the IDs.
     """
     if v.previous:
         path.append(v.previous.id)

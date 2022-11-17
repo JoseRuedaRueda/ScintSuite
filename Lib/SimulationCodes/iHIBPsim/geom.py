@@ -36,9 +36,9 @@ def R2beam(u: float, origin: float, R: float):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param u: beam direction vector in cartesian coordiantes.
-    @param origin: cartesian coordinates of the origin.
-    @param R:  major radius to transform to beam coordinate.
+    :param  u: beam direction vector in cartesian coordiantes.
+    :param  origin: cartesian coordinates of the origin.
+    :param  R:  major radius to transform to beam coordinate.
     """
 
     # Transforming the input into a 1D array.
@@ -77,15 +77,15 @@ def generateBeamTrajectory(start: float, beta: float, theta: float=0.0,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param start: vector with 3 components in cartesian coordinates indicating
+    :param  start: vector with 3 components in cartesian coordinates indicating
     the origin of the beam.
-    @param beta: toroidal tilting angle, defined as the tilting wrt to the
+    :param  beta: toroidal tilting angle, defined as the tilting wrt to the
     radial direction whose origin is in start.
-    @param theta: tilting angle in the poloidal direction.
-    @param Rmin: Minimum major radius. Set to the geometrical center of AUG.
-    @param Rmax: Maximum major radius. If None, it will be chosen to be the
+    :param  theta: tilting angle in the poloidal direction.
+    :param  Rmin: Minimum major radius. Set to the geometrical center of AUG.
+    :param  Rmax: Maximum major radius. If None, it will be chosen to be the
     Rmajor corresponding to the starting.
-    @param Ns: number of points along the beam to compute.
+    :param  Ns: number of points along the beam to compute.
     """
 
     beta = beta/180.0*np.pi
@@ -147,17 +147,17 @@ def plotBeam_poloidal(beam_data: dict, ax=None, fig=None,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param beam_data: beam data as obtained from the generateBeamTrajectory.
-    @param ax: axis to plot. If None, new ones are created.
-    @param fig: figure handler. If None, gcf is used to retrieve them.
-    @param pol_up: same dictionary type as beam data, but for the upper limit
+    :param  beam_data: beam data as obtained from the generateBeamTrajectory.
+    :param  ax: axis to plot. If None, new ones are created.
+    :param  fig: figure handler. If None, gcf is used to retrieve them.
+    :param  pol_up: same dictionary type as beam data, but for the upper limit
     (in poloidal) of the beam.
-    @param pol_down: same dictionary type as beam data, but for the lower limit
+    :param  pol_down: same dictionary type as beam data, but for the lower limit
     (in poloidal) of the beam.
-    @param plotDiv: flag to plot the divergency of the beam.
-    @param drawvessel: Plots the vessel into the axis. True by default.
-    @param line_opts: options to send down to plt.plot
-    @param ax_options: options to decorate the axis.
+    :param  plotDiv: flag to plot the divergency of the beam.
+    :param  drawvessel: Plots the vessel into the axis. True by default.
+    :param  line_opts: options to send down to plt.plot
+    :param  ax_options: options to decorate the axis.
     Send down to Lib.plt.axis_beauty.
     """
 
@@ -205,17 +205,17 @@ def plotBeam_toroidal(beam_data: dict, ax=None, fig=None,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param beam_data: beam data as obtained from the generateBeamTrajectory.
-    @param ax: axis to plot. If None, new ones are created.
-    @param fig: figure handler. If None, gcf is used to retrieve them.
-    @param tor_up: same dictionary type as beam data, but for the upper limit
+    :param  beam_data: beam data as obtained from the generateBeamTrajectory.
+    :param  ax: axis to plot. If None, new ones are created.
+    :param  fig: figure handler. If None, gcf is used to retrieve them.
+    :param  tor_up: same dictionary type as beam data, but for the upper limit
     (in toroidal) of the beam.
-    @param tor_down: same dictionary type as beam data, but for the lower limit
+    :param  tor_down: same dictionary type as beam data, but for the lower limit
     (in toroidal) of the beam.
-    @param plotDiv: flag to plot the divergency of the beam.
-    @param drawvessel: Plots the vessel into the axis. True by default.
-    @param line_opts: options to send down to plt.plot
-    @param ax_options: options to decorate the axis.
+    :param  plotDiv: flag to plot the divergency of the beam.
+    :param  drawvessel: Plots the vessel into the axis. True by default.
+    :param  line_opts: options to send down to plt.plot
+    :param  ax_options: options to decorate the axis.
     Send down to Lib.plt.axis_beauty.
     """
 
@@ -264,15 +264,15 @@ def plotBeam_3D(beam_data: dict, ax=None, fig=None,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param beam_data: beam data as obtained from the generateBeamTrajectory.
-    @param ax: axis to plot. If None, new ones are created.
-    @param fig: figure handler. If None, gcf is used to retrieve them.
-    @param diverg: dictionary containing the data to plot the divergence.
-    @param drawvessel: Plots the vessel into the axis. True by default.
-    @param line_opts: options to send down to plt.plot
-    @param ax_options: options to decorate the axis.
+    :param  beam_data: beam data as obtained from the generateBeamTrajectory.
+    :param  ax: axis to plot. If None, new ones are created.
+    :param  fig: figure handler. If None, gcf is used to retrieve them.
+    :param  diverg: dictionary containing the data to plot the divergence.
+    :param  drawvessel: Plots the vessel into the axis. True by default.
+    :param  line_opts: options to send down to plt.plot
+    :param  ax_options: options to decorate the axis.
     Send down to Lib.plt.axis_beauty.
-    @param params3d: parameters to plot 3D surfaces.
+    :param  params3d: parameters to plot 3D surfaces.
     """
 
     if not 'plotDiv' in diverg:
@@ -360,15 +360,15 @@ class gaussian_beam:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param origin: cartesian origin (X, Y, Z) from which the beam is
+        :param  origin: cartesian origin (X, Y, Z) from which the beam is
         started.
-        @param beta: toroidal tilting angle defined from the injection point.
-        @param theta: poloidal tilting angle, defined from the injection point.
-        @param meanE: average beam energy. Beam is modelled as a Gaussian.
-        @param stdE: standard deviation of the energy in the Gaussian model.
-        @param mass: mass of the beam species. By default, the Rb85.
-        @param divergency: beam divergency.
-        @param pinhole_size: this allows to set a given size initial size of
+        :param  beta: toroidal tilting angle defined from the injection point.
+        :param  theta: poloidal tilting angle, defined from the injection point.
+        :param  meanE: average beam energy. Beam is modelled as a Gaussian.
+        :param  stdE: standard deviation of the energy in the Gaussian model.
+        :param  mass: mass of the beam species. By default, the Rb85.
+        :param  divergency: beam divergency.
+        :param  pinhole_size: this allows to set a given size initial size of
         the beam. This is the initial radius of the beam.
         """
 
@@ -431,15 +431,15 @@ class gaussian_beam:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param origin: cartesian origin (X, Y, Z) from which the beam is
+        :param  origin: cartesian origin (X, Y, Z) from which the beam is
         started.
-        @param beta: toroidal tilting angle defined from the injection point.
-        @param theta: poloidal tilting angle, defined from the injection point.
-        @param meanE: average beam energy. Beam is modelled as a Gaussian.
-        @param stdE: standard deviation of the energy in the Gaussian model.
-        @param mass: mass of the beam species. By default, the Rb85.
-        @param divergency: beam divergency.
-        @param pinhole_size: this allows to set a given size initial size of
+        :param  beta: toroidal tilting angle defined from the injection point.
+        :param  theta: poloidal tilting angle, defined from the injection point.
+        :param  meanE: average beam energy. Beam is modelled as a Gaussian.
+        :param  stdE: standard deviation of the energy in the Gaussian model.
+        :param  mass: mass of the beam species. By default, the Rb85.
+        :param  divergency: beam divergency.
+        :param  pinhole_size: this allows to set a given size initial size of
         the beam. This is the initial radius of the beam.
         """
 
@@ -518,10 +518,10 @@ class gaussian_beam:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param view: view to plot the beam. pol, tor or 3d are accepted.
-        @param ax: axis to plot the data. If None, new ones are created.
-        @param fig: figure handler. If None, current is retrieved.
-        @param kwargs: arguments to pass down to the corresponding plotting
+        :param  view: view to plot the beam. pol, tor or 3d are accepted.
+        :param  ax: axis to plot the data. If None, new ones are created.
+        :param  fig: figure handler. If None, current is retrieved.
+        :param  kwargs: arguments to pass down to the corresponding plotting
         function.
         """
 
@@ -562,9 +562,9 @@ class gaussian_beam:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param xin: coordinates in (inptype) to be transformed.
-        @param inptype: string with the type of input coordinates.
-        @param outtype: string with the type of output coordinates.
+        :param  xin: coordinates in (inptype) to be transformed.
+        :param  inptype: string with the type of input coordinates.
+        :param  outtype: string with the type of output coordinates.
         """
 
 
@@ -760,9 +760,9 @@ class gaussian_beam:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param vin: velocities to transform.
-        @param inptype: string with the type of input coordinates.
-        @param outtype: string with the type of output coordinates.
+        :param  vin: velocities to transform.
+        :param  inptype: string with the type of input coordinates.
+        :param  outtype: string with the type of output coordinates.
         """
 
         vin = np.atleast_2d(vin)
@@ -975,12 +975,12 @@ class geom:
         of the system.
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
-        @param model3d: path to the 3d file of the head model.
-        @param scint: 2d model of the scintillator where the strikes will
+        :param  model3d: path to the 3d file of the head model.
+        :param  scint: 2d model of the scintillator where the strikes will
         be recorded. Can be either the path to the file or a 2d structure.
-        @param shot_params: dictionary containing shot data to retrieve
+        :param  shot_params: dictionary containing shot data to retrieve
         magnetic equilibrium from a database.
-        @param beam_args: beam keyword arguments to initialize the
+        :param  beam_args: beam keyword arguments to initialize the
         corresponding beam class.
         """
 
@@ -1053,10 +1053,10 @@ class geom:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param shotnumber: shot number to plot separatrix.
-        @param diag: diagnostic name where the equilibria is stored.
-        @param exp: experiment name under which the equilibirum shotfile is.
-        @param edition: edition of shotfile.
+        :param  shotnumber: shot number to plot separatrix.
+        :param  diag: diagnostic name where the equilibria is stored.
+        :param  exp: experiment name under which the equilibirum shotfile is.
+        :param  edition: edition of shotfile.
         """
 
         if (shotnumber is None) or (diag is None) or (exp is None):
@@ -1088,14 +1088,14 @@ class geom:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param view: way of representing the geometry: '3d' or 'pol', 'tor' are
+        :param  view: way of representing the geometry: '3d' or 'pol', 'tor' are
         available to plot.
-        @param ax: axis to plot the figure.
-        @param fig: figure associated to the axis where the data is being
+        :param  ax: axis to plot the figure.
+        :param  fig: figure associated to the axis where the data is being
         plot.
-        @param timepoint: in case separatrix is loaded, corresponding timepoint
+        :param  timepoint: in case separatrix is loaded, corresponding timepoint
         can be loaded.
-        @param parms: parameters for the plotting. If the 2D options are chose,
+        :param  parms: parameters for the plotting. If the 2D options are chose,
         then the options are related to the Line Object. Instead, the options
         would correspond to 3D surface plot.
         """
@@ -1156,12 +1156,12 @@ class geom:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param view: way of representing the geometry: '3d' or 'pol', 'tor' are
+        :param  view: way of representing the geometry: '3d' or 'pol', 'tor' are
         available to plot.
-        @param ax: axis to plot the figure.
-        @param fig: figure associated to the axis where the data is being
+        :param  ax: axis to plot the figure.
+        :param  fig: figure associated to the axis where the data is being
         plot.
-        @param kwargs: keyword arguments for the plotting subroutines. If a 2D
+        :param  kwargs: keyword arguments for the plotting subroutines. If a 2D
         plot view is chosen, then these would correspond to the Line
         characteristics. Otherwise, it will be properties of the 3D surface to
         plot.
@@ -1222,11 +1222,11 @@ class geom:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param view: way of representing the geometry: only '3D' can be used.
-        @param ax: axis to plot the figure.
-        @param fig: figure associated to the axis where the data is being
+        :param  view: way of representing the geometry: only '3D' can be used.
+        :param  ax: axis to plot the figure.
+        :param  fig: figure associated to the axis where the data is being
         plot.
-        @param kwargs: keyword arguments for the plotting subroutines. If a 2D
+        :param  kwargs: keyword arguments for the plotting subroutines. If a 2D
         plot view is chosen, then these would correspond to the Line
         characteristics. Otherwise, it will be properties of the 3D surface to
         plot.
@@ -1248,14 +1248,14 @@ class geom:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param view: way of representing the geometry: '3d' or 'pol', 'tor' are
+        :param  view: way of representing the geometry: '3d' or 'pol', 'tor' are
         available to plot.
-        @param elements: elements to plot, a combination of 'head', 'scint',
+        :param  elements: elements to plot, a combination of 'head', 'scint',
         'beam', 'separatrix', 'all' as a list.
-        @param ax: axis to plot the figure.
-        @param fig: figure associated to the axis where the data is being
+        :param  ax: axis to plot the figure.
+        :param  fig: figure associated to the axis where the data is being
         plot.
-        @param timepoint: in case separatrix is loaded, corresponding timepoint
+        :param  timepoint: in case separatrix is loaded, corresponding timepoint
         can be loaded.
         """
 

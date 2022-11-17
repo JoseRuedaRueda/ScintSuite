@@ -20,10 +20,10 @@ def read_file(file, verbose: bool = True):
 
     Jose Rueda: jrrueda@us.es
 
-    @param file: full path to the file
-    @param verbose: flag to print some info in the terminal
+    :param  file: full path to the file
+    :param  verbose: flag to print some info in the terminal
 
-    @return: Dictionary containing the frames of the video:
+    :return: Dictionary containing the frames of the video:
         - 'nf': Number of loaded frames
         - 'nx': Height of the frame
         - 'ny': Width of the frame
