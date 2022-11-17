@@ -45,17 +45,17 @@ class torbeam:
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
     """
-    def __init__(self, path: str, shotnumber: int):
+    def __init__(self, path: str, shotnumber: int, diag: str='IDA'):
         """
         Loads the file(s) corresponding to the TORBEAM simulation by providing
         the path where all the files are stored:
             - ECRHXXXXX.gyY.tb.rpol  -> Power deposition.
             - ECCDXXXXX.gyY.tb.rpol  -> ECCD deposition .
-            - EXXXXX.PED.tb.rpol      -> Electron temperature.
-            - NXXXXX.PED.tb.rpol      -> Electron density.
+            - EXXXXX.DIA.tb.rpol      -> Electron temperature.
+            - NXXXXX.DIA.tb.rpol      -> Electron density.
             - VOLXXXXX.VOL.tb.rpol    -> Volume per rhopol.
 
-        where XXXXX -> shotnumber and Y -> gyrotron.
+        where XXXXX -> shotnumber and Y -> gyrotron and DIA = diagnostic
         """
         if not os.path.isdir(path):
             raise FileNotFoundError('Cannot find the path')
@@ -94,11 +94,11 @@ class torbeam:
         self.gyr_avails = np.array(self.gyr_avails)
 
         ## Loading the density, temperature and volume.
-        fn = 'N%05d.PED.tb.rpol'%(shotnumber)
+        fn = 'N%05d.%s.tb.rpol'%(shotnumber, diag)
         path0 = os.path.join(path, fn)
         self.density = load_Ufile(path0)
 
-        fn = 'E%05d.PED.tb.rpol'%(shotnumber)
+        fn = 'E%05d.%s.tb.rpol'%(shotnumber,diag)
         path0 = os.path.join(path, fn)
         self.temperature = load_Ufile(path0)
 
@@ -148,6 +148,7 @@ class torbeam:
         return
 
     def plot(self, what: str='ECCD', gyr: int=None, ax=None,
+             plot_total: bool=False, only_total: bool=False,
              volume:bool=False, **kwargs):
         """"
         Plots either the ECRH or the ECCD signal for the input gyrotron(s).
@@ -158,6 +159,11 @@ class torbeam:
         :param  gyr: gyrotron(s) to plot.
         :param  ax: axis to plot. If None, new ones will be created.
         :param  kwargs: plotting keyword arguments.
+        :param volume: multiply the corresponding values by the volume of the
+        flux surface. Useful to see the total ECRH power deposited.
+        :param plot_total: whether to overplot the summed value.
+        :param kwargs: plotting keyword arguments.
+
         """
         if gyr is None:
             gyr = deepcopy(self.gyr_avails)
@@ -178,6 +184,9 @@ class torbeam:
             raise errors.NotValidInput('Gyrotrons '+str(gyr[flags]) + \
                                        ' not available in the machine.')
 
+        if only_total:
+            plot_total = True
+
 
         ## Opening the plot.
         ax_was_none = ax is None
@@ -188,6 +197,10 @@ class torbeam:
         else:
             label_set = True
 
+        if plot_total:
+            rhopol_tot = data[gyr[0]]['rhopol']
+            summed     = np.zeros_like(rhopol_tot)
+
         ## Plotting.
         for ii in gyr:
             if not label_set:
@@ -197,7 +210,16 @@ class torbeam:
                 dataplot = data[ii]['data'] * self.volume['data']
             else:
                 dataplot = data[ii]['data']
-            ax.plot(data[ii]['rhopol'], dataplot, **kwargs)
+
+            if not only_total:
+                ax.plot(data[ii]['rhopol'], dataplot, **kwargs)
+
+            if plot_total:
+                summed += np.interp(rhopol_tot, data[ii]['rhopol'],
+                                    dataplot)
+
+        if plot_total:
+            ax.plot(rhopol_tot, summed, label='Sum')
 
         if ax_was_none:
             ax.set_xlabel('$\\rho_{pol}$')

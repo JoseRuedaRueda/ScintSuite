@@ -106,6 +106,10 @@ class orbit:
             ax.plot(x[imin:imax], y[imin:imax],
                     self.data['z'][imin:imax],
                     **line_options)
+            ax.scatter(x[imin], y[imin], self.data['z'][imin], color = 'g', label ='initial')
+            ax.scatter(x[imax-1], y[imax-1], self.data['z'][imax-1], color = 'r', label ='Final')
+            ax.legend()
+
 
         if flag_ax_was_none:
             if view == '2D':
@@ -655,7 +659,7 @@ class orbitFile:
                 output['vR'] = orbitData[:, 3]
                 output['vt'] = orbitData[:, 4]
                 output['vz'] = orbitData[:, 5]
-                output['logW'] = orbitData[:, 7]
+                output['logW'] = orbitData[:, 8]
 
                 # Computing the kinetic energy:
                 output['K'] = orbitData[:, 3] ** 2 + \
@@ -790,7 +794,7 @@ class orbitFile:
             output['vR'] = orbitData[3, :]
             output['vt'] = orbitData[4, :]
             output['vz'] = orbitData[5, :]
-            output['logW'] = orbitData[7, :]
+            output['logW'] = orbitData[8, :]
 
             # Computing the kinetic energy:
             output['K'] = orbitData[3, :]**2 + orbitData[4, :]**2 + \
