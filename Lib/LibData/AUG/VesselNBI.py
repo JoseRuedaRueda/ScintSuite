@@ -14,7 +14,7 @@ import Lib.errors as errors
 from Lib._Paths import Path
 
 import logging
-logger = logging.logger('ScintSuite.Data')
+logger = logging.getLogger('ScintSuite.Data')
 
 try:
     import numba
