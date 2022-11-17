@@ -110,11 +110,11 @@ def strline_mode_to_str(data: int, **kwargs):
     :param kwargs: other arguments to be ignored
     """
 
-    if data == 0:
-        return 'R'  # Using the major radius as a mapping coordinate.
-    elif data == 1:
-        return 'rhopol' # Using the rhopol as a mapping coordinate.
+    if data == 1:
+        return 'rhopol'  # Using the major radius as a mapping coordinate.
     elif data == 2:
+        return 'R' # Using the rhopol as a mapping coordinate.
+    elif data == 3:
         return 'R,z' # Using both (R, z) to map the coordinates on scintillator
     else:
         raise ValueError('Not supported mapping coords. method %d'%data)
@@ -578,6 +578,11 @@ class strikeLine:
                    'inch': 100.0/2.54
                  }.get(units)
 
+        if ('linestyle' in line_options) and \
+           (line_options['linestyle'] == 'none') and  weighted_color:
+               raise ValueError('Cannot set the color weight along with no lines!')
+
+
 
         if cal is None:
             x = self.x1 * factor
@@ -614,6 +619,41 @@ class strikeLine:
                 cbar.set_label('Intensity')
 
         return ax, line
+
+    def plot_weight(self, ax=None, **line_options):
+        """
+        Presents the weight along the strike line using as reference the
+        initial parameter chosen in the simulation.
+
+        Pablo Oyola - poyola@us.es
+
+        :param ax: axis to use. If None, new one is created
+        :param line_options: keyword arguments to send down to the plt.plot.
+        """
+
+        ax_was_none = ax is None
+        if ax_was_none:
+            fig, ax = plt.subplots(1)
+
+        x, y = self.map_s, self.w
+
+        line = ax.plot(x.values, y.values, **line_options)
+
+        if ax_was_none:
+            xlabel = '%s %s [%s]'%(self.map_s.longName, self.map_s.shortName,
+                                   self.map_s.units)
+            ax.set_xlabel(xlabel)
+
+            ylabel = '%s %s [%s]'%(self.w.longName, self.w.shortName,
+                                   self.w.units)
+            ax.set_ylabel(ylabel)
+
+            ax.grid('both')
+
+            plt.tight_layout()
+
+        return ax, line
+
 
     def project(self, data: float, xgrid: float, ygrid: float,
                 kind: str='cubic', cal=None):
@@ -684,7 +724,7 @@ class strikeLineCollection:
 
         # We prepare now the internal timebasis.
         self.ntime = len(maps)
-        self.time  = np.array([maps[ii]['time'].values \
+        self.time  = np.array([maps[ii]['time'].values[0] \
                                for ii in range(self.ntime)])
 
         self.maps = [strikeLine(data=maps[0], properties = self.prop)]
@@ -710,7 +750,7 @@ class strikeLineCollection:
             idx = np.array([np.abs(self.time - itime).argmin() \
                             for itime in time], dtype=int)
 
-        return idx
+        return np.atleast_1d(idx)
 
 
     # Useful shortcuts through Python builtin operators.
@@ -725,11 +765,117 @@ class strikeLineCollection:
         """
 
         if isinstance(t, int):
-            idx = t
+            idx = np.atleast_1d(t)
         else:
             idx = self.getTimeIndex(time = t)
 
-        return self.maps[idx]
+        if len(idx) == 1:
+            return self.maps[idx[0]]
+        else:
+            return np.array([self.maps[ii] for ii in idx])
+
+    def plot(self, time: Union[float, int]=None, weighted_color: bool=False,
+             units: str='cm', cal=None, ax=None, **line_options):
+        """
+        Plot a given strikeline provided the time point or the time index.
+        Just acts as a wrap of the strikeLine plot function.
+
+        Pablo Oyola - poyola@us.es
+
+        :param time: time point to plot. If an integer is provided, then it is
+        interpreted as the index in the timebase. Otherwise, if floating point,
+        the nearest time point is taken.
+        :param weighted_color: plot the line with colors given by the arriving
+        flux.
+        :param units: units for the plot. Either cm, m, mm or inch
+        :param cal: calibration to distort the strikeline. If not provided,
+        the un-distorted image is used instead.
+        :param ax: axis to plot the data. If None, new axes are created.
+        :param line_options: dictionary with arguments to pass down to the
+        function.
+        """
+
+        if time is None:
+            time = np.arange(self.ntime).astype(dtype=int)
+
+        if isinstance(time, int):
+            idx = np.atleast_1d(time)
+        else:
+            idx = self.getTimeIndex(time)
+
+        # Using the internal plotting.
+        if len(idx) == 1:
+            idx = idx[0]
+            if 'label' not in line_options:
+                label = 't = %.3f s'%self.time[idx]
+                ax, lc = self[idx].plot(weighted_color=weighted_color,
+                                        units=units, cal=cal, ax=ax,
+                                        label=label, **line_options)
+            else:
+                ax, lc = self[idx].plot(weighted_color=weighted_color,
+                                        units=units, cal=cal, ax=ax,
+                                        **line_options)
+        else:
+            lc = list()
+            for ii in idx:
+                if 'label' not in line_options:
+                    label = 't = %.3f s'%self.time[ii]
+                    ax, tmp = self[ii].plot(weighted_color=weighted_color,
+                                             units=units, cal=cal, ax=ax,
+                                             label=label, **line_options)
+                else:
+                    ax, tmp = self[ii].plot(weighted_color=weighted_color,
+                                             units=units, cal=cal, ax=ax,
+                                             **line_options)
+                lc.append(tmp)
+
+        return ax, lc
+
+    def plot_weight(self, time: Union[int, float]=None, ax=None, **line_options):
+        """
+        Plot a given weight profile for input time(s) or time index(indices).
+
+        Pablo Oyola - poyola@us.es
+
+        :param time: time point to plot. If an integer is provided, then it is
+        interpreted as the index in the timebase. Otherwise, if floating point,
+        the nearest time point is taken.
+        :param ax: axis to plot the data. If None, new axes are created.
+        :param line_options: dictionary with arguments to pass down to the
+        function.
+        """
+
+        if time is None:
+            time = np.arange(self.ntime).astype(dtype=int)
+
+        if isinstance(time, int):
+            idx = np.atleast_1d(time)
+        else:
+            idx = self.getTimeIndex(time)
+
+        # Using the internal plotting.
+        if len(idx) == 1:
+            idx = idx[0]
+            if 'label' not in line_options:
+                label = 't = %.3f s'%self.time[idx]
+                ax, lc = self[idx].plot_weight(ax=ax, label=label,
+                                               **line_options)
+            else:
+                ax, lc = self[idx].plot_weight(ax=ax,  **line_options)
+        else:
+            lc = list()
+            for ii in idx:
+                if 'label' not in line_options:
+                    label = 't = %.3f s'%self.time[ii]
+                    ax, tmp = self[ii].plot_weight(ax=ax, label=label,
+                                                   **line_options)
+                else:
+                    ax, tmp = self[ii].plot_weight(ax=ax, **line_options)
+                lc.append(tmp)
+
+        return ax, lc
+
+
 
     # Properties.
     @property
