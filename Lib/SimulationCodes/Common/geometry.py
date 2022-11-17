@@ -23,7 +23,7 @@ import f90nml
 paths = Path(machine)
 
 
-def read_element(file, code: str = 'SINPA'):
+def read_element(file: str, code: str = 'SINPA'):
     """
     Read a SINPA of FILDSIM gemetric element.
 
@@ -45,7 +45,7 @@ def read_element(file, code: str = 'SINPA'):
     some point in the name. Examples: AUG_FILD1_SCINTILLATOR or
     AUG_scintillator_FILD1
 
-    Note2: To be consistend between both of codes, coorditanes will be
+    Note2: To be consistent between both of codes, coorditanes will be
     transformed to m when reading the files
     """
     if code.lower() == 'fildsim':
@@ -787,7 +787,7 @@ class Geometry:
                                       str(self[i]['triangles'][it, 2]) + '\n'])
             # Write the namelist
             file = os.path.join(path, 'ExtraGeometryParams.txt')
-            f90nml.write({'ExtraGeometryParams': self.ExtraGeometryParams}, 
+            f90nml.write({'ExtraGeometryParams': self.ExtraGeometryParams},
                          file, force=True)
         elif self.code.lower() == 'ihibpsim':
             if os.path.isdir(path):
@@ -807,7 +807,7 @@ class Geometry:
                         f.writelines([str(self[0]['triangles'][j, 0]) + ' ',
                                       str(self[0]['triangles'][j, 1]) + '\n'])
 
-                
+
 
     def elements_to_stl(self, element_to_save=[0, 1, 2], units: str = 'cm'
                            ,file_name_save: str = 'Test'):
