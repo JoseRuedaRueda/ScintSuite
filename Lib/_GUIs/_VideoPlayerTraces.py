@@ -18,8 +18,8 @@ class ApplicationShowVidAndTraces:
         """
         Create the window with the sliders
 
-        @param master: Tk() opened
-        @param video: The INPA video
+        :param  master: Tk() opened
+        :param  video: The INPA video
         """
         # --- List of supported colormaps
         self.cmaps = {

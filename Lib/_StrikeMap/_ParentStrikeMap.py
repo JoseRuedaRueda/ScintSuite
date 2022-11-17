@@ -62,13 +62,13 @@ class GeneralStrikeMap(XYtoPixel):
         """
         Read the strike map data and initialise the clas
 
-        @param file: path to the file to be read
-        @param variables_to_remap: tupple with the names of the variables to be
+        :param  file: path to the file to be read
+        :param  variables_to_remap: tupple with the names of the variables to be
             used in the remap. By default:
                 - FILD: ('pitch', 'gyroradius')
                 - INPA: ('R0', 'gyroradius')
                 - iHIBP: ('x1', 'x2')
-        @param code: code used to calculate the strike map. If None, would be
+        :param  code: code used to calculate the strike map. If None, would be
             guessed automatically
         """
         # --- Init the parent class
@@ -108,7 +108,7 @@ class GeneralStrikeMap(XYtoPixel):
 
         Notice: calling this functions will update the interpolators
 
-        @param variables_to_remap: tuple contianing the name of the 2 selected
+        :param  variables_to_remap: tuple contianing the name of the 2 selected
             variables
         """
         self._to_remap = [self._data[name] for name in variables_to_remap]
@@ -126,15 +126,15 @@ class GeneralStrikeMap(XYtoPixel):
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param frame_shape: Size of the frame used for the calibration (in px)
-        @param method: method to calculate the interpolation:
+        :param  frame_shape: Size of the frame used for the calibration (in px)
+        :param  method: method to calculate the interpolation:
             - 1: griddata linear (you can also write 'linear')
             - 2: griddata cubic  (you can also write 'cubic')
-        @param verbose: flag to print some info along the way
-        @param grid_params: grid options for the transformationn matrix grid
-        @param MC_number: Number of MC markers for the transformation matrix,
+        :param  verbose: flag to print some info along the way
+        :param  grid_params: grid options for the transformationn matrix grid
+        :param  MC_number: Number of MC markers for the transformation matrix,
         if this number < 0, the transformation matrix will not be calculated
-        @param variables_to_interpolate: Variables we want to interpolate in
+        :param  variables_to_interpolate: Variables we want to interpolate in
             the camera sensor. If none, just the self._to_remap variables will
             be used
 
@@ -243,16 +243,16 @@ class GeneralStrikeMap(XYtoPixel):
         be loaded by CAD software (for example) No extra information is stored
         in the file
 
-        @param: Geometry object with which to apply anti rotation
+        :param : Geometry object with which to apply anti rotation
             and translation to recover the map in absoulte coordinates.
             If no Geometry object is given the strike map coordinates will be
             saved in the scintillator reference system (ie, pure coordinates of
             the smap file)
-        @param units: Units in which to save the strikemap positions.
-        @param file_name_save: name of the txt file to save the data. This is
+        :param  units: Units in which to save the strikemap positions.
+        :param  file_name_save: name of the txt file to save the data. This is
             just kept for retrocompatibility issues, please use the input
             filename. If present, filename input will be ignored
-        @param filename: name of the text file to store the strike map in
+        :param  filename: name of the text file to store the strike map in
         """
         # --- Initialisate the settings
         if file_name_save is not None:
@@ -286,7 +286,7 @@ class GeneralStrikeMap(XYtoPixel):
         """
         Perform a basic and quick plot of a variable data
 
-        @param varname: name of the variable
+        :param  varname: name of the variable
         """
         # Get the variable
         var = self._data[varname]
@@ -321,13 +321,13 @@ class GeneralStrikeMap(XYtoPixel):
         Note, this just plot the grid of points, latter, the children will
         call this function and add the labels and so on
 
-        @param ax: Axes where to plot
-        @param markers_params: parameters for plt.plot() to plot the markers
-        @param line_params: parameters for plt.plot() to plot the markers
-        @param labels: if true, labels will be added into the plot
-        @param rotation_for_x_label: Rotation to add to the general label of
+        :param  ax: Axes where to plot
+        :param  markers_params: parameters for plt.plot() to plot the markers
+        :param  line_params: parameters for plt.plot() to plot the markers
+        :param  labels: if true, labels will be added into the plot
+        :param  rotation_for_x_label: Rotation to add to the general label of
             the first MC variable
-        @param rotation_for_y_label: Rotation to add to the general label of
+        :param  rotation_for_y_label: Rotation to add to the general label of
             the second MC variable
         """
         # --- Settings
@@ -422,15 +422,15 @@ class GeneralStrikeMap(XYtoPixel):
         Note, this just plot the grid of points, latter, the children will
         call this function and add the labels and so on
 
-        @param ax: Axes where to plot
-        @param markers_params: parameters for plt.plot() to plot the markers
-        @param line_params: parameters for plt.plot() to plot the markers
-        @param labels: if true, labels will be added into the plot
-        @param rotation_for_x_label: Rotation to add to the general label of
+        :param  ax: Axes where to plot
+        :param  markers_params: parameters for plt.plot() to plot the markers
+        :param  line_params: parameters for plt.plot() to plot the markers
+        :param  labels: if true, labels will be added into the plot
+        :param  rotation_for_x_label: Rotation to add to the general label of
             the first MC variable
-        @param rotation_for_y_label: Rotation to add to the general label of
+        :param  rotation_for_y_label: Rotation to add to the general label of
             the second MC variable
-        @param factor: Scaling factor for strike map points
+        :param  factor: Scaling factor for strike map points
         """
         # --- Settings
         # Default plot parameters:
@@ -521,14 +521,14 @@ class GeneralStrikeMap(XYtoPixel):
         """
         Calculate the transformation matrix from camera pixel to phase space
 
-        @param MC_number: number of MC markers to launch for the calculation
-        @param variables: set of 2 variables to be selected. Notice that they
+        :param  MC_number: number of MC markers to launch for the calculation
+        :param  variables: set of 2 variables to be selected. Notice that they
             should be present in the _grid_interp (should be just 2 strings)
-        @param grid_options: dictionary containing grid parameters, 'x' will
+        :param  grid_options: dictionary containing grid parameters, 'x' will
             apply for the first variable in the variable tuple and 'y' for the
             second
-        @param frame_shape: shape of the camera sensor
-        @param limitation: Maximum memory size for the transformation matrix
+        :param  frame_shape: shape of the camera sensor
+        :param  limitation: Maximum memory size for the transformation matrix
         """
         # Create the transformation matrix key, if not present
         if 'transformation_matrix' not in self._grid_interp.keys():

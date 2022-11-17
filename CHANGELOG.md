@@ -1,4 +1,5 @@
-#1.1.1:
+
+# 1.2.1: Melon with Jamon
 ## iHIBPVideo
 - changed guessiHIBPfilename to use correct video filename for different discharges
 - fixed ihibp_get_time_basis to give correct timebase
@@ -27,6 +28,16 @@
 - two new objects:
     - Lib.strikeline.strikeLineCollection: loads the file with the map and initializes a many strike lines as the file contains.
     - Lib.strikeline.strikeLine: strike line object containing all the elements that a single strike line has.
+
+# 1.2.0: Melon con Jamon
+## General
+- Changed @ for : in documentations
+## Data
+- INPA object documentation improved
+- getGeomShots() removed from INPA object
+## Simulation codes
+- Added compatibility with SINPA 4
+
 
 # 1.1.0: Melon con Jamon
 ## FIDASIM library

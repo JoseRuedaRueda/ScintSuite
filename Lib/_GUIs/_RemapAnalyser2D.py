@@ -15,10 +15,10 @@ class ApplicationRemap2DAnalyser:
         """
         Create the window with the sliders
 
-        @param master: Tk() opened
-        @param data: the dictionary of experimental frames
-        @param remap_dat: the dictionary of remapped data
-        @param traces: dictionary containing 't1', 'y1', 'l1', and so on, the
+        :param  master: Tk() opened
+        :param  data: the dictionary of experimental frames
+        :param  remap_dat: the dictionary of remapped data
+        :param  traces: dictionary containing 't1', 'y1', 'l1', and so on, the
             set of traces to be plotted ('l' key is for the label)
         """
         # --- List of supported colormaps

@@ -32,10 +32,10 @@ def decision(prob: float, x0: float, dx0: float):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param prob: array with the probability value that must range between [0, 1]
-    @param x0: probability threshold, point at which the probability of being
+    :param  prob: array with the probability value that must range between [0, 1]
+    :param  x0: probability threshold, point at which the probability of being
     noise would be 50%.
-    @param dx0: probability slope. Slope to transition from noise to signal.
+    :param  dx0: probability slope. Slope to transition from noise to signal.
     """
 
     assert (x0 > 0.0) and (x0 < 1.0), 'Probability threshold must be in [0, 1]'
@@ -45,22 +45,21 @@ def decision(prob: float, x0: float, dx0: float):
 
     return f
 
+# --- Auxiliar routines to find the path towards the camera files
 def guessiHIBPfilename(shot: int):
     """
     Guess the filename of a video
 
-    Hannah Lindl - hannah.lindl@ipp.mpg.de
-
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
 
     :param shot: shot number
 
-    :return filename_video: the name of the file/folder
-    :return filename_time: the name of the xml file
-    :return properties: video properties
+    @return filename_video: the name of the file/folder
+    @return filename_time: the name of the xml file
+    @return properties: video properties
     """
     datadir='/afs/ipp-garching.mpg.de/home/a/augd/rawfiles/LIV/%2i/%5i/'%(shot/1000,shot)
     if shot < 41225:
-        fps = 120
         filename_video = datadir + '%5i_cam_HIBP_bgsub_median.mp4' % (shot)
         description = 'zero-th frame subtracted and median filtered with size 5'
         if not os.path.exists(filename_video):
@@ -68,31 +67,19 @@ def guessiHIBPfilename(shot: int):
             description = 'raw video'
         if shot<40396:
             filename_time='/afs/ipp/u/augd/rawfiles/VRT/%2i/S%5i/Prot/FrameProt/HIBP_FrameProt.xml'%(shot/1000,shot)
-            width, height = 659, 494
         else:
             filename_time='/afs/ipp/u/augd/rawfiles/VRT/%2i/S%5i/S%5i_HIBP.meta.xml' % (shot/1000,shot,shot)
-            width, height = 672, 494
     elif shot < 41339:
         filename_video = datadir + '%i_cam_ihibp_top_ffv.mp4' %(shot)
         description = 'raw video'
         filename_time = datadir + '%i_cam_ihibp_top.xml' %(shot)
-        width, height = 1024, 768
-        fps = 60
     else:
         filename_video = datadir + '%i_cam_ihibp_side_bgsub_median.mp4' %(shot)
         description = 'zero-th frame subtracted and median filtered with size 5'
         filename_time = datadir + '%i_cam_ihibp_side.xml' %(shot)
-        width, height = 1024, 768
-        fps = 60
 
-    properties = dict()
-    properties['width'] = width
-    properties['height'] = height
-    properties['fps'] = fps
-    properties['description'] = description
+    properties = {'description': description}
     return filename_video, filename_time, properties
-
-
 
 # ------------------------------------------------------------------------------
 # TIMEBASE OF THE CAMERA.
@@ -108,13 +95,13 @@ def ihibp_get_time_basis(fn: str, shot: int):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param fn: filename of the time trace
-    @param shot: shot to read the timebasis.
-    @param time: timetrace of the discharge
-    @param nf: number of frames stored in the video
+    :param fn: filename of the time trace
+    :param shot: shot to read the timebasis.
+    :param time: timetrace of the discharge
+    :param nf: number of frames stored in the video
     """
 
-    root = et.parse(fn).getroot() # Opening the time configuration file.
+    root = et.parse(fn).getroot()  # Opening the time configuration file.
 
     # From the root we get the properties.
     properties = dict()
@@ -130,7 +117,7 @@ def ihibp_get_time_basis(fn: str, shot: int):
         except:
             pass
 
-    if shot in range(40396,41225): #discharges 40396-41224 store data differently
+    if shot in range(40396, 41225):  # discharges 40396-41224 store data differently
         # Getting the frames.
         frames = list(root)[2]
         # Now we read the rest of the entries.
@@ -139,7 +126,7 @@ def ihibp_get_time_basis(fn: str, shot: int):
         for ii, iele in enumerate(list(frames)):
             tmp = iele.attrib
             time[ii] = float(int(tmp['timestamp']))
-        time -= properties['ts6'] #obtain relative timing
+        time -= properties['ts6']  # obtain relative timing
     else:
         nf = len(root)
         time = np.zeros((nf,), dtype=float)
@@ -148,7 +135,7 @@ def ihibp_get_time_basis(fn: str, shot: int):
             time[ii] = float(int(tmp['time'], base=16))
         time -= properties['ts6Time']
 
-    time = time * 1e-9 # time in nanoseconds
+    time = time * 1e-9  # time in nanoseconds
     return time, nf
 
 
@@ -171,19 +158,19 @@ class iHIBPvideo(BVO):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param shot: pulse number to read video data.
-        @param calib: CalParams object with the calibration parameters for the
+        :param  shot: pulse number to read video data.
+        :param  calib: CalParams object with the calibration parameters for the
         image. This is used to properly set the scintillator image to its
         position.
-        @param scobj: Scintillator object containing all the data of the
+        :param  scobj: Scintillator object containing all the data of the
         scintillator position, shape,...
-        @param signal_threshold: sets the minimum number of counts per pixel to
+        :param  signal_threshold: sets the minimum number of counts per pixel to
         be considered illuminated the scintillator. The first image that
         fulfills that will be considered the reference frame with no signal and
         used to remove noise.
-        @param noiseSubtraction: if true, the subtract noise function from the
+        :param  noiseSubtraction: if true, the subtract noise function from the
         parent class will be called automatically in the init
-        @param filterFrames: if true, the filter function from the
+        :param  filterFrames: if true, the filter function from the
         parent class will be called automatically in the init (with the median
         filter option)
         """
@@ -267,10 +254,10 @@ class iHIBPvideo(BVO):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param plotScintillatorPlate: flag to plot or not the scintillator
+        :param  plotScintillatorPlate: flag to plot or not the scintillator
         plate to the figure. Defaults to True.
-        @param kwargs: same arguments than BVO.plot_frame.
-        @return ax: axis where the frame has been plot.
+        :param  kwargs: same arguments than BVO.plot_frame.
+        :return ax: axis where the frame has been plot.
         """
         ax = super().plot_frame(**kwargs)
 
@@ -292,7 +279,7 @@ class iHIBPvideo(BVO):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param timetrace: timetrace to be used as a monitor for the background
+        :param  timetrace: timetrace to be used as a monitor for the background
         light. If None, we will fall back to the standard monitor that is just
         taking a small piece of the scintillator.
         """
@@ -339,8 +326,8 @@ class iHIBPvideo(BVO):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param x0: value of the probability transition from noise to signal
-        @param dx0: pace to smooth the transition from noise to signal.
+        :param  x0: value of the probability transition from noise to signal
+        :param  dx0: pace to smooth the transition from noise to signal.
         """
         if 'frame_noise' not in self.__dict__:
             raise Exception('A particular time-dependence'+\
@@ -381,10 +368,10 @@ class iHIBPvideo(BVO):
         adapted from the BasicVideoObject (BVO) from:
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param t: time of the frame to be plotted for the selection of the roi
-        @param mask: bolean mask of the ROI
+        :param  t: time of the frame to be plotted for the selection of the roi
+        :param  mask: bolean mask of the ROI
 
-        @returns timetrace: a timetrace object
+        :returns timetrace: a timetrace object
         """
 
         if (t is None) and (mask is None):

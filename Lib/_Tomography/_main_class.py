@@ -37,8 +37,8 @@ class Tomography():
         """
         Initialise the class
 
-        @param W: xr.DataArray with the instrument func created
-        @param s: signal DataArray, extracted from the remap
+        :param  W: xr.DataArray with the instrument func created
+        :param  s: signal DataArray, extracted from the remap
 
         Notice that both should share the scintillator grid
         """
@@ -67,7 +67,7 @@ class Tomography():
         """
         Perform an nnlsq inversion
 
-        @param kargs: optional arguments for the scipy non-negative solver
+        :param  kargs: optional arguments for the scipy non-negative solver
         """
         logger.info('Performing non-negative least squares regression')
         beta, MSE, res, r2 = solvers.nnlsq(self.W2D, self.s1D, **kargs)
@@ -97,11 +97,11 @@ class Tomography():
 
         Jose Rueda-Rueda: jrrueda@us.es
 
-        @param alpha: hyperparameter. Can be a number (single regression) or
+        :param  alpha: hyperparameter. Can be a number (single regression) or
             a list or array. In this latter case, the regression will be done
             for each value in the list (array)
-        @param weights: weights, placeholder for the future
-        @param **kargs: extra arguments to initialise skitlearn ridge regressor
+        :param  weights: weights, placeholder for the future
+        :param  **kargs: extra arguments to initialise skitlearn ridge regressor
         """
         # --- Ensure we have an array or iterable:
         if isinstance(alpha, (list, np.ndarray)):
@@ -154,11 +154,11 @@ class Tomography():
 
         Jose Rueda-Rueda: jrrueda@us.es
 
-        @param alpha: hyperparameter. Can be a number (single regression) or
+        :param  alpha: hyperparameter. Can be a number (single regression) or
             a list or array. In this latter case, the regression will be done
             for each value in the list (array)
-        @param weights: weights, placeholder for the future
-        @param **kargs: extra arguments for the nnlsqr solver
+        :param  weights: weights, placeholder for the future
+        :param  **kargs: extra arguments for the nnlsqr solver
         """
         # --- Ensure we have an array or iterable:
         if isinstance(alpha, (list, np.ndarray)):

@@ -22,9 +22,9 @@ def collapse_array4D(W: float):
 
     Pablo Oyola: poyola@us.es and Jose Rueda: jrrueda@us.es
 
-    @param W: 4D matrix
+    :param  W: 4D matrix
 
-    @return W2D: Condensed 2D matrix
+    :return W2D: Condensed 2D matrix
     """
     ns = W.shape[0] * W.shape[1]
     npin = W.shape[2] * W.shape[3]
@@ -55,9 +55,9 @@ def restore_array4D(W: float, n0: int, n1: int, n2: int, n3: int):
 
     Pablo Oyola: poyola@us.es and Jose Rueda: jrrueda@us.es
 
-    @param W: 2D matrix
+    :param  W: 2D matrix
 
-    @return W4D: restored 4D matrix
+    :return W4D: restored 4D matrix
     """
     W4D = np.zeros((n0, n1, n2, n3))
     for irp in prange(n3):
@@ -77,9 +77,9 @@ def collapse_array2D(s: float):
 
     Pablo Oyola: poyola@us.es and Jose Rueda: jrrueda@us.es
 
-    @param s: 2D matrix
+    :param  s: 2D matrix
 
-    @return s1d: Condensed 1D matrix
+    :return s1d: Condensed 1D matrix
     """
     ns = s.size
     s1d = np.zeros(ns)
@@ -96,9 +96,9 @@ def restore_array2D(s1d: float, nx: int, ny:int):
 
     Pablo Oyola: poyola@us.es and Jose Rueda: jrrueda@us.es
 
-    @param s: 1D matrix
+    :param  s: 1D matrix
 
-    @return s2D: Condensed 2D matrix
+    :return s2D: Condensed 2D matrix
     """
     s2D = np.zeros((nx, ny))
     for irs in prange(ny):

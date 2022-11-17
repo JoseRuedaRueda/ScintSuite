@@ -40,9 +40,9 @@ def check_save_file(file):
 
     Jose Rueda: jrrueda@us.es
 
-    @param file: the filename to test if exist
+    :param  file: the filename to test if exist
 
-    @return out: fir file does not exist, return the same filename, if exist,
+    :return out: fir file does not exist, return the same filename, if exist,
     open a window for the user to select the filename he wants
     """
     if not os.path.isfile(file):
@@ -61,9 +61,9 @@ def check_open_file(file):
 
     Jose Rueda: jrrueda@us.es
 
-    @param file: the filename to test if exist
+    :param  file: the filename to test if exist
 
-    @return out: fir file exists, return the same filename, if does not,
+    :return out: fir file exists, return the same filename, if does not,
     open a window for the user to select the filename he wants
     """
     if os.path.isfile(file):
@@ -83,12 +83,12 @@ def ask_to_save(dir=None, ext=None):
 
     Jose Rueda: jrrueda@us.es
 
-    @param dir: Initial directory to direct the GUI to open the file, if none,
+    :param  dir: Initial directory to direct the GUI to open the file, if none,
     just the current directory will be opened
-    @param ext: extension for filter the possible options, if none, no filter
+    :param  ext: extension for filter the possible options, if none, no filter
     will be applied
 
-    @return out: the filename selected by the user
+    :return out: the filename selected by the user
     """
     root = tk.Tk()
     root.withdraw()   # To close the window after the selection
@@ -103,14 +103,14 @@ def ask_to_open(dir: str = None, ext: str = None, filetype=None):
 
     Jose Rueda: jrrueda@us.es
 
-    @param dir: Initial directory to direct the GUI to open the file, if none,
+    :param  dir: Initial directory to direct the GUI to open the file, if none,
     just the current directory will be opened
-    @param ext: extension for filter the possible options, if none, no filter
+    :param  ext: extension for filter the possible options, if none, no filter
     will be applied
     @filetype: filetype to search for in the folder. If None, only internal
     recognized filetypes will be opened. @see{Lib._Parameters.filetypes}
 
-    @return out: the filename selected by the user
+    :return out: the filename selected by the user
     """
     if filetype is None:
         filetype = sspar.filetypes
@@ -128,10 +128,10 @@ def ask_to_open_dir(path: str = None):
 
     Jose Rueda: jrrueda@us.es
 
-    @param dir: Initial directory to direct the GUI to open the directory,
+    :param  dir: Initial directory to direct the GUI to open the directory,
     if none, just the current directory will be opened
 
-    @return out: the filename selected by the user
+    :return out: the filename selected by the user
     """
     root = tk.Tk()
     root.withdraw()   # To close the window after the selection
@@ -148,15 +148,15 @@ def read_variable_ncdf(file, varNames, human=True, verbose=True):
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param file: path to the .CDF file to be opened
-    @param varNames: list with the variable names
-    @param human: this is just a flag, if true, if the file is not found, it
+    :param  file: path to the .CDF file to be opened
+    :param  varNames: list with the variable names
+    :param  human: this is just a flag, if true, if the file is not found, it
     open a window for the user to select the proper file, if False, we assume
     that this functions used inside some kind of automatic way by some script
     so just give an exception
-    @return data: values of the variable
-    @return units: physical units
-    @return long_name: name of the variable
+    :return data: values of the variable
+    :return units: physical units
+    :return long_name: name of the variable
     """
     # Try to locate the filename
     if human:
@@ -188,7 +188,7 @@ def print_netCDF_content(file, long_name=False):
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param file: full path to the netCDF file
+    :param  file: full path to the netCDF file
     """
     varfile = netcdf.netcdf_file(file, 'r', mmap=False).variables
     if long_name:
@@ -211,11 +211,11 @@ def save_mask(mask, filename=None, nframe=None, shot=None, frame=None):
 
     Jose Rueda: jrrueda@us.es
 
-    @param mask: Bynary mask to be saved
-    @param filename: Name of the file
-    @param nframe: the frame number used to define the roi (optional)
-    @param shot: Shot number of the video used to define the roi (optional)
-    @param frame: Frame used to define the roi
+    :param  mask: Bynary mask to be saved
+    :param  filename: Name of the file
+    :param  nframe: the frame number used to define the roi (optional)
+    :param  shot: Shot number of the video used to define the roi (optional)
+    :param  frame: Frame used to define the roi
     """
     # --- Check if the file exist
     if filename is None:    # If no file is given, just take the 'standard'
@@ -276,7 +276,7 @@ def load_mask(filename):
 
     Javier Hidalgo-Salaverri: jhsalaverri@us.es
 
-    @param filename: Name of the netcdf file
+    :param  filename: Name of the netcdf file
     """
     frame = None
     mask = None
@@ -315,7 +315,7 @@ def load_mask(filename):
 #
 #     @todo: implement netcdf part
 #
-#     @param filename: full path to the file to load, if none, a window will
+#     :param  filename: full path to the file to load, if none, a window will
 #     pop-up to do this selection
 #     """
 #     if file is None:
@@ -338,7 +338,7 @@ def read_calibration(file=None, verbose: bool = False):
 
     Jose Rueda: jrrueda@us.es
 
-    @param filename: full path to the file to load, if none, a window will
+    :param  filename: full path to the file to load, if none, a window will
     pop-up to do this selection
     """
     if file is None:
@@ -372,8 +372,8 @@ def save_object_pickle(file, obj):
     Just a wrapper to the pickle library to write files
 
     Jose Rueda: jrrueda@us.es
-    @param file: full path to the file to write the object
-    @param obj: object to be saved, can be a list if you want to save several
+    :param  file: full path to the file to write the object
+    :param  obj: object to be saved, can be a list if you want to save several
     ones
     """
     file = check_save_file(file)
@@ -391,9 +391,9 @@ def load_object_pickle(file):
     Just a wrapper to the pickle library to load files
 
     Jose Rueda: jrrueda@us.es
-    @param file: full path to the file to load the object
+    :param  file: full path to the file to load the object
 
-    @return: object saved in the file
+    :return: object saved in the file
     """
     file = check_open_file(file)
     print('Reading object from: ', file)
@@ -411,10 +411,10 @@ def read_camera_properties(file: str):
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param file: full path to the file to be loaded, or the name of the camera
+    :param  file: full path to the file to be loaded, or the name of the camera
     we want to load
 
-    @return out: dictionary containing camera properties
+    :return out: dictionary containing camera properties
     """
     if os.path.isfile(file):
         filename = file
@@ -442,13 +442,13 @@ def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
 
     @todo: include the units of W
 
-    @param W4D: 4D Weight matrix to be saved
-    @param grid_p: grid at the pinhole
-    @param grid_s: grid at the scintillator
-    @param W2D: optional, 2D contraction of W4D
-    @param filename: Optional filename to use, if none, it will be saved at the
+    :param  W4D: 4D Weight matrix to be saved
+    :param  grid_p: grid at the pinhole
+    :param  grid_s: grid at the scintillator
+    :param  W2D: optional, 2D contraction of W4D
+    :param  filename: Optional filename to use, if none, it will be saved at the
     results file with the name W_FILD_<date, time>.nc
-    @param efficiency: bool to save at the file, to indicate if the efficiency
+    :param  efficiency: bool to save at the file, to indicate if the efficiency
     was used in the calculation of W
     """
     print('.... . .-.. .-.. ---')
@@ -599,11 +599,11 @@ def load_FILD_remap(filename: str = None, verbose=True,
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param filename: netCDF file to read
-    @param verbose: flag to print information in the console
-    @param encoding: encode to decode the strings
+    :param  filename: netCDF file to read
+    :param  verbose: flag to print information in the console
+    :param  encoding: encode to decode the strings
 
-    @return vid: FILDvideoObject with the remap loaded
+    :return vid: FILDvideoObject with the remap loaded
 
     Notice: Only the modulus of the field is saved, not the complete field, so
     the dictionary vid.Bfield will not be initialised, call yoursef getBfield

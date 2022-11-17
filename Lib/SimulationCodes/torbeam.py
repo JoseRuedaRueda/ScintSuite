@@ -26,7 +26,7 @@ def load_Ufile(path: str):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param path: path to the file to be read.
+    :param  path: path to the file to be read.
     """
     data = ufile(path)
 
@@ -114,10 +114,10 @@ class torbeam:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param what: what to plot, either 'eccd' or 'ecrh' (case insensitive).
-        @param gyr: gyrotron(s) to plot.
-        @param ax: axis to plot. If None, new ones will be created.
-        @param kwargs: plotting keyword arguments.
+        :param  what: what to plot, either 'eccd' or 'ecrh' (case insensitive).
+        :param  gyr: gyrotron(s) to plot.
+        :param  ax: axis to plot. If None, new ones will be created.
+        :param  kwargs: plotting keyword arguments.
         """
         if gyr is None:
             gyr = deepcopy(self.gyr_avails)
@@ -155,13 +155,15 @@ class torbeam:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param what: what to plot, either 'eccd' or 'ecrh' (case insensitive).
-        @param gyr: gyrotron(s) to plot.
-        @param ax: axis to plot. If None, new ones will be created.
-        @param volume: multiply the corresponding values by the volume of the
+        :param  what: what to plot, either 'eccd' or 'ecrh' (case insensitive).
+        :param  gyr: gyrotron(s) to plot.
+        :param  ax: axis to plot. If None, new ones will be created.
+        :param  kwargs: plotting keyword arguments.
+        :param volume: multiply the corresponding values by the volume of the
         flux surface. Useful to see the total ECRH power deposited.
-        @param plot_total: whether to overplot the summed value.
-        @param kwargs: plotting keyword arguments.
+        :param plot_total: whether to overplot the summed value.
+        :param kwargs: plotting keyword arguments.
+
         """
         if gyr is None:
             gyr = deepcopy(self.gyr_avails)

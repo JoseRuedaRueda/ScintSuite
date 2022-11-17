@@ -27,10 +27,10 @@ class roipoly:
         Initialise the ROI object either from an image-chosen ROI or with a
         precomputed ROI.
 
-        @param fig: Figure where the desired image is plotted
-        @param ax: axis where the image is plotted
-        @param drawROI: flag to draw the ROI contour after selecting it
-        @param path: input path with shape (N, 2) corresponding to (X, Y) path
+        :param  fig: Figure where the desired image is plotted
+        :param  ax: axis where the image is plotted
+        :param  drawROI: flag to draw the ROI contour after selecting it
+        :param  path: input path with shape (N, 2) corresponding to (X, Y) path
         to compute the ROI.
 
         Notice, as a side effect, it will make ax to be the current axis, so be
@@ -85,7 +85,7 @@ class roipoly:
 
         Taken from the toupy code https://github.com/jcesardasilva/toupy
 
-        @param currentImage: Image (matrix) for which we want the ROI
+        :param  currentImage: Image (matrix) for which we want the ROI
         """
         ny, nx = np.shape(currentImage)
         poly_verts = [(self.xpoints[0], self.ypoints[0])]

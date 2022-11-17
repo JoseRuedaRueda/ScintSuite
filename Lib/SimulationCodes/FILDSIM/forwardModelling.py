@@ -25,16 +25,16 @@ def gaussian_input_distribution(r0, sr0, p0, sp0, B=1.8, A=2.0, Z=1, F=1e6,
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param r0: centroid of the Gaussian in gyroradius
-    @param sr0: sigma of the gaussian in gyroradius
-    @param p0: centroid of the gaussian in pitch
-    @param sp0: sigma of the gaussian in pitch
-    @param B: Magnetic field (to translate from r to Energy)
-    @param A: Mass, in amu, (to translate from r to Energy)
-    @param Z: Charge in e units (to translate from r to Energy)
-    @param F: Sum of the weight of the generated markers
+    :param  r0: centroid of the Gaussian in gyroradius
+    :param  sr0: sigma of the gaussian in gyroradius
+    :param  p0: centroid of the gaussian in pitch
+    :param  sp0: sigma of the gaussian in pitch
+    :param  B: Magnetic field (to translate from r to Energy)
+    :param  A: Mass, in amu, (to translate from r to Energy)
+    :param  Z: Charge in e units (to translate from r to Energy)
+    :param  F: Sum of the weight of the generated markers
 
-    @return: distribution ready to be used by the foward model routine
+    :return: distribution ready to be used by the foward model routine
     """
     gaussian = lmfit.models.GaussianModel().func
     # 50 points in 6 sigmas sounds a finner enought grid
@@ -68,8 +68,8 @@ def read_ASCOT_distribution(file, version: int = 4, IpBt_sign=-1.0):
 
     Jose Rueda: jrrueda@us.es
 
-    @param file: full path to the file
-    @param version: ASCOT version, default 4
+    :param  file: full path to the file
+    :param  version: ASCOT version, default 4
     """
     out = {}
     if version == 4:
@@ -138,10 +138,10 @@ def distribution_tomography_frame(g_grid, p_grid, coefficients,
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param g_grid: array with gyroradius values
-    @param p_grid: array with pitch values
-    @param coefficients: 2D array with the inversion results, [ngyr, npitch]
-    @param exclude_neg: if True, negative values will be excluded
+    :param  g_grid: array with gyroradius values
+    :param  p_grid: array with pitch values
+    :param  coefficients: 2D array with the inversion results, [ngyr, npitch]
+    :param  exclude_neg: if True, negative values will be excluded
     """
     # prepare the grid:
     gyr, pitch = np.meshgrid(g_grid, p_grid)
@@ -173,24 +173,24 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
 
     Based on the matlab implementation written by Joaquin Galdón
 
-    @param distro: distribution, created by one of the routines of this library
+    :param  distro: distribution, created by one of the routines of this library
     , example (read_ASCOT_distribution(), or distribution_tomography_frame())
-    @param smap: Strike map object or path pointing to the strike map file
-    @param spoints: path pointing to the strike point file. Not needed if smap
+    :param  smap: Strike map object or path pointing to the strike map file
+    :param  spoints: path pointing to the strike point file. Not needed if smap
     is a strike map object with the resolutions already calculated
-    @param diag_params: Parametes for the resolution calculation, useless if
+    :param  diag_params: Parametes for the resolution calculation, useless if
     the input strike map has the resolutions already calcualted See
     StrikeMap.calculate_resolutions() for the whole list of options
-    @param gmin: Minimum gyroradius to consider in the synthetic signal
-    @param gmax: Maximum gyroradius to consider in the synthetic signal
-    @param dg: space in the gyroradius
-    @param pmin: Minimum pitch to consider in the synthetic signal
-    @param pmax: Maximum pitch to consider in the synthetic signal
-    @param dp: space in pitch
-    @param efficiency: ScintillatorEfficiency() object. If None, efficiency
+    :param  gmin: Minimum gyroradius to consider in the synthetic signal
+    :param  gmax: Maximum gyroradius to consider in the synthetic signal
+    :param  dg: space in the gyroradius
+    :param  pmin: Minimum pitch to consider in the synthetic signal
+    :param  pmax: Maximum pitch to consider in the synthetic signal
+    :param  dp: space in pitch
+    :param  efficiency: ScintillatorEfficiency() object. If None, efficiency
     will not be included
 
-    @return output. dictionary contaiong:
+    :return output. dictionary contaiong:
             'gyroradius': Array of gyroradius where the signal is evaluated
             'pitch': Array of pitches where the signal is evaluated
             'dgyr': spacing of the gyroradius array
@@ -326,21 +326,21 @@ def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, fig=None,
 
     Jose Rueda: jrrueda@us.es
 
-    @param r: array with gyroradius values
-    @param p: array with pitch values
-    @param signal: matrix with the signal [np, nr]
-    @param cmap: color map to use, if none: ssplt.Gamma_II()
-    @param ax: axes where to plot, if none, a new figure will be created
-    @param ax_params: only used if the axis was created here, parameters for
+    :param  r: array with gyroradius values
+    :param  p: array with pitch values
+    :param  signal: matrix with the signal [np, nr]
+    :param  cmap: color map to use, if none: ssplt.Gamma_II()
+    :param  ax: axes where to plot, if none, a new figure will be created
+    :param  ax_params: only used if the axis was created here, parameters for
     the axis_beauty function
-    @param profiles: flag to also plot the profiles
-    @param ax_profiles: axis where to draw the profiles, should be a list with
+    :param  profiles: flag to also plot the profiles
+    :param  ax_profiles: axis where to draw the profiles, should be a list with
     the 2 axes
-    @param ax_params_profiles: only used if the axis was created here,
+    :param  ax_params_profiles: only used if the axis was created here,
     parameters for the axis_beauty function, note, gyr and pitch labels are
     hardcored, sorry
 
-    @return ax: axes where the figure was drawn
+    :return ax: axes where the figure was drawn
     """
     # Initialise the axis options:
     ax_options = {
@@ -654,27 +654,27 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
 
     Introduced in version 0.4.2
 
-    @param smap: Strike map object or path pointing to the strike map file
+    :param  smap: Strike map object or path pointing to the strike map file
 
 
-    @param rscint: Gyroradius array in the scintillator grid
-    @param pscint: Pitch array in the scintillator grid
-    @param rpin: Gyroradius array in the pinhole grid
-    @param ppin: Pitch array in the pinhole grid
-    @param efficiency: ScintillatorEfficiency() object. If None, efficiency
+    :param  rscint: Gyroradius array in the scintillator grid
+    :param  pscint: Pitch array in the scintillator grid
+    :param  rpin: Gyroradius array in the pinhole grid
+    :param  ppin: Pitch array in the pinhole grid
+    :param  efficiency: ScintillatorEfficiency() object. If None, efficiency
     will not be included
-    @param spoints: path pointing to the strike point file. Not needed if smap
+    :param  spoints: path pointing to the strike point file. Not needed if smap
     is a strike map object with the resolutions already calculated
-    @param diag_params: Parametes for the resolution calculation, useless if
+    :param  diag_params: Parametes for the resolution calculation, useless if
     the input strike map has the resolutions already calcualted See
     StrikeMap.calculate_resolutions() for the whole list of options
-    @param B: Magnetic field, used to translate between radius and energy, for
+    :param  B: Magnetic field, used to translate between radius and energy, for
     the efficiency evaluation
-    @param A: Mass in amu, used to translate between radius and energy, for the
+    :param  A: Mass in amu, used to translate between radius and energy, for the
     efficiency evaluation
-    @param Z: charge in elecrton charges, used to translate between radius and
+    :param  Z: charge in elecrton charges, used to translate between radius and
     energy, for the efficiency evaluation
-    @param only_gyroradius: flag to decide if the output will be the matrix
+    :param  only_gyroradius: flag to decide if the output will be the matrix
     just relating giroradius in the pinhole and the scintillator, ie, pitch
     integrated
     """
@@ -787,15 +787,15 @@ def plot_W(W4D, pr, pp, sr, sp, pp0: float = None, pr0: float = None,
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param W4D: 4-D weight function
-    @param pr: array of gyroradius at the pinhole used to calculate W
-    @param pp: array of pitches at the pinhole used to calculate W
-    @param sr: array of gyroradius at the scintillator used to calculate W
-    @param sp: array of pitches at the scintillator used to calculate W
-    @param pp0: precise radius wanted at the pinhole to plot the scintillator W
-    @param pr0: precise pitch wanted at the pinhole to plot the scintillator W
-    @param sp0: precise radius wanted at the scintillator to plot the pinhole W
-    @param sr0: precise pitch wanted at the scintillator to plot the pinhole W
+    :param  W4D: 4-D weight function
+    :param  pr: array of gyroradius at the pinhole used to calculate W
+    :param  pp: array of pitches at the pinhole used to calculate W
+    :param  sr: array of gyroradius at the scintillator used to calculate W
+    :param  sp: array of pitches at the scintillator used to calculate W
+    :param  pp0: precise radius wanted at the pinhole to plot the scintillator W
+    :param  pr0: precise pitch wanted at the pinhole to plot the scintillator W
+    :param  sp0: precise radius wanted at the scintillator to plot the pinhole W
+    :param  sr0: precise pitch wanted at the scintillator to plot the pinhole W
 
     Note, the pair (pr0, pp0) or (sr0, sp0) should be given, in this basic
     function they can't be mixed

@@ -20,9 +20,9 @@ class ApplicationShowVidRemap:
         """
         Create the window with the sliders
 
-        @param master: Tk() opened
-        @param data: the dictionary of experimental frames
-        @param remap_dat: the dictionary containing the remap_dat
+        :param  master: Tk() opened
+        :param  data: the dictionary of experimental frames
+        :param  remap_dat: the dictionary containing the remap_dat
         """
         # --- List of supported colormaps
         self.cmaps = {
