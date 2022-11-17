@@ -73,45 +73,175 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
     database = pd.DataFrame(data)
     return database
 
-def readCcalibrationFile(filename):
+def readCameraCalibrationDatabase2(filename: str, n_header: int = 5,
+                                  verbose: bool = True):
     """
-    Read the time/position dependent calibration files
-    :param  filename: file to be read
-    :return: 
-    """
-    pass
+    Read camera calibration database including distortion.
 
-def readTimeDependentCalibration(filename):
-    fields = {
-        1: ['time', 'xshift', 'yshift', 'xscale', 'yscale',
-            'deg', 'c1', 'xcenter', 'ycenter']
-    }
+    Jose Rueda Rueda: jrrueda@us.es
+    Hannah Lindl: hannah.lindl@ipp.mpg.de
+
+    :param filename: Complete path to the file with the calibrations
+    :param n_header: Number of header lines (5 in the oficial format)
+    :param verbose: if true, print some information in the command line
+
+    :return database: Pandas dataframe with the database
+    """
+    data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
+            'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
+            'deg': [], 'cal_type': [], 'diag_ID': [], 'c1': [],
+            'xcenter': [], 'ycenter': []}
+
+    # Read the file
+    if verbose:
+        print('Reading Camera database from: ', filename)
     with open(filename) as f:
-        logger.info('Reading calibration file: %s'%filename)
-        # Read the header lines
-        dummy = f.readline()  # Intro line
-        dummy = f.readline()  # Date line
-        kind, ver = f.readline().split('#')[0].split()
-        ver=int(ver)
-        camera = f.readline().split('#')[0].strip()
-        geomID = f.readline().split('#')[0].strip()
-        dummy = f.readline()  # info line
-        data = {}
-        for k in fields[ver]:
-            data[k] = []
+        for i in range(n_header):
+            dummy = f.readline()
         # Database itself
         for line in f:
             dummy = line.split()
-            for j, k in enumerate(fields[ver]):
-                data[k].append(float(dummy[j]))
-    # Transform to xarray
-    calibration = xr.Dataset()
-    for k in data.keys():
-        calibration[k] = xr.DataArray(data[k], dims='t',
-                                     coords={'t':data['time']})
-    calibration.attrs['Camera'] = camera
-    calibration.attrs['geomID'] = geomID
-    return calibration
+            data['CalID'].append(int(dummy[0]))
+            data['camera'].append(dummy[1])
+            data['shot1'].append(int(dummy[2]))
+            data['shot2'].append(int(dummy[3]))
+            data['xshift'].append(float(dummy[4]))
+            data['yshift'].append(float(dummy[5]))
+            data['xscale'].append(float(dummy[6]))
+            data['yscale'].append(float(dummy[7]))
+            data['deg'].append(float(dummy[8]))
+            data['cal_type'].append(dummy[9])
+            data['diag_ID'].append(int(dummy[10]))
+            data['c1'].append(float(dummy[11]))
+            data['xcenter'].append(float(dummy[12]))
+            data['ycenter'].append(float(dummy[13]))
+
+    # Transform to pandas
+    database = pd.DataFrame(data)
+    return database
+
+def readCameraCalibrationDatabase3(filename: str, n_header: int = 5,
+                                  verbose: bool = True):
+    """
+    Read camera calibration database including distortion and
+    different types of distortion models
+
+    Jose Rueda Rueda: jrrueda@us.es
+    Hannah Lindl: hannah.lindl@ipp.mpg.de
+
+    :param filename: Complete path to the file with the calibrations
+    :param n_header: Number of header lines (5 in the oficial format)
+    :param verbose: if true, print some information in the command line
+
+    :return database: Pandas dataframe with the database
+    """
+    data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
+            'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
+            'deg': [], 'cal_type': [], 'diag_ID': [], 'c1': [],
+            'xcenter': [], 'ycenter': [], 'nxpix': [], 'nypix': [],
+            'type': []}
+
+    # Read the file
+    if verbose:
+        print('Reading Camera database from: ', filename)
+    with open(filename) as f:
+        for i in range(n_header):
+            dummy = f.readline()
+        # Database itself
+        for line in f:
+            dummy = line.split()
+            if len(dummy) != 17:
+                print('wrong database format. revise database')
+                break
+
+            data['CalID'].append(int(dummy[0]))
+            data['camera'].append(dummy[1])
+            data['shot1'].append(int(dummy[2]))
+            data['shot2'].append(int(dummy[3]))
+            data['xshift'].append(float(dummy[4]))
+            data['yshift'].append(float(dummy[5]))
+            data['xscale'].append(float(dummy[6]))
+            data['yscale'].append(float(dummy[7]))
+            data['deg'].append(float(dummy[8]))
+            data['cal_type'].append(dummy[9])
+            data['diag_ID'].append(int(dummy[10]))
+            data['c1'].append(float(dummy[11]))
+            data['xcenter'].append(float(dummy[12]))
+            data['ycenter'].append(float(dummy[13]))
+            data['nxpix'].append(float(dummy[14]))
+            data['nypix'].append(float(dummy[15]))
+            data['type'].append(str(dummy[16]))
+
+    # Transform to pandas
+    database = pd.DataFrame(data)
+    return database
+
+def get_database(filename: str = None):
+    """
+    select the correct way to read the database depending on the extension
+
+    Hannah Lindl: hannah.lindl@ippmpg.de
+
+    :param filename: filename of the database. Should have extension calib1, calib2 or calib3
+    """
+    if filename.endswith('.calib1'):
+        database = readCameraCalibrationDatabase(filename)
+    elif filename.endswith('.calib2'):
+        database = readCameraCalibrationDatabase2(filename)
+    elif filename.endswith('.calib3'):
+        database = readCameraCalibrationDatabase3(filename)
+    else:
+        print('unknown calibration database format')
+        return
+    return database
+
+def get_calibration_method(data, shot: int = None, diag_ID: int = None, method: str = None):
+    """
+    Give the calibration parameters of a precise database entry
+
+    Jose Rueda Rueda: jrrueda@us.es
+    Hannah Lindl: hannah.lindl@ipp.mpg.de
+
+    :param shot: shotnumber of which we want the calibration
+    :param camera: name of the camera
+    :param diag_ID: ID of the diagnostic
+    :param type: calibration method
+    """
+
+    flags = np.zeros_like(data['CalID'])
+    for i in range(len(flags)):
+        if 'type' in data.keys():
+            if (data['shot1'][i] <= shot) * \
+                    (data['shot2'][i] >= shot) * \
+                    (data['diag_ID'][i] == diag_ID) * \
+                    (data['type'][i] == method):
+                flags[i] = True
+        else:
+            if (data['shot1'][i] <= shot) * \
+                    (data['shot2'][i] >= shot) * \
+                    (data['diag_ID'][i] == diag_ID):
+                flags[i] = True
+
+    n_true = sum(flags)
+
+    if n_true == 0:
+        raise errors.NotFoundCameraCalibration(
+            'No entry found in the database, revise it')
+
+    elif n_true > 1:
+        print('Several entries fulfill the condition')
+        print('Possible entries:')
+        print(data['ID'][flags])
+        raise errors.FoundSeveralCameraCalibration()
+
+    else:
+        dummy = np.argmax(np.array(flags))
+        cal = CalParams()
+        for ikey in data.keys():
+            cal.__dict__[ikey] = data[ikey][dummy]
+
+    return cal
+
 
 # ------------------------------------------------------------------------------
 # --- Calibration database object
@@ -287,6 +417,12 @@ class CalParams:
         self.xcenter = 0.0
         ## Y-pixel position of the optical axis
         self.ycenter = 0.0
+        ## camera size in x
+        self.nxpix = 0.0
+        ## camera size in y
+        self.nypix = 0.0
+        ## used calibration method
+        self.type = ''
 
     def print(self):
         """
@@ -303,6 +439,9 @@ class CalParams:
         print('ycenter: ', self.ycenter)
         print('c1: ', self.c1)
         print('c2: ', self.c2)
+        print('nxpix:', self.nxpix)
+        print('nypix:', self.nypix)
+        print('type:', self.type)
 
     def save2netCDF(self, filename):
         """
