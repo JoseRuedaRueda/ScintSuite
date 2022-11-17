@@ -29,12 +29,12 @@ def guess_strike_map_name(phi: float, theta: float, geomID: str = 'AUG02',
     name = geomID +\
         "_map_{0:09.5f}_{1:010.5f}_strike_map.dat".format(p, t)
 
-    @param phi: phi angle as defined in FILDSIM
-    @param theta: theta angle as defined in FILDSIM
-    @param geomID: ID identifying the geometry
-    @param decimals: number of decimal numbers to round the angles
+    :param  phi: phi angle as defined in FILDSIM
+    :param  theta: theta angle as defined in FILDSIM
+    :param  geomID: ID identifying the geometry
+    :param  decimals: number of decimal numbers to round the angles
 
-    @return name: the name of the strike map file
+    :return name: the name of the strike map file
     """
     p = round(phi, ndigits=decimals)
     t = round(theta, ndigits=decimals)
@@ -64,15 +64,15 @@ def find_strike_map_FILD(phi: float, theta: float, strike_path: str,
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param    phi: phi angle as defined in FILDSIM
-    @param    theta: beta angle as defined in FILDSIM
-    @param    strike_path: path of the folder with the strike maps
-    @param    geomID: string identifying the geometry. Defaults to 'AUG02'.
-    @param    SINPA_options: FILDSIM namelist options
-    @param    clean: True: eliminate the strike_points.dat when calling FILDSIM
-    @param    decimals: Number of decimals for theta and phi angles
+    :param     phi: phi angle as defined in FILDSIM
+    :param     theta: beta angle as defined in FILDSIM
+    :param     strike_path: path of the folder with the strike maps
+    :param     geomID: string identifying the geometry. Defaults to 'AUG02'.
+    :param     SINPA_options: FILDSIM namelist options
+    :param     clean: True: eliminate the strike_points.dat when calling FILDSIM
+    :param     decimals: Number of decimals for theta and phi angles
 
-    @return   name:  name of the strikemap to load
+    :return   name:  name of the strikemap to load
 
     @raises   Exception: If FILDSIM is call but the file is not created.
     """
@@ -170,15 +170,15 @@ def find_strike_map_INPA(phi: float, theta: float, strike_path: str,
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param    phi: phi angle as defined in FILDSIM
-    @param    theta: beta angle as defined in FILDSIM
-    @param    strike_path: path of the folder with the strike maps
-    @param    geomID: string identifying the geometry. Defaults to 'AUG02'.
-    @param    SINPA_options: FILDSIM namelist options
-    @param    clean: True: eliminate the strike_points.dat when calling FILDSIM
-    @param    decimals: Number of decimals for theta and phi angles
+    :param     phi: phi angle as defined in FILDSIM
+    :param     theta: beta angle as defined in FILDSIM
+    :param     strike_path: path of the folder with the strike maps
+    :param     geomID: string identifying the geometry. Defaults to 'AUG02'.
+    :param     SINPA_options: FILDSIM namelist options
+    :param     clean: True: eliminate the strike_points.dat when calling FILDSIM
+    :param     decimals: Number of decimals for theta and phi angles
 
-    @return   name:  name of the strikemap to load
+    :return   name:  name of the strikemap to load
 
     @raises   Exception: If FILDSIM is call but the file is not created.
     """
@@ -270,13 +270,13 @@ def write_namelist(nml, p=None, overwrite=True):
 
     Also create the file structure needed to launch the simulation
 
-    @param nml: namelist containing the desired fields.
-    @param p: full path towards the run directory for SINPA. In principle it
+    :param  nml: namelist containing the desired fields.
+    :param  p: full path towards the run directory for SINPA. In principle it
         will take it from the path of the suite. Please do not use this input
         except you really know what are you doing and want to change something
-    @param overwrite: flag to overwrite the namelist (if exist)
+    :param  overwrite: flag to overwrite the namelist (if exist)
 
-    @return file: The path to the written file
+    :return file: The path to the written file
     """
     # --- Check the namelist
     keys_lower_input = [key.lower() for key in nml['inputParams'].keys()]
@@ -324,9 +324,9 @@ def check_files(runID: str):
 
     @ToDo: Clean all binary files
 
-    @param runID: RunID of the simulation
+    :param  runID: RunID of the simulation
 
-    @return go: Flag to say if we are ready to launch SINPA
+    :return go: Flag to say if we are ready to launch SINPA
     """
     path = os.path.join(paths.SINPA, 'runs', runID, 'inputs')
     go = True
@@ -349,10 +349,10 @@ def executeRun(runID: str, queue: bool = False, cluster: str = 'MPCDF'):
 
     Jose Rueda: jrrueda@us.es
 
-    @param runID: runID of the simulation
-    @param namelist: full path to the namelist
-    @param queue: Flag to launch the FILDSIM simulation into the queue
-    @param cluster: string identifying the cluster. Each cluster may require
+    :param  runID: runID of the simulation
+    :param  namelist: full path to the namelist
+    :param  queue: Flag to launch the FILDSIM simulation into the queue
+    :param  cluster: string identifying the cluster. Each cluster may require
         different submition option. Up to now, only MPCDF ones are supported
     """
     if not queue:       # Just execute the code in the current terminal

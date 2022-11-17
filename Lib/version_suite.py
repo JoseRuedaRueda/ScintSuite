@@ -46,7 +46,7 @@ def readGITcommit():
     """
     Read the information of the latest Suite Commit
 
-    @return out: Dictionary containing the name and author of the commit
+    :return out: Dictionary containing the name and author of the commit
     """
     p = Path(machine).ScintSuite
     repo = git.Repo(p)

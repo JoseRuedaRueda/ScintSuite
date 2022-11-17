@@ -19,5 +19,7 @@
 !  22: Data not present in the logbook, returning default
 !  23: Tokamak environment not recognised, database calls will not work
 !  24: Expected strike map already prepared
+!
 !  27: Interpolators not present in the strike map, calculating them with default settings
 !  28: It was not possible to initialise the plotting settings
+!  29: Not found excel document of the logbook

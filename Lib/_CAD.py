@@ -26,9 +26,9 @@ def write_file_for_fortran_numpymesh(stlfile, outputfile,
 
     Minor modeifications by Jose Rueda: jrrueda@us.es
 
-    @param stlfile: name of the stl file (full path)
-    @param outputfile: name of the file where to write the triangles
-    @param convert_mm_2_m: flag to convert mm (assumed units of the input file)
+    :param  stlfile: name of the stl file (full path)
+    :param  outputfile: name of the file where to write the triangles
+    :param  convert_mm_2_m: flag to convert mm (assumed units of the input file)
         to m for the output file. Deprecated, plese use input_units and output_
         units instead
 
@@ -73,9 +73,9 @@ def write_triangles_to_stl(geom: dict,
 
     Anton van Vuuren: avanvuuren@us.es
 
-    @param: Geometry object whose triangles will be stored to an stl file
-    @param filename: name of the stl fileto be saved (.stl not needed)
-    @param units: Units in which to savethe orbit positions.
+    :param : Geometry object whose triangles will be stored to an stl file
+    :param  filename: name of the stl fileto be saved (.stl not needed)
+    :param  units: Units in which to savethe orbit positions.
     '''
 
     if geom['vertex'] is not None:

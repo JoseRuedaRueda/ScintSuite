@@ -130,11 +130,11 @@ class MHDmode():
 
         Jore Rueda: jrrueda@us.es
 
-        @param var: Mode to be plotted
-        @param rho: list with the desired values of rho where to plot
-        @param ax: axes where to plot
-        @param line_params: Line parameters for matplotlib.pyplot.plot
-        @param units: units for the frequency: accpted: Hz, kHz, rad
+        :param  var: Mode to be plotted
+        :param  rho: list with the desired values of rho where to plot
+        :param  ax: axes where to plot
+        :param  line_params: Line parameters for matplotlib.pyplot.plot
+        :param  units: units for the frequency: accpted: Hz, kHz, rad
 
         @TODO: Include doppler shift correction
         """

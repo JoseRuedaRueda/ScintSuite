@@ -36,11 +36,11 @@ class StrikeLine(XYtoPixel):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param path: filename where the mapping between rhopol -> scint coords
+        :param  path: filename where the mapping between rhopol -> scint coords
         is stored from an iHIBPsim simulation.
-        @param shot: shotnumber to get the strikemap. If not found, this will
+        :param  shot: shotnumber to get the strikemap. If not found, this will
         call iHIBPsim to create a new map for the whole shot.
-        @param version: if this is provided, it will look for an already
+        :param  version: if this is provided, it will look for an already
         prepared simulation in the ihibpsim folder with this version.
         """
 
@@ -69,7 +69,7 @@ class StrikeLine(XYtoPixel):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param path: path to the file.
+        :param  path: path to the file.
         """
         self.mapdata = ihibpsim.strikes.strikeLine(filename=path)
 
@@ -79,9 +79,9 @@ class StrikeLine(XYtoPixel):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param: time point to get the strikeline. If None, an average strikeline
+        :param : time point to get the strikeline. If None, an average strikeline
         is used instead.
-        @param ax: axes to plot. New ones will be created if not provided.
+        :param  ax: axes to plot. New ones will be created if not provided.
         """
         ## Check whether there is an axis to plot to.
         ax_was_none = ax is None

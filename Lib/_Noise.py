@@ -21,9 +21,9 @@ def dark_plus_readout(frame, dark_centroid, sigma_readout):
     single gaussian noise with centroid 'dark_centroid' and sigma
     'sigma_readout'. Both parameters to be measured for the used camera
 
-    @param frame: frame where we want to add the noise
-    @param dark_centroid: centroid for the noise level
-    @param sigma_readout: sigma of the noise
+    :param  frame: frame where we want to add the noise
+    :param  dark_centroid: centroid for the noise level
+    :param  sigma_readout: sigma of the noise
     """
     rand = np.random.default_rng()
     gauss = rand.standard_normal
@@ -40,8 +40,8 @@ def photon(frame, multiplier: float = 1.0):
     Noise will be constructed as a gaussian with sigma equal to sqrt(N), being
     N the number of counts at the pixel ij
 
-    @param frame: frame where we want to add the noise
-    @param multiplier: It serves as Fano factor, sigma = multiplier * sqrt(N)
+    :param  frame: frame where we want to add the noise
+    :param  multiplier: It serves as Fano factor, sigma = multiplier * sqrt(N)
     """
     rand = np.random.default_rng()
     gauss = rand.standard_normal
@@ -60,8 +60,8 @@ def broken_pixels(frame, percent):
     This will randomly cancel the signal in a number of pixels given by percent
     The idea is to simulate things like the broken fibers in the iHIBP
 
-    @param frame: Frame which we want to model the noise
-    @param percent: ratio of broken pixels, normalise to 1
+    :param  frame: Frame which we want to model the noise
+    :param  percent: ratio of broken pixels, normalise to 1
     """
     rand = np.random.default_rng()
     uniform = rand.uniform(size=frame.shape)
@@ -79,9 +79,9 @@ def camera_neutrons(frame, percent=0.001, camera_bits=12, vmin=0.7,
 
     Jose Rueda: jrrueda@us.es
 
-    @param frame: frame where we want to add the noise
-    @param neutron_percent: percent (normalised to 1), of pixels affected
-    @param dtype:
+    :param  frame: frame where we want to add the noise
+    :param  neutron_percent: percent (normalised to 1), of pixels affected
+    :param  dtype:
     """
     rand = np.random.default_rng()
     uniform = rand.uniform(size=frame.shape)

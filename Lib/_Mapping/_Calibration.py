@@ -26,11 +26,11 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
 
     Jose Rueda: jrrueda@us.es
 
-    @param filename: Complete path to the file with the calibrations
-    @param n_header: Number of header lines (5 in the oficial format)
-    @param verbose: if true, print some information in the command line
+    :param  filename: Complete path to the file with the calibrations
+    :param  n_header: Number of header lines (5 in the oficial format)
+    :param  verbose: if true, print some information in the command line
 
-    @return database: Pandas dataframe with the database
+    :return database: Pandas dataframe with the database
     """
     data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
             'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
@@ -76,7 +76,7 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
 def readCcalibrationFile(filename):
     """
     Read the time/position dependent calibration files
-    @param filename: file to be read
+    :param  filename: file to be read
     :return: 
     """
     pass
@@ -127,9 +127,9 @@ class CalibrationDatabase:
 
         @author Jose Rueda Rueda: jrrueda@us.es
 
-        @param filename: Complete path to the file with the calibrations
-        @param n_header: Number of header lines
-        @return database: Dictionary containing the database information
+        :param  filename: Complete path to the file with the calibrations
+        :param  n_header: Number of header lines
+        :return database: Dictionary containing the database information
         """
         ## Name of file with the data
         self.file = filename
@@ -184,7 +184,7 @@ class CalibrationDatabase:
         'calibration_new.txt'. This is just to be save and avoid overwriting
         the original database.
 
-        @param file: name of the file where to write the results
+        :param  file: name of the file where to write the results
         """
         if file is None:
             file = self.file[:-4] + '_new.txt'
@@ -219,12 +219,12 @@ class CalibrationDatabase:
         """
         Give the calibration parameter of a precise database entry.
 
-        @param shot: Shot number for which we want the calibration
-        @param camera: Camera used
-        @param cal_type: Type of calibration we want
-        @param diag_ID: ID of the diagnostic we want
+        :param  shot: Shot number for which we want the calibration
+        :param  camera: Camera used
+        :param  cal_type: Type of calibration we want
+        :param  diag_ID: ID of the diagnostic we want
 
-        @return cal: CalParams() object
+        :return cal: CalParams() object
         """
         flags = np.zeros(len(self.data['CalID']))
         for i in range(len(self.data['CalID'])):

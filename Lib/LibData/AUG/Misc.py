@@ -28,14 +28,14 @@ def get_signal_generic(shot: int, diag: str, signame: str, exp: str = 'AUGD',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: shotnumber of the shotfile to read.
-    @param diag: diagnostic name.
-    @param signame: signal name.
-    @param exp: experiment where the shotfile is stored. Default to AUGD.
-    @param edition: edition of the shotfile to open. If 0, the last closed
+    :param  shot: shotnumber of the shotfile to read.
+    :param  diag: diagnostic name.
+    :param  signame: signal name.
+    :param  exp: experiment where the shotfile is stored. Default to AUGD.
+    :param  edition: edition of the shotfile to open. If 0, the last closed
     edition is opened.
-    @param tBegin: initial time point to read.
-    @param tEnd: final time point to read.
+    :param  tBegin: initial time point to read.
+    :param  tEnd: final time point to read.
     """
 
     # Reading the second diagnostic data.
@@ -76,10 +76,10 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param diag: diagnostic: 'FILD' or 'INPA'
-    @param diag_number: 1-5
-    @param channels: channel number we want, or arry with channels
-    @param shot: shot file to be opened
+    :param  diag: diagnostic: 'FILD' or 'INPA'
+    :param  diag_number: 1-5
+    :param  channels: channel number we want, or arry with channels
+    :param  shot: shot file to be opened
     """
     # Check inputs:
     suported_diag = ['FILD', 'INPA']
@@ -147,8 +147,8 @@ def get_ELM_timebase(shot: int, time: float = None, edition: int = 0,
     Jose Rueda Rueda - jrrueda@us.es
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: shot number
-    @returns tELM: Dictionary with:
+    :param  shot: shot number
+    :returns tELM: Dictionary with:
         -# t_onset: The time when each ELM starts
         -# dt: the duration of each ELM
         -# n: The number of ELMs

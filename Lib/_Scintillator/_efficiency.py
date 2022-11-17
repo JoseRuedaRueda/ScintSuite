@@ -27,8 +27,8 @@ def read_scintillator_efficiency(file, verb: bool = False):
 
     Jose Rueda: jrrueda@us.es
 
-    @param file: full path to the file to be loaded
-    @param verb: if true, the comments in the file will be printed
+    :param  file: full path to the file to be loaded
+    :param  verb: if true, the comments in the file will be printed
     """
     # --- Factors
     factors = {
@@ -88,9 +88,9 @@ class ScintillatorEfficiency:
         """
         Load data
 
-        @param material: material of the plate
-        @param particle: particle which is being launch
-        @param thickness: thickness of the scintillator power
+        :param  material: material of the plate
+        :param  particle: particle which is being launch
+        :param  thickness: thickness of the scintillator power
         """
         file = os.path.join(paths.ScintSuite, 'Data', 'ScintillatorEfficiency',
                             material, particle + '_' + str(thickness) + '.dat')

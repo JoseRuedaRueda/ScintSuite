@@ -59,13 +59,13 @@ def hist1d(x: float, weight: float=None,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param x: values of the coordinate to analyze.
-    @param weight: weights for each of the input values. If None, weights are
+    :param  x: values of the coordinate to analyze.
+    :param  weight: weights for each of the input values. If None, weights are
     assumed to be 1, i.e., unweighted histogram.
-    @param bins: number of bins to use to discretize the X-axis. By default, 51
-    @param vmin: minimum value of the x-axis. If None, the smallest value of
+    :param  bins: number of bins to use to discretize the X-axis. By default, 51
+    :param  vmin: minimum value of the x-axis. If None, the smallest value of
     x will be used instead.
-    @param vmax: maximum value of the x-axis. If None, the largest value of
+    :param  vmax: maximum value of the x-axis. If None, the largest value of
     x will be used instead.
     """
     x = np.array(x)
@@ -176,14 +176,14 @@ def hist2d(x: float, y: float, weight: float=None,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param x: values of the 1st coordinate to analyze.
-    @param x: values of the 2nd coordinate to analyze.
-    @param weight: weights for each of the input values. If None, weights are
+    :param  x: values of the 1st coordinate to analyze.
+    :param  x: values of the 2nd coordinate to analyze.
+    :param  weight: weights for each of the input values. If None, weights are
     assumed to be 1, i.e., unweighted histogram.
-    @param bins: number of bins to use to discretize the X-axis. By default, 51
-    @param vmin: minimum value of the x-axis. If None, the smallest value of
+    :param  bins: number of bins to use to discretize the X-axis. By default, 51
+    :param  vmin: minimum value of the x-axis. If None, the smallest value of
     x will be used instead.
-    @param vmax: maximum value of the x-axis. If None, the largest value of
+    :param  vmax: maximum value of the x-axis. If None, the largest value of
     x will be used instead.
     """
     x = np.array(x)
@@ -322,14 +322,14 @@ def hist3d(x: float, y: float, z: float, weight: float=None,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param x: values of the 1st coordinate to analyze.
-    @param x: values of the 2nd coordinate to analyze.
-    @param weight: weights for each of the input values. If None, weights are
+    :param  x: values of the 1st coordinate to analyze.
+    :param  x: values of the 2nd coordinate to analyze.
+    :param  weight: weights for each of the input values. If None, weights are
     assumed to be 1, i.e., unweighted histogram.
-    @param bins: number of bins to use to discretize the X-axis. By default, 51
-    @param vmin: minimum value of the x-axis. If None, the smallest value of
+    :param  bins: number of bins to use to discretize the X-axis. By default, 51
+    :param  vmin: minimum value of the x-axis. If None, the smallest value of
     x will be used instead.
-    @param vmax: maximum value of the x-axis. If None, the largest value of
+    :param  vmax: maximum value of the x-axis. If None, the largest value of
     x will be used instead.
     """
     x = np.array(x)

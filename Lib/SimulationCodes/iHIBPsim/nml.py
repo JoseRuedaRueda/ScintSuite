@@ -33,8 +33,8 @@ def make_namelist(codename: str, user_nml: dict):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param codename: name of the code to run. @see IHIBPSIM_ACTION_NAMES.
-    @param user_nml: user provided namelist.
+    :param  codename: name of the code to run. @see IHIBPSIM_ACTION_NAMES.
+    :param  user_nml: user provided namelist.
     """
 
     if codename == 'tracker':
@@ -58,8 +58,8 @@ def make_tracker_namelist(user_nml: dict):
     To see the meaning of all parameters, look at the nicely written iHIBPsim
     documentation
 
-    @param user_nml: namelist containing the desired fields.
-    @param path: destiny path of the results.
+    :param  user_nml: namelist containing the desired fields.
+    :param  path: destiny path of the results.
 
     f90nml format adopted in version 0.4.10
     """
@@ -127,7 +127,7 @@ def make_ihibpsim1_namelist(user_nml: dict):
     A wrapper to write and generate a valid namelist to use with the
     i-HIBPsim code.
 
-    @param user_nml: namelist containing the desired fields.
+    :param  user_nml: namelist containing the desired fields.
     """
     # Default namelist:
     nml = {
@@ -216,7 +216,7 @@ def make_shotmapper_namelist(user_nml: dict):
     A wrapper to write and generate a valid namelist to use with the
     shot_mapper code.
 
-    @param user_nml: namelist containing the desired fields.
+    :param  user_nml: namelist containing the desired fields.
     """
     # Default namelist:
     nml = {
@@ -310,10 +310,10 @@ def generate_energy_scan_shotmapper(E_start: float, E_end: float, nE: int,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param E_start: lowest energy to try.
-    @param E_end: highest energy to try.
-    @param nE: number of points of the analysis.
-    @param base_nml: this is basic namelist to use provided by the user.
+    :param  E_start: lowest energy to try.
+    :param  E_end: highest energy to try.
+    :param  nE: number of points of the analysis.
+    :param  base_nml: this is basic namelist to use provided by the user.
     """
 
     if E_start <= 0 or E_end <= 0:
@@ -344,10 +344,10 @@ def generate_beta_scan_shotmapper(beta_start: float, beta_end: float,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param E_start: lowest energy to try.
-    @param E_end: highest energy to try.
-    @param nE: number of points of the analysis.
-    @param base_nml: this is basic namelist to use provided by the user.
+    :param  E_start: lowest energy to try.
+    :param  E_end: highest energy to try.
+    :param  nE: number of points of the analysis.
+    :param  base_nml: this is basic namelist to use provided by the user.
     """
 
     if (abs(beta_start) > np.pi/2) or (abs(beta_end) > np.pi/2):
@@ -380,8 +380,8 @@ def check_namelist(params:dict, codename: str='ihibpsim',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param params: dictionary with the namelist to run iHIBPsim.
-    @param codename: name of the executable to run. To choose among:
+    :param  params: dictionary with the namelist to run iHIBPsim.
+    :param  codename: name of the executable to run. To choose among:
         ('tracker', 'ihibpsim', 'shot_mapper')
     """
 
@@ -403,8 +403,8 @@ def __check_tracker_namelist(params: dict, forceConvention: bool=True,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param params: dictionary containing the namelist.
-    @param forceConvention: this flag will ensure that all files end with
+    :param  params: dictionary containing the namelist.
+    :param  forceConvention: this flag will ensure that all files end with
     an appropriate extension that can be easily recognized by this suite.
     """
 
@@ -548,7 +548,7 @@ def  __check_ihipbsim_geometry(geom: dict):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param geom: dictionary containing the parameters of the beam geometry.
+    :param  geom: dictionary containing the parameters of the beam geometry.
     """
 
     minimal_names = ('tilting_beta', 'tilting_theta', 'origin_point',
@@ -622,7 +622,7 @@ def __check_ihibpsim_deposition(depos: dict):
     where the beam deposition is to be evaluated.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
-    @param depos: dictionary with the deposition parameters.
+    :param  depos: dictionary with the deposition parameters.
     """
 
     # Checking the particular modules of ihibpsim:
@@ -659,7 +659,7 @@ def __check_ihibpsim_scintillator(scint: dict, forceConvention: bool=True):
     where the scintillator is defined.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
-    @param depos: dictionary with the deposition parameters.
+    :param  depos: dictionary with the deposition parameters.
     """
     # 5. Checking the scintillator triangle file.
     if scint['triangle_file'] == '':
@@ -695,8 +695,8 @@ def __check_ihibpsim_namelist(params: dict, forceConvention: bool=True):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param params: namelist as a dictionary to be checked.
-    @param forceConvention: this flag will ensure that all files end with
+    :param  params: namelist as a dictionary to be checked.
+    :param  forceConvention: this flag will ensure that all files end with
     an appropriate extension that can be easily recognized by this suite.
     """
 
@@ -727,8 +727,8 @@ def __check_shotmapper_namelist(params: dict, forceConvention: bool=True):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param params: namelist as a dictionary to be checked.
-    @param forceConvention: this flag will ensure that all files end with
+    :param  params: namelist as a dictionary to be checked.
+    :param  forceConvention: this flag will ensure that all files end with
     an appropriate extension that can be easily recognized by this suite.
     """
 
@@ -858,8 +858,8 @@ def check_files(nml: dict, action: str='shot_remap'):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param params: dictionary with the namelist to run iHIBPsim.
-    @param action: code to run. To be chosen among IHIBPSIM_ACTION_NAMES
+    :param  params: dictionary with the namelist to run iHIBPsim.
+    :param  action: code to run. To be chosen among IHIBPSIM_ACTION_NAMES
     """
     flags = True
     # For each code, we need to verify that the
@@ -911,8 +911,8 @@ def check_files_many(runID: str, action: str='shot_remap'):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param runID: identifier of the run.
-    @param action: code to run. To be chosen among IHIBPSIM_ACTION_NAMES
+    :param  runID: identifier of the run.
+    :param  action: code to run. To be chosen among IHIBPSIM_ACTION_NAMES
     """
 
     # Cheking if the corresponding folder exists.

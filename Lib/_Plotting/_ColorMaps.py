@@ -20,7 +20,7 @@ def Gamma_II(n=256):
 
     Jose Rueda: jrrueda@us.es
 
-    @param n: numbers of levels of the output colormap
+    :param  n: numbers of levels of the output colormap
     """
     cmap = LinearSegmentedColormap.from_list(
         'mycmap', ['black', 'blue', 'red', 'yellow', 'white'], N=n)
@@ -35,7 +35,7 @@ def Cai(n=256):
 
     Jose Rueda: jrrueda@us.es
 
-    @param n: numbers of levels of the output colormap
+    :param  n: numbers of levels of the output colormap
     """
     cmap = LinearSegmentedColormap.from_list(
         'mycmap', ['blue', 'yellow'], N=n)

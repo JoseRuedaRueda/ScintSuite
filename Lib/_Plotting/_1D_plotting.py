@@ -15,17 +15,17 @@ def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=None,
     Basic shaded region between y + u_up and y - u_down. If no u_down is
     provided, u_down is taken as u_up
 
-    @param ax: Axes. The axes to draw to
-    @param x: The x data
-    @param y: The y data
-    @param u_up: The upper limit of the error to be plotted
-    @param u_down: (Optional) the bottom limit of the error to be plotter
-    @param color: (Optional) Color of the shaded region
-    @param alpha: (Optional) Transparency parameter (0: full transparency,
+    :param  ax: Axes. The axes to draw to
+    :param  x: The x data
+    :param  y: The y data
+    :param  u_up: The upper limit of the error to be plotted
+    :param  u_down: (Optional) the bottom limit of the error to be plotter
+    :param  color: (Optional) Color of the shaded region
+    :param  alpha: (Optional) Transparency parameter (0: full transparency,
     1 opacity)
-    @param line: If true, the line x,y will be also plotted
-    @param line_param: (optional) Line parameters to plot the central line
-    @return ax with the applied settings
+    :param  line: If true, the line x,y will be also plotted
+    :param  line_param: (optional) Line parameters to plot the central line
+    :return ax with the applied settings
     """
     if ax is None:
         fig, ax = plt.subplots()
@@ -51,9 +51,9 @@ def remove_lines(ax):
     if you like. It will remove all lines (python line plots) from your
     axis
 
-    @param ax: axis to 'clean'
+    :param  ax: axis to 'clean'
 
-    @return : nothing, just 'clean the axis' from the StrikeMap
+    :return : nothing, just 'clean the axis' from the StrikeMap
     """
     for i in range(len(ax.lines)):
         ax.lines[-1].remove()
@@ -69,12 +69,12 @@ def overplot_trace(ax, x, y, line_params={}, ymin=0., ymax=0.95):
     will be normalise such that its minimum is ymin * axis yscale and its max
     is ymax * axis y scale
 
-    @param ax: ax where to plot
-    @param x: x of the line to plot
-    @param y: y of the line to plot
-    @param line_params: dictionary for plt.plot with the line parameters
-    @param ymin: minimum normalization percentage
-    @param ymax: maximum normalization percentage
+    :param  ax: ax where to plot
+    :param  x: x of the line to plot
+    :param  y: y of the line to plot
+    :param  line_params: dictionary for plt.plot with the line parameters
+    :param  ymin: minimum normalization percentage
+    :param  ymax: maximum normalization percentage
     """
     # --- Create the transformation
     # the x coords of this transformation are data, and the y coord are axes
@@ -99,11 +99,11 @@ def multiline(xs, ys, c, ax=None, line_params: dict = {},
     extracted from https://stackoverflow.com/questions/38208700/
     matplotlib-plot-lines-with-colors-through-colormap
 
-    @param xs: iterable container of x coordinates
-    @param ys: iterable container of y coordinates
-    @param c: iterable container of numbers mapped to colormap
-    @param ax (optional): Axes to plot on.
-    @param line_params: dict with the parameters for the line plotting
+    :param  xs: iterable container of x coordinates
+    :param  ys: iterable container of y coordinates
+    :param  c: iterable container of numbers mapped to colormap
+    :param  ax (optional): Axes to plot on.
+    :param  line_params: dict with the parameters for the line plotting
     Notes
         len(xs) == len(ys) == len(c) is the number of line segments
         len(xs[i]) == len(ys[i]) is the number of points for line i

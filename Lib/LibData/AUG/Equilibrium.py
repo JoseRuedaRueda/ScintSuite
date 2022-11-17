@@ -1,4 +1,5 @@
 """Routines for the magnetic equilibrium"""
+import warnings
 import numpy as np
 import xarray as xr
 import aug_sfutils as sf
@@ -22,20 +23,20 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     Note: No extra arguments are expected, **kwargs is just included for
     compatibility of the call to this method in other databases (machines)
 
-    @param shot: Shot number
-    @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
-    @param zin: Array of z positions where to evaluate (in pairs with Rin) [m]
-    @param diag: Diag for AUG database, default EQH
-    @param exp: experiment, default AUGD
-    @param ed: edition, default 0 (last)
-    @param time: Array of times where we want to calculate the field (the
+    :param  shot: Shot number
+    :param  Rin: Array of R positions where to evaluate (in pairs with zin) [m]
+    :param  zin: Array of z positions where to evaluate (in pairs with Rin) [m]
+    :param  diag: Diag for AUG database, default EQH
+    :param  exp: experiment, default AUGD
+    :param  ed: edition, default 0 (last)
+    :param  time: Array of times where we want to calculate the field (the
     field would be calculated in a time as close as possible to this
-    @param equ: equilibrium object from the library aug_sfutils
+    :param  equ: equilibrium object from the library aug_sfutils
 
-    @return br: Radial magnetic field (nt, nrz_in), [T]
-    @return bz: z magnetic field (nt, nrz_in), [T]
-    @return bt: toroidal magnetic field (nt, nrz_in), [T]
-    @return bp: poloidal magnetic field (nt, nrz_in), [T]
+    :return br: Radial magnetic field (nt, nrz_in), [T]
+    :return bz: z magnetic field (nt, nrz_in), [T]
+    :return bt: toroidal magnetic field (nt, nrz_in), [T]
+    :return bp: poloidal magnetic field (nt, nrz_in), [T]
     """
     # If the equilibrium object is not an input, let create it
     # created = False
@@ -75,18 +76,18 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
 
     Jose Rueda: jrrueda@us.es
 
-    @param shot: Shot number
-    @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
-    @param zin: Array of z positions where to evaluate (in pairs with Rin) [m]
-    @param diag: Diag for AUG database, default EQH
-    @param exp: experiment, default AUGD
-    @param ed: edition, default 0 (last)
-    @param time: Array of times where we want to calculate the field (the
+    :param  shot: Shot number
+    :param  Rin: Array of R positions where to evaluate (in pairs with zin) [m]
+    :param  zin: Array of z positions where to evaluate (in pairs with Rin) [m]
+    :param  diag: Diag for AUG database, default EQH
+    :param  exp: experiment, default AUGD
+    :param  ed: edition, default 0 (last)
+    :param  time: Array of times where we want to calculate the field (the
     field would be calculated in a time as close as possible to this
-    @param equ: equilibrium object from the library map_equ
-    @param coord_out: the desired rho coordinate, default rho_pol
+    :param  equ: equilibrium object from the library map_equ
+    :param  coord_out: the desired rho coordinate, default rho_pol
 
-    @return rho: The desired rho coordinate evaluated at the points
+    :return rho: The desired rho coordinate evaluated at the points
     """
     # If the equilibrium object is not an input, let create it
     if equ is None:
@@ -106,15 +107,15 @@ def get_rho2rz(shot: int, flxlabel: float, diag: str = 'EQH',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: Shot number
-    @param flxlabel: flux surface label.
-    @param diag: Diag for AUG database, default EQH
-    @param exp: experiment, default AUGD
-    @param ed: edition, default 0 (last)
-    @param time: Array of times where we want to calculate the field (the
+    :param  shot: Shot number
+    :param  flxlabel: flux surface label.
+    :param  diag: Diag for AUG database, default EQH
+    :param  exp: experiment, default AUGD
+    :param  ed: edition, default 0 (last)
+    :param  time: Array of times where we want to calculate the field (the
     field would be calculated in a time as close as possible to this
-    @param equ: equilibrium object from the library map_equ
-    @param coord_out: the desired rho coordinate, default rho_pol
+    :param  equ: equilibrium object from the library map_equ
+    :param  coord_out: the desired rho coordinate, default rho_pol
     """
     # If the equilibrium object is not an input, let create it
     if equ is None:
@@ -140,17 +141,17 @@ def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
     ft.
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: Shot number
-    @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
-    @param zin: Array of z positions where to evaluate (in pairs with Rin) [m]
-    @param diag: Diag for AUG database, default EQH
-    @param exp: experiment, default AUGD
-    @param ed: edition, default 0 (last)
-    @param time: Array of times where we want to calculate the field (the
+    :param  shot: Shot number
+    :param  Rin: Array of R positions where to evaluate (in pairs with zin) [m]
+    :param  zin: Array of z positions where to evaluate (in pairs with Rin) [m]
+    :param  diag: Diag for AUG database, default EQH
+    :param  exp: experiment, default AUGD
+    :param  ed: edition, default 0 (last)
+    :param  time: Array of times where we want to calculate the field (the
     field would be calculated in a time as close as possible to this
-    @param equ: equilibrium object from the library map_equ
+    :param  equ: equilibrium object from the library map_equ
 
-    @return psipol: Poloidal flux evaluated in the input grid.
+    :return psipol: Poloidal flux evaluated in the input grid.
     """
     # If the equilibrium object is not an input, let create it
     if equ is None:
@@ -177,11 +178,11 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: Shot number.
-    @param diag: Equilibrium diagnostic. By default EQH.
-    @param exp: Experiment where the data is stored.
-    @param edition: Edition of the shotfile.
-    @param time: time interval to retrieve. If it is a single value, only the
+    :param  shot: Shot number.
+    :param  diag: Equilibrium diagnostic. By default EQH.
+    :param  exp: Experiment where the data is stored.
+    :param  edition: Edition of the shotfile.
+    :param  time: time interval to retrieve. If it is a single value, only the
     appropriate data point will be retrieved. If None, all the data points are
     obtained.
     """
@@ -286,14 +287,14 @@ def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: Shot number
-    @param diag: Diag for AUG database, default EQH
-    @param exp: experiment, default AUGD
-    @param ed: edition, default 0 (last)
-    @param time: Array of times where we want to calculate the field
-    @param sf: shotfile accessing the data from the equilibrium.
+    :param  shot: Shot number
+    :param  diag: Diag for AUG database, default EQH
+    :param  exp: experiment, default AUGD
+    :param  ed: edition, default 0 (last)
+    :param  time: Array of times where we want to calculate the field
+    :param  sf: shotfile accessing the data from the equilibrium.
 
-    @return
+    :return
     """
     if sfo is None:
         try:
@@ -377,11 +378,11 @@ def get_ECRH_traces(shot: int, time: float = None, ec_list: list = None):
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
 
-    @param shot: Shot number
-    @param ed: edition, default 0 (last)
-    @param time: Array of times where we want to calculate the field. If None,
+    :param  shot: Shot number
+    :param  ed: edition, default 0 (last)
+    :param  time: Array of times where we want to calculate the field. If None,
     the whole time array is retrieved.
-    @param ec_list: list with the ECRH gyrotrons to use. If None, all the
+    :param  ec_list: list with the ECRH gyrotrons to use. If None, all the
     gyrotrons are read.
     """
 
@@ -464,6 +465,7 @@ def get_ECRH_traces(shot: int, time: float = None, ec_list: list = None):
         'power': interp1d(time_power, pecrh, bounds_error=False,
                           fill_value=0.0)(timebase)*1.e-6
     }
+    return output
 
 
 def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None):
@@ -472,10 +474,10 @@ def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: shotnumber to get the ECRH power.
-    @param tBeg: initial time to get the timetrace. If None, the initial time
+    :param  shot: shotnumber to get the ECRH power.
+    :param  tBeg: initial time to get the timetrace. If None, the initial time
     stored in the shotfile will be returned.
-    @param tEnd: final time to get the timetrace. If None, the final time
+    :param  tEnd: final time to get the timetrace. If None, the final time
     stored in the shotfile will be returned.
     """
 
@@ -516,10 +518,10 @@ def getPrad_total(shot: int, tBeg: float = None, tEnd: float = None):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: shotnumber to get the ECRH power.
-    @param tBeg: initial time to get the timetrace. If None, the initial time
+    :param  shot: shotnumber to get the ECRH power.
+    :param  tBeg: initial time to get the timetrace. If None, the initial time
     stored in the shotfile will be returned.
-    @param tEnd: final time to get the timetrace. If None, the final time
+    :param  tEnd: final time to get the timetrace. If None, the final time
     stored in the shotfile will be returned.
     """
 
