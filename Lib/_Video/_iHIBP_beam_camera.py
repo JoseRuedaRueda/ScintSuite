@@ -4,9 +4,41 @@ iHIBP-AUG geometry.
 This library allows for the calculation of the beam deflection coming from the
 stray magnetic field using the video cameras for that.
 
-Pablo Oyola - poyola@us.es
+Balazs Tal - balazs.tal@ipp.mpg.de
 
-copied & adapted from Balazs Tal scripts: balazs.tal@ipp.mpg.de
+There are a set of 2/3 cameras looking at the beam and are used to characterize
+the beam properties, such as sizes, divergence, shift and direction. It is
+observed that during shots the beam moves and produces that scintillator image
+changes significantly.
+
+The two main cameras observing the beam are:
+    - 'top', which looks at the beam from the top side and gives us hints on the
+    beam motion on the horizontal/toroidal direction.
+    - 'side', which looks at the beam from the left side and gives us hints on
+    the beam motion in the vertical/poloidal direction.
+
+The object in this file finds and reads the camera files and load them,
+including the calibration performed of the Field-of-View done by Balazs Tal.
+
+To compute the beam line direction 2 or more Region-of-Interestest (ROIs) in
+both vertical and horizontal direction. If the camera is the 'top' camera, the
+data insided each ROI for each time, is averaged in the VERTICAL direction,
+leading to a beam shape in 1D. That beam shape is typically have a Gaussian-ish
+shape, thus a Gaussian fit is used to get the beam center (center of the
+Gaussian) and the width is related to the beam size.
+
+If several ROIs are combined then:
+    - from several beam centers, we get the beam direction.
+    - from several beam sizes, we can estimate the divergence of the beam.
+
+A running example would be:
+    import Lib
+    vid = Lib.vid.ihibp_beam_camera(40749, camera='top')
+    vid.make_beam_line(time = [-2.0, 20.0], graphic_bar=True)
+    vid.plot_frame(t = 5.0, beamline=True, calibrated=True)
+
+adapted into the suite by:
+Pablo Oyola - poyola@us.es
 """
 
 import numpy as np
@@ -42,11 +74,11 @@ except ModuleNotFoundError:
 
 
 
-def process_time_file(filename_time: str=None):
+def process_time_file(filename_time: str):
     """
     Loads the time base from an XML file for the AUG implementation.
 
-    Pablo Oyola - poyola@us.es
+    Balazs Tal - balazs.tal@ipp.mpg.de
 
     :param filename_time: file with the time data.
     """
@@ -77,6 +109,8 @@ def read_mp4_ffmpeg(filename: str, fn_time: str=None):
     Using the FFMPEG package to read directly the frames.
 
     Balazs Tal - balazs.tal@ipp.mpg.de
+
+    adapted by: Pablo Oyola - poyola@us.es
 
     :param filename: file with the MP4 video data.
     :param fn_time: filename of the XML containing the time data.
@@ -254,8 +288,9 @@ class beam_camera(BVO):
 
         :param rois: plot the rois. True by default.
         :param beamline: plot the beam line. False by default.
-        :param frame_number: frame number to plot.
-        :param kwargs: keyword arguments to pass down to the parent class.
+        :param kwargs: keyword arguments to pass down to the parent class'
+        function plot_frame. Use arguments t or frame_number to get the
+        corresponding time point.
         """
 
         colors = ['r', 'y', 'g', 'm', 'c']
@@ -339,10 +374,13 @@ class beam_camera(BVO):
         """
         Computes the beam line by fitting it to a Gaussian function.
 
+        Balazs Tal - balazs.tal@ipp.mpg.de
+
+        adapted by:
         Pablo Oyola - poyola@us.es
 
         :param time: time range to get the beam line.
-        :param pix_avg: pixels to average for making a smoother fitting process.
+        :param graphic_bar: plot a graphic bar to track the progress.
         """
 
         # Checking that the time input is prepared.
@@ -412,7 +450,17 @@ class beam_camera(BVO):
         This function will build the line for all the points in the camera and
         store it internally.
 
+        Balazs Tal - balazs.tal@ipp.mpg.de
+
+        adapted by:
         Pablo Oyola - poyola@us.es
+
+        :param time: time (range) to evaluate the beam line direction and
+        divergence.
+        :param sigma: how many sigma's to include to compute the limits of the
+        beam.
+        :param graphic_bar: send down to the get_roi_fit to visualize the
+        ROI fitting.
         """
 
         _, self.line_fwhm, self.line_center, time = \
@@ -547,6 +595,14 @@ class beam_camera(BVO):
             angle = np.arccos(1.0/norm)
             self.line['div_pix'] = xr.DataArray(alpha, coords=coords,
                                                  dims=dims, attrs=attrs)
+
+            # Getting x_shift.
+            attrs = { 'desc': 'Beam shift along the horizontal direction',
+                      'units': 'pix',
+                    }
+            self.line['x_shift'] = xr.DataArray(interc, coords=[time,],
+                                                dims=['t',],
+                                                attrs=attrs)
 
         else:
             raise NotImplementedError('Working on it, sorry')

@@ -13,7 +13,15 @@
 ## DiagParam
 - changed origin point of ihibp beam
 ## Plates
-- changed ihibp Scintillator plate to match experimental geometry 
+- changed ihibp Scintillator plate to match experimental geometry
+## iHIBP beam watchdog cameras
+- New object to handle the cameras watching the beam and extract useful info from them like beam displacement, divergences,... *Lib.vid.ihibp_beam_camera(shot, camera='top'/'side')*
+# iHIBP strikes
+- The object reading the *.strikes file from the iHIBPsim simulation has been rewritten into a more handlable fashion.
+- 3D plot of the strikes in 3D axes, with colormap corresponding to weights.
+- Generic histograms functions included.
+- plotScintillator now generates better images.
+- plot_frames generates the real frame including distorsion and optics defocusing.
 
 # 1.1.0: Melon con Jamon
 ## FIDASIM library

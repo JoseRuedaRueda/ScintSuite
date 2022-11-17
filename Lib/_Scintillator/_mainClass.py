@@ -7,6 +7,9 @@ from Lib._TimeTrace._roipoly import roipoly
 from Lib._Scintillator._efficiency import ScintillatorEfficiency
 __all__ = ['Scintillator']
 
+import logging
+logger = logging.getLogger('ScintSuite.Scintillator')
+
 
 # ------------------------------------------------------------------------------
 # --- Scintillator object
@@ -131,14 +134,18 @@ class Scintillator(XYtoPixel):
     # --------------------------------------------------------------------------
     # --- Reading the efficiency
     # --------------------------------------------------------------------------
-    def _read_efficiency(self, material: str = 'TgGreenA', particle='D',
-                         thickness=9):
+    def _read_efficiency(self, material: str = 'TgGreenA', particle: str='D',
+                         thickness: float=9):
         """
+        Read the efficiency of the material of the scintillator for a given
+        particle.
 
-        :param material:
-        :param particle:
-        :param thickness:
-        :return:
+        Jose Rueda - jrrueda@us.es
+
+        :param material: material to load from the corresponding database.
+        :param particle: particle impinging on the scintillator.
+        :param thickness: thickness of the scintillator material.
+
         """
         self.material = material
         self.particle = particle
