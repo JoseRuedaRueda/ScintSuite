@@ -776,7 +776,9 @@ class BVO:
                 elif len(t)==2:
                     print('plotting averaged frames')
                     flag_time_range =True
-                    frames = self.exp_dat['frames'].sel(t = slice(t[0], t[1]))
+                    frames = self.exp_dat['frames'].where((self.exp_dat['t']>t[0]) & (self.exp_dat['t']<t[1]), drop = True)
+                    t[0] = min(frames.t)
+                    t[1] = max(frames.t)
                     dummy = frames.mean(dim = 't')
                 else:
                     raise ValueError('wrong shape of time. Should not be larger than two')
@@ -829,7 +831,7 @@ class BVO:
         if flag_time_range == False:
             tf = str(round(tf, 3))
         else:
-            tf = '(%.2f, %.2f)' %(t[0],t[1])
+            tf = '(%.3f, %.3f)' %(t[0],t[1])
 
         if IncludeColorbar:
             divider = make_axes_locatable(ax)
