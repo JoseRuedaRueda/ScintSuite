@@ -7,12 +7,23 @@ import numpy as np
 import xarray as xr
 import Lib.LibData.AUG.Equilibrium as equil
 import Lib.LibData.AUG.DiagParam as params
-import Lib.LibData.AUG._nbi_geom as nbigeom
 import matplotlib.pyplot as plt
 import Lib._Plotting as ssplt
 import Lib._Utilities as ssextra
 import Lib.errors as errors
 from Lib._Paths import Path
+
+import logging
+logger = logging.logger('ScintSuite.Data')
+
+try:
+    import numba
+except ModuleNotFoundError:
+   REAL_NBI_GEOM = False
+   logger.warning('Numba is not installed. Requirement for NBI geometry in AUG.')
+else:
+    import Lib.LibData.AUG._nbi_geom as nbigeom
+    REAL_NBI_GEOM = True
 
 pa = Path()
 
@@ -380,8 +391,10 @@ class NBI:
         self.pitch_profile = None
         if diaggeom:
             self.coords = NBI_diaggeom_coordinates(nnbi)
-        else:
+        elif REAL_NBI_GEOM:
             self.coords = nbigeom.get_nbi_geom(nnbi)
+        else:
+            raise ValueError('NBI calculation of geometry is not available!')
 
     def calc_pitch_profile(self, shot: int, time: float, rmin: float = 1.3,
                            rmax: float = 2.2, delta: float = 0.04,
