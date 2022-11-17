@@ -25,8 +25,8 @@ def poloidal_vessel(shot: int = 30585, simplified: bool = False):
 
     Jose Rueda: jrrueda@us.es
 
-    @param shot: shot number to be used
-    @param simplified: if true, a 'basic' shape of the poloidal vessel will be
+    :param  shot: shot number to be used
+    :param  simplified: if true, a 'basic' shape of the poloidal vessel will be
     loaded, ideal for generate a 3D revolution surface from it
     """
     if simplified is not True:
@@ -54,8 +54,8 @@ def toroidal_vessel(rot: float = -np.pi/8.0*3.0):
 
     Note: x = NaN indicate the separation between vessel block
 
-    @param rot: angle to rotate the coordinate system
-    @return xy: np.array with the coordinates of the points [npoints, 2]
+    :param  rot: angle to rotate the coordinate system
+    :return xy: np.array with the coordinates of the points [npoints, 2]
     """
     # --- Section 0: Read the data
     # The files are a series of 'blocks' representing each piece of the vessel,
@@ -95,8 +95,8 @@ def NBI_diaggeom_coordinates(nnbi):
     """
     Just the coordinates manually extracted for shot 32312
 
-    @param nnbi: the NBI number
-    @return coords: dictionary containing the coordinates of the initial and
+    :param  nnbi: the NBI number
+    :return coords: dictionary containing the coordinates of the initial and
     final points. '0' are near the source, '1' are near the central column
     """
     # --- Diaggeom parameters
@@ -154,13 +154,13 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param timeWindow: window of time to retrieve the NBI data (len=2).
-    @param shotnumber: Shot number from where to take the NBI timetraces.
-    @param nbion: list with the NBI number that should be ON.
-    @param nbioff: list with the NBIs that should be OFF.
-    @param simul: simultaneous flag. If True all the NBIs of nbion should be
+    :param  timeWindow: window of time to retrieve the NBI data (len=2).
+    :param  shotnumber: Shot number from where to take the NBI timetraces.
+    :param  nbion: list with the NBI number that should be ON.
+    :param  nbioff: list with the NBIs that should be OFF.
+    :param  simul: simultaneous flag. If True all the NBIs of nbion should be
     ON simultaenously.
-    @param pthreshold: power threshold to consider the beam is ON [MW].
+    :param  pthreshold: power threshold to consider the beam is ON [MW].
     Default to 2.0 MW (to choose the 2.5MW standard beam.)
     """
     # --- Checking the time inputs.
@@ -271,12 +271,12 @@ def getNBI_timeTraces(shot: int, nbilist: int = None,
 
     Pablo Oyola ft. Jose Rueda
 
-    @param shot: shotnumber
-    @param nbilist: list of NBI to load, if xArrayOutput == True, will be
+    :param  shot: shotnumber
+    :param  nbilist: list of NBI to load, if xArrayOutput == True, will be
         ignored
-    @param xArrayOutput: if true, an xrarray will be returned
+    :param  xArrayOutput: if true, an xrarray will be returned
 
-    @return: dict or xarray with the NBI power.
+    :return: dict or xarray with the NBI power.
     """
     if nbilist is None:
         nbilist = (1, 2, 3, 4, 5, 6, 7, 8)
@@ -321,10 +321,10 @@ def getNBI_total(shot: int, tBeg: float = None, tEnd: float = None):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: shotnumber to get the NBI power.
-    @param tBeg: initial time to get the timetrace. If None, the initial time
+    :param  shot: shotnumber to get the NBI power.
+    :param  tBeg: initial time to get the timetrace. If None, the initial time
     stored in the shotfile will be returned.
-    @param tEnd: final time to get the timetrace. If None, the final time
+    :param  tEnd: final time to get the timetrace. If None, the final time
     stored in the shotfile will be returned.
     """
     sf = sfutils.SFREAD('NIS', shot)
@@ -369,9 +369,9 @@ class NBI:
         @todo: Create a new package to set this structure as machine
         independent??
 
-        @param    nnbi: number of the NBI
-        @param    shot: shot number
-        @param    diaggeom: If true, values extracted manually from diaggeom
+        :param     nnbi: number of the NBI
+        :param     shot: shot number
+        :param     diaggeom: If true, values extracted manually from diaggeom
         """
         ## NBI number:
         self.number = nnbi
@@ -409,14 +409,14 @@ class NBI:
         not-efficient. If you are interesting in an optimum version, open an
         issue in gitlab
 
-        @param shot: Shot number
-        @param time: Time in seconds, can be an array
-        @param rmin: miminum radius to be considered during the calculation
-        @param rmax: maximum radius to be considered during the calculation
-        @param delta: the spacing of the points along the NBI [m]
-        @param BtIp: sign of the magnetic field respect to the current, the
+        :param  shot: Shot number
+        :param  time: Time in seconds, can be an array
+        :param  rmin: miminum radius to be considered during the calculation
+        :param  rmax: maximum radius to be considered during the calculation
+        :param  delta: the spacing of the points along the NBI [m]
+        :param  BtIp: sign of the magnetic field respect to the current, the
         pitch will be defined as BtIp * v_par / v
-        @param deg: If true the pitch is acos(BtIp * v_par / v)
+        :param  deg: If true the pitch is acos(BtIp * v_par / v)
         """
         if self.coords is None:
             raise errors.NotValidInput('Sorry, NBI coordinates are needed!!!')
@@ -498,15 +498,15 @@ class NBI:
         intersect can be defined directly by the set of points R,z (np.arrays)
         or shot number, time and desired rho (still to be implemented)
 
-        @param R: Arrays of R coordinates of the surface (option 1)
-        @param z: Arrays of R coordinates of the surface (option 1)
-        @param shot: shot number (option 2)
-        @param t: time to make the calculation (option 2)
-        @param rho: rho position to make the calculation (option 2)
-        @param precision: precision for the intersection calcualtion
-        @param plot: plot flag for the function find_2D_intersection()
+        :param  R: Arrays of R coordinates of the surface (option 1)
+        :param  z: Arrays of R coordinates of the surface (option 1)
+        :param  shot: shot number (option 2)
+        :param  t: time to make the calculation (option 2)
+        :param  rho: rho position to make the calculation (option 2)
+        :param  precision: precision for the intersection calcualtion
+        :param  plot: plot flag for the function find_2D_intersection()
 
-        @return out: dict containing:
+        :return out: dict containing:
             -# 'x': x coordinates of the cut
             -# 'y': y coordinates of the cut
             -# 'z': z coordinates of the cut
@@ -557,14 +557,14 @@ class NBI:
     #
     #     Gaussian distribution will be assumed for the energies
     #
-    #     @param Nions: Number of markers to generate
-    #     @param E: energy of the markers [eV]
-    #     @param sE: standard deviation of the energy of the markers [eV]
-    #     @param Rmin: minimum radius to launch the markers
-    #     @param Rmax: maximum radius to launch the markers
-    #     @param A: Mass number of the ions
-    #     @param rc: intersection coords of the NBI with the separatrix [x,y,z]
-    #     @param lambda0: decay length of the NBI weight in the plasma
+    #     :param  Nions: Number of markers to generate
+    #     :param  E: energy of the markers [eV]
+    #     :param  sE: standard deviation of the energy of the markers [eV]
+    #     :param  Rmin: minimum radius to launch the markers
+    #     :param  Rmax: maximum radius to launch the markers
+    #     :param  A: Mass number of the ions
+    #     :param  rc: intersection coords of the NBI with the separatrix [x,y,z]
+    #     :param  lambda0: decay length of the NBI weight in the plasma
     #     """
     #     unit = self.coords['u']
     #     p0 = np.array([self.coords['x0'], self.coords['y0'],
@@ -654,10 +654,10 @@ class NBI:
 
         Jose Rueda: jrrueda@us.es
 
-        @param line_param: Dictionary with the line params
-        @param ax_param: Dictionary with the param fr ax_beauty
-        @param ax: axis where to plot, if none, open new figure
-        @return : Nothing
+        :param  line_param: Dictionary with the line params
+        :param  ax_param: Dictionary with the param fr ax_beauty
+        :param  ax: axis where to plot, if none, open new figure
+        :return : Nothing
         """
         ax_parameters = {
             'grid': 'both',
@@ -716,13 +716,13 @@ class NBI:
 
         Jose Rueda: jrrueda@us.es
 
-        @param projection: 'Poloidal' (or 'pol') will plot the poloidal
+        :param  projection: 'Poloidal' (or 'pol') will plot the poloidal
         projection, 'Toroidal' (or 'tor') the toroidal one. Also, 3D supported
-        @param ax: ax where to plot the NBI line
-        @param line_params: line parameters for the function plt.plot()
-        @param units: Units to plot, m or cm supportted
+        :param  ax: ax where to plot the NBI line
+        :param  line_params: line parameters for the function plt.plot()
+        :param  units: Units to plot, m or cm supportted
 
-        @return ax: The axis where the line was plotted
+        :return ax: The axis where the line was plotted
         """
         scales = {
             'cm': 100.,

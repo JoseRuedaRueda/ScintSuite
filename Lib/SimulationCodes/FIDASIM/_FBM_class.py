@@ -26,8 +26,8 @@ class FBM:
         """
         Initalise the class
 
-        @param filename: filename to be read
-        @param verbose: bollean flag to print some info in the console
+        :param  filename: filename to be read
+        :param  verbose: bollean flag to print some info in the console
         """
         if not os.path.isfile(filename):
             raise Exception('File not found')
@@ -49,12 +49,12 @@ class FBM:
         Basically plot the FBM density (which is the 4D FBM integrated in E and
         pitch)
 
-        @param ax: axes where to plot, is None, new will be created
-        @param cmap: if none, plasma will be used
-        @param IncludeColorbar: bolean flag to include a colormap
-        @param scale: log, sqrt or linear scale to plot
-        @param units: units for R and z
-        @param interpolation: interpolation methid to show the image
+        :param  ax: axes where to plot, is None, new will be created
+        :param  cmap: if none, plasma will be used
+        :param  IncludeColorbar: bolean flag to include a colormap
+        :param  scale: log, sqrt or linear scale to plot
+        :param  units: units for R and z
+        :param  interpolation: interpolation methid to show the image
         """
         # --- Create the axis, if needed
         created = False
@@ -108,14 +108,14 @@ class FBM:
         Note: By default R,z are expected in m! if you want to use cm or have
         fun with inches, use the 'units' input variable to change the scale
 
-        @param R: r point where to plot
-        @param z: z points where to plot
-        @param ax: axes where to plot, is None, new will be created
-        @param cmap: if none, plasma will be used
-        @param IncludeColorbar: bolean flag to include a colormap
-        @param scale: log, sqrt or linear scale to plot
-        @param units: units for R and z
-        @param interpolation: interpolation methid to show the image
+        :param  R: r point where to plot
+        :param  z: z points where to plot
+        :param  ax: axes where to plot, is None, new will be created
+        :param  cmap: if none, plasma will be used
+        :param  IncludeColorbar: bolean flag to include a colormap
+        :param  scale: log, sqrt or linear scale to plot
+        :param  units: units for R and z
+        :param  interpolation: interpolation methid to show the image
         """
         # --- Create the axis, if needed
         created = False
@@ -177,12 +177,12 @@ class FBM:
 
         Note, 3 and only 3 intervals should be given
 
-        @param R: Tuple containing (Rmin, Rmax) for the integration
-        @param z: Tuple containing (zmin, zmax) for the integration
-        @param E: Tuple containing (Emin, Emax) for the integration
-        @param P: Tuple containing (Pmin, Pmax) for the integration
-        @param line_params: dictionary with line parameters for matplotlib
-        @param verbose: if True, print some basic infor in the console
+        :param  R: Tuple containing (Rmin, Rmax) for the integration
+        :param  z: Tuple containing (zmin, zmax) for the integration
+        :param  E: Tuple containing (Emin, Emax) for the integration
+        :param  P: Tuple containing (Pmin, Pmax) for the integration
+        :param  line_params: dictionary with line parameters for matplotlib
+        :param  verbose: if True, print some basic infor in the console
         """
         possible = {
             'R': 'R',

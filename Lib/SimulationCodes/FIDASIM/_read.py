@@ -24,9 +24,9 @@ def read_neutrals(filename: str):
 
     Plar Cano: pcano@us.es and Jose Rueda: jrrueda@us.es
 
-    @param filename: name of the neutral file to read
+    :param  filename: name of the neutral file to read
 
-    @return data: Dictionary containing:
+    :return data: Dictionary containing:
         - shot: shot number
         - time: time point [s]
         - nx, ny, nz: grid size
@@ -77,8 +77,8 @@ def read_spec(filename: str, spectra_stark_resolved: bool = True):
 
     Plar Cano: pcano@us.es
 
-    @param filename: name of the file with FIDASIM the results
-    @param spectra_stark_resolved: If there stark resolved data was simulated
+    :param  filename: name of the file with FIDASIM the results
+    :param  spectra_stark_resolved: If there stark resolved data was simulated
     """
     data = {}
     int_type = np.int32
@@ -149,9 +149,9 @@ def read_grid(filename: str):
 
     Plar Cano: pcano@us.es and Jose Rueda: jrrueda@us.es
 
-    @param filename: name of the file with the FIDASIM4 grid
+    :param  filename: name of the file with the FIDASIM4 grid
 
-    @return grid: used grid in FIDASIM
+    :return grid: used grid in FIDASIM
     """
     grid = {}
     int_type = np.int32
@@ -196,9 +196,9 @@ def read_profiles(filename: str):
     """
     Read used profiles
 
-    @param filename: mane of the profile fidasim file
+    :param  filename: mane of the profile fidasim file
 
-    @return profile dict containing:
+    :return profile dict containing:
         - nrho: number of poins of the grid
         - drho: rho spacing
         - rho: rho axis
@@ -240,7 +240,7 @@ def read_fida(filename: str, spectra_stark_resolved: bool = True,
     """
     Read FIDA simulated signal
 
-    @param filename: name of the folder with FIDASIM the results
+    :param  filename: name of the folder with FIDASIM the results
     """
     data = {}
     int_type = np.int32
@@ -289,9 +289,9 @@ def read_rho_diag(filename):
 
     Plar Cano: pcano@us.es and Jose Rueda: jrrueda@us.es
 
-    @param filename: name of the file with the rho coordinates
+    :param  filename: name of the file with the rho coordinates
 
-    @return data: dictionary containing the coordinates
+    :return data: dictionary containing the coordinates
         - dim: dimenssion of the grid
         - rhot: rho toroidal
         - rhop: rho poloidal
@@ -315,11 +315,11 @@ def read_field(filename, nr: int = None, nz: int = None):
 
     Plar Cano: pcano@us.es and Jose Rueda: jrrueda@us.es
 
-    @param filename: name of the field file
-    @param nr: number of grid points in r direction
-    @param nz: number of grid points in z direction
+    :param  filename: name of the field file
+    :param  nr: number of grid points in r direction
+    :param  nz: number of grid points in z direction
 
-    @return: dict containing:
+    :return: dict containing:
         - brzt: field Br, Bz, Bt [T], (3, nr, nz)
         - efield: electric field Er, Ez, Et [V/cm]
         - rho_grid: rho grid
@@ -358,7 +358,7 @@ def read_diag(filename):
 
     Plar Cano: pcano@us.es and Jose Rueda: jrrueda@us.es
 
-    @param filename: name of the file with the fidasim diagnostic
+    :param  filename: name of the file with the fidasim diagnostic
 
     Note: still have done, weights of LOS not read, neither alpha and beta for
         the INPA
@@ -400,7 +400,7 @@ def read_spac_res(filename, nr=-1, nz=-1, nchan=-1, stell_ind=0.0):
 
     Plar Cano: pcano@us.es
 
-    @param filename: name of the folder with FIDASIM the results
+    :param  filename: name of the folder with FIDASIM the results
     """
     data = {}
 
@@ -427,7 +427,7 @@ def read_bremmstrahlung(filename, lambda_in=np.asarray([0]), diag=None,
 
     Plar Cano: pcano@us.es
 
-    @param filename: file with FIDASIM results
+    :param  filename: file with FIDASIM results
     """
     data = {}
     h_planck = sspar.h_planck
@@ -565,7 +565,7 @@ def read_settings(filename: str):
 
     Plar Cano: pcano@us.es
 
-    @param filename: name of the FIDASIM namelist file
+    :param  filename: name of the FIDASIM namelist file
     """
     data = {}
     f = open(filename, 'r')
@@ -638,7 +638,7 @@ def read_npa(filename, verbose: bool = True):
 
     Jose Rueda: jrrueda@us.es
 
-    @param filenam: name of the file to be read
+    :param  filenam: name of the file to be read
     """
     if verbose:
         print('Reading file: ', filename)
@@ -670,7 +670,7 @@ def read_fbm(filename):
 
     Jose Rueda: jrrueda@us.es
 
-    @param filenam: name of the file to be read
+    :param  filenam: name of the file to be read
     """
     print('Reading file: ', filename)
     with open(filename, 'rb') as fid:

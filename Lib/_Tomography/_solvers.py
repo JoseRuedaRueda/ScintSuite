@@ -18,12 +18,12 @@ def ols(X, y):
 
     Jose Rueda: jrrueda@us.es
 
-    @param X: Design matrix
-    @param y: signal
-    @return beta: best fit coefficients
+    :param  X: Design matrix
+    :param  y: signal
+    :return beta: best fit coefficients
 
-    @return MSE: Mean squared error
-    @return r2: R2 score
+    :return MSE: Mean squared error
+    :return r2: R2 score
     """
     beta = np.linalg.lstsq(X, y, rcond=None)[0]
     y_pred = X @ beta
@@ -39,13 +39,13 @@ def nnlsq(X, y, **kargs):
 
     Jose Rueda: jrrueda@us.es
 
-    @param X: Design matrix
-    @param y: signal
-    @param param: dictionary with options for the nnls solver (see scipy)
+    :param  X: Design matrix
+    :param  y: signal
+    :param  param: dictionary with options for the nnls solver (see scipy)
 
-    @return beta: best fit coefficients
-    @return MSE: Mean squared error
-    @return r2: R2 score
+    :return beta: best fit coefficients
+    :return MSE: Mean squared error
+    :return r2: R2 score
     """
     beta, dummy = nnls(X, y, **kargs)
     y_pred = X @ beta
@@ -63,15 +63,15 @@ def tikhonov0(X, y, alpha, weight=None, **kargs):
 
     Jose Rueda: jrrueda@us.es
 
-    @param X: Design matrix
-    @param y: signal
-    @param alpha: hyperparameter
-    @param weight: weight of the samples, for the regression
-    @param *kargs: arguments for the Ridge regressor
+    :param  X: Design matrix
+    :param  y: signal
+    :param  alpha: hyperparameter
+    :param  weight: weight of the samples, for the regression
+    :param  *kargs: arguments for the Ridge regressor
 
-    @return ridge.coef_: best fit coefficients
-    @return MSE: Mean squared error
-    @return r2: R2 score
+    :return ridge.coef_: best fit coefficients
+    :return MSE: Mean squared error
+    :return r2: R2 score
     """
     ridge = Ridge(alpha, **kargs)
     ridge.fit(X, y, sample_weight=weight)
@@ -86,13 +86,13 @@ def nntikhonov0(X, y, alpha, **kargs):
     """
     Perform a non-negative Ridge inversion
 
-    @param X: Design matrix
-    @param y: signal
-    @param alpha: hyperparameter
-    @param param. dictionary with extra parameters for scipy.nnls
-    @return ridge.coef_: best fit coefficients
-    @return MSE: Mean squared error
-    @return r2: R2 score
+    :param  X: Design matrix
+    :param  y: signal
+    :param  alpha: hyperparameter
+    :param  param. dictionary with extra parameters for scipy.nnls
+    :return ridge.coef_: best fit coefficients
+    :return MSE: Mean squared error
+    :return r2: R2 score
     """
     # Auxiliar arrays:
     n1, n2 = X.shape
@@ -116,15 +116,15 @@ def Elastic_Net(X, y, alpha, l1_ratio=0.05, positive=True, max_iter=1000):
 
     Jose Rueda: jrrueda@us.es
 
-    @param X: Design matrix
-    @param y: signal
-    @param alpha: hyperparameter
-    @param l1_ratio: hyperparameter of the ElasticNet
-    @param positive: flag to force positive coefficients
+    :param  X: Design matrix
+    :param  y: signal
+    :param  alpha: hyperparameter
+    :param  l1_ratio: hyperparameter of the ElasticNet
+    :param  positive: flag to force positive coefficients
 
-    @return reg.coef_: best fit coefficients
-    @return MSE: Mean squared error
-    @return r2: R2 score
+    :return reg.coef_: best fit coefficients
+    :return MSE: Mean squared error
+    :return r2: R2 score
     """
     # --- Initialise the regresor
     reg = ElasticNet(alpha=alpha, positive=positive, l1_ratio=l1_ratio,

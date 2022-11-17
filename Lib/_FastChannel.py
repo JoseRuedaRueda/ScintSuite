@@ -45,7 +45,7 @@ from Lib._basicVariable import BasicSignalVariable
 
 #         Jose Rueda: jrrueda@us.es
 
-#         @params method: Smooth to be applied. Up to now supported:
+#         :param s method: Smooth to be applied. Up to now supported:
 #             - savgol: Savitzky-Golay (see scipy savgol_filter doc)
 #             - median:  Median filter (See scipy.signal.medfilt)
 #         """
@@ -90,14 +90,14 @@ from Lib._basicVariable import BasicSignalVariable
 #         @todo: if 'gauss' timewindow is passed as parameter, my call to
 #         get_nfft is wrong
 
-#         @param method: method to perfor the fourier transform:
+#         :param  method: method to perfor the fourier transform:
 #             - sfft
 #             - stft: hort-Time Fourier Transform, Giovanni implementation.
 #             - stft2: Short-Time Fourier Transform, scipy.signal implementation.
 #             - scipy: just call the scipy spectrogram function (recomended)
-#         @param params: dictionary containing the optional parameters of those
+#         :param  params: dictionary containing the optional parameters of those
 #                        methos (see Lib._FrequencyAnalysis)
-#         @param timeResolution: set the time resolution of the spectogram, if
+#         :param  timeResolution: set the time resolution of the spectogram, if
 #                                sfft, stft2 or stft are selected this would be
 #                                the time resolution parameter, normalise to one,
 #                                see fast channel library for more information.
@@ -186,21 +186,21 @@ from Lib._basicVariable import BasicSignalVariable
 #         Note: A basic correction of the baseline using the last 100 points of
 #         the signal will be applied
 
-#         @param ch_number: channels to plot, np arrays accepted, if none, all
+#         :param  ch_number: channels to plot, np arrays accepted, if none, all
 #         channels will be plotted
-#         @param line_params: params for the lines (linewdith, etc)
-#         @param ax_param: parameters for the axis beauty plot
-#         @param ax: axes where to plot, if none, new axis will be opened
-#         @param normalise: If true, signal will be normalised to one to
-#         @param ptype: Type of plot to perform:
+#         :param  line_params: params for the lines (linewdith, etc)
+#         :param  ax_param: parameters for the axis beauty plot
+#         :param  ax: axes where to plot, if none, new axis will be opened
+#         :param  normalise: If true, signal will be normalised to one to
+#         :param  ptype: Type of plot to perform:
 #             - 'raw': Just the line with the raw data
 #             - 'smooth': Just the line with the smooth data
 #             - 'cloud': The line with the smoothed data plus the raw as points.
 #                        color property can't be pass as input if this kind of
 #                        plot is selecteed
-#         @param max_to_plot: maximum number of points to be plotted
+#         :param  max_to_plot: maximum number of points to be plotted
 
-#         @return ax: axes with the time traces plotted
+#         :return ax: axes with the time traces plotted
 #         """
 #         # Initialize the plotting options:
 #         line_settings = {
@@ -286,10 +286,10 @@ from Lib._basicVariable import BasicSignalVariable
 
 #         Jose Rueda: jrrueda@us.es
 
-#         @param ch_number: channels to plot, np arrays accepted, if none, all
+#         :param  ch_number: channels to plot, np arrays accepted, if none, all
 #         channels will be plotted
-#         @param ax_param: parameters for the axis beauty plot
-#         @param scale: 'linear', 'sqrt', 'log'
+#         :param  ax_param: parameters for the axis beauty plot
+#         :param  scale: 'linear', 'sqrt', 'log'
 #         """
 #         # Initialize the plotting options:
 #         ax_settings = {

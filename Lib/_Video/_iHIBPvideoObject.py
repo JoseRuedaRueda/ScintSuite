@@ -27,10 +27,10 @@ def decision(prob: float, x0: float, dx0: float):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param prob: array with the probability value that must range between [0, 1]
-    @param x0: probability threshold, point at which the probability of being
+    :param  prob: array with the probability value that must range between [0, 1]
+    :param  x0: probability threshold, point at which the probability of being
     noise would be 50%.
-    @param dx0: probability slope. Slope to transition from noise to signal.
+    :param  dx0: probability slope. Slope to transition from noise to signal.
     """
 
     assert (x0 > 0.0) and (x0 < 1.0), 'Probability threshold must be in [0, 1]'
@@ -48,9 +48,9 @@ def guessiHIBPfilename(shot: int):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: shot number
+    :param  shot: shot number
 
-    @return f: the name of the file/folder
+    :return f: the name of the file/folder
     """
     base_dir = params.iHIBPext[0]['path'](shot)
     extension = params.iHIBPext[0]['extension'](shot)
@@ -73,10 +73,10 @@ def ihibp_get_time_basis_old(shot: int):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: shot to get the timing.
-    @return timestamp: time at which the camera is recording in seconds.
-    @return framenum: number of the frame corresponding to each timestamp.
-    @return properties: properties from the XML header
+    :param  shot: shot to get the timing.
+    :return timestamp: time at which the camera is recording in seconds.
+    :return framenum: number of the frame corresponding to each timestamp.
+    :return properties: properties from the XML header
     """
     fn = params.iHIBPext[0]['path_times'](shot)
 
@@ -129,10 +129,10 @@ def ihibp_get_time_basis_new(shot: int):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: shot to get the timing.
-    @return timestamp: time at which the camera is recording in seconds.
-    @return framenum: number of the frame corresponding to each timestamp.
-    @return properties: properties from the XML header
+    :param  shot: shot to get the timing.
+    :return timestamp: time at which the camera is recording in seconds.
+    :return framenum: number of the frame corresponding to each timestamp.
+    :return properties: properties from the XML header
     """
     fn = params.iHIBPext[0]['path_times'](shot)
 
@@ -193,7 +193,7 @@ def ihibp_get_time_basis(shot: int):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: shot to read the timebasis.
+    :param  shot: shot to read the timebasis.
     """
 
     if shot > 40395:
@@ -220,19 +220,19 @@ class iHIBPvideo(BVO):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param shot: pulse number to read video data.
-        @param calib: CalParams object with the calibration parameters for the
+        :param  shot: pulse number to read video data.
+        :param  calib: CalParams object with the calibration parameters for the
         image. This is used to properly set the scintillator image to its
         position.
-        @param scobj: Scintillator object containing all the data of the
+        :param  scobj: Scintillator object containing all the data of the
         scintillator position, shape,...
-        @param signal_threshold: sets the minimum number of counts per pixel to
+        :param  signal_threshold: sets the minimum number of counts per pixel to
         be considered illuminated the scintillator. The first image that
         fulfills that will be considered the reference frame with no signal and
         used to remove noise.
-        @param noiseSubtraction: if true, the subtract noise function from the
+        :param  noiseSubtraction: if true, the subtract noise function from the
         parent class will be called automatically in the init
-        @param filterFrames: if true, the filter function from the
+        :param  filterFrames: if true, the filter function from the
         parent class will be called automatically in the init (with the median
         filter option)
         """
@@ -312,10 +312,10 @@ class iHIBPvideo(BVO):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param plotScintillatorPlate: flag to plot or not the scintillator
+        :param  plotScintillatorPlate: flag to plot or not the scintillator
         plate to the figure. Defaults to True.
-        @param kwargs: same arguments than BVO.plot_frame.
-        @return ax: axis where the frame has been plot.
+        :param  kwargs: same arguments than BVO.plot_frame.
+        :return ax: axis where the frame has been plot.
         """
         ax = super().plot_frame(**kwargs)
 
@@ -337,7 +337,7 @@ class iHIBPvideo(BVO):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param timetrace: timetrace to be used as a monitor for the background
+        :param  timetrace: timetrace to be used as a monitor for the background
         light. If None, we will fall back to the standard monitor that is just
         taking a small piece of the scintillator.
         """
@@ -384,8 +384,8 @@ class iHIBPvideo(BVO):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param x0: value of the probability transition from noise to signal
-        @param dx0: pace to smooth the transition from noise to signal.
+        :param  x0: value of the probability transition from noise to signal
+        :param  dx0: pace to smooth the transition from noise to signal.
         """
         if 'frame_noise' not in self.__dict__:
             raise Exception('A particular time-dependence'+\
@@ -426,10 +426,10 @@ class iHIBPvideo(BVO):
         adapted from the BasicVideoObject (BVO) from:
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param t: time of the frame to be plotted for the selection of the roi
-        @param mask: bolean mask of the ROI
+        :param  t: time of the frame to be plotted for the selection of the roi
+        :param  mask: bolean mask of the ROI
 
-        @returns timetrace: a timetrace object
+        :returns timetrace: a timetrace object
         """
 
         if (t is None) and (mask is None):

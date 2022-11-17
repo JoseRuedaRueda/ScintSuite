@@ -42,10 +42,10 @@ def pitch2pitch(P0: float, def_in: int = 0, def_out: int = 2):
         -# 1: Pitch in degrees, counter-current
         -# 2: Pitch as v_par / v. co-current
         -# 3: Pitch as v_par / v. cunter-current
-    @param P0: The arrays containing the pitches we want to transform
-    @param def_in: The id of the inputs pitches
-    @param def_out: the id of the ouput pitches
-    @return P1: Pitch in the other definition
+    :param  P0: The arrays containing the pitches we want to transform
+    :param  def_in: The id of the inputs pitches
+    :param  def_out: the id of the ouput pitches
+    :return P1: Pitch in the other definition
     """
     if def_in == def_out:
         P1 = P0
@@ -95,9 +95,9 @@ def pitch_at_other_place(R0, P0, R):
     R0[i] was P0[i]. If P0 and R0 are single values and R an array, the
     component i of the output array is the pitch at the position R[i]. If all
     inputs are arrays... dragons can appear
-    @param R0: the initial position
-    @param P0: The initial pitch (as +- vpar/v)
-    @return P: The pitch evaluated at that position
+    :param  R0: the initial position
+    :param  P0: The initial pitch (as +- vpar/v)
+    :return P: The pitch evaluated at that position
     """
     return np.sqrt(1 - R0 / R * (1 - P0 ** 2))
 
@@ -111,8 +111,8 @@ def neutron_filter(M, nsigma: int = 3):
 
     Jose Rueda: jrrueda@us.es
 
-    @param M: Matrix with the counts to be filtered (np.array)
-    @return Mo: Matrix filtered
+    :param  M: Matrix with the counts to be filtered (np.array)
+    :return Mo: Matrix filtered
     """
     Mo = M.copy()
     sx, sy = M.shape
@@ -168,8 +168,8 @@ def TP_boundary(shot, z0, t, Rmin=1.5, Rmax=2.1, zmin=-0.9, zmax=0.9):
     |pitch_TP|= sqrt(Rmin/R) where R min is the minimum R of the flux
     surface which pases by R
 
-    @param shot: shot number
-    @param z: height where to calculate the boundary
+    :param  shot: shot number
+    :param  z: height where to calculate the boundary
     """
     # --- Creatin of the grid
     r = np.linspace(Rmin, Rmax, int((Rmax - Rmin) * 100))
@@ -232,13 +232,13 @@ def find_2D_intersection(x1, y1, x2, y2):
     https://stackoverflow.com/questions/28766692/
     intersection-of-two-graphs-in-python-find-the-x-value
 
-    @param x1: x coordinate of the first curve, np.array
-    @param y1: y coordinate of the first curve, np.array
-    @param x2. x coordinate of the second curve, np.array
-    @param y2: y coordinate of the second curve, np.array
+    :param  x1: x coordinate of the first curve, np.array
+    :param  y1: y coordinate of the first curve, np.array
+    :param  x2. x coordinate of the second curve, np.array
+    :param  y2: y coordinate of the second curve, np.array
 
-    @return x: x coordinates of the intersection
-    @return y: y coordinates of the intersection
+    :return x: x coordinates of the intersection
+    :return y: y coordinates of the intersection
 
     """
     first_line = LineString(np.column_stack((x1.flatten(), y1.flatten())))
@@ -264,10 +264,10 @@ def ELM_filter(s, s_timebase, tELM, offset=0.):
 
     Jose Rueda: jrrueda@us.es
 
-    @param s: np array with the signal
-    @param s_timebase: np array with the timebase of the signal
-    @param tELM: the dictionary created by the ss.dat.get_ELM_timebase
-    @param offset: offset to be included in the onset of the elms
+    :param  s: np array with the signal
+    :param  s_timebase: np array with the timebase of the signal
+    :param  tELM: the dictionary created by the ss.dat.get_ELM_timebase
+    :param  offset: offset to be included in the onset of the elms
     """
     time = tELM['t_onset'] + offset
     dt = tELM['dt']

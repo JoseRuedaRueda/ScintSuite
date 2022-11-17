@@ -73,8 +73,8 @@ def getFileSize(fid):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param fid: File handler.
-    @return size: Length in bytes of the file.
+    :param  fid: File handler.
+    :return size: Length in bytes of the file.
     """
 
     # Gets the actual position in the file, so we can return there after
@@ -100,8 +100,8 @@ def readStrikeFile(filename: str):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param filename: name of the file with the strike data.
-    @return output: dictionary with the data parsed.
+    :param  filename: name of the file with the strike data.
+    :return output: dictionary with the data parsed.
     """
 
     with open(filename) as fid:
@@ -147,8 +147,8 @@ def readStrikeMapFile(filename: str, flip_y: bool = False, header: bool=True):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param filename: File name where the map is stored.
-    @return mapsOut: lists with the strikemaps and the corresponding time
+    :param  filename: File name where the map is stored.
+    :return mapsOut: lists with the strikemaps and the corresponding time
     stamp.
     """
 
@@ -328,7 +328,7 @@ class strikeLine:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param filename: name of the file containing the strikelines.
+        :param  filename: name of the file containing the strikelines.
 
         """
 
@@ -380,8 +380,8 @@ class strikeLine:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param filename: name of the file with the strikelines.
-        @param oldFlag: flag stating whether this is the new or older version
+        :param  filename: name of the file with the strikelines.
+        :param  oldFlag: flag stating whether this is the new or older version
         of the strikemap file.
 
         """
@@ -422,16 +422,16 @@ class strikeLine:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param timeStamp: time to plot the strike line. The nearest strike
+        :param  timeStamp: time to plot the strike line. The nearest strike
         line will be used. If None, all the strike maps are plotted.
-        @param ax: axis handler to plot the strikeline. If None, new axis
+        :param  ax: axis handler to plot the strikeline. If None, new axis
         will be created.
-        @param ax_options: dictionary with inputs for axis set-up.
-        @param line_options: extra options to plot 1D lines.
-        @param legendText: text to use as legend. If None, the time stamp will
+        :param  ax_options: dictionary with inputs for axis set-up.
+        :param  line_options: extra options to plot 1D lines.
+        :param  legendText: text to use as legend. If None, the time stamp will
         be used to label the strikelines.
-        @param legend_on: sets or on/off the legend.
-        @param plot_weigth: plots the weight along the strike line.
+        :param  legend_on: sets or on/off the legend.
+        :param  plot_weigth: plots the weight along the strike line.
         """
 
         if timeStamp is None:
@@ -475,16 +475,16 @@ class strikeLine:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param timeStamp: time to plot the strike line. The nearest strike
+        :param  timeStamp: time to plot the strike line. The nearest strike
         line will be used. If None, all the strike maps are plotted.
-        @param ax: axis handler to plot the strikeline. If None, new axis
+        :param  ax: axis handler to plot the strikeline. If None, new axis
         will be created.
-        @param ax_options: dictionary with inputs for axis set-up.
-        @param line_options: extra options to plot 1D lines.
-        @param legendText: text to use as legend. If None, the time stamp will
+        :param  ax_options: dictionary with inputs for axis set-up.
+        :param  line_options: extra options to plot 1D lines.
+        :param  legendText: text to use as legend. If None, the time stamp will
         be used to label the strikelines.
-        @param legend_on: sets or on/off the legend.
-        @param plot_weigth: plots the weight along the strike line.
+        :param  legend_on: sets or on/off the legend.
+        :param  plot_weigth: plots the weight along the strike line.
         """
 
         if timeStamp is None:
@@ -701,9 +701,9 @@ class strikes:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param filename: name of the file with the strike data.
-        @param compute2nd: compute derivate data, such as energy...
-        @param strikemap: strikemap dictionary.
+        :param  filename: name of the file with the strike data.
+        :param  compute2nd: compute derivate data, such as energy...
+        :param  strikemap: strikemap dictionary.
         """
 
         # Reading from the file.
@@ -736,9 +736,9 @@ class strikes:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param filename: name of the file with the strike data.
-        @param compute2nd: compute derivate data, such as energy...
-        @param scint: Scintillator limits. If None, the limits are taken
+        :param  filename: name of the file with the strike data.
+        :param  compute2nd: compute derivate data, such as energy...
+        :param  scint: Scintillator limits. If None, the limits are taken
         as the standard ones.
         """
 
@@ -769,16 +769,16 @@ class strikes:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param dx: bin size in the Y-direction [cm]. Default to 100 um
-        @param dy: bin size in the Y-direction [cm]. Default to 100 um
-        @param ax: Axis to plot the scintillator image.
-        @param cmap: Colormap to plot. By default, set to plasma.
-        @param kindplot: type of plot to make: flux, intensity, density.
-        @param norm: kind of norm for the colorbar. Linear if None is provided
-        @param ax_options: dictionary with extract axis options.
-        @param levels: levels for the contourf plot.
+        :param  dx: bin size in the Y-direction [cm]. Default to 100 um
+        :param  dy: bin size in the Y-direction [cm]. Default to 100 um
+        :param  ax: Axis to plot the scintillator image.
+        :param  cmap: Colormap to plot. By default, set to plasma.
+        :param  kindplot: type of plot to make: flux, intensity, density.
+        :param  norm: kind of norm for the colorbar. Linear if None is provided
+        :param  ax_options: dictionary with extract axis options.
+        :param  levels: levels for the contourf plot.
 
-        @return ax: axis with the scintillator image.
+        :return ax: axis with the scintillator image.
         """
 
         # Checking the input axis. Creating one if None is provided.
@@ -940,9 +940,9 @@ class strikeline_db:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param filepath: path to the database file.
-        @param species: the name of the species to parse.
-        @param createNew: if the file did not exist before, we create it. If
+        :param  filepath: path to the database file.
+        :param  species: the name of the species to parse.
+        :param  createNew: if the file did not exist before, we create it. If
         it existed and it this is true, destroy the previou one. Default to
         False (i.e., not new files.)
         """
@@ -1011,7 +1011,7 @@ class strikeline_db:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param name_list: iterable containing the strings to get from the
+        :param  name_list: iterable containing the strings to get from the
         file.
         """
 
@@ -1040,7 +1040,7 @@ class strikeline_db:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param strLine: dictionary with the data of the strikeLine
+        :param  strLine: dictionary with the data of the strikeLine
         """
 
         # --- Definition of the minimal variables needed in the database.
@@ -1119,7 +1119,7 @@ class strikeline_db:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param strLine: dictionary with all the data of the strikeline.
+        :param  strLine: dictionary with all the data of the strikeline.
         """
 
         for ii in range(strLine.shape[0]):
