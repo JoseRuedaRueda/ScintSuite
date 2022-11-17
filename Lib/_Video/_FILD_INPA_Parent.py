@@ -116,9 +116,9 @@ class FIV(BVO):
 
         Jose Rueda - jrrueda@us.es
 
-        @param extra_options: Extra options to be passed to the magnetic field
+        :param  extra_options: Extra options to be passed to the magnetic field
             calculation. Ideal place to insert all your machine dependent stuff
-        @param use_average: flag to use the timebase of the average frames or
+        :param  use_average: flag to use the timebase of the average frames or
             the experimental frames
 
         Note: It will overwrite the content of self.Bfield
@@ -178,12 +178,12 @@ class FIV(BVO):
         Jose Rueda Rueda: jrrueda@us.es
         Lina Velarde: lvelarde@us.es
 
-        @param frame_number: Number of the frame to get the smap name, relative
+        :param  frame_number: Number of the frame to get the smap name, relative
                 to the video file, optional
-        @param t: Time instant of the frame to get the smap name, optional
-        @param verbose: If true, info of the theta and phi used will be printed
+        :param  t: Time instant of the frame to get the smap name, optional
+        :param  verbose: If true, info of the theta and phi used will be printed
 
-        @return full_name_smap: Name of the used strike map
+        :return full_name_smap: Name of the used strike map
         """
         # Get the frame number
         if t is not None:
@@ -237,12 +237,12 @@ class FIV(BVO):
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param t: time of the frame to be plotted for the selection of the roi
-        @param mask: bolean mask of the ROI
+        :param  t: time of the frame to be plotted for the selection of the roi
+        :param  mask: bolean mask of the ROI
 
         If mask is present, the t argument will be ignored
 
-        @returns timetrace: a timetrace object
+        :returns timetrace: a timetrace object
         """
         if mask is not None or t is not None:
             trace, mask = super().getTimeTrace(t=t, mask=mask,
@@ -278,10 +278,10 @@ class FIV(BVO):
         Notice that this function just call the plot_frame of the BVO and then
         adds the strike map
 
-        @param frame_number: Number of the frame to plot (option 1)
-        @param ax: Axes where to plot, is none, just a new axes will be created
-        @param ccmap: colormap to be used, if none, Gamma_II from IDL
-        @param strike_map: StrikeMap to plot:
+        :param  frame_number: Number of the frame to plot (option 1)
+        :param  ax: Axes where to plot, is none, just a new axes will be created
+        :param  ccmap: colormap to be used, if none, Gamma_II from IDL
+        :param  strike_map: StrikeMap to plot:
             -  # 'auto': The code will load the Smap corresponding to the theta
             phi angles. Note, the angles should be calculated, so the remap,
             should be done. (also, it will load the calibration from the
@@ -291,30 +291,30 @@ class FIV(BVO):
             is a class, it will not check if the calibration was apply etc, so
             it is supposed that the user had given a Smap, ready to be plotted
             -  # 'off': (or any other string) No strike map will be plotted
-        @param t: time point to select the frame (option 2)
-        @param verbose: If true, info of the theta and phi used will be printed
-        @param smap_marker_params: dictionary with parameters to plot the
+        :param  t: time point to select the frame (option 2)
+        :param  verbose: If true, info of the theta and phi used will be printed
+        :param  smap_marker_params: dictionary with parameters to plot the
             strike_map centroid(see StrikeMap.plot_pix)
-        @param smap_line_params: dictionary with parameters to plot the
+        :param  smap_line_params: dictionary with parameters to plot the
             strike_map lines(see StrikeMap.plot_pix)
-        @param vmin: Minimum value for the color scale to plot
-        @param vmax: Maximum value for the color scale to plot
-        @param xlim: tuple with the x-axis limits
-        @param ylim: tuple with the y-axis limits
-        @param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
-        @param alpha: transparency factor, 0.0 is 100 % transparent
-        @param IncludeColorbar: flag to include a colorbar
-        @param RemoveAxisTicksLabels: boolean flag to remove the numbers in the
+        :param  vmin: Minimum value for the color scale to plot
+        :param  vmax: Maximum value for the color scale to plot
+        :param  xlim: tuple with the x-axis limits
+        :param  ylim: tuple with the y-axis limits
+        :param  scale: Scale for the plot: 'linear', 'sqrt', or 'log'
+        :param  alpha: transparency factor, 0.0 is 100 % transparent
+        :param  IncludeColorbar: flag to include a colorbar
+        :param  RemoveAxisTicksLabels: boolean flag to remove the numbers in the
             axis
-        @param flagAverage: flag to pick the axis from the experimental or the
+        :param  flagAverage: flag to pick the axis from the experimental or the
             averaged frames
-        @param normalise: parameter to normalise the frame when plotting:
+        :param  normalise: parameter to normalise the frame when plotting:
             if normalise == 1 it would be normalised to the maximum
             if normalise == <number> it would be normalised to this value
             if normalise == None, nothing will be done
-        @param smap_labels: boolean flag to plot the labels of the strike map
+        :param  smap_labels: boolean flag to plot the labels of the strike map
 
-        @return ax: the axes where the frame has been drawn
+        :return ax: the axes where the frame has been drawn
         """
         # --- Call the parent function
         ax = super().plot_frame(
@@ -374,24 +374,24 @@ class FIV(BVO):
         """
         Plot a frame from the remaped frames
 
-        @param frame_number: Number of the frame to plot, relative to the video
+        :param  frame_number: Number of the frame to plot, relative to the video
             file, optional
 
-        @param ax: Axes where to plot, is none, just a new axes will be created
-        @param ccmap: colormap to be used, if none, Gamma_II from IDL
-        @param vmin: Minimum value for the color scale to plot
-        @param vmax: Maximum value for the color scale to plot
-        @param xlim: tuple with the x-axis limits
-        @param ylim: tuple with the y-axis limits
-        @param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
-        @param interpolation: interpolation method for plt.imshow
-        @param cbar_tick_format: format for the colorbar ticks
-        @param IncludeColorbar: Boolean flag to include the colorbar
-        @param color_labels_in_plot: Color for the labels in the plot
-        @param translation: tuple with the desired specie and translation to
+        :param  ax: Axes where to plot, is none, just a new axes will be created
+        :param  ccmap: colormap to be used, if none, Gamma_II from IDL
+        :param  vmin: Minimum value for the color scale to plot
+        :param  vmax: Maximum value for the color scale to plot
+        :param  xlim: tuple with the x-axis limits
+        :param  ylim: tuple with the y-axis limits
+        :param  scale: Scale for the plot: 'linear', 'sqrt', or 'log'
+        :param  interpolation: interpolation method for plt.imshow
+        :param  cbar_tick_format: format for the colorbar ticks
+        :param  IncludeColorbar: Boolean flag to include the colorbar
+        :param  color_labels_in_plot: Color for the labels in the plot
+        :param  translation: tuple with the desired specie and translation to
             plot. Example ('D', 1)
 
-        @return ax: the axes where the frame has been drawn
+        :return ax: the axes where the frame has been drawn
         """
         # --- Check inputs:
         if (frame_number is not None) and (t is not None):
@@ -512,8 +512,8 @@ class FIV(BVO):
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param ax_param: axis parameters for the axis beauty routine
-        @param ax: array (with size 2) of axes where to plot
+        :param  ax_param: axis parameters for the axis beauty routine
+        :param  ax: array (with size 2) of axes where to plot
         """
         # --- Plotting options:
         ax_options = {
@@ -595,16 +595,16 @@ class FIV(BVO):
 
         Jose Rueda: jrrueda@us.es
 
-        @param xmin: Minimum value of the x axis to integrate (pitch for FILD)
-        @param xmax: Maximum value of the x axis to integrate (pitch for FILD)
-        @param ymin: Minimum value of the y axis to integrate (rl for FILD)
-        @param ymax: Maximum value of the y axis to integrate (rl for FILD)
-        @param mask: bynary mask denoting the desired cells of the space to
+        :param  xmin: Minimum value of the x axis to integrate (pitch for FILD)
+        :param  xmax: Maximum value of the x axis to integrate (pitch for FILD)
+        :param  ymin: Minimum value of the y axis to integrate (rl for FILD)
+        :param  ymax: Maximum value of the y axis to integrate (rl for FILD)
+        :param  mask: bynary mask denoting the desired cells of the space to
             integate. If present, xmin-xmax, ymin-ymax will be ignored
-        @param specie: Not used in this version of the suite
-        @param translationNumber: Not used in this version of the suite
+        :param  specie: Not used in this version of the suite
+        :param  translationNumber: Not used in this version of the suite
 
-        @return output: dataset containing the integral:
+        :return output: dataset containing the integral:
             - integral_over_y: integral over the y axis
             - integral_over_x: integral over the x axis
             - integral_over_xy: integral over the xy axis
@@ -678,12 +678,12 @@ class FIV(BVO):
 
         Introduced in version 0.9.5
 
-        @param Emin: Minimum energy for the new axis
-        @param Emax: Maximum energy for the new axis
-        @param dE: spacing for the new axis
-        @param useAverageB: flag to use the average value of the field or the
+        :param  Emin: Minimum energy for the new axis
+        :param  Emax: Maximum energy for the new axis
+        :param  dE: spacing for the new axis
+        :param  useAverageB: flag to use the average value of the field or the
             time-dependent field
-        @param specie: assumed specie of the incident ion (H, D, T, He...)
+        :param  specie: assumed specie of the incident ion (H, D, T, He...)
         """
         # See if there is remap data
         if (self.remap_dat is None) or (self.BField is None):
@@ -771,7 +771,7 @@ class FIV(BVO):
 
         Jose Rueda: jrrueda@us.es
 
-        @param traces: traces to plot in the upper plot of the GUI, should
+        :param  traces: traces to plot in the upper plot of the GUI, should
             contain 't1', 'y1', 'l1', etc
         """
         text = 'Press TAB until the time slider is highlighted in red.'\
@@ -795,7 +795,7 @@ class FIV(BVO):
         """
         Export the B angles into a netCDF files
 
-        @param filename: filename
+        :param  filename: filename
 
         Notice, in principle this function should not be called, the method
             self.export_remap() will take care of calling this one
@@ -807,7 +807,7 @@ class FIV(BVO):
         """
         Export the B angles into a netCDF files
 
-        @param filename: filename
+        :param  filename: filename
 
         Notice, in principle this function should not be called, the method
             self.export_remap() will take care of calling this one
@@ -825,10 +825,10 @@ class FIV(BVO):
         metadata will not be exported. But allows to quickly export the video
         to netCDF format to be easily shared among computers
 
-        @param folder: Path to the folder where to save the results. It is
+        :param  folder: Path to the folder where to save the results. It is
             recommended to leave it as None
-        @param clean: delete the netCDF files and leave only the .tar file
-        @param overwrite: ignore old files, if present
+        :param  clean: delete the netCDF files and leave only the .tar file
+        :param  overwrite: ignore old files, if present
         """
         if folder is None:
             folder = os.path.join(pa.Results, str(self.shot), self.diag,

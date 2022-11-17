@@ -16,20 +16,20 @@ def plot_vessel(projection: str = 'pol', units: str = 'm', h: float = None,
 
     Jose Rueda: jrrueda@us.es
 
-    @param projection: 'tor' or 'toroidal', '3D', else, poloidal view
-    @param units: 'm' or 'cm' accepted
-    @param h: z axis coordinate where to plot (in the case of 3d axes), if none
+    :param  projection: 'tor' or 'toroidal', '3D', else, poloidal view
+    :param  units: 'm' or 'cm' accepted
+    :param  h: z axis coordinate where to plot (in the case of 3d axes), if none
     a 2d plot will be used
-    @param color: color to plot the vessel
-    @param linewidth: linewidth to be used
-    @param ax: axes where to plot, if none, a new figure will be created
-    @param shot: shot number, only usefull for the case of the poloidal vessel
+    :param  color: color to plot the vessel
+    :param  linewidth: linewidth to be used
+    :param  ax: axes where to plot, if none, a new figure will be created
+    :param  shot: shot number, only usefull for the case of the poloidal vessel
     of ASDEX Upgrade
-    @param params3d: optional parameters for the plot_3D_revolution method,
+    :param  params3d: optional parameters for the plot_3D_revolution method,
     except for the axes
-    @param tor_rot: rotation parameter to properly set the origin of the phi=0
+    :param  tor_rot: rotation parameter to properly set the origin of the phi=0
     for the toroidal plot
-    @return ax: the axis where the vessel has been drawn
+    :return ax: the axis where the vessel has been drawn
     """
     # --- Section 0: conversion factors
     if units == 'm':

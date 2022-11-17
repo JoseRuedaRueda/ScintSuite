@@ -27,12 +27,12 @@ def read_data(path: str, adfreq: float, t_trig: float):
     The timebase has been modified to account for the first frame being lost.
     So 1/adqfreq has been added. Might be necessary to adjust this by +-1/adqfreq.
     
-    @param path: path to the folder where the pngs are located
-    @return time_base: time base of the frames (s)
-    @return image_header: dictionary containing the info about the image size,
+    :param  path: path to the folder where the pngs are located
+    :return time_base: time base of the frames (s)
+    :return image_header: dictionary containing the info about the image size,
     and shape
-    @return header: Header 'similar' to the case of a cin file
-    @return settings: dictionary similar to the case of the cin file (it only
+    :return header: Header 'similar' to the case of a cin file
+    :return settings: dictionary similar to the case of the cin file (it only
     contains the exposition time)
     """
     # Look for a png to extract the file and a .txt for the time information
@@ -82,7 +82,7 @@ def load_pco(filename: str):
     suite to be compatible with all FILD calibrations of the last 15 years,
     an inversion should be done to load png in the same way as IDL
 
-    @param filename: full path pointing to the png
+    :param  filename: full path pointing to the png
     """
     dummy =  pco.load(filename)
     if len(dummy.shape) > 2:     # We have an rgb png, transform it to gray
@@ -99,14 +99,14 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
     Jose Rueda: jrrueda@us.es
     Lina Velarde: lvelarde@us.es
 
-    @param video_object: Video class with the info of the video. See the video
+    :param  video_object: Video class with the info of the video. See the video
         object of the BasicVideoObject.py file
-    @param frames_number: array with the number of the frames to be loaded,
+    :param  frames_number: array with the number of the frames to be loaded,
     if none, all frames will be loaded
-    @param limitation: if we want to set a limitation of the size we can load
-    @param limit: Limit to the size, in megabytes
+    :param  limitation: if we want to set a limitation of the size we can load
+    :param  limit: Limit to the size, in megabytes
 
-    @return M: array of frames, [px in x, px in y, number of frames]
+    :return M: array of frames, [px in x, px in y, number of frames]
     """
     # Frames would have a name as CCD_qe_frame.b16 example: CCD_qe_0001.b16
     print('Reading PCO files')

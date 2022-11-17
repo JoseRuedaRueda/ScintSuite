@@ -49,54 +49,54 @@ def remapAllLoadedFrames(video,
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param    video: Video object (see LibVideoFiles)
-    @param    ymin: minimum y-axis value to consider (gyroradius by default)
-    @param    ymax: maximum y-axis value to consider (gyroradius by default)
-    @param    dy: bin width in the y direction
-    @param    xmin: Minimum x-axis value to consider (pitch for standard)
-    @param    xmax: Maximum x-axis value to consider (pitch for standard)
-    @param    dx: bin width in the x direction
-    @param    code_options: namelist dictionary with the FILDSIM/SINPA options
+    :param     video: Video object (see LibVideoFiles)
+    :param     ymin: minimum y-axis value to consider (gyroradius by default)
+    :param     ymax: maximum y-axis value to consider (gyroradius by default)
+    :param     dy: bin width in the y direction
+    :param     xmin: Minimum x-axis value to consider (pitch for standard)
+    :param     xmax: Maximum x-axis value to consider (pitch for standard)
+    :param     dx: bin width in the x direction
+    :param     code_options: namelist dictionary with the FILDSIM/SINPA options
               just in case we need to run the code. See FILDSIM/SINPA library
               and their gitlabs for the necessary options. It is recommended to
               leave this like {}, as the code will load the options used to
               generate the library, so the new calculated strike maps will be
               consistent with the old ones. Hence, use this argument just if it
               you really needed.
-    @param    method: method to interpolate the strike maps, default 1: linear
-    @param    verbose: flag to print the elapsed time
-    @param    mask: binary mask defining the region of the scintillator we want
+    :param     method: method to interpolate the strike maps, default 1: linear
+    :param     verbose: flag to print the elapsed time
+    :param     mask: binary mask defining the region of the scintillator we want
               to map. If it is a string pointing to a file, the mask saved in
               that file will be loaded
-    @param    decimals: Number of decimals to look for the strike map
-    @param    smap_folder: Folder where to look for strike maps, if none
+    :param     decimals: Number of decimals to look for the strike map
+    :param     smap_folder: Folder where to look for strike maps, if none
               the code will look in ...Suite/Data/RemapStrikeMaps/FILD/<geomID>
               with the <geomID> stored in the video object
-    @param    map: Strike map to be used, if none, we will look for the right
+    :param     map: Strike map to be used, if none, we will look for the right
               strike map in the smap_folder
-    @param    remap_method: 'MC' or 'centers', the method to be used for the
+    :param     remap_method: 'MC' or 'centers', the method to be used for the
               remapping of the frames. MC recommended for tomography, but it
               needs 3 minutes per new strike map. Centers recommended for a
               general video overview
-    @param    MC_number: number of MC markers for the MC remap
-    @param    allIn: boolean flag to disconnect the interaction with the user.
+    :param     MC_number: number of MC markers for the MC remap
+    :param     allIn: boolean flag to disconnect the interaction with the user.
               When looking for the strike map in the database, we will take
               the closer one available in time, without expecting an answer for
               the user. This option was implemented to remap large number of
               shots 'automatically' without interaction from the user needed.
               Option not used if you give an input strike map
-    @param    use_average: if true, use the averaged frames instead of the
+    :param     use_average: if true, use the averaged frames instead of the
               raw ones
-    @param    variables_to_remap: tupple containing the name of the variables
+    :param     variables_to_remap: tupple containing the name of the variables
               where we want to perform the remap. By default, they are 'pitch'
               and 'gyroradius'. 'energy' can substitute tthe gyroradius.
               Note that the code will not check if this is physically non-sense,
               ie, you can give as an input the pair ('energy', 'gyroradius') and
               a remap will be done, but of course it will be non-sense.
-    @param    A: Ion mass, in uma. Only used if we want to use energy to remap
-    @param    Z: Ion charge, in e units. Only used if we want to use energy
+    :param     A: Ion mass, in uma. Only used if we want to use energy to remap
+    :param     Z: Ion charge, in e units. Only used if we want to use energy
 
-    @return   output: xarray dataset containing the following dataArrays:
+    :return   output: xarray dataset containing the following dataArrays:
         -# 'frames': remaped_frames [xaxis(pitch), yaxis(r), taxis]
         -# 'x': coord, pitch by default
         -# 'y': coord, gyroradius by default

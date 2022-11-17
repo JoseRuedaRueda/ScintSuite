@@ -29,10 +29,10 @@ def read_element(file, code: str = 'SINPA'):
 
     Jose Rueda: jrrueda@us.es
 
-    @param file: file to be read
-    @param FILDSIM: flag to indicate if we have the oldFILDSIM format
+    :param  file: file to be read
+    :param  FILDSIM: flag to indicate if we have the oldFILDSIM format
 
-    @return geom: Dictionary containing:
+    :return geom: Dictionary containing:
         - 'name': Name of the element
         - 'description': Description
         - 'kind': kind of plate
@@ -122,12 +122,12 @@ def plotLinesElement(geom: dict, ax=None, line_params: dict = {},
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param geom: dictionary created by read_element()
-    @param ax: axes where to plot
-    @param line_params: parameters for the plt.plot function
-    @param referenceSystem: if absolute, the absolute coordinates will be
+    :param  geom: dictionary created by read_element()
+    :param  ax: axes where to plot
+    :param  line_params: parameters for the plt.plot function
+    :param  referenceSystem: if absolute, the absolute coordinates will be
         used, if 'scintillator', the scintillator coordinates will be used
-    @param plot2D: flag, if true a 2D plot of the element will be represented,
+    :param  plot2D: flag, if true a 2D plot of the element will be represented,
         in the scintillator system, so the flag 'referenceSystem' is
         is overwritten if this is true
 
@@ -229,16 +229,16 @@ def plotShadedElement(geom: dict, ax=None, surface_params: dict = {},
 
     2D view implemented by Alex LeViness: leviness@pppl.gov
 
-    @param geom: dictionary created by read_element()
-    @param ax: axes where to plot, if none, they will be created
-    @param surface_params: parameters for the plt.plot function
-    @param referenceSystem: if absolute, the absolute coordinates will be
+    :param  geom: dictionary created by read_element()
+    :param  ax: axes where to plot, if none, they will be created
+    :param  surface_params: parameters for the plt.plot function
+    :param  referenceSystem: if absolute, the absolute coordinates will be
         used, if 'scintillator', the scintillator coordinates will be used
-    @param plot2D: flag, if true a 2D plot of the element will be represented,
+    :param  plot2D: flag, if true a 2D plot of the element will be represented,
         in the scintillator system, so the flag 'referenceSystem' is
         is overwritten if this is true [Still not implemented]
-    @param units: units to plot the geometry. Acepted: m, cm, mm
-    @param view: plot XY plane, XZ, YZ, or the scintillator plane. This option
+    :param  units: units to plot the geometry. Acepted: m, cm, mm
+    :param  view: plot XY plane, XZ, YZ, or the scintillator plane. This option
         is only used for the 2D plotting. You can select the scintillator
         option writtin 'Scint', 'Scintillator' or any capitalization of those
 
@@ -346,9 +346,9 @@ class Geometry:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param GeomID: Geom ID
-        @param code: Which code it is
-        @param files: a list with the files to be loaded, if present, GeomID
+        :param  GeomID: Geom ID
+        :param  code: Which code it is
+        :param  files: a list with the files to be loaded, if present, GeomID
             will be ignored.
         Notice: the GeomID would be the name of the folder inside the geometry
         folder of the FILDSIM or SINPA code. If GeomID is an absolute path,
@@ -417,9 +417,9 @@ class Geometry:
 
         Copied from PabloOrbit object (see iHIBSIM library)
 
-        @param idx: element number
+        :param  idx: element number
 
-        @return self.data[idx]: Element dictionary
+        :return self.data[idx]: Element dictionary
         """
         return self.elements[idx]
 
@@ -451,15 +451,15 @@ class Geometry:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param geom: dictionary created by read_element()
-        @param ax: axes where to plot, if none, they will be created
-        @param line_params: parameters for the plt.plot function
-        @param element_to_plot: kind of plates we want to plot:
+        :param  geom: dictionary created by read_element()
+        :param  ax: axes where to plot, if none, they will be created
+        :param  line_params: parameters for the plt.plot function
+        :param  element_to_plot: kind of plates we want to plot:
             -0: Collimator
             -1: Ionizers (INPA carbon foil)
             -2: Scintillator
-        @param plot_pinhole: flag to plot a point on the pinhole or not
-        @param referenceSystem: if absolute, the absolute coordinates will be
+        :param  plot_pinhole: flag to plot a point on the pinhole or not
+        :param  referenceSystem: if absolute, the absolute coordinates will be
             used, if 'scintillator', the scintillator coordinates will be used
 
         Note: The use of this routine is not recomended if you use a fine mesh
@@ -512,16 +512,16 @@ class Geometry:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param geom: dictionary created by read_element()
-        @param ax: axes where to plot, if none, they will be created
-        @param ax_param: parameter for the axis beauty function
-        @param line_params: parameters for the plt.plot function
-        @param element_to_plot: kind of plates we want to plot:
+        :param  geom: dictionary created by read_element()
+        :param  ax: axes where to plot, if none, they will be created
+        :param  ax_param: parameter for the axis beauty function
+        :param  line_params: parameters for the plt.plot function
+        :param  element_to_plot: kind of plates we want to plot:
             -0: Collimator
             -1: Ionizers
             -2: Scintillator
-        @param plot_pinhole: flag to plot a point on the pinhole or not
-        @param referenceSystem: if absolute, the absolute coordinates will be
+        :param  plot_pinhole: flag to plot a point on the pinhole or not
+        :param  referenceSystem: if absolute, the absolute coordinates will be
             used, if 'scintillator', the scintillator coordinates will be used
 
         Note: The use of this routine is not recomended if you use a fine mesh
@@ -577,18 +577,18 @@ class Geometry:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param geom: dictionary created by read_element()
-        @param ax: axes where to plot, if none, they will be created
-        @param surface_params: parameters for the plt.plot function
-        @param element_to_plot: kind of plates we want to plot:
+        :param  geom: dictionary created by read_element()
+        :param  ax: axes where to plot, if none, they will be created
+        :param  surface_params: parameters for the plt.plot function
+        :param  element_to_plot: kind of plates we want to plot:
             -0: Collimator
             -1: Ionizers
             -2: Scintillator
-        @param plot_pinhole: flag to plot a point on the pinhole or not. Only
+        :param  plot_pinhole: flag to plot a point on the pinhole or not. Only
             work for SINPA geometry, as oldFILDSIM has not the extra namelist
-        @param referenceSystem: if absolute, the absolute coordinates will be
+        :param  referenceSystem: if absolute, the absolute coordinates will be
             used, if 'scintillator', the scintillator coordinates will be used
-        @param units: units to plot the geometry. Acepted: m, cm, mm
+        :param  units: units to plot the geometry. Acepted: m, cm, mm
 
         Note: The use of this routine is not recomended if you use a fine mesh
         with several triangles
@@ -681,19 +681,19 @@ class Geometry:
 
         Added by Alex LeViness: leviness@pppl.gov
 
-        @param geom: dictionary created by read_element()
-        @param ax: axes where to plot, if none, they will be created
-        @param surface_params: parameters for the plt.plot function
-        @param element_to_plot: kind of plates we want to plot:
+        :param  geom: dictionary created by read_element()
+        :param  ax: axes where to plot, if none, they will be created
+        :param  surface_params: parameters for the plt.plot function
+        :param  element_to_plot: kind of plates we want to plot:
             -0: Collimator
             -1: Ionizers
             -2: Scintillator
-        @param plot_pinhole: flag to plot a point on the pinhole or not. Only
+        :param  plot_pinhole: flag to plot a point on the pinhole or not. Only
             work for SINPA geometry, as oldFILDSIM has not the extra namelist
-        @param referenceSystem: if absolute, the absolute coordinates will be
+        :param  referenceSystem: if absolute, the absolute coordinates will be
             used, if 'scintillator', the scintillator coordinates will be used
-        @param units: units to plot the geometry. Acepted: m, cm, mm
-        @param view: plot XY plane, XZ, YZ, or the scintillator plane
+        :param  units: units to plot the geometry. Acepted: m, cm, mm
+        :param  view: plot XY plane, XZ, YZ, or the scintillator plane
 
         Note: The use of this routine is not recomended if you use a fine mesh
         with several triangles
@@ -814,15 +814,15 @@ class Geometry:
         """
         Store the geometric elements to stl files. Useful for testing SINPA inputs
         Anton van Vuuren: avanvuuren@us.es
-        @param geom: dictionary created by read_element()
+        :param  geom: dictionary created by read_element()
 
-        @param element_to_save: kind of plates we want to plot:
+        :param  element_to_save: kind of plates we want to plot:
             -0: Collimator
             -1: Ionizers
             -2: Scintillator
 
-        @param units: units to plot the geometry. Acepted: m, cm, mm
-        @param file_name_save: name of stl file to be generated (don't add ".stl")
+        :param  units: units to plot the geometry. Acepted: m, cm, mm
+        :param  file_name_save: name of stl file to be generated (don't add ".stl")
         """
         file_mod = ["Collimator", "Ionizers", "Scintillator"]
         for ele in self.elements:

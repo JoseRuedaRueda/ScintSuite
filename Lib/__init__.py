@@ -176,5 +176,3 @@ try:
 except:
     logger.warning('28: It was not possible to initialise the plotting ' +
                    'settings')
-
-

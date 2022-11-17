@@ -35,9 +35,9 @@ def prepare_run(runID: str, action: str='shot_remap', params: dict={}):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param runID: identifier of the run.
-    @param action: type of the run. To be chosen among IHIBPSIM_ACTION_NAMES.
-    @param parameter: parameter dictionary. The variables not provided will
+    :param  runID: identifier of the run.
+    :param  action: type of the run. To be chosen among IHIBPSIM_ACTION_NAMES.
+    :param  parameter: parameter dictionary. The variables not provided will
     be automatically generated, like the names of the output files.
     """
     # Checks if the folder exists:
@@ -103,9 +103,9 @@ def run_ihibpsim(runID: str, action: str='shot_remap'):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param runID: Id of the corresponding run of iHIBPsim. The results from
+    :param  runID: Id of the corresponding run of iHIBPsim. The results from
     the simulation will be all of them stored in $HOME/ihibpsim/sims/runID.
-    @param action: name of the code to be launched.
+    :param  action: name of the code to be launched.
     """
 
     # Checking if there is any running namelist in the folder.

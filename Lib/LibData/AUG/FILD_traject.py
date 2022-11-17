@@ -38,13 +38,13 @@ def get_dist2sep(shot: int = None, R: float = None, z: float = None,
     """
     Get the distance to the separatrix during a shot.
 
-    @param shot
-    @param R: R array [m]
-    @param z: z array [m]
-    @param t: time array. If None, entire shot
-    @param diag: diagnostic for equilibrium reconstruction
-    @param plot_sep: plot separatrix position
-    @param plot_dist: plot distance to the separatrix
+    :param  shot
+    :param  R: R array [m]
+    :param  z: z array [m]
+    :param  t: time array. If None, entire shot
+    :param  diag: diagnostic for equilibrium reconstruction
+    :param  plot_sep: plot separatrix position
+    :param  plot_dist: plot distance to the separatrix
 
     returns distance to the separatrix in m
     """
@@ -96,13 +96,13 @@ def FILD2sep(shot: int, geomID: int,  insertion: float = None, t: float = None,
     Get the distance of a certain FILD to the separatrix. If no insertion is 
     given, the logbook value is used.
     
-    @param shot
-    @param geomID: collimator ID
+    :param  shot
+    :param  geomID: collimator ID
     @insertion: in manipulator units [mm]
-    @param t: time array. If None, entire shot
-    @param diag: diagnostic for equilibrium reconstruction
-    @param plot_sep: plot separatrix position
-    @param plot_dist: plot distance to the separatrix
+    :param  t: time array. If None, entire shot
+    :param  diag: diagnostic for equilibrium reconstruction
+    :param  plot_sep: plot separatrix position
+    :param  plot_dist: plot distance to the separatrix
 
     returns distance to the separatrix in m
     """
@@ -169,7 +169,7 @@ class FILD4_traject:
         """
         Initialise the class.
 
-        @param shot
+        :param  shot
         """
         self.shot = shot
         self.dat_ps = {}
@@ -195,11 +195,11 @@ class FILD4_traject:
         This file has no headers. It was designed like this when FILD4 was
         first installed. They will be added in the future.
 
-        @param path_ps: path to the output of the power supply. If empty, the
+        :param  path_ps: path to the output of the power supply. If empty, the
         shot number will be used
-        @param smooth: smooth output
-        @param win_length: window of the Savgol filter
-        @param polyorder: polyorder of the Savgol filter
+        :param  smooth: smooth output
+        :param  win_length: window of the Savgol filter
+        :param  polyorder: polyorder of the Savgol filter
         """
         if path_ps == '':
             path_ps = os.path.join(paths.FILD4_trajectories,
@@ -240,17 +240,17 @@ class FILD4_traject:
         """
         Reconstruct FILD4 trajectory from the power supply output
 
-        @param B: toroidal magnetic field at the coil position. If None, it is
+        :param  B: toroidal magnetic field at the coil position. If None, it is
             calculated in the runtime
-        @param get_R: how is the resistance of the system calculated
+        :param  get_R: how is the resistance of the system calculated
             - 'auto': estimates in the code. Use R_fit_order to chose the
                 order of the fit (0 or 1)
             - 'lineal': manually input the R time dependance
             - 'manual': just give a manual value
-        @param R_fit_order: order of the fit (1 or 0). Only for auto
-        @param R_coef: R = R_coef[0]*t+R_coef[1]. Only for lineal
-        @param R: R single value. Only for manual
-        @param diag: diagnostic for the equilibrium reconstruction
+        :param  R_fit_order: order of the fit (1 or 0). Only for auto
+        :param  R_coef: R = R_coef[0]*t+R_coef[1]. Only for lineal
+        :param  R: R single value. Only for manual
+        :param  diag: diagnostic for the equilibrium reconstruction
         """
         if not bool(self.dat_ps):
             raise NameError('Power supply not loaded. Run load_power_supply')
@@ -339,10 +339,10 @@ class FILD4_traject:
         """
         Wrapper for the FILD4 case for the dist2sep routine.
 
-        @param t: time array. If None, entire shot
-        @param diag: diagnostic for equilibrium reconstruction
-        @param plot_sep: plot separatrix position
-        @param plot_dist: plot distance to the separatrix
+        :param  t: time array. If None, entire shot
+        :param  diag: diagnostic for equilibrium reconstruction
+        :param  plot_sep: plot separatrix position
+        :param  plot_dist: plot distance to the separatrix
         """
         if not bool(self.traject):
             raise NameError('Trajectory not loaded. Run reconstruct_traject')
@@ -379,8 +379,8 @@ class FILD4_traject:
         """
         Load an already calculated trajectory.
 
-        @param path_traject: if unused. Check in the default folder
-        @param version: trajectory version to be loaded. -1 means last one
+        :param  path_traject: if unused. Check in the default folder
+        :param  version: trajectory version to be loaded. -1 means last one
         """
         if path_traject == '':
             folder = os.path.join(paths.FILD4_trajectories,
@@ -413,9 +413,9 @@ class FILD4_traject:
         """
         Save the loaded trajectory.
 
-        @param path_save: If empty, save it in the default path. Takes into
+        :param  path_save: If empty, save it in the default path. Takes into
             account previous versions.
-        @param comment
+        :param  comment
         """
         if not bool(self.traject):
             raise NameError('Trajectorynot loaded. Run reconstruct_traject')
@@ -449,9 +449,9 @@ class FILD4_traject:
     def plot_figs(self, traject: bool = True, power_supply: bool = True,
                   R_fit: bool = True):
         """
-        @param traject
-        @param power supply
-        @param R_fit
+        :param  traject
+        :param  power supply
+        :param  R_fit
         """
 
         nplots = 0

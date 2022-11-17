@@ -19,7 +19,7 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
                        levels: float = None, label_surf: bool = True,
                        coord_type: str = 'rho_pol',
                        axis_ratio: str = 'equal',
-                       units: str = 'm', color=None):
+                       units: str = 'm', color=None, view: str = 'pol'):
     """
     Plot the flux surfaces of a given shot in AUG for a given time point.
 
@@ -28,21 +28,23 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
     Note: @todo, as this has diag and exp as input, maybe we need to rewrite it
     once we move to MAST-U or SMART, I do not know their format... (jrueda)
 
-    @param shotnumber: shot number to get the equilibrium.
-    @param time: time point to retrieve the equilibrium.
-    @param ax: axis to plot the flux surfaces.
-    @param linewidth: line width for flux surfaces.
-    @param diag: equilibrium diagnostic for the equilibrium. EQH by default.
-    @param exp: experiment in AUG where the EQ is stored. AUGD by default
-    @param ed: Edition of the equilibrium. The latest is taken by default.
-    @param levels: rho values to plot. If none, from 0 to 1
-    @param label_surf: states whether the flux surfaces should be labeled by
+    :param  shotnumber: shot number to get the equilibrium.
+    :param  time: time point to retrieve the equilibrium.
+    :param  ax: axis to plot the flux surfaces.
+    :param  linewidth: line width for flux surfaces.
+    :param  diag: equilibrium diagnostic for the equilibrium. EQH by default.
+    :param  exp: experiment in AUG where the EQ is stored. AUGD by default
+    :param  ed: Edition of the equilibrium. The latest is taken by default.
+    :param  levels: rho values to plot. If none, from 0 to 1
+    :param  label_surf: states whether the flux surfaces should be labeled by
     their value.
-    @param coord_type: type of coordinate to be used for the map. rho_pol by
+    :param  coord_type: type of coordinate to be used for the map. rho_pol by
     default. Also available 'rho_tor'
-    @param axis_ratio: axis ratio, 'auto' or 'equal'
-    @param color: if present,all the lines will be plotted in this color
-    @param units: units for the R, Z axis, only cm and m supported
+    :param  axis_ratio: axis ratio, 'auto' or 'equal'
+    :param  color: if present,all the lines will be plotted in this color
+    :param  units: units for the R, Z axis, only cm and m supported
+    
+    Note: labeling does not work with toroidal view, neither colors, WIP @ TODO
     """
     if units == 'm':
         factor = 1.
@@ -76,11 +78,15 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
 
     rho = np.reshape(rho, (256, 128))
     # --- Plotting the flux surfaces.
-
-    CS = ax.contour(factor * R, factor * z, rho, levels, linewidths=linewidth,
-                    colors=color)
-    if label_surf:
-        ax.clabel(CS, inline=1, fontsize=10)
+    if view.lower() == 'pol' or view.lower() == 'poloidal':
+        CS = ax.contour(factor * R, factor * z, rho, levels,
+                        linewidths=linewidth,
+                        colors=color)
+        if label_surf:
+            ax.clabel(CS, inline=1, fontsize=10)
+    else:
+        raise Exception('Not yet implemented')
+            
     ax.set_aspect(axis_ratio)
     if heredado:
         ax.set_xlim(xlim)
@@ -99,20 +105,20 @@ def plot2D_ECE(ecedata: dict, rType: str = 'rho_pol', downsample: int = 2,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param ecedata: data as obtained by routine @see{get_ECE}
-    @param rType: X axis to use. Choice between rho_pol, rho_tor, Rmaj
+    :param  ecedata: data as obtained by routine @see{get_ECE}
+    :param  rType: X axis to use. Choice between rho_pol, rho_tor, Rmaj
     and channels.
-    @param downsample: downsampling ratio. If the signal is large, the
+    :param  downsample: downsampling ratio. If the signal is large, the
     plotting routines may saturate your computer.
-    @param ax: axis to plot the data.
-    @param fig: figure handler where the figure is.
-    @param cmap: colormap to use. If None is provide, plasma colormap is used.
-    @param which: type of plot. Norm will plot T_e/<T_e> and total, the whole
+    :param  ax: axis to plot the data.
+    :param  fig: figure handler where the figure is.
+    :param  cmap: colormap to use. If None is provide, plasma colormap is used.
+    :param  which: type of plot. Norm will plot T_e/<T_e> and total, the whole
     ECE signal.
-    @param cm_norm: colormap normalization. Optional to be chosen between
+    :param  cm_norm: colormap normalization. Optional to be chosen between
     linear, sqrt and log.
 
-    @return ax: The used axis.
+    :return ax: The used axis.
     """
     if ax is None:
         fig, ax = plt.subplots(1)

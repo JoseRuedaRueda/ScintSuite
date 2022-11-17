@@ -27,8 +27,8 @@ def plotSettings(plot_mode='software', usetex=False):
 
     Anton J. van Vuuren ft. Jose Rueda
 
-    @param plot_mode: set of options to load: software, article or presentation
-    @param usetex: flag to use tex formating or not
+    :param  plot_mode: set of options to load: software, article or presentation
+    :param  usetex: flag to use tex formating or not
     """
     # Load default plotting options
     filename = os.path.join(paths.ScintSuite, 'Data', 'MyData',
@@ -113,9 +113,9 @@ def axis_beauty(ax, param_dict: dict):
 
     Jose Rueda: jrrueda@us.es
 
-    @param ax: Axes. The axes to be modify
-    @param param_dict: Dictionary with all the fields
-    @return ax: Modified axis
+    :param  ax: Axes. The axes to be modify
+    :param  param_dict: Dictionary with all the fields
+    :return ax: Modified axis
     """
     # Define fonts
     font = {}

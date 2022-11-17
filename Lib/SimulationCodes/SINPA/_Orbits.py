@@ -22,9 +22,9 @@ class OrbitClass:
         """
         Initialize the orbit object
 
-        @param runID: runID of the simulation
-        @param verbose: flag to plot information of the reading
-        @param file: full file to read (if provided, runID will be ignored)
+        :param  runID: runID of the simulation
+        :param  verbose: flag to plot information of the reading
+        :param  file: full file to read (if provided, runID will be ignored)
         """
         if file is None:
             file = os.path.join(paths.SINPA, 'runs', runID, 'results',
@@ -38,8 +38,8 @@ class OrbitClass:
 
         Jose Rueda: jrrueda@us.es
 
-        @param filename: full name of the file to be read
-        @param verbose: flag to print information
+        :param  filename: full name of the file to be read
+        :param  verbose: flag to print information
         """
         fid = open(filename, 'rb')
         fid.seek(-12, sspar.SEEK_END)
@@ -109,9 +109,9 @@ class OrbitClass:
 
         Copied from PabloOrbit object (see iHIBSIM library)
 
-        @param idx: element number
+        :param  idx: element number
 
-        @return self.data[idx]: Element dictionary
+        :return self.data[idx]: Element dictionary
         """
         return self.data[idx]
 
@@ -121,16 +121,16 @@ class OrbitClass:
 
         Jose Rueda: jrrueda@us.es
 
-        @param per: ratio of markers to be plotted (1=all of them)
-        @param ax: axes where to plot (if none, they are created)
-        @param line_params: Parameters for plt.plot()
-        @param imax: maximum number of steps to plot
-        @param kindOfCollision: type of orbit to plot: (tuple or list)
+        :param  per: ratio of markers to be plotted (1=all of them)
+        :param  ax: axes where to plot (if none, they are created)
+        :param  line_params: Parameters for plt.plot()
+        :param  imax: maximum number of steps to plot
+        :param  kindOfCollision: type of orbit to plot: (tuple or list)
             -0: Collimator colliding
             -1: Foil colliding but not scintillator collision
             -2: Scintillator colliding
             -9: Not colliding
-        @param factor: factor to multiply the coordinates by
+        :param  factor: factor to multiply the coordinates by
         @ToDo: Include the rl, xi selector
         """
         # --- Default plotting options
@@ -170,9 +170,9 @@ class OrbitClass:
         """
         Plot the energy of the orbit given by iorbit
 
-        @param iorbit: number (or list) of orbits to plots
-        @param ax: axis where to plot, if none, new will be created
-        @param line_params: dicttionary with the line parameters
+        :param  iorbit: number (or list) of orbits to plots
+        :param  ax: axis where to plot, if none, new will be created
+        :param  line_params: dicttionary with the line parameters
         """
         # --- Initialise plotting options
         ax_options = {
@@ -206,12 +206,12 @@ class OrbitClass:
 
         Anton van Vuuren: avanvuuren@us.es
 
-        @param kindOfCollision: type of orbit to plot: (tuple or list)
+        :param  kindOfCollision: type of orbit to plot: (tuple or list)
             -0: Collimator colliding
             -1: Foil colliding but not scintillator collision
             -2: Scintillator colliding
             -9: Not colliding
-        @param units: Units in which to savethe orbit positions.
+        :param  units: Units in which to savethe orbit positions.
         """
         # --- Check the scale
         if units not in ['m', 'cm', 'mm']:

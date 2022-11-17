@@ -51,44 +51,44 @@ def remapAllLoadedFrames(video,
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param    video: Video object (see LibVideoFiles)
-    @param    rmin: minimum gyroradius to consider [cm]
-    @param    rmax: maximum gyroradius to consider [cm]
-    @param    dr: bin width in the radial direction
-    @param    ximin: Minimum pitch to consider [º]
-    @param    ximax: Maximum pitch to consider [º]
-    @param    dxi: bin width in pitch [º]
-    @param    code_options: namelist dictionary with the SINPA options
+    :param     video: Video object (see LibVideoFiles)
+    :param     rmin: minimum gyroradius to consider [cm]
+    :param     rmax: maximum gyroradius to consider [cm]
+    :param     dr: bin width in the radial direction
+    :param     ximin: Minimum pitch to consider [º]
+    :param     ximax: Maximum pitch to consider [º]
+    :param     dxi: bin width in pitch [º]
+    :param     code_options: namelist dictionary with the SINPA options
               just in case we need to run the code. See SINPA library
               and their gitlabs for the necesary options. It is recomended to
               leave this like {}, as the code will load the options used to
               generate the library, so the new calculated strike maps will be
               consistent with the old ones
-    @param    verbose: Print the elapsed time
-    @param    method: method to interpolate the strike maps, default 1: linear
-    @param    decimals: Number of decimals to look for the strike map
-    @param    smap_folder: Folder where to look for strike maps, if none
+    :param     verbose: Print the elapsed time
+    :param     method: method to interpolate the strike maps, default 1: linear
+    :param     decimals: Number of decimals to look for the strike map
+    :param     smap_folder: Folder where to look for strike maps, if none
               the code will look in ...Suite/Data/RemapStrikeMaps/FILD/<geomID>
               with the <geomID> stored in the video object
-    @param    map: Strike map to be used, if none, we will look in the folder
+    :param     map: Strike map to be used, if none, we will look in the folder
               for the right strike map
-    @param    mask: binary mask defining the region of the scintillator we want
+    :param     mask: binary mask defining the region of the scintillator we want
               to map. If it is a string pointing to a file, the mask saved in
               that file will be loaded
-    @param    remap_method: 'MC' or 'centers', the method to be used for the
+    :param     remap_method: 'MC' or 'centers', the method to be used for the
               remapping of the frames (MC recomended for tomography, but it
               needs 3 minutes per new strike map...)
-    @param    number of MC markers for the MC remap
-    @param    allIn: boolean flag to disconect the interaction with the user,
+    :param     number of MC markers for the MC remap
+    :param     allIn: boolean flag to disconect the interaction with the user,
               where looking for the strike map in the database, we will take
               the closer one available in time, without expecting an answer for
               the user. This option was implemented to remap large number of
               shots 'automatically' without interaction from the user needed.
               Option not used if you give an input strike map
-    @param    use_average: if true, use the averaged frames instead of the
+    :param     use_average: if true, use the averaged frames instead of the
               raw ones
 
-    @return   output: dictionary containing all the outputs:
+    :return   output: dictionary containing all the outputs:
         -# 'frames': remaped_frames [xaxis(R), yaxis(rl), taxis]
         -# 'xaxis': pitch,
         -# 'yaxis': gyr,
@@ -107,7 +107,7 @@ def remapAllLoadedFrames(video,
         -# 'tframes': time of the frames
         -# 'existing_smaps': array indicating which smaps where found in the
         database and which don't
-    @return   opt: dictionary containing all the input parameters
+    :return   opt: dictionary containing all the input parameters
     """
     print('.-. . -- .- .--. .--. .. -. --.')
     # --------------------------------------------------------------------------

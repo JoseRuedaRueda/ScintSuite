@@ -1,6 +1,7 @@
 """Calibration and database objects."""
 import logging
 import numpy as np
+import xarray as xr
 import pandas as pd
 import Lib.errors as errors
 from scipy.io import netcdf                # To export remap data
@@ -25,11 +26,11 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
 
     Jose Rueda: jrrueda@us.es
 
-    @param filename: Complete path to the file with the calibrations
-    @param n_header: Number of header lines (5 in the oficial format)
-    @param verbose: if true, print some information in the command line
+    :param  filename: Complete path to the file with the calibrations
+    :param  n_header: Number of header lines (5 in the oficial format)
+    :param  verbose: if true, print some information in the command line
 
-    @return database: Pandas dataframe with the database
+    :return database: Pandas dataframe with the database
     """
     data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
             'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
@@ -72,6 +73,45 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
     database = pd.DataFrame(data)
     return database
 
+def readCcalibrationFile(filename):
+    """
+    Read the time/position dependent calibration files
+    :param  filename: file to be read
+    :return: 
+    """
+    pass
+
+def readTimeDependentCalibration(filename):
+    fields = {
+        1: ['time', 'xshift', 'yshift', 'xscale', 'yscale',
+            'deg', 'c1', 'xcenter', 'ycenter']
+    }
+    with open(filename) as f:
+        logger.info('Reading calibration file: %s'%filename)
+        # Read the header lines
+        dummy = f.readline()  # Intro line
+        dummy = f.readline()  # Date line
+        kind, ver = f.readline().split('#')[0].split()
+        ver=int(ver)
+        camera = f.readline().split('#')[0].strip()
+        geomID = f.readline().split('#')[0].strip()
+        dummy = f.readline()  # info line
+        data = {}
+        for k in fields[ver]:
+            data[k] = []
+        # Database itself
+        for line in f:
+            dummy = line.split()
+            for j, k in enumerate(fields[ver]):
+                data[k].append(float(dummy[j]))
+    # Transform to xarray
+    calibration = xr.Dataset()
+    for k in data.keys():
+        calibration[k] = xr.DataArray(data[k], dims='t',
+                                     coords={'t':data['time']})
+    calibration.attrs['Camera'] = camera
+    calibration.attrs['geomID'] = geomID
+    return calibration
 
 # ------------------------------------------------------------------------------
 # --- Calibration database object
@@ -87,9 +127,9 @@ class CalibrationDatabase:
 
         @author Jose Rueda Rueda: jrrueda@us.es
 
-        @param filename: Complete path to the file with the calibrations
-        @param n_header: Number of header lines
-        @return database: Dictionary containing the database information
+        :param  filename: Complete path to the file with the calibrations
+        :param  n_header: Number of header lines
+        :return database: Dictionary containing the database information
         """
         ## Name of file with the data
         self.file = filename
@@ -144,7 +184,7 @@ class CalibrationDatabase:
         'calibration_new.txt'. This is just to be save and avoid overwriting
         the original database.
 
-        @param file: name of the file where to write the results
+        :param  file: name of the file where to write the results
         """
         if file is None:
             file = self.file[:-4] + '_new.txt'
@@ -179,12 +219,12 @@ class CalibrationDatabase:
         """
         Give the calibration parameter of a precise database entry.
 
-        @param shot: Shot number for which we want the calibration
-        @param camera: Camera used
-        @param cal_type: Type of calibration we want
-        @param diag_ID: ID of the diagnostic we want
+        :param  shot: Shot number for which we want the calibration
+        :param  camera: Camera used
+        :param  cal_type: Type of calibration we want
+        :param  diag_ID: ID of the diagnostic we want
 
-        @return cal: CalParams() object
+        :return cal: CalParams() object
         """
         flags = np.zeros(len(self.data['CalID']))
         for i in range(len(self.data['CalID'])):
