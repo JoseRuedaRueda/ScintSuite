@@ -17,6 +17,10 @@ import Lib._Mapping._Calibration as libcal
 from Lib._Mapping._Scintillator import Scintillator
 import Lib.LibData.AUG.DiagParam as params
 import Lib._TimeTrace as sstt
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import Lib._Plotting as ssplt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import xarray as xr
 pa = p.Path(machine)
 del p
