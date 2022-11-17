@@ -6,11 +6,12 @@
 - videos will be subtracted by zero-th frame and median filtered with size 5
 ## BasicVideoObject
 - subtract_noise now uses DataArrays to allow arbitrary order of dimensions
+- plot_frame now accepts [t1, t2] and plots the average of the frame strictly within the time range.
 ## _MP4files
 - read mp4 video files with ffmpeg
 ## Calibration
 - changed iHIBP camera calibration database
-- calibration uniquely given by shotnumber and diag_ID = 1 for iHIBP.
+- calibration uniquely given by shotnumber, method and diag_ID = 1 for iHIBP.
 ## DiagParam
 - changed origin point of ihibp beam
 ## Plates
