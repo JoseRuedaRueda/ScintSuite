@@ -130,7 +130,7 @@ class BVO:
                 self.shot = aux.guess_shot(file, ssdat.shot_number_length)
             # Fill the object depending if we have a .cin file or not
             if os.path.isfile(file):
-                print('Looking for the file: ', file)
+                logger.info('Looking for the file: ', file)
                 ## Path to the file and filename
                 self.path, self.file_name = os.path.split(file)
                 ## Name of the file (full path)
@@ -153,7 +153,6 @@ class BVO:
                 elif file.endswith('.png') or file.endswith('.tif'):
                     file, name = os.path.split(file)
                 elif file.endswith('.mp4'):
-                    print('reading mp4 video file...')
                     dummy = mp4.read_file(self, file)
 
                     self.timebase = dummy['tframes']

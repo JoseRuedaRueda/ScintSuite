@@ -17,7 +17,8 @@ from Lib._Mapping._Common import transform_to_pixel
 import os
 import Lib.errors as errors
 import random
-from Lib.SimulationCodes.iHIBPsim.strikes import strikeLine
+from Lib._Optics import defocus
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 pa = Path()
 amu2kg = physical_constants['atomic mass constant'][0]
@@ -308,6 +309,7 @@ class strikes:
             raise errors.NotValidInput('The variable %s is not available'%weight_name)
 
         data = self.data[name].values
+
         weights = self.data[weight_name].values
         if ranges is None:
             ranges = [data.min(), data.max()]
@@ -351,6 +353,7 @@ class strikes:
         if weight_name not in self.data.keys():
             raise errors.NotValidInput('The variable %s is not available'%weight_name)
 
+
         datax = self.data[name_x].values
         datay = self.data[name_y].values
         weights = self.data[weight_name].values
@@ -393,16 +396,16 @@ class strikes:
 
         if len(args) == 1:
             return self.hist1d(args[0], bins=bins, ranges=ranges,
-                               get_centers=get_centers)
+                               get_centers=get_centers, weight_name=weight_name)
         elif len(args) == 2:
             return self.hist2d(args[0],args[1], bins=bins, ranges=ranges,
-                               get_centers=get_centers)
+                               get_centers=get_centers, weight_name=weight_name)
         else:
             raise NotImplementedError('Histograms for more than 2D are not' + \
                                       ' yet supported')
 
     def plot(self, *args, bins: int=51, ranges=None, ax=None,
-             weight_name:str='weights', **plt_params):
+             weight_name: str='weights', cb=None, **plt_params):
         """
         Routine to plot 1D/2D data from histograms from the strike data.
 
@@ -412,13 +415,17 @@ class strikes:
         :param bins: number of bins to divide the data.
         :param ranges: ranges for the data. If None, the (min, max) values along
         each direction are taken.
-        :param get_centers: whether to return the edges or the centers of the
-        bins histograms. Returns the centers by default (True).
+        :param ax: axis to plot the figure. If None, new ones are created.
+        :param weight_name: how to weight the data.
+        :param cb: callback to process the data before plotting. If None,
+        histogram is used as it is generated.
+        :param plt_params: dictionary to plot, it will passed down to the
+        matplotlib plot function.
         """
 
         get_centers = True
         if len(args) == 2:
-            get_centers = False
+            get_centers = True
 
         data = self.hist(*args, bins=bins, ranges=ranges,
                          get_centers=get_centers, weight_name=weight_name)
@@ -440,6 +447,9 @@ class strikes:
             x = data[0]
             y = data[1]
 
+            if cb is not None:
+                y = cb(y)
+
             if 'label' not in plt_params:
                 im = ax.plot(x, y, label=histlabel, **plt_params)
             else:
@@ -454,18 +464,27 @@ class strikes:
             z = data[2]
             extent = [x.min(), x.max(), y.min(), y.max()]
 
+            if cb is not None:
+                z = cb(z)
+
+            if ax_was_none:
+                divider = make_axes_locatable(ax)
+                cax = divider.append_axes("right", size="5%", pad=0.05)
             if 'label' not in plt_params:
                 im = ax.imshow(z.T, extent=extent, origin='lower',
                                label=histlabel, **plt_params)
             else:
-                im= ax.plot(x, y, extent=extent, origin='lower', **plt_params)
+                im= ax.imshow(x, y, extent=extent, origin='lower', **plt_params)
+
+            frame = xr.DataArray(z, dims =('x', 'y'),
+                                 coords = [x, y])
 
             ax.set_xlabel(labels[0])
             ax.set_ylabel(labels[1])
             if ax_was_none:
-                cbar = fig.colorbar(mappable=im, ax=ax)
+                cbar = fig.colorbar(mappable=im, cax=cax)
                 cbar.set_label(histlabel)
-        return ax, im
+        return ax, im, frame
 
     def plot3d(self, weighted: bool = False, npoints:int = 2000,
                ax=None, **plt_params):
@@ -577,8 +596,8 @@ class strikes:
 
         bins = np.array([np.ceil(dx_tot/dx), np.ceil(dy_tot/dy)], dtype=int)
 
-        ax, im = self.plot('x1', 'x2', bins=bins, ranges=ranges, ax=ax,
-                            weight_name=weights_name, **cont_opts)
+        ax, im, frames = self.plot('x1', 'x2', bins=bins, ranges=ranges, ax=ax,
+                                   weight_name=weights_name, **cont_opts)
 
 
         # Plotting on top the scintillator.
@@ -587,10 +606,11 @@ class strikes:
         ax.set_xlim(xlims)
         ax.set_ylim(ylims)
 
-        return ax, im
+        return ax, im, frames
 
-    def plot_frame(self, pix_x: int, pix_y: int, ax=None, cmap=cm.plasma,
-                   kindplot: str = 'intensity', norm=None, ax_options: dict = {},
+    def plot_frame(self, pix_x: int, pix_y: int, sigma_defocus: float=None,
+                   ax=None, cmap=cm.plasma, kindplot: str = 'intensity',
+                   norm=None, ax_options: dict = {},
                    min_cb: float = None, max_cb: float = None):
 
         """
@@ -601,12 +621,14 @@ class strikes:
 
         :param pix_x: number of pixels along the X-direction.
         :param pix_y: number of pixels along the Y-direction.
+        :param sigma_defocus: defocus the final image via Gaussian filter
+        with this number. If None, the defocusing of the optics is not applied.
         :param ax: Axis to plot the scintillator image.
         :param cmap: Colormap to plot. By default, set to plasma.
         :param kindplot: type of plot to make: flux, intensity, density.
         :param norm: kind of norm for the colorbar. Linear if None is provided
         :param ax_options: dictionary with extract axis options.
-        @return ax: axis with the scintillator image.
+        :return ax: axis with the scintillator image.
         """
 
         # Checking whether a calibration was provided.
@@ -639,12 +661,19 @@ class strikes:
         if ('xcam' not in self.data) or ('ycam' not in self.data):
             self.set_calibration(self.calib)
 
+        # Checking the defocusing.
+        if sigma_defocus is None:
+            defocus_fun = None
+        else:
+            defocus_fun = lambda x: defocus(x, coef_sigma=sigma_defocus)
+
         # With this all the calibration is set self-consistently. We compute
         # now the histogram using the pixel coordinates.
         ranges = [[0, pix_x], [0, pix_y]]
-        bins   = [pix_x + 1, pix_y + 1]
-        ax, im =  self.plot('xcam', 'ycam', bins=bins, ranges=ranges,
-                            weight_name=weights_name, ax=ax, **cont_opts)
+        bins   = [pix_x, pix_y]
+        ax, im, frame =  self.plot('xcam', 'ycam', bins=bins, ranges=ranges,
+                                   weight_name=weights_name, ax=ax,
+                                   cb=defocus_fun, **cont_opts)
 
 
         # Plotting on top the scintillator.
@@ -654,4 +683,4 @@ class strikes:
         ax.set_xlim([0, pix_x])
         ax.set_ylim([0, pix_y])
 
-        return ax, im
+        return ax, im, frame

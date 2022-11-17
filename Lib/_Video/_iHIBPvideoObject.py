@@ -14,10 +14,14 @@ import Lib.errors as errors
 import Lib._Paths as p
 from Lib._Machine import machine
 import Lib._Mapping._Calibration as libcal
-from Lib._Mapping._Scintillator import Scintillator
+from Lib._Scintillator import Scintillator
 import Lib.LibData.AUG.DiagParam as params
 import Lib._TimeTrace as sstt
 import xarray as xr
+import logging
+
+logger = logging.getLogger('ScintSuite.iHIBPvideo')
+
 pa = p.Path(machine)
 del p
 
@@ -203,10 +207,9 @@ class iHIBPvideo(BVO):
             xr.DataArray(np.arange(len(self.exp_dat.t)), dims=('t'))
         # Let's check whether the user provided the calibration parameters.
         if calib is None:
-            print('Retrieving the calibration parameters for iHIBP')
+            logger.info('Retrieving the calibration parameters for iHIBP')
             caldb = libcal.CalibrationDatabase(pa.ihibp_calibration_db)
-            self.calib = caldb.get_calibration(shot=shot,
-                                               diag_ID=1)
+            self.calib = caldb.get_calibration(shot=shot, diag_ID=1)
         else:
             self.calib = calib
         # JRR note: This was created in parallel by Pablo and I will not change
@@ -218,7 +221,7 @@ class iHIBPvideo(BVO):
 
         # --- Checking if the scintillator plate is provided:
         if scobj is None:
-            print('Getting standard scintillator plate for iHIBP')
+            logger.info('Getting standard scintillator plate for iHIBP')
             fn_sc = pa.ihibp_scint_plate
             self.scintillator = Scintillator(file=fn_sc, format='FILDSIM')
         else:
@@ -253,7 +256,7 @@ class iHIBPvideo(BVO):
 
             t0_idx = np.where(self.dsignal_dt > signal_threshold)[0][0]
             self.t0 = time[t0_idx]
-            print('Using t0 = %.3f as the reference frame'%self.t0)
+            logger.info('Using t0 = %.3f as the reference frame'%self.t0)
             self.frame0 = \
                 self.exp_dat['frames'].values[..., self.getFrameIndex(t=self.t0)]
 
