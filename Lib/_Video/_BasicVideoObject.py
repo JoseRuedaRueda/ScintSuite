@@ -683,7 +683,7 @@ class BVO:
         ax = ssplt.axis_beauty(ax, ax_options)
         return ax
 
-    def plot_frame(self, frame_number=None, ax=None, ccmap=None,
+    def plot_frame(self, frame_number: int=None, ax=None, ccmap=None,
                    t: float = None,
                    verbose: bool = True,
                    vmin: int = 0, vmax: int = None,
@@ -696,14 +696,17 @@ class BVO:
         Plot a frame from the loaded frames
 
         Jose Rueda Rueda: jrrueda@us.es
+        Hannah Lindl: hannah.lindl@ipp.mpg.de
 
         Notice, you can plot a given frame giving its frame number or giving
         its time
 
-        @param frame_number: Number of the frame to plot (option 1)
+        @param frame_number: Number of the frame to plot (option 1).
+               If array: will average over the given frame frange
         @param ax: Axes where to plot, is none, just a new axes will be created
         @param ccmap: colormap to be used, if none, Gamma_II from IDL
         @param t: time point to select the frame (option 2)
+                  If array: will average over the given frame frange
         @param verbose: If true, info of the theta and phi used will be printed
         @param vmin: Minimum value for the color scale to plot
         @param vmax: Maximum value for the color scale to plot
@@ -732,15 +735,52 @@ class BVO:
         # --- Load the frames
         # If we use the frame number explicitly
         if frame_number is not None:
-            frame_index = self.getFrameIndex(frame_number=frame_number,
-                                             flagAverage=flagAverage)
-            tf = self.getTime(frame_index, flagAverage)
-            dummy = self.getFrame(tf, flagAverage)
+            flag_time_range = False
+            try:
+                _ = len(frame_number)
+            except TypeError:
+                frame_index = self.getFrameIndex(frame_number=frame_number,
+                                                 flagAverage=flagAverage)
+                tf = self.getTime(frame_index, flagAverage)
+                dummy = self.getFrame(tf, flagAverage)
+            else:
+                if len(frame_number) == 1:
+                    frame_number = frame_number[0]
+                    frame_index = self.getFrameIndex(frame_number=frame_number,
+                                                     flagAverage=flagAverage)
+                    tf = self.getTime(frame_index, flagAverage)
+                    dummy = self.getFrame(tf, flagAverage)
+                elif len(frame_number) == 2:
+                    flag_time_range = True
+                    frames = self.exp_dat['frames'].isel(t = slice(frame_number[0], frame_number[1]))
+                    dummy = frames.mean(dim = 't')
+                    t = np.zeros(2)
+                    t[0] = self.getTime(self.getFrameIndex(frame_number = frame_number[0]))
+                    t[1] = self.getTime(self.getFrameIndex(frame_number = frame_number[1]))
+                else:
+                    raise ValueError('wrong shape of framenumber. Should not be larger than two')
         # If we give the time:
         if t is not None:
-            frame_index = self.getFrameIndex(t, flagAverage)
-            tf = self.getTime(frame_index, flagAverage)
-            dummy = self.getFrame(t, flagAverage)
+            flag_time_range = False
+            try:
+                _ = len(t)
+            except TypeError:
+                frame_index = self.getFrameIndex(t, flagAverage)
+                tf = self.getTime(frame_index, flagAverage)
+                dummy = self.getFrame(t, flagAverage)
+            else:
+                if len(t) ==1:
+                    frame_index = self.getFrameIndex(t, flagAverage)
+                    tf = self.getTime(frame_index, flagAverage)
+                    dummy = self.getFrame(t, flagAverage)
+                elif len(t)==2:
+                    print('plotting averaged frames')
+                    flag_time_range =True
+                    frames = self.exp_dat['frames'].sel(t = slice(t[0], t[1]))
+                    dummy = frames.mean(dim = 't')
+                else:
+                    raise ValueError('wrong shape of time. Should not be larger than two')
+
         if normalise is not None:
             if normalise == 1:
                 dummy = dummy.astype('float64') / dummy.max()
@@ -786,6 +826,11 @@ class BVO:
         if ylim is not None:
             ax.set_ylim(ylim)
 
+        if flag_time_range == False:
+            tf = str(round(tf, 3))
+        else:
+            tf = '(%.2f, %.2f)' %(t[0],t[1])
+
         if IncludeColorbar:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -794,7 +839,7 @@ class BVO:
                 horizontalalignment='left',
                 color='w', verticalalignment='bottom',
                 transform=ax.transAxes)
-        ax.text(0.95, 0.9, 't = ' + str(round(tf, 3)) + (' s'),
+        ax.text(0.95, 0.9, 't = ' + tf + (' s'),
                  horizontalalignment='right',
                  color='w', verticalalignment='bottom',
                  transform=ax.transAxes)
