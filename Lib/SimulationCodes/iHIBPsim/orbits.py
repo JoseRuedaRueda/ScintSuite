@@ -36,7 +36,8 @@ class orbit:
 
     def plot(self, view: str = '2D', ax_params: dict = {}, ax=None,
              line_params: dict = {}, shaded3d_options: dict = {},
-             imin: int = 0, imax: int = None, plot_vessel: bool = True):
+             imin: int = 0, imax: int = None, plot_vessel: bool = True,
+             plot_start_end: bool = False):
         """
         Plot the orbit
 
@@ -53,6 +54,8 @@ class orbit:
         :param  shaded3d_options: dictionary with the options for the plotting of
         the 3d vessel
         :param  plot_vessel. Flag to plot the vessel or not
+        :param plot_start_end: whether to plot the initial and ending points
+        of the orbit.
         """
 
         # --- Initialise the plotting parameters
@@ -106,8 +109,12 @@ class orbit:
             ax.plot(x[imin:imax], y[imin:imax],
                     self.data['z'][imin:imax],
                     **line_options)
-            # ax.scatter(x[imin], y[imin], self.data['z'][imin], color = 'g', label ='initial')
-            # ax.scatter(x[imax-1], y[imax-1], self.data['z'][imax-1], color = 'r', label ='Final')
+
+            if plot_start_end:
+                ax.scatter(x[imin], y[imin], self.data['z'][imin],
+                           color = 'g', label ='initial')
+                ax.scatter(x[imax-1], y[imax-1], self.data['z'][imax-1],
+                           color = 'r', label ='Final')
             ax.legend()
 
 
