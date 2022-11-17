@@ -7,7 +7,7 @@
 &AUG01
   R = 2.180
   z = 0.328
-  phi = 169.75    
+  phi = 169.75
 
   R_parking = 4.015
   z_parking = 0.328
@@ -16,7 +16,7 @@
   alpha = 0.0
   beta = 171.3
   gamma = 0.0
-  
+
   max_insertion = 2000.0
   min_insertion = 0.0
 /
@@ -27,8 +27,8 @@
 &AUG02
   R = 2.180
   z = 0.328
-  phi = 169.75  
-  
+  phi = 169.75
+
   R_parking = 4.015
   z_parking = 0.328
   phi_parking = 169.75
@@ -36,7 +36,7 @@
   alpha = 0.0
   beta = -12.0
   gamma = 0.0
-  
+
   max_insertion = 2000.0
   min_insertion = 0.0
 /
@@ -47,7 +47,7 @@
 &AUG03
   R = 2.18
   z = 0.3
-  phi = = 57.25
+  phi = 57.25
 
   R_parking = 2.236
   z_parking = 0.3
@@ -56,7 +56,7 @@
   alpha = 0.0
   beta = -12.0
   gamma = 0.0
-  
+
   min_insertion = -0.0554
   max_insertion = 0.035
 /
@@ -76,7 +76,7 @@
   alpha = 0.0
   beta = -12.0
   gamma = 0.0
-  
+
   min_insertion = 0.0
   max_insertion = 0.067
 /
@@ -96,7 +96,7 @@
   alpha = 0.0
   beta = -12.0
   gamma = 48.58
-  
+
   min_insertion = 0.0
   max_insertion = 0.025
 /
@@ -107,7 +107,7 @@
 &AUG06
   R = 2.180
   z = 0.328
-  phi = 169.75    
+  phi = 169.75
 
   R_parking = 4.015
   z_parking = 0.328
@@ -116,7 +116,7 @@
   alpha = 0.0
   beta = 171.3
   gamma = 0.0
-  
+
   max_insertion = 2000.0
   min_insertion = 0.0
 /

@@ -309,7 +309,7 @@ def plotShadedElement(geom: dict, ax=None, surface_params: dict = {},
                 elif view.lower() == 'xz':
                     ax.fill_between(x, z, **surface_options)
         else:
-            raise Exception('Sorry still not implemented feature')
+            raise NotImplementedError('Sorry still not implemented feature')
     else:  # 3D plot
         if not triangleFile:
             x = np.append(geom[key][:, 0], geom[key][-1, 0]) * factor
