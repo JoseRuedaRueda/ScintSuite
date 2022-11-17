@@ -57,7 +57,6 @@ def guessiHIBPfilename(shot: int):
     """
     datadir='/afs/ipp-garching.mpg.de/home/a/augd/rawfiles/LIV/%2i/%5i/'%(shot/1000,shot)
     if shot < 41225:
-        fps = 120
         filename_video = datadir + '%5i_cam_HIBP_bgsub_median.mp4' % (shot)
         description = 'zero-th frame subtracted and median filtered with size 5'
         if not os.path.exists(filename_video):
@@ -65,27 +64,18 @@ def guessiHIBPfilename(shot: int):
             description = 'raw video'
         if shot<40396:
             filename_time='/afs/ipp/u/augd/rawfiles/VRT/%2i/S%5i/Prot/FrameProt/HIBP_FrameProt.xml'%(shot/1000,shot)
-            width, height = 659, 494
         else:
             filename_time='/afs/ipp/u/augd/rawfiles/VRT/%2i/S%5i/S%5i_HIBP.meta.xml' % (shot/1000,shot,shot)
-            width, height = 672, 494
     elif shot < 41339:
         filename_video = datadir + '%i_cam_ihibp_top_ffv.mp4' %(shot)
         description = 'raw video'
         filename_time = datadir + '%i_cam_ihibp_top.xml' %(shot)
-        width, height = 1024, 768
-        fps = 60
     else:
         filename_video = datadir + '%i_cam_ihibp_side_bgsub_median.mp4' %(shot)
         description = 'zero-th frame subtracted and median filtered with size 5'
         filename_time = datadir + '%i_cam_ihibp_side.xml' %(shot)
-        width, height = 1024, 768
-        fps = 60
-    properties = dict()
-    properties['width'] = width
-    properties['height'] = height
-    properties['fps'] = fps
-    properties['description'] = description
+
+    properties = {'description': description}
     return filename_video, filename_time, properties
 
 # ------------------------------------------------------------------------------
@@ -188,15 +178,15 @@ class iHIBPvideo(BVO):
             raise errors.DatabaseError('Cannot find video for shot #%05d'%shot)
         #get time correction
         try:
-            self.timecal, self.nf = ihibp_get_time_basis(fn = ft, shot=shot)
+            self.timecal, self.properties['nf'] = ihibp_get_time_basis(fn = ft, shot=shot)
         except FileNotFoundError:
             pass
         # We initialize the parent class with the iHIBP video.
         self.framenumber = frame
         self.timestamp = timestamp
+        self.timebase = self.timecal
         super().__init__(file=fn, shot=shot)
         self.exp_dat['t'] = self.timecal
-        self.timebase = self.timecal
         self.exp_dat['nframes'] = \
             xr.DataArray(np.arange(len(self.exp_dat.t)), dims=('t'))
         # Let's check whether the user provided the calibration parameters.

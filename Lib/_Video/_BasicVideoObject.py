@@ -154,9 +154,10 @@ class BVO:
                     file, name = os.path.split(file)
                 elif file.endswith('.mp4'):
                     print('reading mp4 video file...')
-                    dummy = mp4.read_file(self, file)
-
-                    self.timebase = dummy['tframes']
+                    dummy = mp4.read_file(file)
+                    self.properties['width'] = dummy['width']
+                    self.properties['height'] = dummy['height']
+                    self.properties['fps'] = dummy['fps']
                     self.exp_dat = xr.Dataset()
                     nt, nx, ny = dummy['frames'].shape
                     px = np.arange(nx)
@@ -164,7 +165,7 @@ class BVO:
 
                     self.exp_dat['frames'] = \
                         xr.DataArray(dummy['frames'], dims=('t', 'px', 'py'),
-                                     coords={'t': dummy['tframes'].squeeze(),
+                                     coords={'t': self.timebase.squeeze(),
                                              'px': px,
                                              'py': py})
                     self.exp_dat['frames'] = self.exp_dat['frames'].transpose('px', 'py', 't')
