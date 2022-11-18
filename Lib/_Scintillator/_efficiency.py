@@ -17,6 +17,9 @@ from Lib._Machine import machine
 from scipy.interpolate import interp1d
 paths = p(machine)
 
+import logging
+logger = logging.getLogger('ScintSuite.Scintillator')
+
 
 # ------------------------------------------------------------------------------
 # --- Reading routine
@@ -83,8 +86,7 @@ class ScintillatorEfficiency:
     """Class containing the scintillator efficiency"""
 
     def __init__(self, material: str = 'TgGreenA', particle: str = 'D',
-                 thickness: int = 9,
-                 verbose: bool = False):
+                 thickness: int = 9,  verbose: bool = False):
         """
         Load data
 
@@ -94,7 +96,7 @@ class ScintillatorEfficiency:
         """
         file = os.path.join(paths.ScintSuite, 'Data', 'ScintillatorEfficiency',
                             material, particle + '_' + str(thickness) + '.dat')
-        print('Reading efficiency file: ', file)
+        logger.info('Reading efficiency file: ' + file)
         ## Efficiency data:
         self.data = read_scintillator_efficiency(file, verbose)
 

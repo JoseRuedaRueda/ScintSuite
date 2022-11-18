@@ -27,6 +27,7 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
     Transform from X,Y coordinates (scintillator) to pixels in the camera.
 
     Jose Rueda Rueda: jrrueda@us.es
+    Hannah Lindl: hannah.lindl@ipp.mpg.de
 
     :param  x: np.array of positions to be transformed, x coordinate
     :param  y: np.array of positions to be transformed, y coordinate
@@ -36,7 +37,7 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
     :return xpixel: x positions in pixels
     :return ypixel: y position in pixels
     """
-    eps = 1e-6  # Level for the distortion coefficient to be considered as
+    eps = 1e-7  # Level for the distortion coefficient to be considered as
     #             zero (see below)
     # Perform the undistorted transformation
     alpha = cal.deg * np.pi / 180
@@ -46,20 +47,32 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
         cal.yshift
     # Apply the distortion
     if abs(cal.c1) > eps:
-        # Get the r array respect to the optical axis
         xp = xpixel - cal.xcenter
         yp = ypixel - cal.ycenter
         rp = np.sqrt(xp**2 + yp**2)
-        D = cal.c1 * rp
-        xpixel = (1 + D) * xp + cal.xcenter
-        ypixel = (1 + D) * yp + cal.ycenter
-        if cal.c1 < 0:
-            rlim = -0.5 / cal.c1
-            rcamera_limit = (1 + cal.c1 * rlim) * rlim
-            flags = rp > rlim
-            xpixel[flags] = rcamera_limit*xp[flags]/rp[flags] + cal.xcenter
-            ypixel[flags] = rcamera_limit*yp[flags]/rp[flags] + cal.ycenter
-
+        if ('type' not in cal.__dict__) or (cal.type != 'non-poly'):
+            # Get the r array respect to the optical axis
+            D = cal.c1 * rp
+            xpixel = (1 + D) * xp + cal.xcenter
+            ypixel = (1 + D) * yp + cal.ycenter
+            if cal.c1 < 0:
+                rlim = -0.5 / cal.c1
+                rcamera_limit = (1 + cal.c1 * rlim) * rlim
+                flags = rp > rlim
+                xpixel[flags] = rcamera_limit*xp[flags]/rp[flags] + cal.xcenter
+                ypixel[flags] = rcamera_limit*yp[flags]/rp[flags] + cal.ycenter
+        else:
+            if cal.c1 > 0.0:
+                rp_limit = 1.0/2.0/np.sqrt(cal.c1)
+                rp_copy = rp.copy()
+                flags = rp_copy >= rp_limit
+                rp_copy[flags] = rp_copy
+            else:
+                # When k < 0, there is no way the determinant goes to negative.
+                rp_copy = rp_copy
+            d = (1-np.sqrt(1-4*cal.c1*rp**2))/(2*cal.c1*rp)
+            xpixel = xp*(1+cal.c1*d**2) + cal.xcenter
+            ypixel = yp*(1+cal.c1*d**2) + cal.ycenter
     return xpixel, ypixel
 
 
@@ -99,6 +112,7 @@ class XYtoPixel:
             'x': None,
             'y': None
         }
+        self.CameraCalibration = None
 
     def calculate_pixel_coordinates(self, cal):
         """
