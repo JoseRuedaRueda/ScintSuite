@@ -7,6 +7,9 @@ from Lib._TimeTrace._roipoly import roipoly
 from Lib._Scintillator._efficiency import ScintillatorEfficiency
 __all__ = ['Scintillator']
 
+import logging
+logger = logging.getLogger('ScintSuite.Scintillator')
+
 
 # ------------------------------------------------------------------------------
 # --- Scintillator object
@@ -103,6 +106,19 @@ class Scintillator(XYtoPixel):
             ## Normal vector
             self.normal_vector = np.loadtxt(file, skiprows=4 + self.n_vertices,
                                             delimiter=',', max_rows=1)
+
+            # Transforming to meters.
+            factor = {'m': 1.0,
+                      'cm': 0.01,
+                      'mm': 0.001,
+                      'inch': 0.01/2.54}.get(self.units)
+
+            self._coord_real['x1'] *= factor
+            self._coord_real['x2'] *= factor
+            self._coord_real['x3'] *= factor
+            self.units = 'm'
+
+
         elif format.lower() == 'sinpa':
             with open(file, 'r') as f:
                 self.name = f.readline().strip(),
@@ -118,14 +134,18 @@ class Scintillator(XYtoPixel):
     # --------------------------------------------------------------------------
     # --- Reading the efficiency
     # --------------------------------------------------------------------------
-    def _read_efficiency(self, material: str = 'TgGreenA', particle='D',
-                         thickness=9):
+    def _read_efficiency(self, material: str = 'TgGreenA', particle: str='D',
+                         thickness: float=9):
         """
+        Read the efficiency of the material of the scintillator for a given
+        particle.
 
-        :param material:
-        :param particle:
-        :param thickness:
-        :return:
+        Jose Rueda - jrrueda@us.es
+
+        :param material: material to load from the corresponding database.
+        :param particle: particle impinging on the scintillator.
+        :param thickness: thickness of the scintillator material.
+
         """
         self.material = material
         self.particle = particle
@@ -219,7 +239,7 @@ class Scintillator(XYtoPixel):
         plt.draw()
         return ax
 
-    def plot_real(self, ax=None, line_params: dict = {}):
+    def plot_real(self, ax=None, line_params: dict = {}, units: str=None):
         """
         Plot the scintillator, in real coordinates in the axes ax.
 
@@ -233,8 +253,16 @@ class Scintillator(XYtoPixel):
         }
         plt_options.update(line_params)
 
+        # Selectin the units for plotting.
+        factor = { 'm': 1.0,
+                   'cm': 100.0,
+                   'mm': 1000.0,
+                   'inch': 100.0/2.54
+                 }.get(units)
+
         if ax is None:
             fig, ax = plt.subplots()
-        ax.plot(self._coord_real['x1'], self._coord_real['x2'], **plt_options)
+        ax.plot(self._coord_real['x1']*factor,
+                self._coord_real['x2']*factor, **plt_options)
         plt.draw()
         return ax
