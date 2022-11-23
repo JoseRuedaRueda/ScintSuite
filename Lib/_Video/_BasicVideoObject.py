@@ -75,23 +75,23 @@ class BVO:
         """
         Initialise the class
 
-        @param file: For the initialization, file (full path) to be loaded,
+        :param  file: For the initialization, file (full path) to be loaded,
             if the path point to a .cin or .mp4 file, the .cin file will be
             loaded. If the path points to a folder, the program will look for
             png files or tiff files inside (tiff coming soon). You can also
             point to a png or tiff file. In this case, the folder name will be
             deduced from the file. If none, a window will be open to select
             a file
-        @param shot: Shot number, if is not given, the program will look for it
+        :param  shot: Shot number, if is not given, the program will look for it
             in the name of the loaded file
-        @param empty: if true, just an empty video object will be created, this
+        :param  empty: if true, just an empty video object will be created, this
             is to latter use routines of the child objects such as load_remap.
-        @param adfreq: acquisition frequency of the video. This is needed just
+        :param  adfreq: acquisition frequency of the video. This is needed just
             for the video saved in .b16 format, where this information is not
             saved in the video and must be provided externally
-        @param t_trig: trigger time. Again, this is just needed for the .b16
+        :param  t_trig: trigger time. Again, this is just needed for the .b16
             format
-        @param YOLO: flag to ignore wrong timed frames. With old AUG adquisition
+        :param  YOLO: flag to ignore wrong timed frames. With old AUG adquisition
             system, sometimes the timebase get corrupt after a given point. if
             YOLO is false, the program will interact with the user,
             shown him/her which frames are wrong and create an ad-hoc
@@ -130,7 +130,7 @@ class BVO:
                 self.shot = aux.guess_shot(file, ssdat.shot_number_length)
             # Fill the object depending if we have a .cin file or not
             if os.path.isfile(file):
-                print('Looking for the file: ', file)
+                logger.info('Looking for the file: ', file)
                 ## Path to the file and filename
                 self.path, self.file_name = os.path.split(file)
                 ## Name of the file (full path)
@@ -153,7 +153,6 @@ class BVO:
                 elif file.endswith('.png') or file.endswith('.tif'):
                     file, name = os.path.split(file)
                 elif file.endswith('.mp4'):
-                    print('reading mp4 video file...')
                     dummy = mp4.read_file(file)
                     self.properties['width'] = dummy['width']
                     self.properties['height'] = dummy['height']
@@ -251,22 +250,22 @@ class BVO:
         Just a wrapper to call the read_frame function, depending on the
         format in which the experimental data has been recorded
 
-        @param frames_number: array or list with the frame numbers to load
-        @param limitation: bool flag to decide if we apply the limitation or if
+        :param  frames_number: array or list with the frame numbers to load
+        :param  limitation: bool flag to decide if we apply the limitation or if
             we operate in YOLO mode
-        @param limit: maximum size allowed for the output variable,
+        :param  limit: maximum size allowed for the output variable,
             in Mbytes, to avoid overloading the memory trying to load the whole
             video of 100 Gb
-        @param internal: If True, the frames will be stored in the 'frames'
+        :param  internal: If True, the frames will be stored in the 'frames'
             variable of the video object. Else, it will be returned just as
             output (useful if you need to load another frame and you do not
             want to overwrite your frames already loaded)
-        @param t1: Initial time to load frames (alternative to frames number)
-        @param t2: Final time to load frames (alternative to frames number), if
+        :param  t1: Initial time to load frames (alternative to frames number)
+        :param  t2: Final time to load frames (alternative to frames number), if
             just t1 is given , only one frame will be loaded
-        @param verbose: flag to print the numer of saturated frames found
+        :param  verbose: flag to print the numer of saturated frames found
 
-        @return M: 3D numpy array with the frames M[px,py,nframes] (if the
+        :return M: 3D numpy array with the frames M[px,py,nframes] (if the
             internal flag is set to false)
         """
         # --- Clean video if needed
@@ -374,12 +373,12 @@ class BVO:
         frames will be loaded, in case one wants to revert the noise
         subtraction
 
-        @param t1: Minimum time to average the noise
-        @param t2: Maximum time to average the noise
-        @param frame: Optional, frame containing the noise to be subtracted
-        @param flag_copy: If true, a copy of the frame will be stored
+        :param  t1: Minimum time to average the noise
+        :param  t2: Maximum time to average the noise
+        :param  frame: Optional, frame containing the noise to be subtracted
+        :param  flag_copy: If true, a copy of the frame will be stored
 
-        @return  frame: the frame used for the noise subtraction
+        :return  frame: the frame used for the noise subtraction
         """
         # --- Check the inputs
         if self.exp_dat is None:
@@ -420,8 +419,9 @@ class BVO:
                     'Taking %5.3f as finaal point' % t2
                 logger.warning('18: %s' % text)
                 t2 = t2_vid
-            it1 = np.argmin(abs(self.exp_dat['t'].values - t1))
-            it2 = np.argmin(abs(self.exp_dat['t'].values - t2))
+
+            it1 = np.argmin(np.abs(self.exp_dat.t.values - t1))
+            it2 = np.argmin(np.abs(self.exp_dat.t.values - t2))
 
             logger.info('Using frames from the video')
             logger.info('%i frames will be used to average noise', it2 - it1 + 1)
@@ -455,8 +455,8 @@ class BVO:
         # --- Subtract the noise
         frame = frame.astype(float)  # Get the average as float to later
         #                              subtract and not have issues with < 0
-        frameDA = xr.DataArray(frame, dims=('px', 'py'), \
-                               coords = {'px': self.exp_dat['px'], \
+        frameDA = xr.DataArray(frame, dims=('px', 'py'),
+                               coords = {'px': self.exp_dat['px'],
                                          'py': self.exp_dat['py']})
         #dummy = \
         #    (self.exp_dat['frames'].values.astype(float) - frame[..., None])
@@ -472,17 +472,17 @@ class BVO:
         """
         Filter the camera frames
 
-        @param method: method to be used:
+        :param  method: method to be used:
             -# jrr: neutron method of the extra package (not recommended,
                 extremelly slow)
             -# median: median filter from the scipy.ndimage package
             -# gaussian: gaussian filter from the scipy.ndimage package
-        @param options: options for the desired filter (dictionary), defaults:
+        :param  options: options for the desired filter (dictionary), defaults:
             -# jrr:
                 nsigma: 3 Number of sigmas to consider a pixel as neutron
             -# median:
                 size: 4, number of pixels considered
-        @param flag_copy: flag to copy or not the original frames
+        :param  flag_copy: flag to copy or not the original frames
         """
         logger.info('Filtering frames')
         # default options:
@@ -541,7 +541,7 @@ class BVO:
 
         The window must be generated by the method 'generate_average_window'
 
-        @param window: window generated by 'generate_average_window'
+        :param  window: window generated by 'generate_average_window'
         """
         # --- Get the shape and allocate the variables
         nw, dummy = window.shape
@@ -572,8 +572,8 @@ class BVO:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param step: width of the average window
-        @param trace: xr.DataArray containing the timetrace to plot and use to
+        :param  step: width of the average window
+        :param  trace: xr.DataArray containing the timetrace to plot and use to
             create the windows (see below). It should contain 't', as a
             coordinate and be 1D
 
@@ -640,12 +640,12 @@ class BVO:
 
         Jose Rueda: jrrueda@us.es
 
-        @param ax_params: ax param for the axis_beauty
-        @param line_params: line parameters
-        @param threshold: If none, it will plot the data calculated when
+        :param  ax_params: ax param for the axis_beauty
+        :param  line_params: line parameters
+        :param  threshold: If none, it will plot the data calculated when
         reading the camera frames (by the function self.read_frames) if it is
         a value [0,1] it willrecalculate this number
-        @param ax: axis where to plot, if none, a new figure will pop-up
+        :param  ax: axis where to plot, if none, a new figure will pop-up
         """
         # Default plot parameters:
         ax_options = {
@@ -691,7 +691,7 @@ class BVO:
                    scale: str = 'linear',
                    alpha: float = 1.0, IncludeColorbar: bool = True,
                    RemoveAxisTicksLabels: bool = False,
-                   flagAverage: bool = False, normalise=None):
+                   flagAverage: bool = False, normalise=None, extent: float=None):
         """
         Plot a frame from the loaded frames
 
@@ -701,30 +701,30 @@ class BVO:
         Notice, you can plot a given frame giving its frame number or giving
         its time
 
-        @param frame_number: Number of the frame to plot (option 1).
+        :param frame_number: Number of the frame to plot (option 1).
                If array: will average over the given frame frange
-        @param ax: Axes where to plot, is none, just a new axes will be created
-        @param ccmap: colormap to be used, if none, Gamma_II from IDL
-        @param t: time point to select the frame (option 2)
+        :param ax: Axes where to plot, is none, just a new axes will be created
+        :param ccmap: colormap to be used, if none, Gamma_II from IDL
+        :param t: time point to select the frame (option 2)
                   If array: will average over the given frame frange
-        @param verbose: If true, info of the theta and phi used will be printed
-        @param vmin: Minimum value for the color scale to plot
-        @param vmax: Maximum value for the color scale to plot
-        @param xlim: tuple with the x-axis limits
-        @param ylim: tuple with the y-axis limits
-        @param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
-        @param alpha: transparency factor, 0.0 is 100 % transparent
-        @param IncludeColorbar: flag to include a colorbar
-        @param RemoveAxisTicksLabels: boolean flag to remove the numbers in the
+        :param verbose: If true, info of the theta and phi used will be printed
+        :param vmin: Minimum value for the color scale to plot
+        :param vmax: Maximum value for the color scale to plot
+        :param xlim: tuple with the x-axis limits
+        :param ylim: tuple with the y-axis limits
+        :param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
+        :param alpha: transparency factor, 0.0 is 100 % transparent
+        :param IncludeColorbar: flag to include a colorbar
+        :param RemoveAxisTicksLabels: boolean flag to remove the numbers in the
             axis
-        @param flagAverage: flag to pick the axis from the experimental or the
+        :param  flagAverage: flag to pick the axis from the experimental or the
             averaged frames
-        @param normalise: parameter to normalise the frame when plotting:
+        :param  normalise: parameter to normalise the frame when plotting:
             if normalise == 1 it would be normalised to the maximum
             if normalise == <number> it would be normalised to this value
             if normalise == None, nothing will be done
 
-        @return ax: the axes where the frame has been drawn
+        :return ax: the axes where the frame has been drawn
         """
         # --- Check inputs:
         if (frame_number is not None) and (t is not None):
@@ -820,6 +820,9 @@ class BVO:
             # provide
             dummy[dummy < 1.0] = 1.0e-5
 
+        if extent is not None:
+            extra_options['extent'] = extent
+
         img = ax.imshow(dummy, origin='lower', cmap=cmap,
                         alpha=alpha, **extra_options)
         # Set the axis limit
@@ -861,7 +864,7 @@ class BVO:
         """
         Small GUI to explore camera frames
 
-        @param flagAverage: flag to decide if we need to use the averaged frames
+        :param  flagAverage: flag to decide if we need to use the averaged frames
             of the experimental ones in the GUI
         """
         text = 'Press TAB until the time slider is highlighted in red.'\
@@ -909,12 +912,12 @@ class BVO:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param t: desired time (in the same units of the video database)
-        @param frame_index: frame index to load, relative to the camera,
+        :param  t: desired time (in the same units of the video database)
+        :param  frame_index: frame index to load, relative to the camera,
             ignored if time is present
-        @param flagAverage: flag to look at the average o raw frames
+        :param  flagAverage: flag to look at the average o raw frames
 
-        @return it: index of the frame in the loaded array
+        :return it: index of the frame in the loaded array
         """
         it = None
         if t is not None:
@@ -935,10 +938,10 @@ class BVO:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param t: desired time (in the same units of the video database)
-        @param flagAverage: flag to look at the average or raw frames
+        :param  t: desired time (in the same units of the video database)
+        :param  flagAverage: flag to look at the average or raw frames
 
-        @return it: index of the frame in the loaded array
+        :return it: index of the frame in the loaded array
         """
         it = self.getFrameIndex(t)
         if not flagAverage:
@@ -954,8 +957,8 @@ class BVO:
 
         Jose Rueda: jrrueda@us.es
 
-        @param it: frame number (relative to the loaded frames)
-        @param flagAverage: flag to look at the averaged or raw frames
+        :param  it: frame number (relative to the loaded frames)
+        :param  flagAverage: flag to look at the averaged or raw frames
         """
         if not flagAverage:
             t = float(self.exp_dat['t'].values[it])
@@ -969,12 +972,12 @@ class BVO:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param t: time of the frame to be plotted for the selection of the roi
-        @param mask: bolean mask of the ROI
+        :param  t: time of the frame to be plotted for the selection of the roi
+        :param  mask: bolean mask of the ROI
 
         If mask is present, the t argument will be ignored
 
-        @returns timetrace: a timetrace object
+        :returns timetrace: a timetrace object
         """
         if mask is None:
             # - Plot the frame
@@ -999,9 +1002,9 @@ class BVO:
         metadata will not be exported. But allows to quickly export the video
         to netCDF format to be easily shared among computers
 
-        @param file: Path to the file where to save the results, if none, a
+        :param  file: Path to the file where to save the results, if none, a
             GUI will appear to select the results
-        @param flagAverage: flag to indicate if we want to save the averaged
+        :param  flagAverage: flag to indicate if we want to save the averaged
             frames
         """
         if filename is None:

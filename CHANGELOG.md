@@ -1,19 +1,44 @@
-#1.1.1:
+
+# 1.2.1: Melon with Jamon
 ## iHIBPVideo
 - changed guessiHIBPfilename to use correct video filename for different discharges
 - fixed ihibp_get_time_basis to give correct timebase
 - videos will be subtracted by zero-th frame and median filtered with size 5
 ## BasicVideoObject
 - subtract_noise now uses DataArrays to allow arbitrary order of dimensions
+- plot_frame now accepts [t1, t2] and plots the average of the frame strictly within the time range.
 ## _MP4files
 - read mp4 video files with ffmpeg
 ## Calibration
 - changed iHIBP camera calibration database
-- calibration uniquely given by shotnumber and diag_ID = 1
+- calibration uniquely given by shotnumber, method and diag_ID = 1 for iHIBP.
 ## DiagParam
 - changed origin point of ihibp beam
 ## Plates
-- changed ihibp Scintillator plate to match experimental geometry 
+- changed ihibp Scintillator plate to match experimental geometry
+## iHIBP beam watchdog cameras
+- New object to handle the cameras watching the beam and extract useful info from them like beam displacement, divergences,... *Lib.vid.ihibp_beam_camera(shot, camera='top'/'side')*
+# iHIBP strikes
+- the object reading the *.strikes file from the iHIBPsim simulation has been rewritten into a more handlable fashion.
+- 3D plot of the strikes in 3D axes, with colormap corresponding to weights.
+- generic histograms functions included.
+- plotScintillator now generates better images.
+- plot_frames generates the real frame including distorsion and optics defocusing.
+# iHIBP StrikeLineCollection.
+- the old object for the strikelines has been removed to give rise to a more intuitive strikeline.
+- two new objects:
+    - Lib.strikeline.strikeLineCollection: loads the file with the map and initializes a many strike lines as the file contains.
+    - Lib.strikeline.strikeLine: strike line object containing all the elements that a single strike line has.
+
+# 1.2.0: Melon con Jamon
+## General
+- Changed @ for : in documentations
+## Data
+- INPA object documentation improved
+- getGeomShots() removed from INPA object
+## Simulation codes
+- Added compatibility with SINPA 4
+
 
 # 1.1.0: Melon con Jamon
 ## FIDASIM library

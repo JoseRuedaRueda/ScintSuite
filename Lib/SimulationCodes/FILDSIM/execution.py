@@ -23,14 +23,14 @@ def calculate_fild_orientation(Br, Bz, Bt, alpha, beta, verbose=False):
     input bt, br, bz... notice the different order or the inputs,
     to be consistent with the rest of this suite
 
-    @param br: Magnetic field in the r direction
-    @param bz: Magnetic field in the z direction
-    @param bt: Magnetic field in the toroidal direction
-    @param alpha: Poloidal orientation of FILD. Given in deg
-    @param beta: Pitch orientation of FILD, given in deg
+    :param  br: Magnetic field in the r direction
+    :param  bz: Magnetic field in the z direction
+    :param  bt: Magnetic field in the toroidal direction
+    :param  alpha: Poloidal orientation of FILD. Given in deg
+    :param  beta: Pitch orientation of FILD, given in deg
 
-    @return phi: Euler angle to use as input in fildsim.f90 given in deg
-    @return theta: Euler angle to use as input in fildsim.f90 given in deg
+    :return phi: Euler angle to use as input in fildsim.f90 given in deg
+    :return theta: Euler angle to use as input in fildsim.f90 given in deg
 
     Example of use:
         phi, theta = calculate_fild_orientation(0.0, 0.0, -1.0, 0.0, 0.0)
@@ -94,11 +94,11 @@ def write_namelist(nml, p=os.path.join(paths.FILDSIM, 'cfg_files'),
 
     just a wrapper for the f90nml file writter
 
-    @param p: full path towards the desired folder to store the namelist
-    @param nml: namelist containing the desired fields.
-    @param overwrite: flag to overwrite the namelist (if exist)
+    :param  p: full path towards the desired folder to store the namelist
+    :param  nml: namelist containing the desired fields.
+    :param  overwrite: flag to overwrite the namelist (if exist)
 
-    @return file: The path to the written file
+    :return file: The path to the written file
     """
     file = os.path.join(p, nml['config']['runid'] + '.cfg')
     f90nml.write(nml, file, force=overwrite)
@@ -113,9 +113,9 @@ def read_namelist(filename):
 
     just a wrapper for the f90nml capabilities
 
-    @param filename: full path to the filename to read
+    :param  filename: full path to the filename to read
 
-    @return nml: dictionary with all the parameters of the FILDSIM run
+    :return nml: dictionary with all the parameters of the FILDSIM run
     """
     return f90nml.read(filename)
 
@@ -126,9 +126,9 @@ def run_FILDSIM(namelist, queue: bool = False, cluster: str = 'MPCDF'):
 
     Jose Rueda and Anton J. van Vuuren
 
-    @param namelist: full path to the namelist
-    @param queue: Flag to launch the FILDSIM simulation into the queue
-    @param cluster: string identifying the cluster. Each cluster may require
+    :param  namelist: full path to the namelist
+    :param  queue: Flag to launch the FILDSIM simulation into the queue
+    :param  cluster: string identifying the cluster. Each cluster may require
         different submition option. Up to now, only MPCDF ones are supported
     """
     if not queue:
@@ -181,12 +181,12 @@ def guess_strike_map_name(phi: float, theta: float, geomID: str = 'AUG02',
     name = geomID +\
         "_map_{0:09.5f}_{1:010.5f}_strike_map.dat".format(p, t)
 
-    @param phi: phi angle as defined in FILDSIM
-    @param theta: theta angle as defined in FILDSIM
-    @param geomID: ID identifying the geometry
-    @param decimals: number of decimal numbers to round the angles
+    :param  phi: phi angle as defined in FILDSIM
+    :param  theta: theta angle as defined in FILDSIM
+    :param  geomID: ID identifying the geometry
+    :param  decimals: number of decimal numbers to round the angles
 
-    @return name: the name of the strike map file
+    :return name: the name of the strike map file
     """
     # Taken from one of Juanfran files :-)
     p = round(phi, ndigits=decimals)
@@ -217,15 +217,15 @@ def find_strike_map(phi: float, theta: float, strike_path: str,
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param    phi: phi angle as defined in FILDSIM
-    @param    theta: beta angle as defined in FILDSIM
-    @param    strike_path: path of the folder with the strike maps
-    @param    geomID: string identifying the geometry. Defaults to 'AUG02'.
-    @param    FILDSIM_options: FILDSIM namelist options
-    @param    clean: True: eliminate the strike_points.dat when calling FILDSIM
-    @param    decimals: Number of decimals for theta and phi angles
+    :param     phi: phi angle as defined in FILDSIM
+    :param     theta: beta angle as defined in FILDSIM
+    :param     strike_path: path of the folder with the strike maps
+    :param     geomID: string identifying the geometry. Defaults to 'AUG02'.
+    :param     FILDSIM_options: FILDSIM namelist options
+    :param     clean: True: eliminate the strike_points.dat when calling FILDSIM
+    :param     decimals: Number of decimals for theta and phi angles
 
-    @return   name:  name of the strikemap to load
+    :return   name:  name of the strikemap to load
 
     @raises   Exception: If FILDSIM is call but the file is not created.
     """
@@ -286,9 +286,9 @@ def read_plate(filename):
     jose rueda: jrrueda@us.es,
     based on a pice of code writtan by ajvv
 
-    @param filename: full path to the plate to read
+    :param  filename: full path to the plate to read
 
-    @return plate: dictionary with:
+    :return plate: dictionary with:
         -# 'name': name of the palte,
         -# 'N_vertices': number of vertices
         -# 'vertices': vertices coordinates
@@ -323,12 +323,12 @@ def get_energy(gyroradius, B: float, A: float = 2.01410178, Z: float = 1.0):
 
     jose Rueda: jrrueda@us.es
 
-    @param gyroradius: Larmor radius as taken from FILD strike map [in cm]
-    @param B: Magnetic field, [in T]
-    @param A: Ion mass number
-    @param Z: Ion charge [in e units]
+    :param  gyroradius: Larmor radius as taken from FILD strike map [in cm]
+    :param  B: Magnetic field, [in T]
+    :param  A: Ion mass number
+    :param  Z: Ion charge [in e units]
 
-    @return E: the energy [in eV]
+    :return E: the energy [in eV]
     """
     m = ssp.amu2kg * A  # Mass of the ion
     E = 0.5 * (gyroradius/100.0 * Z * B)**2 / m * ssp.ec
@@ -341,12 +341,12 @@ def get_gyroradius(E, B: float, A: float = 2.01410178, Z: float = 1.0):
 
     jose Rueda: jrrueda@us.es
 
-    @param energy: Energy [eV]
-    @param B: Magnetic field, [in T]
-    @param A: Ion mass number
-    @param Z: Ion charge [in e units]
+    :param  energy: Energy [eV]
+    :param  B: Magnetic field, [in T]
+    :param  A: Ion mass number
+    :param  Z: Ion charge [in e units]
 
-    @return r: Larmor radius as taken from FILD strike map [in cm]
+    :return r: Larmor radius as taken from FILD strike map [in cm]
     """
     m = ssp.amu2kg * A  # Mass of the ion
     r = 100. * np.sqrt(2.0 * E * m / ssp.ec) / Z / B

@@ -35,7 +35,7 @@ class INPAStrikes(Strikes):
         could be added if needed, althoug that would imply something like:
         if machine == 'AUG'... which I would like to avoid
 
-        @param Boptions: extra parameters for the calculation of the magnetic
+        :param  Boptions: extra parameters for the calculation of the magnetic
             field
         """
         # Only works for INPA markers, return error if we try with FILD

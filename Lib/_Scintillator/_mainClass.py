@@ -7,6 +7,9 @@ from Lib._TimeTrace._roipoly import roipoly
 from Lib._Scintillator._efficiency import ScintillatorEfficiency
 __all__ = ['Scintillator']
 
+import logging
+logger = logging.getLogger('ScintSuite.Scintillator')
+
 
 # ------------------------------------------------------------------------------
 # --- Scintillator object
@@ -26,12 +29,12 @@ class Scintillator(XYtoPixel):
         Initialize the class.
 
         - Geometry files
-        @param    file: Path to the file with the scintillator geometry
-        @param    format: Code to which the file belongs, FILDSIM or SINPA
+        :param     file: Path to the file with the scintillator geometry
+        :param     format: Code to which the file belongs, FILDSIM or SINPA
         - Efficiency related attributes
-        @param    material: Defaults to 'TG-green'
-        @param    particle: Defaults to 'D' (deuterium)
-        @param    thickness: thickness of the plate in mu-m
+        :param     material: Defaults to 'TG-green'
+        :param     particle: Defaults to 'D' (deuterium)
+        :param     thickness: thickness of the plate in mu-m
         """
         XYtoPixel.__init__(self)
 
@@ -67,9 +70,9 @@ class Scintillator(XYtoPixel):
     def _read_geometry(self, file,  format):
         """
         Read the geometry file
-        @param file:
-        @param format:
-        @return:
+        :param  file:
+        :param  format:
+        :return:
         """
         self.geomFile = file
         ## Code defining the geometry
@@ -131,14 +134,18 @@ class Scintillator(XYtoPixel):
     # --------------------------------------------------------------------------
     # --- Reading the efficiency
     # --------------------------------------------------------------------------
-    def _read_efficiency(self, material: str = 'TgGreenA', particle='D',
-                         thickness=9):
+    def _read_efficiency(self, material: str = 'TgGreenA', particle: str='D',
+                         thickness: float=9):
         """
+        Read the efficiency of the material of the scintillator for a given
+        particle.
 
-        :param material:
-        :param particle:
-        :param thickness:
-        :return:
+        Jose Rueda - jrrueda@us.es
+
+        :param material: material to load from the corresponding database.
+        :param particle: particle impinging on the scintillator.
+        :param thickness: thickness of the scintillator material.
+
         """
         self.material = material
         self.particle = particle
@@ -196,9 +203,9 @@ class Scintillator(XYtoPixel):
         """
         Plot the scintillator, in pixels, in the axes ax.
 
-        @param ax: axes where to plot
-        @param line_params: dictionary with the parameters to plot
-        @return: ax axes used to plot
+        :param  ax: axes where to plot
+        :param  line_params: dictionary with the parameters to plot
+        :return: ax axes used to plot
         """
         plt_options = {
             'color': 'w',
@@ -236,9 +243,9 @@ class Scintillator(XYtoPixel):
         """
         Plot the scintillator, in real coordinates in the axes ax.
 
-        @param ax: axes where to plot
-        @param line_params: dictionary with the parameters to plot
-        @return: Nothing, just update the plot
+        :param  ax: axes where to plot
+        :param  line_params: dictionary with the parameters to plot
+        :return: Nothing, just update the plot
         """
         plt_options = {
             'color': 'w',

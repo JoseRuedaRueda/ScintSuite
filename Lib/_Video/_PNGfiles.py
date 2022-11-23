@@ -23,19 +23,19 @@ def read_data(path, YOLO: bool = False):
     Return a series of dictionaries similar to the case of a cin file,
     with all the info we can extract from the png
 
-    @param path: path to the folder where the pngs are located
-    @param YOLO: flag to ignore wrong timed frames. With old AUG adquisition
+    :param  path: path to the folder where the pngs are located
+    :param  YOLO: flag to ignore wrong timed frames. With old AUG adquisition
         system, sometimes the timebase get corrupt after a given point. if YOLO
         is false, the program will interact with the user, shown him/her which
         frames are wrong and create an ad-hoc time base if needed. This is not
         ideal for the case of automatic remaps etc when the program is runing in
         the background, as the user is needed. YOLO=True disable this and just
         ignore these frames
-    @return time_base: time base of the frames (s)
-    @return image_header: dictionary containing the info about the image size,
+    :return time_base: time base of the frames (s)
+    :return image_header: dictionary containing the info about the image size,
     and shape
-    @return header: Header 'similar' to the case of a cin file
-    @return settings: dictionary similar to the case of the cin file (it only
+    :return header: Header 'similar' to the case of a cin file
+    :return settings: dictionary similar to the case of the cin file (it only
     contain the exposition time)
     """
     # Look for a png to extract the size and a .txt for the time information
@@ -159,7 +159,7 @@ def load_png(filename: str):
     suite to be compatible with all FILD calibrations of the last 15 years,
     an inversion should be done to load png in the same way as IDL
 
-    @param filename: full path pointing to the png
+    :param  filename: full path pointing to the png
     """
     dummy = io.imread(filename)
     if len(dummy.shape) > 2:     # We have an rgb png, transform it to gray
@@ -175,14 +175,14 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
 
     Jose Rueda: jrrueda@us.es
 
-    @param video_object: Video class with the info of the video.  See the video
+    :param  video_object: Video class with the info of the video.  See the video
         object of the BasicVideoObject.py file
-    @param frames_number: array with the number of the frames to be loaded,
+    :param  frames_number: array with the number of the frames to be loaded,
     if none, all frames will be loaded
-    @param limitation: if we want to set a limitation of the size we can load
-    @param limit: Limit to the size, in megabytes
+    :param  limitation: if we want to set a limitation of the size we can load
+    :param  limit: Limit to the size, in megabytes
 
-    @return M: array of frames, [px in x, px in y, number of frames]
+    :return M: array of frames, [px in x, px in y, number of frames]
     """
     # Frames would have a name as shot-framenumber.png example: 30585-001.png
     print('Reading PNG files')

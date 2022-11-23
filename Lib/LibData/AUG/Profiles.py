@@ -23,14 +23,14 @@ def get_ne(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de and J. Rueda: jrrueda@us.es
 
-    @param shot: Shot number
-    @param time: Time point to read the profile.
-    @param exp: Experiment name.
-    @param diag: diagnostic from which 'ne' will extracted.
-    @param edition: edition of the shotfile to be read.
-    @param xArrayOutput: flag to return the output as dictionary of xarray
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+    :param  exp: Experiment name.
+    :param  diag: diagnostic from which 'ne' will extracted.
+    :param  edition: edition of the shotfile to be read.
+    :param  xArrayOutput: flag to return the output as dictionary of xarray
 
-    @return output: a dictionary containing the electron density evaluated
+    :return output: a dictionary containing the electron density evaluated
     in the input times and the corresponding rhopol base.
     """
 
@@ -52,11 +52,11 @@ def get_ne_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shotnumber: shot number to get the data.
-    @param time: time window to retrieve the toroidal rotation data.
-    @param exp: experiment name where the shotfile is stored.
-    @param edition: edition of the shotfile.
-    @param sf: shotfile opened for the PED.
+    :param  shotnumber: shot number to get the data.
+    :param  time: time window to retrieve the toroidal rotation data.
+    :param  exp: experiment name where the shotfile is stored.
+    :param  edition: edition of the shotfile.
+    :param  sf: shotfile opened for the PED.
     """
 
     # --- Opening the shotfile.
@@ -113,13 +113,13 @@ def get_ne_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: Shot number
-    @param time: Time point to read the profile.
-    @param exp: Experiment name.
-    @param edition: edition of the shotfile to be read.
-    @param sf: shotfile opened with the IDA to be accessed.
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+    :param  exp: Experiment name.
+    :param  edition: edition of the shotfile to be read.
+    :param  sf: shotfile opened with the IDA to be accessed.
 
-    @return output: a dictionary containing the electron density evaluated
+    :return output: a dictionary containing the electron density evaluated
     in the input times and the corresponding rhopol base.
     """
     # --- Opening the shotfile.
@@ -194,13 +194,13 @@ def get_Te(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: Shot number
-    @param time: Time point to read the profile.
-    @param exp: Experiment name.
-    @param diag: diagnostic from which 'ne' will extracted.
-    @param edition: edition of the shotfile to be read.
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+    :param  exp: Experiment name.
+    :param  diag: diagnostic from which 'ne' will extracted.
+    :param  edition: edition of the shotfile to be read.
 
-    @return output: a dictionary containing the electron density evaluated
+    :return output: a dictionary containing the electron density evaluated
     in the input times and the corresponding rhopol base.
     """
 
@@ -222,11 +222,11 @@ def get_Te_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shotnumber: shot number to get the data.
-    @param time: time window to retrieve the toroidal rotation data.
-    @param exp: experiment name where the shotfile is stored.
-    @param edition: edition of the shotfile.
-    @param sf: shotfile opened for the PED.
+    :param  shotnumber: shot number to get the data.
+    :param  time: time window to retrieve the toroidal rotation data.
+    :param  exp: experiment name where the shotfile is stored.
+    :param  edition: edition of the shotfile.
+    :param  sf: shotfile opened for the PED.
     """
 
     # --- Opening the shotfile.
@@ -283,13 +283,13 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: Shot number
-    @param time: Time point to read the profile.
-    @param exp: Experiment name.
-    @param diag: diagnostic from which 'Te' will extracted.
-    @param edition: edition of the shotfile to be read.
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+    :param  exp: Experiment name.
+    :param  diag: diagnostic from which 'Te' will extracted.
+    :param  edition: edition of the shotfile to be read.
 
-    @return output: a dictionary containing the electron temp. evaluated
+    :return output: a dictionary containing the electron temp. evaluated
     in the input times and the corresponding rhopol base.
     """
 
@@ -363,14 +363,14 @@ def get_Ti(shot: int, time: float = None, diag: str = 'IDI', exp: str = 'AUGD',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: Shot number
-    @param time: Time point to read the profile.
-    @param diag: diagnostic to read the ion temperature. By default, IDI.
-    @param exp: Experiment name.
-    @param diag: diagnostic from which 'Te' will extracted.
-    @param edition: edition of the shotfile to be read.
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+    :param  diag: diagnostic to read the ion temperature. By default, IDI.
+    :param  exp: Experiment name.
+    :param  diag: diagnostic from which 'Te' will extracted.
+    :param  edition: edition of the shotfile to be read.
 
-    @return output: a dictionary containing the electron temp. evaluated
+    :return output: a dictionary containing the electron temp. evaluated
     in the input times and the corresponding rhopol base.
     """
     if diag not in ('IDI', 'CXRS'):
@@ -395,13 +395,13 @@ def get_Ti_idi(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
     Copy of get_Te_ida
 
-    @param shot: Shot number
-    @param time: Time point to read the profile.
-    @param exp: Experiment name.
-    @param diag: diagnostic from which 'Te' will extracted.
-    @param edition: edition of the shotfile to be read.
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+    :param  exp: Experiment name.
+    :param  diag: diagnostic from which 'Te' will extracted.
+    :param  edition: edition of the shotfile to be read.
 
-    @return output: a dictionary containing the electron temp. evaluated
+    :return output: a dictionary containing the electron temp. evaluated
     in the input times and the corresponding rhopol base.
     """
     # --- Opening the shotfile.
@@ -475,18 +475,18 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
 
     Copied from Pablo routine of vtor
 
-    @param shotnumber: shotnumber to read.
-    @param time: time window to get the data. If None, all the available times
+    :param  shotnumber: shotnumber to read.
+    :param  time: time window to get the data. If None, all the available times
     are read.
-    @param exp: experiment under which the shotfile is stored.
-    @param edition: edition of the shotfile to read
-    @param tavg: averaging time in miliseconds. 50 ms by default.
-    @param nrho: number of points in rho_pol to calculate the smoothed profile.
-    @param smooth_factor: smoothing factor to send to the UnivariateSpline
+    :param  exp: experiment under which the shotfile is stored.
+    :param  edition: edition of the shotfile to read
+    :param  tavg: averaging time in miliseconds. 50 ms by default.
+    :param  nrho: number of points in rho_pol to calculate the smoothed profile.
+    :param  smooth_factor: smoothing factor to send to the UnivariateSpline
     class to perform the smoothing regression.
-    @param dr: correction in the radial direction. Can be just a number or a
+    :param  dr: correction in the radial direction. Can be just a number or a
     dict containing a correction for each diagnostic
-    @param dz: correction in the z direction
+    :param  dz: correction in the z direction
     """
     text = 'This CXRS fit does not properly describe separatrix behaviour!'
     logger.warning('17: %s' % text)
@@ -787,15 +787,15 @@ def get_tor_rotation(shotnumber: int, time: float = None, diag: str = 'IDI',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shotnumber: shotnumber to read.
-    @param time: time window to get the data. If None, all the available times
+    :param  shotnumber: shotnumber to read.
+    :param  time: time window to get the data. If None, all the available times
     are read.
-    @param diag: the diagnostic can only be 'IDI' or 'CXRS'. In the first, the
+    :param  diag: the diagnostic can only be 'IDI' or 'CXRS'. In the first, the
     profiles are obtained directly from the IDI reconstruction. For the option
     CXRS the diagnostics 'CEZ'/'CMZ' are used.
-    @param exp: experiment under which the shotfile is stored.
-    @param edition: edition of the shotfile to read
-    @param cxrs_options: extra parameters to send to the fitting procedure
+    :param  exp: experiment under which the shotfile is stored.
+    :param  edition: edition of the shotfile to read
+    :param  cxrs_options: extra parameters to send to the fitting procedure
     that reads all the rotation velocities.
     """
 
@@ -818,11 +818,11 @@ def get_tor_rotation_idi(shotnumber: int, time: float = None,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shotnumber: shotnumber to read.
-    @param time: time window to get the data. If None, all the available times
+    :param  shotnumber: shotnumber to read.
+    :param  time: time window to get the data. If None, all the available times
     are read.
-    @param exp: experiment under which the shotfile is stored.
-    @param edition: edition of the shotfile to read
+    :param  exp: experiment under which the shotfile is stored.
+    :param  edition: edition of the shotfile to read
     """
 
     # --- Opening the shotfile.
@@ -878,14 +878,14 @@ def get_tor_rotation_cxrs(shotnumber: int, time: float = None,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shotnumber: shotnumber to read.
-    @param time: time window to get the data. If None, all the available times
+    :param  shotnumber: shotnumber to read.
+    :param  time: time window to get the data. If None, all the available times
     are read.
-    @param exp: experiment under which the shotfile is stored.
-    @param edition: edition of the shotfile to read
-    @param tavg: averaging time in miliseconds. 50 ms by default.
-    @param nrho: number of points in rho_pol to calculate the smoothed profile.
-    @param smooth_factor: smoothing factor to send to the UnivariateSpline
+    :param  exp: experiment under which the shotfile is stored.
+    :param  edition: edition of the shotfile to read
+    :param  tavg: averaging time in miliseconds. 50 ms by default.
+    :param  nrho: number of points in rho_pol to calculate the smoothed profile.
+    :param  smooth_factor: smoothing factor to send to the UnivariateSpline
     class to perform the smoothing regression.
     """
 
@@ -1186,10 +1186,10 @@ def get_tor_rotation_ped(shotnumber: int, time: float = None,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shotnumber: shot number to get the data.
-    @param time: time window to retrieve the toroidal rotation data.
-    @param exp: experiment name where the shotfile is stored.
-    @param edition: edition of the shotfile.
+    :param  shotnumber: shot number to get the data.
+    :param  time: time window to retrieve the toroidal rotation data.
+    :param  exp: experiment name where the shotfile is stored.
+    :param  edition: edition of the shotfile.
     """
 
     # --- Opening the shotfile.
@@ -1236,12 +1236,12 @@ def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shotnumber: shotnumber to get the diamagnetic drift.
-    @param tBegin: initial point of the time window to use.
-    @param tEnd: ending point of the time window to use.
-    @param equ_diag: diagnostic for the magnetic equilibrium. If None, EQH is
+    :param  shotnumber: shotnumber to get the diamagnetic drift.
+    :param  tBegin: initial point of the time window to use.
+    :param  tEnd: ending point of the time window to use.
+    :param  equ_diag: diagnostic for the magnetic equilibrium. If None, EQH is
     used.
-    @param prof_diag: diagnostic to retrieve the pressure and density profiles.
+    :param  prof_diag: diagnostic to retrieve the pressure and density profiles.
     If None, IDA is chosen by default.
     """
 
@@ -1334,11 +1334,11 @@ def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
 #
 #     Pablo Oyola - pablo.oyola@ipp.mpg.de
 #
-#     @param shotnumber: shot Number to get the ECE data.
-#     @param timeWindow: time window to get the data.
-#     @param fast: fast reading implies that the position of each of the
+#     :param  shotnumber: shot Number to get the ECE data.
+#     :param  timeWindow: time window to get the data.
+#     :param  fast: fast reading implies that the position of each of the
 #     radiometers is averaged along the time window making it faster.
-#     @param rhopLimits: limits in rho poloidal to retrieve the ECE. If None,
+#     :param  rhopLimits: limits in rho poloidal to retrieve the ECE. If None,
 #     the limits are set to [-1.0, 1.0], where the sign is conventional to
 #     HFS (-) and LFS (+)
 #     """
@@ -1624,14 +1624,14 @@ def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
 #
 #     Pablo Oyola - pablo.oyola@ipp.mpg.de
 #
-#     @param ecedata: dictionary with the data from the ECE.
-#     @param diag: Diagnostic from which the eletron gradient will be retrieved.
+#     :param  ecedata: dictionary with the data from the ECE.
+#     :param  diag: Diagnostic from which the eletron gradient will be retrieved.
 #     By default is set to PED in AUGD, because its separatrix value are more
 #     reliable. If the PED shotfile is not found, then the IDA shotfile will be
 #     opened.
 #     @parad exp: experiment from which the electron temperature will be
 #     extracted. By default, AUGD.
-#     @param ed: Edition to retrieve from equilibrium. The latest is taken by
+#     :param  ed: Edition to retrieve from equilibrium. The latest is taken by
 #     default.
 #     """
 #     # --- Trying to open the PED shotfile.

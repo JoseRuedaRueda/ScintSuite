@@ -21,7 +21,7 @@ def loadTable1D(filename: str):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param filename: Filename containing the table.
+    :param  filename: Filename containing the table.
 
     """
     output = {}  # Empty dictionary.
@@ -56,7 +56,7 @@ def loadTable2D(filename: str):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param filename: Filename containing the table.
+    :param  filename: Filename containing the table.
     """
     output = {}  # Empty dictionary.
     with open(filename, 'rb') as fid:
@@ -107,7 +107,7 @@ def plotTable1D(table: dict, ax=None, ax_options: dict = {},
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param table: dictionary with the data to be plotted.
+    :param  table: dictionary with the data to be plotted.
     """
     # --- Creating axis and checking the plotting inputs.
     axis_was_none = False
@@ -166,7 +166,7 @@ def plotTable2D(table: dict, v: float = None, ax=None, ax_options: dict = {},
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param table: dictionary with the data to be plotted.
+    :param  table: dictionary with the data to be plotted.
     """
     # --- Creating axis and checking the plotting inputs.
     axis_was_none = False
@@ -243,8 +243,8 @@ def read_rates_Database(name: str = 'Cs',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param name: name of the species to be read from the database.
-    @param filename: name of the netCDF4 file containing the data.
+    :param  name: name of the species to be read from the database.
+    :param  filename: name of the netCDF4 file containing the data.
     """
     try:
         fid = nc4.Dataset(filename, mode='r')
@@ -318,10 +318,10 @@ def write_rates_Database(rates: dict, name: str = 'Cs',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param rates: dictionary with all the information to write
+    :param  rates: dictionary with all the information to write
     to the file.
-    @param name: name of the species to save in the datafile.
-    @param filename: location of the datafile to write the file. If the file
+    :param  name: name of the species to save in the datafile.
+    :param  filename: location of the datafile to write the file. If the file
     does not exist, this routine will try to create one.
     """
     # --- Checking if the file exists:

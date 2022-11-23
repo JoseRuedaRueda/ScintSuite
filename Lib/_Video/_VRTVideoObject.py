@@ -42,8 +42,8 @@ class VRTVideo(BVO):
         """
         Initialise the class
 
-        @param camera: Camera name
-        @param shot: Shot number
+        :param  camera: Camera name
+        :param  shot: Shot number
 
         """
         # Initialise the parent class
@@ -71,7 +71,7 @@ class VRTVideo(BVO):
     def GUI_frames(self, calibrated: bool = False):
         """Small GUI to explore camera frames
 
-        @param calibrated: return the GUI in terms of temperature -> currently
+        :param  calibrated: return the GUI in terms of temperature -> currently
         not working properly
         Changing colormap scale is also bugged
         """
@@ -108,19 +108,19 @@ class VRTVideo(BVO):
         """
         Plot a frame from the loaded frames
 
-        @param frame_number: Number of the frame to plot, relative to the video
+        :param  frame_number: Number of the frame to plot, relative to the video
             file, optional
-        @param ax: Axes where to plot, is none, just a new axes will be created
-        @param ccmap: colormap to be used, if none, Gamma_II from IDL. To be
+        :param  ax: Axes where to plot, is none, just a new axes will be created
+        :param  ccmap: colormap to be used, if none, Gamma_II from IDL. To be
             changed to the Hot colormap
-        @param verbose: If true, info of the theta and phi used will be printed
-        @param vmin: Minimum value for the color scale to plot
-        @param vmax: Maximum value for the color scale to plot
-        @param xlim: tuple with the x-axis limits
-        @param ylim: tuple with the y-axis limits
-        @param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
+        :param  verbose: If true, info of the theta and phi used will be printed
+        :param  vmin: Minimum value for the color scale to plot
+        :param  vmax: Maximum value for the color scale to plot
+        :param  xlim: tuple with the x-axis limits
+        :param  ylim: tuple with the y-axis limits
+        :param  scale: Scale for the plot: 'linear', 'sqrt', or 'log'
 
-        @return ax: the axes where the frame has been drawn
+        :return ax: the axes where the frame has been drawn
 
         """
         # --- Check inputs:

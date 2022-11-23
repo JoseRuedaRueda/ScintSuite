@@ -40,7 +40,7 @@ class Path:
                                                  'calibration_database.calib3')
         self.ihibp_scint_plate = os.path.join(self.ScintSuite,
                                               'Data', 'Plates', 'iHIBP',
-                                              'aug_iHIBP_2020_12_reversed.pl')
+                                              'aug_iHIBP_2020_12.pl')
         self.ihibpsim_strline_database = os.path.join(self.ScintSuite, 'Data',
                                                       'StrikeMaps', 'iHIBP')
         if machine == 'AUG':

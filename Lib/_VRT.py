@@ -22,7 +22,7 @@ def get_cameras(shot):
 
     Javier Hidalgo-Salaverri: jhsalaverri@us.es
 
-    @param shot
+    :param  shot
 
     """
     # Get the camera xml configuration files
@@ -86,8 +86,8 @@ def get_aperture(cam, shot):
     Based on a script of Tilmann Lunt
     Javier Hidalgo-Salaverri: jhsalaverri@us.es
 
-    @param cam: camera name
-    @param shot
+    :param  cam: camera name
+    :param  shot
     """
     fn = '/afs/ipp/u/vida/vrt/config/camera-description/views/view_'+cam+'.xml'
     root = et.parse(fn).getroot()
@@ -119,8 +119,8 @@ def get_calibration(cam, shot, GA, SH):
     Based on a script of Tilmann Lunt
     Javier Hidalgo-Salaverri: jhsalaverri@us.es
 
-    @param cam: camera name
-    @param shot
+    :param  cam: camera name
+    :param  shot
     """
     camrange = 1024
     cal_path = '/afs/ipp/u/vida/vrt/config/camera-description/'\
@@ -170,9 +170,9 @@ def ROI2mask(path: str = '', nx: int = None, ny: int = None):
 
     Javier Hidalgo Salaverri: jhsalaverri@us.es
 
-    @param path
-    @param nx: x dimension of the frame
-    @param ny: y dimension of the frame
+    :param  path
+    :param  nx: x dimension of the frame
+    :param  ny: y dimension of the frame
     """
     # Load the ROI
     root = et.parse(path).getroot()
@@ -201,11 +201,11 @@ def get_time_trace(shot: int = None, roiname: str = '',
                    calibrate: bool = False, plots: bool = True):
     """
     Get the time trace of a VRT camera in terms of signal/temperature
-    @param roiname: ROI to plot. If empty, gets every ROI
-    @param calibrate: get temperature calibration (if existing)
-    @param plots
+    :param  roiname: ROI to plot. If empty, gets every ROI
+    :param  calibrate: get temperature calibration (if existing)
+    :param  plots
 
-    @return tt: dictionary with time trace and threshold
+    :return tt: dictionary with time trace and threshold
     """
     calibration_path = '/afs/ipp/u/vida/vrt/config/camera-description/'
     calibration_path +='calibration/simple/'

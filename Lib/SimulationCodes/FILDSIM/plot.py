@@ -15,10 +15,10 @@ def plot_geometry(filename, ax3D=None, axarr=None, dpi=100,
     ajvv: avanvuuren@us.es
 
     ----------
-    @param filename: FILDSIM configuration file, eg. /path/to/cfg_example.cfg
-    @param ax3D: 3D axis where to plot the geometry, if None, new will be made
-    @param axarr: array of axis to plot projections, if None, new will be made
-    @param dpi: dpi to render the figures, only used if the axis are created
+    :param  filename: FILDSIM configuration file, eg. /path/to/cfg_example.cfg
+    :param  ax3D: 3D axis where to plot the geometry, if None, new will be made
+    :param  axarr: array of axis to plot projections, if None, new will be made
+    :param  dpi: dpi to render the figures, only used if the axis are created
     by this function
     """
     namelist = ssfildsimA.read_namelist(filename)

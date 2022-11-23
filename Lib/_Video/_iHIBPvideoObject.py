@@ -14,14 +14,14 @@ import Lib.errors as errors
 import Lib._Paths as p
 from Lib._Machine import machine
 import Lib._Mapping._Calibration as libcal
-from Lib._Mapping._Scintillator import Scintillator
+from Lib._Scintillator import Scintillator
 import Lib.LibData.AUG.DiagParam as params
 import Lib._TimeTrace as sstt
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-import Lib._Plotting as ssplt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import xarray as xr
+import logging
+
+logger = logging.getLogger('ScintSuite.iHIBPvideo')
+
 pa = p.Path(machine)
 del p
 
@@ -32,10 +32,10 @@ def decision(prob: float, x0: float, dx0: float):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param prob: array with the probability value that must range between [0, 1]
-    @param x0: probability threshold, point at which the probability of being
+    :param  prob: array with the probability value that must range between [0, 1]
+    :param  x0: probability threshold, point at which the probability of being
     noise would be 50%.
-    @param dx0: probability slope. Slope to transition from noise to signal.
+    :param  dx0: probability slope. Slope to transition from noise to signal.
     """
 
     assert (x0 > 0.0) and (x0 < 1.0), 'Probability threshold must be in [0, 1]'
@@ -45,7 +45,6 @@ def decision(prob: float, x0: float, dx0: float):
 
     return f
 
-
 # --- Auxiliar routines to find the path towards the camera files
 def guessiHIBPfilename(shot: int):
     """
@@ -53,7 +52,7 @@ def guessiHIBPfilename(shot: int):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param shot: shot number
+    :param shot: shot number
 
     @return filename_video: the name of the file/folder
     @return filename_time: the name of the xml file
@@ -96,13 +95,13 @@ def ihibp_get_time_basis(fn: str, shot: int):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param fn: filename of the time trace
-    @param shot: shot to read the timebasis.
-    @param time: timetrace of the discharge
-    @param nf: number of frames stored in the video
+    :param fn: filename of the time trace
+    :param shot: shot to read the timebasis.
+    :param time: timetrace of the discharge
+    :param nf: number of frames stored in the video
     """
 
-    root = et.parse(fn).getroot() # Opening the time configuration file.
+    root = et.parse(fn).getroot()  # Opening the time configuration file.
 
     # From the root we get the properties.
     properties = dict()
@@ -118,7 +117,7 @@ def ihibp_get_time_basis(fn: str, shot: int):
         except:
             pass
 
-    if shot in range(40396,41225): #discharges 40396-41224 store data differently
+    if shot in range(40396, 41225):  # discharges 40396-41224 store data differently
         # Getting the frames.
         frames = list(root)[2]
         # Now we read the rest of the entries.
@@ -127,7 +126,7 @@ def ihibp_get_time_basis(fn: str, shot: int):
         for ii, iele in enumerate(list(frames)):
             tmp = iele.attrib
             time[ii] = float(int(tmp['timestamp']))
-        time -= properties['ts6'] #obtain relative timing
+        time -= properties['ts6']  # obtain relative timing
     else:
         nf = len(root)
         time = np.zeros((nf,), dtype=float)
@@ -136,7 +135,7 @@ def ihibp_get_time_basis(fn: str, shot: int):
             time[ii] = float(int(tmp['time'], base=16))
         time -= properties['ts6Time']
 
-    time = time * 1e-9 # time in nanoseconds
+    time = time * 1e-9  # time in nanoseconds
     return time, nf
 
 
@@ -159,19 +158,19 @@ class iHIBPvideo(BVO):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param shot: pulse number to read video data.
-        @param calib: CalParams object with the calibration parameters for the
+        :param  shot: pulse number to read video data.
+        :param  calib: CalParams object with the calibration parameters for the
         image. This is used to properly set the scintillator image to its
         position.
-        @param scobj: Scintillator object containing all the data of the
+        :param  scobj: Scintillator object containing all the data of the
         scintillator position, shape,...
-        @param signal_threshold: sets the minimum number of counts per pixel to
+        :param  signal_threshold: sets the minimum number of counts per pixel to
         be considered illuminated the scintillator. The first image that
         fulfills that will be considered the reference frame with no signal and
         used to remove noise.
-        @param noiseSubtraction: if true, the subtract noise function from the
+        :param  noiseSubtraction: if true, the subtract noise function from the
         parent class will be called automatically in the init
-        @param filterFrames: if true, the filter function from the
+        :param  filterFrames: if true, the filter function from the
         parent class will be called automatically in the init (with the median
         filter option)
         """
@@ -182,23 +181,22 @@ class iHIBPvideo(BVO):
             raise errors.DatabaseError('Cannot find video for shot #%05d'%shot)
         #get time correction
         try:
-            self.timecal, self.properties['nf'] = ihibp_get_time_basis(fn = ft, shot=shot)
+            self.timecal, self.nf = ihibp_get_time_basis(fn = ft, shot=shot)
         except FileNotFoundError:
             pass
         # We initialize the parent class with the iHIBP video.
         self.framenumber = frame
         self.timestamp = timestamp
-        self.timebase = self.timecal
         super().__init__(file=fn, shot=shot)
         self.exp_dat['t'] = self.timecal
+        self.timebase = self.timecal
         self.exp_dat['nframes'] = \
             xr.DataArray(np.arange(len(self.exp_dat.t)), dims=('t'))
         # Let's check whether the user provided the calibration parameters.
         if calib is None:
-            print('Retrieving the calibration parameters for iHIBP')
-            caldb = libcal.get_database(pa.ihibp_calibration_db)
-            self.calib = libcal.get_calibration_method(caldb, shot=shot,
-                                               diag_ID=1, method = 'non-poly')
+            logger.info('Retrieving the calibration parameters for iHIBP')
+            caldb = libcal.CalibrationDatabase(pa.ihibp_calibration_db)
+            self.calib = caldb.get_calibration(shot=shot, diag_ID=1)
         else:
             self.calib = calib
         # JRR note: This was created in parallel by Pablo and I will not change
@@ -210,7 +208,7 @@ class iHIBPvideo(BVO):
 
         # --- Checking if the scintillator plate is provided:
         if scobj is None:
-            print('Getting standard scintillator plate for iHIBP')
+            logger.info('Getting standard scintillator plate for iHIBP')
             fn_sc = pa.ihibp_scint_plate
             self.scintillator = Scintillator(file=fn_sc, format='FILDSIM')
         else:
@@ -222,10 +220,12 @@ class iHIBPvideo(BVO):
         if self.properties['description'] == 'raw video':
             noiseSubtraction = True
             filterFrames = True
-            self.properties['description'] = 'zero-th frame subtracted and median filtered with size 5'
+            self.properties['description'] = 'zero-th frame subtracted ' + \
+                                             'and median filtered with size 5'
         # --- Apply now the background noise substraction and filtering.
         if noiseSubtraction:
-            self.subtract_noise(frame = self.exp_dat['frames'].isel(t=0), flag_copy=True)
+            self.subtract_noise(frame = self.exp_dat['frames'].isel(t=0),
+                                flag_copy=True)
         if filterFrames:
             self.filter_frames(method='median', options = {'size': 5})
 
@@ -243,7 +243,7 @@ class iHIBPvideo(BVO):
 
             t0_idx = np.where(self.dsignal_dt > signal_threshold)[0][0]
             self.t0 = time[t0_idx]
-            print('Using t0 = %.3f as the reference frame'%self.t0)
+            logger.info('Using t0 = %.3f as the reference frame'%self.t0)
             self.frame0 = \
                 self.exp_dat['frames'].values[..., self.getFrameIndex(t=self.t0)]
 
@@ -254,10 +254,10 @@ class iHIBPvideo(BVO):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param plotScintillatorPlate: flag to plot or not the scintillator
+        :param  plotScintillatorPlate: flag to plot or not the scintillator
         plate to the figure. Defaults to True.
-        @param kwargs: same arguments than BVO.plot_frame.
-        @return ax: axis where the frame has been plot.
+        :param  kwargs: same arguments than BVO.plot_frame.
+        :return ax: axis where the frame has been plot.
         """
         ax = super().plot_frame(**kwargs)
 
@@ -279,7 +279,7 @@ class iHIBPvideo(BVO):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param timetrace: timetrace to be used as a monitor for the background
+        :param  timetrace: timetrace to be used as a monitor for the background
         light. If None, we will fall back to the standard monitor that is just
         taking a small piece of the scintillator.
         """
@@ -326,8 +326,8 @@ class iHIBPvideo(BVO):
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param x0: value of the probability transition from noise to signal
-        @param dx0: pace to smooth the transition from noise to signal.
+        :param  x0: value of the probability transition from noise to signal
+        :param  dx0: pace to smooth the transition from noise to signal.
         """
         if 'frame_noise' not in self.__dict__:
             raise Exception('A particular time-dependence'+\
@@ -368,10 +368,10 @@ class iHIBPvideo(BVO):
         adapted from the BasicVideoObject (BVO) from:
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param t: time of the frame to be plotted for the selection of the roi
-        @param mask: bolean mask of the ROI
+        :param  t: time of the frame to be plotted for the selection of the roi
+        :param  mask: bolean mask of the ROI
 
-        @returns timetrace: a timetrace object
+        :returns timetrace: a timetrace object
         """
 
         if (t is None) and (mask is None):

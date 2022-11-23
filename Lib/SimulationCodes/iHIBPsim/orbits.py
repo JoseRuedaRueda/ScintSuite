@@ -36,7 +36,8 @@ class orbit:
 
     def plot(self, view: str = '2D', ax_params: dict = {}, ax=None,
              line_params: dict = {}, shaded3d_options: dict = {},
-             imin: int = 0, imax: int = None, plot_vessel: bool = True):
+             imin: int = 0, imax: int = None, plot_vessel: bool = True,
+             plot_start_end: bool = False):
         """
         Plot the orbit
 
@@ -44,15 +45,17 @@ class orbit:
         ft.
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param view: '2D' to plot, (R,z), (x,y). '3D' to plot the 3D orbit
-        @param ax_params: options for the function axis_beauty
-        @param line_params: options for the line plot (markers, colors and so on)
-        @param ax: axes where to plot, if none, new ones will be created. Note,
+        :param  view: '2D' to plot, (R,z), (x,y). '3D' to plot the 3D orbit
+        :param  ax_params: options for the function axis_beauty
+        :param  line_params: options for the line plot (markers, colors and so on)
+        :param  ax: axes where to plot, if none, new ones will be created. Note,
         if the '2D' mode is used, ax should be a list of axes, the first one for
         the Rz projection
-        @param shaded3d_options: dictionary with the options for the plotting of
+        :param  shaded3d_options: dictionary with the options for the plotting of
         the 3d vessel
-        @param plot_vessel. Flag to plot the vessel or not
+        :param  plot_vessel. Flag to plot the vessel or not
+        :param plot_start_end: whether to plot the initial and ending points
+        of the orbit.
         """
 
         # --- Initialise the plotting parameters
@@ -106,8 +109,12 @@ class orbit:
             ax.plot(x[imin:imax], y[imin:imax],
                     self.data['z'][imin:imax],
                     **line_options)
-            ax.scatter(x[imin], y[imin], self.data['z'][imin], color = 'g', label ='initial')
-            ax.scatter(x[imax-1], y[imax-1], self.data['z'][imax-1], color = 'r', label ='Final')
+
+            if plot_start_end:
+                ax.scatter(x[imin], y[imin], self.data['z'][imin],
+                           color = 'g', label ='initial')
+                ax.scatter(x[imax-1], y[imax-1], self.data['z'][imax-1],
+                           color = 'r', label ='Final')
             ax.legend()
 
 
@@ -152,14 +159,14 @@ class orbit:
         Pablo Oyola - pablo.oyola@ipp.mpg.de
         Jose Rueda Rueda - jrrueda@us.es
 
-        @param ax: set of axis to plot the timetraces. As of Feb21, it must be
+        :param  ax: set of axis to plot the timetraces. As of Feb21, it must be
         an array of 4 axis to plot.
-        @param ax_params: options to make beautiful plots.
-        @param line_params: set of options to be sent when using plot
+        :param  ax_params: options to make beautiful plots.
+        :param  line_params: set of options to be sent when using plot
         routines.
-        @param legend_on: flag to determine when the legend is plot.
-        @param plot_coords: flag to plot the evolusion of r, z and phi
-        @param ax_coords: axis to plot the coordinate evolution
+        :param  legend_on: flag to determine when the legend is plot.
+        :param  plot_coords: flag to plot the evolusion of r, z and phi
+        :param  ax_coords: axis to plot the coordinate evolution
         """
         # --- Initialise the plotting parameter
         ax_opt = {
@@ -249,13 +256,13 @@ class orbit:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param magn: Magnetic fields containing the magnetic field and the
+        :param  magn: Magnetic fields containing the magnetic field and the
         poloidal flux to be able to map the markers info into the variables.
-        @param calcMomenta: Calls the function to make the calculation of the
+        :param  calcMomenta: Calls the function to make the calculation of the
         toroidal canonical momentum, pitch-angle and magnetic momentum.
-        @param magMomOrder: Order of the calculation of the magnetic momentum.
+        :param  magMomOrder: Order of the calculation of the magnetic momentum.
         @see{orbit::calculateMagMomentum}
-        @param IpBt: sign convention for the pitch-angle definition.
+        :param  IpBt: sign convention for the pitch-angle definition.
         """
 
         self.magObject = magn
@@ -282,7 +289,7 @@ class orbit:
         Side effect, r_l, larmor radius and omega_c, cyclotron frecuency
         will be added to the orbit dictionary
 
-        @return : fields xc, yc, rc, zc, phic at the orbit data dict
+        :return : fields xc, yc, rc, zc, phic at the orbit data dict
         """
         br, bz, bphi = self.magObject.getBfield(self.data['R'],
                                                 self.data['z'],
@@ -330,7 +337,7 @@ class orbit:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param ipbt: sign convention to define the direction of the pitch
+        :param  ipbt: sign convention to define the direction of the pitch
         angle.
         """
 
@@ -357,7 +364,7 @@ class orbit:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param ipbt: sign convention to define the direction of the pitch
+        :param  ipbt: sign convention to define the direction of the pitch
         angle.
         """
 
@@ -389,8 +396,8 @@ class orbit:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param order: approximation order of the magnetic moment.
-        @param gyrocenter: if true the field at the gyrocenter will be used
+        :param  order: approximation order of the magnetic moment.
+        :param  gyrocenter: if true the field at the gyrocenter will be used
         """
 
         if gyrocenter:
@@ -446,8 +453,8 @@ class orbit:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param idx: orbit number.
-        @return self.data[idx]: Orbit dictionary.
+        :param  idx: orbit number.
+        :return self.data[idx]: Orbit dictionary.
         """
         return self.data[idx]
 
@@ -460,14 +467,14 @@ def plotOrbits(orbitList, view: str = '2D', ax_params: dict = {}, ax=None,
     the same axis and return an unique axis object after it.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
-    @param orbitList: list of orbits to plot.
-    @param view: '2D' to plot, (R,z), (x,y). '3D' to plot the 3D orbit
-    @param ax_params: options for the function axis_beauty
-    @param line_params: options for the line plot (markers, colors and so on)
-    @param ax: axes where to plot, if none, new ones will be created. Note,
+    :param  orbitList: list of orbits to plot.
+    :param  view: '2D' to plot, (R,z), (x,y). '3D' to plot the 3D orbit
+    :param  ax_params: options for the function axis_beauty
+    :param  line_params: options for the line plot (markers, colors and so on)
+    :param  ax: axes where to plot, if none, new ones will be created. Note,
     if the '2D' mode is used, ax should be a list of axes, the first one for
     the Rz projection
-    @param shaded3d_options: dictionary with the options for the plotting of
+    :param  shaded3d_options: dictionary with the options for the plotting of
     the 3d vessel
     """
     # --- Initialise the plotting parameters
@@ -505,10 +512,10 @@ def plotTimeTraces(orbitList, magn, ax=None, ax_params: dict = {},
     into a single figure and return the axis array.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
-    @param ax: set of axis to plot the timetraces. As of Feb21, it must be
+    :param  ax: set of axis to plot the timetraces. As of Feb21, it must be
     an array of 4 axis to plot.
-    @param ax_params: options to make beautiful plots.
-    @param line_params: set of options to be sent when using plot
+    :param  ax_params: options to make beautiful plots.
+    :param  line_params: set of options to be sent when using plot
     routines.
     @grid: establish if plotting the grids in the axis.
     @legend_on: flag to determine when the legend is plot.
@@ -548,7 +555,7 @@ class orbitFile:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param filename: Filename containing the orbit data. If provided,
+        :param  filename: Filename containing the orbit data. If provided,
                          this routine will read and store the header info.
 
         The header is data is stored at the end of the file:
@@ -559,7 +566,7 @@ class orbitFile:
             int32: Number of elements stored per orbit step   = nCh
             int32: Orbit version number.
 
-        @param load_all: This flags sets the behaviour of orbits[1] to return
+        :param  load_all: This flags sets the behaviour of orbits[1] to return
         either the whole data (if set to True) or only the spatial part (if set
         to False).
         """
@@ -619,13 +626,13 @@ class orbitFile:
         WARNING: consider that the reading Fortran -> Python will transp-
         ose the matrix order.
 
-        @param id: Vector of identifiers of the particle orbits to
+        :param  id: Vector of identifiers of the particle orbits to
         load from the file.
 
-        @param full_info: If false, only the trajectory will be loaded, if true
+        :param  full_info: If false, only the trajectory will be loaded, if true
         also the velocity, weight, charge and mass will be loaded.
 
-        @return orbOut: class with the orbit information. @see{orbit}.
+        :return orbOut: class with the orbit information. @see{orbit}.
         """
         if id is None:
             return self.loadAllOrbits(full_info=full_info)
@@ -678,9 +685,9 @@ class orbitFile:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param num_orbits: it changes the behaviour. If not none, then it
+        :param  num_orbits: it changes the behaviour. If not none, then it
         will only load the first 'num_orbits' of orbits from file.
-        @param full_info: Determine if velocity components are also needed to
+        :param  full_info: Determine if velocity components are also needed to
         be stored.
 
         """
@@ -713,10 +720,10 @@ class orbitFile:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param id: Identifiers of the particle orbits to load from the
+        :param  id: Identifiers of the particle orbits to load from the
         file.
 
-        @return (orbits, id): dictionary and ID list read from the file.
+        :return (orbits, id): dictionary and ID list read from the file.
         @see{orbits::loadOrbit} for more info.
         """
         return self.loadOrbit(ii, full_info=self.loadAll)
@@ -728,7 +735,7 @@ class orbitFile:
         overloaded procedure to read only the spatial data or the full
         information, containing velocities and weighting evolution.
 
-        @param flag_loadAll: if set to True, all the data will be loaded
+        :param  flag_loadAll: if set to True, all the data will be loaded
         from the file, containing the spatial part (R, z, phi) as well as
         velocities and weighting. Otherwise, only the spatial part will be
         loaded.
@@ -756,7 +763,7 @@ class orbitFile:
         approach: one orbit after the other. This starts the appropriate
         flag in the class and allows the fast serial reading.
 
-        @return output: dictionary with the orbit information:
+        :return output: dictionary with the orbit information:
             -# 'R', 'z', 'phi': for the position
             -# 'vR', 'vz', 'vt': for the velocity
             -# 'q', 'm': charge and mass
@@ -819,10 +826,10 @@ class orbitFile:
         In the serial reading mode, this routine will change the position
         that will be read in the following iteration.
 
-        @param pos: Position index in the list of orbits to be read next.
+        :param  pos: Position index in the list of orbits to be read next.
         By default, it comes to the beginning.
 
-        @return pos_real: return the actual position that has been been set.
+        :return pos_real: return the actual position that has been been set.
         """
         if self.initialized and self.chainLoadFlag:
             if pos < 0:
@@ -843,7 +850,7 @@ class orbitFile:
         """
         Return the number of orbits stored in the file.
 
-        @return size: size of the ID list, i.e., number of particle orbits
+        :return size: size of the ID list, i.e., number of particle orbits
         stored in the file.
         """
         return self.idList.size
@@ -858,15 +865,15 @@ class orbitFile:
         ft.
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param id: ID of the orbit. If we are in the serial reading, it will be
+        :param  id: ID of the orbit. If we are in the serial reading, it will be
         ignored, and the next orbit will be loaded instead.
-        @param view: '2D' to plot, (R,z), (x,y). '3D' to plot the 3D orbit
-        @param ax_options: options for the function axis_beauty
-        @param line_options: options for the line plot (markers, colors and so on)
-        @param ax: axes where to plot, if none, new ones will be created. Note,
+        :param  view: '2D' to plot, (R,z), (x,y). '3D' to plot the 3D orbit
+        :param  ax_options: options for the function axis_beauty
+        :param  line_options: options for the line plot (markers, colors and so on)
+        :param  ax: axes where to plot, if none, new ones will be created. Note,
         if the '2D' mode is used, ax should be a list of axes, the first one for
         the Rz projection
-        @param shaded3d_options: dictionary with the options for the plotting of
+        :param  shaded3d_options: dictionary with the options for the plotting of
         the 3d vessel
         """
         if not self.initialized:

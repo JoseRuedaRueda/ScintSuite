@@ -13,9 +13,9 @@ class ApplicationRemapAnalysis:
         """
         Create the window with the sliders
 
-        @param master: Tk() opened
-        @param data: the dictionary of experimental frames
-        @param video: the INPA/FILD video object
+        :param  master: Tk() opened
+        :param  data: the dictionary of experimental frames
+        :param  video: the INPA/FILD video object
         """
         # --- Initialise the data container
         self.vid = vid
