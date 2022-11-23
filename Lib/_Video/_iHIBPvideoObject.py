@@ -181,22 +181,20 @@ class iHIBPvideo(BVO):
             raise errors.DatabaseError('Cannot find video for shot #%05d'%shot)
         #get time correction
         try:
-            self.timecal, self.nf = ihibp_get_time_basis(fn = ft, shot=shot)
+            self.timecal, self.properties['nf'] = ihibp_get_time_basis(fn = ft, shot=shot)
         except FileNotFoundError:
             pass
         # We initialize the parent class with the iHIBP video.
         self.framenumber = frame
         self.timestamp = timestamp
-        super().__init__(file=fn, shot=shot)
-        self.exp_dat['t'] = self.timecal
         self.timebase = self.timecal
-        self.exp_dat['nframes'] = \
-            xr.DataArray(np.arange(len(self.exp_dat.t)), dims=('t'))
+        super().__init__(file=fn, shot=shot)
+        self.exp_dat['t'] = np.unique(self.timecal)
         # Let's check whether the user provided the calibration parameters.
         if calib is None:
             logger.info('Retrieving the calibration parameters for iHIBP')
-            caldb = libcal.CalibrationDatabase(pa.ihibp_calibration_db)
-            self.calib = caldb.get_calibration(shot=shot, diag_ID=1)
+            caldb = libcal.get_database(pa.ihibp_calibration_db)
+            self.calib = libcal.get_calibration_method(caldb, shot=shot, method = 'non-poly', diag_ID=1)
         else:
             self.calib = calib
         # JRR note: This was created in parallel by Pablo and I will not change

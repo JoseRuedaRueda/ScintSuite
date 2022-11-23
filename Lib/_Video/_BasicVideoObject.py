@@ -162,12 +162,16 @@ class BVO:
                     px = np.arange(nx)
                     py = np.arange(ny)
 
-                    self.exp_dat['frames'] = \
+                    frames = \
                         xr.DataArray(dummy['frames'], dims=('t', 'px', 'py'),
                                      coords={'t': self.timebase.squeeze(),
                                              'px': px,
                                              'py': py})
-                    self.exp_dat['frames'] = self.exp_dat['frames'].transpose('px', 'py', 't')
+                    frames = frames.transpose('px', 'py', 't')
+                    self.exp_dat['frames'] = frames.drop_duplicates(dim='t')
+                    self.exp_dat['nframes'] = xr.DataArray(np.arange(
+                                              len(self.exp_dat['frames'].t)),
+                                              dims=('t'))
                     self.type_of_file = '.mp4'
                 else:
                     raise Exception('Not recognised file extension')
