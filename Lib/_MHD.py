@@ -149,6 +149,8 @@ class MHDmode():
             'linestyle': '--',
             'alpha': 0.35
         }
+        if ax is None:
+            line_opitons['color'] = 'k'
         line_opitons.update(line_params)
         # --- Check the rho
         try:

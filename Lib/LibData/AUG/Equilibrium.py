@@ -352,7 +352,18 @@ def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
         }
     else:
         output = xr.Dataset()
-        jend = np.where(np.isnan(rhop[:, 0]))[0][0]
+        found = False
+        counter = 0
+        while not found:
+            try:
+                jend = np.where(np.isnan(rhop[:, counter]))[0][0]
+                found = True
+            except IndexError:
+                counter += 1
+                if counter == rhop.shape[1]:
+                    print(counter)
+                    raise Exception('problem with the base')
+
         output['data'] = xr.DataArray(qpsi[:jend, :], dims=('rho', 't'),
                                       coords={'rho': rhop[:jend, 0],
                                       't': timebasis})
