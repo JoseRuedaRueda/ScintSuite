@@ -4,5 +4,5 @@
 #CAL_ID	CAMERA	PULSE_1	PULSE_2	XSHIFT	YSHIFT	XSCALE	YSCALE 	DEG	CAL_TYPE	FILD_ID
 
 1	       PCO	  44727	  45081	  -17.79  145.67   5949.1 -5949.1	   44.23	  PIX	   	1
-2	       PCO	  45082	  45484	   -412.5	   348.1   	10400	   10400	   43.6	  PIX	   	1
+2	       PCO	  45082	  45484	   -412.5	   348.1   	10400	   -10400	   43.6	  PIX	   	1
 3	       PCO	  45485	  47777	   530	   470   	-101	   101	   0	  PIX	   	1

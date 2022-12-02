@@ -186,35 +186,42 @@ def remapAllLoadedFrames(video,
     name = ' '      # To save the name of the strike map
     name_old = ' '  # To avoid loading twice in a row the same map
     if not got_smap:
-        # -- Collect the angles
-        phi = video.Bangles['phi'].values
-        theta = video.Bangles['theta'].values
-        # Check that the angles were calculated for the frames (it can happen
-        # that the user recalculate the angles after averaging, so they are
-        # evaluated in the original time base). There is a check in the video
-        # object before calling this function, but just in case
-        if (phi.size != nframes) or (theta.size != nframes):
-            print('Number of frames: ', nframes)
-            print('Size of phi: ', phi.size)
-            print('Size of theta: ', theta.size)
-            raise errors.NotValidInput('Wrong length of phi and theta')
-        # -- See if the strike map exist in the folder
-        logger.info('Looking for strikemaps in: ', smap_folder)
-        for iframe in tqdm(range(nframes)):
-            if FILDSIM:
-                logger.info('This is deprecated, please use SINPA (uFILDSIM)')
-                name = ssFILDSIM.guess_strike_map_name(
-                    phi[iframe], theta[iframe], geomID=video.geometryID,
-                    decimals=decimals
-                    )
-            else:
-                name = ssSINPA.execution.guess_strike_map_name(
-                    phi[iframe], theta[iframe], geomID=video.geometryID,
-                    decimals=decimals
-                    )
-            # See if the strike map exist
-            if os.path.isfile(os.path.join(smap_folder, name)):
-                exist[iframe] = True
+        if decilmas != video.Bangles['decimals'].values:
+            # CHANGE FROM HERE
+            # -- Collect the angles
+            phi = video.Bangles['phi'].values
+            theta = video.Bangles['theta'].values
+            # Check that the angles were calculated for the frames (it can happen
+            # that the user recalculate the angles after averaging, so they are
+            # evaluated in the original time base). There is a check in the video
+            # object before calling this function, but just in case
+            if (phi.size != nframes) or (theta.size != nframes):
+                print('Number of frames: ', nframes)
+                print('Size of phi: ', phi.size)
+                print('Size of theta: ', theta.size)
+                raise errors.NotValidInput('Wrong length of phi and theta')
+            # -- See if the strike map exist in the folder
+            logger.info('Looking for strikemaps in: ', smap_folder)
+            for iframe in tqdm(range(nframes)):
+                if FILDSIM:
+                    logger.info('This is deprecated, please use SINPA (uFILDSIM)')
+                    name = ssFILDSIM.guess_strike_map_name(
+                        phi[iframe], theta[iframe], geomID=video.geometryID,
+                        decimals=decimals
+                        )
+                else:
+                    name = ssSINPA.execution.guess_strike_map_name(
+                        phi[iframe], theta[iframe], geomID=video.geometryID,
+                        decimals=decimals
+                        )
+                # See if the strike map exist
+                if os.path.isfile(os.path.join(smap_folder, name)):
+                    exist[iframe] = True
+        else:
+            theta_used = video.Bangles['theta_used'].values
+            phi_used = video.Bangles['phi_used'].values
+            exist = video.Bangles['exist'].values
+
         # -- See how many we need to calculate
         nnSmap = np.sum(~exist)  # Number of Smaps missing
         dummy = np.arange(nframes)     #
