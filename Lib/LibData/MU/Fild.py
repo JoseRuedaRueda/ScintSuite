@@ -42,7 +42,7 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
 
     :return file: the name of the file/folder
     """
-    base_dir = params.FILD[diag_ID-1]['path']
+    base_dir = params.FILD[diag_ID-1]['path'](shot)
     extension = params.FILD[diag_ID-1]['extension'](shot)
     shot_str = str(shot)
     name = shot_str + extension
@@ -198,6 +198,16 @@ class FILD_logbook:
         database = pd.DataFrame(data)
         return database
 
+    def getCameraGeneralParameters(self, shot: int, diag_ID: int = 1):
+        """
+        Read the camera general properties
+        """
+        calib = self.getCameraCalibration(shot, diag_ID)
+        filename = os.path.join(paths.ScintSuite, 'Data',
+                                'CameraGenralParameters', 
+                                calib.camera.lower()+'.txt')
+        return f90mnl.read(filename)
+    
     def getCameraCalibration(self, shot: int, diag_ID: int = 1):
         """
         Get the camera calibration parameters for a shot
@@ -378,7 +388,7 @@ class FILD_logbook:
         :param  FILDid: manipulator id
         """
         # Get always the default as a reference:
-        default = params.FILD[diag_ID-1]['adqfreq']
+        default = params.FILD[diag_ID-1]['adqfreq'](shot)
         # First check that we have loaded the position logbook
         if not self.flagPositionDatabase:
             print('Logbook not loaded, returning default values')
@@ -410,7 +420,7 @@ class FILD_logbook:
         :param  FILDid: manipulator id
         """
         # Get always the default as a reference:
-        default = params.FILD[diag_ID-1]['t_trig']
+        default = params.FILD[diag_ID-1]['t_trig'](shot)
         # First check that we have loaded the position logbook
         if not self.flagPositionDatabase:
             print('Logbook not loaded, returning default values')
