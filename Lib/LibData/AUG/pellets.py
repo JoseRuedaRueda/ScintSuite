@@ -9,13 +9,13 @@ def get_pellets_timeTraces(shot: int = None, plot: bool = False,
     Return the pellets time trace in terms of programmed value and pellets
     that reached the plasma
 
-    @param shot
-    @param plot
-    @param avg_window: acqusition frequency of this diagnostic is really high.
+    :param  shot
+    :param  plot
+    :param  avg_window: acqusition frequency of this diagnostic is really high.
         Choose the averaging window to reduce the size
-    @param remove_offset: correct the signal offset
+    :param  remove_offset: correct the signal offset
 
-    @return dictionary with the time traces
+    :return dictionary with the time traces
     """
 
     PID = sf.SFREAD(shot, 'PID')

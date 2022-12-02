@@ -153,6 +153,7 @@ paths = p.Path(machine)
 
 # Non tokamak independent libraries
 if machine == 'AUG':
+    import Lib.SimulationCodes.torbeam as torbeam
     import Lib.SimulationCodes.iHIBPsim as ihibp
 
 # Delete the intermediate variables to 'clean'
@@ -161,10 +162,10 @@ del m
 ## ------------------------------------------------------------------------
 # --- PRINT SUITE VERSION
 # -------------------------------------------------------------------------
-print('-... .. . -. ...- . -. .. -.. ---')
-print('VERSION: ' + version + ' ' + codename)
-print('.-- . .-.. .-.. -.-. --- -- .')
-
+logger.info('-... .. . -. ...- . -. .. -.. ---')
+logger.info('VERSION: ' + version + ' ' + codename)
+logger.info('.-- . .-.. .-.. -.-. --- -- .')
+ver.printGITcommit()
 ## ------------------------------------------------------------------------
 # --- Initialise plotting options
 # -------------------------------------------------------------------------
@@ -175,5 +176,3 @@ try:
 except:
     logger.warning('28: It was not possible to initialise the plotting ' +
                    'settings')
-
-

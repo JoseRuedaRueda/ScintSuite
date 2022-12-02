@@ -16,7 +16,7 @@ def StrikeMap(id, file):
     If you are creating a new method or script, base it in the Smap object
     directly, do not use this method please
 
-    @param id: diagnostic identification:
+    :param  id: diagnostic identification:
         -0, 'FILD': would be fild
         -1, 'INPA': would be INPA
     """

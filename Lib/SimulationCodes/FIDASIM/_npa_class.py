@@ -21,8 +21,8 @@ class NPA():
         """
         Initalise the class
 
-        @param filename: filename to be read
-        @param verbose: bollean flag to print some info in the console
+        :param  filename: filename to be read
+        :param  verbose: bollean flag to print some info in the console
         """
         if not os.path.isfile(filename):
             raise Exception('File not found')
@@ -46,18 +46,18 @@ class NPA():
         """
         Plot a 1D histogram of a given variable
 
-        @param var: variable we want to plot
-        @param bins: number of bins or bin edges
-        @param includeW: flag to include the weight of the markers
-        @param ax: axes where to plot
-        @param line_params: dict containing the line parameters for the plot
-        @param normalise: if true, normalise y axis to one
-        @param var_limit: name of the variable to restric the markers
-        @param limits: tuple containing minimum and maximum values of the
+        :param  var: variable we want to plot
+        :param  bins: number of bins or bin edges
+        :param  includeW: flag to include the weight of the markers
+        :param  ax: axes where to plot
+        :param  line_params: dict containing the line parameters for the plot
+        :param  normalise: if true, normalise y axis to one
+        :param  var_limit: name of the variable to restric the markers
+        :param  limits: tuple containing minimum and maximum values of the
             control variable
 
-        @return xcenter: x axis of the histogram
-        @return H: the plotted histogram
+        :return xcenter: x axis of the histogram
+        :return H: the plotted histogram
         """
         created = True
         if ax is None:
@@ -88,9 +88,9 @@ class NPA():
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param Boptions: extra options for the routine which calculate the
+        :param  Boptions: extra options for the routine which calculate the
             magnetic field
-        @param IpBtSign: +-1, for the definition of the pitch angle
+        :param  IpBtSign: +-1, for the definition of the pitch angle
         """
         keys = [['ipos', 'Ri', 'ipitch'], ['fpos', 'Rf', 'fpitch']]
 

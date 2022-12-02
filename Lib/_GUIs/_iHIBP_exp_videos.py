@@ -29,9 +29,9 @@ class app_ihibp_vid:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param tkwindow: window handler.
-        @param shotnumber: shotnumber of the video to load.
-        @param path: path to the simulation with iHIBPsim to plot the lines.
+        :param  tkwindow: window handler.
+        :param  shotnumber: shotnumber of the video to load.
+        :param  path: path to the simulation with iHIBPsim to plot the lines.
         """
         self.TKwindow   = tkwindow
         self.shotnumber = shotnumber

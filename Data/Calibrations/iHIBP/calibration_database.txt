@@ -1,6 +1,0 @@
-# Text file containing information about the camera parameters
-# Last Update: 09/02/2022
-#FORMAT IS:
-#ID CAMERA             SHOT1   SHOT2   XS    YS     Xsc     Ysc     DEG   CAL   diag_ID   c1        xcenter   ycenter
-
-0   SLOWCAMERA       30000   99999   730  400   4.72   4.72   -89    PIX   1     -5.65e-4     338.75      230

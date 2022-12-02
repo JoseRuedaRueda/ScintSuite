@@ -100,3 +100,22 @@ class NotFoundVariable(Exception):
     """Raised if the no StrikeMap is found in the database"""
 
     pass
+
+# --- Data not loaded into a class
+class NotDataPreloaded(Exception):
+    """
+    Raised, typically, within a class when the user did not load a variable
+    prior to its use.
+
+    Example : asking to plot data, but the user never gave the correspoding data.
+    Example 2: asking for applying a calibration, but the user never specified one.
+    """
+
+    pass
+
+class InconsistentData(Exception):
+    """
+    Raised when two sets of data with inconsistencies are used.
+    """
+
+    pass

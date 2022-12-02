@@ -14,16 +14,16 @@ def get_mag_field(shot: int, Rin, zin, time: float, **kwargs):
 
     Note2: MU FILD1 is located around z=0.159m
 
-    @param shot: Shot number
-    @param Rin: Array of R positions where to evaluate (in pairs with zin) [m]
-    @param zin: Array of z positions where to evaluate (in pairs with Rin) [m]
-    @param time: Array of times where we want to calculate the field (the
+    :param  shot: Shot number
+    :param  Rin: Array of R positions where to evaluate (in pairs with zin) [m]
+    :param  zin: Array of z positions where to evaluate (in pairs with Rin) [m]
+    :param  time: Array of times where we want to calculate the field (the
     field would be calculated in a time as close as possible to this
 
-    @return br: Radial magnetic field (nt, nrz_in), [T]
-    @return bz: z magnetic field (nt, nrz_in), [T]
-    @return bt: toroidal magnetic field (nt, nrz_in), [T]
-    @return bp: poloidal magnetic field (nt, nrz_in), [T]
+    :return br: Radial magnetic field (nt, nrz_in), [T]
+    :return bz: z magnetic field (nt, nrz_in), [T]
+    :return bt: toroidal magnetic field (nt, nrz_in), [T]
+    :return bp: poloidal magnetic field (nt, nrz_in), [T]
     """
     if isinstance(time, (list, np.ndarray)):
         pass

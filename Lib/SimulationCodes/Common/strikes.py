@@ -8,32 +8,40 @@ calculated by the code and plot the different information on it
 """
 import os
 import math
-import numpy as np
-# import Lib._Parameters as sspar
-from Lib._Machine import machine
-from Lib._Paths import Path
-from Lib.SimulationCodes.Common.strikeHeader import orderStrikes as order
-from Lib._Mapping._Common import transform_to_pixel, remap
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from Lib._Plotting import axisEqual3D, clean3Daxis
-from Lib._SideFunctions import createGrid
-import Lib._Plotting as ssplt
-import Lib.errors as errors
 import logging
+import numpy as np
+import xarray as xr
+import Lib.errors as errors
+import Lib._Plotting as ssplt
+import matplotlib.pyplot as plt
 from copy import deepcopy
+from Lib._Paths import Path
+from Lib._Machine import machine
+from mpl_toolkits.mplot3d import Axes3D
+from Lib._SideFunctions import createGrid
+from Lib._Mapping._Common import transform_to_pixel, remap
+from Lib.SimulationCodes.Common.strikeHeader import orderStrikes as order
+from Lib._Plotting import axisEqual3D, clean3Daxis
+
+
+# -----------------------------------------------------------------------------
+# --- Prepare auxiliary objects
+# ----------------------------------------------------------------------------
 logger = logging.getLogger('ScintSuite.SimCod')
 paths = Path(machine)
 
 
+# ----------------------------------------------------------------------------
+# --- Reading routines
+# ----------------------------------------------------------------------------
 def readSINPAstrikes(filename: str, verbose: bool = False):
     """
     Read the strike points from a SINPA simulation
 
     Jose Rueda: jrrueda@us.es
 
-    @param filename: filename of the file
-    @param verbose: flag to print information on the file
+    :param  filename: filename of the file
+    :param  verbose: flag to print information on the file
 
     Note: in order to load the proper header (with information on which
     variables are stored in the file), the code will guess which kind of file
@@ -52,7 +60,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
     elif filename.endswith('wmmap'):
         plate = 'wrong'
     else:
-        raise Exception('File not understood. Has you chenged the ext???')
+        raise Exception('File not understood. Has you changed the ext???')
 
     # --- Open the file and read
     with open(filename, 'rb') as fid:
@@ -60,7 +68,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             'versionID1': np.fromfile(fid, 'int32', 1)[0],
             'versionID2': np.fromfile(fid, 'int32', 1)[0],
         }
-        if header['versionID1'] <= 3:
+        if header['versionID1'] <= 4:
             # Keys of what we have in the file:
             header['runID'] = np.fromfile(fid, 'S50', 1)[:]
             header['ngyr'] = np.fromfile(fid, 'int32', 1)[0]
@@ -70,6 +78,8 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             header['FILDSIMmode'] = \
                 np.fromfile(fid, 'int32', 1)[0].astype(bool)
             header['ncolumns'] = np.fromfile(fid, 'int32', 1)[0]
+            if header['versionID1'] >= 4:
+                header['kindOfFile'] = np.fromfile(fid, 'int32', 1)[0]
             header['counters'] = \
                 np.zeros((header['nXI'], header['ngyr']), int)
             data = np.empty((header['nXI'], header['ngyr']),
@@ -91,16 +101,28 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             else:
                 key_to_look = 'sinpa_INPA'
             while not found_header:
-                try:
-                    header['info'] = deepcopy(
-                        order[key_to_look][id_version][plate.lower()])
-                    found_header = True
-                except KeyError:
-                    id_version -= 1
-                # if the id_version is already -1, just stop, something
-                # went wrong
-                if id_version < 0:
-                    raise Exception('Not undestood SINPA version')
+                if header['versionID1'] < 4:
+                    try:
+                        header['info'] = deepcopy(
+                            order[key_to_look][id_version][plate.lower()])
+                        found_header = True
+                    except KeyError:
+                        id_version -= 1
+                    # if the id_version is already -1, just stop, something
+                    # went wrong
+                    if id_version < 0:
+                        raise Exception('Not undestood SINPA version')
+                else:
+                    try:
+                        header['info'] = deepcopy(
+                            order[key_to_look][id_version][plate.lower()][header['kindOfFile']])
+                        found_header = True
+                    except KeyError:
+                        id_version -= 1
+                    # if the id_version is already -1, just stop, something
+                    # went wrong
+                    if id_version < 0:
+                        raise Exception('Not undestood SINPA version')
             # Load the data from each gyroradius and xi values. If the loaded
             # plate is scintillator, get the edge of the markers distribution,
             # for the latter histogram calculation
@@ -170,7 +192,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             extra_column = {
                 'R0': {
                     'i': Old_number_colums,  # Column index in the file
-                    'units': ' [m]',  # Units
+                    'units': 'm',  # Units
                     'longName': 'Radial position of the CX event',
                     'shortName': '$R$',
                 },
@@ -222,16 +244,17 @@ def readFILDSIMstrikes(filename: str, verbose: bool = False):
 
     Jose Rueda: ruejo@ipp.mpg.de
 
-    @param runID: runID of the FILDSIM simulation
-    @param plate: plate to collide with (Collimator or Scintillator)
-    @param file: if a filename is provided, data will be loaded from this
+    :param  runID: runID of the FILDSIM simulation
+    :param  plate: plate to collide with (Collimator or Scintillator)
+    :param  file: if a filename is provided, data will be loaded from this
     file, ignoring the SINPA folder structure (and runID)
-    @param verbose. flag to print some info in the command line
+    :param  verbose. flag to print some info in the command line
     """
     if verbose:
         print('Reading strike points: ', filename)
     dummy = np.loadtxt(filename, skiprows=3)
     header = {
+        'FILDSIMmode': True,
         'XI': np.unique(dummy[:, 1]),
         'gyroradius': np.unique(dummy[:, 0])
     }
@@ -320,13 +343,13 @@ class Strikes:
 
         Jose Rueda: jrrueda@us.es
 
-        @param runID: runID of the simulation
-        @param type: file to load (mapcollimator, mapscintillator, mapwrong
+        :param  runID: runID of the simulation
+        :param  type: file to load (mapcollimator, mapscintillator, mapwrong
             signalcollimator or signalscintillator).Not used if code=='FILDSIM'
-        @param file: if a filename is provided, data will be loaded from this
+        :param  file: if a filename is provided, data will be loaded from this
             file, ignoring the code folder structure (and runID)
-        @param verbose. flag to print some info in the command line
-        @param code: name of the code where the data is coming from
+        :param  verbose. flag to print some info in the command line
+        :param  code: name of the code where the data is coming from
         """
         # --- Get the name of the file
         if file is None:
@@ -369,8 +392,8 @@ class Strikes:
         # Save the size
         self._shape = self.header['counters'].shape
         # --- Initialise the rest of the object
-        ## Histogram of Scintillator strikes
-        self.ScintHistogram = None
+        # ## Histogram of Scintillator strikes
+        # self.ScintHistogram = None
         ## Code used
         self.code = code
         ## Rest of the histograms
@@ -383,13 +406,13 @@ class Strikes:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param varx: variable selected for the x axis
-        @param vary: variable selected for the y axis
-        @param binsx: bining for the x variable, if a number, this number of
-            bins will be creaded between the xmin and xmax. If an array, it
+        :param  varx: variable selected for the x axis
+        :param  vary: variable selected for the y axis
+        :param  binsx: bining for the x variable, if a number, this number of
+            bins will be created between the xmin and xmax. If an array, it
             will be interpreted as bin edges. By default, 25 bins are
             considered
-        @param binsy: similar to binsx but for the y variable
+        :param  binsy: similar to binsx but for the y variable
 
         The function creates on the histogram atribute of the object 3
         dictionaries named as <varx + '_' + vary> for the counts
@@ -471,132 +494,42 @@ class Strikes:
         else:
             edgesy = binsy
         # --- Preallocate the data
+        histName = varx + '_' + vary
+        self.histograms[histName] = xr.Dataset()
+        # kind of markers:
+        supportedKinds = [0, 5, 6, 7, 8]
+        if self.header['FILDSIMmode']:
+            supportedKinds = [0,]
+        nkinds = len(supportedKinds)
+        # Prepare the matrices
         # Basic (counts)
-        self.histograms[varx + '_' + vary] = \
-            {0: {}, 5: {}, 6: {}, 7: {}, 8: {}}
-        data = np.zeros((edgesx.size-1, edgesy.size-1))
+        data = np.zeros((edgesx.size - 1, edgesy.size - 1, nkinds))
         # For the weight at thedetecor entrance
         if jw0 is not None:
-            self.histograms[varx + '_' + vary + '_w0'] = \
-                {0: {}, 5: {}, 6: {}, 7: {}, 8: {}}
-            data0 = np.zeros((edgesx.size-1, edgesy.size-1))
+            data0 = np.zeros((edgesx.size - 1, edgesy.size - 1, nkinds))
         # For the weight at the scintillator
         if jw is not None:
-            self.histograms[varx + '_' + vary + '_w'] = \
-                {0: {}, 5: {}, 6: {}, 7: {}, 8: {}}
-            dataS = np.zeros((edgesx.size-1, edgesy.size-1))
-        # For the weight at the camera
+            dataS = np.zeros((edgesx.size - 1, edgesy.size - 1, nkinds))
+        # For the weight of the camera
         if jwc is not None:
-            self.histograms[varx + '_' + vary + '_wcam'] = \
-                {0: {}, 5: {}, 6: {}, 7: {}, 8: {}}
-            dataC = np.zeros((edgesx.size-1, edgesy.size-1))
-        # We could calculate the complete histogram (case k = 0) as the sum of
-        # the individual histogram, this will be more efficient but we would
-        # have the issue that the FILD strike points does not have this kind
-        # separation. So we would need to duplicate, for FILD straight
-        # calculation, and for INPA signal the sum. Computationally speaking is
-        # fast, so to simplify, I would perform the full calculation
-        for ig in range(self.header['ngyr']):
-            for ia in range(self.header['nXI']):
-                if self.header['counters'][ia, ig] > 0:
-                    H, xedges, yedges = \
-                        np.histogram2d(self.data[ia, ig][:, jx],
-                                       self.data[ia, ig][:, jy],
-                                       bins=(edgesx, edgesy))
-                    data += H
-                    if jw is not None:
-                        weig = self.data[ia, ig][:, jw]
-                        H, xedges, yedges = \
-                            np.histogram2d(self.data[ia, ig][:, jx],
-                                           self.data[ia, ig][:, jy],
-                                           bins=(edgesx, edgesy), weights=weig)
-                        dataS += H
-                    if jw0 is not None:
-                        weig = self.data[ia, ig][:, jw0]
-                        H, xedges, yedges = \
-                            np.histogram2d(self.data[ia, ig][:, jx],
-                                           self.data[ia, ig][:, jy],
-                                           bins=(edgesx, edgesy), weights=weig)
-                        data0 += H
-                    if jwc is not None:
-                        weig = self.data[ia, ig][:, jwc]
-                        H, xedges, yedges = \
-                            np.histogram2d(self.data[ia, ig][:, jx],
-                                           self.data[ia, ig][:, jy],
-                                           bins=(edgesx, edgesy), weights=weig)
-                        dataC += H
-        xcen = 0.5 * (xedges[1:] + xedges[:-1])
-        ycen = 0.5 * (yedges[1:] + yedges[:-1])
-        deltax = xcen[1] - xcen[0]
-        deltay = ycen[1] - ycen[0]
-        data /= deltax * deltay
-        self.histograms[varx + '_' + vary][0] = {
-            'xcen': xcen,
-            'ycen': ycen,
-            'xedges': xedges,
-            'yedges': yedges,
-            'H': data,
-            'area': deltax * deltay
-        }
-        if jw is not None:
-            dataS /= deltax * deltay
-            self.histograms[varx + '_' + vary + '_w'][0] = {
-                'xcen': xcen,
-                'ycen': ycen,
-                'xedges': xedges,
-                'yedges': yedges,
-                'H': dataS,
-                'area': deltax * deltay
-            }
-        if jw0 is not None:
-            data0 /= deltax * deltay
-            self.histograms[varx + '_' + vary + '_w0'][0] = {
-                'xcen': xcen,
-                'ycen': ycen,
-                'xedges': xedges,
-                'yedges': yedges,
-                'H': data0,
-                'area': deltax * deltay
-            }
-        if jwc is not None:
-            dataC /= deltax * deltay
-            self.histograms[varx + '_' + vary + '_wcam'][0] = {
-                'xcen': xcen,
-                'ycen': ycen,
-                'xedges': xedges,
-                'yedges': yedges,
-                'H': dataC,
-                'area': deltax * deltay
-            }
-
-        # Now repeat the same for the different kinds
-        if jk is not None:
-            for kind in [5, 6, 7, 8]:
-                data = np.zeros((edgesx.size-1, edgesy.size-1))
-                # For the weight at the detecor entrance
-                if jw0 is not None:
-                    data0 = np.zeros((edgesx.size-1, edgesy.size-1))
-                # For the weight at the scintillator
-                if jw is not None:
-                    dataS = np.zeros((edgesx.size-1, edgesy.size-1))
-                # For the weight at the camera
-                if jw is not None:
-                    dataC = np.zeros((edgesx.size-1, edgesy.size-1))
-                for ig in range(self.header['ngyr']):
-                    for ia in range(self.header['nXI']):
-                        # Skip if there is no markers
-                        if self.header['counters'][ia, ig] < 1:
-                            continue
+            dataC = np.zeros((edgesx.size - 1, edgesy.size - 1, nkinds))
+        for ik, k in enumerate(supportedKinds):
+            for ig in range(self.header['ngyr']):
+                for ia in range(self.header['nXI']):
+                    if self.header['counters'][ia, ig] > 1:
                         # Skip if there are not markers of that kind
-                        f = self.data[0, 0][:, jk].astype(int) == kind
-                        if f.sum() == 0:
-                            continue
+                        if k != 0:
+                            f = self.data[ig, ia][:, jk].astype(int) == k
+                            if f.sum() == 0:
+                                continue
+                        else:
+                            f = np.ones(self.data[ig, ia][:, 0].size, bool)
                         # Count histogram
                         H, xedges, yedges = \
                             np.histogram2d(self.data[ia, ig][f, jx],
                                            self.data[ia, ig][f, jy],
                                            bins=(edgesx, edgesy))
-                        data += H
+                        data[:, :, ik] += H
                         # Weight histogram
                         if jw is not None:
                             weig = self.data[ia, ig][f, jw]
@@ -605,7 +538,7 @@ class Strikes:
                                                self.data[ia, ig][f, jy],
                                                bins=(edgesx, edgesy),
                                                weights=weig)
-                            dataS += H
+                            dataS[:, :, ik] += H
                         # Entrance weight histogram
                         if jw0 is not None:
                             weig = self.data[ia, ig][f, jw0]
@@ -614,7 +547,7 @@ class Strikes:
                                                self.data[ia, ig][f, jy],
                                                bins=(edgesx, edgesy),
                                                weights=weig)
-                            data0 += H
+                            data0[:, :, ik] += H
                         if jwc is not None:
                             weig = self.data[ia, ig][f, jwc]
                             H, xedges, yedges = \
@@ -622,50 +555,74 @@ class Strikes:
                                                self.data[ia, ig][f, jy],
                                                bins=(edgesx, edgesy),
                                                weights=weig)
-                            dataC += H
-                xcen = 0.5 * (xedges[1:] + xedges[:-1])
-                ycen = 0.5 * (yedges[1:] + yedges[:-1])
-                deltax = xcen[1] - xcen[0]
-                deltay = ycen[1] - ycen[0]
-                data /= deltax * deltay
-                self.histograms[varx + '_' + vary][kind] = {
-                    'xcen': xcen,
-                    'ycen': ycen,
-                    'xedges': xedges,
-                    'yedges': yedges,
-                    'H': data,
-                    'area': deltax * deltay
-                }
-                if jw is not None:
-                    dataS /= deltax * deltay
-                    self.histograms[varx + '_' + vary + '_w'][kind] = {
-                        'xcen': xcen,
-                        'ycen': ycen,
-                        'xedges': xedges,
-                        'yedges': yedges,
-                        'H': dataS,
-                        'area': deltax * deltay
-                    }
-                if jw0 is not None:
-                    data0 /= deltax * deltay
-                    self.histograms[varx + '_' + vary + '_w0'][kind] = {
-                        'xcen': xcen,
-                        'ycen': ycen,
-                        'xedges': xedges,
-                        'yedges': yedges,
-                        'H': data0,
-                        'area': deltax * deltay
-                    }
-                if jwc is not None:
-                    dataC /= deltax * deltay
-                    self.histograms[varx + '_' + vary + '_wcam'][kind] = {
-                        'xcen': xcen,
-                        'ycen': ycen,
-                        'xedges': xedges,
-                        'yedges': yedges,
-                        'H': dataC,
-                        'area': deltax * deltay
-                    }
+                            dataC[:, :, ik] += H
+        xcen = 0.5 * (xedges[1:] + xedges[:-1])
+        ycen = 0.5 * (yedges[1:] + yedges[:-1])
+        deltax = xcen[1] - xcen[0]
+        deltay = ycen[1] - ycen[0]
+        data /= deltax * deltay
+        self.histograms[histName]['markers'] = xr.DataArray(
+            data, dims=('x', 'y', 'kind'),
+            coords={'x': xcen, 'y': ycen, 'kind': supportedKinds}
+        )
+
+        #  Set the attributes for the particular histogram
+        self.histograms[histName]['markers'].attrs['Description'] = \
+            'Number of markers histogram'
+        self.histograms[histName]['markers'].attrs['units'] = \
+            '#/(' + self.header['info'][varx]['units'] + '$\\cdot$' +\
+            self.header['info'][vary]['units'] + ')'
+        self.histograms[histName]['markers'].attrs['long_name'] = 'Markers'
+        if jw is not None:
+            dataS /= deltax * deltay
+            self.histograms[histName]['w'] = xr.DataArray(
+                dataS, dims=('x', 'y', 'kind'),
+                coords={'x': xcen, 'y': ycen, 'kind': supportedKinds}
+            )
+            self.histograms[histName]['w'].attrs['Description'] = \
+                'Weight at the scintillator'
+            self.histograms[histName]['w'].attrs['units'] = \
+                self.header['info']['weight']['units'] +\
+                '/(' + self.header['info'][varx]['units'] + '$\\cdot$' +\
+                self.header['info'][vary]['units'] + ')'
+            self.histograms[histName]['w'].attrs['long_name'] = '$W_{Scint}$'
+        if jw0 is not None:
+            data0 /= deltax * deltay
+            self.histograms[histName]['w0'] = xr.DataArray(
+                data0, dims=('x', 'y', 'kind'),
+                coords={'x': xcen, 'y': ycen, 'kind': supportedKinds}
+            )
+            self.histograms[histName]['w0'].attrs['Description'] = \
+                'Weight at the pinhole'
+            self.histograms[histName]['w0'].attrs['units'] = \
+                self.header['info']['weight0']['units'] +\
+                '/(' + self.header['info'][varx]['units'] + '$\\cdot$' +\
+                self.header['info'][vary]['units'] + ')'
+            self.histograms[histName]['w0'].attrs['long_name'] = '$W_{Pin}$'
+        if jwc is not None:
+            dataC /= deltax * deltay
+            self.histograms[histName]['wcam'] = xr.DataArray(
+                data0, dims=('x', 'y', 'kind'),
+                coords={'x': xcen, 'y': ycen, 'kind': supportedKinds}
+            )
+            self.histograms[histName]['wcam'].attrs['Description'] = \
+                'Weight at the camera'
+            self.histograms[histName]['wcam'].attrs['units'] = '[a.u.]'
+            self.histograms[histName]['wcam'].attrs['long_name'] = '$W_{cam}$'
+        # Set the variables attributes
+        self.histograms[histName]['x'].attrs['long_name'] = \
+            self.header['info'][varx]['shortName']
+        self.histograms[histName]['y'].attrs['long_name'] = \
+            self.header['info'][vary]['shortName']
+        self.histograms[histName]['x'].attrs['units'] = \
+            self.header['info'][varx]['units']
+        self.histograms[histName]['y'].attrs['units'] = \
+            self.header['info'][vary]['units']
+        self.histograms[histName]['kind'].attrs['long_name'] = 'Marker kind'
+        # Set the attributes of the data set
+        self.histograms[histName].attrs['xedges'] = xedges
+        self.histograms[histName].attrs['yedges'] = yedges
+        self.histograms[histName].attrs['area'] = deltax * deltay
 
     def calculate_1d_histogram(self, var: str = 'xcx',
                                bins: float = None):
@@ -674,8 +631,8 @@ class Strikes:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param var: variable selected for the x axis
-        @param bins: bining for the x variable, if a number, this number of
+        :param  var: variable selected for the x axis
+        :param  bins: bining for the x variable, if a number, this number of
             bins will be creaded between the xmin and xmax. If an array, it
             will be interpreted as bin edges. By default, 25 bins are
             considered
@@ -795,13 +752,13 @@ class Strikes:
 
         Jose Rueda - jrrueda@us.es
 
-        @param var: variable to be returned
-        @param gyroradius_index: index (or indeces if given as an np.array) of
+        :param  var: variable to be returned
+        :param  gyroradius_index: index (or indeces if given as an np.array) of
             gyroradii to plot
-        @param XI_index: index (or indeces if given as an np.array) of
+        :param  XI_index: index (or indeces if given as an np.array) of
             XIs (pitch or R) to plot
 
-        @return variable: array of values, all of them will be concatenated
+        :return variable: array of values, all of them will be concatenated
             in a single 1D array, indepentendly of gyroradius_index or XI_index
         """
         try:
@@ -846,14 +803,14 @@ class Strikes:
 
         Jose Rueda: jrrueda@us.es
 
-        @param per: ratio of markers to be plotted (1=all of them)
-        @param ax: axes where to plot
-        @param mar_params: Dictionary with the parameters for the markers
-        @param gyroradius_index: index (or indeces if given as an np.array) of
+        :param  per: ratio of markers to be plotted (1=all of them)
+        :param  ax: axes where to plot
+        :param  mar_params: Dictionary with the parameters for the markers
+        :param  gyroradius_index: index (or indeces if given as an np.array) of
             gyroradii to plot
-        @param XI_index: index (or indeces if given as an np.array) of
+        :param  XI_index: index (or indeces if given as an np.array) of
             XIs (pitch or R) to plot
-        @param where: string indicating where to plot: 'head', 'NBI',
+        :param  where: string indicating where to plot: 'head', 'NBI',
         'ScintillatorLocalSystem'. First two are in absolute
         coordinates, last one in the scintillator coordinates (see SINPA
         documentation) [Head will plot the strikes in the collimator or
@@ -944,15 +901,15 @@ class Strikes:
 
         Jose Rueda: jrrueda@us.es
 
-        @param var: variable to plot
-        @param gyroradius_index: index (or indeces if given as an np.array) of
+        :param  var: variable to plot
+        :param  gyroradius_index: index (or indeces if given as an np.array) of
             gyroradii to plot
-        @param XI_index: index (or indeces if given as an np.array) of
+        :param  XI_index: index (or indeces if given as an np.array) of
             XIs (pitch or R) to plot
-        @param ax: axes where to plot
-        @param ax_params: parameters for the axis beauty
-        @param nbins: number of bins for the 1D histogram
-        @param includeW: include weight for the histogram
+        :param  ax: axes where to plot
+        :param  ax_params: parameters for the axis beauty
+        :param  nbins: number of bins for the 1D histogram
+        :param  includeW: include weight for the histogram
         """
         # --- Get the index:
         try:
@@ -1036,11 +993,11 @@ class Strikes:
         Plot the histogram of the scintillator strikes
 
         Jose Rueda: jrrueda@us.es
-        @param ax: axes where to plot
-        @param ax_params: parameters for the axis beauty
-        @param cmap: color map to be used, if none -> Gamma_II()
-        @param nbins: number of bins for the 1D histogram
-        @param kind: kind of markers to consider (for FILDSIM just 0, default)
+        :param  ax: axes where to plot
+        :param  ax_params: parameters for the axis beauty
+        :param  cmap: color map to be used, if none -> Gamma_II()
+        :param  nbins: number of bins for the 1D histogram
+        :param  kind: kind of markers to consider (for FILDSIM just 0, default)
         """
         # --- Check inputs
         if hist_name not in self.histograms:
@@ -1127,19 +1084,19 @@ class Strikes:
 
         Jose Rueda: jrrueda@us.es
 
-        @param varx: variable to plot in the x axis
-        @param vary: variable to plot in the y axis
-        @param per: ratio of markers to be plotted (1=all of them)
-        @param ax: axes where to plot
-        @param mar_params: Dictionary with the parameters for the markers
-        @param gyroradius_index: index (or indexes if given as an array) of
+        :param  varx: variable to plot in the x axis
+        :param  vary: variable to plot in the y axis
+        :param  per: ratio of markers to be plotted (1=all of them)
+        :param  ax: axes where to plot
+        :param  mar_params: Dictionary with the parameters for the markers
+        :param  gyroradius_index: index (or indexes if given as an array) of
             gyroradii to plot
-        @param XI_index: index (or indexes if given as an array) of
+        :param  XI_index: index (or indexes if given as an array) of
             XIs (so pitch or R) to plot
-        @param ax_params: parameters for the axis beauty routine. Only applied
+        :param  ax_params: parameters for the axis beauty routine. Only applied
             if the axis was created inside the routine
-        @param xscale: Scale to multiply the variable plotted in the xaxis
-        @param yscale: Scale to multiply the variable plotted in the yaxis
+        :param  xscale: Scale to multiply the variable plotted in the xaxis
+        :param  yscale: Scale to multiply the variable plotted in the yaxis
 
         Note: The units will not be updates after the scaling, so you will need
         to change manually the labels via the ax_params()
@@ -1213,11 +1170,11 @@ class Strikes:
 
     def calculate_pixel_coordinates(self, calibration,):
         """
-        Get the position of the markers in the camera sensor
+        Get the position of the markers in the camera sensor.
 
         Jose Rueda: jrrueda@us.es
 
-        @params calibration: object with the calibration parameters of the
+        :param s calibration: object with the calibration parameters of the
             mapping class
 
         include in the data of the object the columns corresponding to the xcam
@@ -1279,7 +1236,7 @@ class Strikes:
 
         Jose Rueda: jrrueda@us.es
 
-        @param F_object: FnumberTransmission() class of the LibOptics
+        :param  F_object: FnumberTransmission() class of the LibOptics
         """
         # Get the index of the involved columns and if we need to overwrite
         if 'wcam' in self.header['info'].keys():
@@ -1338,18 +1295,18 @@ class Strikes:
 
         Anton van Vuen: avanvuuren@us.es
 
-        @param per: ratio of markers to be plotted (1=all of them)
-        @param gyroradius_index: index (or indeces if given as an np.array) of
+        :param  per: ratio of markers to be plotted (1=all of them)
+        :param  gyroradius_index: index (or indeces if given as an np.array) of
             gyroradii to plot
-        @param XI_index: index (or indeces if given as an np.array) of
+        :param  XI_index: index (or indeces if given as an np.array) of
             XIs (pitch or R) to plot
-        @param where: string indicating where to plot: 'head', 'NBI',
+        :param  where: string indicating where to plot: 'head', 'NBI',
         'ScintillatorLocalSystem'. First two are in absolute
         coordinates, last one in the scintillator coordinates (see SINPA
         documentation) [Head will plot the strikes in the collimator or
         scintillator]. For oldFILDSIM, use just head
-        @param units: Units in which to save the strike positions.
-        @param filename: name of the text file to store strikepoints in
+        :param  units: Units in which to save the strike positions.
+        :param  filename: name of the text file to store strikepoints in
         """
         # --- Chose the variable we want to plot
         if where.lower() == 'head':
@@ -1409,8 +1366,8 @@ class Strikes:
 
         Jose Rueda: jrrueda@us.es
 
-        @param strikemap: strike map to be used
-        @param options: disctionary containing the remaping options, like the
+        :param  strikemap: strike map to be used
+        :param  options: disctionary containing the remaping options, like the
             one used for the video
         """
         # --- Check the inputs
@@ -1432,7 +1389,7 @@ class Strikes:
         else:
             habia_peso_cam = False
         # --- Prepare the grid
-        frame_shape = self.histograms['xcam_ycam'][0]['H'].shape
+        frame_shape = self.histograms['xcam_ycam'].markers.shape
         nx, ny, xedges, yedges = createGrid(
             options['xmin'], options['xmax'], options['dx'],
             options['ymin'], options['ymax'], options['dy'],
@@ -1489,64 +1446,31 @@ class Strikes:
                                      grid_params=grid_options)
 
         name = variables_to_remap[0] + '_' + variables_to_remap[1] + '_remap'
-        self.histograms[name] = {
-            0: {
-                'xcen': xcenter,
-                'xedges': xedges,
-                'ycen': ycenter,
-                'yedges': yedges,
-                'H': None
+        self.histograms[name] = xr.Dataset()
+        # {
+        #     0: {
+        #         'xcen': xcenter,
+        #         'xedges': xedges,
+        #         'ycen': ycenter,
+        #         'yedges': yedges,
+        #         'H': None
+        #     }
+        # }
+        for k in self.histograms['xcam_ycam'].keys():
+            nkinds = self.histograms['xcam_ycam'].kind.size
+            data = np.zeros((xedges.size-1, yedges.size-1, nkinds))
+            for j in range(nkinds):
+                data[:, :, j] = remap(smap, self.histograms['xcam_ycam'][k].isel(kind=j).values,
+                              x_edges=xedges, y_edges=yedges, mask=None,
+                              method=options['remap_method'])
+            self.histograms[name][k] = xr.DataArray(data, dims=('x', 'y', 'kind'),
+                                                 coords={'x':xcenter,
+                                                         'y': ycenter,
+                                                         'kind': self.histograms['xcam_ycam'].kind})
+        self.histograms[name].attrs = {
+            'xedges': xedges,
+            'yedges': yedges,
             }
-        }
-        self.histograms[name][0]['H'] = remap(
-            smap, self.histograms['xcam_ycam'][0]['H'],
-            x_edges=xedges, y_edges=yedges, mask=None,
-            method=options['remap_method'])
-        if habia_peso:
-            name2 = name + '_w'
-            self.histograms[name2] = {
-                0: {
-                    'xcen': xcenter,
-                    'xedges': xedges,
-                    'ycen': ycenter,
-                    'yedges': yedges,
-                    'H': None
-                }
-            }
-            self.histograms[name2][0]['H'] = remap(
-                smap, self.histograms['xcam_ycam_w'][0]['H'],
-                x_edges=xedges, y_edges=yedges, mask=None,
-                method=options['remap_method'])
-        if habia_peso_0:
-            name2 = name + '_w0'
-            self.histograms[name2] = {
-                0: {
-                    'xcen': xcenter,
-                    'xedges': xedges,
-                    'ycen': ycenter,
-                    'yedges': yedges,
-                    'H': None
-                }
-            }
-            self.histograms[name2][0]['H'] = remap(
-                smap, self.histograms['xcam_ycam_w0'][0]['H'],
-                x_edges=xedges, y_edges=yedges, mask=None,
-                method=options['remap_method'])
-        if habia_peso_cam:
-            name2 = name + '_wcam'
-            self.histograms[name2] = {
-                0: {
-                    'xcen': xcenter,
-                    'xedges': xedges,
-                    'ycen': ycenter,
-                    'yedges': yedges,
-                    'H': None
-                }
-            }
-            self.histograms[name2][0]['H'] = remap(
-                smap, self.histograms['xcam_ycam_wcam'][0]['H'],
-                x_edges=xedges, y_edges=yedges, mask=None,
-                method=options['remap_method'])
 
     @property
     def shape(self):

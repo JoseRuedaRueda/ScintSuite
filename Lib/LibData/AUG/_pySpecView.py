@@ -61,7 +61,7 @@ class pySpecView:
         """
         Read the data from the pyspecview file
 
-        @param file: path to the file, if none, a grpahical window will pop-up
+        :param  file: path to the file, if none, a grpahical window will pop-up
         """
         if file is None:
             self.file = ask_to_open()
@@ -100,20 +100,23 @@ class pySpecView:
 
     def plot(self, ax=None, scale='log', cmap=None,
              IncludeColorbar: bool = True, vmax=1.0e6, vmin=1.0e3,
-             cross_phasogram: bool = False, gamma: float = 0.5):
+             cross_phasogram: bool = False, gamma: float = 0.5,
+             label: bool = True):
         """
         Plot the spectogram or the cross_phasogram
 
         Jose Rueda: jrrueda@us.es
 
-        @param ax: axes where to plot, if None, new ones will be created
-        @param scale: log, sqrt or linear. Only used for the spectogram plot
-        @param cmap: color map to plot. Only used for the spectogram plot
-        @param vmax: maximum value for the color bar, if spectogram is plotted
-        @param vmin: minimum value for the color bar, if spectogram is plotted
-        @param cross_phasogram: flag to plot the cross_phasogram (if present)
-        @param gamma: plotting factor. gamma=0 plot the full phasogram,
+        :param  ax: axes where to plot, if None, new ones will be created
+        :param  scale: log, sqrt or linear. Only used for the spectogram plot
+        :param  cmap: color map to plot. Only used for the spectogram plot
+        :param  vmax: maximum value for the color bar, if spectogram is plotted
+        :param  vmin: minimum value for the color bar, if spectogram is plotted
+        :param  cross_phasogram: flag to plot the cross_phasogram (if present)
+        :param  gamma: plotting factor. gamma=0 plot the full phasogram,
             gamma = 1 only plot the most prominent modes
+        :param  label: boolean flag to add a labbel with the magnetic coil used
+            for the spectra calculation
         """
         # --- Set the parameters
         self.gamma = gamma
@@ -194,9 +197,10 @@ class pySpecView:
         # ---- Set the axis labels
         ax.set_xlabel('Time [s]')
         ax.set_ylabel('Frequency [kHz]')
-        ax.text(0.05, 0.90, self.description, horizontalalignment='left',
-                color='w', verticalalignment='bottom',
-                transform=ax.transAxes)
+        if label:
+            ax.text(0.05, 0.90, self.description, horizontalalignment='left',
+                    color='w', verticalalignment='bottom',
+                    transform=ax.transAxes)
         return ax
 
     def plot_radial_profile(self, ax=None, line_params: dict = {},
@@ -204,8 +208,8 @@ class pySpecView:
         """
         Plot the radial profile
 
-        @param ax:
-        @param line_params:
+        :param  ax:
+        :param  line_params:
 
         """
         line_options = {

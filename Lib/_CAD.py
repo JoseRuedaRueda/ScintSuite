@@ -7,6 +7,7 @@ Introduced in version 0.5.9
 """
 import logging
 import numpy as np
+import os
 logger = logging.getLogger('ScintSuite.CAD')
 try:
     from stl import mesh
@@ -26,9 +27,9 @@ def write_file_for_fortran_numpymesh(stlfile, outputfile,
 
     Minor modeifications by Jose Rueda: jrrueda@us.es
 
-    @param stlfile: name of the stl file (full path)
-    @param outputfile: name of the file where to write the triangles
-    @param convert_mm_2_m: flag to convert mm (assumed units of the input file)
+    :param  stlfile: name of the stl file (full path)
+    :param  outputfile: name of the file where to write the triangles
+    :param  convert_mm_2_m: flag to convert mm (assumed units of the input file)
         to m for the output file. Deprecated, plese use input_units and output_
         units instead
 
@@ -65,6 +66,68 @@ def write_file_for_fortran_numpymesh(stlfile, outputfile,
     f.close()
 
 
+def read_triangle_file(fn_in: str):
+    """
+    Read and return in a dictionary a file containing the triangle information
+    as written for the FORTRAN codes.
+
+    Pablo Oyola - poyola@us.es
+
+    @param fn_in: input filename to read.
+    """
+
+    if not os.path.isfile(fn_in):
+        raise FileNotFoundError('Cannot open file %s!'%fn_in)
+
+    # Let's start reading the data of the triangles.
+    with open(fn_in, 'rt') as fid:
+        n = int(fid.readline().strip())
+
+        data = np.zeros((n, 3, 3))
+        for ii in range(n):
+            for jj in range(3):
+                data[ii, jj, :] = np.array(fid.readline().strip().split())
+
+    output = { 'n': n, 'data': data }
+
+    return output
+
+
+def triangles2stl(fn_in: str, fn_out: str, units: str = 'mm'):
+    """
+    Converting standard-simplified triangle data into STL files.
+
+    Pablo Oyola - poyola@us.es
+
+    @param fn_in: input filename with the triangle data for the FORTRAN codes.
+    @param fn_out: output filename to write the STL file.
+    @param units: output units to write the triangle file. To be chosen between
+    m, mm and cm. Defaults to mm.
+    """
+
+    if not os.path.isfile(fn_in):
+        raise FileNotFoundError('Cannot open file %s!'%fn_in)
+
+    # Get the units:
+    if units not in ['m', 'cm', 'mm']:
+        raise Exception('Not understood units?')
+    possible_factors = {'m': 1.0, 'cm': 100.0, 'mm': 1000.0}
+    factor = possible_factors[units]
+
+    # Reading from the file triangles.
+    triangles = read_triangle_file(fn_in)
+
+    # Creating the mesh class.
+    data = np.zeros(triangles['n'], dtype=mesh.Mesh.dtype)
+    mesh_object = mesh.Mesh(data, remove_empty_areas=False)
+    mesh_object.x[:] = triangles['data'][..., 0] * factor
+    mesh_object.y[:] = triangles['data'][..., 1] * factor
+    mesh_object.z[:] = triangles['data'][..., 2] * factor
+
+    if not fn_out.endswith('.stl'):
+        fn_out += '.stl'
+    mesh_object.save(fn_out)
+
 def write_triangles_to_stl(geom: dict,
                            file_name_save: str = 'Test',
                            units: str = 'mm'):
@@ -73,9 +136,9 @@ def write_triangles_to_stl(geom: dict,
 
     Anton van Vuuren: avanvuuren@us.es
 
-    @param: Geometry object whose triangles will be stored to an stl file
-    @param filename: name of the stl fileto be saved (.stl not needed)
-    @param units: Units in which to savethe orbit positions.
+    :param : Geometry object whose triangles will be stored to an stl file
+    :param  filename: name of the stl fileto be saved (.stl not needed)
+    :param  units: Units in which to savethe orbit positions.
     '''
 
     if geom['vertex'] is not None:

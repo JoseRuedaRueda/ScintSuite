@@ -1,0 +1,24 @@
+top:
+    cal_img: from_40721_ihibp_top_dmk33ux287_234mm.jpg
+    ver_begin: 88
+    hor_begin: 98
+    diff: 110
+    orientation: 'vertical'
+    roi: [[325, 100, 450, 200], [325, 300, 450, 400]]
+
+side:
+    cal_img: from_40721_ihibp_side_c920_181mm.jpg
+    ver_begin: 17
+    hor_begin: 28
+    diff: 52
+    orientation: 'horizontal'
+    roi: [[240, 310, 280, 410], [400, 310, 440, 410]]
+
+oblique:
+    cal_img: from_40721_ihibp_oblique_c920_220mm.jpg
+    ver_begin: 32
+    hor_begin: 18
+    diff: 43
+    orientation: None
+    roi: None
+

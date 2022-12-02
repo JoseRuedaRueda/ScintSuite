@@ -83,8 +83,8 @@ def H0_proton_imp_ion(E):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param E: energy per amu where cross-section needs to be evaluated.
-    @return sigma: cross-section in [cm^2]
+    :param  E: energy per amu where cross-section needs to be evaluated.
+    :return sigma: cross-section in [cm^2]
     """
 
     A1 = 12.899
@@ -141,8 +141,8 @@ def H0_proton_CX(E):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param E: energy per amu where cross-section needs to be evaluated.
-    @return sigma: cross-section in [cm^2]
+    :param  E: energy per amu where cross-section needs to be evaluated.
+    :return sigma: cross-section in [cm^2]
     """
 
     A1 = 3.2345
@@ -199,8 +199,8 @@ def H0_Boron_impact(E):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param E: energy in the CM frame [eV]
-    @return output: dictionary with the evaluated cross section.
+    :param  E: energy in the CM frame [eV]
+    :return output: dictionary with the evaluated cross section.
     """
     A1 = 351.52
     A2 = 233.63
@@ -256,8 +256,8 @@ def H0_Carbon_impact(E):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param E: energy in the CM frame [eV]
-    @return output: dictionary with the evaluated cross section.
+    :param  E: energy in the CM frame [eV]
+    :return output: dictionary with the evaluated cross section.
     """
     A1 = 438.36
     A2 = 327.10
@@ -313,8 +313,8 @@ def H0_B5_CX(E):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param E: energy in the CM frame [eV]
-    @return output: dictionary with the evaluated cross section.
+    :param  E: energy in the CM frame [eV]
+    :return output: dictionary with the evaluated cross section.
     """
     A1 = 31.226
     A2 = 1.1442
@@ -372,8 +372,8 @@ def H0_C6_CX(E):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param E: energy in the CM frame [eV]
-    @return output: dictionary with the evaluated cross section.
+    :param  E: energy in the CM frame [eV]
+    :return output: dictionary with the evaluated cross section.
     """
     A1 = 418.18
     A2 = 2.1585
@@ -438,8 +438,8 @@ def Li_proton_CX_ion(E):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param E: energy per amu where cross-section needs to be evaluated.
-    @return sigma: cross-section in [cm^2]
+    :param  E: energy per amu where cross-section needs to be evaluated.
+    :return sigma: cross-section in [cm^2]
     """
     A1 = 5.7260e-18
     A2 = 0.2774610534
@@ -490,8 +490,8 @@ def Li_proton_imp_ion(E):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param E: energy per amu where cross-section needs to be evaluated.
-    @return output: dictionary with the evaluated cross section data.
+    :param  E: energy per amu where cross-section needs to be evaluated.
+    :return output: dictionary with the evaluated cross section data.
     """
 
     A1 = 17.401
@@ -538,11 +538,11 @@ def Li_heavy_imp_ion(E, q, Ub: float = Li0_2s1):
     D. Wutte et al., ATOMIC DATA AND NUCLEAR DATA TABLES65,155 * 180 (1997),
     https://www.sciencedirect.com/science/article/pii/S0092640X97907361
 
-    @param E: energy where the cross section is going to be evaluated.
-    @param q: charge state of the heavy-ion with which the Li atom
+    :param  E: energy where the cross section is going to be evaluated.
+    :param  q: charge state of the heavy-ion with which the Li atom
     will collide.
-    @param Ub: binding energy of the atom which gets ionized.
-    @return output: dictionary with the cross section evaluated.
+    :param  Ub: binding energy of the atom which gets ionized.
+    :return output: dictionary with the cross section evaluated.
     """
 
     A1 = 7.513e-10
@@ -596,10 +596,10 @@ def Wutte_scaling(xsection: dict, Ubnew: float):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param xsection: dictionary with all the cross-section data, including
+    :param  xsection: dictionary with all the cross-section data, including
     the energy where it is evaluated and the original atom.
-    @param Ubnew: binding energy of the new atom [eV]
-    @return output: dictionary with the scaled cross section.
+    :param  Ubnew: binding energy of the new atom [eV]
+    :return output: dictionary with the scaled cross section.
     """
 
     if 'atom' not in xsection:
@@ -655,14 +655,14 @@ def Lotz_cross_section(Ebase: float, chi: float, occNum: int,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param Ebase: array of energy values to compute the cross-section [eV]
-    @param chi: list of ionization energies [eV]
-    @param occNum: list with the occupation numbers of the levels to excite.
+    :param  Ebase: array of energy values to compute the cross-section [eV]
+    :param  chi: list of ionization energies [eV]
+    :param  occNum: list with the occupation numbers of the levels to excite.
     There must be the same number as in len(chi)
-    @param atom: dictionary with the atomic data (name, symbol, binding
+    :param  atom: dictionary with the atomic data (name, symbol, binding
     energy,...)
 
-    @return output: a dictionary containing the cross section evaluated in
+    :return output: a dictionary containing the cross section evaluated in
     the input points, along with further info
 
     """
@@ -717,8 +717,8 @@ def Cs0_CX_H_v1(Ecm: float, redMass: float = reducedMasses['Cs_D']):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param Ecm: Energy in the center of mass.
-    @return output: dictionary with the cross section evaluated.
+    :param  Ecm: Energy in the center of mass.
+    :return output: dictionary with the cross section evaluated.
     """
 
     # Values read from Fig. 1
@@ -765,9 +765,9 @@ def Cs0_CX_H_v2(Ecm: float, massBackg: float = alkMasses['D']):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param Ecm: center-of-mass energy [eV]
-    @param massH: AMU of the hydrogen partner in the collision.
-    @return output: dictionary with the cross section data.
+    :param  Ecm: center-of-mass energy [eV]
+    :param  massH: AMU of the hydrogen partner in the collision.
+    :return output: dictionary with the cross section data.
     """
 
     # From paper:
@@ -810,11 +810,11 @@ def Cs0_CX_H(Ecm: float, isotopeH: str = 'D'):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param Ecm: energy in the center of mass to evaluate the cross sections.
+    :param  Ecm: energy in the center of mass to evaluate the cross sections.
     In eV.
-    @param isotopeH: type of hydrogen isotope to make the calculations ('H',
+    :param  isotopeH: type of hydrogen isotope to make the calculations ('H',
     'D', 'T')
-    @return output: dictionary with the cross section data.
+    :return output: dictionary with the cross section data.
     """
 
     redMass = reducedMasses['Cs_'+isotopeH]
@@ -849,9 +849,9 @@ def Rb0_CX_Ebel(Ecm, massBackg: float = alkMasses['D']):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param Ecm: center-of-momentum energy [eV]
-    @param massBackg: mass of the hydrogen atom with which it is colliding.
-    @return output: dictionary with the cross section data.
+    :param  Ecm: center-of-momentum energy [eV]
+    :param  massBackg: mass of the hydrogen atom with which it is colliding.
+    :return output: dictionary with the cross section data.
     """
 
     # In the table, what appears is the energy per AMU.
@@ -900,9 +900,9 @@ def Rb0_CX_Girnius(Ecm, massBackg: float = alkMasses['D']):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param Ecm: center-of-momentum energy [eV]
-    @param massBackg: mass of the hydrogen atom with which it is colliding.
-    @return output: dictionary with the cross section data.
+    :param  Ecm: center-of-momentum energy [eV]
+    :param  massBackg: mass of the hydrogen atom with which it is colliding.
+    :return output: dictionary with the cross section data.
     """
 
     # In the table, what appears is the energy per AMU.
@@ -945,11 +945,11 @@ def Rb0_CX_H(Ecm: float, isotopeH: str = 'D'):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param Ecm: energy in the center of mass to evaluate the cross sections.
+    :param  Ecm: energy in the center of mass to evaluate the cross sections.
     In eV.
-    @param isotopeH: type of hydrogen isotope to make the calculations ('H',
+    :param  isotopeH: type of hydrogen isotope to make the calculations ('H',
     'D', 'T')
-    @return out: dictionary with the cross section.
+    :return out: dictionary with the cross section.
     """
 
     massH = alkMasses[isotopeH]
@@ -980,8 +980,8 @@ def CsI_CsII_electron(Ecm: float):
     J. Appl. Phys. 53 (1982) 5427
     NDP = 26
 
-    @param Ecm: energy in the center of mass (eV)
-    @return output: dictionary with the cross section data.
+    :param  Ecm: energy in the center of mass (eV)
+    :return output: dictionary with the cross section data.
     """
 
     E = np.array((2.800000e+01, 	3.300000e+01, 3.800000e+01, 	4.800000e+01,
@@ -1037,8 +1037,8 @@ def CsI_CsIII_electron(Ecm: float):
     J. Appl. Phys. 53 (1982) 5427
     NDP = 26
 
-    @param Ecm: energy in the center of mass (eV)
-    @return output: dictionary with the cross section data.
+    :param  Ecm: energy in the center of mass (eV)
+    :return output: dictionary with the cross section data.
     """
 
     E = np.array((6.800000e+01, 	7.800000e+01, 	8.800000e+01, 	9.800000e+01,
@@ -1093,8 +1093,8 @@ def CsI_CsIV_electron(Ecm: float):
     J. Appl. Phys. 53 (1982) 5427
     NDP = 17
 
-    @param Ecm: energy in the center of mass (eV)
-    @return output: dictionary with the cross section data.
+    :param  Ecm: energy in the center of mass (eV)
+    :return output: dictionary with the cross section data.
     """
     E = np.array((  1.180000e+02, 	1.380000e+02, 	1.680000e+02,
                     1.980000e+02, 	2.180000e+02,   2.480000e+02,
@@ -1147,8 +1147,8 @@ def CsI_CsV_electron(Ecm: float):
     J. Appl. Phys. 53 (1982) 5427
     NDP = 14
 
-    @param Ecm: energy in the center of mass (eV)
-    @return output: dictionary with the cross section data.
+    :param  Ecm: energy in the center of mass (eV)
+    :return output: dictionary with the cross section data.
     """
     E = np.array((  1.980000e+02, 	2.180000e+02, 	2.480000e+02,
                     2.980000e+02, 	3.980000e+02,   4.980000e+02,
@@ -1190,8 +1190,8 @@ def CsI_CsN_electron(Ecm: float):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param: Center-of-mass energy of the Cs beam.
-    @return output: dictionary with the cross section data.
+    :param : Center-of-mass energy of the Cs beam.
+    :return output: dictionary with the cross section data.
     """
 
     output = {
@@ -1226,8 +1226,8 @@ def RbI_RbII_electron(Ecm: float):
     M.J. Higgins, M.A. Lennon, J.G. Hughes, K.L. Bell, H.B. Gilbody,
     A.E. Kingston, F.J. Smith CLM-R294 (1989)
 
-    @param Ecm: center-of-mass energy of the impact [eV]
-    @return output: dictionary with the cross section data.
+    :param  Ecm: center-of-mass energy of the impact [eV]
+    :return output: dictionary with the cross section data.
     """
 
     E = np.array((  2.7300E+01, 3.1234E+01, 3.5735E+01, 4.0885E+01, 4.6777E+01,
@@ -1294,8 +1294,8 @@ def RbI_RbIII_electron(Ecm: float):
     "Absolute experimental cross sections for the electron-impact multiple
     ionization of singly charged rubidium ions"
 
-    @param Ecm: center-of-mass energy of the impact [eV]
-    @return output: dictionary with the cross section data.
+    :param  Ecm: center-of-mass energy of the impact [eV]
+    :return output: dictionary with the cross section data.
     """
     E = np.array([118.0, 138.0, 168.0, 188.0, 248.0, 298.0, 398.0,
                   498.0, 598.0, 698.0, 798.0, 898.0, 998.0, 1248.0, 1498.0,
@@ -1342,8 +1342,8 @@ def RbI_RbIV_electron(Ecm: float):
     "Absolute experimental cross sections for the electron-impact multiple
     ionization of singly charged rubidium ions"
 
-    @param Ecm: center-of-mass energy of the impact [eV]
-    @return output: dictionary with the cross section data.
+    :param  Ecm: center-of-mass energy of the impact [eV]
+    :return output: dictionary with the cross section data.
     """
     E = np.array([198.0, 248.0, 298.0, 398.0, 498.0, 598.0, 698.0, 798.0, 898.0,
          998.0, 1248.0, 1498.0, 1998.0, 2998.0])
@@ -1385,8 +1385,8 @@ def RbI_RbN_electron(Ecm: float):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param: Center-of-mass energy of the Rb beam.
-    @return output: dictionary with the cross section data.
+    :param : Center-of-mass energy of the Rb beam.
+    :return output: dictionary with the cross section data.
     """
 
     output = {
@@ -1424,9 +1424,9 @@ def maxwell(v, T: float, mass: float):
     """
     Maxwell-Boltzmann distribution function.
 
-    @param v: velocity array to evaluate the distribution.
-    @param T: temperature scalar given in eV.
-    @param mass: mass of the species.
+    :param  v: velocity array to evaluate the distribution.
+    :param  T: temperature scalar given in eV.
+    :param  mass: mass of the species.
 
     """
 
@@ -1440,9 +1440,9 @@ def maxwell_jutner(v, T: float, mass:float):
     Maxwell-Boltzmann-Juetner distribution function.
     Relativistic ideal gas distribution function.
 
-    @param v: velocity array to evaluate the distribution.
-    @param T: temperature scalar given in eV.
-    @param mass: mass of the species.
+    :param  v: velocity array to evaluate the distribution.
+    :param  T: temperature scalar given in eV.
+    :param  mass: mass of the species.
     """
 
     # Computing the relativistic factor
@@ -1474,18 +1474,18 @@ def reactionRate(xsection: dict, massA: float, massB: float,
     temperature and the velocity.
 
 
-    @param xsection: dictionary with all the cross-section data.
-    @param T: temperature array where the reaction-rate is going to be
+    :param  xsection: dictionary with all the cross-section data.
+    :param  T: temperature array where the reaction-rate is going to be
     computed. If it is not provided, an array linearly spaced between 1 eV and
     10 keV is created.
-    @param vel: velocity array where the reaction rate is calculated. If
+    :param  vel: velocity array where the reaction rate is calculated. If
     the masses of the system as quite different (i.e., electron colliding with
     a proton), this will be disregarded. If it is not provided, the velocity
     basis will be the velocities equivalent to the cross-section basis.
-    @param massA: mass in AMU of the main reactant.
-    @param massB: mass in AMU of the secondary reactant.
+    :param  massA: mass in AMU of the main reactant.
+    :param  massB: mass in AMU of the secondary reactant.
 
-    @return
+    :return
     """
 
     #--- Checking the inputs.
@@ -1685,21 +1685,21 @@ def createAlkaliData(name: str, mass: float, T: float = None,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param name: name of the Alkali element to make the table for. Up to now,
+    :param  name: name of the Alkali element to make the table for. Up to now,
     only 'Cs' and 'Rb' are allowed.
-    @param mass: when there are more than one stable alkali element
+    :param  mass: when there are more than one stable alkali element
     (i.e., 85Rb, 87Rb), this value should provide the mass number (85, 87 in
     the previous example).
-    @param T: temperatures to evaluate the reaction rates. If not provided,
+    :param  T: temperatures to evaluate the reaction rates. If not provided,
     a logarithmically spaced array is set by default between 10 eV and 100 keV
-    @param vel: velocities to evaluate the reaction rates. If not provided,
+    :param  vel: velocities to evaluate the reaction rates. If not provided,
     a linearly spaced array is set by default between 9e5 - 7e6 m/s.
-    @param plotflag: Flag to plot the reaction rates. True by default.
-    @param gridflag: Flag to plot the grids in the plots. True by default.
-    @param fontname: fontname to use in the plots.
-    @param fontsize: fontsize for the plots.
+    :param  plotflag: Flag to plot the reaction rates. True by default.
+    :param  gridflag: Flag to plot the grids in the plots. True by default.
+    :param  fontname: fontname to use in the plots.
+    :param  fontsize: fontsize for the plots.
     @para line_options: dictionary for the lines plotting.
-    @returns output: returns the dictionary with the different reactions.
+    :returns output: returns the dictionary with the different reactions.
     """
     #--- Checking the inputs.
     if T is None:
@@ -1743,14 +1743,14 @@ def createCsData(T: float, vel: float, plotflag: bool = True,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param T: temperatures to evaluate the reaction rates.
-    @param vel: velocities to evaluate the reaction rates.
-    @param plotflag: Flag to plot the reaction rates. True by default.
-    @param gridflag: Flag to plot the grids in the plots. True by default.
-    @param fontname: fontname to use in the plots.
-    @param fontsize: fontsize for the plots.
+    :param  T: temperatures to evaluate the reaction rates.
+    :param  vel: velocities to evaluate the reaction rates.
+    :param  plotflag: Flag to plot the reaction rates. True by default.
+    :param  gridflag: Flag to plot the grids in the plots. True by default.
+    :param  fontname: fontname to use in the plots.
+    :param  fontsize: fontsize for the plots.
     @para line_options: dictionary for the lines plotting.
-    @returns output: returns the dictionary with the different reactions.
+    :returns output: returns the dictionary with the different reactions.
     """
     mass = alkMasses['Cs133']
     E = np.logspace(0, 7, num=512)
@@ -2045,15 +2045,15 @@ def createRbData(A, T: float, vel: float, plotflag: bool = True,
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param A: mass number to evaluate the table. Can only be 85 or 87
-    @param T: temperatures to evaluate the reaction rates.
-    @param vel: velocities to evaluate the reaction rates.
-    @param plotflag: Flag to plot the reaction rates. True by default.
-    @param gridflag: Flag to plot the grids in the plots. True by default.
-    @param fontname: fontname to use in the plots.
-    @param fontsize: fontsize for the plots.
+    :param  A: mass number to evaluate the table. Can only be 85 or 87
+    :param  T: temperatures to evaluate the reaction rates.
+    :param  vel: velocities to evaluate the reaction rates.
+    :param  plotflag: Flag to plot the reaction rates. True by default.
+    :param  gridflag: Flag to plot the grids in the plots. True by default.
+    :param  fontname: fontname to use in the plots.
+    :param  fontsize: fontsize for the plots.
     @para line_options: dictionary for the lines plotting.
-    @returns output: returns the dictionary with the different reactions.
+    :returns output: returns the dictionary with the different reactions.
     """
     if A == 85:
         mass = alkMasses['Rb85']
