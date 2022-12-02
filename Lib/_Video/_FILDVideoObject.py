@@ -149,6 +149,8 @@ class FILDVideo(FIV):
                 self.geometryID = FILDlogbook.getGeomID(shot, diag_ID)
                 self.CameraCalibration = \
                     FILDlogbook.getCameraCalibration(shot, diag_ID)
+                # self.cameraGeneralParameters = \
+                    # FILDlogbook.getCameraGeneralParameters(shot, diag_ID)
                 try:
                     self.operatorComment =\
                         FILDlogbook.getComment(self.shot)
