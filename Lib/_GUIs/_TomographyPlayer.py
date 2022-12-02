@@ -12,9 +12,9 @@ class ApplicationShowTomography:
         """
         Create the window with the sliders
 
-        @param master: Tk() opened
-        @param data: the dictionary of experimental frames
-        @param remap_dat: the dictionary of remapped data
+        :param  master: Tk() opened
+        :param  data: the dictionary of experimental frames
+        :param  remap_dat: the dictionary of remapped data
         """
         # --- List of supported colormaps
         self.cmaps = {

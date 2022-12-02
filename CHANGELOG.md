@@ -1,6 +1,48 @@
+
+# 1.2.1: Melon with Jamon
+## iHIBPVideo
+- changed guessiHIBPfilename to use correct video filename for different discharges
+- fixed ihibp_get_time_basis to give correct timebase
+- videos will be subtracted by zero-th frame and median filtered with size 5
+## BasicVideoObject
+- subtract_noise now uses DataArrays to allow arbitrary order of dimensions
+- plot_frame now accepts [t1, t2] and plots the average of the frame strictly within the time range.
+## _MP4files
+- read mp4 video files with ffmpeg
+## Calibration
+- changed iHIBP camera calibration database
+- calibration uniquely given by shotnumber, method and diag_ID = 1 for iHIBP.
+## DiagParam
+- changed origin point of ihibp beam
+## Plates
+- changed ihibp Scintillator plate to match experimental geometry
+## iHIBP beam watchdog cameras
+- New object to handle the cameras watching the beam and extract useful info from them like beam displacement, divergences,... *Lib.vid.ihibp_beam_camera(shot, camera='top'/'side')*
+# iHIBP strikes
+- the object reading the *.strikes file from the iHIBPsim simulation has been rewritten into a more handlable fashion.
+- 3D plot of the strikes in 3D axes, with colormap corresponding to weights.
+- generic histograms functions included.
+- plotScintillator now generates better images.
+- plot_frames generates the real frame including distorsion and optics defocusing.
+# iHIBP StrikeLineCollection.
+- the old object for the strikelines has been removed to give rise to a more intuitive strikeline.
+- two new objects:
+    - Lib.strikeline.strikeLineCollection: loads the file with the map and initializes a many strike lines as the file contains.
+    - Lib.strikeline.strikeLine: strike line object containing all the elements that a single strike line has.
+
+# 1.2.0: Melon con Jamon
+## General
+- Changed @ for : in documentations
+## Data
+- INPA object documentation improved
+- getGeomShots() removed from INPA object
+## Simulation codes
+- Added compatibility with SINPA 4
+
+
 # 1.1.0: Melon con Jamon
 ## FIDASIM library
-- FIDASIM library is no longer distributed inside the suite. Please download it from the main repo of FIDASIM4
+- FIDASIM library distributed with the suite is no longer mantained. Please download it from the main repo of FIDASIM4
 ## Logging
 - Logging output was colorised to distinguish between info and warning
 ## Scintillator
@@ -14,10 +56,11 @@
 ## Strike Map Library
 - Defocusing included in the calculation of the INPA instrument function via convolution
 ## Video
-- corrected the reading of the shutter time in NS from png file, it was being storaged in s
+- corrected the reading of the shutter time in NS from png file, it was being stored in s
 ## Others
 - Small typos corrected in documentation
 - Updated readme
+- git commit now shown in starting of the Suite and saved in the version file
 # 1.0.4: Lentejas
 ## Tomography
 - Lib Tomography rewritten, now the folding of the W is done via numba, saving 99% of the time
@@ -57,6 +100,10 @@
 - Minor bug fix in the GUI which plot the frames
 - Integral of the remap is no automatically calculated in the remap video
 - Minor bug fix and comments improvements
+**From this version onwards, the ScintSuite only works with the iHIPsim 3.0.0 and above**
+- Deposition object for the iHIBPsim: can read and plot basic informative data of the secondary birth profile.
+- Adapted namelists and default values to the new iHIBPsim version.
+- Included Hannah's modifications.
 
 ## 1.0.0: Salmorejo
 **Installation instructions**: Please run the file 'first_run.py' if you just landed in version 1.0.0, as some extra files need to be created
@@ -144,7 +191,7 @@
 - getGyroradius and getEnergy now uses the proper amu to kg conversion and no longer rely on the proton mass
 - Integrate_remap change completely inputs and output, now it can handle also any translation of the remap. Please have a look at the new function doc. Take care with the translation if you do not use standard remaps as initial point
 - The small bug on the units of the weights of INPA markers from SINPA was corrected (the correction due to the detector pinhole size was already performed in SINPA)
-- Included new sub-library MHD, to calculate/plot basic mode parameters such as mode frequencies 
+- Included new sub-library MHD, to calculate/plot basic mode parameters such as mode frequencies
 
 
 ## 0.9.10: iHIBP videos improvements and TORBEAM sims.

@@ -106,19 +106,19 @@ class FILDVideo(FIV):
               collimator geometries, this extracted from the logbook. If no
               input is given for FILDlogbook, the code will use the default.
 
-        @param file: file or folder (see above)
-        @param shot: Shot number, if is not given, the program will look for it
+        :param  file: file or folder (see above)
+        :param  shot: Shot number, if is not given, the program will look for it
             in the name of the loaded file (see above)
-        @param diag_ID: manipulator number for FILD
-        @param empty: Initialise the video object as empty. This flag is added
+        :param  diag_ID: manipulator number for FILD
+        :param  empty: Initialise the video object as empty. This flag is added
             to load data from a remap file
-        @param logbookOptions: dictionary containing the options to start the
+        :param  logbookOptions: dictionary containing the options to start the
             FILDlogbook. Can be machine dependent
-        @param Boptions: dictionary containing the options to load the magnetic
+        :param  Boptions: dictionary containing the options to load the magnetic
             field, can be machine dependent. Notice that the shot number and
             needed time will be collected from the video object. If you provide
             them also here, the code will fail. Same with R and z
-        @param verbose: flag to print information (overheating + comments)
+        :param  verbose: flag to print information (overheating + comments)
         """
         if not empty:
             # Guess the filename:
@@ -178,11 +178,15 @@ class FILDVideo(FIV):
             if self.geometryID is not None:
                 platename = os.path.join(paths.ScintSuite, 'Data', 'Plates', 'FILD',
                                          machine, self.geometryID + '.pl')
-                if os.path.isfile(platename):
-                    self.scintillator = ssmap.Scintillator(file=platename)
-                    self.scintillator.calculate_pixel_coordinates(
-                            self.CameraCalibration)
-                    self.ROIscintillator = self.scintillator.get_roi()
+                platename2 = os.path.join(pa.ScintSuite, 'Data', 'Plates',
+                                         'FILD',
+                                         machine, self.geometryID + '.txt')
+                for plate in [platename, platename2]:
+                    if os.path.isfile(plate):
+                        self.scintillator = ssmap.Scintillator(file=plate)
+                        self.scintillator.calculate_pixel_coordinates(
+                                self.CameraCalibration)
+                        self.ROIscintillator = self.scintillator.get_roi()
             else:
                 self.scintillator = None
                 self.ROIscintillator = None
@@ -298,10 +302,10 @@ class FILDVideo(FIV):
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param    options: Options for the remapping routine. See
+        :param     options: Options for the remapping routine. See
             remapAllLoadedFrames in the LibMap package for a full description
 
-        @return:  write in the object the remap_dat dictionary containing with:
+        :return:  write in the object the remap_dat dictionary containing with:
             -# options: Options used for the remapping
             -# frames: Remaped frames
             -# time: time associated to the remapped points
@@ -352,14 +356,14 @@ class FILDVideo(FIV):
 
         José Rueda: jrrueda@us.es
 
-        @param t: time point where we want the angles [s]. if None the
+        :param  t: time point where we want the angles [s]. if None the
             orientation will be calculated for all time points
-        @param verbose: flag to print information or not
-        @param R: R coordinate of the detector (in meters) for B calculation
-        @param z: z coordinate of the detector (in meters) for B calculation
+        :param  verbose: flag to print information or not
+        :param  R: R coordinate of the detector (in meters) for B calculation
+        :param  z: z coordinate of the detector (in meters) for B calculation
 
-        @return phi: phi angle [º]
-        @return theta: theta angle [º]
+        :return phi: phi angle [º]
+        :return theta: theta angle [º]
         """
         if self.remap_dat is None:
             if self.orientation is None:
@@ -431,22 +435,22 @@ class FILDVideo(FIV):
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param ccmap: colormap to be used, if none, Gamma_II will be used
-        @param ax_params: params for the function axis beauty plt. Notice that,
+        :param  ccmap: colormap to be used, if none, Gamma_II will be used
+        :param  ax_params: params for the function axis beauty plt. Notice that,
             the xlabel for the rl and pitch are hardwritten in the inside
             (sorry, this was to avoid to have 2 ax_params inputs)
-        @param t: time, if present, just a line plot for the profiles for that
+        :param  t: time, if present, just a line plot for the profiles for that
         time will be used
-        @param nlev: Number of levels for the contourf plots (deprecated, as we
+        :param  nlev: Number of levels for the contourf plots (deprecated, as we
             now use imshow to plot the data)
-        @param cbar_tick_format: format for the colorbar ticks
-        @param max_gyr: maximum value for colorbar plot in gyroradius
-        @param min_gyr: minimum value for colorbar plot in gyroradius
-        @param max_pitch: maximum value for colorbar plot in pitch
-        @param min_pitch: minimum value for colorbar plot in pitch
-        @param scale: Color scale to plot, up to know only implemeneted for
+        :param  cbar_tick_format: format for the colorbar ticks
+        :param  max_gyr: maximum value for colorbar plot in gyroradius
+        :param  min_gyr: minimum value for colorbar plot in gyroradius
+        :param  max_pitch: maximum value for colorbar plot in pitch
+        :param  min_pitch: minimum value for colorbar plot in pitch
+        :param  scale: Color scale to plot, up to know only implemeneted for
                the gyroradius plot. it accept 'linear' and 'log'
-        @param interpolation: interpolation method for plt.imshow
+        :param  interpolation: interpolation method for plt.imshow
         """
         # --- Initialise the plotting options
         # Color map

@@ -69,9 +69,10 @@ FILD = (_fild1, _fild2, _fild3, _fild4, _fild5)
 IHIBP_scintillator_X = np.array((0.0, 6.6))  # [cm]
 IHIBP_scintillator_Y = np.array((-17.0, 0.0))  # [cm]
 
-iHIBP = {'port_center': [0.687, -3.454, 0.03], 'sector': 13,
-         'beta_std': 4.117, 'theta_std': 0.0, 'source_radius': 7.0e-3}
-
+#iHIBP = {'port_center': [0.687, -3.454, 0.03], 'sector': 13,
+#         'beta_std': 4.117, 'theta_std': 0.0, 'source_radius': 7.0e-3}
+iHIBP = {'port_center': [0.681, -3.457,  0.027], 'sector': 13,
+         'beta_std': 4.67, 'theta_std': 0.08, 'source_radius': 7.0e-3}
 
 def _iHIBP1_path(shot: int = 42000):
     """

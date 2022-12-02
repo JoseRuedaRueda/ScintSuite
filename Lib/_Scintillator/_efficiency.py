@@ -17,6 +17,9 @@ from Lib._Machine import machine
 from scipy.interpolate import interp1d
 paths = p(machine)
 
+import logging
+logger = logging.getLogger('ScintSuite.Scintillator')
+
 
 # ------------------------------------------------------------------------------
 # --- Reading routine
@@ -27,8 +30,8 @@ def read_scintillator_efficiency(file, verb: bool = False):
 
     Jose Rueda: jrrueda@us.es
 
-    @param file: full path to the file to be loaded
-    @param verb: if true, the comments in the file will be printed
+    :param  file: full path to the file to be loaded
+    :param  verb: if true, the comments in the file will be printed
     """
     # --- Factors
     factors = {
@@ -83,18 +86,17 @@ class ScintillatorEfficiency:
     """Class containing the scintillator efficiency"""
 
     def __init__(self, material: str = 'TgGreenA', particle: str = 'D',
-                 thickness: int = 9,
-                 verbose: bool = False):
+                 thickness: int = 9,  verbose: bool = False):
         """
         Load data
 
-        @param material: material of the plate
-        @param particle: particle which is being launch
-        @param thickness: thickness of the scintillator power
+        :param  material: material of the plate
+        :param  particle: particle which is being launch
+        :param  thickness: thickness of the scintillator power
         """
         file = os.path.join(paths.ScintSuite, 'Data', 'ScintillatorEfficiency',
                             material, particle + '_' + str(thickness) + '.dat')
-        print('Reading efficiency file: ', file)
+        logger.info('Reading efficiency file: ' + file)
         ## Efficiency data:
         self.data = read_scintillator_efficiency(file, verbose)
 

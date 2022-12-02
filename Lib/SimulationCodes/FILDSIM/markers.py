@@ -27,10 +27,10 @@ class Strikes:
         """
         Load the strike points and initialise the object.
 
-        @param runID: runID of the SINPA simulation
-        @param file: if a filename is provided, data will be loaded from this
+        :param  runID: runID of the SINPA simulation
+        :param  file: if a filename is provided, data will be loaded from this
         file, ignoring the SINPA folder structure (and runID)
-        @param verbose. flag to print some info in the command line
+        :param  verbose. flag to print some info in the command line
         """
         # --- Load the strike points
         if file is None:
@@ -46,11 +46,11 @@ class Strikes:
 
         Jose Rueda: ruejo@ipp.mpg.de
 
-        @param runID: runID of the FILDSIM simulation
-        @param plate: plate to collide with (Collimator or Scintillator)
-        @param file: if a filename is provided, data will be loaded from this
+        :param  runID: runID of the FILDSIM simulation
+        :param  plate: plate to collide with (Collimator or Scintillator)
+        :param  file: if a filename is provided, data will be loaded from this
         file, ignoring the SINPA folder structure (and runID)
-        @param verbose. flag to print some info in the command line
+        :param  verbose. flag to print some info in the command line
         """
         if verbose:
             print('Reading strike points: ', self.file)
@@ -182,7 +182,7 @@ class Strikes:
 
         Jose Rueda: jrrueda@us.es
 
-        @param delta: bin width for the histogram
+        :param  delta: bin width for the histogram
         """
         colum_pos = self.header['info']['x']['i']  # column of the x position
         # --- define the grid for the histogram
@@ -218,14 +218,14 @@ class Strikes:
         """
         Scatter plot of the strike points.
 
-        @param per: ratio of markers to be plotted (1=all of them)
-        @param ax: axes where to plot
-        @param mar_params: Dictionary with the parameters for the markers
-        @param gyr_index: index (or indeces if given as an np.array) of
+        :param  per: ratio of markers to be plotted (1=all of them)
+        :param  ax: axes where to plot
+        :param  mar_params: Dictionary with the parameters for the markers
+        :param  gyr_index: index (or indeces if given as an np.array) of
         gyroradii to plot
-        @param pitch_index: index (or indeces if given as an np.array) of
+        :param  pitch_index: index (or indeces if given as an np.array) of
         alphas to plot
-        @param ax_params: parameters for the axis beauty routine. Only applied
+        :param  ax_params: parameters for the axis beauty routine. Only applied
         if the axis was created inside the routine
         """
         # --- Initialise plotting options
@@ -288,7 +288,7 @@ class Strikes:
 
         Jose Rueda: jrrueda@us.es
 
-        @param var: variable to plot
+        :param  var: variable to plot
         """
         # --- Get the index:
         self.header['info'][var]['i']
@@ -388,7 +388,7 @@ class Strikes:
 
         Jose Rueda: jrrueda@us.es
 
-        @param var: variable to plot
+        :param  var: variable to plot
         """
         # --- Get the index:
         xcolumn_to_plot = self.header['info'][varx]['i']
@@ -454,9 +454,9 @@ class Orbits:
 
         ajvv: avanvuuren@us.es and Jose Rueda: jrrueda@us.es
 
-        @param orbits_file: full path to the orbits file
+        :param  orbits_file: full path to the orbits file
             eg. /path/to/runid_example_orbits.dat
-        @param orbits_index_file: full path to the orbits_index file, if None,
+        :param  orbits_index_file: full path to the orbits_index file, if None,
         the name will be deducedd from the orbits file
             eg. /path/to/runid_example_orbits_index.dat
 
@@ -494,14 +494,14 @@ class Orbits:
         ajvv: avanvuuren@us.es and Jose Rueda: jrrueda@us.es
 
         ----------
-        @param per: percentaje of orbits to plot
-        @param ax3D: 3D axis to plot the orbits, if None, new will be made
-        @param axarr: array of axis to plot projections, if None, will be made
-        @param dpi: dpi to render the figures, only used if the axis are
+        :param  per: percentaje of orbits to plot
+        :param  ax3D: 3D axis to plot the orbits, if None, new will be made
+        :param  axarr: array of axis to plot projections, if None, will be made
+        :param  dpi: dpi to render the figures, only used if the axis are
             createdby this function
-        @param line_params: Parameters for plot orbit lines,
+        :param  line_params: Parameters for plot orbit lines,
                             Default: linestyle = 'solid' or color = 'red'
-        @param marker_params: Parameters for plot orbit end points,
+        :param  marker_params: Parameters for plot orbit end points,
                             Default: maker = 'circle' or color = 'red'
         '''
         # Default plot parameters:

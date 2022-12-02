@@ -1,3 +1,4 @@
+
 """
 Object with profiles for iHIBPsim.
 
@@ -156,8 +157,8 @@ class ihibpProfiles:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param profName: Name of the input profile to read.
-        @param fileName: Path to the file containing the profile to read.
+        :param  profName: Name of the input profile to read.
+        :param  fileName: Path to the file containing the profile to read.
         """
 
         if profName not in self.__dict__.keys():
@@ -166,7 +167,7 @@ class ihibpProfiles:
         tmp = {}
         with open(fileName, 'rb') as fid:
             tmp['nR'] = np.fromfile(fid, 'uint32', 1)[0]
-            tmp['nZ'] = np.fromfile(fid, 'uint32', 1)[0]
+            tmp['nz'] = np.fromfile(fid, 'uint32', 1)[0]
             tmp['nPhi'] = np.fromfile(fid, 'uint32', 1)[0]
             tmp['nTime'] = np.fromfile(fid, 'uint32', 1)[0]
 
@@ -179,14 +180,14 @@ class ihibpProfiles:
             tmp['Timemin'] = np.fromfile(fid, 'float64', 1)[0]
             tmp['Timemax'] = np.fromfile(fid, 'float64', 1)[0]
 
-            size2read = tmp['nR']   * tmp['nZ'] *\
+            size2read = tmp['nR']   * tmp['nz'] *\
                         tmp['nPhi'] * tmp['nTime']
 
             data = np.fromfile(fid, 'float64', count=size2read)
 
             # Generating the grids.
             grr  = np.linspace(tmp['Rmin'], tmp['Rmax'], num=tmp['nR'])
-            gzz  = np.linspace(tmp['Zmin'], tmp['Zmax'], num=tmp['nZ'])
+            gzz  = np.linspace(tmp['Zmin'], tmp['Zmax'], num=tmp['nz'])
             gphi = np.linspace(tmp['Phimin'], tmp['Phimax'], num=tmp['nPhi'])
             gtt  = np.linspace(tmp['Timemin'], tmp['Timemax'],
                                num=tmp['nTime'])
@@ -196,7 +197,7 @@ class ihibpProfiles:
             tmp['Phi'] = gphi
             tmp['Time'] = gtt
 
-            grid = np.array((tmp['nR'], tmp['nPhi'], tmp['nZ'], tmp['nTime']))
+            grid = np.array((tmp['nR'], tmp['nPhi'], tmp['nz'], tmp['nTime']))
 
             tmp['f'] = data.reshape(grid, order='F').squeeze()
             tmp['set'] = True # Variable loaded!
@@ -241,8 +242,8 @@ class ihibpProfiles:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param profName: name of the profile to store into the file.
-        @param filename: name of the output file.
+        :param  profName: name of the profile to store into the file.
+        :param  filename: name of the output file.
         """
 
         if profName not in self.__dict__.keys():
@@ -261,7 +262,7 @@ class ihibpProfiles:
 
         with open(filename, 'wb') as fid:
             # Writing the header.
-            gridsize = (tmp['nR'], tmp['nZ'], tmp['nPhi'], tmp['nTime'])
+            gridsize = (tmp['nR'], tmp['nz'], tmp['nPhi'], tmp['nTime'])
             np.array(gridsize, dtype='uint32').tofile(fid)
 
             gridlimits = (tmp['Rmin'], tmp['Rmax'], tmp['Zmin'], tmp['Zmax'],
@@ -274,6 +275,7 @@ class ihibpProfiles:
             np.array(tmp['f'], dtype='float64').ravel(order='F').tofile(fid)
 
         return
+
     def getfromDB(self, shotnumber: int, profName: str, diag: str=None,
                   exp: str='AUGD', time: float=None, edition: int=0):
         """
@@ -282,11 +284,11 @@ class ihibpProfiles:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param shotnumber: shotnumber to retrieve the profiles.
-        @param profName: name of the profile to read from the data base.
-        @param diag: diagnostic to read the data from. If None, the default is
+        :param  shotnumber: shotnumber to retrieve the profiles.
+        :param  profName: name of the profile to read from the data base.
+        :param  diag: diagnostic to read the data from. If None, the default is
         chosen accordingly to the input profName.
-        @param exp: experiment where the shotfile is saved. By default, 'AUGD'
+        :param  exp: experiment where the shotfile is saved. By default, 'AUGD'
         """
 
         if profName.lower() not in ('ne', 'ni', 'te', 'ti'):
@@ -384,9 +386,9 @@ class ihibpProfiles:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param profName: name of the profile to modify.
-        @param f: callable function to modify the profile.
-        @param kwargs: keyword arguments to pass down to the function f.
+        :param  profName: name of the profile to modify.
+        :param  f: callable function to modify the profile.
+        :param  kwargs: keyword arguments to pass down to the function f.
         """
 
         if profName not in self.prof1D:
@@ -409,9 +411,9 @@ class ihibpProfiles:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param profName: name of the profile to modify.
-        @param f: callable function to modify the profile.
-        @param kwargs: keyword arguments to pass down to the function f.
+        :param  profName: name of the profile to modify.
+        :param  f: callable function to modify the profile.
+        :param  kwargs: keyword arguments to pass down to the function f.
         """
 
         if profName not in self.prof1D:
@@ -434,7 +436,7 @@ class ihibpProfiles:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param profName: name(s) of the profiles to unset.
+        :param  profName: name(s) of the profiles to unset.
         """
 
         if profName is None:
@@ -457,22 +459,22 @@ class ihibpProfiles:
     def set_grid(self, rmin: float, rmax: float, zmin: float, zmax: float,
                  phimin: float=0.0, phimax:float=2.0*np.pi,
                  tmin: float=None, tmax: float=None, nR: int=128,
-                 nZ: int=256, nphi: int=1, ntime: int=1):
+                 nz: int=256, nphi: int=1, ntime: int=1):
         """
         Sets the internal grid to transform the 1D rhopol into 2D+time such it
         can be readily written into files.
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param rmin: minimum major radius.
-        @param rmax: maximum major radius.
-        @param zmin: minimum vertical position.
-        @param zmax: maximum vertical position.
-        @param phimin: minimum toroidal position.
-        @param phimax: maximum toroidal position.
-        @param timemin: minimum time point to simulate. If None, then the time
+        :param  rmin: minimum major radius.
+        :param  rmax: maximum major radius.
+        :param  zmin: minimum vertical position.
+        :param  zmax: maximum vertical position.
+        :param  phimin: minimum toroidal position.
+        :param  phimax: maximum toroidal position.
+        :param  timemin: minimum time point to simulate. If None, then the time
         dimension is disregarded.
-        @param timemax: maximum time point to simulate. If None, then the time
+        :param  timemax: maximum time point to simulate. If None, then the time
         dimension is disregarded.
         """
 
@@ -483,8 +485,8 @@ class ihibpProfiles:
 
                        'zmin': zmin,
                        'zmax': zmax,
-                       'nZ':   nZ,
-                       'Z': np.linspace(zmin, zmax, nZ),
+                       'nz':   nz,
+                       'Z': np.linspace(zmin, zmax, nz),
 
                        'dims': 2
                      }
@@ -532,7 +534,7 @@ class ihibpProfiles:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param data: dictionary: dictionary with the data of the profiles in 1D.
+        :param  data: dictionary: dictionary with the data of the profiles in 1D.
         """
 
         # To make the transformation from rhopol 2 Rz we need to get the
@@ -548,7 +550,7 @@ class ihibpProfiles:
                                         k=self.interp_order, s=0,
                                         ext='zeros')
 
-        rhopol = rhopol.reshape(self.grids['nR'],self.grids['nZ'],-1)
+        rhopol = rhopol.reshape(self.grids['nR'],self.grids['nz'],-1)
         print(rhopol.shape)
 
         return interpolator(rhopol)
@@ -603,7 +605,7 @@ class ihibpProfiles:
             tmp['phi'] = self.grids['Phi']
             tmp['Time'] = self.grids['Time']
             tmp['nR'] = self.grids['nR']
-            tmp['nZ'] = self.grids['nZ']
+            tmp['nz'] = self.grids['nz']
             tmp['nPhi'] = self.grids['nPhi']
             tmp['nTime'] = self.grids['nTime']
             tmp['f'] = a
@@ -617,16 +619,16 @@ class ihibpProfiles:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param profName: name of the profile to be plotted.
-        @param view: how to represent the profiles. It can either be 1D or
+        :param  profName: name of the profile to be plotted.
+        :param  view: how to represent the profiles. It can either be 1D or
         2D, but if 1D is established, the profiles should have been read
         from the database.
-        @param ax: axis to plot the data. If None, new ones will be created.
-        @param fig: figure where the axis lie. If None, current one will be
+        :param  ax: axis to plot the data. If None, new ones will be created.
+        :param  fig: figure where the axis lie. If None, current one will be
         retrieved.
-        @param timeSlice: time slice to plot, in case the profile is time
+        :param  timeSlice: time slice to plot, in case the profile is time
         dependent. If NOne, the first time point is used.
-        @param line_params: dictionary to be passed down to plt.plot.
+        :param  line_params: dictionary to be passed down to plt.plot.
         """
 
         # Checking if the name is in the 1D data.
@@ -660,7 +662,7 @@ class ihibpProfiles:
                      }[profName.lower()]
             ax.set_ylabel(ylabel)
 
-        return im
+        return im, ax
 
     def plot2d(self, profName: str, ax, fig,phiSlice: int=0, timeSlice: int=0,
                surf_params: dict={}, setLabels: bool=False):
@@ -670,16 +672,16 @@ class ihibpProfiles:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param profName: name of the profile to be plotted.
-        @param view: how to represent the profiles. It can either be 1D or
+        :param  profName: name of the profile to be plotted.
+        :param  view: how to represent the profiles. It can either be 1D or
         2D, but if 1D is established, the profiles should have been read
         from the database.
-        @param ax: axis to plot the data. If None, new ones will be created.
-        @param fig: figure where the axis lie. If None, current one will be
+        :param  ax: axis to plot the data. If None, new ones will be created.
+        :param  fig: figure where the axis lie. If None, current one will be
         retrieved.
-        @param timeSlice: time slice to plot, in case the profile is time
+        :param  timeSlice: time slice to plot, in case the profile is time
         dependent. If NOne, the first time point is used.
-        @param line_params: dictionary to be passed down to plt.plot.
+        :param  line_params: dictionary to be passed down to plt.plot.
         """
 
         if (profName not in self.__dict__.keys()) and\
@@ -723,18 +725,18 @@ class ihibpProfiles:
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-        @param profName: name of the profile to be plotted.
-        @param view: how to represent the profiles. It can either be 1D or
+        :param  profName: name of the profile to be plotted.
+        :param  view: how to represent the profiles. It can either be 1D or
         2D, but if 1D is established, the profiles should have been read
         from the database.
-        @param ax: axis to plot the data. If None, new ones will be created.
-        @param fig: figure where the axis lie. If None, current one will be
+        :param  ax: axis to plot the data. If None, new ones will be created.
+        :param  fig: figure where the axis lie. If None, current one will be
         retrieved.
-        @param phiSlice: in case the profile is 3D (non-axisymmetric), then
+        :param  phiSlice: in case the profile is 3D (non-axisymmetric), then
         the phi slice has to be chosen beforehand. If None, phi=0 is taken.
-        @param timeSlice: time slice to plot, in case the profile is time
+        :param  timeSlice: time slice to plot, in case the profile is time
         dependent. If NOne, the first time point is used.
-        @param kwargs: keyword arguments to be passed down to the actual
+        :param  kwargs: keyword arguments to be passed down to the actual
         plotting functions.
         """
 

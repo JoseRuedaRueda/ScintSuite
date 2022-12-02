@@ -21,7 +21,7 @@ def loadTable1D(filename: str):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param filename: Filename containing the table.
+    :param  filename: Filename containing the table.
 
     """
     output = {}  # Empty dictionary.
@@ -37,6 +37,7 @@ def loadTable1D(filename: str):
         output['base_name'] = 'Temperature'
         output['base_units'] = 'eV'
         output['units'] = '$m^3/s$'
+        output['reaction'] = filename.split('/')[-1].split('.')[0]
 
         # --- Creating the interpolating object.
         output['interp'] = interp1d(np.log(output['base']),
@@ -55,7 +56,7 @@ def loadTable2D(filename: str):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param filename: Filename containing the table.
+    :param  filename: Filename containing the table.
     """
     output = {}  # Empty dictionary.
     with open(filename, 'rb') as fid:
@@ -63,8 +64,7 @@ def loadTable2D(filename: str):
         nv = np.fromfile(fid, 'int32', 1)[0]
         T = np.fromfile(fid, 'float64', nT)
         v = np.fromfile(fid, 'float64', nv)
-        sigma = np.fromfile(fid, 'float64', nT*nv).reshape((nv, nT),
-                                                           order='F').T
+        sigma = np.fromfile(fid, 'float64', nT*nv).reshape((nv, nT), order='F')
         output['table_type'] = 2
         output['nBase'] = []
         output['nBase'].append(nT)
@@ -83,14 +83,14 @@ def loadTable2D(filename: str):
         output['base_shortname'].append('T')
         output['base_shortname'].append('v')
         output['units'] = '$m^3/s$'
+        output['reaction'] = filename.split('/')[-1].split('.')[0]
 
         # --- Creating the interpolating object.
         output['interp'] = interp2d(np.log(output['base'][0]),
                                     output['base'][1],
                                     np.log(output['sigma']),
                                     kind='linear',
-                                    bounds_error=False,
-                                    fill_value='extrapolate')
+                                    bounds_error=False)#,fill_value='extrapolate')
 
     return output
 
@@ -107,7 +107,7 @@ def plotTable1D(table: dict, ax=None, ax_options: dict = {},
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param table: dictionary with the data to be plotted.
+    :param  table: dictionary with the data to be plotted.
     """
     # --- Creating axis and checking the plotting inputs.
     axis_was_none = False
@@ -166,7 +166,7 @@ def plotTable2D(table: dict, v: float = None, ax=None, ax_options: dict = {},
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param table: dictionary with the data to be plotted.
+    :param  table: dictionary with the data to be plotted.
     """
     # --- Creating axis and checking the plotting inputs.
     axis_was_none = False
@@ -204,18 +204,22 @@ def plotTable2D(table: dict, v: float = None, ax=None, ax_options: dict = {},
         ax_options['xscale'] = 'linear'
         ax_options['yscale'] = 'linear'
 
-    if v is None:
-        v = table['base'][1]
+    v_all = table['base'][1]
+    T = table['base'][0]
 
     # --- Interpolating the tables to the input velocities.
-    TT, VV = np.meshgrid(table['base'][0], v)
-    sigma = table['interp'](TT, VV).reshape(VV.shape)
+    sigma = np.exp(table['interp'](np.log(T), v_all))
     print(str(sigma.shape))
 
     # --- Plotting the reaction-rates.
-    for ii in range(len(v)):
-        ax.plot(table['base'][0], sigma[ii, :], **line_options,
-                label=table['base_shortname'][1]+'='+str(v[ii]))
+    if v == None:
+        for ii in range(len(v_all)):
+            ax.plot(T, table['sigma'][ii, :], **line_options,
+                    label=table['reaction'] + ', ' + table['base_shortname'][1]+' = %.2e' %v_all[ii])
+    else:
+        it = np.argmin(abs(v_all-v))
+        ax.plot(T, sigma[it, :], **line_options,
+                label = table['reaction'] + ', ' + table['base_shortname'][1] + ' = %.2e' %v_all[it])
 
     if grid and axis_was_none:
         ax.grid(True, which='minor', linestyle=':')
@@ -223,6 +227,7 @@ def plotTable2D(table: dict, v: float = None, ax=None, ax_options: dict = {},
         ax.grid(True, which='major')
 
     ax = ssplt.axis_beauty(ax, ax_options)
+    plt.legend()
     plt.tight_layout()
 
     return ax
@@ -238,8 +243,8 @@ def read_rates_Database(name: str = 'Cs',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param name: name of the species to be read from the database.
-    @param filename: name of the netCDF4 file containing the data.
+    :param  name: name of the species to be read from the database.
+    :param  filename: name of the netCDF4 file containing the data.
     """
     try:
         fid = nc4.Dataset(filename, mode='r')
@@ -313,10 +318,10 @@ def write_rates_Database(rates: dict, name: str = 'Cs',
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    @param rates: dictionary with all the information to write
+    :param  rates: dictionary with all the information to write
     to the file.
-    @param name: name of the species to save in the datafile.
-    @param filename: location of the datafile to write the file. If the file
+    :param  name: name of the species to save in the datafile.
+    :param  filename: location of the datafile to write the file. If the file
     does not exist, this routine will try to create one.
     """
     # --- Checking if the file exists:

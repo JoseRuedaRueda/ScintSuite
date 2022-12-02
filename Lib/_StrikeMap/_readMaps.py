@@ -54,10 +54,10 @@ def _readSmapSINPA(filename: str):
 
     Jose Rueda: jrrueda
 
-    @param filename: name of the file to read
+    :param  filename: name of the file to read
 
-    @return header: dictionary with the metadata of the strike map
-    @return data: dictionary with the strike map data
+    :return header: dictionary with the metadata of the strike map
+    :return data: dictionary with the strike map data
     """
     # read the header of the file. In the second line of the strike map, there
     # is the version, it is a bit weird the way I try to identify the version
@@ -223,10 +223,10 @@ def _readSmapFILDSIM(filename: str):
 
     Jose Rueda: jrrueda
 
-    @param filename: name of the file to read
+    :param  filename: name of the file to read
 
-    @return header: dictionary with the metadata of the strike map
-    @return data: dictionary with the strike map data
+    :return header: dictionary with the metadata of the strike map
+    :return data: dictionary with the strike map data
     """
     # read the header of the file. In the second line of the strike map, there
     # is the version, it is a bit weird the way I try to identify the version
@@ -299,8 +299,8 @@ def readSmap(filename, code: str = None):
 
     Just a wrapper to reading routines.
 
-    @param filename: file to load
-    @param code: name of the used code, if None, the code will be guessed from
+    :param  filename: file to load
+    :param  code: name of the used code, if None, the code will be guessed from
         the extension name
     """
     if code is None:

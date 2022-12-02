@@ -39,10 +39,10 @@
 #     Taken from mode_determinaton.py by
 #         Felician Mink, Marcus Roth & Markus Wappl
 #
-#     @param coilnumber: number of the coils within its group.
-#     @param coilgrp: group name of the coil, like 'B31', 'B17', ...
-#     @param freq: frequency array to evaluate the correction (in kHz).
-#     @param shotnumber: shotnumber for the coils. The correction is taken in
+#     :param  coilnumber: number of the coils within its group.
+#     :param  coilgrp: group name of the coil, like 'B31', 'B17', ...
+#     :param  freq: frequency array to evaluate the correction (in kHz).
+#     :param  shotnumber: shotnumber for the coils. The correction is taken in
 #     different times.
 #     """
 #     if freq is None:
@@ -150,13 +150,13 @@
 #
 #     Pablo Oyola - pablo.oyola@ipp.mpg.de
 #
-#     @param shotnumber: Shot number to get the data.
-#     @param coilNumber: Coil number in the coil array.
-#     @param coilGroup: can be B31, B17, C09,... by default set to B31
+#     :param  shotnumber: Shot number to get the data.
+#     :param  coilNumber: Coil number in the coil array.
+#     :param  coilGroup: can be B31, B17, C09,... by default set to B31
 #     (ballooning coils)
-#     @param timeWindow: Time window to get the magnetic data. If None, all the
+#     :param  timeWindow: Time window to get the magnetic data. If None, all the
 #     time window will be obtained.
-#     @return output: magnetic data (time traces and position.)
+#     :return output: magnetic data (time traces and position.)
 #     """
 #     if shotnumber <= 33739:
 #         diag = 'MHA'
@@ -241,16 +241,16 @@
 #
 #     Pablo Oyola - pablo.oyola@ipp.mpg.de
 #
-#     @param shotnumber: Shotnumber to retrieve the magnetic coils.
-#     @param timeWindow: time window to get the data.
-#     @param coilGrp: 'C07', 'C09', 'B31-5_11', 'B31-32-38' depending upon the
+#     :param  shotnumber: Shotnumber to retrieve the magnetic coils.
+#     :param  timeWindow: time window to get the data.
+#     :param  coilGrp: 'C07', 'C09', 'B31-5_11', 'B31-32-38' depending upon the
 #     group that needs to be read from database.
-#     @param phi_mag: each coil group is characterized by an approximate phi
+#     :param  phi_mag: each coil group is characterized by an approximate phi
 #     angle. If this is provided, the nearest group in phi is retrieved from the
 #     database. See variable @see{MHI_GROUP_APPR_PHI} to see which are the
 #     angles used.
 #
-#     @return output: group of the magnetic coils.
+#     :return output: group of the magnetic coils.
 #     """
 #     # --- Parsing the inputs
 #     if coilGrp is None:

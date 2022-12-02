@@ -23,16 +23,16 @@ import f90nml
 paths = Path(machine)
 
 
-def read_element(file, code: str = 'SINPA'):
+def read_element(file: str, code: str = 'SINPA'):
     """
     Read a SINPA of FILDSIM gemetric element.
 
     Jose Rueda: jrrueda@us.es
 
-    @param file: file to be read
-    @param FILDSIM: flag to indicate if we have the oldFILDSIM format
+    :param  file: file to be read
+    :param  FILDSIM: flag to indicate if we have the oldFILDSIM format
 
-    @return geom: Dictionary containing:
+    :return geom: Dictionary containing:
         - 'name': Name of the element
         - 'description': Description
         - 'kind': kind of plate
@@ -45,7 +45,7 @@ def read_element(file, code: str = 'SINPA'):
     some point in the name. Examples: AUG_FILD1_SCINTILLATOR or
     AUG_scintillator_FILD1
 
-    Note2: To be consistend between both of codes, coorditanes will be
+    Note2: To be consistent between both of codes, coorditanes will be
     transformed to m when reading the files
     """
     if code.lower() == 'fildsim':
@@ -103,6 +103,12 @@ def read_element(file, code: str = 'SINPA'):
         geom['trianglesScint'] = None
         geom['vertex'] = None
         geom['vertexScint'] = None
+        if len(geom['triangles'].shape) == 2:
+            # we have a 2D iHIBPsim file
+            geom['wallDim'] = 2
+        else:
+            geom['wallDim'] = 3
+
     else:
         raise Exception('Sorry, code not understood')
     return geom
@@ -116,12 +122,12 @@ def plotLinesElement(geom: dict, ax=None, line_params: dict = {},
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param geom: dictionary created by read_element()
-    @param ax: axes where to plot
-    @param line_params: parameters for the plt.plot function
-    @param referenceSystem: if absolute, the absolute coordinates will be
+    :param  geom: dictionary created by read_element()
+    :param  ax: axes where to plot
+    :param  line_params: parameters for the plt.plot function
+    :param  referenceSystem: if absolute, the absolute coordinates will be
         used, if 'scintillator', the scintillator coordinates will be used
-    @param plot2D: flag, if true a 2D plot of the element will be represented,
+    :param  plot2D: flag, if true a 2D plot of the element will be represented,
         in the scintillator system, so the flag 'referenceSystem' is
         is overwritten if this is true
 
@@ -223,16 +229,16 @@ def plotShadedElement(geom: dict, ax=None, surface_params: dict = {},
 
     2D view implemented by Alex LeViness: leviness@pppl.gov
 
-    @param geom: dictionary created by read_element()
-    @param ax: axes where to plot, if none, they will be created
-    @param surface_params: parameters for the plt.plot function
-    @param referenceSystem: if absolute, the absolute coordinates will be
+    :param  geom: dictionary created by read_element()
+    :param  ax: axes where to plot, if none, they will be created
+    :param  surface_params: parameters for the plt.plot function
+    :param  referenceSystem: if absolute, the absolute coordinates will be
         used, if 'scintillator', the scintillator coordinates will be used
-    @param plot2D: flag, if true a 2D plot of the element will be represented,
+    :param  plot2D: flag, if true a 2D plot of the element will be represented,
         in the scintillator system, so the flag 'referenceSystem' is
         is overwritten if this is true [Still not implemented]
-    @param units: units to plot the geometry. Acepted: m, cm, mm
-    @param view: plot XY plane, XZ, YZ, or the scintillator plane. This option
+    :param  units: units to plot the geometry. Acepted: m, cm, mm
+    :param  view: plot XY plane, XZ, YZ, or the scintillator plane. This option
         is only used for the 2D plotting. You can select the scintillator
         option writtin 'Scint', 'Scintillator' or any capitalization of those
 
@@ -303,7 +309,7 @@ def plotShadedElement(geom: dict, ax=None, surface_params: dict = {},
                 elif view.lower() == 'xz':
                     ax.fill_between(x, z, **surface_options)
         else:
-            raise Exception('Sorry still not implemented feature')
+            raise NotImplementedError('Sorry still not implemented feature')
     else:  # 3D plot
         if not triangleFile:
             x = np.append(geom[key][:, 0], geom[key][-1, 0]) * factor
@@ -340,9 +346,9 @@ class Geometry:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param GeomID: Geom ID
-        @param code: Which code it is
-        @param files: a list with the files to be loaded, if present, GeomID
+        :param  GeomID: Geom ID
+        :param  code: Which code it is
+        :param  files: a list with the files to be loaded, if present, GeomID
             will be ignored.
         Notice: the GeomID would be the name of the folder inside the geometry
         folder of the FILDSIM or SINPA code. If GeomID is an absolute path,
@@ -411,9 +417,9 @@ class Geometry:
 
         Copied from PabloOrbit object (see iHIBSIM library)
 
-        @param idx: element number
+        :param  idx: element number
 
-        @return self.data[idx]: Element dictionary
+        :return self.data[idx]: Element dictionary
         """
         return self.elements[idx]
 
@@ -445,15 +451,15 @@ class Geometry:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param geom: dictionary created by read_element()
-        @param ax: axes where to plot, if none, they will be created
-        @param line_params: parameters for the plt.plot function
-        @param element_to_plot: kind of plates we want to plot:
+        :param  geom: dictionary created by read_element()
+        :param  ax: axes where to plot, if none, they will be created
+        :param  line_params: parameters for the plt.plot function
+        :param  element_to_plot: kind of plates we want to plot:
             -0: Collimator
             -1: Ionizers (INPA carbon foil)
             -2: Scintillator
-        @param plot_pinhole: flag to plot a point on the pinhole or not
-        @param referenceSystem: if absolute, the absolute coordinates will be
+        :param  plot_pinhole: flag to plot a point on the pinhole or not
+        :param  referenceSystem: if absolute, the absolute coordinates will be
             used, if 'scintillator', the scintillator coordinates will be used
 
         Note: The use of this routine is not recomended if you use a fine mesh
@@ -506,16 +512,16 @@ class Geometry:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param geom: dictionary created by read_element()
-        @param ax: axes where to plot, if none, they will be created
-        @param ax_param: parameter for the axis beauty function
-        @param line_params: parameters for the plt.plot function
-        @param element_to_plot: kind of plates we want to plot:
+        :param  geom: dictionary created by read_element()
+        :param  ax: axes where to plot, if none, they will be created
+        :param  ax_param: parameter for the axis beauty function
+        :param  line_params: parameters for the plt.plot function
+        :param  element_to_plot: kind of plates we want to plot:
             -0: Collimator
             -1: Ionizers
             -2: Scintillator
-        @param plot_pinhole: flag to plot a point on the pinhole or not
-        @param referenceSystem: if absolute, the absolute coordinates will be
+        :param  plot_pinhole: flag to plot a point on the pinhole or not
+        :param  referenceSystem: if absolute, the absolute coordinates will be
             used, if 'scintillator', the scintillator coordinates will be used
 
         Note: The use of this routine is not recomended if you use a fine mesh
@@ -571,18 +577,18 @@ class Geometry:
 
         Jose Rueda Rueda: jrrueda@us.es
 
-        @param geom: dictionary created by read_element()
-        @param ax: axes where to plot, if none, they will be created
-        @param surface_params: parameters for the plt.plot function
-        @param element_to_plot: kind of plates we want to plot:
+        :param  geom: dictionary created by read_element()
+        :param  ax: axes where to plot, if none, they will be created
+        :param  surface_params: parameters for the plt.plot function
+        :param  element_to_plot: kind of plates we want to plot:
             -0: Collimator
             -1: Ionizers
             -2: Scintillator
-        @param plot_pinhole: flag to plot a point on the pinhole or not. Only
+        :param  plot_pinhole: flag to plot a point on the pinhole or not. Only
             work for SINPA geometry, as oldFILDSIM has not the extra namelist
-        @param referenceSystem: if absolute, the absolute coordinates will be
+        :param  referenceSystem: if absolute, the absolute coordinates will be
             used, if 'scintillator', the scintillator coordinates will be used
-        @param units: units to plot the geometry. Acepted: m, cm, mm
+        :param  units: units to plot the geometry. Acepted: m, cm, mm
 
         Note: The use of this routine is not recomended if you use a fine mesh
         with several triangles
@@ -675,19 +681,19 @@ class Geometry:
 
         Added by Alex LeViness: leviness@pppl.gov
 
-        @param geom: dictionary created by read_element()
-        @param ax: axes where to plot, if none, they will be created
-        @param surface_params: parameters for the plt.plot function
-        @param element_to_plot: kind of plates we want to plot:
+        :param  geom: dictionary created by read_element()
+        :param  ax: axes where to plot, if none, they will be created
+        :param  surface_params: parameters for the plt.plot function
+        :param  element_to_plot: kind of plates we want to plot:
             -0: Collimator
             -1: Ionizers
             -2: Scintillator
-        @param plot_pinhole: flag to plot a point on the pinhole or not. Only
+        :param  plot_pinhole: flag to plot a point on the pinhole or not. Only
             work for SINPA geometry, as oldFILDSIM has not the extra namelist
-        @param referenceSystem: if absolute, the absolute coordinates will be
+        :param  referenceSystem: if absolute, the absolute coordinates will be
             used, if 'scintillator', the scintillator coordinates will be used
-        @param units: units to plot the geometry. Acepted: m, cm, mm
-        @param view: plot XY plane, XZ, YZ, or the scintillator plane
+        :param  units: units to plot the geometry. Acepted: m, cm, mm
+        :param  view: plot XY plane, XZ, YZ, or the scintillator plane
 
         Note: The use of this routine is not recomended if you use a fine mesh
         with several triangles
@@ -760,45 +766,63 @@ class Geometry:
 
         return ax
 
-    def writeGeometry(self, folder):
+    def writeGeometry(self, path):
         """
         Write the geometry into the folder
 
-        Note: Only working for SINPA code
+        Note: Only working for SINPA/iHIBPsim code
         """
-        if self.code.lower() != 'sinpa':
-            raise Exception('Code not implemented')
-        for i in range(self.size):
-            name = os.path.join(folder, 'Element' + str(i + 1) + '.txt')
+        if self.code.lower() == 'sinpa':
+            for i in range(self.size):
+                name = os.path.join(path, 'Element' + str(i + 1) + '.txt')
+                with open(name, 'w') as f:
+                    f.writelines([self[i]['name'] + '\n'])
+                    f.writelines([self[i]['description'][0] + '\n',
+                                  self[i]['description'][1] + '\n'])
+                    f.writelines([str(self[i]['kind']) + '\n',
+                                  str(self[i]['n']) + '\n'])
+                    for it in range(3 * self[i]['n']):
+                        f.writelines([str(self[i]['triangles'][it, 0]) + ' ',
+                                      str(self[i]['triangles'][it, 1]) + ' ',
+                                      str(self[i]['triangles'][it, 2]) + '\n'])
+            # Write the namelist
+            file = os.path.join(path, 'ExtraGeometryParams.txt')
+            f90nml.write({'ExtraGeometryParams': self.ExtraGeometryParams},
+                         file, force=True)
+        elif self.code.lower() == 'ihibpsim':
+            if os.path.isdir(path):
+                name = os.path.join(path, 'wall.txt')
+            else:
+                name = path
+
             with open(name, 'w') as f:
-                f.writelines([self[i]['name'] + '\n'])
-                f.writelines([self[i]['description'][0] + '\n',
-                              self[i]['description'][1] + '\n'])
-                f.writelines([str(self[i]['kind']) + '\n',
-                              str(self[i]['n']) + '\n'])
-                for it in range(3 * self[i]['n']):
-                    f.writelines([str(self[i]['triangles'][it, 0]) + ' ',
-                                  str(self[i]['triangles'][it, 1]) + ' ',
-                                  str(self[i]['triangles'][it, 2]) + '\n'])
-        # Write the namelist
-        file = os.path.join(folder, 'ExtraGeometryParams.txt')
-        f90nml.write({'ExtraGeometryParams': self.ExtraGeometryParams}, file,
-                     force=True)
+                f.writelines('%i  ! Number of elements\n'%self[0]['n'])
+                if self['wallDim'] == 3:
+                    for j in range(3 * self[0]['n']):
+                        f.writelines([str(self[0]['triangles'][j, 0]) + ' ',
+                                      str(self[0]['triangles'][j, 1]) + ' ',
+                                      str(self[0]['triangles'][j, 2]) + '\n'])
+                if self['wallDim'] == 2:
+                    for j in range(2 * self[0]['n']):
+                        f.writelines([str(self[0]['triangles'][j, 0]) + ' ',
+                                      str(self[0]['triangles'][j, 1]) + '\n'])
+
+
 
     def elements_to_stl(self, element_to_save=[0, 1, 2], units: str = 'cm'
                            ,file_name_save: str = 'Test'):
         """
         Store the geometric elements to stl files. Useful for testing SINPA inputs
         Anton van Vuuren: avanvuuren@us.es
-        @param geom: dictionary created by read_element()
+        :param  geom: dictionary created by read_element()
 
-        @param element_to_save: kind of plates we want to plot:
+        :param  element_to_save: kind of plates we want to plot:
             -0: Collimator
             -1: Ionizers
             -2: Scintillator
 
-        @param units: units to plot the geometry. Acepted: m, cm, mm
-        @param file_name_save: name of stl file to be generated (don't add ".stl")
+        :param  units: units to plot the geometry. Acepted: m, cm, mm
+        :param  file_name_save: name of stl file to be generated (don't add ".stl")
         """
         file_mod = ["Collimator", "Ionizers", "Scintillator"]
         for ele in self.elements:
@@ -806,3 +830,6 @@ class Geometry:
                 libcad.write_triangles_to_stl(ele, units=units ,
                                                 file_name_save = file_name_save
                                                 + "_" + file_mod[ele['kind']])
+
+##
+

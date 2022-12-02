@@ -19,11 +19,11 @@ class ApplicationShowVid:
         """
         Create the window with the sliders
 
-        @param master: Tk() opened
-        @param data: the dictionary of experimental frames
-        @param remap_dat: the dictionary of remapped data
-        @param GeomID: Geometry id of the detector (to load smaps if needed)
-        @param calibration: Calibration parameters
+        :param  master: Tk() opened
+        :param  data: the dictionary of experimental frames
+        :param  remap_dat: the dictionary of remapped data
+        :param  GeomID: Geometry id of the detector (to load smaps if needed)
+        :param  calibration: Calibration parameters
         """
         # --- List of supported colormaps
         self.cmaps = {

@@ -29,3 +29,4 @@ import Lib._Video._PCOfiles as pco
 from Lib._Machine import machine as _machine
 if _machine == 'AUG':
     from Lib._Video._iHIBPvideoObject import iHIBPvideo
+    from Lib._Video._iHIBP_beam_camera import beam_camera as ihibp_beam_camera

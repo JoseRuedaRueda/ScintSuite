@@ -1,0 +1,74 @@
+2017:
+    Q5:
+        reference:
+            set:   0.00
+            horz: -0.10
+            vert:  0.05
+    Q6:
+        reference:
+            set:  0.00
+            horz: -0.20
+            vert: +0.10
+        off-axis:
+            set:  +0.3
+            horz: -0.20
+            vert: +0.40
+        on-axis:
+            set:  -0.50
+            horz: -0.20
+            vert: -0.40
+    Q7:
+        reference:
+            set:  0.00
+            horz: -0.10
+            vert: +0.20
+        off-axis:
+            set:  +0.5
+            horz: -0.10
+            vert: +0.75
+        on-axis:
+            set:  -0.50
+            horz: -0.10
+            vert: -0.25
+    Q8:
+        reference:
+            set:  0.00
+            horz: -0.10
+            vert: +0.10
+2019:
+    Q5:
+        reference:
+            set:   0.00
+            horz:  0.05
+            vert:  0.05
+    Q6:
+        reference:
+            set:  0.00
+            horz: -0.20
+            vert: +0.20
+        off-axis:
+            set:  +0.3
+            horz: -0.15
+            vert: +0.50
+        on-axis:
+            set:  -0.30
+            horz: -0.20
+            vert: -0.10
+    Q7:
+        reference:
+            set:  0.00
+            horz: -0.10
+            vert: +0.25
+        off-axis:
+            set:  +0.48
+            horz: -0.10
+            vert: +0.70
+        on-axis:
+            set:  -0.55
+            horz: -0.10
+            vert: -0.30
+    Q8:
+        reference:
+            set:  0.00
+            horz: -0.10
+            vert: +0.05

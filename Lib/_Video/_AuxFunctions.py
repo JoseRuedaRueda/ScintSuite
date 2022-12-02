@@ -17,7 +17,7 @@ def rgb2gray(rgb):
 
     It uses the scaling of MATLAB and opencv
 
-    @param rgb: 3D matrix with the rgb information
+    :param  rgb: 3D matrix with the rgb information
 
     Note if the matrix include a transparency factor, 4 element of the RGB
     dimension, it will be ignored
@@ -35,9 +35,9 @@ def check_timebase(timebase):
     fails so for example up to t = 4.8 measured perfectly and them all
     time points become zero. This will detect if that happens
 
-    @param timebase: time base of the frames (np.array)
+    :param  timebase: time base of the frames (np.array)
 
-    @return corrupt: flag to say if the timebase is corrupt or not
+    :return corrupt: flag to say if the timebase is corrupt or not
         - True: Is corrupted
         - False: Seems not corrupted
     """
@@ -54,9 +54,9 @@ def binary_image(frame, threshold, bool_flag: bool = True):
 
     Jose Rueda. jrrueda@us.es
 
-    @param frame: frame we want to process
-    @param threshold: threshold for the algorithms
-    @param bool_flag: if true the output will be bollean array
+    :param  frame: frame we want to process
+    :param  threshold: threshold for the algorithms
+    :param  bool_flag: if true the output will be bollean array
     @retun frame_new: 'masked frame' with just 0 and ones (int8)
     """
     frame_new = np.zeros(frame.shape, dtype='int8')
@@ -73,9 +73,9 @@ def guess_shot(file, shot_number_length):
 
     Jose Rueda Rueda: jrrueda@us.es
 
-    @param file: Name of the file or folder containing the data. In that
+    :param  file: Name of the file or folder containing the data. In that
     name it is assumed to be the shot number in the proper format
-    @param shot_number_length: Number of characters expected from the shot
+    :param  shot_number_length: Number of characters expected from the shot
     number in the file name (defined in the modulus of each machine)
     """
     list = re.findall(r'\d+', file)
