@@ -58,7 +58,7 @@ class Scintillator(XYtoPixel):
         try:
             self._read_efficiency(material=material, particle=particle,
                                   thickness=thickness)
-        except FileNotFoundError:
+        except (FileNotFoundError, OSError):
             pass
 
     # --------------------------------------------------------------------------
