@@ -14,17 +14,77 @@ except ModuleNotFoundError:
     print('netCDF4 library not found. Please install it.') 
 
 
-def read_data(path: str, adfreq: float, t_trig: float):
+def read_file_anddata(filename):
     """
-    Read info for a case where the measurements are stored as .b16
+    Read netCDF4 files. 
+    Read info for a case where the measurements are stored as .nc
+    Return a series of dictionaries, with all the info we can extract from the XIMEA files.
 
-    Jose Rueda Rueda: jrrueda@us.es
+    Lina Velarde - lvelarde@us.es
+
+    :param filename: path+filename of the camera data
+ 
+    @return image_header: dictionary containing the info about the image size,
+    and shape
+    @return header: Header 'similar' to the case of a cin file
+    @return settings: dictionary similar to the case of the cin file (it only
+    contains the exposition time)
+    Outputs:
+        timebase array in s
+        fps
+        exposure in us
+    """
+    data = nc.Dataset(fname, 'r')
+    vid = data['video'][:].data
+    time = data['time'][:].data
+    timebase = (time[:]-time[0]) - 0.100 # in s
+    fps = data['fps'][:].data
+    exp = data['exposure'][:].data
+    try:
+        gain = data['gain'][:].data
+    except IndexError:
+        gain = 0
+    data.close()
+ 
+    frames = {'nf': vid.shape[2],
+            'width': vid.shape[0], 
+            'height': vid.shape[1], 
+            'frames': vid
+            'timebase': timebase}}
+
+    imageheader = {
+        'biWidth': vid.shape[0],
+        'biHeight': vid.shape[1],
+        'framesDtype': vid.dtype}
+    header = {'ImageCount': vid.shape[2]]}
+    # Possible bytes per pixels for the camera
+    BPP = {'uint8': 8, 'uint16': 16, 'uint32': 32, 'int32': 32, 'uint64': 64}
+    settings = {
+            'fps': fps,
+            'exp': exp,
+            'gain': gain}
+    try:
+        settings['RealBPP'] = BPP[imageheader['framesDtype'].name]
+        text = 'In the nc there is no info about the real BitesPerPixel'\
+            + ' used in the camera. Assumed that the BPP coincides with'\
+            + ' the byte size of the variable!!!'
+        print(text)
+    except KeyError:
+        raise Exception('Expected uint8,16,32,64 in the frames')
+ 
+    return frames, header, imageheader, settings
+
+
+
+def read_data(filename):
+    """
+
     Lina Velarde: lvelarde@us.es
 
     Return a series of dictionaries, with all the info we can extract from the XIMEA files.
 
-    @param path: path to the folder where the netcdfs are located
-    @return time_base: time base of the frames (s)
+    :param filename
+
     @return image_header: dictionary containing the info about the image size,
     and shape
     @return header: Header 'similar' to the case of a cin file
@@ -63,11 +123,8 @@ def read_data(path: str, adfreq: float, t_trig: float):
         print(text)
     except KeyError:
         raise Exception('Expected uint8,16,32,64 in the frames')
-    # Generation of time_base
-    # TODO. This should be read from nc, but does it need readjustment?
-    # time_base = np.arange(counter, dtype=float)/adfreq + t_trig + 1/adfreq
-
-    return header, imageheader, settings, time_base[:].flatten()
+ 
+    return header, imageheader, settings
 
 
 def load_nc(filename: str, frame_number: int = None):
