@@ -215,13 +215,11 @@ class BVO:
                         if count_nc == 1:
                             self.type_of_file = '.nc'
                             print('Found netCDF files!')
-                            break
                     elif f[i].endswith('.tif'):
                         count_tif += 1
                         if count_tif == 1:
                             self.type_of_file = '.tif'
                             print('Found tif files!')
-                            break
                 else:
                     raise Exception('Type of f variable not found. Please revise code.')
                  # if we do not have .png or tiff, give an error
