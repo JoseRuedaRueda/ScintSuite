@@ -153,6 +153,8 @@ class BVO:
                     self.type_of_file = '.cin'
                 elif file.endswith('.png') or file.endswith('.tif') or file.endswith('.nc'):
                     file, name = os.path.split(file)
+                    print('It recognised the extension')
+                    print(file, name)
                 elif file.endswith('.mp4'):
                     dummy = mp4.read_file(file)
                     self.properties['width'] = dummy['width']
@@ -191,6 +193,8 @@ class BVO:
                 count_tif = 0
                 count_pco = 0
                 count_nc = 0
+                # print('The file ends with:', f[3].endswith())
+                print('f is:', f)
                 for i in range(len(f)):
                     if f[i].endswith('.png'):
                         count_png += 1
@@ -212,7 +216,7 @@ class BVO:
                             break
                     elif f[i].endswith('.nc'):
                         count_nc += 1
-                        if count_nc == 3:
+                        if count_nc == 1:
                             self.type_of_file = '.nc'
                             print('Found netCDF files!')
                             break
