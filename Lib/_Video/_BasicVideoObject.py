@@ -25,6 +25,7 @@ import Lib._Video._PNGfiles as png
 import Lib._Video._PCOfiles as pco
 import Lib._Video._MP4files as mp4
 import Lib._Video._TIFfiles as tif
+import Lib._Video._NetCDF4files as ncdf
 import Lib._Utilities as ssutilities
 import Lib._Video._AuxFunctions as aux
 from tqdm import tqdm                      # For waitbars
@@ -189,6 +190,7 @@ class BVO:
                 count_png = 0
                 count_tif = 0
                 count_pco = 0
+                count_nc = 0
                 for i in range(len(f)):
                     if f[i].endswith('.png'):
                         count_png += 1
@@ -208,11 +210,17 @@ class BVO:
                             self.type_of_file = '.b16'
                             print('Found PCO files!')
                             break
+                    elif f[i].endswith('.nc'):
+                        count_nc += 1
+                        if count_nc == 3:
+                            self.type_of_file = '.nc'
+                            print('Found netCDF files!')
+                            break
                     # if we do not have .png or tiff, give an error
-                supported_type = ['.png', '.tif', '.b16']
+                supported_type = ['.png', '.tif', '.b16', '.nc']
                 if self.type_of_file not in supported_type:
                     print(self.type_of_file)
-                    raise Exception('No .pgn, .tiff nor .b16 files found')
+                    raise Exception('No .pgn, .tiff, .nc nor .b16 files found')
 
                 # If we have a .png file, a .txt must be present with the
                 # information of the exposure time and from a basic frame we
@@ -223,6 +231,10 @@ class BVO:
                 elif self.type_of_file == '.b16':
                     self.header, self.imageheader, self.settings,\
                         self.timebase = pco.read_data(
+                            self.path, adfreq, t_trig)
+                elif self.type_of_file == '.nc':
+                    self.header, self.imageheader, self.settings,\
+                        self.timebase = ncdf.read_data(
                             self.path, adfreq, t_trig)
                 elif self.type_of_file == '.tif':
                     self.header, self.imageheader, self.settings,\
