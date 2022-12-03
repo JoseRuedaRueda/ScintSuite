@@ -180,7 +180,7 @@ class FILDVideo(FIV):
             if self.geometryID is not None:
                 platename = os.path.join(paths.ScintSuite, 'Data', 'Plates', 'FILD',
                                          machine, self.geometryID + '.pl')
-                platename2 = os.path.join(pa.ScintSuite, 'Data', 'Plates',
+                platename2 = os.path.join(paths.ScintSuite, 'Data', 'Plates',
                                          'FILD',
                                          machine, self.geometryID + '.txt')
                 for plate in [platename, platename2]:
