@@ -157,8 +157,8 @@ class BVO:
                     print('It recognised the extension')
                     dummy, self.header, self.imageheader, self.settings,\
                          = ncdf.read_file_anddata(file)
-                    self.properties['width'] = dummy['width']
-                    self.properties['height'] = dummy['height']
+                    # self.properties['width'] = dummy['width']
+                    # self.properties['height'] = dummy['height']
                     # self.properties['fps'] = dummy['fps']
                     # self.properties['exposure'] = dummy['exp']
                     # self.properties['gain'] = dummy['gain']
