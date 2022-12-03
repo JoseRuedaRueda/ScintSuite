@@ -150,7 +150,7 @@ class BVO:
                     self.timebase = cin.read_time_base(file, self.header,
                                                        self.settings)
                     self.type_of_file = '.cin'
-                elif file.endswith('.png') or file.endswith('.tif'):
+                elif file.endswith('.png') or file.endswith('.tif') or file.endswith('.nc'):
                     file, name = os.path.split(file)
                 elif file.endswith('.mp4'):
                     dummy = mp4.read_file(file)
