@@ -151,10 +151,30 @@ class BVO:
                     self.timebase = cin.read_time_base(file, self.header,
                                                        self.settings)
                     self.type_of_file = '.cin'
-                elif file.endswith('.png') or file.endswith('.tif') or file.endswith('.nc'):
+                elif file.endswith('.png') or file.endswith('.tif'):
                     file, name = os.path.split(file)
+                elif file.endswith('.nc'):
                     print('It recognised the extension')
-                    print(file, name)
+                    dummy, self.header, self.imageheader, self.settings,\
+                         = ncdf.read_file_anddata(file)
+                    self.properties['width'] = dummy['width']
+                    self.properties['height'] = dummy['height']
+                    # self.properties['fps'] = dummy['fps']
+                    # self.properties['exposure'] = dummy['exp']
+                    # self.properties['gain'] = dummy['gain']
+                    self.timebase = dummy['timebase']
+                    self.exp_dat = xr.Dataset()
+                    nx, ny, nt = dummy['frames'].shape
+                    px = np.arange(nx)
+                    py = np.arange(ny)
+
+                    self.exp_dat['frames'] = \
+                        xr.DataArray(dummy['frames'], dims=('px', 'py', 't'),
+                                     coords={'px': px,
+                                             'py': py,
+                                             't': self.timebase.squeeze()})
+                    self.exp_dat['frames'] = self.exp_dat['frames']
+                    self.type_of_file = '.nc'
                 elif file.endswith('.mp4'):
                     dummy = mp4.read_file(file)
                     self.properties['width'] = dummy['width']
