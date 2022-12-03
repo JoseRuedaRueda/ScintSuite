@@ -210,6 +210,7 @@ class BVO:
                                 print('Found PCO files!')
                                 break
                 elif type(f) == str:
+                    print('Type of f is in fact str. Well done.')
                     if f.endswith('.nc'):
                         count_nc += 1
                         if count_nc == 1:
