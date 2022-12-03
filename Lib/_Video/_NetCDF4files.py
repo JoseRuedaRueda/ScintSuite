@@ -34,7 +34,7 @@ def read_file_anddata(filename):
         fps
         exposure in us
     """
-    data = nc.Dataset(fname, 'r')
+    data = nc.Dataset(filename, 'r')
     vid = data['video'][:].data
     time = data['time'][:].data
     timebase = (time[:]-time[0]) - 0.100 # in s
