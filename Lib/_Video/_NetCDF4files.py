@@ -87,9 +87,9 @@ def load_nc(filename: str, frame_number: int = None):
     """
     data = nc.Dataset(filename, mode='r')
     if frame_number is None:
-        dummy = data['frames'][:]
+        dummy = data['video'][:]
     else:
-        dummy = data['frames'][..., frame_number]
+        dummy = data['video'][..., frame_number]
 
     return dummy[::-1, ...]
 
@@ -127,12 +127,8 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
                       video_object.imageheader['biHeight'],
                       video_object.header['ImageCount']),
                      dtype=video_object.imageheader['framesDtype'])
-        # counter = 0
-        for file in sorted(os.listdir(video_object.path)):
-            if file.endswith('.nc'):
-                M[:, :, :] = load_nc(video_object.file)  
-                # print(file)
-                # counter = counter + 1
+        if file.endswith('.nc'):
+            M[:, :, :] = load_nc(video_object.file)  
     else:
         # Load only the selected frames
         counter = 0
