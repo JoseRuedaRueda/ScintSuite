@@ -37,7 +37,7 @@ def read_file_anddata(filename):
     data = nc.Dataset(filename, 'r')
     vid = data['video'][:].data
     time = data['time'][:].data
-    timebase = (time[:]-time[0]) - 0.100 # in s
+    timebase = (time[:]-time[0])/1e6 - 0.100 # in s
     fps = data['fps'][:].data
     exp = data['exposure'][:].data
     try:
