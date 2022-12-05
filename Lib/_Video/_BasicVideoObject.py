@@ -77,7 +77,7 @@ class BVO:
         Initialise the class
 
         :param  file: For the initialization, file (full path) to be loaded,
-            if the path point to a .cin or .mp4 file, the .cin file will be
+            if the path point to a .cin, a .nc or .mp4 file, the .cin file will be
             loaded. If the path points to a folder, the program will look for
             png files or tiff files inside (tiff coming soon). You can also
             point to a png or tiff file. In this case, the folder name will be
@@ -343,7 +343,7 @@ class BVO:
             M = pco.read_frame(self, frames_number,
                                limitation=limitation, limit=limit,
                                verbose=verbose)
-        elif self.type_of_file == '.cn':
+        elif self.type_of_file == '.nc':
             M = ncdf.read_frame(self, frames_number,
                                limitation=limitation, limit=limit,
                                verbose=verbose)
