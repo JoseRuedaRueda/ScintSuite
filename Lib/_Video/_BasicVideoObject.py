@@ -343,6 +343,10 @@ class BVO:
             M = pco.read_frame(self, frames_number,
                                limitation=limitation, limit=limit,
                                verbose=verbose)
+        elif self.type_of_file == '.cn':
+            M = ncdf.read_frame(self, frames_number,
+                               limitation=limitation, limit=limit,
+                               verbose=verbose)
         else:
             raise Exception('Not initialised / not implemented file type?')
         # --- End here if we just want the frame
