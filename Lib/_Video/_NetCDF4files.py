@@ -113,6 +113,7 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
     """
     # Frames would have a name as CCD_qe_frame.b16 example: CCD_qe_0001.b16
     print('Reading nc files')
+    
     # check the size of the files, data will be saved as float32
     size_frame = video_object.imageheader['biWidth'] * \
         video_object.imageheader['biWidth'] * 2 / 1024 / 1024
@@ -127,7 +128,7 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
                       video_object.imageheader['biHeight'],
                       video_object.header['ImageCount']),
                      dtype=video_object.imageheader['framesDtype'])
-        if file.endswith('.nc'):
+        if video_object.file.endswith('.nc'): #not really need to check this, right?
             M[:, :, :] = load_nc(video_object.file)  
     else:
         # Load only the selected frames
