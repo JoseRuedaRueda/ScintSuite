@@ -22,31 +22,30 @@ from pco_tools import pco_reader as pco   # For pixefly calibration frames
 # --- Settings
 # -----------------------------------------------------------------------------
 # File with the scintillator
-Scint_file = '/home/jqw5960/SINPA/Geometry/MU01/Element2.txt'   # ####
+Scint_file = '/home/muadmin/ScintSuite/Element2.txt'   # ####
 format = 'SINPA'  # Code for which the geometry file is written
 # File with the calibration image (png)
-calib_image = '/home/jqw5960/mastu/experiments/' + \
-    'CCD_qe_64b_20210810_1107.b16'           # ####
+calib_image = '/fild-data/Calibration/calib202211271409.tif'           # ####
 # modify section 3 if you have a custom format for the calibration image
 # Staring points for the calibration
-xshift = -11.5
+xshift = 500
 yshift = 134.6
-xscale = 5718
-deg = 44.49
+xscale = 6718
+deg = -65 
 # x-scale to y scale
 XtoY = -1.0
 
 # Scale maximum
-xshiftmax = 80
+xshiftmax = 1200
 yshiftmax = 500
 xscalemax = 10000
-degmax = 55
+degmax = 25
 
 # Scale minimum
 xshiftmin = -80
 yshiftmin = -100
 xscalemin = 2000
-degmin = 25
+degmin = -75
 
 # -----------------------------------------------------------------------------
 # --- Scintillator load and first alignement
