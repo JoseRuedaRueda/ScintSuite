@@ -14,3 +14,4 @@ import Lib.SimulationCodes.iHIBPsim.nml as namelist
 import Lib.SimulationCodes.iHIBPsim.geom as geom
 import Lib.SimulationCodes.iHIBPsim.hibp_utils as utils
 import Lib.SimulationCodes.iHIBPsim.deposition as depos
+import Lib.SimulationCodes.iHIBPsim.strikeline as strline

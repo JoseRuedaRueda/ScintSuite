@@ -199,7 +199,7 @@ class Scintillator(XYtoPixel):
     # --------------------------------------------------------------------------
     # --- Plotting
     # --------------------------------------------------------------------------
-    def plot_pix(self, ax=None, line_params: dict = {}):
+    def plot_pix(self, ax=None, line_params: dict = {}, rot90: bool = False):
         """
         Plot the scintillator, in pixels, in the axes ax.
 
@@ -214,8 +214,12 @@ class Scintillator(XYtoPixel):
         plt_options.update(line_params)
         if ax is None:
             fig, ax = plt.subplots()
-        xdum = self._coord_pix['x']
-        ydum = self._coord_pix['y']
+        if rot90:
+            xdum = self._coord_pix['y']
+            ydum = self._coord_pix['x']
+        else:
+            xdum = self._coord_pix['x']
+            ydum = self._coord_pix['y']
         if self.code == 'fildsim':
             # FILDSIM geometry does not close the last line, so we have to add
             # it manually

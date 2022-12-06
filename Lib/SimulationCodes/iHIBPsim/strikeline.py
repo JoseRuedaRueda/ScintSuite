@@ -610,7 +610,7 @@ class strikeLine:
             ax.set_xlabel(xlabel)
             ax.set_ylabel(ylabel)
             ax.set_aspect('equal')
-            ax.grid('both')
+            # ax.grid('both')
 
             if weighted_color:
                 ax.set_xlim(xlim)
@@ -895,5 +895,3 @@ class strikeLineCollection:
         """
 
         return np.array([self.size, self.prop['npoints']], dtype=int)
-
-

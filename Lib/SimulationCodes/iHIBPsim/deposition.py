@@ -9,6 +9,7 @@ Pablo Oyola - pablo.oyola@ipp.mpg.de
 
 import numpy as np
 import logging
+import math
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import os
@@ -152,7 +153,8 @@ class deposition:
         return output
 
     def plot1d(self, xaxis: str='rmajor', ax=None, bins: int=None,
-               xmin: float=None, xmax: float=None, **line_params):
+               xmin: float=None, xmax: float=None, label_sci: bool = False,
+               **line_params):
         """
         Plot the deposition profile as a function either from major radius or
         the rhopol.
@@ -184,8 +186,8 @@ class deposition:
         if xaxis.lower() == 'rmajor':
             grr, H = utils.hist1d(R, w, bins=bins, vmin=vmin, vmax=vmax)
 
-            xlabel = 'Major radius (m)'
-            ylabel = 'Ion birth density($m^{-3}/m$)'
+            xlabel = 'Major radius [m]'
+            ylabel = 'Ion birth density [$m^{-3}/m$]'
         elif xaxis.lower() == 'rhopol':
             z = data.sel(variable='Z').values
             if ('rhop_interp' not in self.__dict__):
@@ -195,13 +197,17 @@ class deposition:
             grr, H = utils.hist1d(rhop, w, bins=bins)
 
 
-            xlabel = '$\\rho_{pol}$ (-)'
-            ylabel = 'Ion birth density($m^{-3}$/(unit $\\rho_{pol}$))'
+            xlabel = '$\\rho_{pol}$ [-]'
+            ylabel = 'Ion birth density [$m^{-3}$/(unit $\\rho_{pol}$)]'
         else:
             raise ValueError('Axis = %s not recognized'%xaxis)
 
         dr = grr[1] - grr[0]
         H /= dr
+        if label_sci:
+            magn = math.floor(math.log10(np.max(H)))
+            H = H/(10**magn)
+            ylabel = 'Ion birth density [$10^{%.2d} m^{-3}/\\rho_{pol}$]'%(magn)
 
         ax.plot(grr, H, **line_params)
 

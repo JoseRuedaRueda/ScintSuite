@@ -6,6 +6,7 @@ Pablo Oyola - poyola@us.es
 
 import numpy as np
 import xarray as xr
+import math
 from scipy.constants import elementary_charge as ec
 from scipy.constants import physical_constants
 import matplotlib.cm as cm
@@ -243,7 +244,7 @@ class strikes:
         """
 
         if scint is None:
-            return
+            scint = Scintillator(pa.ihibp_scint_plate)
 
         if scint.CameraCalibration is not None:
             if self.calib is not None:
@@ -405,7 +406,8 @@ class strikes:
                                       ' yet supported')
 
     def plot(self, *args, bins: int=51, ranges=None, ax=None,
-             weight_name: str='weights', cb=None, **plt_params):
+             weight_name: str='weights', cb=None, cbar_sci: bool = False,
+             weight_unit: str = '', **plt_params):
         """
         Routine to plot 1D/2D data from histograms from the strike data.
 
@@ -430,7 +432,6 @@ class strikes:
         data = self.hist(*args, bins=bins, ranges=ranges,
                          get_centers=get_centers, weight_name=weight_name)
 
-
         ax_was_none = ax is None
         if ax_was_none:
             fig, ax = plt.subplots(1)
@@ -440,8 +441,11 @@ class strikes:
         labels = [self.data[iname].short_name + \
                    '[%s]'%self.data[iname].units for iname in args]
 
-        histlabel = self.data[weight_name].short_name + \
-                   '[%s]'%self.data[weight_name].units
+        if weight_unit == '':
+            weight_unit = self.data[weight_name].units
+
+        histlabel = self.data[weight_name].short_name \
+                    + '[%s]'%(weight_unit)
 
         if len(args) == 1:
             x = data[0]
@@ -462,6 +466,14 @@ class strikes:
             x = data[0]
             y = data[1]
             z = data[2]
+
+            if cbar_sci:
+                magn = math.floor(math.log10(np.max(z)))
+                z = z/(10**magn)
+
+                histlabel = self.data[weight_name].short_name \
+                            + r'[$10^{%.2d}$ %s]'%(magn, weight_unit)
+
             extent = [x.min(), x.max(), y.min(), y.max()]
 
             if cb is not None:
@@ -484,6 +496,8 @@ class strikes:
             if ax_was_none:
                 cbar = fig.colorbar(mappable=im, cax=cax)
                 cbar.set_label(histlabel)
+                cbar.formatter.set_powerlimits((0, 0))
+                cbar.formatter.set_useMathText(True)
         return ax, im, frame
 
     def plot3d(self, weighted: bool = False, npoints:int = 2000,
@@ -540,7 +554,8 @@ class strikes:
     def plotScintillator(self, dx: float = 0.1, dy: float = 0.1, ax=None,
                          cmap=cm.plasma, kindplot: str = 'intensity',
                          norm=None, ax_options: dict = {},
-                         min_cb: float = None, max_cb: float = None):
+                         min_cb: float = None, max_cb: float = None,
+                         cbar_sci: bool = False):
 
         """
         Plot the scintillator image to the provided axis. If None are provided,
@@ -597,7 +612,8 @@ class strikes:
         bins = np.array([np.ceil(dx_tot/dx), np.ceil(dy_tot/dy)], dtype=int)
 
         ax, im, frames = self.plot('x1', 'x2', bins=bins, ranges=ranges, ax=ax,
-                                   weight_name=weights_name, **cont_opts)
+                                   weight_name=weights_name, cbar_sci = cbar_sci,
+                                   **cont_opts)
 
 
         # Plotting on top the scintillator.
@@ -611,7 +627,8 @@ class strikes:
     def plot_frame(self, pix_x: int, pix_y: int, sigma_defocus: float=None,
                    ax=None, cmap=cm.plasma, kindplot: str = 'intensity',
                    norm=None, ax_options: dict = {},
-                   min_cb: float = None, max_cb: float = None):
+                   min_cb: float = None, max_cb: float = None,
+                   cbar_sci: bool = False):
 
         """
         Plots the camera frame using the internal calibration, which will
@@ -656,6 +673,7 @@ class strikes:
             cont_opts['vmin'] = min_cb
             cont_opts['vmax'] = max_cb
 
+        weight_unit = 'A/pix'
         # If the calibration is set, then we expect the data is already
         # computed in the self.data xarray.
         if ('xcam' not in self.data) or ('ycam' not in self.data):
@@ -673,7 +691,8 @@ class strikes:
         bins   = [pix_x, pix_y]
         ax, im, frame =  self.plot('xcam', 'ycam', bins=bins, ranges=ranges,
                                    weight_name=weights_name, ax=ax,
-                                   cb=defocus_fun, **cont_opts)
+                                   cb=defocus_fun, cbar_sci = cbar_sci,
+                                   weight_unit = weight_unit, **cont_opts)
 
 
         # Plotting on top the scintillator.

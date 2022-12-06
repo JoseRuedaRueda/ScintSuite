@@ -695,7 +695,8 @@ class BVO:
                    scale: str = 'linear',
                    alpha: float = 1.0, IncludeColorbar: bool = True,
                    RemoveAxisTicksLabels: bool = False,
-                   flagAverage: bool = False, normalise=None, extent: float=None):
+                   flagAverage: bool = False, normalise=None,
+                   extent: float=None, rot90: bool = False):
         """
         Plot a frame from the loaded frames
 
@@ -826,9 +827,12 @@ class BVO:
 
         if extent is not None:
             extra_options['extent'] = extent
-
-        img = ax.imshow(dummy, origin='lower', cmap=cmap,
-                        alpha=alpha, **extra_options)
+        if rot90:
+            img = ax.imshow(dummy.T, origin='lower', cmap=cmap,
+                            alpha=alpha, **extra_options)
+        else:
+            img = ax.imshow(dummy, origin='lower', cmap=cmap,
+                            alpha=alpha, **extra_options)
         # Set the axis limit
         if xlim is not None:
             ax.set_xlim(xlim)

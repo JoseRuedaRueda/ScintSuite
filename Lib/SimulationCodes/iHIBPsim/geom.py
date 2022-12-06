@@ -258,7 +258,7 @@ def plotBeam_toroidal(beam_data: dict, ax=None, fig=None,
 
 
 def plotBeam_3D(beam_data: dict, ax=None, fig=None,
-                drawvessel: bool=True, diverg: dict= {}, line_opts: dict={},
+                drawvessel: bool=False, diverg: dict= {}, line_opts: dict={},
                 ax_options: dict={}, params3d: dict={}):
     """
     Plots the 3D vessel and the beam line in 3D.
@@ -994,7 +994,7 @@ class geom:
         # Storing the data of the 2D scintillator.
         if scint is not None:
             if isinstance(scint, str):
-                data = np.loadtxt(scint, comments='!')
+                data = np.loadtxt(scint, comments='#')
             else:
                 if scint.shape[1] != 3:
                     raise ValueError('The scintillator must have'+\

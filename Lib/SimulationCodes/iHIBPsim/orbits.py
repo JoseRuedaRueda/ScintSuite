@@ -490,14 +490,14 @@ def plotOrbits(orbitList, view: str = '2D', ax_params: dict = {}, ax=None,
     if orbitList is None:
         raise Exception('The input object is empty!')
 
-    ax = orbitList[1].plot(view=view, ax_options=ax_options,
-                           line_options=line_options,
+    ax = orbitList[1].plot(view=view, ax_params=ax_options,
+                           line_params=line_options,
                            shaded3d_options=shaded3d_options,
                            imin=imin, imax=imax)
 
     for ii in range(2, len(orbitList)):
-        ax = orbitList[ii].plot(view=view, ax_options=ax_options, ax=ax,
-                                line_options=line_options,
+        ax = orbitList[ii].plot(view=view, ax_params=ax_options, ax=ax,
+                                line_params=line_options,
                                 shaded3d_options=shaded3d_options,
                                 imin=imin, imax=imax)
 
@@ -879,14 +879,35 @@ class orbitFile:
         if not self.initialized:
             raise Exception('The orbit object has not been initialized.')
         # --- Reading the orbits.
-        if self.chainLoadFlag:
-            orbit = self.getNextOrbit()
+        if isinstance(id, int):
+            if self.chainLoadFlag:
+                orbit = self.getNextOrbit()
+            else:
+                orbit = self.loadOrbit(id)
+
+            ax1 = orbit.plot(view=view, ax_params=ax_options, ax=ax,
+                             line_params=line_options,
+                             shaded3d_options=shaded3d_options,
+                             imin=imin, imax=imax)
+        elif isinstance(id, np.ndarray):
+            color_list = []
+            colors=plt.cm.get_cmap('plasma')
+            index= np.linspace(0.01, 0.99, len(id))
+            for ii in range(len(id)):
+                color_list.append(colors(index[ii]))
+            orbit = self.loadOrbit(id[0])
+            line_options['color'] = color_list[0]
+            ax1 = orbit.plot(view=view, ax_params=ax_options, ax=ax,
+                             line_params=line_options,
+                             shaded3d_options=shaded3d_options,
+                             imin=imin, imax=imax)
+            for i in range(1, len(id)):
+                orbit = self.loadOrbit(id[i])
+                line_options['color'] = color_list[i]
+                ax1 = orbit.plot(view=view, ax_params=ax_options, ax=ax1,
+                                 line_params=line_options,
+                                 shaded3d_options=shaded3d_options,
+                                 imin=imin, imax=imax)
         else:
-            orbit = self.loadOrbit(id)
-
-        ax1 = orbit.plot(view=view, ax_params=ax_options, ax=ax,
-                         line_params=line_options,
-                         shaded3d_options=shaded3d_options,
-                         imin=imin, imax=imax)
-
+            print('wrong id format. Has to be int or array')
         return ax1

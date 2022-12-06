@@ -245,7 +245,8 @@ class iHIBPvideo(BVO):
             self.frame0 = \
                 self.exp_dat['frames'].values[..., self.getFrameIndex(t=self.t0)]
 
-    def plot_frame(self, plotScintillatorPlate: bool = True, **kwargs):
+    def plot_frame(self, plotScintillatorPlate: bool = True,
+                   rot90: bool = False, **kwargs):
         """"
         This function wraps the parent plot_frame function to plot the frame
         along with the scintillator plate.
@@ -257,7 +258,7 @@ class iHIBPvideo(BVO):
         :param  kwargs: same arguments than BVO.plot_frame.
         :return ax: axis where the frame has been plot.
         """
-        ax = super().plot_frame(**kwargs)
+        ax = super().plot_frame(rot90 = rot90, **kwargs)
 
         if plotScintillatorPlate:
             self.scintillator.plot_pix(ax=ax, line_params={'color': 'w'})
