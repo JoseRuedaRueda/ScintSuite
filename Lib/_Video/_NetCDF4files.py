@@ -41,9 +41,21 @@ def read_file_anddata(filename):
     fps = data['fps'][:].data
     exp = data['exposure'][:].data
     try:
-        gain = data['gain'][:].data
+        analoggain = data['gain'][:].data
     except IndexError:
-        gain = 0
+        analoggain = 0
+        print('No gain field in netcdf.')
+        try:
+            print('Trying analoggain field.')
+            analoggain = data['analoggain'][:].data
+        except IndexError:
+            print('No analoggain field either. Setting to 0.')
+            analoggain = 0
+    try:
+        digitalgain = data['digitalgain'][:].data
+    except IndexError:
+        print('No digitalgain field. Setting to 0.')
+        digitalgain = 0
     data.close()
  
     frames = {'nf': vid.shape[2],
@@ -62,7 +74,8 @@ def read_file_anddata(filename):
     settings = {
             'fps': fps,
             'exp': exp,
-            'gain': gain}
+            'digitalgain': digitalgain,
+            'analoggain': analoggain}
     try:
         settings['RealBPP'] = BPP[imageheader['framesDtype'].name]
         text = 'In the nc there is no info about the real BitesPerPixel'\
