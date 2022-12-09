@@ -28,10 +28,10 @@ format = 'SINPA'  # Code for which the geometry file is written
 calib_image = '/fild-data/Calibration/calib202211271409.tif'           # ####
 # modify section 3 if you have a custom format for the calibration image
 # Staring points for the calibration
-xshift = 500
-yshift = 134.6
-xscale = 6718
-deg = -65 
+xshift = 926
+yshift = 16.8
+xscale = 6259
+deg = -70.4
 # x-scale to y scale
 XtoY = -1.0
 
