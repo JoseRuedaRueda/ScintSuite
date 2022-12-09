@@ -16,14 +16,15 @@ IB_sign = Bt_sign * It_sign
 # -----------------------------------------------------------------------------
 # All values except for beta, are extracted from XXXXXXXXXXX:
 #
-firstShot = 46549
+firstShot = 46515
 fild1 = {'adqfreq': lambda shot:\
     23 if shot < firstShot else 100,  # Extension of the video
     't_trig': lambda shot:\
     -2.5 if shot < firstShot else -1.0,
     'extension': lambda shot: '' if shot < firstShot else '.nc', 
     'label': 'FILD1', 'path': lambda shot:\
-    '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShot else '/fild-data/XIMEAshotfiles'}
+    # '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShot else '/fild-data/XIMEAshotfiles'}
+    '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShot else '/fild_remote_store'}
 # fild1 = {'adqfreq': 23, 't_trig': -2.5,
 #          'extension': lambda shot: '', 'label': 'FILD1', 'camera': 'CCD',
 #          'path': ,}
