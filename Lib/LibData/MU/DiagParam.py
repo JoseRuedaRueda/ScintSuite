@@ -24,7 +24,7 @@ fild1 = {'adqfreq': lambda shot:\
     'extension': lambda shot: '' if shot < firstShot else '.nc', 
     'label': 'FILD1', 'path': lambda shot:\
     # '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShot else '/fild-data/XIMEAshotfiles'}
-    '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShot else '/fild_remote_store'}
+    '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShot else '/FILD1_remote_store'}
 # fild1 = {'adqfreq': 23, 't_trig': -2.5,
 #          'extension': lambda shot: '', 'label': 'FILD1', 'camera': 'CCD',
 #          'path': ,}
