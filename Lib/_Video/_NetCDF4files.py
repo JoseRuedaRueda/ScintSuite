@@ -162,7 +162,7 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
         # print('Number of loaded frames: ', counter)
 
         # Would it be possible to do it like: ??
-        dummy = load_nc(video_object.file, frame_numbers)
+        dummy = load_nc(video_object.file, frames_number)
         M[:, :, :] = dummy
         print('Number of loaded frames: ', len(frames_number))
     return M
