@@ -155,9 +155,14 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
                       len(frames_number)),
                      dtype=video_object.imageheader['framesDtype'])
 
-        for j in frames_number:
-            dummy = load_nc(video_object.file)
-            M[:, :, counter] = dummy
-            counter = counter + 1
-        print('Number of loaded frames: ', counter)
+        # for j in frames_number:
+        #     dummy = load_nc(video_object.file, j)
+        #     M[:, :, counter] = dummy
+        #     counter = counter + 1
+        # print('Number of loaded frames: ', counter)
+
+        # Would it be possible to do it like: ??
+        dummy = load_nc(video_object.file, frame_numbers)
+        M[:, :, :] = dummy
+        print('Number of loaded frames: ', len(frames_number))
     return M
