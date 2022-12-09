@@ -22,6 +22,12 @@ The suite will not work without them:
 - mesh: To deal with CAD files
 - numba > 0.55.1 to perform fast iHIBPsim xsection calculations and tomography
 - odfpy: To read INPA logbook (which is written in an .ODS file)
+For MAST-U users:
+- pyEquilibrium:
+  git clone https://git.ccfe.ac.uk/SOL_Transport/pyEquilibrium.git -b lkogan_aeqdsk pyEquilibrium
+  pip install –user ./pyEquilibrium
+
+
 
 #### Complete list:
 In a clean-typical python installation with anaconda, taking care only of the packages and versions listed above should be enough and the suite will run smoothly, but python package dependence can sometimes a mess. As an indication, in the folder `Data/TestedEnv` you can find the result of the command `pip list` in a python environment where the suite was tested and working fine. So if you find a series of problems with packages versions, try to create your virtual environment and reproduce the installed package list detailed there. The files are labeled with the Suite version for which they were tested and 'Optx', meaning 'Option x', as different user can have different list of packages which could work.
