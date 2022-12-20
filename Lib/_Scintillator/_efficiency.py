@@ -103,7 +103,7 @@ class ScintillatorEfficiency:
         Wrapper to the interpolator.
 
         By default, extrapolation is selected
-        :param E:
+        :param E: input energy, in keV
         :param kwargs:
         :return:
         """
