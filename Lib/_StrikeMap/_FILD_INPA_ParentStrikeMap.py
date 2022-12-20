@@ -232,7 +232,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
             'dx': 1.0,
             'dy': 0.1,
             'x_method': 'Gauss',
-            'y_method': 'Gauss'
+            'y_method': 'sGauss'
         }
         diag_options.update(diag_params)
         # Select the variables

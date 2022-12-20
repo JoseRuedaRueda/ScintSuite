@@ -7,13 +7,18 @@ This library contains:
 
 - FILD4 trajectories routines.
 - ELM starting points.
+- ICRH power
 
 """
-import aug_sfutils as sf
+
 import numpy as np
-import Lib.LibData.AUG.DiagParam as params
-from Lib._Paths import Path
+import xarray as xr
+import aug_sfutils as sf
 import Lib.errors as errors
+import Lib.LibData.AUG.DiagParam as params
+
+from Lib._Paths import Path
+
 pa = Path()
 
 
@@ -94,7 +99,7 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
         info = params.FILD[diag_number - 1]
         diag_name = info['diag']
         signal_prefix = info['channel']
-        nch = info['nch']    
+        nch = info['nch']
     elif diag.lower() == 'inpa':
         if diag_number != 1:
             print('You requested: ', diag_number)
@@ -103,7 +108,7 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
         diag_name = info['diag']
         signal_prefix = info['channel']
         nch = info['nch']
-    
+
 
     # Look which channels we need to load:
     try:    # If we received a numpy array, all is fine
@@ -200,3 +205,34 @@ def get_ELM_timebase(shot: int, time: float = None, edition: int = 0,
     tELM['n'] = len(tELM['t_onset'])
 
     return tELM
+
+
+# -----------------------------------------------------------------------------
+# --- ICRH
+# -----------------------------------------------------------------------------
+def get_icrh(shot: int, coupled: bool = False):
+    """
+    Get the ICRH power time trace
+    :param shot: shot number
+    :type shot: int
+    :param coupled: If true, the cupled power will be returned, defaults False
+    :type coupled: bool, optional
+
+    :return: xArray containing the power
+    :rtype: TYPE
+
+    """
+    ICP = sf.SFREAD(shot, 'ICP')
+    if coupled:
+        name = 'PICRNc'
+    else:
+        name = 'PICRN'
+    pICRH = ICP(name) / 1.0e6
+    tICRH = ICP.gettimebase(name)
+    output = xr.DataArray(pICRH, dims='t', coords={'t': tICRH})
+    output.attrs['units'] = 'MW'
+    output.attrs['long_name'] = '$P_{ICRH}$'
+    output.attrs['shot'] = shot
+    output.attrs['diag'] = 'ICP'
+    output.attrs['signal'] = name
+    return output

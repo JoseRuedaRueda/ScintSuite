@@ -479,7 +479,8 @@ def get_ECRH_traces(shot: int, time: float = None, ec_list: list = None):
     return output
 
 
-def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None):
+def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None,
+                  xArrayOutput: bool = False):
     """
     Returns the total ECRH power from the ECS shotfile in AUG.
 
@@ -498,8 +499,8 @@ def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None):
             'Cannot get the ECS shotfile for #%05d' % shot)
 
     pecrh = sf_ecs(name='PECRH')
-    time = sf_ecs('TIME')
-    print(time)
+    time = sf_ecs.gettimebase('PECRH')
+
 
     if tBeg is None:
         t0 = 0
@@ -515,10 +516,17 @@ def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None):
     pecrh = pecrh[t0:t1]
     time = time[t0:t1]
 
-    output = {
-        'power': pecrh,
-        'time': time
-    }
+    if xArrayOutput:
+        output = xr.DataArray(pecrh/1.0e6, dims='t', coords={'t': time})
+        output.attrs['long_name'] = '$P_{ECRH}$'
+        output.attrs['units'] = 'MW'
+        output.attrs['diag'] = 'ECS'
+        output.attrs['signal'] = 'PECRH'
+    else:
+        output = {
+            'power': pecrh,
+            'time': time
+        }
 
     return output
 
