@@ -22,6 +22,7 @@ import Lib._Plotting as ssplt
 import Lib._Video._AuxFunctions as _aux
 import Lib.SimulationCodes.FILDSIM as ssFILDSIM
 import Lib.SimulationCodes.SINPA as ssSINPA
+import Lib._Utilities as ssextra
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from tqdm import tqdm   # For waitbars
@@ -202,7 +203,8 @@ class FILDVideo(FIV):
         else:
             FIV.__init__(self, empty=empty)
 
-    def _getBangles(self, checkdatabase: bool = True, decimals: int = 1):
+    def _getBangles(self, checkdatabase: bool = True, decimals: int = 1,
+                    allIn: bool = True):
         """
         Get the orientation of the field respec to the head.
         If the name of the corresponding strike maps for each pair of angles is
@@ -216,7 +218,7 @@ class FILDVideo(FIV):
                   the names for each case.
         @param    decimals: Number of decimals that will be used for the strikemap
                   name.
-
+        @TODO: add posibility to look for smaps in other folder
         """
         if self.orientation is None:
             raise Exception('FILD orientation not known')
@@ -236,15 +238,13 @@ class FILDVideo(FIV):
         # --- STRIKE MAP SEARCH
         # ----------------------------------------------------------------------
         if checkdatabase:
-            data = self.exp_dat
-            nframes = data['frames'].shape[2]
+            nframes = self.exp_dat['frames'].shape[2]
             exist = np.zeros(nframes, bool)
             name = ' '      # To save the name of the strike map
-            name_old = ' '  # To avoid loading twice in a row the same map
 
             # -- See if the strike map exist in the folder
             smap_folder = os.path.join(paths.ScintSuite, 'Data', 'RemapStrikeMaps',
-                                           'FILD', self.geometryID)
+                                       'FILD', self.geometryID)
             logger.info('Looking for strikemaps in: %s', smap_folder)
             # -- Check which code generated the library
             namelistFile = os.path.join(smap_folder, 'parameters.cfg')
@@ -275,6 +275,30 @@ class FILDVideo(FIV):
             non_existing_index = dummy[~exist]
             theta_used = np.round(theta, decimals=decimals)
             phi_used = np.round(phi, decimals=decimals)
+
+            # The variable x will be the flag to calculate or not more strike maps
+            if nnSmap == 0:
+                print('--. .-. . .- -')
+                text = 'Ideal situation, not a single map needs to be calculated'
+                logger.info(text)
+            elif nnSmap == nframes:
+                print('Non a single strike map, full calculation needed')
+            elif nnSmap != 0:
+                if not allIn:
+                    print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
+                    print('Write 1 to proceed, 0 to take the closer'
+                        + '(in time) existing strikemap')
+                    xx = int(input('Enter answer:'))
+                else:
+                    xx = 0
+                if xx == 0:
+                    print('We will not calculate new strike maps')
+                    print('Looking for the closer ones')
+                    for i in tqdm(range(len(non_existing_index))):
+                        ii = non_existing_index[i]
+                        icloser = ssextra.find_nearest_sorted(existing_index, ii)
+                        theta_used[ii] = np.round(theta[icloser], decimals=decimals)
+                        phi_used[ii] = np.round(phi[icloser], decimals=decimals)
 
             self.Bangles['phi_used'] = xr.DataArray(phi_used, dims=('t'))
             self.Bangles['phi_used'].attrs['long_name'] = 'Used phi angle'

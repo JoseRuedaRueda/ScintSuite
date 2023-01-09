@@ -186,7 +186,7 @@ def remapAllLoadedFrames(video,
     name = ' '      # To save the name of the strike map
     name_old = ' '  # To avoid loading twice in a row the same map
     if not got_smap:
-        if decilmas != video.Bangles['decimals'].values:
+        if decimals != video.Bangles['phi_used'].attrs['decimals']:
             # CHANGE FROM HERE
             # -- Collect the angles
             phi = video.Bangles['phi'].values
@@ -217,41 +217,44 @@ def remapAllLoadedFrames(video,
                 # See if the strike map exist
                 if os.path.isfile(os.path.join(smap_folder, name)):
                     exist[iframe] = True
+                        # -- See how many we need to calculate
+            nnSmap = np.sum(~exist)  # Number of Smaps missing
+            dummy = np.arange(nframes)     #
+            existing_index = dummy[exist]  # Index of the maps we have
+            non_existing_index = dummy[~exist]
+            theta_used = np.round(theta, decimals=decimals)
+            phi_used = np.round(phi, decimals=decimals)
+            # The variable x will be the flag to calculate or not more strike maps
+            if nnSmap == 0:
+                print('--. .-. . .- -')
+                text = 'Ideal situation, not a single map needs to be calculated'
+                logger.info(text)
+            elif nnSmap == nframes:
+                print('Non a single strike map, full calculation needed')
+            elif nnSmap != 0:
+                if not allIn:
+                    print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
+                    print('Write 1 to proceed, 0 to take the closer'
+                        + '(in time) existing strikemap')
+                    xx = int(input('Enter answer:'))
+                else:
+                    xx = 0
+                if xx == 0:
+                    print('We will not calculate new strike maps')
+                    print('Looking for the closer ones')
+                    for i in tqdm(range(len(non_existing_index))):
+                        ii = non_existing_index[i]
+                        icloser = ssextra.find_nearest_sorted(existing_index, ii)
+                        theta_used[ii] = np.round(theta[icloser], decimals=decimals)
+                        phi_used[ii] = np.round(phi[icloser], decimals=decimals)
         else:
             theta_used = video.Bangles['theta_used'].values
+            theta = video.Bangles['theta'].values
+            phi = video.Bangles['phi'].values
             phi_used = video.Bangles['phi_used'].values
-            exist = video.Bangles['exist'].values
+            exist = video.strikemap['exist'].values
 
-        # -- See how many we need to calculate
-        nnSmap = np.sum(~exist)  # Number of Smaps missing
-        dummy = np.arange(nframes)     #
-        existing_index = dummy[exist]  # Index of the maps we have
-        non_existing_index = dummy[~exist]
-        theta_used = np.round(theta, decimals=decimals)
-        phi_used = np.round(phi, decimals=decimals)
-        # The variable x will be the flag to calculate or not more strike maps
-        if nnSmap == 0:
-            print('--. .-. . .- -')
-            text = 'Ideal situation, not a single map needs to be calculated'
-            logger.info(text)
-        elif nnSmap == nframes:
-            print('Non a single strike map, full calculation needed')
-        elif nnSmap != 0:
-            if not allIn:
-                print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
-                print('Write 1 to proceed, 0 to take the closer'
-                      + '(in time) existing strikemap')
-                xx = int(input('Enter answer:'))
-            else:
-                xx = 0
-            if xx == 0:
-                print('We will not calculate new strike maps')
-                print('Looking for the closer ones')
-                for i in tqdm(range(len(non_existing_index))):
-                    ii = non_existing_index[i]
-                    icloser = ssextra.find_nearest_sorted(existing_index, ii)
-                    theta_used[ii] = theta[icloser]
-                    phi_used[ii] = phi[icloser]
+
     else:  # the case the smap was passed as input
         theta = np.zeros(nframes)
         phi = np.zeros(nframes)
