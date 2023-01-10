@@ -215,11 +215,11 @@ class iHIBPvideo(BVO):
         # Updating the calibration in the scintillator.
         self.scintillator.calculate_pixel_coordinates(self.CameraCalibration)
 
-        if self.properties['description'] == 'raw video':
-            noiseSubtraction = True
-            filterFrames = True
-            self.properties['description'] = 'zero-th frame subtracted ' + \
-                                             'and median filtered with size 5'
+        # if self.properties['description'] == 'raw video':
+        #     noiseSubtraction = True
+        #     filterFrames = True
+        #     self.properties['description'] = 'zero-th frame subtracted ' + \
+        #                                      'and median filtered with size 5'
         # --- Apply now the background noise substraction and filtering.
         if noiseSubtraction:
             self.subtract_noise(frame = self.exp_dat['frames'].isel(t=0),

@@ -779,12 +779,12 @@ class BVO:
                     tf = self.getTime(frame_index, flagAverage)
                     dummy = self.getFrame(t, flagAverage)
                 elif len(t)==2:
-                    print('plotting averaged frames')
                     flag_time_range =True
                     frames = self.exp_dat['frames'].where((self.exp_dat['t']>t[0]) & (self.exp_dat['t']<t[1]), drop = True)
                     t[0] = min(frames.t)
                     t[1] = max(frames.t)
                     dummy = frames.mean(dim = 't')
+                    print('plotting %.d averaged frames' %len(frames.t))
                 else:
                     raise ValueError('wrong shape of time. Should not be larger than two')
 

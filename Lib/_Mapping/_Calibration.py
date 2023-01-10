@@ -168,8 +168,8 @@ def readCameraCalibrationDatabase3(filename: str, n_header: int = 5,
             data['c1'].append(float(dummy[11]))
             data['xcenter'].append(float(dummy[12]))
             data['ycenter'].append(float(dummy[13]))
-            data['nxpix'].append(float(dummy[14]))
-            data['nypix'].append(float(dummy[15]))
+            data['nxpix'].append(int(dummy[14]))
+            data['nypix'].append(int(dummy[15]))
             data['type'].append(str(dummy[16]))
 
     # Transform to pandas
