@@ -404,7 +404,7 @@ class CalibrationDatabase:
         elif n_true > 1:
             print('Several entries fulfill the condition')
             print('Possible entries:')
-            print(self.data['ID'][flags])
+            print(self.data['diag_ID'], flags)
             raise errors.FoundSeveralCameraCalibration()
         else:
             dummy = np.argmax(np.array(flags))

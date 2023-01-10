@@ -184,12 +184,13 @@ class iHIBPvideo(BVO):
             self.timecal, self.nf = ihibp_get_time_basis(fn = ft, shot=shot)
         except FileNotFoundError:
             pass
+
+        self.timebase = self.timecal
         # We initialize the parent class with the iHIBP video.
         self.framenumber = frame
         self.timestamp = timestamp
         super().__init__(file=fn, shot=shot)
         self.exp_dat['t'] = self.timecal
-        self.timebase = self.timecal
         self.exp_dat['nframes'] = \
             xr.DataArray(np.arange(len(self.exp_dat.t)), dims=('t'))
         # Let's check whether the user provided the calibration parameters.
@@ -217,11 +218,11 @@ class iHIBPvideo(BVO):
         # Updating the calibration in the scintillator.
         self.scintillator.calculate_pixel_coordinates(self.CameraCalibration)
 
-        if self.properties['description'] == 'raw video':
-            noiseSubtraction = True
-            filterFrames = True
-            self.properties['description'] = 'zero-th frame subtracted ' + \
-                                             'and median filtered with size 5'
+        # if self.properties['description'] == 'raw video':
+        #     noiseSubtraction = True
+        #     filterFrames = True
+        #     self.properties['description'] = 'zero-th frame subtracted ' + \
+        #                                      'and median filtered with size 5'
         # --- Apply now the background noise substraction and filtering.
         if noiseSubtraction:
             self.subtract_noise(frame = self.exp_dat['frames'].isel(t=0),
