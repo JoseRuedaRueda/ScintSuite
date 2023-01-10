@@ -842,7 +842,7 @@ class fields:
         RR, zz = np.meshgrid(R, z)
         grid_shape = RR.shape
         psipol = ssdat.get_psipol(shotnumber, RR.flatten(), zz.flatten(),
-                                  diag=diag, time=time)
+                                  diag=diag, time=time, exp=exp)
 
         # Reshaping into the original shape.
         psipol = np.reshape(psipol, grid_shape).T
@@ -850,8 +850,22 @@ class fields:
         # Creating the interpolating function.
         self.psipol['R'] = np.array(R, dtype=np.float64)
         self.psipol['z'] = np.array(z, dtype=np.float64)
+        self.psipol['Rmin'] = np.array(R.min(), dtype=np.float64)
+        self.psipol['Rmax'] = np.array(R.max(), dtype=np.float64)
+        self.psipol['z'] = np.array(z, dtype=np.float64)
+        self.psipol['zmin'] = np.array(z.min(), dtype=np.float64)
+        self.psipol['zmax'] = np.array(z.max(), dtype=np.float64)
+        self.psipol['Phi'] = np.array((0, 2.0*np.pi), dtype=np.float64)
+        self.psipol['Phimin'] = np.array(0.0, dtype=np.float64)
+        self.psipol['Phimax'] = np.array(2.0*np.pi, dtype=np.float64)
+
+        self.psipol['Time'] = np.array((0, 1.0), dtype=np.float64)
+        self.psipol['Timemin'] = np.array(0.0, dtype=np.float64)
+        self.psipol['Timemax'] = np.array(1.0, dtype=np.float64)
         self.psipol['nR'] = np.array([nR], dtype=np.int32)
         self.psipol['nz'] = np.array([nz], dtype=np.int32)
+        self.psipol['nPhi'] = np.array([1], dtype=np.int32)
+        self.psipol['nTime'] = np.array([1], dtype=np.int32)
         self.psipol['f'] = psipol.astype(dtype=np.float64)
         self.psipol_interp = lambda r, z, phi, time: \
             interpn((self.psipol['R'], self.psipol['z']),
@@ -941,7 +955,7 @@ class fields:
 
         return psipol
 
-    def tofile(self, fid, bflag: bool = True, eflag: bool = False):
+    def tofile(self, fid, what: str='Bfield'):
         """
         Write the field to files following the i-HIBPsims scheme.
 
@@ -960,9 +974,8 @@ class fields:
             opened = True
         else:
             opened = False
-        if bflag is False and eflag is False:
-            raise Exception('Some flag has to be set to write to file!')
-        if bflag:
+
+        if what.lower() == 'bfield':
             # Write header with grid size information:
             self.Bfield['nR'].tofile(fid)
             self.Bfield['nz'].tofile(fid)
@@ -988,7 +1001,7 @@ class fields:
                 self.Bfield['fx'].ravel(order='F').tofile(fid)
                 self.Bfield['fy'].ravel(order='F').tofile(fid)
                 self.Bfield['fz'].ravel(order='F').tofile(fid)
-        elif eflag:
+        elif what.lower() == 'efield':
             # Write header with grid size information:
             self.Efield['nR'].tofile(fid)
             self.Efield['nz'].tofile(fid)
@@ -1014,9 +1027,26 @@ class fields:
                 self.Efield['fx'].ravel(order='F').tofile(fid)
                 self.Efield['fy'].ravel(order='F').tofile(fid)
                 self.Efield['fz'].ravel(order='F').tofile(fid)
+        elif what.lower() == 'psipol':
+            self.psipol['nR'].tofile(fid)
+            self.psipol['nz'].tofile(fid)
+            self.psipol['nPhi'].tofile(fid)
+            self.psipol['nTime'].tofile(fid)
 
+            # Write grid ends:
+            self.psipol['Rmin'].tofile(fid)
+            self.psipol['Rmax'].tofile(fid)
+            self.psipol['zmin'].tofile(fid)
+            self.psipol['zmax'].tofile(fid)
+            self.psipol['Phimin'].tofile(fid)
+            self.psipol['Phimax'].tofile(fid)
+            self.psipol['Timemin'].tofile(fid)
+            self.psipol['Timemin'].tofile(fid)
+
+            # Write fields
+            self.psipol['f'].ravel(order='F').tofile(fid)
         else:
-            raise Exception('Not a valid combination of inputs')
+            raise ValueError('Not a valid field to be written.')
         if opened:
             fid.close()
 

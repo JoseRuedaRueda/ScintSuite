@@ -38,7 +38,7 @@ class VRTVideo(BVO):
     Javier Hidalgo-Salaverri (jhsalaverri@us.es)
 
     """
-    def __init__(self, camera: str = None, shot: int = None):
+    def __init__(self, camera: str, shot: int):
         """
         Initialise the class
 
@@ -50,18 +50,21 @@ class VRTVideo(BVO):
         folder= '/afs/ipp/u/augd/rawfiles/VRT/'+str(shot)[0:2]+'/S'+str(shot)
         self.path_video = folder+'/S'+str(shot)+'_'+camera+'.mp4'
         self.path_time = folder+'/Prot/FrameProt/'+camera+'_FrameProt.xml'
-        BVO.__init__(self, file = self.path_video, shot = shot)
-        self.exp_dat['frames'] = self.exp_dat['frames'][::-1,:,:]
+        self.properties = {}
+
         # Get the time base and the corresponding frame number
         root = et.parse(self.path_time).getroot()
         TS6 = int(root.attrib['ts6Time'],0)
         time = []
         nframe = []
         for r in root.findall('Entry'):
-        #     time.append(int(r.))
-        # for r in root.find('Values').findall('Val'):
             time.append((int(r.attrib['time'],0)-TS6)*1e-9)
             nframe.append(int(r.attrib['frameNumber']))
+        self.timebase = np.array(time, dtype=float)
+
+        BVO.__init__(self, file = self.path_video, shot = shot)
+        self.exp_dat['frames'] = self.exp_dat['frames'][::-1,:,:]
+
         self.exp_dat['tframes'] = np.array(time)
         self.exp_dat['nframes'] = np.array(nframe)
         self.shot = shot
@@ -154,8 +157,8 @@ class VRTVideo(BVO):
                 tf = float(self.exp_dat['tframes'][frame_index])
         # If we give the time:
         if t is not None:
-            frame_index = np.argmin(abs(self.exp_dat['tframes'] - t))
-            tf = self.exp_dat['tframes'][frame_index]
+            frame_index = np.argmin(np.abs(self.exp_dat['tframes'].values - t))
+            tf = self.exp_dat['tframes'].values[frame_index]
             dummy = self.exp_dat['frames'][:, :, frame_index].squeeze()
         # --- Check the colormap
         if ccmap is None:

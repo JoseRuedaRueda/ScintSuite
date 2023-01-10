@@ -570,15 +570,30 @@ class orbitFile:
         either the whole data (if set to True) or only the spatial part (if set
         to False).
         """
+        # Warning.
+        logger.warning('DEPRECATION. For iHIBPsim v3.4 and above use the new ' +
+                       'orbits file!')
+
         self.initialized = False
 
         if not os.path.isfile(filename):
             raise FileNotFoundError('File %s not found for orbits!'%filename)
 
         fid = open(filename, 'rb')
+        # Checking for the new version.
+        hdr = b''.joint(np.fromfile(fid, 'byte', 12)).decode().strip().lower()
+        if hdr == 'ihibpsim':
+            raise Exception('The file is the new version!!!!')
+
+        # Reading the header.
         fid.seek(-4*4, sspar.SEEK_END)
         self.nOrbits = np.fromfile(fid, 'int32', 1)[0]
         self.version = np.fromfile(fid, 'int32', 3)
+        if (self.version[0] == 3) and ( self.version[1] > 3):
+            raise Exception('The version is incompatible with the orbits file')
+        if (self.version[0] > 3):
+            raise Exception('The version is incompatible with the orbits file')
+
         self.nCh = 10  # Number of particle characteristics.
 
         hdr_offset = - (4 * 4 + self.nOrbits * 4 * 2)
