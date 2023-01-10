@@ -9,6 +9,7 @@ import Lib.SimulationCodes.iHIBPsim.crossSections as xsection
 import Lib.SimulationCodes.iHIBPsim.orbits as orbs
 import Lib.SimulationCodes.iHIBPsim.attenuation as att
 import Lib.SimulationCodes.iHIBPsim.strikelib as strikes
+import Lib.SimulationCodes.iHIBPsim.strikeline as strline
 import Lib.SimulationCodes.iHIBPsim.execute as exe
 import Lib.SimulationCodes.iHIBPsim.nml as namelist
 import Lib.SimulationCodes.iHIBPsim.geom as geom
