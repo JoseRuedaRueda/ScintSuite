@@ -13,7 +13,6 @@ from scipy.integrate import tplquad, quad
 from scipy.special import kn as modBessel2nd
 from tqdm import tqdm
 from datetime import date
-from scipy.io import savemat
 import pickle
 import logging
 logger = logging.getLogger('ScintSuite.iHIBPsim')
