@@ -16,6 +16,9 @@ from Lib._Mapping._Common import transform_to_pixel
 from Lib._Scintillator._mainClass import Scintillator
 from Lib._Plotting._1D_plotting import colorline
 import scipy.interpolate as sinterp
+import math
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import Lib.LibData.AUG.DiagParam as diagparams
 
 import Lib.errors as errors
 import matplotlib.pyplot as plt
@@ -552,7 +555,7 @@ class strikeLine:
 
 
     def plot(self, weighted_color: bool=False, units: str='cm',
-             cal=None, ax=None, **line_options):
+             cal=None, ax=None, cbar_sci: bool = False, **line_options):
         """
         Plot the result of the strike line (x1, x2).
 
@@ -595,28 +598,37 @@ class strikeLine:
             xlabel = 'X [pix]'
             ylabel = 'Y [pix]'
 
+        xlim = diagparams.IHIBP_scintillator_X
+        ylim = diagparams.IHIBP_scintillator_Y
+
         if weighted_color:
             if 'cmap' not in line_options:
                 line_options['cmap'] = 'plasma'
-
-            line = colorline(ax, x, y,
-                             self.w, **line_options)
-            xlim = np.array([x.min(), x.max()])
-            ylim = np.array([y.min(), y.max()])
+            if cbar_sci:
+                magn = math.floor(math.log10(np.max(self.w)))
+                w = self.w/(10**magn)
+                histlabel = 'Intensity ' + r'[$10^{%.2d}$ A]'%(magn)
+            else:
+                w = self.w
+                histlabel = 'Intensity [A]'
+            line = colorline(ax, x, y, w, **line_options)
         else:
             line = ax.plot(x, y, **line_options)
 
-        if ax_was_none:
-            ax.set_xlabel(xlabel)
-            ax.set_ylabel(ylabel)
-            ax.set_aspect('equal')
-            # ax.grid('both')
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_aspect('equal')
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
+        # ax.grid('both')
 
-            if weighted_color:
-                ax.set_xlim(xlim)
-                ax.set_ylim(ylim)
-                cbar = ax.figure.colorbar(mappable=line, ax=ax)
-                cbar.set_label('Intensity')
+        if weighted_color:
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="15%", pad=0.05)
+            cbar = ax.figure.colorbar(mappable=line, cax=cax)
+            cbar.set_label(histlabel)
+            cbar.formatter.set_powerlimits((0, 0))
+            cbar.formatter.set_useMathText(True)
 
         return ax, line
 
@@ -639,18 +651,17 @@ class strikeLine:
 
         line = ax.plot(x.values, y.values, **line_options)
 
-        if ax_was_none:
-            xlabel = '%s %s [%s]'%(self.map_s.longName, self.map_s.shortName,
-                                   self.map_s.units)
-            ax.set_xlabel(xlabel)
+        xlabel = '%s %s [%s]'%(self.map_s.longName, self.map_s.shortName,
+                               self.map_s.units)
+        ax.set_xlabel(xlabel)
 
-            ylabel = '%s %s [%s]'%(self.w.longName, self.w.shortName,
-                                   self.w.units)
-            ax.set_ylabel(ylabel)
+        ylabel = '%s %s [%s]'%(self.w.longName, self.w.shortName,
+                               self.w.units)
+        ax.set_ylabel(ylabel)
 
-            ax.grid('both')
-
-            plt.tight_layout()
+        ax.grid('both')
+        ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (0,0))
+        plt.tight_layout()
 
         return ax, line
 
