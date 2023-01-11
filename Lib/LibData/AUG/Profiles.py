@@ -151,8 +151,10 @@ def get_ne_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
         if flag_avg:
             print('averaging profiles over %.3d timesteps' %ii_avg)
             t_idx = np.argmin(abs(timebase - time))
-            tmp_ne = np.mean([ne[t_idx+i, :] for i in np.arange(int(-t_idx/2), int(t_idx/2+1))], axis=0)
-            tmp_unc = np.mean([ne_unc[t_idx+i, :] for i in np.arange(int(-t_idx/2), int(t_idx/2+1))], axis=0)
+            tmp_ne = np.mean([ne[t_idx+i, :] for i in
+                                np.arange(-ii_avg//2, ii_avg//2)], axis=0)
+            tmp_unc = np.mean([ne_unc[t_idx+i, :] for i in
+                                np.arange(-ii_avg//2, ii_avg//2)], axis=0)
         else:
             tmp_ne = interp1d(timebase, ne, kind='linear', axis=0,
                               bounds_error=False, fill_value=np.nan,
@@ -336,9 +338,9 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
         if flag_avg:
             t_idx = np.argmin(abs(timebase - time))
             tmp_te = np.mean([te[t_idx+i, :] for i in
-                            np.arange(int(-t_idx/2),int(t_idx/2+1))], axis=0)
+                            np.arange(-ii_avg//2, ii_avg//2)], axis=0)
             tmp_unc = np.mean([te_unc[t_idx+i, :] for i in
-                            np.arange(int(-t_idx/2), int(t_idx/2+1))], axis=0)
+                            np.arange(-ii_avg//2, ii_avg//2)], axis=0)
         else:
             tmp_te = interp1d(timebase, te, kind='linear', axis=0,
                               bounds_error=False, fill_value=np.nan,
