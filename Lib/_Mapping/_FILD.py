@@ -152,6 +152,7 @@ def remapAllLoadedFrames(video,
         nml = f90nml.read(namelistFile)
         if 'n_pitch' in nml['config']:
             FILDSIM = True
+            logger.info('This is deprecated, please use SINPA (uFILDSIM)')                 
         else:
             FILDSIM = False
     # -- Check the mask
@@ -187,6 +188,7 @@ def remapAllLoadedFrames(video,
     name_old = ' '  # To avoid loading twice in a row the same map
     if not got_smap:
         if decimals != video.Bangles['phi_used'].attrs['decimals']:
+            print('Recalculating theta-phi')
             # CHANGE FROM HERE
             # -- Collect the angles
             phi = video.Bangles['phi'].values
@@ -200,11 +202,10 @@ def remapAllLoadedFrames(video,
                 print('Size of phi: ', phi.size)
                 print('Size of theta: ', theta.size)
                 raise errors.NotValidInput('Wrong length of phi and theta')
-            # -- See if the strike map exist in the folder
+            # -- See if the strike map exists in the folder
             logger.info('Looking for strikemaps in: %s', smap_folder)
             for iframe in tqdm(range(nframes)):
                 if FILDSIM:
-                    logger.info('This is deprecated, please use SINPA (uFILDSIM)')
                     name = ssFILDSIM.guess_strike_map_name(
                         phi[iframe], theta[iframe], geomID=video.geometryID,
                         decimals=decimals
@@ -275,6 +276,7 @@ def remapAllLoadedFrames(video,
                     geomID=video.geometryID, FILDSIM_options=code_options,
                     decimals=decimals, clean=True)
             else:  # SINPA CODE
+                
                 name = ssSINPA.execution.find_strike_map_FILD(
                     phi_used[iframe], theta_used[iframe], smap_folder,
                     geomID=video.geometryID, SINPA_options=code_options,

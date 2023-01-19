@@ -204,7 +204,7 @@ class FILDVideo(FIV):
             FIV.__init__(self, empty=empty)
 
     def _getBangles(self, checkdatabase: bool = True, decimals: int = 1,
-                    allIn: bool = True):
+                    allIn: bool = False):
         """
         Get the orientation of the field respec to the head.
         If the name of the corresponding strike maps for each pair of angles is
@@ -214,9 +214,15 @@ class FILDVideo(FIV):
         Jose Rueda: jrrueda@us.es
         Lina Velarde: lvelarde@us.es
 
-        @param    checkdatabase: Flag to check the strikemap database and return
+        :param    checkdatabase: Flag to check the strikemap database and return
                   the names for each case.
-        @param    decimals: Number of decimals that will be used for the strikemap
+        :param     allIn: boolean flag to disconnect the interaction with the user.
+              When looking for the strike map in the database, we will take
+              the closer one available in time, without expecting an answer for
+              the user. This option was implemented to remap large number of
+              shots 'automatically' without interaction from the user needed.
+              Option not used if you give an input strike map
+        :param    decimals: Number of decimals that will be used for the strikemap
                   name.
         @TODO: add posibility to look for smaps in other folder
         """
