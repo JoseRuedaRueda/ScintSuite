@@ -374,7 +374,8 @@ class FILD_logbook:
             print('Beta angle not in the logbook, returning default')
             return default
         default['beta'] = beta
-
+        if default['beta'] == np.nan:
+            print('Beta is Nan. Be careful!!')
         return default
 
     def getAdqFreq(self, shot: int, diag_ID: int = 1):

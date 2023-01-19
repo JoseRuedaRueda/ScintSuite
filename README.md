@@ -40,7 +40,7 @@ In order to clone the suite just open a terminal in your home directory and type
 To install all non-standard (not machine dependent) packages, you can give a try the script: `first_run.py`. It will work in personal computers and *standard installations* although things can go wrong if your system has some particular rights limitations and you are not allowed to change them using =pip install=. In these cases, you should use a virtual environment:
 
 1. Install virtualenv: `pip install virtualenv`
-2. Create your virtual environment (let us call it SSvirtualenv): `virtualenv -p python3 --system-site-packages SSvirtualenv`
+2. Create your virtual environment (let us call it SSvirtualenv): `virtualenv -p python3 --system-site-packages SSvirtualenv` [Note: for MU users, this has to be done as `python -m virtualenv ...`]
 3. Activate your virtual environment (remember to do this everytime you are using ScintSuite or add it to your login script): `source SSvirtualenv/bin/activate`
 4. Force install the compatible versions using `pip install modulename==X.X.X`. A list of compatible versions is listed here (checked in MAST-U and JET):
 ```python
@@ -49,6 +49,10 @@ scikit-image==0.16.2
 pyfftw==0.12.0
 pandas==1.3.1
 ```
+For MU, you will probably also need:
+`openpyxl==3.0.3`
+`pco-tools`
+
 Once the python modules are created, you need to create the folder `MyData` inside the Data folder, and copy in it the .txt files which are located in `Data/MyDataTemplates`. These are the configuration files of the Suite, they are needed to import the sutie and can be modified (the ones in MYData folder) to change the behaviour of the plotting, warning, paths... If you installed the sutie with the script: `first_run.py` this step was done already, so you can ignore it
 ### Getting started
 **Importing the suite**
