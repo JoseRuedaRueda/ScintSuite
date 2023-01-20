@@ -6,6 +6,8 @@ import Lib.LibData as ssdat
 import Lib._Plotting as ssplt
 import Lib.errors as errors
 import math
+import os
+import netCDF4 as nc
 
 
 class fields:
@@ -1019,6 +1021,77 @@ class fields:
             raise Exception('Not a valid combination of inputs')
         if opened:
             fid.close()
+
+    def from_netcdf(self, fn: str, rmin: float=None, rmax: float=None, 
+                    zmin: float=None, zmax: float=None):
+        """
+        Import the magnetic field from a netCDF4 file.
+        
+        Pablo Oyola - poyola@us.es
+        """
+        if not os.path.isfile(fn):
+            raise FileNotFoundError('Cannot find %s'%fn)
+            
+        with nc.Dataset(fn, 'r') as root:
+            R = np.array(root.variables['R'][:])
+            z = np.array(root.variables['z'][:])
+            Br = np.array(root.variables['Br'][:])
+            Bz = np.array(root.variables['Bz'][:])
+            Bphi = np.array(root.variables['Bphi'][:])
+            rhop = np.array(root.variables['rhop'][:])
+            
+        # We check now whether we have to cut the domain limits.
+        r_flags = np.ones_like(R, dtype=bool)
+        z_flags = np.ones_like(z, dtype=bool)
+        
+        if rmin is not None:
+            r_flags = r_flags & (R > rmin)
+        if rmax is not None:
+            r_flags = r_flags & (R < rmax)
+        
+        if zmin is not None:
+            z_flags = z_flags & (z > zmin)
+        if zmax is not None:
+            z_flags = z_flags & (z < zmax)
+            
+        # Cutting the data.
+        R = R[r_flags]
+        z = z[z_flags]
+        
+        Br = Br[r_flags, :]
+        Br = Br[:, z_flags]
+        Bz = Bz[r_flags, :]
+        Bz = Bz[:, z_flags]
+        Bphi = Bphi[r_flags, :]
+        Bphi = Bphi[:, z_flags]
+        rhop = rhop[r_flags, :]
+        rhop = rhop[:, z_flags]
+        
+        
+            
+        # With the data read from the netCDF4 file, we allocate the internal
+        # data.
+        self.Bfield['R'] = R.astype(dtype=np.float64)
+        self.Bfield['z'] = z.astype(dtype=np.float64)
+        self.Bfield['nR'] = np.array((len(R)), dtype=np.int32)
+        self.Bfield['nz'] = np.array((len(z)), dtype=np.int32)
+        self.Bfield['nPhi'] = np.array((1), dtype=np.int32)
+        self.Bfield['nTime'] = np.array((1), dtype=np.int32)
+        
+        self.Bfield['Rmin'] = np.array((R.min()), dtype=np.float64)
+        self.Bfield['Rmax'] = np.array((R.max()), dtype=np.float64)
+        self.Bfield['zmin'] = np.array((z.min()), dtype=np.float64)
+        self.Bfield['zmax'] = np.array((z.max()), dtype=np.float64)
+        self.Bfield['Phimin'] = np.array((0.0), dtype=np.float64)
+        self.Bfield['Phimax'] = np.array((2.0*np.pi), dtype=np.float64)
+        self.Bfield['Timemin'] = np.array((0.0), dtype=np.float64)
+        self.Bfield['Timemax'] = np.array((1.0), dtype=np.float64)
+        
+        self.Bfield['fr'] = Br.astype(dtype=np.float64)
+        self.Bfield['fz'] = Bz.astype(dtype=np.float64)
+        self.Bfield['ft'] = Bphi.astype(dtype=np.float64)
+        
+        self.bdims = 2
 
     def plot(self, fieldName: str, phiSlice: int = None, timeSlice: int = None,
              ax_options: dict = {}, ax=None, cmap=None, nLevels: int = 50,
