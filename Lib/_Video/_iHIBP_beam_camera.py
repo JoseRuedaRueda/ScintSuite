@@ -413,6 +413,7 @@ class beam_camera(BVO):
         amp    = np.zeros((nroi, time.size))
         fwhm   = np.zeros((nroi, time.size))
         center = np.zeros((nroi, time.size))
+        signal2noise = np.zeros((nroi, time.size))
 
         # Looping over the ROIs.
         for iroi in range(nroi):
@@ -442,7 +443,17 @@ class beam_camera(BVO):
                 fwhm[iroi, ii]   = res.params['fwhm'].value
                 center[iroi, ii] = res.params['center'].value
 
-        return amp, fwhm, center, time
+                # We need now to check whether the amplitude to background is
+                # non-negligible or whether the signal-to-noise is too low.
+                non_xroi = np.arange(0, self.camcal['roi'][iroi][1])
+                non_yroi = np.arange(0, self.camcal['roi'][iroi][0])
+                data2 = self.exp_dat.frames.isel(px=non_xroi, py=non_yroi).sel(t=itime).mean()
+                s2n = amp[iroi, ii] / data2.values
+                # print(f't = {itime}, signal2noise = {s2n}')
+                signal2noise[iroi, ii] = s2n
+
+
+        return signal2noise, fwhm, center, time
 
     def make_beam_line(self, time: float=None, sigma: float=1.0,
                        graphic_bar: bool=False):
@@ -463,7 +474,7 @@ class beam_camera(BVO):
         ROI fitting.
         """
 
-        _, self.line_fwhm, self.line_center, time = \
+        s2n, self.line_fwhm, self.line_center, time = \
             self.get_roi_fit(time=time, graphic_bar=graphic_bar)
 
         self.line = xr.Dataset()

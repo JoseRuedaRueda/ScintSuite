@@ -5,43 +5,149 @@ Written by Hannah Lindl: hannah.lindl@ipp.mpg.de
 
 """
 import numpy as np
-import subprocess as sp
+import ffmpeg
+import os
 
-def read_file(video, filename_video: str):
+try:
+    from cv2 import cvtColor, COLOR_BGR2GRAY
+except ModuleNotFoundError:
+    COLOR_BGR2GRAY = 0
+    def cvtColor(x, *args, **kwargs):
+        """
+        Fake rgb 2 gray. Just make the average of the color axis.
+
+        Pablo Oyola - poyola@us.es
+        """
+        return x.mean(axis=-1)
+
+
+def read_file(fn: str, force_gray: bool=True, bpp: int=None):
     """
-    Load greyscale camera data with ffmpeg.
+    Load the data from the video using the ffmpeg package.
 
+    Balazs Tal - balazs.tal@ipp.mpg.de
     Hannah Lindl - hannah.lindl@ipp.mpg.de
+    Pablo Oyola - poyola@us.es
 
-    :param video: video properties containing the camera resolution and the timebase
-    :param filename_video: path/filename of the camera data
+    :param fn: path/filename of the camera data.
+    :param force_gray: if the data is originally RGB, this will transform it
+    into a gray scale.
+    :param bpp: bits per pixel. If None, the full size of the video is considered
+    as useful data.
     """
 
-    time = video.timecal
-    width = video.properties['width']
-    height = video.properties['height']
-    nf = video.nf
+    prop = ffmpeg.probe(fn)['streams'][0]
+    width = int(prop['width'])
+    height = int(prop['height'])
+    fps = int(prop['avg_frame_rate'][:-2])
+    nf  = int(prop['nb_frames'])
+    pix_fmt = prop['pix_fmt']
+    bits_size = int(prop['bits_per_raw_sample'])
 
-    initial_time = 0
+    dtype = { 8: np.uint8,
+              16: np.uint16
+            }.get(bits_size)
+
+    shape = [nf, height, width, -1]
+
+    out = ffmpeg.input(fn).output('pipe:', format='rawvideo',
+                                  pix_fmt=pix_fmt).run(quiet=True)[0]
+
+    if bpp is None:
+        shift = 0
+    else:
+        shift = bits_size - bpp
+    video = np.right_shift(np.frombuffer(out, dtype).reshape(shape), shift)
+
+    frames = video.astype(float).squeeze()
+
+    transformed_to_gray = False
+    if (frames.ndim > 3) and (force_gray):
+        transformed_to_gray = True
+        frames = cvtColor(frames, COLOR_BGR2GRAY)
+
+    output = { 'nf': nf, #  Number of frames.
+               'width': width, # Number of pixels along horizontal.
+               'height': height, # Number of pixels along the vertical.
+               'frames': frames, # Frame data.
+               'fps': fps, # Frames per second.
+               'colored': frames.ndim > 3, # Whether the image is RGB.
+               'transformed_to_gray': transformed_to_gray,
+               'bits_per_pixel': bpp,
+               'dtype': dtype
+             }
+
+    return output
+
+def write_file(fn: str, video: float, bit_size: int=16, bpp: int=None,
+               encoding: str=None, fps: int=120):
+    """
+    Writes to file a given buffer provided the properties of the video.
+
+    Pablo Oyola - poyola@us.es
+
+    :param fn: output filename. An error is raised if the file exists before
+    creation.
+    :param video: a 3-dim array with (time, pix_x, pix_y).
+    :param dtype: type to write to the video.
+    :param bpp: bits per pixel to actually write to file.
+    :param encoding: how to write the file. If this is None, two situations
+    appear
+        - If the input video is 4D, then RGB encoding is used.
+        - If the input video is 3D, gray little endian is used.
+    """
+
+    if os.path.isfile(fn):
+        raise FileExistsError('File %s already exists!'%fn)
+
+    # Checking the type of video.
+    if video.ndim < 3:
+        raise ValueError('The video must have dimension at least 3.')
+    elif video.ndim == 3:
+        color = False
+    elif video.ndim == 4:
+        color = True
+    else:
+        raise ValueError('The video must have as much, size 4')
+
+    if encoding is None:
+        if color:
+            pix_fmt = 'rgb%d'%bit_size + 'le'
+        else:
+            pix_fmt = 'gray%d'%bit_size + 'le'
+
+    else:
+        if color and (not encoding.lower().beginswith('rgb')):
+            raise ValueError('The input frame is colored but the pixel ' + \
+                             'encoding is gray-scale')
+
+        pix_fmt = encoding.lower()+'%d'%bit_size + 'le'
+
+    # Checking dtype.
+    dtype = {8: np.uint8,
+             16: np.uint16
+             }.get(bit_size)
+
+    # Transforming the output to write.
+    data = video.astype(dtype)
+    if color:
+        ntime, width, height, _ = data.shape
+    else:
+        ntime, width, height = data.shape
+
+    size = f'{width}x{height}'
+
+    # Creating the pipe to write:
+    proc = (
+             ffmpeg
+             .input('pipe: ', format='rawvideo', pix_fmt=pix_fmt, s=size)
+             .output(fn, pix_fmt=pix_fmt)
+             .overwrite_output()
+             .run_async(pipe_stdin=True)
+           )
+
+    proc.stdin.write(data.tobytes())
+    proc.stdin.close()
+    proc.wait()
 
 
-    FFMPEG_BIN = 'ffmpeg'
-    command = [FFMPEG_BIN,
-                 '-loglevel', 'error',
-                 '-hide_banner',
-                '-ss', str(initial_time),
-               '-i', filename_video,
-                '-frames:v', str(nf),
-               '-f', 'image2pipe',
-                '-pix_fmt', 'gray16le',
-               '-vcodec', 'rawvideo', '-']
-
-    pipe = sp.Popen(command,stdout = sp.PIPE, bufsize = 10**9)
-    raw_image = pipe.stdout.read(nf*2*width*height)
-    image=np.frombuffer(raw_image, np.uint16).reshape([-1, height, width])
-    pipe.stdout.flush()
-
-
-    frames = (image.astype(float))
-
-    return {'nf': video.nf, 'nx': width, 'ny': height, 'frames': frames, 'tframes': time}

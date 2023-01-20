@@ -130,7 +130,7 @@ class BVO:
                 self.shot = aux.guess_shot(file, ssdat.shot_number_length)
             # Fill the object depending if we have a .cin file or not
             if os.path.isfile(file):
-                logger.info('Looking for the file: ', file)
+                logger.info('Looking for the file: ' + file)
                 ## Path to the file and filename
                 self.path, self.file_name = os.path.split(file)
                 ## Name of the file (full path)
@@ -154,16 +154,16 @@ class BVO:
                     file, name = os.path.split(file)
                 elif file.endswith('.mp4'):
                     dummy = mp4.read_file(file)
-                    self.properties['width'] = dummy['width']
-                    self.properties['height'] = dummy['height']
-                    self.properties['fps'] = dummy['fps']
+
+                    frames = dummy.pop('frames')
+                    self.properties.update(dummy)
                     self.exp_dat = xr.Dataset()
-                    nt, nx, ny = dummy['frames'].shape
+                    nt, nx, ny = frames.shape
                     px = np.arange(nx)
                     py = np.arange(ny)
 
                     self.exp_dat['frames'] = \
-                        xr.DataArray(dummy['frames'], dims=('t', 'px', 'py'),
+                        xr.DataArray(frames, dims=('t', 'px', 'py'),
                                      coords={'t': self.timebase.squeeze(),
                                              'px': px,
                                              'py': py})
@@ -774,9 +774,11 @@ class BVO:
                     tf = self.getTime(frame_index, flagAverage)
                     dummy = self.getFrame(t, flagAverage)
                 elif len(t)==2:
-                    print('plotting averaged frames')
+                    logger.debug('Plotting averaged frames')
                     flag_time_range =True
-                    frames = self.exp_dat['frames'].where((self.exp_dat['t']>t[0]) & (self.exp_dat['t']<t[1]), drop = True)
+                    frames = self.exp_dat['frames'].where((self.exp_dat['t']>t[0]) & \
+                                                          (self.exp_dat['t']<t[1]),
+                                                          drop = True)
                     t[0] = min(frames.t)
                     t[1] = max(frames.t)
                     dummy = frames.mean(dim = 't')
@@ -1018,3 +1020,57 @@ class BVO:
             self.exp_dat.to_netcdf(filename)
         else:
             self.avg_dat.to_netcdf(filename)
+
+    def save(self, fn: str, t0: float=None, t1: float=None,
+             flagAverage: bool=False, mode: str=None):
+        """
+        Writes to a video file the data in exp_dat / avg_dat. The type of video
+        is decided upon the filename extension or from the mode parameter.
+
+        Pablo Oyola - poyola@us.es
+
+        :param fn: filename of the video. If an extension is detected, the
+        corresponding ? is used.
+        :param t0: initial time to save the video. If None, the video is written
+        starting from the starting available data.
+        :param t1: final time to save the video. If None, the video is written
+        unitl the end available data.
+        :param flagAverage: use the averaged data instead.
+        :param mode: if an extension is not detected in the input filename, the
+        user is required to say which kind of video file is to used.
+        """
+
+        if not fn.endswith('mp4') and (mode != 'mp4'):
+            raise NotImplementedError('Only MP4 writing is supported.')
+
+        # Saving to file.
+        if not fn.endswith('mp4'):
+            fn = fn + '.mp4'
+
+
+        if flagAverage:
+            data = self.avg_dat.frames.values
+        else:
+            data = self.exp_dat.frames.values
+
+        # Retrieving the properties of the video.
+        try:
+            bits_size = self.properties['bits_size']
+        except KeyError:
+            bits_size = 16
+
+        # Setting the enconding.
+        if data.ndim > 3:
+            encoding = 'rgb'
+        else:
+            encoding = 'grey'
+
+        # Getting the FPS.
+        dt = self.exp_dat.t.values[1] - self.exp_dat.t.values[0]
+        fps = int(1/dt)
+
+        # Saving
+        logger.debug(f'Saving to file {fn}')
+        mp4.write_file(fn=fn, video=data, bit_size=bits_size,
+                       encoding=encoding, fps=fps)
+
