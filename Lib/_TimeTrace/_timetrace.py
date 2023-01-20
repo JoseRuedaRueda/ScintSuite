@@ -430,3 +430,33 @@ class TimeTrace(BasicSignalVariable):
         plt.show()
 
         return [ax_tt1, ax_tt2, ax_tt3]
+
+    @property
+    def mean_of_roi(self):
+        """
+        Return the mean of the ROI.
+
+        Pablo Oyola - poyola@us.es
+        """
+
+        return self._data['mean_of_roi'].copy()
+
+    @property
+    def sum_of_roi(self):
+        """
+        Return the mean of the ROI.
+
+        Pablo Oyola - poyola@us.es
+        """
+
+        return self._data['sum_of_roi'].copy()
+
+    @property
+    def std_of_roi(self):
+        """
+        Standard deviation of the ROI.
+
+        Pablo Oyola - poyola@us.es
+        """
+
+        return self._data['std_of_roi'].copy()
