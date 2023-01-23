@@ -532,29 +532,26 @@ class Strikes:
                         data[:, :, ik] += H
                         # Weight histogram
                         if jw is not None:
-                            weig = self.data[ia, ig][f, jw]
                             H, xedges, yedges = \
                                 np.histogram2d(self.data[ia, ig][f, jx],
                                                self.data[ia, ig][f, jy],
                                                bins=(edgesx, edgesy),
-                                               weights=weig)
+                                               weights=self.data[ia, ig][f, jw])
                             dataS[:, :, ik] += H
                         # Entrance weight histogram
                         if jw0 is not None:
-                            weig = self.data[ia, ig][f, jw0]
                             H, xedges, yedges = \
                                 np.histogram2d(self.data[ia, ig][f, jx],
                                                self.data[ia, ig][f, jy],
                                                bins=(edgesx, edgesy),
-                                               weights=weig)
+                                               weights=self.data[ia, ig][f, jw0])
                             data0[:, :, ik] += H
                         if jwc is not None:
-                            weig = self.data[ia, ig][f, jwc]
                             H, xedges, yedges = \
                                 np.histogram2d(self.data[ia, ig][f, jx],
                                                self.data[ia, ig][f, jy],
                                                bins=(edgesx, edgesy),
-                                               weights=weig)
+                                               weights=self.data[ia, ig][f, jwc])
                             dataC[:, :, ik] += H
         xcen = 0.5 * (xedges[1:] + xedges[:-1])
         ycen = 0.5 * (yedges[1:] + yedges[:-1])
@@ -602,7 +599,7 @@ class Strikes:
         if jwc is not None:
             dataC /= deltax * deltay
             self.histograms[histName]['wcam'] = xr.DataArray(
-                data0, dims=('x', 'y', 'kind'),
+                dataC, dims=('x', 'y', 'kind'),
                 coords={'x': xcen, 'y': ycen, 'kind': supportedKinds}
             )
             self.histograms[histName]['wcam'].attrs['Description'] = \
@@ -1110,9 +1107,9 @@ class Strikes:
         ax_options = {
             'grid': 'both',
             'xlabel': self.header['info'][varx]['shortName']
-            + self.header['info'][varx]['units'],
+            + ' [' + self.header['info'][varx]['units'] + ']',
             'ylabel': self.header['info'][vary]['shortName']
-            + self.header['info'][vary]['units']
+            + ' [' + self.header['info'][vary]['units'] + ']'
         }
         ax_options.update(ax_params)
         mar_options = {
@@ -1182,7 +1179,8 @@ class Strikes:
 
         warning: Only fully tested for SINPA strike points
         """
-        logger.warning('20: Only fully tested for SINPA strike points')
+        if self.header['FILDSIMmode']:
+            logger.warning('20: Only fully tested for SINPA strike points')
         # See if there is already camera positions in the data
         if 'xcam' in self.header['info'].keys():
             text = 'The camera values are there, we will overwrite them'
@@ -1263,6 +1261,7 @@ class Strikes:
                                  + (self.data[ia, ig][:, iiy] - yc)**2)
                     F = F_object.f_number(rs)
                     T = math.pi / (2*F)**2
+                    print(T)
                     if overwrite:
                         self.data[ia, ig][:, iiwcam] = \
                             T * self.data[ia, ig][:, iiw]
@@ -1360,7 +1359,8 @@ class Strikes:
                                            ys * factor,
                                            zs * factor))
 
-    def remap(self, smap, options, variables_to_remap: tuple = ('R0', 'e0')):
+    def remap(self, smap, options, variables_to_remap: tuple = ('R0', 'e0'),
+              transformationMatrixExtraOptions: dict = {}):
         """
         Remap the camera histogram as it was a camera frame
 
@@ -1420,7 +1420,8 @@ class Strikes:
             # In this case, this is un-avoidable
             smap.interp_grid(frame_shape, method=options['method'],
                              MC_number=options['MC_number'],
-                             grid_params=grid_options)
+                             grid_params=grid_options,
+                             **transformationMatrixExtraOptions)
         else:
             calc_is_needed = 0  # By default assume not
             # If we are not going to use MC, no need of recalculate

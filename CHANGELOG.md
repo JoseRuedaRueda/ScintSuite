@@ -1,3 +1,8 @@
+# 1.2.1:
+## StrikeMaps
+- avg_ini_gyrophase, avg_ini_gyrophase, renamed to avgIniGyrophase, avgIncidentAngle, to avoid issues in the automatic remap
+## Plotting
+- IncludeColorMap flag added to multiline()
 # 1.2.0: Melon con Jamon
 ## General
 - Changed @ for : in documentations

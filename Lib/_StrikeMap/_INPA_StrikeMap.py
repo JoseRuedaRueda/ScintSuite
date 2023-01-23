@@ -13,10 +13,10 @@ import Lib.errors as errors
 from tqdm import tqdm
 from Lib._Machine import machine
 from scipy.signal import convolve
-from Lib._SideFunctions import createGrid, gkern
 from Lib._basicVariable import BasicVariable
-from Lib.SimulationCodes.Common.strikes import Strikes
+from Lib._SideFunctions import createGrid, gkern
 from Lib.SimulationCodes.FILDSIM import get_energy
+from Lib.SimulationCodes.Common.strikes import Strikes
 from Lib._StrikeMap._FILD_INPA_ParentStrikeMap import FILDINPA_Smap
 
 logger = logging.getLogger('ScintSuite.INPAstrikeMap')
@@ -170,7 +170,7 @@ class Ismap(FILDINPA_Smap):
                             energyFit = None,
                             B: float = 1.8,
                             Z: float = 1.0,
-                            A: float = 1.0,
+                            A: float = 2.01410,
                             ):
         """
         Build the INPA weight function
@@ -371,5 +371,10 @@ class Ismap(FILDINPA_Smap):
                     units[self.instrument_function[k].attrs['long_name'].lower()]
             except KeyError:
                 pass
-
+        # --- Add other metadata:
+        self.instrument_function.attrs['sigmaOptics'] = sigmaOptics
+        self.instrument_function.attrs['normFactor'] = normFactor
+        self.instrument_function.attrs['B'] = B
+        self.instrument_function.attrs['Z'] = Z
+        self.instrument_function.attrs['A'] = A
         return

@@ -23,3 +23,4 @@
 !  27: Interpolators not present in the strike map, calculating them with default settings
 !  28: It was not possible to initialise the plotting settings
 !  29: Not found excel document of the logbook
+!  30: Ignored input

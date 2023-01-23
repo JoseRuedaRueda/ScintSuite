@@ -110,7 +110,8 @@ def nntikhonov0(X, y, alpha, **kargs):
     return beta, MSE, res, r2
 
 
-def Elastic_Net(X, y, alpha, l1_ratio=0.05, positive=True, max_iter=1000):
+def Elastic_Net(X, y, alpha, l1_ratio=0.05, positive=True, max_iter=1000,
+                **kargs):
     """
     Wrap for the elastic net function
 

@@ -675,10 +675,11 @@ class FILDINPA_Smap(GeneralStrikeMap):
                         n_strikes = \
                             strikes.header['counters'][ix, iy]
                         remap_data = np.zeros((n_strikes, 1))
-                        if (not k.endswith('pix')) and camera:
+                        if not k.endswith('pix'):
                             remap_data[:, 0] = \
                                 self._map_interpolators[k](
                                     strikes.data[ix, iy][:, [ix1, ix2]])
+
                         elif k.endswith('pix') and camera:
                             remap_data[:, 0] = \
                                 self._map_interpolators[k](
