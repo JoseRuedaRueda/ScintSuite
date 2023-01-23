@@ -25,22 +25,22 @@ from Lib._basicVariable import BasicVariable
 # the file structure
 FILDSIMorder = {
     0: {  # ID0 of the code version
-        'name': ['gyroradius', 'pitch', 'x3', 'x1', 'x2', 'avg_ini_gyrophase',
-                 'n_strike_points', 'collimator_factor', 'avg_incident_angle'],
+        'name': ['gyroradius', 'pitch', 'x3', 'x1', 'x2', 'avgIniGyrophase',
+                 'n_strike_points', 'collimator_factor', 'avgIncidentAngle'],
         'units': ['cm', 'degree', 'cm', 'cm', 'cm', 'rad', '', '', 'degree'],
     },
 }
 SINPAfildOrder = {
     0: {  # ID0 of the code version
-        'name': ['gyroradius', 'pitch', 'x3', 'x1', 'x2', 'avg_ini_gyrophase',
-                 'n_strike_points', 'collimator_factor', 'avg_incident_angle'],
+        'name': ['gyroradius', 'pitch', 'x3', 'x1', 'x2', 'avgIniGyrophase',
+                 'n_strike_points', 'collimator_factor', 'avgIncidentAngle'],
         'units': ['cm', 'degree', 'm', 'm', 'm', 'rad', '', '', 'degree'],
     },
 }
 SINPAinpaOrder = {
     0: {  # ID0 of the code version
-        'name': ['gyroradius', 'alpha', 'x3', 'x1', 'x2', 'avg_ini_gyrophase',
-                 'n_strike_points', 'collimator_factor', 'avg_incident_angle',
+        'name': ['gyroradius', 'alpha', 'x3', 'x1', 'x2', 'avgIniGyrophase',
+                 'n_strike_points', 'collimator_factor', 'avgIncidentAngle',
                  'x0', 'y0', 'z0', 'd0'],
         'units': ['cm', 'rad', 'm', 'm', 'm', 'rad', '', '', 'degree', 'm',
                   'm', 'm', 'm'],

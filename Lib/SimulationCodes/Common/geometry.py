@@ -340,7 +340,8 @@ class Geometry:
     Maintainers: Jose Rueda jrrueda@us.es & Pablo Oyola pablo.oyola@ipp.mpg.de
     """
 
-    def __init__(self, GeomID: str = 'Test0', code: str = 'SINPA', files=None):
+    def __init__(self, GeomID: str = 'Test0', code: str = 'SINPA', files=None,
+                 folder=None):
         """
         Initialise the class.
 
@@ -375,7 +376,8 @@ class Geometry:
                 'ps': np.array([0.0, 0.0, 0.0]),
             }
         elif code.lower() == 'sinpa':
-            folder = os.path.join(paths.SINPA, 'Geometry', GeomID)
+            if folder is None:
+                folder = os.path.join(paths.SINPA, 'Geometry', GeomID)
             dummy = f90nml.read(os.path.join(folder,
                                              'ExtraGeometryParams.txt'))
             self.ExtraGeometryParams = dummy['ExtraGeometryParams']
@@ -787,7 +789,7 @@ class Geometry:
                                       str(self[i]['triangles'][it, 2]) + '\n'])
             # Write the namelist
             file = os.path.join(path, 'ExtraGeometryParams.txt')
-            f90nml.write({'ExtraGeometryParams': self.ExtraGeometryParams}, 
+            f90nml.write({'ExtraGeometryParams': self.ExtraGeometryParams},
                          file, force=True)
         elif self.code.lower() == 'ihibpsim':
             if os.path.isdir(path):
@@ -807,7 +809,7 @@ class Geometry:
                         f.writelines([str(self[0]['triangles'][j, 0]) + ' ',
                                       str(self[0]['triangles'][j, 1]) + '\n'])
 
-                
+
 
     def elements_to_stl(self, element_to_save=[0, 1, 2], units: str = 'cm'
                            ,file_name_save: str = 'Test'):
@@ -832,4 +834,3 @@ class Geometry:
                                                 + "_" + file_mod[ele['kind']])
 
 ##
-

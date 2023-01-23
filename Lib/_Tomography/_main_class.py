@@ -4,7 +4,9 @@ Main class to perform tomographic inversions
 Jose Rueda-Rueda: jrrueda@us.es
 
 """
+import os
 import logging
+import tarfile
 import numpy as np
 import xarray as xr
 import Lib.errors as errors
@@ -33,35 +35,63 @@ class Tomography():
     Main attributes:
 
     """
-    def __init__(self, W, s, normalise: bool = True):
+    def __init__(self, W=None, s=None, normalise: bool = True,
+                 folder: str = None):
         """
         Initialise the class
 
         :param  W: xr.DataArray with the instrument func created
         :param  s: signal DataArray, extracted from the remap
+        :param normalise: if true, signal and W will be normalised to 1
+        :param folder: if not None, s and W inputs will be ignored and data will
+            be load form the folder (it is supposed to be fille with the files
+            created by the export method())
 
-        Notice that both should share the scintillator grid
+
+        Notes:
+            - Both should share the scintillator grid
         """
-        # if np.sum(W.shape[0:2] != s.shape):
-        #     print(W.shape[0:2], s.shape[0:2])
-        #     raise errors.NotValidInput('revise input shape')
-        self.W = W
-        self.s = s
-        self.inversion = {}
-        # --- Now collapse the signal and the weight function
-        logger.info('Collapsing W: ')
-        self.W2D = matrix.collapse_array4D(self.W.values)
-        logger.info('Collapsing Signal')
-        self.s1D = matrix.collapse_array2D(self.s.values.squeeze())
-        # self.W2D, self.s1D = self._collapseWandS()
-        # --- Now normalise them (optional)
-        self.norms = {
-            's': self.s1D.max(),
-            'W': self.W2D.max()
-        }
-        if normalise:
-            self.s1D /= self.norms['s']
-            self.W2D /= self.norms['W']
+        if folder is None:
+            if np.sum(W.shape[0:2] != s.shape):
+                print(W.shape[0:2], s.shape[0:2])
+                raise errors.NotValidInput('revise input shape')
+            self.W = W
+            self.s = s
+            self.inversion = {}
+            # --- Now collapse the signal and the weight function
+            logger.info('Collapsing W: ')
+            self.W2D = matrix.collapse_array4D(self.W.values)
+            logger.info('Collapsing Signal')
+            self.s1D = matrix.collapse_array2D(self.s.values.squeeze())
+            # self.W2D, self.s1D = self._collapseWandS()
+            # --- Now normalise them (optional)
+            self.norms = {
+                's': self.s1D.max(),
+                'W': self.W2D.max()
+            }
+            if normalise:
+                self.s1D /= self.norms['s']
+                self.W2D /= self.norms['W']
+        else:
+            if W is not None or s is not None:
+                logger.warning('30: Folder argument present, ignorig W and s.')
+            self.W = xr.load_dataarray(os.path.join(folder, 'WeightFunc.nc'))
+            self.s = xr.load_dataarray(os.path.join(folder, 'Signal.nc'))
+            self.inversion = {}
+            # --- Now collapse the signal and the weight function
+            logger.info('Collapsing W: ')
+            self.W2D = matrix.collapse_array4D(self.W.values)
+            logger.info('Collapsing Signal')
+            self.s1D = matrix.collapse_array2D(self.s.values.squeeze())
+            # --- Now load the inversions
+            supportedFiles = ['nnelasticnet.nc', 'nntikhonov0', 'tikhonov0',
+                              'nnlsq.nc', ]
+            for file in supportedFiles:
+                filename = os.path.join(folder, file)
+                if os.path.isfile(filename):
+                    key = file.split('.')
+                    self.inversion[key] = xr.load_dataarray(filename)
+
 
     def nnlsq(self, **kargs):
         """
@@ -77,8 +107,8 @@ class Tomography():
                                              self.W.shape[3])
         # -- save it in the xr.Dataset()
         self.inversion['nnlsq']['F'] = xr.DataArray(
-                beta_shaped, dims=('xp', 'yp'),
-                coords={'xp': self.W['xp'], 'yp': self.W['yp']}
+                beta_shaped, dims=('x', 'y'),
+                coords={'x': self.W['x'], 'y': self.W['y']}
         )
         self.inversion['nnlsq']['F'].attrs['long_name'] = 'FI distribution'
 
@@ -91,7 +121,7 @@ class Tomography():
         self.inversion['nnlsq']['r2'] = xr.DataArray(r2)
         self.inversion['nnlsq']['residual'].attrs['long_name'] = '$r^2$'
 
-    def tikhonov0(self, alpha, weights=None, *kargs):
+    def tikhonov0(self, alpha, weights=None, **kargs):
         """
         Perform a 0th order Tikonov regularized regression
 
@@ -119,20 +149,20 @@ class Tomography():
         logger.info('Performing 0th- Tikhonov regularization')
         for i in tqdm(range(n_alpha)):
             beta[:, i], MSE[i], res[i], r2[i] = \
-                solvers.tikhonov0(self.W2D, self.s1D, alp[i], weights=weights
+                solvers.tikhonov0(self.W2D, self.s1D, alp[i], weight=weights,
                                   **kargs)
         # --- reshape the coefficients
         logger.info('Reshaping the distribution')
         beta_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_alpha))
         for i in range(n_alpha):
-            beta_shaped[..., i]  = \
-                matrix.restore_array2D(beta[:,i], self.W.shape[2],
+            beta_shaped[..., i] = \
+                matrix.restore_array2D(beta[:, i], self.W.shape[2],
                                        self.W.shape[3])
         # --- Save it in the dataset
         self.inversion['tikhonov0'] = xr.Dataset()
         self.inversion['tikhonov0']['F'] = xr.DataArray(
-                beta_shaped, dims=('xp', 'yp', 'alpha'),
-                coords={'xp': self.W['xp'], 'yp': self.W['yp'],
+                beta_shaped, dims=('x', 'y', 'alpha'),
+                coords={'x': self.W['x'], 'y': self.W['y'],
                         'alpha': alp}
         )
         self.inversion['tikhonov0']['F'].attrs['long_name'] = 'FI distribution'
@@ -173,7 +203,7 @@ class Tomography():
         r2 = np.zeros(n_alpha)
         res = np.zeros(n_alpha)
         # --- Perform the regression
-        logger.info('Performing 0th- Tikhonov regularization')
+        logger.info('Performing 0th-nnTikhonov regularization')
         for i in tqdm(range(n_alpha)):
             beta[:, i], MSE[i], res[i], r2[i] = \
                 solvers.nntikhonov0(self.W2D, self.s1D, alp[i], **kargs)
@@ -187,8 +217,8 @@ class Tomography():
         # --- Save it in the dataset
         self.inversion['nntikhonov0'] = xr.Dataset()
         self.inversion['nntikhonov0']['F'] = xr.DataArray(
-                beta_shaped, dims=('xp', 'yp', 'alpha'),
-                coords={'xp': self.W['xp'], 'yp': self.W['yp'],
+                beta_shaped, dims=('x', 'y', 'alpha'),
+                coords={'x': self.W['x'], 'y': self.W['y'],
                         'alpha': alp}
         )
         self.inversion['nntikhonov0']['F'].attrs['long_name'] =\
@@ -208,8 +238,111 @@ class Tomography():
         self.inversion['nntikhonov0']['r2'] = xr.DataArray(r2, dims='alpha')
         self.inversion['nntikhonov0']['residual'].attrs['long_name'] = '$r^2$'
 
+    def nnElasticNet(self, alpha, l1_ratio, **kargs):
+        """
+        Perform a 0th order Tikonov regularized non-negative regression
 
+        Jose Rueda-Rueda: jrrueda@us.es
 
+        :param  alpha: hyperparameter. Can be a number (single regression) or
+            a list or array. In this latter case, the regression will be done
+            for each value in the list (array)
+        :param  l1_ratio: weight of L2 to L1 norm
+        :param  **kargs: extra arguments for the nnlsqr solver
+        """
+        # --- Ensure we have an array or iterable:
+        if isinstance(alpha, (list, np.ndarray)):
+            alp = alpha
+        else:
+            alp = np.array([alpha])
+        n_alpha = len(alp)
+        # Now for the L1 ratio
+        if isinstance(l1_ratio, (list, np.ndarray)):
+            l1 = l1_ratio
+        else:
+            l1 = np.array([l1_ratio])
+        n_l1 = len(l1)
+        # --- Initialise the variables
+        npoints, nfeatures = self.W2D.shape
+        beta = np.zeros((nfeatures, n_alpha, n_l1))
+        MSE = np.zeros((n_alpha, n_l1))
+        r2 = np.zeros((n_alpha, n_l1))
+        res = np.zeros((n_alpha, n_l1))
+        # --- Perform the regression
+        logger.info('Performing nnElasticNet regularization')
+        for i in tqdm(range(n_alpha)):
+            for j in range(n_l1):
+                beta[:, i, j], MSE[i, j], res[i, j], r2[i, j] = \
+                    solvers.Elastic_Net(self.W2D, self.s1D, alp[i], l1[j],
+                                        positive=True, **kargs)
+        # --- reshape the coefficients
+        logger.info('Reshaping the distribution')
+        beta_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_alpha, n_l1))
+        for i in range(n_alpha):
+            for j in range(n_l1):
+                beta_shaped[..., i, j] = \
+                    matrix.restore_array2D(beta[:, i, j], self.W.shape[2],
+                                           self.W.shape[3])
+        # --- Save it in the dataset
+        self.inversion['nnelasticnet'] = xr.Dataset()
+        self.inversion['nnelasticnet']['F'] = xr.DataArray(
+                beta_shaped, dims=('x', 'y', 'alpha', 'l1'),
+                coords={'x': self.W['x'], 'y': self.W['y'],
+                        'alpha': alp, 'l1': l1}
+        )
+        self.inversion['nnelasticnet']['F'].attrs['long_name'] =\
+            'FI distribution'
 
+        self.inversion['nnelasticnet']['alpha'].attrs['long_name'] =\
+            '$\\alpha$'
 
+        self.inversion['nnelasticnet']['l1'].attrs['long_name'] =\
+            '$l_1$'
 
+        self.inversion['nnelasticnet']['MSE'] = \
+            xr.DataArray(MSE, dims=('alpha', 'l1'))
+        self.inversion['nnelasticnet']['MSE'].attrs['long_name'] = 'MSE'
+
+        self.inversion['nnelasticnet']['residual'] = \
+            xr.DataArray(res, dims=('alpha', 'l1'))
+        self.inversion['nnelasticnet']['residual'].attrs['long_name'] =\
+            'Residual'
+
+        self.inversion['nnelasticnet']['r2'] =\
+            xr.DataArray(r2, dims=('alpha', 'l1'))
+        self.inversion['nnelasticnet']['residual'].attrs['long_name'] = '$r^2$'
+
+    def export(self, folder: str, createTar: bool = False):
+        """
+        Export the tomography data into a folder
+
+        :param folder: DESCRIPTION
+        :type folder: TYPE
+        :return: DESCRIPTION
+        :rtype: TYPE
+
+        #TODO :add norms and suite version
+
+        """
+        logger.info('Saving results in: %s', folder)
+        filesSaved = []
+        # Export the different inversion results
+        for k in self.inversion.keys():
+            fileToSave = os.path.join(folder, k + '.nc')
+            self.inversion[k].to_netcdf(fileToSave, format='NETCDF4')
+            filesSaved.append(fileToSave)
+        # Export the signal
+        fileToSave = os.path.join(folder, 'Signal.nc')
+        self.s.to_netcdf(fileToSave, format='NETCDF4')
+        filesSaved.append(fileToSave)
+        # Export the W
+        fileToSave = os.path.join(folder, 'WeightFunc.nc')
+        self.W.to_netcdf(fileToSave, format='NETCDF4')
+        filesSaved.append(fileToSave)
+        # Compress into a TAR:
+        if createTar:
+            tarFile = os.path.join(folder, 'Complete.tar')
+            tar = tarfile.open(name=tarFile, mode='w')
+            for f in filesSaved:
+                tar.add(f, arcname=os.path.split(f)[-1])
+            tar.close()

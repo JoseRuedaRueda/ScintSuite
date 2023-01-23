@@ -1,6 +1,7 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 __all__ = ['p1D_shaded_error', 'remove_lines', 'overplot_trace', 'multiline']
 
@@ -88,7 +89,7 @@ def overplot_trace(ax, x, y, line_params={}, ymin=0., ymax=0.95):
 
 
 def multiline(xs, ys, c, ax=None, line_params: dict = {},
-              cmap='bwr'):
+              cmap='bwr', IncludeColorbar: bool = True):
     """
     Plot lines with different colorings
 
@@ -128,4 +129,8 @@ def multiline(xs, ys, c, ax=None, line_params: dict = {},
     #    Note: adding a collection doesn't autoscalee xlim/ylim
     ax.add_collection(lc)
     ax.autoscale()
+    if IncludeColorbar:
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        plt.colorbar(lc, cax=cax)
     return lc
