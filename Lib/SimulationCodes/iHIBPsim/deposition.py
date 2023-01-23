@@ -180,8 +180,11 @@ class deposition:
 
         R = data.sel(variable='Rmajor').values
         w = np.exp(data.sel(variable='weight').values)
+
+        vmin = xmin
+        vmax = xmax
         if xaxis.lower() == 'rmajor':
-            grr, H = utils.hist1d(R, w, bins=bins)
+            grr, H = utils.hist1d(R, w, bins=bins, vmin=vmin, vmax=vmax)
 
             xlabel = 'Major radius (m)'
             ylabel = 'Ion birth density($m^{-3}/m$)'
@@ -298,3 +301,12 @@ class deposition:
         y = R*np.sin(phi)
 
         return ax.scatter(x, y, z, c=w)
+
+    @property
+    def size(self):
+        """
+        Returns the number of particles in the deposition file.
+
+        Pablo Oyola - poyola@us.es
+        """
+        return self.header['N']
