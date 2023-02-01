@@ -226,8 +226,8 @@ class ihibpProfiles:
             profName = profName.lower()
             if profName == 'ne':
                 self.ne = tmp
-            elif profName == 'Te':
-                self.te = tmp
+            elif profName == 'te':
+                self.Te = tmp
             elif profName == 'ni':
                 self.flag_ni_ne = False
                 self.ni = tmp
@@ -278,7 +278,7 @@ class ihibpProfiles:
 
     def getfromDB(self, shotnumber: int, profName: str, diag: str=None,
                   exp: str='AUGD', time: float=None, edition: int=0,
-                  flag_avg: bool = False, ii_avg: int = 8):
+                  flag_avg: bool = False, t_avg: int = 8):
         """
         Routines to read the profiles from the database and store them into the
         class.
@@ -306,7 +306,7 @@ class ihibpProfiles:
         if profName.lower() == 'ne':
             data = dat.get_ne(shotnumber=shotnumber, exp=exp, diag=diag,
                               edition=edition,time=time, flag_avg = flag_avg,
-                              ii_avg = ii_avg)
+                              t_avg = t_avg)
 
             self.prof1D['ne'] = { 'shotnumber': shotnumber,
                                   'diag': diag,
@@ -325,7 +325,7 @@ class ihibpProfiles:
         elif profName.lower() == 'te':
             data = dat.get_Te(shotnumber=shotnumber, exp=exp, diag=diag,
                               edition=edition,time=time, flag_avg=flag_avg,
-                              ii_avg=ii_avg )
+                              t_avg=t_avg )
 
             self.prof1D['Te'] = { 'shotnumber': shotnumber,
                                   'diag': diag,
@@ -343,7 +343,8 @@ class ihibpProfiles:
 
         elif profName.lower() == 'ti':
             data = dat.get_Ti(shotnumber=shotnumber, exp=exp, diag=diag,
-                              edition=edition,time=time)
+                              edition=edition,time=time,
+                              flag_avg = flag_avg, t_avg = t_avg)
 
             self.prof1D['Ti'] = { 'shotnumber': shotnumber,
                                   'diag': diag,

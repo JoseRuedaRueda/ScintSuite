@@ -304,7 +304,9 @@ class deposition:
         x = R*np.cos(phi)
         y = R*np.sin(phi)
 
-        return ax.scatter(x, y, z, c=w)
+        im = ax.scatter(x, y, z, c=w)
+
+        return ax
 
     @property
     def size(self):

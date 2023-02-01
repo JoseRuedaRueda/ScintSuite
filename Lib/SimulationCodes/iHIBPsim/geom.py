@@ -300,9 +300,9 @@ def plotBeam_3D(beam_data: dict, ax=None, fig=None,
     if 'label' not in params3d:
         params3d['label'] = 'AUG wall'
 
-    if 'label' not in line_opts:
-        line_opts['label'] = '$\\beta = %.2f {}^o$ & $\\beta = %.2f{}^o$'%\
-            (beam_data['beta']*180/np.pi, beam_data['theta']*180/np.pi)
+    # if 'label' not in line_opts:
+    #     line_opts['label'] = '$\\beta = %.2f {}^o$ & $\\theta = %.2f{}^o$'%\
+    #         (beam_data['beta']*180/np.pi, beam_data['theta']*180/np.pi)
 
     line_handl= ax.plot(beam_data['beam_cart'][0, :],
                         beam_data['beam_cart'][1, :],

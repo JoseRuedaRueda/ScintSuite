@@ -696,7 +696,8 @@ class BVO:
                    alpha: float = 1.0, IncludeColorbar: bool = True,
                    RemoveAxisTicksLabels: bool = False,
                    flagAverage: bool = False, normalise=None,
-                   extent: float=None, rot90: bool = False):
+                   extent: float=None, rot90: bool = False,
+                   plt_label: bool = True):
         """
         Plot a frame from the loaded frames
 
@@ -759,9 +760,10 @@ class BVO:
                     flag_time_range = True
                     frames = self.exp_dat['frames'].isel(t = slice(frame_number[0], frame_number[1]))
                     dummy = frames.mean(dim = 't')
-                    t = np.zeros(2)
-                    t[0] = self.getTime(self.getFrameIndex(frame_number = frame_number[0]))
-                    t[1] = self.getTime(self.getFrameIndex(frame_number = frame_number[1]))
+                    tf = np.zeros(2)
+                    tf[0] = self.getTime(self.getFrameIndex(frame_number = frame_number[0]))
+                    tf[1] = self.getTime(self.getFrameIndex(frame_number = frame_number[1]))
+                    print('plotting %.d averaged frames' %len(frames.t))
                 else:
                     raise ValueError('wrong shape of framenumber. Should not be larger than two')
         # If we give the time:
@@ -781,8 +783,9 @@ class BVO:
                 elif len(t)==2:
                     flag_time_range =True
                     frames = self.exp_dat['frames'].where((self.exp_dat['t']>t[0]) & (self.exp_dat['t']<t[1]), drop = True)
-                    t[0] = min(frames.t)
-                    t[1] = max(frames.t)
+                    tf = np.zeros(2)
+                    tf[0] = min(frames.t)
+                    tf[1] = max(frames.t)
                     dummy = frames.mean(dim = 't')
                     print('plotting %.d averaged frames' %len(frames.t))
                 else:
@@ -842,20 +845,23 @@ class BVO:
         if flag_time_range == False:
             tf = str(round(tf, 3))
         else:
-            tf = '(%.3f, %.3f)' %(t[0],t[1])
+            tf = '(%.3f, %.3f)' %(tf[0],tf[1])
 
         if IncludeColorbar:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
             plt.colorbar(img, label='Counts', cax=cax)
-        ax.text(0.05, 0.9, '#' + str(self.shot),
-                horizontalalignment='left',
-                color='w', verticalalignment='bottom',
-                transform=ax.transAxes)
-        ax.text(0.95, 0.9, 't = ' + tf + (' s'),
-                 horizontalalignment='right',
-                 color='w', verticalalignment='bottom',
-                 transform=ax.transAxes)
+        if plt_label:
+            ax.text(0.05, 0.9, '#' + str(self.shot),
+                    horizontalalignment='left',
+                    color='w', verticalalignment='bottom',
+                    transform=ax.transAxes)
+            ax.text(0.95, 0.9, 't = ' + tf + (' s'),
+                     horizontalalignment='right',
+                     color='w', verticalalignment='bottom',
+                     transform=ax.transAxes)
+        else:
+            plt.suptitle('t = ' + tf + ' s')
         if RemoveAxisTicksLabels:
             ax.axes.xaxis.set_ticklabels([])
             ax.axes.yaxis.set_ticklabels([])
@@ -865,7 +871,7 @@ class BVO:
         # Shot the figure
         if created:
             fig.show()
-            plt.tight_layout()
+            #plt.tight_layout()
         return ax
 
     def GUI_frames(self, flagAverage: bool = False):

@@ -15,7 +15,7 @@ pa = Path()
 # -----------------------------------------------------------------------------
 def get_ne(shotnumber: int, time: float = None, exp: str = 'AUGD',
            diag: str = 'IDA', edition: int = 0, sf=None,
-           xArrayOutput: bool = False, flag_avg: bool = False, ii_avg: int = 8):
+           xArrayOutput: bool = False, flag_avg: bool = False, t_avg: int = 8):
 
     """
     Wrapper to the different diagnostics to read the electron density profile.
@@ -43,7 +43,7 @@ def get_ne(shotnumber: int, time: float = None, exp: str = 'AUGD',
     elif diag == 'IDA':
         return get_ne_ida(shotnumber=shotnumber, time=time, exp=exp,
                           edition=edition, sf=sf, xArrayOutput=xArrayOutput,
-                          flag_avg = flag_avg, ii_avg = ii_avg)
+                          flag_avg = flag_avg, t_avg = t_avg)
 
 
 def get_ne_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
@@ -109,7 +109,7 @@ def get_ne_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
 def get_ne_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
                edition: int = 0, sf=None, xArrayOutput: bool = False,
-               flag_avg: bool = False, ii_avg: int = 8):
+               flag_avg: bool = False, t_avg: int = 8):
     """
     Wrap to get AUG electron density using the IDA profiles.
 
@@ -121,7 +121,7 @@ def get_ne_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
     :param  edition: edition of the shotfile to be read.
     :param  sf: shotfile opened with the IDA to be accessed.
     :param flag_avg: flag whether to compute time averaged profiles
-    :param ii_avg: # of timesteps over which to average
+    :param t_avg: time in ms over which to average
 
     :return output: a dictionary containing the electron density evaluated
     in the input times and the corresponding rhopol base.
@@ -149,12 +149,14 @@ def get_ne_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
         tmp_unc = ne_unc
     else:
         if flag_avg:
-            print('averaging profiles over %.3d timesteps' %ii_avg)
-            t_idx = np.argmin(abs(timebase - time))
-            tmp_ne = np.mean([ne[t_idx+i, :] for i in
-                                np.arange(-ii_avg//2, ii_avg//2)], axis=0)
-            tmp_unc = np.mean([ne_unc[t_idx+i, :] for i in
-                                np.arange(-ii_avg//2, ii_avg//2)], axis=0)
+            logger.info('averaging profiles over %.3d ms' %t_avg)
+            if len(time) != 1:
+                logger.info('can only average arounf one time. First value will be used.')
+            t_avg *= 1e-3
+            t_idx0 = np.argmin(abs(timebase - (time[0] - t_avg/2)))
+            t_idx1 = np.argmin(abs(timebase - (time[0] + t_avg/2)))
+            tmp_ne = np.mean([ne[i,:] for i in np.arange(t_idx0, t_idx1)], axis=0)
+            tmp_unc = np.mean([ne_unc[i,:] for i in np.arange(t_idx0, t_idx1)], axis=0)
         else:
             tmp_ne = interp1d(timebase, ne, kind='linear', axis=0,
                               bounds_error=False, fill_value=np.nan,
@@ -198,7 +200,7 @@ def get_ne_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
 def get_Te(shotnumber: int, time: float = None, exp: str = 'AUGD',
            diag: str = 'IDA', edition: int = 0, sf=None,
-           xArrayOutput: bool = False, flag_avg: bool = False, ii_avg: int = 8):
+           xArrayOutput: bool = False, flag_avg: bool = False, t_avg: int = 8):
 
     """
     Wrapper to the different diagnostics to read the electron density profile.
@@ -227,7 +229,7 @@ def get_Te(shotnumber: int, time: float = None, exp: str = 'AUGD',
     elif diag == 'IDA':
         return get_Te_ida(shotnumber=shotnumber, time=time, exp=exp,
                           edition=edition, sf=sf, xArrayOutput=xArrayOutput,
-                          flag_avg=flag_avg, ii_avg=ii_avg)
+                          flag_avg=flag_avg, t_avg=t_avg)
 
 
 def get_Te_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
@@ -293,7 +295,7 @@ def get_Te_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
 
 def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
                edition: int = 0, sf=None, xArrayOutput: bool = False,
-               flag_avg: bool = False, ii_avg: int = 8):
+               flag_avg: bool = False, t_avg: int = 8):
     """
     Wrap to get AUG electron temperature from the IDA shotfile.
 
@@ -305,7 +307,7 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
     :param  diag: diagnostic from which 'Te' will extracted.
     :param  edition: edition of the shotfile to be read.
     :param flag_avg: flag whether to average the profiles
-    :param ii_avg: # of timesteps for averaging
+    :param t_avg: time in ms over which to average
 
     :return output: a dictionary containing the electron temp. evaluated
     in the input times and the corresponding rhopol base.
@@ -336,11 +338,11 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
         tmp_unc = te_unc
     else:
         if flag_avg:
-            t_idx = np.argmin(abs(timebase - time))
-            tmp_te = np.mean([te[t_idx+i, :] for i in
-                            np.arange(-ii_avg//2, ii_avg//2)], axis=0)
-            tmp_unc = np.mean([te_unc[t_idx+i, :] for i in
-                            np.arange(-ii_avg//2, ii_avg//2)], axis=0)
+            t_avg *= 1e-3
+            t_idx0 = np.argmin(abs(timebase - (time[0] - t_avg/2)))
+            t_idx1 = np.argmin(abs(timebase - (time[0] + t_avg/2)))
+            tmp_te = np.mean([te[i,:] for i in np.arange(t_idx0, t_idx1)], axis=0)
+            tmp_unc = np.mean([te_unc[i,:] for i in np.arange(t_idx0, t_idx1)], axis=0)
         else:
             tmp_te = interp1d(timebase, te, kind='linear', axis=0,
                               bounds_error=False, fill_value=np.nan,
@@ -382,7 +384,8 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
 # --- Ion temperature
 # -----------------------------------------------------------------------------
 def get_Ti(shot: int, time: float = None, diag: str = 'IDI', exp: str = 'AUGD',
-           edition: int = 0, sf=None, xArrayOutput: bool = False):
+           edition: int = 0, sf=None, xArrayOutput: bool = False,
+           flag_avg: bool = False, t_avg: int = 8):
     """"
     Wrapper to all the routines to read the ion temperature.
 
@@ -403,7 +406,8 @@ def get_Ti(shot: int, time: float = None, diag: str = 'IDI', exp: str = 'AUGD',
 
     if diag == 'IDI':
         return get_Ti_idi(shotnumber=shot, time=time, exp=exp,
-                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
+                          edition=edition, sf=sf, xArrayOutput=xArrayOutput,
+                          flag_avg = flag_avg, t_avg = t_avg)
     elif diag == 'CXRS':
         return get_Ti_cxrs(shotnumber=shot, time=time, exp=exp,
                            edition=edition, xArrayOutput=xArrayOutput)
@@ -412,7 +416,8 @@ def get_Ti(shot: int, time: float = None, diag: str = 'IDI', exp: str = 'AUGD',
 
 
 def get_Ti_idi(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None, xArrayOutput: bool = False):
+               edition: int = 0, sf=None, xArrayOutput: bool = False,
+               flag_avg: bool = False, t_avg: int = 8):
     """
     Wrap to get AUG ion temperature from the IDI shotfile.
 
@@ -425,6 +430,8 @@ def get_Ti_idi(shotnumber: int, time: float = None, exp: str = 'AUGD',
     :param  exp: Experiment name.
     :param  diag: diagnostic from which 'Te' will extracted.
     :param  edition: edition of the shotfile to be read.
+    :param flag_avg: flag whether to average the profile
+    :param t_avg: time in ms over which to average
 
     :return output: a dictionary containing the electron temp. evaluated
     in the input times and the corresponding rhopol base.
@@ -451,13 +458,20 @@ def get_Ti_idi(shotnumber: int, time: float = None, exp: str = 'AUGD',
         tmp_ti = ti
         tmp_unc = ti_unc
     else:
-        tmp_ti = interp1d(timebase, ti, kind='linear', axis=0,
-                          bounds_error=False, fill_value=np.nan,
-                          assume_sorted=True)(time).T
-        tmp_unc = interp1d(timebase, ti_unc,
-                           kind='linear', axis=0,
-                           bounds_error=False, fill_value=np.nan,
-                           assume_sorted=True)(time).T
+        if flag_avg:
+            t_avg *= 1e-3
+            t_idx0 = np.argmin(abs(timebase - (time[0] - t_avg/2)))
+            t_idx1 = np.argmin(abs(timebase - (time[0] + t_avg/2)))
+            tmp_ti = np.mean([ti[i,:] for i in np.arange(t_idx0, t_idx1)], axis=0)
+            tmp_unc = np.mean([ti_unc[i,:] for i in np.arange(t_idx0, t_idx1)], axis=0)
+        else:
+            tmp_ti = interp1d(timebase, ti, kind='linear', axis=0,
+                              bounds_error=False, fill_value=np.nan,
+                              assume_sorted=True)(time).T
+            tmp_unc = interp1d(timebase, ti_unc,
+                               kind='linear', axis=0,
+                               bounds_error=False, fill_value=np.nan,
+                               assume_sorted=True)(time).T
     if not xArrayOutput:
         output = {
             'rhop': rhop[:, 0],

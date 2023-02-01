@@ -190,6 +190,12 @@ class iHIBPvideo(BVO):
         self.timebase = self.timecal
         super().__init__(file=fn, shot=shot)
         self.exp_dat['t'] = np.unique(self.timecal)
+        if self.shot in range(40966, 40985):
+            self.exp_dat['frames'] = xr.DataArray(np.rot90(self.exp_dat['frames'], 2),
+                                     dims=('px', 'py', 't'),
+                                     coords = {'px': self.exp_dat['px'],
+                                               'py': self.exp_dat['py'],
+                                               't': self.timebase.squeeze()})
         # Let's check whether the user provided the calibration parameters.
         if calib is None:
             logger.info('Retrieving the calibration parameters for iHIBP')
@@ -246,7 +252,7 @@ class iHIBPvideo(BVO):
                 self.exp_dat['frames'].values[..., self.getFrameIndex(t=self.t0)]
 
     def plot_frame(self, plotScintillatorPlate: bool = True,
-                   rot90: bool = False, **kwargs):
+                   rot90: bool = False, plt_label: bool = True, **kwargs):
         """"
         This function wraps the parent plot_frame function to plot the frame
         along with the scintillator plate.
@@ -258,7 +264,7 @@ class iHIBPvideo(BVO):
         :param  kwargs: same arguments than BVO.plot_frame.
         :return ax: axis where the frame has been plot.
         """
-        ax = super().plot_frame(rot90 = rot90, **kwargs)
+        ax = super().plot_frame(rot90 = rot90, plt_label = plt_label, **kwargs)
 
         if plotScintillatorPlate:
             self.scintillator.plot_pix(ax=ax, line_params={'color': 'w'})

@@ -896,14 +896,16 @@ class orbitFile:
             for ii in range(len(id)):
                 color_list.append(colors(index[ii]))
             orbit = self.loadOrbit(id[0])
-            line_options['color'] = color_list[0]
+            if 'color' not in line_options:
+                line_options['color'] = color_list[0]
             ax1 = orbit.plot(view=view, ax_params=ax_options, ax=ax,
                              line_params=line_options,
                              shaded3d_options=shaded3d_options,
                              imin=imin, imax=imax)
             for i in range(1, len(id)):
                 orbit = self.loadOrbit(id[i])
-                line_options['color'] = color_list[i]
+                if 'color' not in line_options:
+                    line_options['color'] = color_list[i]
                 ax1 = orbit.plot(view=view, ax_params=ax_options, ax=ax1,
                                  line_params=line_options,
                                  shaded3d_options=shaded3d_options,
