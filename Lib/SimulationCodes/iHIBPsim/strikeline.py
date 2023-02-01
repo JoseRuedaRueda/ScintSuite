@@ -19,9 +19,13 @@ import scipy.interpolate as sinterp
 import math
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import Lib.LibData.AUG.DiagParam as diagparams
+from Lib.SimulationCodes.iHIBPsim.geom import generateBeamTrajectory as beamTrajectory
+from Lib.LibData.AUG.Equilibrium import get_rho as get_rho
 
 import Lib.errors as errors
 import matplotlib.pyplot as plt
+import logging
+logger = logging.getLogger('ScintSuite.SimCod')
 
 # ------------------------------------------------------------------------------
 # STRIKELINE/STRIKEMAP DATA.
@@ -553,6 +557,33 @@ class strikeLine:
         for ikey in data.to_dict()['data_vars'].keys():
             self.__dict__[ikey] = data[ikey]
 
+    def get_rho_strline(self, shot: int, time: float, beta: float = 4.66,
+                        theta: float = 0.08):
+
+        """
+        Calculate rho for the given strikeline.
+        :param shot: discharge for equilibrium
+        :param time: timepoint where rho should be evaluated.
+                     Not yet identical with str_line.time!!
+        :param beta: toroidal beam injection angle
+        :param theta: poloidal beam injection angle
+
+        Hannah Lindl - hannah.lindl@ipp.mpg.de
+        """
+
+        origin = diagparams.iHIBP['port_center']
+        map_s = self.map_s
+        beam = beamTrajectory(start=origin, beta=beta,
+                                                    theta=theta,
+                                                    Rmax=max(map_s).values,
+                                                    Rmin=min(map_s).values,
+                                                    Ns = len(map_s))
+
+        rho = get_rho(shot, beam['Rbeam'], beam['zbeam'], time = time)[0]
+        rho_xr = xr.DataArray(rho, dims=('s',))
+        attrs_s = mapping_text_to_attrs('rhopol')
+        rho_xr.attrs.update(attrs_s)
+        self.rho = rho_xr
 
     def plot(self, weighted_color: bool=False, units: str='cm',
              cal=None, ax=None, cbar_sci: bool = False, **line_options):
@@ -614,25 +645,25 @@ class strikeLine:
             line = colorline(ax, x, y, w, **line_options)
         else:
             line = ax.plot(x, y, **line_options)
+        if ax_was_none:
+            ax.set_xlabel(xlabel)
+            ax.set_ylabel(ylabel)
+            ax.set_aspect('equal')
+            ax.set_xlim(xlim)
+            ax.set_ylim(ylim)
+            # ax.grid('both')
 
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabel)
-        ax.set_aspect('equal')
-        ax.set_xlim(xlim)
-        ax.set_ylim(ylim)
-        # ax.grid('both')
-
-        if weighted_color:
-            divider = make_axes_locatable(ax)
-            cax = divider.append_axes("right", size="15%", pad=0.05)
-            cbar = ax.figure.colorbar(mappable=line, cax=cax)
-            cbar.set_label(histlabel)
-            cbar.formatter.set_powerlimits((0, 0))
-            cbar.formatter.set_useMathText(True)
+            if weighted_color:
+                divider = make_axes_locatable(ax)
+                cax = divider.append_axes("right", size="15%", pad=0.05)
+                cbar = ax.figure.colorbar(mappable=line, cax=cax)
+                cbar.set_label(histlabel)
+                cbar.formatter.set_powerlimits((0, 0))
+                cbar.formatter.set_useMathText(True)
 
         return ax, line
 
-    def plot_weight(self, ax=None, **line_options):
+    def plot_weight(self, xaxis: str='rmajor', ax=None, **line_options):
         """
         Presents the weight along the strike line using as reference the
         initial parameter chosen in the simulation.
@@ -647,12 +678,20 @@ class strikeLine:
         if ax_was_none:
             fig, ax = plt.subplots(1)
 
-        x, y = self.map_s, self.w
+        if xaxis == 'rmajor':
+            x, y = self.map_s, self.w
+            xlabel = '%s %s [%s]'%(self.map_s.longName, self.map_s.shortName,
+                                   self.map_s.units)
 
+        elif xaxis == 'rhopol':
+            x, y = self.rho, self.w
+            xlabel = r'$\rho_{pol}$'
+        else:
+            logger.info('Xaxis only accepts rhopol or rmajor. Rmajor will be \
+                         plotted.')
+            xaxis = 'rmajor'
         line = ax.plot(x.values, y.values, **line_options)
 
-        xlabel = '%s %s [%s]'%(self.map_s.longName, self.map_s.shortName,
-                               self.map_s.units)
         ax.set_xlabel(xlabel)
 
         ylabel = '%s %s [%s]'%(self.w.longName, self.w.shortName,
@@ -733,12 +772,12 @@ class strikeLineCollection:
         # Checking how many strikelines are available.
         self.ntime = len(maps)
 
-        # We prepare now the internal timebasis.
-        self.ntime = len(maps)
         self.time  = np.array([maps[ii]['time'].values[0] \
                                for ii in range(self.ntime)])
 
         self.maps = [strikeLine(data=maps[0], properties = self.prop)]
+
+        self.flag_rho = False
 
     def getTimeIndex(self, time: float):
         """
@@ -784,6 +823,23 @@ class strikeLineCollection:
             return self.maps[idx[0]]
         else:
             return np.array([self.maps[ii] for ii in idx])
+
+    def get_rho_strline(self, shot, time: float, beta: float = 4.66,
+                        theta: float = 0.08):
+
+        """
+        Calculate rho for the given strikeline.
+        :param shot: discharge for equilibrium
+        :param time: timepoint where rho should be evaluated.
+                     Not yet identical with str_line.time!!
+        :param beta: toroidal beam injection angle
+        :param theta: poloidal beam injection angle
+
+        Hannah Lindl - hannah.lindl@ipp.mpg.de
+        """
+
+        self[0].get_rho_strline(shot, time, beta, theta)
+        self.flag_rho = True
 
     def plot(self, time: Union[float, int]=None, weighted_color: bool=False,
              units: str='cm', cal=None, ax=None, **line_options):
@@ -842,7 +898,8 @@ class strikeLineCollection:
 
         return ax, lc
 
-    def plot_weight(self, time: Union[int, float]=None, ax=None, **line_options):
+    def plot_weight(self, time: Union[int, float]=None, ax=None,
+                    xaxis = 'rmajor', **line_options):
         """
         Plot a given weight profile for input time(s) or time index(indices).
 
@@ -855,7 +912,14 @@ class strikeLineCollection:
         :param line_options: dictionary with arguments to pass down to the
         function.
         """
+        if xaxis not in ['rhopol', 'rmajor']:
+            logger.info('unknown xaxis format (accepting rmajor or rhopol). \
+                        Choosing Rmajor')
+            xaxis = 'rmajor'
 
+        if xaxis == 'rhopol' and not self.flag_rho:
+            logger.error('calculate rhopol first with get_rho_strline')
+            return
         if time is None:
             time = np.arange(self.ntime).astype(dtype=int)
 
@@ -868,20 +932,15 @@ class strikeLineCollection:
         if len(idx) == 1:
             idx = idx[0]
             if 'label' not in line_options:
-                label = 't = %.3f s'%self.time[idx]
-                ax, lc = self[idx].plot_weight(ax=ax, label=label,
-                                               **line_options)
-            else:
-                ax, lc = self[idx].plot_weight(ax=ax,  **line_options)
+                line_options['label'] = 't = %.3f s'%self.time[idx]
+            ax, lc = self[idx].plot_weight(ax=ax, xaxis=xaxis,**line_options)
         else:
             lc = list()
             for ii in idx:
                 if 'label' not in line_options:
-                    label = 't = %.3f s'%self.time[ii]
-                    ax, tmp = self[ii].plot_weight(ax=ax, label=label,
-                                                   **line_options)
-                else:
-                    ax, tmp = self[ii].plot_weight(ax=ax, **line_options)
+                    line_options['label'] = 't = %.3f s'%self.time[ii]
+                ax, tmp = self[ii].plot_weight(ax=ax, xaxis=xaxis,
+                                               **line_options)
                 lc.append(tmp)
 
         return ax, lc
