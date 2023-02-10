@@ -309,6 +309,7 @@ def readSmap(filename, code: str = None):
         elif filename.endswith('.map'):
             code = 'SINPA'
         else:
+            print(filename)
             msg = 'File name not code standard, you need to give the code'
             raise errors.NotValidInput(msg)
     if code == 'SINPA':

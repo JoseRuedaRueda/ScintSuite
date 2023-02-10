@@ -1,5 +1,5 @@
 """
-Main class to perform tomographic inversions
+Main class to perform tomographic inversions.
 
 Jose Rueda-Rueda: jrrueda@us.es
 

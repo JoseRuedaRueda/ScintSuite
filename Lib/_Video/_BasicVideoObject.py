@@ -287,7 +287,7 @@ class BVO:
             tmax_video = self.timebase.max()
             if t2 > tmax_video:
                 text = 'T2 was not in the video file:' +\
-                    'Taking %.3f as initial point' % tmax_video
+                    'Taking %.3f as final point' % tmax_video
                 logger.warning('18: %s' % text)
             it1 = np.argmin(abs(self.timebase-t1))
             it2 = np.argmin(abs(self.timebase-t2))

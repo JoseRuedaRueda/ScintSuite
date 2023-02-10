@@ -1,3 +1,10 @@
+# 1.2.2: Acedias
+## FirstRun
+- Included numpy, numba and scipy insallation in the first run script
+## Mapping
+- variable transformationMatrixLimit included as as iput for the remap, to increase the allowed size fo the transformation matrix in the remap
+## Others
+- Minor Bug correction and documentation improvements
 # 1.2.1:
 ## StrikeMaps
 - avg_ini_gyrophase, avg_ini_gyrophase, renamed to avgIniGyrophase, avgIncidentAngle, to avoid issues in the automatic remap
@@ -11,7 +18,10 @@
 - getGeomShots() removed from INPA object
 ## Simulation codes
 - Added compatibility with SINPA 4
-
+## Tomography
+- Polished the tomography object, added scan in L1 for the elastic net. Added export and import features to the object
+## Others
+- Minor upgrades in comments and documentation
 
 # 1.1.0: Melon con Jamon
 ## FIDASIM library

@@ -114,13 +114,13 @@ class Ismap(FILDINPA_Smap):
         # Allocate space for latter
         self.secondaryStrikes = None
 
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # --- Database interaction
-    #---------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def getRho(self, shot, time, coord: str = 'rho_pol',
                extra_options: dict = {},):
         """
-        Get the rho coordinates associated to each strike point
+        Get the rho coordinates associated to each strike point.
 
         Jose Rueda: jrrueda@us.es
 
@@ -167,13 +167,13 @@ class Ismap(FILDINPA_Smap):
                             sigmaOptics: float = 4.5,
                             verbose: bool = True,
                             normFactor: float = 1.0,
-                            energyFit = None,
+                            energyFit=None,
                             B: float = 1.8,
                             Z: float = 1.0,
                             A: float = 2.01410,
                             ):
         """
-        Build the INPA weight function
+        Build the INPA weight function.
 
         For a complete documentation of how each submatrix is defined from the
         physics point of view, please see full and detailed INPA notes
@@ -285,23 +285,50 @@ class Ismap(FILDINPA_Smap):
         # --- Calculate the pixel position
         # Block 2: Calculation phase -------------------------------------------
         edges = [pxEdges, pyEdges, xedges, yedges, kindEdges]
+        logger.info('Performing the 5D histogram')
         H, edges_hist = np.histogramdd(
                 dummy,
                 bins=edges,
                 weights=w,
         )
+        # check there is nothing negative
+        totalWeightBeforeOptics = H.sum()
         # Add the finite focus of the optics
         if sigmaOptics > 0.01:
             logger.info('Adding finite focus')
             kernel = gkern(int(6.0*sigmaOptics)+1, sig=sigmaOptics)
+
             for kx in tqdm(range(H.shape[2])):
                 for ky in range(H.shape[3]):
                     for kj in range(H.shape[4]):
                         H[..., kx, ky, kj] = \
                             convolve(H[..., kx, ky, kj].squeeze(), kernel,
                                      mode='same')
+            # Check the integrity of the WF
+            totalWeightAfterOptics = H.sum()
+            deltaWeight = abs(totalWeightAfterOptics-totalWeightBeforeOptics)\
+                / totalWeightBeforeOptics
+            logger.debug('Change of weight due to optics: %f ' % deltaWeight)
+            if deltaWeight > 0.001:
+                logger.error('Total Wegith before the optic focus: %f',
+                             totalWeightBeforeOptics)
+                logger.error('Total Wegith after the optic focus: %f',
+                             totalWeightAfterOptics)
+                errorText = 'Problem applying the convolution, weight changed'
+                raise errors.CalculationError(errorText)
+            # set to zero the negative celss due to numerical errors
+            H[H < 0.0] = 0.0
         else:
             logger.info('Not considering finite focusing')
+
+        # if True:
+        #     kernel = gkern(5, sig=1)
+        #     for jx in tqdm(range(H.shape[0])):
+        #         for jy in range(H.shape[1]):
+        #             for kj in range(H.shape[4]):
+        #                 H[jx, jy, :, :, kj] = \
+        #                     convolve(H[jx, jy, :, :, kj].squeeze(), kernel,
+        #                              mode='same')
 
         # Now perform the tensor product
         vol = xvol * yvol
