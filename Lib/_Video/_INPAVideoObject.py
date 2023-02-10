@@ -221,7 +221,7 @@ class INPAVideo(FIV):
             -# sprofx: signal integrated over the y range given by options
             -# sprofy: signal integrated over the x range given by options
         """
-        # Destroy the previos dataset, if there was some
+        # Destroy the previous dataset, if there was some
         if self.remap_dat is not None:
             self.remap_dat = None
         # Check if the user want to use the average
@@ -279,28 +279,33 @@ class INPAVideo(FIV):
             else:
                 br, bz, bt, bp = ssdat.get_mag_field(
                     self.shot, self.position['R_scintillator'],
-                    self.position['z_scintillator'], time=time,
+                    self.position['z_scintillator'], time=t,
                     **self.BFieldOptions)
                 BR = np.array(br).squeeze()
                 Bz = np.array(bz).squeeze()
                 Bt = np.array(bt).squeeze()
+                B = np.sqrt(BR**2 + Bz**2 + Bt**2)
+                B2 = np.sqrt(bp**2 + Bt**2)
+                print(B, B2)
                 s1_projection = \
-                    self.orientation['s1rzt'][0] * BR\
-                    + self.orientation['s1rzt'][1] * Bz\
-                    + self.orientation['s1rzt'][2] * Bt\
+                    (self.orientation['s1rzt'][0] * BR
+                     + self.orientation['s1rzt'][1] * Bz
+                     + self.orientation['s1rzt'][2] * Bt) / B
 
                 s2_projection = \
-                    self.orientation['s2rzt'][0] * BR\
-                    + self.orientation['s2rzt'][1] * Bz\
-                    + self.orientation['s2rzt'][2] * Bt\
+                    (self.orientation['s2rzt'][0] * BR
+                     + self.orientation['s2rzt'][1] * Bz
+                     + self.orientation['s2rzt'][2] * Bt) / B
 
                 s3_projection = \
-                    self.orientation['s3rzt'][0] * BR\
-                    + self.orientation['s3rzt'][1] * Bz\
-                    + self.orientation['s3rzt'][2] * Bt\
+                    (self.orientation['s3rzt'][0] * BR
+                     + self.orientation['s3rzt'][1] * Bz
+                     + self.orientation['s3rzt'][2] * Bt) / B
 
-                theta = np.arccos(s3_projection)
-                phi = np.arctan2(s2_projection, s1_projection)
+                theta = np.arccos(s3_projection) * 180.0 / math.pi
+                phi = np.arctan2(s2_projection, s1_projection) * 180.0 / math.pi
+                if phi < 0:
+                    phi += 360.0
                 time = t
         else:
             tmin = self.remap_dat['t'][0]

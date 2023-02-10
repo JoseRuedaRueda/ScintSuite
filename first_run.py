@@ -8,9 +8,7 @@ import pip
 
 
 def import_or_install(package, name=None):
-    """
-    Import or install a package
-    """
+    """Import or install a package."""
     try:
         if name is None:
             __import__(package)
@@ -53,5 +51,8 @@ import_or_install('pco-tools')
 import_or_install('xarray')
 import_or_install('tqdm')
 import_or_install('matplotlib')
+import_or_install('numpy')
+import_or_install('numba')
+import_or_install('scipy')
 import_or_install('scikit-image', 'skimage')
 import_or_install('scikit-learn', 'sklearn')

@@ -865,7 +865,7 @@ class FIV(BVO):
             f.write('geom_ID: %s\n'%self.geometryID)
             f.write('CameraFileBPP: %s\n'%self.settings['RealBPP'])
 
-        json.dump(self.position, open(positionFile, 'w' ) )
+        json.dump(self.position, open(positionFile, 'w'))
         json.dump({k:v.tolist() for k,v in self.orientation.items()},
                   open(orientationFile, 'w' ) )
         # Create the tar file

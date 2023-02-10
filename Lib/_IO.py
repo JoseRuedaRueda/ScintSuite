@@ -541,6 +541,8 @@ def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
 def load_remap(filename, diag='FILD'):
     """
     Load a tar remap file into a video object
+
+    :param filename: path to the .tar file or the folder containing the files
     """
     if not os.path.isdir(filename):
         if filename is None:
