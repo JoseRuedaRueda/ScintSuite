@@ -1,8 +1,6 @@
 """Load the machine vessel"""
 import os
 import math
-import get_gc            # Module to load vessel components
-import aug_sfutils as sfutils
 import numpy as np
 import xarray as xr
 import Lib.LibData.AUG.Equilibrium as equil
@@ -24,6 +22,12 @@ except ModuleNotFoundError:
 else:
     import Lib.LibData.AUG._nbi_geom as nbigeom
     REAL_NBI_GEOM = True
+    
+try:
+    import aug_sfutils as sfutils
+    import get_gc            # Module to load vessel component
+except ModuleNotFoundError:
+    logging.warning('You somehow got here without AUG utils')
 
 pa = Path()
 
