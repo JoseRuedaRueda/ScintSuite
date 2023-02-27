@@ -263,6 +263,17 @@ class CalParams:
 
     In a future, it will contain the correction of the optical distortion and
     all the methods necessary to correct it.
+
+    :Example of Use:
+
+    >>> # Initialise the calibration object
+    >>> import Lib as ss
+    >>> import numpy as np
+    >>> cal = ss.mapping.CalParams()
+    >>> # Fill the calibration
+    >>> cal.xscale = cal.yscale = 27.0
+    >>> cal.xshift = cal.yshift = 0.0
+    >>> cal.deg = 25.0
     """
 
     def __init__(self):
@@ -295,6 +306,11 @@ class CalParams:
         Print calibration
 
         Jose Rueda: jrrueda@us.es
+
+        :Example of use:
+
+        >>> # Assume you have in your workspace a calibration called call
+        >>> cal.print()
         """
         print('xscale: ', self.xscale)
         print('yscale: ', self.yscale)
@@ -310,7 +326,14 @@ class CalParams:
         """
         Save the calibration in a netCDF file
 
+        :param filename: (str) name of the file for the calibration
+
         Jose Rueda: jrrueda@us.es
+
+        :Example of use:
+
+        >>> # Assume you have in your workspace a calibration called call
+        >>> cal.save2netCDF('calibration.nc')
         """
         logger.info('Saving results in: %s', filename)
         with netcdf.netcdf_file(filename, 'w') as f:
