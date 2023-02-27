@@ -111,9 +111,15 @@ def remapAllLoadedFrames(video,
         -# 'phi_used': phi_used for the remap [deg]
         -# 'existing_smaps': array indicating which smaps where found in the
         database and which don't
+
     The remap options such as the code used, the number of decimals or the
     location of the database of smaps are saved as attributes of the 'frames'
     dataArray
+
+    :Notes:
+        - This function is not intended to be called alone except the user
+        really knows what is doing. Please use just the function
+        remap_all_loaded_frames() from the video object
     """
     # --------------------------------------------------------------------------
     # --- INPUTS CHECK AND PREPARATION

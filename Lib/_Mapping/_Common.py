@@ -31,10 +31,25 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
     :param  x: np.array of positions to be transformed, x coordinate
     :param  y: np.array of positions to be transformed, y coordinate
     :param  cal: Object containing all the information for the
-    transformation, see class CalParams()
+        transformation, see class CalParams()
 
     :return xpixel: x positions in pixels
     :return ypixel: y position in pixels
+
+    :Example:
+
+    >>> # Initialise the calibration object
+    >>> import Lib as ss
+    >>> import numpy as np
+    >>> cal = ss.mapping.CalParams()
+    >>> # Fill the calibration
+    >>> cal.xscale = cal.yscale = 27.0
+    >>> cal.xshift = cal.yshift = 0.0
+    >>> cal.deg = 25.0
+    >>> # Apply the calibration
+    >>> x = np.array([35, 45, 22, 105])
+    >>> y = np.array([15, 35, 27, 106])
+    >>> xp, yp = ss.mapping.transform_to_pixel(x, y, cal)
     """
     eps = 1e-6  # Level for the distortion coefficient to be considered as
     #             zero (see below)

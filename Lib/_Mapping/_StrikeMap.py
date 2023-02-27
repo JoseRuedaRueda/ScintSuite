@@ -2,13 +2,19 @@
 Strike map class
 
 Jose Rueda: jrrueda@us.es
+
+This is deprecated and just left here for retrocompatibility.
+Please if you were to implement something new, rely on the smap object
+and not on this
 """
+from Lib.decorators import deprecated
 from Lib._StrikeMap._FILD_StrikeMap import Fsmap
 from Lib._StrikeMap._INPA_StrikeMap import Ismap
 import Lib.errors as errors
 __all__ = ['StrikeMap']
 
 
+@deprecated('Please call directly the smap library')
 def StrikeMap(id, file):
     """
     Just a wrapper to the Smap library for retro-compatibility
