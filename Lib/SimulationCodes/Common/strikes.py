@@ -1260,8 +1260,7 @@ class Strikes:
                     rs = np.sqrt((self.data[ia, ig][:, iix] - xc)**2
                                  + (self.data[ia, ig][:, iiy] - yc)**2)
                     F = F_object.f_number(rs)
-                    T = math.pi / (2*F)**2
-                    print(T)
+                    T = 1.0 /2.0/ (2*F)**2
                     if overwrite:
                         self.data[ia, ig][:, iiwcam] = \
                             T * self.data[ia, ig][:, iiw]

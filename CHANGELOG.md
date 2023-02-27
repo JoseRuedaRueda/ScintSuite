@@ -1,3 +1,9 @@
+# 1.2.3: Minor correction
+## Strikes:
+- Corrected 2Pi factor in the definition of the Transmission optical factor
+## First run:
+- Added missing module of ffmpeg for iHIBP videos in the first run script
+
 # 1.2.2: Acedias
 ## FirstRun
 - Included numpy, numba and scipy insallation in the first run script

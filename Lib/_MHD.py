@@ -18,11 +18,22 @@ logger = logging.getLogger('ScintSuite.MHD')
 # --- Main class
 # -----------------------------------------------------------------------------
 class MHDmode():
+    """
+    Read plasma profile and calculate analytical frequencies.
+
+    :param shot: (int) shot number
+    :param mi: (float) background ion mass, SI,
+    :param loadTi: (bool) to load the ion temperature, if not, Te=Ti assumed
+
+    :Example of use:
+
+    >>> import Lib as ss
+    >>> modes = ss.mhd.MHDmode(41090)
+    """
+
     def __init__(self, shot: int = 41091, mi=2.013*cnt.m_u,
                  loadTi: bool = True):
-        """
-        Initialise the class and read the plasma profiles
-        """
+
         logger.warning('XX: Assuming ne=ni')
         # --- Densities
         self._ne = ssdat.get_ne(shotnumber=shot, xArrayOutput=True)
@@ -56,16 +67,26 @@ class MHDmode():
             self._basic['bt0'], dims='t',
             coords={'t': self._basic['bttime']})
         # --- Now interpolate everything in the time/rho basis of ne
-        self._ni = self._ni.interp(t=self._ne['t'], rho=self._ne['rho'])
-        self._te = self._te.interp(t=self._ne['t'], rho=self._ne['rho'])
-        self._ti = self._ti.interp(t=self._ne['t'], rho=self._ne['rho'])
-        self._q = self._q.interp(t=self._ne['t'], rho=self._ne['rho'])
-        self._R0 = self._R0.interp(t=self._ne['t'])
-        self._B0 = self._B0.interp(t=self._ne['t'])
-        self._kappa = self._kappa.interp(t=self._ne['t'])
+        self._ni = self._ni.interp(t=self._ne['t'], rho=self._ne['rho'],
+                                   method="cubic")
+        self._te = self._te.interp(t=self._ne['t'], rho=self._ne['rho'],
+                                   method="cubic")
+
+        self._ti = self._ti.interp(t=self._ne['t'], rho=self._ne['rho'],
+                                   method="cubic")
+
+        self._q = self._q.interp(t=self._ne['t'], rho=self._ne['rho'],
+                                 method="cubic")
+        self._R0 = self._R0.interp(t=self._ne['t'], method="cubic")
+        self._B0 = self._B0.interp(t=self._ne['t'], method="cubic")
+        self._kappa = self._kappa.interp(t=self._ne['t'], method="cubic")
 
         # --- Precalculate some stuff:
-        self._va0 = self._B0 / np.sqrt(cnt.mu_0 * mi * self._ni)
+        if self._B0.data.mean() < 0.0:
+            factor = -1.0
+        else:
+            factor = 1.0
+        self._va0 = factor*self._B0 / np.sqrt(cnt.mu_0 * mi * self._ni*1.0e19)
 
         # --- Alocate space for the frequencies
         self.freq = xr.Dataset()
@@ -100,6 +121,8 @@ class MHDmode():
         """
         self.freq['TAE'] = \
             self._va0['data']/4.0/cnt.pi/self._q['data']/self._R0['data']
+        if self.freq['TAE'].mean() < 0.0:
+            self.freq['TAE'] *= -1.0  # the q profile was defined as negative
 
     def _calcEAEfreq(self):
         """

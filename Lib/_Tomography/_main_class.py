@@ -75,6 +75,7 @@ class Tomography():
         else:
             if W is not None or s is not None:
                 logger.warning('30: Folder argument present, ignorig W and s.')
+            logger.info('Reading results from %s', folder)
             self.W = xr.load_dataarray(os.path.join(folder, 'WeightFunc.nc'))
             self.s = xr.load_dataarray(os.path.join(folder, 'Signal.nc'))
             self.inversion = {}
@@ -84,13 +85,15 @@ class Tomography():
             logger.info('Collapsing Signal')
             self.s1D = matrix.collapse_array2D(self.s.values.squeeze())
             # --- Now load the inversions
-            supportedFiles = ['nnelasticnet.nc', 'nntikhonov0', 'tikhonov0',
+            supportedFiles = ['nnelasticnet.nc', 'nntikhonov0.nc',
+                              'tikhonov0.nc',
                               'nnlsq.nc', ]
             for file in supportedFiles:
                 filename = os.path.join(folder, file)
                 if os.path.isfile(filename):
-                    key = file.split('.')
-                    self.inversion[key] = xr.load_dataarray(filename)
+                    key = file.split('.')[0]
+                    logger.info('reading %s', filename)
+                    self.inversion[key] = xr.load_dataset(filename)
 
 
     def nnlsq(self, **kargs):

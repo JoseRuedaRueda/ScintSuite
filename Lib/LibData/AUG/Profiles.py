@@ -1,4 +1,4 @@
-'eV'"""Routines to interact with the AUG database"""
+"""Routines to interact with the AUG database."""
 import numpy as np
 import xarray as xr
 import aug_sfutils as sfutils
@@ -16,9 +16,9 @@ pa = Path()
 def get_ne(shotnumber: int, time: float = None, exp: str = 'AUGD',
            diag: str = 'IDA', edition: int = 0, sf=None,
            xArrayOutput: bool = False):
-
     """
-    Wrapper to the different diagnostics to read the electron density profile.
+    Wrap the different diagnostics to read the electron density profile.
+
     It supports IDA and PED profiles.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de and J. Rueda: jrrueda@us.es
@@ -31,9 +31,13 @@ def get_ne(shotnumber: int, time: float = None, exp: str = 'AUGD',
     :param  xArrayOutput: flag to return the output as dictionary of xarray
 
     :return output: a dictionary containing the electron density evaluated
-    in the input times and the corresponding rhopol base.
-    """
+        in the input times and the corresponding rhopol base.
 
+
+    Use example:
+        >>> import Lib as ss
+        >>> ne = ss.dat.get_ne(41091, 3.55, xArrayOutput=True)
+    """
     if diag not in ('IDA', 'PED'):
         raise Exception('Diagnostic non supported!')
 
