@@ -29,14 +29,16 @@ from Lib._Machine import machine
 from Lib._Scintillator import Scintillator
 import Lib._Video._AuxFunctions as _aux
 import Lib.errors as errors
-from scipy.io import netcdf                # To export remap data
 
-# Initialise the auxiliar objects
+# -----------------------------------------------------------------------------
+# %% Auxiliary objects
 logger = logging.getLogger('ScintSuite.INPAVideo')
 pa = p.Path(machine)
 del p
 
 
+# -----------------------------------------------------------------------------
+# %% INPA video class
 class INPAVideo(FIV):
     """
     Video class for the INPA diagnostic.
@@ -45,7 +47,7 @@ class INPAVideo(FIV):
 
     Jose Rueda: jrrueda@us.es
 
-    Public Methods (it also contains all present in the BVO):
+    Public Methods:
         - remap_loaded_frames: Remap the loaded frames
         - integrate_remap: integrate the remap in the desired region of rl and
             pitch to get a time trace
@@ -61,6 +63,46 @@ class INPAVideo(FIV):
             head reference system. If this is executed after the remap, it plot
             some shaded areas indicated which angles were found in the database
         - export_remap: Export remap
+
+    :param  file: file or folder (see above)
+    :param  shot: Shot number, if is not given, the program will look for it
+        in the name of the loaded file (see above)
+    :param  diag_ID: manipulator number for FILD
+    :param  empty: Initialise the video object as empty. This flag is added
+        to load data from a remap file
+    :param  logbookOptions: dictionary containing the options to start the
+        FILDlogbook. Can be machine dependent
+    :param  Boptions: dictionary containing the options to load the magnetic
+        field, can be machine dependent. Notice that the shot number and
+        needed time will be collected from the video object. If you provide
+        them also here, the code will fail. Same with R and z
+    :param  verbose: flag to print logbook comments
+    :param  loadPlasmaData: Flag to load plasma data
+
+    :Example of using this object:
+        1:
+            Give shot number and INPA number (diag_ID, by default 1, by now there
+            is only one INPA in AUG). The code will predict the filename to
+            load. This option is the prefered one
+
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo(shot=40412)
+
+        2:
+            Give the cin file (or folder with pngs). The code will try to infer
+            the shot number from the file name.
+
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo('MyPathTothefile')
+
+        3:
+            Give the file and the shot number. The code will ignore the shot
+            to load the files and try to load the file. But the shot number
+            will not be guessed from the file name. This given shot number
+            will be used for the magnetic field (remap calculation)
+
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo('MypathTofile', shot=40412)
     """
 
     def __init__(self, file: str = None, shot: int = None,
@@ -68,39 +110,7 @@ class INPAVideo(FIV):
                  logbookOptions: dict = {}, Boptions: dict = {},
                  verbose: bool = True, loadPlasmaData: bool = True,
                  YOLO: bool = True):
-        """
-        Initialise the class
-
-        There are several ways of initialising this object:
-            1: Give shot number and fild number (diag_ID). The code will
-              predict the filename to load. (not recomended for old AUG shots,
-              where this is a mess). This option is the prefered one
-            2: Give the file (or folder with pngs). The code will try to infer
-              the shot number from the file name. the FILD number should be
-              necessarily given
-            3: Give the file and the shot number. The code will ignore the shot
-              to load the files and try to load the file. But the shot number
-              will not be guessed from the file name. This given shot number
-              will be used for the magnetic field (remap calculation)
-            +: For all the cases, we need the position, orientation, and
-              collimator geometries, this extracted from the logbook. If no
-              input is given for FILDlogbook, the code will use the default.
-
-        :param  file: file or folder (see above)
-        :param  shot: Shot number, if is not given, the program will look for it
-            in the name of the loaded file (see above)
-        :param  diag_ID: manipulator number for FILD
-        :param  empty: Initialise the video object as empty. This flag is added
-            to load data from a remap file
-        :param  logbookOptions: dictionary containing the options to start the
-            FILDlogbook. Can be machine dependent
-        :param  Boptions: dictionary containing the options to load the magnetic
-            field, can be machine dependent. Notice that the shot number and
-            needed time will be collected from the video object. If you provide
-            them also here, the code will fail. Same with R and z
-        :param  verbose: flag to print logbook comments
-        :param  loadPlasmaData: Flag to load plasma data
-        """
+        """Initialise the class."""
         if not empty:
             # Guess the filename:
             if file is None:
@@ -267,6 +277,15 @@ class INPAVideo(FIV):
         :param  verbose: flag to print information or not
         :return theta: theta angle[º]
         :return phi: phi angle[º]
+
+        :Example of use:
+
+        >>> # Prepare the video
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo(shot=40412)
+        >>> vid.read_frame()
+        >>> # Now yes, calculate the angles
+        >>> phi, theta = vid.calculateBangles(t=2.5)
         """
         if self.remap_dat is None:
             if t == 'all':
@@ -285,8 +304,6 @@ class INPAVideo(FIV):
                 Bz = np.array(bz).squeeze()
                 Bt = np.array(bt).squeeze()
                 B = np.sqrt(BR**2 + Bz**2 + Bt**2)
-                B2 = np.sqrt(bp**2 + Bt**2)
-                print(B, B2)
                 s1_projection = \
                     (self.orientation['s1rzt'][0] * BR
                      + self.orientation['s1rzt'][1] * Bz

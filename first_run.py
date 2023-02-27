@@ -2,11 +2,15 @@
 Install via pip the packages needed to run the suite
 
 To be run in the main folder of the suite
+
+Jose Rueda: jrrueda@us.es
 """
 import os
 import pip
 
-
+# -----------------------------------------------------------------------------
+# %% Auxiliary objects
+# -----------------------------------------------------------------------------
 def import_or_install(package, name=None):
     """Import or install a package."""
     try:
@@ -22,7 +26,7 @@ def import_or_install(package, name=None):
 
 
 # -----------------------------------------------------------------------------
-# Create folders and files
+# %% Create folders and files
 # -----------------------------------------------------------------------------
 cdir = os.getcwd()
 pat = os.path.join(cdir, 'Data', 'MyData')
@@ -36,7 +40,7 @@ for f in files:
         os.system('cp %s %s' % (template, file))
 
 # -----------------------------------------------------------------------------
-# --- Look for all suite packages
+# %% Look for all suite packages
 # -----------------------------------------------------------------------------
 print('MACHINE DEPENDENT LIBRARIES AS AUG_SFUTILS MUST BE INSTALLED INDEPENDENTLY')
 import_or_install('f90nml')
@@ -54,5 +58,6 @@ import_or_install('matplotlib')
 import_or_install('numpy')
 import_or_install('numba')
 import_or_install('scipy')
+import_or_install('ffmpeg')
 import_or_install('scikit-image', 'skimage')
 import_or_install('scikit-learn', 'sklearn')
