@@ -1,3 +1,33 @@
+# 1.2.2: Melon con Jamon
+## _MP4files
+- Using the ffmpeg package to read the MP4 file.
+
+## BasicVideoObject
+- New routine to write the video data into video files (MP4 only available now).
+- Corrected part related to MP4 loading.
+
+## Decorators
+- *false_njit* introduced to avoid issues with *import numba* but keeping the structure. It is a fake wrapper that  does nothing to the wrapped function.
+
+## Timetrace
+- Included shortcuts to mean, averages and sums as properties of the class.
+
+## Equilibrium
+- Correction to the function *get_mag_field*. Now it uses the *exp* input to get the equilibrium.
+
+## Fields
+- Added possibility to get the *psipol* and write to file. Writing function rewritten in a more convenient fashion. Instead of *e_flags*, *b_flags*, now it accepts the name of the field as input.
+
+## iHIBP beam camera.
+- Signal-to-noise ratio computed in the iHIBPwatchdog cameras.
+
+## VRT video object.
+- Updated to the new API of the MP4 reader.
+- TODO: need to update the XML reader.
+
+## iHIBPsim orbits
+- New orbit API for the v3.4 iHIBPsim. The older version still in the suite, but marked as deprecated!
+- Added checks in the old iHIBPsim version to avoid mistakes reading the files.
 
 # 1.2.1: Melon with Jamon
 ## iHIBPVideo
