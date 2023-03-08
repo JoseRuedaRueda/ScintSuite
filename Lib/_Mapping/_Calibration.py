@@ -303,7 +303,8 @@ class CalibrationDatabase:
         self.data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
                      'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
                      'deg': [], 'cal_type': [], 'diag_ID': [], 'c1': [],
-                     'xcenter': [], 'ycenter': []}
+                     'xcenter': [], 'ycenter': [], 'type': [],
+                     'nxpix': [], 'nypix': []}
 
         # Read the file
         logger.info('Reading Camera database from: %s', filename)
@@ -329,13 +330,33 @@ class CalibrationDatabase:
                     self.data['xcenter'].append(float(dummy[12]))
                     self.data['ycenter'].append(float(dummy[13]))
                 except IndexError:
-                    continue
+                    pass
+
+                try:  # If there is pixel information, it would be here
+                    self.data['nxpix'].append(int(dummy[14]))
+                    self.data['nypix'].append(int(dummy[15]))
+                except IndexError:
+                    pass
+                
+                # Trying to read the type.
+                try:
+                    self.data['type'].append(dummy[16])
+                except IndexError:
+                    pass
         # If the c1 and c2 fields are empty, delete them to avoid issues in the
         # pandas self.dataframe
         if len(self.data['c1']) == 0:
             self.data.pop('c1')
             self.data.pop('xcenter')
             self.data.pop('ycenter')
+            self.data.pop('type')
+        else:
+            if len(self.data['type']) == 0:
+                self.data.pop('type')
+
+        if len(self.data['nxpix']) == 0:
+            self.data.pop('nxpix')
+            self.data.pop('nypix')
 
     def write_database_to_txt(self, file: str = None):
         """
@@ -378,7 +399,7 @@ class CalibrationDatabase:
                 f.write(line)
             logger.info('File %s writen', file)
 
-    def get_calibration(self, shot, diag_ID):
+    def get_calibration(self, shot: int, diag_ID: int=1, typ: str='poly'):
         """
         Give the calibration parameter of a precise database entry.
 
@@ -386,15 +407,22 @@ class CalibrationDatabase:
         :param  camera: Camera used
         :param  cal_type: Type of calibration we want
         :param  diag_ID: ID of the diagnostic we want
+        :param  typ: type of calibration. Poly or non-poly. Only used
+                     when there is type-dependent calibrations.
 
         :return cal: CalParams() object
         """
-        flags = np.zeros(len(self.data['CalID']))
+        flags = np.zeros(len(self.data['CalID']), dtype=bool)
         for i in range(len(self.data['CalID'])):
-            if (self.data['shot1'][i] <= shot) * \
-                    (self.data['shot2'][i] >= shot) * \
-                    (self.data['diag_ID'][i] == diag_ID):
-                flags[i] = True
+            if 'type' not in self.data:
+                flags[i] = (self.data['shot1'][i] <= shot) * \
+                           (self.data['shot2'][i] >= shot) * \
+                           (self.data['diag_ID'][i] == diag_ID)
+            else:
+                flags[i] = (self.data['shot1'][i] <= shot) * \
+                           (self.data['shot2'][i] >= shot) * \
+                           (self.data['diag_ID'][i] == diag_ID) * \
+                           (self.data['type'][i] == typ)
 
         n_true = sum(flags)
 
@@ -451,9 +479,9 @@ class CalParams:
         ## Y-pixel position of the optical axis
         self.ycenter = 0.0
         ## camera size in x
-        self.nxpix = 0.0
+        self.nxpix = 0
         ## camera size in y
-        self.nypix = 0.0
+        self.nypix = 0
         ## used calibration method
         self.type = ''
 
@@ -475,6 +503,27 @@ class CalParams:
         print('nxpix:', self.nxpix)
         print('nypix:', self.nypix)
         print('type:', self.type)
+
+    def __str__(self):
+        """
+        Print the calibration via the print routine.
+
+        Pablo Oyola - poyola@us.es
+        """
+        text =  ''
+        text =  'xscale: ' + str(self.xscale) + '\n'
+        text += 'yscale: ' + str(self.yscale) + '\n'
+        text += 'xshift: ' + str(self.xshift) + '\n'
+        text += 'yshift: ' + str(self.yshift) + '\n'
+        text += 'deg: ' + str(self.deg) + '\n'
+        text += 'xcenter: ' + str(self.xcenter) + '\n'
+        text += 'ycenter: ' + str(self.ycenter) + '\n'
+        text += 'c1: ' + str(self.c1) + '\n'
+        text += 'c2: ' + str(self.c2) + '\n'
+        text += 'nxpix:' + str(self.nxpix) + '\n'
+        text += 'nypix:' + str(self.nypix) + '\n'
+        text += 'type:' + str(self.type)
+        return text
 
     def save2netCDF(self, filename):
         """
