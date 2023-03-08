@@ -46,7 +46,7 @@ def decision(prob: float, x0: float, dx0: float):
     return f
 
 # --- Auxiliar routines to find the path towards the camera files
-def guessiHIBPfilename(shot: int):
+def guessiHIBPfilename(shot: int, use_raw_video: bool=False):
     """
     Guess the filename of a video
 
@@ -60,11 +60,15 @@ def guessiHIBPfilename(shot: int):
     """
     datadir='/afs/ipp-garching.mpg.de/home/a/augd/rawfiles/LIV/%2i/%5i/'%(shot/1000,shot)
     if shot < 41225:
-        filename_video = datadir + '%5i_cam_HIBP_bgsub_median.mp4' % (shot)
-        description = 'zero-th frame subtracted and median filtered with size 5'
-        if not os.path.exists(filename_video):
+        if use_raw_video:
             filename_video = '/afs/ipp/u/augd/rawfiles/VRT/%2i/S%5i/S%5i_HIBP.mp4' %(shot/1000,shot,shot)
             description = 'raw video'
+        else:
+            filename_video = datadir + '%5i_cam_HIBP_bgsub_median.mp4' % (shot)
+            description = 'zero-th frame subtracted and median filtered with size 5'
+            if not os.path.exists(filename_video):
+                filename_video = '/afs/ipp/u/augd/rawfiles/VRT/%2i/S%5i/S%5i_HIBP.mp4' %(shot/1000,shot,shot)
+                description = 'raw video'
         if shot<40396:
             filename_time='/afs/ipp/u/augd/rawfiles/VRT/%2i/S%5i/Prot/FrameProt/HIBP_FrameProt.xml'%(shot/1000,shot)
         else:
@@ -74,8 +78,12 @@ def guessiHIBPfilename(shot: int):
         description = 'raw video'
         filename_time = datadir + '%i_cam_ihibp_top.xml' %(shot)
     else:
-        filename_video = datadir + '%i_cam_ihibp_side_bgsub_median.mp4' %(shot)
-        description = 'zero-th frame subtracted and median filtered with size 5'
+        if use_raw_video:
+            filename_video = datadir + '%i_cam_ihibp_side.mp4' %(shot)
+            description = 'Raw video'
+        else:
+            filename_video = datadir + '%i_cam_ihibp_side_bgsub_median.mp4' %(shot)
+            description = 'zero-th frame subtracted and median filtered with size 5'
         filename_time = datadir + '%i_cam_ihibp_side.xml' %(shot)
 
     properties = {'description': description}
@@ -152,7 +160,8 @@ class iHIBPvideo(BVO):
     def __init__(self, shot: int, calib: libcal.CalParams = None,
                  scobj: Scintillator = None, signal_threshold: float = 5.0,
                  noiseSubtraction: bool = False, filterFrames: bool = False,
-                 frame = None, timestamp = None):
+                 frame: int = None, timestamp: float = None,
+                 use_raw_video: bool=False):
         """
         Initializes the object with the video data if found.
 
@@ -173,10 +182,13 @@ class iHIBPvideo(BVO):
         :param  filterFrames: if true, the filter function from the
         parent class will be called automatically in the init (with the median
         filter option)
+        :param use_raw_video: uses the raw video without the background
+        substraction.
         """
 
         # --- Try to load the shotfile
-        fn, ft, self.properties = guessiHIBPfilename(shot=shot)
+        fn, ft, self.properties = guessiHIBPfilename(shot=shot,
+                                                     use_raw_video=use_raw_video)
         if not os.path.isfile(fn):
             raise errors.DatabaseError('Cannot find video for shot #%05d'%shot)
         #get time correction
