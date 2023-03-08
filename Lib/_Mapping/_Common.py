@@ -69,7 +69,7 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
                 rp_copy[flags] = rp_copy
             else:
                 # When k < 0, there is no way the determinant goes to negative.
-                rp_copy = rp_copy
+                rp_copy = rp.copy()
             d = (1-np.sqrt(1-4*cal.c1*rp**2))/(2*cal.c1*rp)
             xpixel = xp*(1+cal.c1*d**2) + cal.xcenter
             ypixel = yp*(1+cal.c1*d**2) + cal.ycenter
