@@ -304,7 +304,7 @@ class CalibrationDatabase:
                      'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
                      'deg': [], 'cal_type': [], 'diag_ID': [], 'c1': [],
                      'xcenter': [], 'ycenter': [], 'type': [],
-                     'nx_pix': [], 'ny_pix': []}
+                     'nxpix': [], 'nypix': []}
 
         # Read the file
         logger.info('Reading Camera database from: %s', filename)
@@ -333,14 +333,14 @@ class CalibrationDatabase:
                     pass
 
                 try:  # If there is pixel information, it would be here
-                    self.data['nx_pix'].append(float(dummy[14]))
-                    self.data['ny_pix'].append(float(dummy[15]))
+                    self.data['nxpix'].append(int(dummy[14]))
+                    self.data['nypix'].append(int(dummy[15]))
                 except IndexError:
                     pass
                 
                 # Trying to read the type.
                 try:
-                    self.data['type'].append(float(dummy[16]))
+                    self.data['type'].append(dummy[16])
                 except IndexError:
                     pass
         # If the c1 and c2 fields are empty, delete them to avoid issues in the
@@ -354,9 +354,9 @@ class CalibrationDatabase:
             if len(self.data['type']) == 0:
                 self.data.pop('type')
 
-        if len(self.data['nx_pix']) == 0:
-            self.data.pop('nx_pix')
-            self.data.pop('ny_pix')
+        if len(self.data['nxpix']) == 0:
+            self.data.pop('nxpix')
+            self.data.pop('nypix')
 
     def write_database_to_txt(self, file: str = None):
         """
@@ -412,7 +412,6 @@ class CalibrationDatabase:
 
         :return cal: CalParams() object
         """
-
         flags = np.zeros(len(self.data['CalID']), dtype=bool)
         for i in range(len(self.data['CalID'])):
             if 'type' not in self.data:
@@ -423,7 +422,7 @@ class CalibrationDatabase:
                 flags[i] = (self.data['shot1'][i] <= shot) * \
                            (self.data['shot2'][i] >= shot) * \
                            (self.data['diag_ID'][i] == diag_ID) * \
-                           (self.data['type'] == typ)
+                           (self.data['type'][i] == typ)
 
         n_true = sum(flags)
 
@@ -513,17 +512,17 @@ class CalParams:
         """
         text =  ''
         text =  'xscale: ' + str(self.xscale) + '\n'
-        text += 'yscale: ' + self.yscale + '\n'
-        text += 'xshift: ' + self.xshift + '\n'
-        text += 'yshift: ' + self.yshift + '\n'
-        text += 'deg: ' + self.deg + '\n'
-        text += 'xcenter: ' + self.xcenter + '\n'
-        text += 'ycenter: ' + self.ycenter + '\n'
-        text += 'c1: ' + self.c1 + '\n'
-        text += 'c2: ' + self.c2 + '\n'
-        text += 'nxpix:' + self.nxpix + '\n'
-        text += 'nypix:' + self.nypix + '\n'
-        text += 'type:' + self.type
+        text += 'yscale: ' + str(self.yscale) + '\n'
+        text += 'xshift: ' + str(self.xshift) + '\n'
+        text += 'yshift: ' + str(self.yshift) + '\n'
+        text += 'deg: ' + str(self.deg) + '\n'
+        text += 'xcenter: ' + str(self.xcenter) + '\n'
+        text += 'ycenter: ' + str(self.ycenter) + '\n'
+        text += 'c1: ' + str(self.c1) + '\n'
+        text += 'c2: ' + str(self.c2) + '\n'
+        text += 'nxpix:' + str(self.nxpix) + '\n'
+        text += 'nypix:' + str(self.nypix) + '\n'
+        text += 'type:' + str(self.type)
         return text
 
     def save2netCDF(self, filename):
