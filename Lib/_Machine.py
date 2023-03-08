@@ -9,6 +9,8 @@ logger = logging.getLogger('ScintSuite.Machine')
 # except
 if os.path.isdir('/common/uda-scratch'):
     machine = 'MU'
+elif os.path.isdir('/home/muadmin/package'):
+    machine = 'MU'
 elif os.path.isdir('/afs/ipp/aug/ads-diags/common/python/lib'):
     try:
         import aug_sfutils
