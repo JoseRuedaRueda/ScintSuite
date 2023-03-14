@@ -1004,13 +1004,13 @@ class geom:
             # Separaring the points.
             self.x0 = data[0, :]
             self.x1 = data[1, :]
-            self.x2 = data[2, :]
+            self.x3 = data[2, :]
 
             # Computing the associated with the scintillator.
             self.v0 = self.x1 - self.x0
-            self.v1 = self.x2 - self.x0
+            self.v1 = self.x3 - self.x1
 
-            self.x3 = self.x0 + self.v0 + self.v1
+            self.x2 = self.x0 + self.v1
 
         # Loading the beam parameters.
         std_beam = { 'beam_type': 'gaussian',
@@ -1173,7 +1173,7 @@ class geom:
                 ax = fig.add_subplot(projection='3d')
 
             surface_options = {
-                'color': 'r',
+                'color': 'gold',
                 'alpha': 0.5,    # Transparency factor
                 'linewidth': 0.0  # Width of the line, if zero, no contour will be plot
             }
@@ -1254,7 +1254,7 @@ class geom:
         return ax
 
     def plot(self, view: str = '3d', elements: str = 'all', ax=None, fig=None,
-             timepoint: float = None):
+             timepoint: float = None, **kwargs):
         """
         Plots the iHIBP geometry, including the head, the scintillator plate
         and the beam injection geometry, or a part of these.
@@ -1296,10 +1296,10 @@ class geom:
         if 'beam' in toplot:
             ax = self.beam.plot(view=view, ax=ax, fig=fig)
         if ('scint' in toplot) or ('scintillator' in toplot):
-            ax = self.__plot_scintillator(view=view, ax=ax, fig=fig)
+            ax = self.__plot_scintillator(view=view, ax=ax, fig=fig, **kwargs)
 
         if 'head' in toplot:
-            ax = self.__plot_head(view=view, ax=ax, fig=fig)
+            ax = self.__plot_head(view=view, ax=ax, fig=fig, **kwargs)
         if 'separatrix' in toplot:
             try:
                 im, ax = self.__plot_sep(view=view, ax=ax, fig=fig,

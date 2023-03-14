@@ -38,7 +38,7 @@ def loadTable1D(filename: str):
         output['base_units'] = 'eV'
         output['units'] = '$m^3/s$'
         output['reaction'] = filename.split('/')[-1].split('.')[0]
-        output['short_name'] = '<$\sigma v$>'
+        output['short_name'] = r'$\langle \sigma v \rangle $'
 
         # --- Creating the interpolating object.
         output['interp'] = interp1d(np.log(output['base']),
@@ -85,7 +85,7 @@ def loadTable2D(filename: str):
         output['base_shortname'].append('v')
         output['units'] = '$m^3/s$'
         output['reaction'] = filename.split('/')[-1].split('.')[0]
-        output['short_name'] = '<$\sigma v$>'
+        output['short_name'] = r'$\langle \sigma v \rangle $'
 
         # --- Creating the interpolating object.
         output['interp'] = interp2d(np.log(output['base'][0]),
@@ -145,12 +145,11 @@ def plotTable1D(table: dict, ax=None, ax_options: dict = {},
         ax_options['yscale'] = 'log'
 
     if label == None:
-        label_add = ''
+        label_add = table['reaction']
     else:
-        label_add = label + ', '
+        label_add = label
     ax.plot(table['base'], table['sigma'], **line_options,
-            #label=label_add + table['reaction'])
-            label = 'Rb, secondary electron impact')
+            label=label_add)
 
     if grid and axis_was_none:
         ax.grid(True, which='minor', linestyle=':')
@@ -220,18 +219,16 @@ def plotTable2D(table: dict, v: float = None, ax=None, ax_options: dict = {},
 
     # --- Plotting the reaction-rates.
     if label == None:
-        label_add = ''
+        label_add = label_add + table['reaction'] + ', ' + \
+                    table['base_shortname'][1]+' = %.2e' %v_all[ii]
     else:
-        label_add = label + ', '
+        label_add = label
     if v == None:
         for ii in range(len(v_all)):
-            ax.plot(T, table['sigma'][ii, :], **line_options,
-                    label=label_add + table['reaction'] + ', ' + table['base_shortname'][1]+' = %.2e' %v_all[ii])
+            ax.plot(T, table['sigma'][ii, :], **line_options, label=label_add)
     else:
         it = np.argmin(abs(v_all-v))
-        ax.plot(T, sigma[it, :], **line_options,
-                label = label_add + table['reaction'] + ', ' + table['base_shortname'][1] + ' = %.2e' %v_all[it])
-                 #label = 'Rb, CX, ' +  table['base_shortname'][1] + ' = %.2e' %v_all[it] + ' m/s')
+        ax.plot(T, sigma[it, :], **line_options, label = label_add)
     if grid and axis_was_none:
         ax.grid(True, which='minor', linestyle=':')
         ax.minorticks_on()

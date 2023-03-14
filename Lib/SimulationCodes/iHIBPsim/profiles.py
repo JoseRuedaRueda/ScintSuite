@@ -193,7 +193,7 @@ class ihibpProfiles:
                                num=tmp['nTime'])
 
             tmp['R'] = grr
-            tmp['Z'] = gzz
+            tmp['z'] = gzz
             tmp['Phi'] = gphi
             tmp['Time'] = gtt
 

@@ -879,7 +879,7 @@ class orbitFile:
         if not self.initialized:
             raise Exception('The orbit object has not been initialized.')
         # --- Reading the orbits.
-        if isinstance(id, int):
+        if isinstance(id, int) or isinstance(id, np.int64):
             if self.chainLoadFlag:
                 orbit = self.getNextOrbit()
             else:
