@@ -760,8 +760,8 @@ class strikes:
     def plotScintillator(self, dx: float = 0.1, dy: float = 0.1, ax=None,
                          cmap=cm.plasma, kindplot: str = 'flux',
                          norm=None, ax_options: dict = {}, levels=100,
-                         plot_strikemap: bool = False, min_cb: float = None,
-                         max_cb: float = None):
+                         plot_strikemap: bool=False, min_cb: float=None,
+                         max_cb: float=None, flag_plot: bool=True):
 
         """
         Plot the scintillator image to the provided axis. If None are provided,
@@ -862,7 +862,6 @@ class strikes:
             cont_opts['vmax'] = max_cb
 
         im = ax.pcolormesh(xcenter, ycenter, h.T, **cont_opts)
-
         # --- Plotting the strikemap:
         if self.mapSet and plot_strikemap:
             rhopolplot = np.linspace(start=self.map.maps[0]['map_s'].min(),

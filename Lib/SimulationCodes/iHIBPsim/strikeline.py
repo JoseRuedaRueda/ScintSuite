@@ -579,7 +579,8 @@ class strikeLine:
                                                     Rmin=min(map_s).values,
                                                     Ns = len(map_s))
 
-        rho = get_rho(shot, beam['Rbeam'], beam['zbeam'], time = time)[0]
+        rho = get_rho(shot, beam['Rbeam'][::-1], beam['zbeam'][::-1],
+                      time = time)[0]
         rho_xr = xr.DataArray(rho, dims=('s',))
         attrs_s = mapping_text_to_attrs('rhopol')
         rho_xr.attrs.update(attrs_s)
@@ -899,7 +900,7 @@ class strikeLineCollection:
         return ax, lc
 
     def plot_weight(self, time: Union[int, float]=None, ax=None,
-                    xaxis = 'rmajor', **line_options):
+                    xaxis='rmajor', **line_options):
         """
         Plot a given weight profile for input time(s) or time index(indices).
 

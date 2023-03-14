@@ -19,6 +19,7 @@ import Lib.LibData.AUG.DiagParam as params
 import Lib._TimeTrace as sstt
 import xarray as xr
 import logging
+from scipy.optimize import curve_fit
 
 logger = logging.getLogger('ScintSuite.iHIBPvideo')
 
@@ -50,7 +51,7 @@ def guessiHIBPfilename(shot: int):
     """
     Guess the filename of a video
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Hannah Lindl - hannah.lindl@ipp.mpg.de
 
     :param shot: shot number
 
@@ -383,3 +384,71 @@ class iHIBPvideo(BVO):
             mask = self.scint_mask
 
         return super().getTimeTrace(t=t, mask=mask)
+
+
+    def project_horizontal(self, t: float=0.0, ax=None, vmin: int=0,
+                           i_roll: int=0, y_pos: int=0, flag_gauss:bool=False,
+                           flag_scint: bool=False, **kwargs):
+
+            ax_was_none = ax is None
+            if 'avg_frames' in self.exp_dat:
+                dummy = self.exp_dat['avg_frames']
+            else:
+                try:
+                    _ = len(t)
+                except TypeError:
+                    dummy = self.exp_dat['frames'].sel(t=t, method='nearest')
+                else:
+                    if len(t) == 1:
+                        dummy = self.exp_dat['frames'].sel(t=t[0], method='nearest')
+                    elif len(t) == 2:
+                        frames = self.exp_dat['frames'].where((self.exp_dat['t']>t[0]) \
+                                                            & (self.exp_dat['t']<t[1]),
+                                                             drop = True)
+                        tf = np.zeros(2)
+                        tf[0] = min(frames.t)
+                        tf[1] = max(frames.t)
+                        dummy = frames.mean(dim = 't')
+                        print('plotting %.d averaged frames' %len(frames.t))
+                    else:
+                        raise ValueError('wrong shape of time. Should not be '+ \
+                                         'larger than two')
+
+            if self.shot in range(40966, 40985):
+                dummy = dummy.T
+
+            if y_pos == 0:
+                y_pos = int(0.5*len(dummy.py))
+            proj = dummy.isel(py = y_pos)
+            if i_roll > 0:
+                proj = proj.rolling(px=i_roll, center=True).mean().dropna("px")
+            proj = proj - vmin
+
+            if ax is None:
+                ax_was_none = True
+                fig, ax = plt.subplots()
+            ax.plot(proj.px, proj, **kwargs)
+
+            if flag_gauss:
+                def gauss(x, *p):
+                    A, mu, sigma = p
+                    return A*np.exp(-(x-mu)**2/(2.*sigma**2))
+
+                popt, pcov = curve_fit(gauss, proj.px, proj, [200,300,100])
+                proj_fit = gauss(proj.px, *popt)
+                ax.plot(proj.px, proj_fit, c='r')
+                # plt.figure()
+                # plt.plot(proj.x, proj, 'x')
+                # plt.plot(proj.x, proj_fit)
+                proj = proj_fit
+
+            if ax_was_none:
+                ax.set_xlabel('scintillator x [pix]')
+                ax.set_ylabel('Counts')
+                plt.tight_layout()
+
+            if flag_scint:
+                ax1 = self.plot_frame(t=t, plotScintillatorPlate=False,
+                                      rot90=True)
+                ax1.plot(proj.px, proj.py.values*np.ones(len(proj.px)), c='w')
+            return ax, proj

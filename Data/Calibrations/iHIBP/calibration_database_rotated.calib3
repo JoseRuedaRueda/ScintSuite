@@ -3,6 +3,6 @@
 #FORMAT IS:
 #ID CAMERA           SHOT1   SHOT2   XS    YS   Xsc   Ysc     DEG    CAL     diag_ID  c1        xcenter   ycenter   nxpix      nypix      type
 
-0    JAI             40747   40935   97    720   4400  4400    -0.4    PIX      1    -1.68e-6     238      352      494         659       non-poly
-1    ROTATEDJAI      40936   40984   109   693   4400  4400    1.08    PIX      1    -1.68e-6     238      313      494         659       non-poly
-2    DMK             41225   41366   166   1080  6000  6000    -0.45   PIX      1    -6.50e-7     328      566      768        1024       non-poly
+0    JAI             40747   40935   97    720   4400  4400    -0.4    PIX      1    -1.68e-6     238      352      494         672       non-poly
+1    ROTATEDJAI      40936   40984   109   693   4400  4400    1.08    PIX      1    -1.68e-6     238      313      494         672       non-poly
+2    DMK             41225   41378   166   1080  6000  6000    -0.45   PIX      1    -6.50e-7     328      566      768        1024       non-poly

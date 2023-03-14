@@ -130,7 +130,7 @@ class BVO:
                 self.shot = aux.guess_shot(file, ssdat.shot_number_length)
             # Fill the object depending if we have a .cin file or not
             if os.path.isfile(file):
-                logger.info('Looking for the file: ', file)
+                logger.info('Looking for the file: %s' %file)
                 ## Path to the file and filename
                 self.path, self.file_name = os.path.split(file)
                 ## Name of the file (full path)
@@ -758,14 +758,19 @@ class BVO:
                     dummy = self.getFrame(tf, flagAverage)
                 elif len(frame_number) == 2:
                     flag_time_range = True
-                    frames = self.exp_dat['frames'].isel(t = slice(frame_number[0], frame_number[1]))
+                    frames = self.exp_dat['frames'].isel(t =
+                                                        slice(frame_number[0],
+                                                              frame_number[1]))
                     dummy = frames.mean(dim = 't')
                     tf = np.zeros(2)
-                    tf[0] = self.getTime(self.getFrameIndex(frame_number = frame_number[0]))
-                    tf[1] = self.getTime(self.getFrameIndex(frame_number = frame_number[1]))
+                    tf[0] = self.getTime(self.getFrameIndex(frame_number =
+                                                            frame_number[0]))
+                    tf[1] = self.getTime(self.getFrameIndex(frame_number =
+                                                            frame_number[1]))
                     print('plotting %.d averaged frames' %len(frames.t))
                 else:
-                    raise ValueError('wrong shape of framenumber. Should not be larger than two')
+                    raise ValueError('wrong shape of time. Should not be '+ \
+                                     'larger than two')
         # If we give the time:
         if t is not None:
             flag_time_range = False
@@ -782,14 +787,17 @@ class BVO:
                     dummy = self.getFrame(t, flagAverage)
                 elif len(t)==2:
                     flag_time_range =True
-                    frames = self.exp_dat['frames'].where((self.exp_dat['t']>t[0]) & (self.exp_dat['t']<t[1]), drop = True)
+                    frames = self.exp_dat['frames'].where((self.exp_dat['t']>t[0])
+                                                        & (self.exp_dat['t']<t[1]),
+                                                         drop = True)
                     tf = np.zeros(2)
                     tf[0] = min(frames.t)
                     tf[1] = max(frames.t)
                     dummy = frames.mean(dim = 't')
                     print('plotting %.d averaged frames' %len(frames.t))
                 else:
-                    raise ValueError('wrong shape of time. Should not be larger than two')
+                    raise ValueError('wrong shape of time. Should not be '+ \
+                                     'larger than two')
 
         if normalise is not None:
             if normalise == 1:
@@ -831,10 +839,8 @@ class BVO:
         if extent is not None:
             extra_options['extent'] = extent
         if rot90:
-            img = ax.imshow(dummy.T, origin='lower', cmap=cmap,
-                            alpha=alpha, **extra_options)
-        else:
-            img = ax.imshow(dummy, origin='lower', cmap=cmap,
+            dummy = dummy.T
+        img = ax.imshow(dummy, origin='lower', cmap=cmap,
                             alpha=alpha, **extra_options)
         # Set the axis limit
         if xlim is not None:

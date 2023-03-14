@@ -20,6 +20,7 @@ import Lib.errors as errors
 import random
 from Lib._Optics import defocus
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy.optimize import curve_fit
 
 pa = Path()
 amu2kg = physical_constants['atomic mass constant'][0]
@@ -281,12 +282,12 @@ class strikes:
         self.data['xcam'] = xcam
         self.data['xcam'].attrs['units'] = 'pix'
         self.data['xcam'].attrs['long_name'] = 'X in pix. coords.'
-        self.data['xcam'].attrs['short_name'] = '$X_{pix}$'
+        self.data['xcam'].attrs['short_name'] = '$p_{x}$'
 
         self.data['ycam'] = ycam
         self.data['ycam'].attrs['units'] = 'pix'
         self.data['ycam'].attrs['long_name'] = 'Y in pix. coords.'
-        self.data['ycam'].attrs['short_name'] = '$Y_{pix}$'
+        self.data['ycam'].attrs['short_name'] = '$p_{y}$'
 
 
     def hist1d(self, name: str, bins: int=51, ranges: float=None,
@@ -439,13 +440,13 @@ class strikes:
             fig = ax.figure
 
         labels = [self.data[iname].short_name + \
-                   '[%s]'%self.data[iname].units for iname in args]
+                   ' [%s]'%self.data[iname].units for iname in args]
 
         if weight_unit == '':
             weight_unit = self.data[weight_name].units
 
         histlabel = self.data[weight_name].short_name \
-                    + '[%s]'%(weight_unit)
+                    + ' [%s]'%(weight_unit)
 
         if len(args) == 1:
             x = data[0]
@@ -472,7 +473,7 @@ class strikes:
                 z = z/(10**magn)
 
                 histlabel = self.data[weight_name].short_name \
-                            + r'[$10^{%.2d}$ %s]'%(magn, weight_unit)
+                            + r' [$10^{%.2d}$ %s]'%(magn, weight_unit)
 
             extent = [x.min(), x.max(), y.min(), y.max()]
 
@@ -673,7 +674,7 @@ class strikes:
             cont_opts['vmin'] = min_cb
             cont_opts['vmax'] = max_cb
 
-        weight_unit = 'A/pix'
+        weight_unit = r'A/pix$^2$'
         # If the calibration is set, then we expect the data is already
         # computed in the self.data xarray.
         if ('xcam' not in self.data) or ('ycam' not in self.data):
@@ -703,3 +704,81 @@ class strikes:
         ax.set_ylim([0, pix_y])
 
         return ax, im, frame
+
+
+    def project_horizontal(self, y_pos: int = 0, dx: float=0.025, dy: float=0.05, #0.025, 0.05
+                           ax=None, flag_pix: bool=False, pix_x: int=None,
+                           pix_y: int=None, cbar_sci: bool=False,
+                           flag_scint: bool=False, i_roll: int = 0,
+                           flag_gauss: bool=False, **kwargs):
+
+        if not flag_pix:
+            xlims = np.array([self.scint._coord_real['x1'].min(),
+                              self.scint._coord_real['x1'].max()]) *100.0
+            ylims = np.array([self.scint._coord_real['x2'].min(),
+                              self.scint._coord_real['x2'].max()]) *100.0
+
+            ranges = np.array([xlims, ylims])
+
+            dx_tot = xlims[1] - xlims[0]
+            dy_tot = ylims[1] - ylims[0]
+
+            bins = np.array([np.ceil(dx_tot/dx), np.ceil(dy_tot/dy)], dtype=int)
+            data = self.hist('x1', 'x2', bins=bins, ranges=ranges,
+                              get_centers=True, weight_name='intensity')
+            unit = 'cm'
+        else:
+            ranges = [[0, pix_x], [0, pix_y]]
+            bins   = [pix_x, pix_y]
+            data = self.hist('xcam', 'ycam', bins=bins, ranges=ranges,
+                              get_centers=True, weight_name='intensity')
+            unit = 'pix'
+
+        x = data[0]
+        y = data[1]
+        z = data[2]
+        frame = xr.DataArray(z, dims =('x', 'y'), coords = [x, y])
+        if y_pos == 0:
+            y_pos = int(0.5*len(frame.y))
+        proj = frame.isel(y = y_pos)
+        if i_roll > 0:
+            proj = proj.rolling(x=i_roll, center=True).mean().dropna("x")
+
+        if cbar_sci:
+            magn = math.floor(math.log10(np.max(proj)))
+            proj = proj/(10**magn)
+            ylabel = r'j [$10^{%.2d}$ A/%s$^2$]'%(magn, unit)
+        else:
+            ylabel='j [A/%s$^2$]'%unit
+            ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
+
+
+        ax_was_none = ax is None
+        if ax_was_none:
+            fig, ax = plt.subplots()
+        ax.plot(proj.x, proj, **kwargs)
+
+        if flag_gauss:
+            def gauss(x, *p):
+                A, mu, sigma = p
+                return A*np.exp(-(x-mu)**2/(2.*sigma**2))
+
+            popt, pcov = curve_fit(gauss, proj.x, proj, [1e-9,300,200])
+            proj_fit = gauss(proj.x, *popt)
+            ax.plot(proj.x, proj_fit, **kwargs)
+            # plt.figure()
+            # plt.plot(proj.x, proj, 'x')
+            # plt.plot(proj.x, proj_fit)
+            proj = proj_fit
+
+        if flag_scint:
+            if flag_pix:
+                ax1, _, _ = self.plot_frame(pix_x=pix_x, pix_y=pix_y)
+            else:
+                ax1, _, _ = self.plotScintillator()
+            ax1.plot(proj.x, proj.y.values*np.ones(len(proj.x)), c='w')
+
+        # if ax_was_none:
+        ax.set_xlabel(r'$p_{x}$ [pix]')
+        ax.set_ylabel(ylabel)
+        return ax, proj
