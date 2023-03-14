@@ -842,7 +842,7 @@ class fields:
         RR, zz = np.meshgrid(R, z)
         grid_shape = RR.shape
         psipol = ssdat.get_psipol(shotnumber, RR.flatten(), zz.flatten(),
-                                  diag=diag, time=time)
+                                  diag=diag, exp=exp, time=time)
 
         # Reshaping into the original shape.
         psipol = np.reshape(psipol, grid_shape).T

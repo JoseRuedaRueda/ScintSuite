@@ -163,6 +163,7 @@ def make_ihibpsim1_namelist(user_nml: dict):
             'diagmagn': '',
             'expprof': 'AUGD',
             'diagprof': 'IDA',
+            'ed': 0, 
             'time': '',
             't_avg': ''
         },
