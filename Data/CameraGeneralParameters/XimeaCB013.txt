@@ -1,0 +1,12 @@
+&camera
+camera_name='Ximea MU',   ! Name of the camera
+nx = 864,                     ! Number of pixels x direction
+ny = 1280,                      ! Number of pixels y direction
+px_x_size = 9.9e-4,            ! Length of the pixel, x direction [cm] PONER
+px_y_size = 9.9e-4,            ! Length of the pixel, y direction [cm] PONER
+qe = 0.40,                     ! QE at scintillator wavelength PONER
+ad_gain = 18.0,                 ! Analog to digital gain PONER
+range = 12,                    ! Dynamic range, in bits PONER
+dark_noise = 80,               ! Dark noise, in electrons, centroid PONER
+readout_noise = 5,             ! Readout noise + dark sigma of the noise, elec PONER
+/

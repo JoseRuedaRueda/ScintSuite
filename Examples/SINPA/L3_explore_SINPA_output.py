@@ -18,8 +18,8 @@ import Lib as ss
 import matplotlib.pyplot as plt
 
 # --- Settings
-runID = 'Example_test'  # runID of the performed SINPA simulation
-smap_flag = True  # execute the strike_map demonstration block
+runID = 'MU01_map_-016.00000_010.00000'  # runID of the performed SINPA simulation
+smap_flag = False  # execute the strike_map demonstration block
 orbits_flag = True  # execute the orbit demonstration block
 collimator_flag = True  # execute the collimator demonstration block
 
@@ -104,7 +104,7 @@ if orbits_flag:
     # Plot the geometry on top
     # Note. HARDCORED GEOMETRY!!!
     # One could just read the geom ID from the namelist, but I was lazy.
-    Geom = ss.simcom.Geometry(GeomID='FILD1')
+    Geom = ss.simcom.Geometry(GeomID='MU01')
     Geom.plot3Dfilled(ax=ax, units='m')
     # plot the 'wrong orbits', to be sure that the are just orbits exceeding
     # the scintillator and nothing is wrong with the code

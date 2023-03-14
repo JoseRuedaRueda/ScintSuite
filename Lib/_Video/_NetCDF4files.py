@@ -44,17 +44,20 @@ def read_file_anddata(filename):
         analoggain = data['gain'][:].data
     except IndexError:
         analoggain = 0
-        print('No gain field in netcdf.')
+        print('No _gain_ field in netcdf.')
         try:
-            print('Trying analoggain field.')
+            print('Trying _analoggain_ field.')
             analoggain = data['analoggain'][:].data
+            print('That worked! _analoggain_ field found.')
         except IndexError:
-            print('No analoggain field either. Setting to 0.')
+            print('No _analoggain_ field either. Setting to 0.')
             analoggain = 0
     try:
-        digitalgain = data['digitalgain'][:].data
+        print('Trying _diggain_ field.')
+        digitalgain = data['diggain'][:].data
+        print('That worked! _diggain_ field found.')
     except IndexError:
-        print('No digitalgain field. Setting to 0.')
+        print('No _diggain_ field. Setting to 0.')
         digitalgain = 0
     data.close()
  
