@@ -239,7 +239,7 @@ class Scintillator(XYtoPixel):
         plt.draw()
         return ax
 
-    def plot_real(self, ax=None, line_params: dict = {}, units: str=None):
+    def plot_real(self, ax=None, line_params: dict = {}, units: str='m'):
         """
         Plot the scintillator, in real coordinates in the axes ax.
 
