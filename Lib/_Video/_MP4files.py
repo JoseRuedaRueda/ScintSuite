@@ -7,19 +7,7 @@ Written by Hannah Lindl: hannah.lindl@ipp.mpg.de
 import numpy as np
 import ffmpeg
 import os
-
-try:
-    from cv2 import cvtColor, COLOR_BGR2GRAY
-except ModuleNotFoundError:
-    COLOR_BGR2GRAY = 0
-    def cvtColor(x, *args, **kwargs):
-        """
-        Fake rgb 2 gray. Just make the average of the color axis.
-
-        Pablo Oyola - poyola@us.es
-        """
-        return x.mean(axis=-1)
-
+from skvideo.io import vread as video_read
 
 def read_file(fn: str, force_gray: bool=True, bpp: int=None):
     """
@@ -39,32 +27,10 @@ def read_file(fn: str, force_gray: bool=True, bpp: int=None):
     prop = ffmpeg.probe(fn)['streams'][0]
     width = int(prop['width'])
     height = int(prop['height'])
-    fps = int(prop['avg_frame_rate'][:-2])
+    fps = int(prop['avg_frame_rate'].split('/')[0].strip())
     nf  = int(prop['nb_frames'])
-    pix_fmt = prop['pix_fmt']
-    bits_size = int(prop['bits_per_raw_sample'])
 
-    dtype = { 8: np.uint8,
-              16: np.uint16
-            }.get(bits_size)
-
-    shape = [nf, height, width, -1]
-
-    out = ffmpeg.input(fn).output('pipe:', format='rawvideo',
-                                  pix_fmt=pix_fmt).run(quiet=True)[0]
-
-    if bpp is None:
-        shift = 0
-    else:
-        shift = bits_size - bpp
-    video = np.right_shift(np.frombuffer(out, dtype).reshape(shape), shift)
-
-    frames = video.astype(float).squeeze()
-
-    transformed_to_gray = False
-    if (frames.ndim > 3) and (force_gray):
-        transformed_to_gray = True
-        frames = cvtColor(frames, COLOR_BGR2GRAY)
+    frames = video_read(fn, as_grey=force_gray).squeeze()
 
     output = { 'nf': nf, #  Number of frames.
                'width': width, # Number of pixels along horizontal.
@@ -72,9 +38,8 @@ def read_file(fn: str, force_gray: bool=True, bpp: int=None):
                'frames': frames, # Frame data.
                'fps': fps, # Frames per second.
                'colored': frames.ndim > 3, # Whether the image is RGB.
-               'transformed_to_gray': transformed_to_gray,
+               'transformed_to_gray': force_gray,
                'bits_per_pixel': bpp,
-               'dtype': dtype
              }
 
     return output
