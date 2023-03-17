@@ -30,7 +30,29 @@ def read_file(fn: str, force_gray: bool=True, bpp: int=None):
     fps = int(prop['avg_frame_rate'].split('/')[0].strip())
     nf  = int(prop['nb_frames'])
 
-    frames = video_read(fn, as_grey=force_gray).squeeze()
+    # frames = video_read(fn).squeeze()
+    # if frames.ndim > 3:
+    #     frames = frames.mean(axis=-1)
+
+    pix_fmt = prop['pix_fmt']
+    bits_size = int(prop['bits_per_raw_sample'])
+
+    dtype = { 8: np.uint8,
+              16: np.uint16
+            }.get(bits_size)
+
+    shape = [nf, height, width, -1]
+
+    out = ffmpeg.input(fn).output('pipe:', format='rawvideo',
+                                  pix_fmt='gray16le').run(quiet=True)[0]
+
+    if bpp is None:
+        shift = 0
+    else:
+        shift = bits_size - bpp
+    video = np.right_shift(np.frombuffer(out, np.uint16).reshape(shape), shift)
+
+    frames = video.astype(float).squeeze()
 
     output = { 'nf': nf, #  Number of frames.
                'width': width, # Number of pixels along horizontal.
