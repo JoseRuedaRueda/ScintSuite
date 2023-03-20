@@ -13,7 +13,7 @@ logger = logging.getLogger('ScintSuite.MappingCommon')
 try:
     import lmfit
 except (ImportError, ModuleNotFoundError):
-    logger.wargning('10: You cannot calculate resolutions')
+    logger.warning('10: You cannot calculate resolutions')
 __all__ = ['transform_to_pixel', 'XYtoPixel', '_fit_to_model_',
            'remap', 'gyr_profile', 'pitch_profile',
            'estimate_effective_pixel_area']
