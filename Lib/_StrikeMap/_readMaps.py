@@ -1,5 +1,5 @@
 """
-Routines to read strike map data from FILDSIM/SINPA
+Routines to read strike map data from FILDSIM/SINPA.
 
 Jose Rueda Rueda
 

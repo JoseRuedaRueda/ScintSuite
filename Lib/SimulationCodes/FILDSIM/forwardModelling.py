@@ -213,20 +213,20 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
             smap.load_strike_points()
         else:
             smap.load_strike_points(spoints)
-    if smap.resolution is None:
-        smap.calculate_resolutions(diag_params=diag_parameters)
+    if smap._resolutions is None:
+        smap.calculate_phase_space_resolution(diag_params=diag_parameters)
 
     # --- Prepare the models for the signal calculation:
     # Just for consitency, use the same one we use for the resolution
     # calculation
-    if smap.resolution['pitch_model'] == 'Gauss':
+    if smap._resolutions['model_pitch'] == 'Gauss':
         pitch_func = lmfit.models.GaussianModel().func
-    elif smap.resolution['pitch_model'] == 'sGauss':
+    elif smap._resolutions['model_pitch'] == 'sGauss':
         pitch_func = lmfit.models.SkewedGaussianModel().func
 
-    if smap.resolution['gyroradius_model'] == 'Gauss':
+    if smap._resolutions['model_gyroradius'] == 'Gauss':
         g_func = lmfit.models.GaussianModel().func
-    elif smap.resolution['gyroradius_model'] == 'sGauss':
+    elif smap._resolutions['model_gyroradius'] == 'sGauss':
         g_func = lmfit.models.SkewedGaussianModel().func
     # --- Calculate the signal:
     # Make the comparison if efficiency is None or not, to avoid doing it
@@ -236,10 +236,10 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
     else:
         eff = False
     # Remove all the values outside the Smap, to avoid NaN:
-    gmax = smap.unique_gyroradius.max()
-    gmin = smap.unique_gyroradius.min()
-    ppmax = smap.unique_pitch.max()
-    ppmin = smap.unique_pitch.min()
+    gmax = smap.MC_variables[1].data.max()
+    gmin = smap.MC_variables[1].data.min()
+    ppmax = smap.MC_variables[0].data.max()
+    ppmin = smap.MC_variables[0].data.min()
     flags = (distro['gyroradius'] > gmin) * (distro['gyroradius'] < gmax) \
         * (distro['pitch'] > ppmin) * (distro['pitch'] < ppmax)
     flags = flags.astype(bool)
@@ -275,17 +275,18 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
     for i in range(len(distro_gyr)):
         # Interpolate sigmas, gammas and collimator_factor
         g_parameters = {}
-        for k in parameters_to_consider[smap.resolution['gyroradius_model']]:
+        for k in parameters_to_consider[smap._resolutions['model_gyroradius']]:
             g_parameters[k] = \
-                smap.interpolators['gyroradius'][k](
-                    distro_gyr[i], distro_pitch[i])
+                smap._interpolators_instrument_function['gyroradius'][k](
+                    distro_pitch[i], distro_gyr[i])
         p_parameters = {}
-        for k in parameters_to_consider[smap.resolution['pitch_model']]:
+        for k in parameters_to_consider[smap._resolutions['model_pitch']]:
             p_parameters[k] = \
-                smap.interpolators['pitch'][k](distro_gyr[i], distro_pitch[i])
+                smap._interpolators_instrument_function['pitch'][k](
+                    distro_pitch[i], distro_gyr[i])
 
-        col_factor = smap.interpolators['collimator_factor'](
-            distro_gyr[i], distro_pitch[i]) / 100.0
+        col_factor = smap._interpolators_instrument_function['collimator_factor'](
+            distro_pitch[i], distro_gyr[i]) / 100.0
 
         if eff:
             signal += col_factor * g_func(g_grid.flatten(), **g_parameters) \
@@ -416,8 +417,8 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
         print('Reading strike map: ', smap)
         smap = ssmapping.StrikeMap(file=smap)
         smap.load_strike_points(spoints)
-    if smap.resolution is None:
-        smap.calculate_resolutions(diag_params=diag_parameters)
+    if smap._resolutions is None:
+        smap.calculate_phase_space_resolution(diag_params=diag_parameters)
     # check/load the scintillator
     if isinstance(scintillator, str):  # if it is string, load the file.
         print('Reading scintillator: ', scintillator)
@@ -442,13 +443,14 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
         camera_parameters = ssio.read_camera_properties(camera_parameters)
     # Grid for the synthetic signal at the scintillator
     scint_signal_options = {
-        'gmin': 1.5,
-        'gmax': 10.0,
-        'dg': 0.1,
+        'rmin': 1.5,
+        'rmax': 10.0,
+        'dr': 0.1,
         'pmin': 20.0,
         'pmax': 80.0,
         'dp': 1.0,
     }
+    scint_signal_options.update(scint_synthetic_signal_params)
     # Noise options:
     noise_options = {
         'dark_readout': {
@@ -492,6 +494,7 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     # Camera range:
     max_count = 2 ** camera_parameters['range'] - 1
     # --- Calculate the synthetic signal at the scintillator
+    print(scint_signal_options)
     scint_signal = synthetic_signal_remap(pinhole_distribution, smap,
                                           efficiency=efficiency,
                                           **scint_signal_options)
@@ -500,12 +503,12 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     px_center = int(camera_parameters['ny'] / 2)
     py_center = int(camera_parameters['nx'] / 2)
     # center the scintillator at the coordinate origin
-    y_scint_center = 0.5 * (scintillator.coord_real[:, 1].max()
-                            + scintillator.coord_real[:, 1].min())
-    x_scint_center = 0.5 * (scintillator.coord_real[:, 2].max()
-                            + scintillator.coord_real[:, 2].min())
-    scintillator.coord_real[:, 1] -= y_scint_center
-    scintillator.coord_real[:, 2] -= x_scint_center
+    y_scint_center = 0.5 * (scintillator._coord_real[:, 1].max()
+                            + scintillator._coord_real[:, 1].min())
+    x_scint_center = 0.5 * (scintillator._coord_real[:, 2].max()
+                            + scintillator._coord_real[:, 2].min())
+    scintillator._coord_real[:, 1] -= y_scint_center
+    scintillator._coord_real[:, 2] -= x_scint_center
     # shift the strike map by the same quantity:
     smap.y -= y_scint_center
     smap.z -= x_scint_center

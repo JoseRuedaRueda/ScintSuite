@@ -25,7 +25,7 @@ except ImportError:
 try:
     from numba import njit, prange
 except:
-    logger.wargning('10: You cannot use neutron filters')
+    logger.warning('10: You cannot use neutron filters')
 
 
 # -----------------------------------------------------------------------------
@@ -193,7 +193,7 @@ def TP_boundary(shot, z0, t, Rmin=1.5, Rmax=2.1, zmin=-0.9, zmax=0.9):
     output = xr.DataArray(tp, dims='R', coords={'R': r})
     output.attrs['long_name'] = '$\\lambda_{b}$'
     output.attrs['Description'] = '|pitch_TP|= sqrt(Rmin/R)'
-    
+
     return output
 
 

@@ -37,22 +37,22 @@ format = 'FILDSIM'  # Code for which the geometry file is written
 #     + '3_PIXEFLY_OBJETIVE_comissioning_2022_02.bmp'                      # ####
 # Video options
 diag_ID = 1  # INPA number
-shot = 41090  # Shot number
+shot = 40412  # Shot number
 tMinNoise = 0.1  # Min time for noise subtraction
 tMaxNoise = 0.4  # Max time for noise subtraction
-t = 2.02  # Times to overplot a frame from the video
+t = 2.95  # Times to overplot a frame from the video
 tmax = 4.8  # Maximum time to load
 # x-scale to y scale
 XtoY = 1.0
 # modify section 3 if you have a custom format for the calibration image
 # Staring points for the calibration
-xshift = 48.77
-yshift = 139.0
+xshift = 25.05
+yshift = 75.8
 xscale = 2632.22
-xc = 292.2
-yc = 238.1
+xc = 272.0
+yc = 155.0
 c = -1.77555e-3
-deg = 1.5
+deg = -1.38
 
 
 # Scale maximum
@@ -75,12 +75,12 @@ degmin = -5.0
 
 # Remapping options
 par = {
-    'ymin': 10.0,      # Minimum energy [in cm]
-    'ymax': 100.0,     # Maximum energy [in cm]
-    'dy': 2.0,         # Interval of the energy [in cm]
-    'xmin': 1.4,     # Minimum pitch angle [in degrees]
-    'xmax': 2.2,     # Maximum pitch angle [in degrees]
-    'dx': 0.01,    # Pitch angle interval
+    'ymin': 10.0,      # Minimum energy [in keV]
+    'ymax': 100.0,     # Maximum energy [in keV]
+    'dy': 2.0,         # Interval of the energy [in keV]
+    'xmin': 1.4,       # Minimum pitch angle [in m]
+    'xmax': 2.2,       # Maximum pitch angle [in m]
+    'dx': 0.01,        # Radial interval
     # methods for the interpolation
     'method': 2,    # 2 Spline, 1 Linear (smap interpolation)
     'decimals': 0,  # Precision for the strike map (1 is more than enough)

@@ -8,6 +8,7 @@ calculated by the code and plot the different information on it
 """
 import os
 import math
+import f90nml
 import logging
 import numpy as np
 import xarray as xr
@@ -228,7 +229,21 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
         if header['FILDSIMmode']:
             header['npitch'] = header['nXI']
             header['pitch'] = header['XI']
+        # ---- Get the geometry id
+        # Try to get the grometry id
+        try:
+            resultDir, name = os.path.split(filename)
+            runID = name.split('.')[0]
+            mainDir, dummy = os.path.split(resultDir)
+            namelistFile = os.path.join(mainDir, 'inputs', runID + '.cfg')
+            nml = f90nml.read(namelistFile)
+            dummy, geomDir = os.path.split(nml['config']['geomfolder'])
+            header['geomID'] = geomDir
+        except FileNotFoundError:
+            header['geomID'] = None
+            logger.warning('Not found SINPA namelist')
         if verbose:
+            print('File %s'%filename)
             print('Total number of strike points: ',
                   np.sum(header['counters']))
             print('SINPA version: ', header['versionID1'], '.',
@@ -398,6 +413,8 @@ class Strikes:
         self.code = code
         ## Rest of the histograms
         self.histograms = {}
+        ## Magnetic field at the detector
+        self.B = None
 
     def calculate_2d_histogram(self, varx: str = 'xcx', vary: str = 'yxc',
                                binsx: float = None, binsy: float = None):
@@ -1447,15 +1464,6 @@ class Strikes:
 
         name = variables_to_remap[0] + '_' + variables_to_remap[1] + '_remap'
         self.histograms[name] = xr.Dataset()
-        # {
-        #     0: {
-        #         'xcen': xcenter,
-        #         'xedges': xedges,
-        #         'ycen': ycenter,
-        #         'yedges': yedges,
-        #         'H': None
-        #     }
-        # }
         for k in self.histograms['xcam_ycam'].keys():
             nkinds = self.histograms['xcam_ycam'].kind.size
             data = np.zeros((xedges.size-1, yedges.size-1, nkinds))
@@ -1464,13 +1472,33 @@ class Strikes:
                               x_edges=xedges, y_edges=yedges, mask=None,
                               method=options['remap_method'])
             self.histograms[name][k] = xr.DataArray(data, dims=('x', 'y', 'kind'),
-                                                 coords={'x':xcenter,
+                                                 coords={'x': xcenter,
                                                          'y': ycenter,
                                                          'kind': self.histograms['xcam_ycam'].kind})
         self.histograms[name].attrs = {
             'xedges': xedges,
             'yedges': yedges,
             }
+        # Now repeat for the finite focus
+        if 'xcam_ycam_finiteFocus' in self.histograms.keys():
+            name = variables_to_remap[0] + '_' + variables_to_remap[1] +\
+                '_remap_finiteFocus'
+            self.histograms[name] = xr.Dataset()
+            for k in self.histograms['xcam_ycam_finiteFocus'].keys():
+                nkinds = self.histograms['xcam_ycam_finiteFocus'].kind.size
+                data = np.zeros((xedges.size-1, yedges.size-1, nkinds))
+                for j in range(nkinds):
+                    data[:, :, j] = remap(smap, self.histograms['xcam_ycam_finiteFocus'][k].isel(kind=j).values,
+                                  x_edges=xedges, y_edges=yedges, mask=None,
+                                  method=options['remap_method'])
+                self.histograms[name][k] = xr.DataArray(data, dims=('x', 'y', 'kind'),
+                                                     coords={'x': xcenter,
+                                                             'y': ycenter,
+                                                             'kind': self.histograms['xcam_ycam_finiteFocus'].kind})
+            self.histograms[name].attrs = {
+                'xedges': xedges,
+                'yedges': yedges,
+                }
 
     @property
     def shape(self):
