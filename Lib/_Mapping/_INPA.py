@@ -18,7 +18,7 @@ import Lib._IO as ssio
 import Lib.errors as errors
 from tqdm import tqdm   # For waitbars
 from Lib._Machine import machine
-from Lib._Mapping._StrikeMap import StrikeMap
+from Lib._StrikeMap._INPA_StrikeMap import Ismap
 from Lib._SideFunctions import createGrid
 
 __all__ = ['remapAllLoadedFrames']
@@ -108,7 +108,7 @@ def remapAllLoadedFrames(video,
         -# 'tframes': time of the frames
         -# 'existing_smaps': array indicating which smaps where found in the
         database and which don't
-    
+
     The remap options such as the code used, the number of decimals or the
     location of the database of smaps are saved as attributes of the 'frames'
     dataArray
@@ -268,7 +268,7 @@ def remapAllLoadedFrames(video,
         else:
             Bflag = True
         if name != name_old or Bflag and not got_smap:
-            smap = StrikeMap(1, os.path.join(smap_folder, name))
+            smap = Ismap(os.path.join(smap_folder, name))
             if wantEnergy:
                 smap.calculate_energy(video.BField['B'].values[iframe], A, Z)
 

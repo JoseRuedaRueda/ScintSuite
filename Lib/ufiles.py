@@ -5,11 +5,17 @@ Taken from Giovanni Tardini's repository (git@ipp.mpg.de)
 
 Adapted to read generic UFILEs by Pablo Oyola - pablo.oyola@ipp.mpg.de
 """
-
-import numpy as np
-import datetime
-import shutil
 import os
+import shutil
+import logging
+import datetime
+import numpy as np
+
+
+# ------------------------------------------------------------------------------
+# ---- Auxiliary objects and functions
+logger = logging.getLogger('ScintSuite.Ufiles')
+
 
 def wr_for(arr_in, fmt='%13.6E', n_lin=6):
     """
@@ -21,16 +27,15 @@ def wr_for(arr_in, fmt='%13.6E', n_lin=6):
     :param  fmt: format of the output.
     :param  n_lin: number of maximum numbers per line.
     """
-
     arr_flat = arr_in.T.ravel()
     nx = len(arr_flat)
-    out_str=''
+    out_str = ''
     for jx in range(nx):
-        out_str += (fmt %arr_flat[jx])
-        if (jx%n_lin == n_lin - 1):
+        out_str += (fmt % arr_flat[jx])
+        if (jx % n_lin == n_lin - 1):
             out_str += '\n'
     # Line break after writing data, but no double break
-    if (nx%n_lin != 0):
+    if (nx % n_lin != 0):
         out_str += '\n'
 
     return out_str
@@ -95,10 +100,14 @@ def fltarr_len(lines, nx: int, dtyp=None):
     return jlin+1, np.array(data, dtype=dtyp)
 
 
+# ------------------------------------------------------------------------------
+# ---- Main class
+# ------------------------------------------------------------------------------
 class ufile:
     """
     Class to handle the UFILE content: read/write and parsing the dimensions.
     """
+
     def __init__(self, fin: str = None):
         """
         Initializes the class for the UFILE. If a name is provided, the object
@@ -125,6 +134,7 @@ class ufile:
 
         # Loading all the lines from the file.
         with open(fin, 'r') as f:
+            logger.info('Reading file %s', fin)
             lines = f.readlines()
 
         # Preparing the dimensions.
@@ -232,8 +242,11 @@ class ufile:
 
         Giovanni Tarding - git@ipp.mpg.de
 
-        :param  udir: directory to write the UFILE.
+        :param  fout: file to write the UFILE.
         :param  dev:  target directory to write the UFILE accordingly.
+
+        if file exist, it will be saved as <file.1> and a new file will be
+        created under the name <file>
         """
         self.shot = int(self.shot)
 
@@ -243,12 +256,14 @@ class ufile:
             comment = ''
 
         if os.path.isfile(fout):
+            logger.warning('File exist,  copiying old file')
             ufbak = fout
             jext = 1
             while os.path.isfile(ufbak):
                 ufbak = '%s.%d' %(fout, jext)
                 jext += 1
             shutil.move(fout, ufbak)
+            logger.warning('Old file now saved as %s', ufbak)
 
         # Dimensions check
         dims = []

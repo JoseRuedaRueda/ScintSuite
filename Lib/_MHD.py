@@ -149,7 +149,7 @@ class MHDmode():
     def plot(self, var: str = 'GAM', rho=0.0, ax=None, line_params={},
              units: str = 'kHz', t: tuple = None):
         """
-        Plot the mode frequency
+        Plot the mode frequency.
 
         Jore Rueda: jrrueda@us.es
 

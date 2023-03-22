@@ -11,12 +11,12 @@ logger = logging.getLogger('ScintSuite.Calibration')
 
 
 # -----------------------------------------------------------------------------
-# --- Aux functions
+# ---- Aux functions
 # -----------------------------------------------------------------------------
 def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
                                   verbose: bool = True):
     """
-    Read camera calibration database
+    Read camera calibration database.
 
     This function is different from the one implemented in the __init__ of the
     old object of the CalibrationDatabase. This one return the database as a
@@ -73,13 +73,15 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
     database = pd.DataFrame(data)
     return database
 
+
 def readCcalibrationFile(filename):
     """
     Read the time/position dependent calibration files
     :param  filename: file to be read
-    :return: 
+    :return:
     """
     pass
+
 
 def readTimeDependentCalibration(filename):
     fields = {
@@ -113,8 +115,9 @@ def readTimeDependentCalibration(filename):
     calibration.attrs['geomID'] = geomID
     return calibration
 
+
 # ------------------------------------------------------------------------------
-# --- Calibration database object
+# ---- Calibration database object
 # ------------------------------------------------------------------------------
 class CalibrationDatabase:
     """Database of parameter to align the scintillator."""
