@@ -71,7 +71,8 @@ class orbit:
         line_options.update(line_params)
 
         # --- Get cartesian coordinates:
-
+        if 'label' not in line_options:
+            line_options['label'] = 'ID: ' + str(self.ID)
         x = self.data['x']
         y = self.data['y']
         flag_ax_was_none = False
@@ -87,7 +88,6 @@ class orbit:
             # Plot the Rz, projection
             ax[0].plot(self.data['R'][imin:imax],
                         self.data['z'][imin:imax],
-                        label='ID: ' + str(self.ID),
                         **line_options)
             # plot the initial and final points in a different color
             ax[0].plot(self.data['R'][imax-1], self.data['z'][imax-1],
@@ -95,8 +95,7 @@ class orbit:
             ax[0].plot(self.data['R'][imin], self.data['z'][imin],
                        'o', color='g')
             # Plot the xy projection
-            ax[1].plot(x[imin:imax], y[imin:imax],
-                        label='ID: ' + str(self.ID), **line_options)
+            ax[1].plot(x[imin:imax], y[imin:imax], **line_options)
             # plot the initial and final points in a different color
             ax[1].plot(x[imax-1], y[imax-1], 'o', color='r')
             ax[1].plot(x[imin], y[imin], 'o', color='g')
