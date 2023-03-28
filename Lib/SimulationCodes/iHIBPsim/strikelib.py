@@ -706,7 +706,7 @@ class strikes:
         return ax, im, frame
 
 
-    def project_horizontal(self, y_pos: int = 0, dx: float=0.025, dy: float=0.05, #0.025, 0.05
+    def project_horizontal(self, y_pos: int = None, dx: float=0.025, dy: float=0.05, #0.025, 0.05
                            ax=None, flag_pix: bool=False, pix_x: int=None,
                            pix_y: int=None, cbar_sci: bool=False,
                            flag_scint: bool=False, i_roll: int = 0,
@@ -738,7 +738,7 @@ class strikes:
         y = data[1]
         z = data[2]
         frame = xr.DataArray(z, dims =('x', 'y'), coords = [x, y])
-        if y_pos == 0:
+        if y_pos == None:
             y_pos = int(0.5*len(frame.y))
         proj = frame.isel(y = y_pos)
         if i_roll > 0:
@@ -762,8 +762,11 @@ class strikes:
             def gauss(x, *p):
                 A, mu, sigma = p
                 return A*np.exp(-(x-mu)**2/(2.*sigma**2))
-
-            popt, pcov = curve_fit(gauss, proj.x, proj, [1e-9,300,200])
+            if flag_pix:
+                p0 = [1e-9,300,200]
+            else:
+                p0 = [1e-9,3.5, 3]
+            popt, pcov = curve_fit(gauss, proj.x, proj, p0)
             proj_fit = gauss(proj.x, *popt)
             ax.plot(proj.x, proj_fit, **kwargs)
             # plt.figure()
