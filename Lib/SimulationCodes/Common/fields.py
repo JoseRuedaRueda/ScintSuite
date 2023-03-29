@@ -113,6 +113,7 @@ class fields:
                         * entry['nPhi'] * entry['nTime']
 
             f = np.fromfile(fid, 'float64', count=size2read[0])
+            f = np.reshape(f, (entry['nR'][0], entry['nz'][0]), order='F')
 
         # Creating the interpolating function.
         R = np.linspace(entry['Rmin'][0], entry['Rmax'][0],
@@ -141,7 +142,7 @@ class fields:
             interpn((self.psipol['R'], self.psipol['z']),
                      self.psipol['f'], (r.flatten(), z.flatten()))
         self.psipol_on = True
-        
+
     def readFiles(self, path: str, field_name: str):
         """
         Start the class containing the E-M fields from files.
@@ -167,20 +168,21 @@ class fields:
 
         if not os.path.isfile(path):
             raise FileNotFoundError('Cannot locate the file: %s' % path)
-        
+
         if field_name.lower() in ('psipol', 'rhopol', 'psi', 'rho'):
             self.__load_psipol_from_file(path)
+            return
 
         if field_name.lower() not in ('b', 'bfield', 'e', 'efield'):
             raise ValueError('Input field name can only be B, E or rhopol')
-        
+
         entry = {   'b': self.Bfield,
                     'bfield': self.Bfield,
                     'e': self.Efield,
                     'efield': self.Efield
                 }.get(field_name.lower())
-        
-        
+
+
 
         with open(path, 'rb') as fid:
             entry['nR'] = np.fromfile(fid, 'uint32', 1)
@@ -247,7 +249,7 @@ class fields:
             fphiinterp = lambda r, z, phi, time: \
                 interpn((entry['R'], entry['z']),
                         entry['ft'], (r.flatten(), z.flatten()))
-        
+
         elif entry['nTime'] == 1:
             self.bdims = 3  # Static 3D fields
             entry['fr'] = fr.reshape((entry['nR'][0],
@@ -285,7 +287,7 @@ class fields:
                 interpn((entry['R'], entry['Phi'],
                             entry['z']), entry['ft'],
                         (r.flatten(), phi.flatten(), z.flatten()))
-        
+
         else:
             self.bdims = 4  # Full 4D field
             entry['fr'] = fr.reshape((entry['nR'][0],
@@ -336,7 +338,7 @@ class fields:
                         entry['ft'],
                         (r.flatten(), phi.flatten(),
                             z.flatten(), time.flatten()))
-        
+
         # Associating the data with the interpolators.
         if field_name.lower() in ('b', 'bfield'):
             self.Brinterp = frinterp
@@ -925,20 +927,20 @@ class fields:
 
         if what.lower() == 'bfield':
             # Write header with grid size information:
-            self.Bfield['nR'].tofile(fid)
-            self.Bfield['nz'].tofile(fid)
-            self.Bfield['nPhi'].tofile(fid)
-            self.Bfield['nTime'].tofile(fid)
+            np.array(self.Bfield['nR'], dtype='int32').tofile(fid)
+            np.array(self.Bfield['nz'], dtype='int32').tofile(fid)
+            np.array(self.Bfield['nPhi'], dtype='int32').tofile(fid)
+            np.array(self.Bfield['nTime'], dtype='int32').tofile(fid)
 
             # Write grid ends:
-            self.Bfield['Rmin'].tofile(fid)
-            self.Bfield['Rmax'].tofile(fid)
-            self.Bfield['zmin'].tofile(fid)
-            self.Bfield['zmax'].tofile(fid)
-            self.Bfield['Phimin'].tofile(fid)
-            self.Bfield['Phimax'].tofile(fid)
-            self.Bfield['Timemin'].tofile(fid)
-            self.Bfield['Timemax'].tofile(fid)
+            np.array(self.Bfield['Rmin'], dtype='float64').tofile(fid)
+            np.array(self.Bfield['Rmax'], dtype='float64').tofile(fid)
+            np.array( self.Bfield['zmin'], dtype='float64').tofile(fid)
+            np.array(self.Bfield['zmax'], dtype='float64').tofile(fid)
+            np.array(self.Bfield['Phimin'], dtype='float64').tofile(fid)
+            np.array(self.Bfield['Phimax'], dtype='float64').tofile(fid)
+            np.array(self.Bfield['Timemin'], dtype='float64').tofile(fid)
+            np.array(self.Bfield['Timemax'], dtype='float64').tofile(fid)
 
             # Write fields
             if self.bdims > 0:
@@ -976,38 +978,38 @@ class fields:
                 self.Efield['fy'].ravel(order='F').tofile(fid)
                 self.Efield['fz'].ravel(order='F').tofile(fid)
         elif what.lower() == 'psipol':
-            self.psipol['nR'].tofile(fid)
-            self.psipol['nz'].tofile(fid)
-            self.psipol['nPhi'].tofile(fid)
-            self.psipol['nTime'].tofile(fid)
+            np.array(self.psipol['nR'], dtype='int32').tofile(fid)
+            np.array(self.psipol['nz'], dtype='int32').tofile(fid)
+            np.array(self.psipol['nPhi'], dtype='int32').tofile(fid)
+            np.array(self.psipol['nTime'], dtype='int32').tofile(fid)
 
             # Write grid ends:
-            self.psipol['Rmin'].tofile(fid)
-            self.psipol['Rmax'].tofile(fid)
-            self.psipol['zmin'].tofile(fid)
-            self.psipol['zmax'].tofile(fid)
-            self.psipol['Phimin'].tofile(fid)
-            self.psipol['Phimax'].tofile(fid)
-            self.psipol['Timemin'].tofile(fid)
-            self.psipol['Timemin'].tofile(fid)
+            np.array(self.psipol['Rmin'], dtype='float64').tofile(fid)
+            np.array(self.psipol['Rmax'], dtype='float64').tofile(fid)
+            np.array(self.psipol['zmin'], dtype='float64').tofile(fid)
+            np.array(self.psipol['zmax'], dtype='float64').tofile(fid)
+            np.array(self.psipol['Phimin'], dtype='float64').tofile(fid)
+            np.array(self.psipol['Phimax'], dtype='float64').tofile(fid)
+            np.array(self.psipol['Timemin'], dtype='float64').tofile(fid)
+            np.array(self.psipol['Timemin'], dtype='float64').tofile(fid)
 
             # Write fields
-            self.psipol['f'].ravel(order='F').tofile(fid)
+            self.psipol['f'].astype(dtype='float64').ravel(order='F').tofile(fid)
         else:
             raise ValueError('Not a valid field to be written.')
         if opened:
             fid.close()
 
-    def from_netcdf(self, fn: str, rmin: float=None, rmax: float=None, 
+    def from_netcdf(self, fn: str, rmin: float=None, rmax: float=None,
                     zmin: float=None, zmax: float=None):
         """
         Import the magnetic field from a netCDF4 file.
-        
+
         Pablo Oyola - poyola@us.es
         """
         if not os.path.isfile(fn):
             raise FileNotFoundError('Cannot find %s'%fn)
-            
+
         with nc.Dataset(fn, 'r') as root:
             R = np.array(root.variables['R'][:])
             z = np.array(root.variables['z'][:])
@@ -1015,25 +1017,25 @@ class fields:
             Bz = np.array(root.variables['Bz'][:])
             Bphi = np.array(root.variables['Bphi'][:])
             rhop = np.array(root.variables['rhop'][:])
-            
+
         # We check now whether we have to cut the domain limits.
         r_flags = np.ones_like(R, dtype=bool)
         z_flags = np.ones_like(z, dtype=bool)
-        
+
         if rmin is not None:
             r_flags = r_flags & (R > rmin)
         if rmax is not None:
             r_flags = r_flags & (R < rmax)
-        
+
         if zmin is not None:
             z_flags = z_flags & (z > zmin)
         if zmax is not None:
             z_flags = z_flags & (z < zmax)
-            
+
         # Cutting the data.
         R = R[r_flags]
         z = z[z_flags]
-        
+
         Br = Br[r_flags, :]
         Br = Br[:, z_flags]
         Bz = Bz[r_flags, :]
@@ -1042,9 +1044,9 @@ class fields:
         Bphi = Bphi[:, z_flags]
         rhop = rhop[r_flags, :]
         rhop = rhop[:, z_flags]
-        
-        
-            
+
+
+
         # With the data read from the netCDF4 file, we allocate the internal
         # data.
         self.Bfield['R'] = R.astype(dtype=np.float64)
@@ -1053,7 +1055,7 @@ class fields:
         self.Bfield['nz'] = np.array((len(z)), dtype=np.int32)
         self.Bfield['nPhi'] = np.array((1), dtype=np.int32)
         self.Bfield['nTime'] = np.array((1), dtype=np.int32)
-        
+
         self.Bfield['Rmin'] = np.array((R.min()), dtype=np.float64)
         self.Bfield['Rmax'] = np.array((R.max()), dtype=np.float64)
         self.Bfield['zmin'] = np.array((z.min()), dtype=np.float64)
@@ -1062,11 +1064,11 @@ class fields:
         self.Bfield['Phimax'] = np.array((2.0*np.pi), dtype=np.float64)
         self.Bfield['Timemin'] = np.array((0.0), dtype=np.float64)
         self.Bfield['Timemax'] = np.array((1.0), dtype=np.float64)
-        
+
         self.Bfield['fr'] = Br.astype(dtype=np.float64)
         self.Bfield['fz'] = Bz.astype(dtype=np.float64)
         self.Bfield['ft'] = Bphi.astype(dtype=np.float64)
-        
+
         self.bdims = 2
 
     def plot(self, fieldName: str, phiSlice: int = None, timeSlice: int = None,
@@ -1190,7 +1192,9 @@ class fields:
             field = field[:, phiSlicee, :, timeSlicee]
 
         # Plotting the field using a filled contour.
-        fieldPlotHndl = ax.contourf(Rplot, Zplot, field.T, nLevels, cmap=ccmap)
+        extent = [Rplot.min(), Rplot.max(), Zplot.min(), Zplot.max()]
+        fieldPlotHndl = ax.imshow(field.T, origin='lower', cmap=ccmap,
+                                  aspect='equal', extent=extent)
 
         # Selecting the name to display in the colorbar.
 
@@ -1216,7 +1220,10 @@ class fields:
 
         # Plotting the 2D vessel structures.
         if plot_vessel:
-            ssplt.plot_vessel(linewidth=1, ax=ax)
+            try:
+                ssplt.plot_vessel(linewidth=1, ax=ax)
+            except AttributeError:
+                pass
         plt.tight_layout()
 
         return ax
