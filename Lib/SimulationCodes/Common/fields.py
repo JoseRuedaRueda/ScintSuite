@@ -6,6 +6,7 @@ import Lib.LibData as ssdat
 import Lib._Plotting as ssplt
 import Lib.errors as errors
 import math
+from Lib._Machine import machine
 
 
 class fields:
@@ -436,10 +437,10 @@ class fields:
         grid_shape = RR.shape
         br, bz, bt, bp = ssdat.get_mag_field(shotnumber, RR.flatten(),
                                              zz.flatten(),
+                                             time=time,
                                              exp=exp,
                                              ed=edition,
-                                             diag=diag,
-                                             time=time)
+                                             diag=diag)
         del RR
         del zz
         del bp
@@ -481,20 +482,23 @@ class fields:
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['ft'],
                     (r.flatten(), z.flatten()))
 
-        # Retrieving as well the poloidal magnetic flux.
-        self.readPsiPolfromDB(time=time, shotnumber=shotnumber,
-                              exp=exp, diag=diag, edition=edition,
-                              Rmin=Rmin, Rmax=Rmax,
-                              zmin=zmin, zmax=zmax,
-                              nR=nR, nz=nz)
+        if machine != 'MU':
+            # Retrieving as well the poloidal magnetic flux.
+            self.readPsiPolfromDB(time=time, shotnumber=shotnumber,
+                                exp=exp, diag=diag, edition=edition,
+                                Rmin=Rmin, Rmax=Rmax,
+                                zmin=zmin, zmax=zmax,
+                                nR=nR, nz=nz)
 
         # Saving the input data to the class.
         self.Bfield_from_shot_flag = True
         self.shotnumber = shotnumber
-        self.edition = edition
         self.timepoint = time
-        self.diag = diag
-        self.exp = exp
+        if machine != 'MU':
+            self.diag = diag
+            self.exp = exp
+            self.edition = edition
+
 
     def readBfromDBSinglePoint(self, shotnumber: int = 39612,
                                time: float = 2.5, R0: float = 190.0,

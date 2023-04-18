@@ -8,8 +8,9 @@ import os
 import f90nml
 import numpy as np
 import pandas as pd
-from Lib._Machine import machine
 from Lib._Paths import Path
+from Lib._Machine import machine
+from urllib.error import HTTPError
 from Lib._Mapping._Calibration import CalParams
 import Lib.LibData.MU.DiagParam as params
 paths = Path(machine)
@@ -98,7 +99,7 @@ class FILD_logbook:
             self.positionDatabase = \
                 self._readPositionDatabase(positionFile, verbose=verbose)
             self.flagPositionDatabase = True
-        except FileNotFoundError:
+        except (FileNotFoundError, HTTPError):
             self.flagPositionDatabase = False
             print('Not found position database, we will use the defaults')
         # Load the geometry database

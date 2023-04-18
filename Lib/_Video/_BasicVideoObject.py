@@ -733,7 +733,8 @@ class BVO:
                    scale: str = 'linear',
                    alpha: float = 1.0, IncludeColorbar: bool = True,
                    RemoveAxisTicksLabels: bool = False,
-                   flagAverage: bool = False, normalise=None, extent: float=None):
+                   flagAverage: bool = False, normalise=None, extent: float=None,
+                   fontsize: int = 12, tickssize: int = 10):
         """
         Plot a frame from the loaded frames
 
@@ -765,6 +766,8 @@ class BVO:
             if normalise == 1 it would be normalised to the maximum
             if normalise == <number> it would be normalised to this value
             if normalise == None, nothing will be done
+        :param  fontsize: Fontsize of shot number, time stamp, xlabel, ylabel, colorbar label
+        :param  tickssize: Fontsize of axis ticks and colorbar ticks
 
         :return ax: the axes where the frame has been drawn
         """
@@ -874,32 +877,37 @@ class BVO:
             ax.set_ylim(ylim)
 
         if flag_time_range == False:
-            tf = str(round(tf, 3))
+            tf = str(round(tf, 4))
         else:
             tf = '(%.3f, %.3f)' %(t[0],t[1])
 
         if IncludeColorbar:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
-            plt.colorbar(img, label='Counts', cax=cax)
+            cbar = plt.colorbar(img, label='Counts', cax=cax)
+            cbar.ax.tick_params(labelsize=tickssize)
+            cbar.set_label(label='Counts [a.u.]', size=fontsize)
         ax.text(0.05, 0.9, '#' + str(self.shot),
                 horizontalalignment='left',
                 color='w', verticalalignment='bottom',
-                transform=ax.transAxes)
+                transform=ax.transAxes, fontsize=fontsize)
         ax.text(0.95, 0.9, 't = ' + tf + (' s'),
                  horizontalalignment='right',
                  color='w', verticalalignment='bottom',
-                 transform=ax.transAxes)
+                 transform=ax.transAxes, fontsize=fontsize)
         if RemoveAxisTicksLabels:
             ax.axes.xaxis.set_ticklabels([])
             ax.axes.yaxis.set_ticklabels([])
+            ax.axes.xaxis.set_ticks([])
+            ax.axes.yaxis.set_ticks([])
         else:
-            ax.set_xlabel('Pixel')
-            ax.set_ylabel('Pixel')
+            ax.set_xlabel('Pixel', fontsize=fontsize)
+            ax.set_ylabel('Pixel', fontsize=fontsize)
         # Shot the figure
         if created:
             fig.show()
             plt.tight_layout()
+            ax.tick_params(labelsize=tickssize)
         return ax
 
     def GUI_frames(self, flagAverage: bool = False):

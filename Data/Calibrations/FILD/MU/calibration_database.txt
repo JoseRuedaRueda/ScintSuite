@@ -1,5 +1,5 @@
 # Text file containing information about the calibration parameters
-# Definition of pulses in process. Cals 2 and 3 not okay.
+# Definition of pulses in process. 
 #FORMAT IS:
 #CAL_ID	CAMERA	PULSE_1	PULSE_2	XSHIFT	YSHIFT	  XSCALE	  YSCALE 	   DEG	    CAL_TYPE	FILD_ID
 
