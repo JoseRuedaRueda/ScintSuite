@@ -366,7 +366,7 @@ class FILDVideo(FIV):
                 self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles is None:
                 self._getBangles()
-            # Check if we need to recaluculate them because they do not
+            # Check if we need to recalculate them because they do not
             # have the proper length (ie they were calculated for the exp_dat
             # not the average)
             if self.BField['BR'].size != nt:
