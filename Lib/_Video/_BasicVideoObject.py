@@ -130,7 +130,7 @@ class BVO:
                 self.shot = aux.guess_shot(file, ssdat.shot_number_length)
             # Fill the object depending if we have a .cin file or not
             if os.path.isfile(file):
-                print('Looking for the file: ', file)
+                logger.info('Looking for the file: ', file)
                 ## Path to the file and filename
                 self.path, self.file_name = os.path.split(file)
                 ## Name of the file (full path)
@@ -153,23 +153,21 @@ class BVO:
                 elif file.endswith('.png') or file.endswith('.tif'):
                     file, name = os.path.split(file)
                 elif file.endswith('.mp4'):
-                    dummy = mp4.read_file(file, verbose=False)
-                    # mp4 files are handle different as they are supposed to be
-                    # just a dummy temporal format, not the one to save our
-                    # real exp data, so the video will be loaded all from here
-                    # and not reading specific frame will be used
-                    self.timebase = dummy['tframes']
+                    dummy = mp4.read_file(file)
+                    self.properties['width'] = dummy['width']
+                    self.properties['height'] = dummy['height']
+                    self.properties['fps'] = dummy['fps']
                     self.exp_dat = xr.Dataset()
-                    nx, ny, nt = dummy['frames'].shape
+                    nt, nx, ny = dummy['frames'].shape
                     px = np.arange(nx)
                     py = np.arange(ny)
+
                     self.exp_dat['frames'] = \
-                        xr.DataArray(dummy['frames'], dims=('px', 'py', 't'),
-                                     coords={'t': dummy['tframes'].squeeze(),
+                        xr.DataArray(dummy['frames'], dims=('t', 'px', 'py'),
+                                     coords={'t': self.timebase.squeeze(),
                                              'px': px,
                                              'py': py})
-                    self.exp_dat['nframes'] = \
-                        xr.DataArray(np.arange(dummy['nf']), dims=('t'))
+                    self.exp_dat['frames'] = self.exp_dat['frames'].transpose('px', 'py', 't')
                     self.type_of_file = '.mp4'
                 else:
                     raise Exception('Not recognised file extension')
@@ -394,7 +392,9 @@ class BVO:
                 raise errors.NotValidInput('t1 is larger than t2!!!')
         # --- Get the shapes and indexes
         # Get shape and data type of the experimental data
-        nx, ny, nt = self.exp_dat['frames'].shape
+        nx = self.exp_dat['px'].size
+        ny = self.exp_dat['py'].size
+        nt = self.exp_dat['t'].size
         original_dtype = self.exp_dat['frames'].dtype
         # Get the initial and final time loaded in the video:
         t1_vid = self.exp_dat['t'].values[0]
@@ -419,18 +419,25 @@ class BVO:
                     'Taking %5.3f as finaal point' % t2
                 logger.warning('18: %s' % text)
                 t2 = t2_vid
-            it1 = np.argmin(abs(self.exp_dat['t'].values - t1))
-            it2 = np.argmin(abs(self.exp_dat['t'].values - t2))
+
+            it1 = np.argmin(np.abs(self.exp_dat.t.values - t1))
+            it2 = np.argmin(np.abs(self.exp_dat.t.values - t2))
 
             logger.info('Using frames from the video')
             logger.info('%i frames will be used to average noise', it2 - it1 + 1)
-            frame = np.mean(self.exp_dat['frames'].values[:, :, it1:(it2 + 1)],
-                            dtype=original_dtype, axis=2)
+            frame = self.exp_dat['frames'].isel(t=slice(it1, it2)).mean(dim='t')
+            #frame = np.mean(self.exp_dat['frames'].values[:, :, it1:(it2 + 1)],
+            #                dtype=original_dtype, axis=2)
 
         else:  # The frame is given by the user
             logger.info('Using noise frame provider by the user')
-            nxf, nyf = frame.shape
+            try:
+                nxf = frame.px.size
+                nyf = frame.py.size
+            except AttributeError:
+                nxf, nyf = frame.shape
             if (nxf != nx) or (nyf != ny):
+                print(nx, nxf, ny, nyf)
                 text = 'The noise frame has not the correct shape'
                 raise errors.NotValidInput(text)
         # Save the frame in the structure
@@ -448,9 +455,13 @@ class BVO:
         # --- Subtract the noise
         frame = frame.astype(float)  # Get the average as float to later
         #                              subtract and not have issues with < 0
-        dummy = \
-            (self.exp_dat['frames'].values.astype(float) - frame[..., None])
-        dummy[dummy < 0] = 0.0  # Clean the negative values
+        frameDA = xr.DataArray(frame, dims=('px', 'py'),
+                               coords = {'px': self.exp_dat['px'],
+                                         'py': self.exp_dat['py']})
+        #dummy = \
+        #    (self.exp_dat['frames'].values.astype(float) - frame[..., None])
+        dummy = self.exp_dat['frames'].astype(float) - frameDA
+        dummy.values[dummy.values < 0] = 0.0  # Clean the negative values
         self.exp_dat['frames'].values = dummy.astype(original_dtype)
 
         logger.info('-... -.-- . / -... -.-- .')
@@ -672,7 +683,7 @@ class BVO:
         ax = ssplt.axis_beauty(ax, ax_options)
         return ax
 
-    def plot_frame(self, frame_number=None, ax=None, ccmap=None,
+    def plot_frame(self, frame_number: int=None, ax=None, ccmap=None,
                    t: float = None,
                    verbose: bool = True,
                    vmin: int = 0, vmax: int = None,
@@ -680,28 +691,31 @@ class BVO:
                    scale: str = 'linear',
                    alpha: float = 1.0, IncludeColorbar: bool = True,
                    RemoveAxisTicksLabels: bool = False,
-                   flagAverage: bool = False, normalise=None):
+                   flagAverage: bool = False, normalise=None, extent: float=None):
         """
         Plot a frame from the loaded frames
 
         Jose Rueda Rueda: jrrueda@us.es
+        Hannah Lindl: hannah.lindl@ipp.mpg.de
 
         Notice, you can plot a given frame giving its frame number or giving
         its time
 
-        :param  frame_number: Number of the frame to plot (option 1)
-        :param  ax: Axes where to plot, is none, just a new axes will be created
-        :param  ccmap: colormap to be used, if none, Gamma_II from IDL
-        :param  t: time point to select the frame (option 2)
-        :param  verbose: If true, info of the theta and phi used will be printed
-        :param  vmin: Minimum value for the color scale to plot
-        :param  vmax: Maximum value for the color scale to plot
-        :param  xlim: tuple with the x-axis limits
-        :param  ylim: tuple with the y-axis limits
-        :param  scale: Scale for the plot: 'linear', 'sqrt', or 'log'
-        :param  alpha: transparency factor, 0.0 is 100 % transparent
-        :param  IncludeColorbar: flag to include a colorbar
-        :param  RemoveAxisTicksLabels: boolean flag to remove the numbers in the
+        :param frame_number: Number of the frame to plot (option 1).
+               If array: will average over the given frame frange
+        :param ax: Axes where to plot, is none, just a new axes will be created
+        :param ccmap: colormap to be used, if none, Gamma_II from IDL
+        :param t: time point to select the frame (option 2)
+                  If array: will average over the given frame frange
+        :param verbose: If true, info of the theta and phi used will be printed
+        :param vmin: Minimum value for the color scale to plot
+        :param vmax: Maximum value for the color scale to plot
+        :param xlim: tuple with the x-axis limits
+        :param ylim: tuple with the y-axis limits
+        :param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
+        :param alpha: transparency factor, 0.0 is 100 % transparent
+        :param IncludeColorbar: flag to include a colorbar
+        :param RemoveAxisTicksLabels: boolean flag to remove the numbers in the
             axis
         :param  flagAverage: flag to pick the axis from the experimental or the
             averaged frames
@@ -721,15 +735,54 @@ class BVO:
         # --- Load the frames
         # If we use the frame number explicitly
         if frame_number is not None:
-            frame_index = self.getFrameIndex(frame_number=frame_number,
-                                             flagAverage=flagAverage)
-            tf = self.getTime(frame_index, flagAverage)
-            dummy = self.getFrame(tf, flagAverage)
+            flag_time_range = False
+            try:
+                _ = len(frame_number)
+            except TypeError:
+                frame_index = self.getFrameIndex(frame_number=frame_number,
+                                                 flagAverage=flagAverage)
+                tf = self.getTime(frame_index, flagAverage)
+                dummy = self.getFrame(tf, flagAverage)
+            else:
+                if len(frame_number) == 1:
+                    frame_number = frame_number[0]
+                    frame_index = self.getFrameIndex(frame_number=frame_number,
+                                                     flagAverage=flagAverage)
+                    tf = self.getTime(frame_index, flagAverage)
+                    dummy = self.getFrame(tf, flagAverage)
+                elif len(frame_number) == 2:
+                    flag_time_range = True
+                    frames = self.exp_dat['frames'].isel(t = slice(frame_number[0], frame_number[1]))
+                    dummy = frames.mean(dim = 't')
+                    t = np.zeros(2)
+                    t[0] = self.getTime(self.getFrameIndex(frame_number = frame_number[0]))
+                    t[1] = self.getTime(self.getFrameIndex(frame_number = frame_number[1]))
+                else:
+                    raise ValueError('wrong shape of framenumber. Should not be larger than two')
         # If we give the time:
         if t is not None:
-            frame_index = self.getFrameIndex(t, flagAverage)
-            tf = self.getTime(frame_index, flagAverage)
-            dummy = self.getFrame(t, flagAverage)
+            flag_time_range = False
+            try:
+                _ = len(t)
+            except TypeError:
+                frame_index = self.getFrameIndex(t, flagAverage)
+                tf = self.getTime(frame_index, flagAverage)
+                dummy = self.getFrame(t, flagAverage)
+            else:
+                if len(t) ==1:
+                    frame_index = self.getFrameIndex(t, flagAverage)
+                    tf = self.getTime(frame_index, flagAverage)
+                    dummy = self.getFrame(t, flagAverage)
+                elif len(t)==2:
+                    print('plotting averaged frames')
+                    flag_time_range =True
+                    frames = self.exp_dat['frames'].where((self.exp_dat['t']>t[0]) & (self.exp_dat['t']<t[1]), drop = True)
+                    t[0] = min(frames.t)
+                    t[1] = max(frames.t)
+                    dummy = frames.mean(dim = 't')
+                else:
+                    raise ValueError('wrong shape of time. Should not be larger than two')
+
         if normalise is not None:
             if normalise == 1:
                 dummy = dummy.astype('float64') / dummy.max()
@@ -767,6 +820,9 @@ class BVO:
             # provide
             dummy[dummy < 1.0] = 1.0e-5
 
+        if extent is not None:
+            extra_options['extent'] = extent
+
         img = ax.imshow(dummy, origin='lower', cmap=cmap,
                         alpha=alpha, **extra_options)
         # Set the axis limit
@@ -774,6 +830,11 @@ class BVO:
             ax.set_xlim(xlim)
         if ylim is not None:
             ax.set_ylim(ylim)
+
+        if flag_time_range == False:
+            tf = str(round(tf, 3))
+        else:
+            tf = '(%.3f, %.3f)' %(t[0],t[1])
 
         if IncludeColorbar:
             divider = make_axes_locatable(ax)
@@ -783,7 +844,7 @@ class BVO:
                 horizontalalignment='left',
                 color='w', verticalalignment='bottom',
                 transform=ax.transAxes)
-        ax.text(0.95, 0.9, 't = ' + str(round(tf, 3)) + (' s'),
+        ax.text(0.95, 0.9, 't = ' + tf + (' s'),
                  horizontalalignment='right',
                  color='w', verticalalignment='bottom',
                  transform=ax.transAxes)

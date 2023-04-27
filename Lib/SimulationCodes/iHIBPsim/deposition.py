@@ -151,10 +151,8 @@ class deposition:
 
         return output
 
-    # -------------------------------------------------------------------------
-    # --- Plotting Block
-    # -------------------------------------------------------------------------
-    def plot1d(self, xaxis: str='rmajor', ax=None, bins: int=None, **line_params):
+    def plot1d(self, xaxis: str='rmajor', ax=None, bins: int=None,
+               xmin: float=None, xmax: float=None, **line_params):
         """
         Plot the deposition profile as a function either from major radius or
         the rhopol.
