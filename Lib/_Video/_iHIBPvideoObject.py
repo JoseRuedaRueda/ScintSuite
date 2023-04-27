@@ -14,9 +14,14 @@ import Lib.errors as errors
 import Lib._Paths as p
 from Lib._Machine import machine
 import Lib._Mapping._Calibration as libcal
-from Lib._Mapping._Scintillator import Scintillator
+from Lib._Scintillator import Scintillator
 import Lib.LibData.AUG.DiagParam as params
 import Lib._TimeTrace as sstt
+import xarray as xr
+import logging
+
+logger = logging.getLogger('ScintSuite.iHIBPvideo')
+
 pa = p.Path(machine)
 del p
 
@@ -40,7 +45,6 @@ def decision(prob: float, x0: float, dx0: float):
 
     return f
 
-
 # --- Auxiliar routines to find the path towards the camera files
 def guessiHIBPfilename(shot: int):
     """
@@ -48,158 +52,91 @@ def guessiHIBPfilename(shot: int):
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    :param  shot: shot number
+    :param shot: shot number
 
-    :return f: the name of the file/folder
+    @return filename_video: the name of the file/folder
+    @return filename_time: the name of the xml file
+    @return properties: video properties
     """
-    base_dir = params.iHIBPext[0]['path'](shot)
-    extension = params.iHIBPext[0]['extension'](shot)
+    datadir='/afs/ipp-garching.mpg.de/home/a/augd/rawfiles/LIV/%2i/%5i/'%(shot/1000,shot)
+    if shot < 41225:
+        filename_video = datadir + '%5i_cam_HIBP_bgsub_median.mp4' % (shot)
+        description = 'zero-th frame subtracted and median filtered with size 5'
+        if not os.path.exists(filename_video):
+            filename_video = '/afs/ipp/u/augd/rawfiles/VRT/%2i/S%5i/S%5i_HIBP.mp4' %(shot/1000,shot,shot)
+            description = 'raw video'
+        if shot<40396:
+            filename_time='/afs/ipp/u/augd/rawfiles/VRT/%2i/S%5i/Prot/FrameProt/HIBP_FrameProt.xml'%(shot/1000,shot)
+        else:
+            filename_time='/afs/ipp/u/augd/rawfiles/VRT/%2i/S%5i/S%5i_HIBP.meta.xml' % (shot/1000,shot,shot)
+    elif shot < 41339:
+        filename_video = datadir + '%i_cam_ihibp_top_ffv.mp4' %(shot)
+        description = 'raw video'
+        filename_time = datadir + '%i_cam_ihibp_top.xml' %(shot)
+    else:
+        filename_video = datadir + '%i_cam_ihibp_side_bgsub_median.mp4' %(shot)
+        description = 'zero-th frame subtracted and median filtered with size 5'
+        filename_time = datadir + '%i_cam_ihibp_side.xml' %(shot)
 
-    f = None
-    if shot < 99999:  # PCO camera, stored in AFS
-        name = 'S%05d_HIBP.%s' % (shot, extension)
-        f = os.path.join(base_dir, name)
-
-    return f
-
+    properties = {'description': description}
+    return filename_video, filename_time, properties
 
 # ------------------------------------------------------------------------------
 # TIMEBASE OF THE CAMERA.
-# ------------------------------------------------------------------------------
-def ihibp_get_time_basis_old(shot: int):
-    """"
-    The iHIBP videos are defined in terms of time relative to the beginning of
-    the recording trigger, and we need time relative to the shot trigger.
+# ---------------------------------------------------------------------------
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    :param  shot: shot to get the timing.
-    :return timestamp: time at which the camera is recording in seconds.
-    :return framenum: number of the frame corresponding to each timestamp.
-    :return properties: properties from the XML header
-    """
-    fn = params.iHIBPext[0]['path_times'](shot)
-
-    if not os.path.isfile(fn):
-        raise FileNotFoundError('Cannot find the path to access the frames'+\
-                                ' timing: %s'%fn)
-
-    # Opening the time configuration file.
-    root = et.parse(fn).getroot()
-
-    # From the root we get the properties.
-    properties = dict()
-    for ikey in root.keys():
-        properties[ikey] = root.get(ikey)
-        try:
-            if properties[ikey][0:2] == '0x':
-                properties[ikey] = int(properties[ikey], base=16)
-            else:
-                properties[ikey] = float(properties[ikey])
-                if float(int(properties[ikey])) == float(properties[ikey]):
-                    properties[ikey] = int(properties[ikey])
-        except:
-            pass
-
-    # Now we read the rest of the entries.
-    nframs = len(root)
-    timestamp = np.zeros((nframs,), dtype=float)
-    framenum = np.zeros((nframs,), dtype=int)
-    for ii, iele in enumerate(root):
-        tmp = iele.attrib
-        framenum[ii] = int(tmp['frameNumber'])
-        timestamp[ii] = float(int(tmp['time'], base=16))
-
-    # By substracting thte TS06 time (shot trigger) we get shot-relative
-    # timing.
-    timestamp -= properties['ts6Time']
-
-    # The time so calculated is given in nanoseconds:
-    timestamp = timestamp * 1e-9  # -> to seconds
-    return timestamp, framenum, properties
-
-
-def ihibp_get_time_basis_new(shot: int):
-    """"
-    The iHIBP videos are defined in terms of time relative to the beginning of
-    the recording trigger, and we need time relative to the shot trigger.
-
-    This routine is updated with the new XML used for the VRT cameras.
-    Developed 09/05/2022
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    :param  shot: shot to get the timing.
-    :return timestamp: time at which the camera is recording in seconds.
-    :return framenum: number of the frame corresponding to each timestamp.
-    :return properties: properties from the XML header
-    """
-    fn = params.iHIBPext[0]['path_times'](shot)
-
-    if not os.path.isfile(fn):
-        raise FileNotFoundError('Cannot find the path to access the frames'+\
-                                ' timing: %s'%fn)
-
-    # Opening the time configuration file.
-    root = et.parse(fn).getroot()
-
-    # From the root we get the properties.
-    properties = dict()
-    for ikey in root.keys():
-        properties[ikey] = root.get(ikey)
-        try:
-            if properties[ikey][0:2] == '0x':
-                properties[ikey] = int(properties[ikey], base=16)
-            else:
-                properties[ikey] = float(properties[ikey])
-                if float(int(properties[ikey])) == float(properties[ikey]):
-                    properties[ikey] = int(properties[ikey])
-        except:
-            pass
-
-    # Getting the frames.
-    frames = root.getchildren()[2]
-    # Now we read the rest of the entries.
-    nframs = len(frames)
-    timestamp = np.zeros((nframs,), dtype=float)
-    framenum = np.zeros((nframs,), dtype=int)
-    for ii, iele in enumerate(frames.getchildren()):
-        tmp = iele.attrib
-        framenum[ii] = int(tmp['number'])
-        timestamp[ii] = float(int(tmp['timestamp']))
-
-    # Sorting.
-    idxsort = np.argsort(framenum)
-    framenum = framenum[idxsort]
-    timestamp = timestamp[idxsort]
-
-    # By substracting thte TS06 time (shot trigger) we get shot-relative
-    # timing.
-    timestamp -= properties['ts6']
-
-    # The time so calculated is given in nanoseconds:
-    timestamp = timestamp * 1e-9  # -> to seconds
-    return timestamp, framenum, properties
-
-
-def ihibp_get_time_basis(shot: int):
+def ihibp_get_time_basis(fn: str, shot: int):
     """""
     Retrieves the timebase of the video recorded for the iHIBP MP4 video that
     it is stored into XML files.
 
     Since there are two versions of the XML, we need to distinguish according
-    to the shotnumber. This function is intended as a wrapper to the actual
-    reading functions.
+    to the shotnumber.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
 
-    :param  shot: shot to read the timebasis.
+    :param fn: filename of the time trace
+    :param shot: shot to read the timebasis.
+    :param time: timetrace of the discharge
+    :param nf: number of frames stored in the video
     """
 
-    if shot > 40395:
-        return ihibp_get_time_basis_new(shot=shot)
+    root = et.parse(fn).getroot()  # Opening the time configuration file.
+
+    # From the root we get the properties.
+    properties = dict()
+    for ikey in root.keys():
+        properties[ikey] = root.get(ikey)
+        try:
+            if properties[ikey][0:2] == '0x':
+                properties[ikey] = int(properties[ikey], base=16)
+            else:
+                properties[ikey] = float(properties[ikey])
+                if float(int(properties[ikey])) == float(properties[ikey]):
+                    properties[ikey] = int(properties[ikey])
+        except:
+            pass
+
+    if shot in range(40396, 41225):  # discharges 40396-41224 store data differently
+        # Getting the frames.
+        frames = list(root)[2]
+        # Now we read the rest of the entries.
+        nf = len(frames)
+        time = np.zeros((nf,), dtype=float)
+        for ii, iele in enumerate(list(frames)):
+            tmp = iele.attrib
+            time[ii] = float(int(tmp['timestamp']))
+        time -= properties['ts6']  # obtain relative timing
     else:
-        return ihibp_get_time_basis_old(shot=shot)
+        nf = len(root)
+        time = np.zeros((nf,), dtype=float)
+        for ii, iele in enumerate(root):
+            tmp = iele.attrib
+            time[ii] = float(int(tmp['time'], base=16))
+        time -= properties['ts6Time']
+
+    time = time * 1e-9  # time in nanoseconds
+    return time, nf
 
 
 # -----------------------------------------------------------------------------
@@ -214,7 +151,8 @@ class iHIBPvideo(BVO):
 
     def __init__(self, shot: int, calib: libcal.CalParams = None,
                  scobj: Scintillator = None, signal_threshold: float = 5.0,
-                 noiseSubtraction: bool = True, filterFrames: bool = False):
+                 noiseSubtraction: bool = False, filterFrames: bool = False,
+                 frame = None, timestamp = None):
         """
         Initializes the object with the video data if found.
 
@@ -238,30 +176,27 @@ class iHIBPvideo(BVO):
         """
 
         # --- Try to load the shotfile
-        fn = guessiHIBPfilename(shot=shot)
+        fn, ft, self.properties = guessiHIBPfilename(shot=shot)
         if not os.path.isfile(fn):
             raise errors.DatabaseError('Cannot find video for shot #%05d'%shot)
-
-        # We initialize the parent class with the iHIBP video.
-        super().__init__(file=fn, shot=shot)
-
-        # Getting the time correction.
+        #get time correction
         try:
-            self.timecal, _, self.cam_prop = ihibp_get_time_basis(shot=shot)
-            # In order to change a time
-            self.exp_dat['t'] = self.timecal
-            self.timebase = self.timecal
+            self.timecal, self.nf = ihibp_get_time_basis(fn = ft, shot=shot)
         except FileNotFoundError:
             pass
-
+        # We initialize the parent class with the iHIBP video.
+        self.framenumber = frame
+        self.timestamp = timestamp
+        super().__init__(file=fn, shot=shot)
+        self.exp_dat['t'] = self.timecal
+        self.timebase = self.timecal
+        self.exp_dat['nframes'] = \
+            xr.DataArray(np.arange(len(self.exp_dat.t)), dims=('t'))
         # Let's check whether the user provided the calibration parameters.
         if calib is None:
-            print('Retrieving the calibration parameters for iHIBP')
+            logger.info('Retrieving the calibration parameters for iHIBP')
             caldb = libcal.CalibrationDatabase(pa.ihibp_calibration_db)
-            self.calib = caldb.get_calibration(shot=shot,
-                                               camera='SLOWCAMERA',
-                                               cal_type='PIX',
-                                               diag_ID=1)
+            self.calib = caldb.get_calibration(shot=shot, diag_ID=1)
         else:
             self.calib = calib
         # JRR note: This was created in parallel by Pablo and I will not change
@@ -273,7 +208,7 @@ class iHIBPvideo(BVO):
 
         # --- Checking if the scintillator plate is provided:
         if scobj is None:
-            print('Getting standard scintillator plate for iHIBP')
+            logger.info('Getting standard scintillator plate for iHIBP')
             fn_sc = pa.ihibp_scint_plate
             self.scintillator = Scintillator(file=fn_sc, format='FILDSIM')
         else:
@@ -282,11 +217,17 @@ class iHIBPvideo(BVO):
         # Updating the calibration in the scintillator.
         self.scintillator.calculate_pixel_coordinates(self.CameraCalibration)
 
+        if self.properties['description'] == 'raw video':
+            noiseSubtraction = True
+            filterFrames = True
+            self.properties['description'] = 'zero-th frame subtracted ' + \
+                                             'and median filtered with size 5'
         # --- Apply now the background noise substraction and filtering.
         if noiseSubtraction:
-            self.subtract_noise(t1=-1.0, t2=0.0, flag_copy=True)
+            self.subtract_noise(frame = self.exp_dat['frames'].isel(t=0),
+                                flag_copy=True)
         if filterFrames:
-            self.filter_frames(method='median')
+            self.filter_frames(method='median', options = {'size': 5})
 
         # --- i-HIBP scintillator distorted.
         self.scint_path = self.scintillator.get_path_pix()
@@ -294,16 +235,17 @@ class iHIBPvideo(BVO):
         self.scint_mask = mask.getMask(self.exp_dat['frames'][..., 0])
 
         # --- Getting which is the first illuminated frame:
-        tt = sstt.TimeTrace(self, self.scint_mask)
-        flags = tt['t'].values > self.exp_dat.attrs['t2_noise']
-        time = tt['t'].values[flags]
-        self.dsignal_dt = tt['mean_of_roi'].values[flags]
+        if noiseSubtraction:
+            tt = sstt.TimeTrace(self, self.scint_mask)
+            flags = tt['t'].values > self.exp_dat['frame_noise'].attrs['t2_noise']
+            time = tt['t'].values[flags]
+            self.dsignal_dt = tt['mean_of_roi'].values[flags]
 
-        t0_idx = np.where(self.dsignal_dt > signal_threshold)[0][0]
-        self.t0 = time[t0_idx]
-        print('Using t0 = %.3f as the reference frame'%self.t0)
-        self.frame0 = \
-            self.exp_dat['frames'].values[..., self.getFrameIndex(t=self.t0)]
+            t0_idx = np.where(self.dsignal_dt > signal_threshold)[0][0]
+            self.t0 = time[t0_idx]
+            logger.info('Using t0 = %.3f as the reference frame'%self.t0)
+            self.frame0 = \
+                self.exp_dat['frames'].values[..., self.getFrameIndex(t=self.t0)]
 
     def plot_frame(self, plotScintillatorPlate: bool = True, **kwargs):
         """"

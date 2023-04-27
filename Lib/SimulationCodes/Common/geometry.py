@@ -23,7 +23,7 @@ import f90nml
 paths = Path(machine)
 
 
-def read_element(file, code: str = 'SINPA'):
+def read_element(file: str, code: str = 'SINPA'):
     """
     Read a SINPA of FILDSIM gemetric element.
 
@@ -45,7 +45,7 @@ def read_element(file, code: str = 'SINPA'):
     some point in the name. Examples: AUG_FILD1_SCINTILLATOR or
     AUG_scintillator_FILD1
 
-    Note2: To be consistend between both of codes, coorditanes will be
+    Note2: To be consistent between both of codes, coorditanes will be
     transformed to m when reading the files
     """
     if code.lower() == 'fildsim':

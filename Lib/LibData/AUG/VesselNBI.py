@@ -13,6 +13,18 @@ import Lib._Utilities as ssextra
 import Lib.errors as errors
 from Lib._Paths import Path
 
+import logging
+logger = logging.getLogger('ScintSuite.Data')
+
+try:
+    import numba
+except ModuleNotFoundError:
+   REAL_NBI_GEOM = False
+   logger.warning('Numba is not installed. Requirement for NBI geometry in AUG.')
+else:
+    import Lib.LibData.AUG._nbi_geom as nbigeom
+    REAL_NBI_GEOM = True
+
 pa = Path()
 
 
@@ -251,8 +263,6 @@ def getNBIwindow(timeWindow: float, shotnumber: int,
         flags[t0:t1] = True
 
     # --- Filtering the outputs.
-    print(aux.shape)
-    print(flags.shape)
     aux = np.logical_and(flags, aux)
     data = pniq[t0_0:t1_0, nbion_idx, nbion_box]
     output = {
@@ -360,7 +370,7 @@ def getNBI_total(shot: int, tBeg: float = None, tEnd: float = None):
 class NBI:
     """Class with the information and data from an NBI"""
 
-    def __init__(self, nnbi: int, shot: int = 32312, diaggeom=True):
+    def __init__(self, nnbi: int, shot: int = 32312, diaggeom: bool=True):
         """
         Initialize the class
 
@@ -381,8 +391,10 @@ class NBI:
         self.pitch_profile = None
         if diaggeom:
             self.coords = NBI_diaggeom_coordinates(nnbi)
+        elif REAL_NBI_GEOM:
+            self.coords = nbigeom.get_nbi_geom(nnbi)
         else:
-            raise errors.NotImplementedError('Option not yet implemented')
+            raise ValueError('NBI calculation of geometry is not available!')
 
     def calc_pitch_profile(self, shot: int, time: float, rmin: float = 1.3,
                            rmax: float = 2.2, delta: float = 0.04,
