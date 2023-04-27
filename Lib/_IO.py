@@ -575,9 +575,12 @@ def load_remap(filename, diag='FILD'):
     noise_frame = os.path.join(dummyFolder, 'noiseFrame.nc')
     position = os.path.join(dummyFolder, 'position.json')
     orientation = os.path.join(dummyFolder, 'orientation.json')
+    CameraData = os.path.join(dummyFolder, 'CameraData.json')
     if os.path.isfile(noise_frame):
         vid.exp_dat = xr.Dataset()
         vid.exp_dat['frame_noise'] = xr.load_dataarray(noise_frame)
+    if os.path.isfile(CameraData):
+        vid.CameraData = json.load(open(CameraData))
     with open(os.path.join(dummyFolder, 'metadata.txt'), 'r') as f:
         vid.shot = int(f.readline().split(':')[-1])
         vid.diag_ID = int(f.readline().split(':')[-1])

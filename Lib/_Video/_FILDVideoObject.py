@@ -82,7 +82,8 @@ class FILDVideo(FIV):
     def __init__(self, file: str = None, shot: int = None,
                  diag_ID: int = 1, empty: bool = False,
                  logbookOptions: dict = {}, Boptions: dict = {},
-                 verbose: bool = True, YOLO: bool = False):
+                 verbose: bool = True, YOLO: bool = False,
+                 cameraDataFile: str = ''):
         """
         Initialise the class
 
@@ -154,11 +155,16 @@ class FILDVideo(FIV):
                 except AttributeError:
                     self.operatorComment = None
                     self.overheating = None
+                try:  # Try to get the camera data
+                    self.getCameraData(cameraDataFile)
+                except FileNotFoundError:
+                    self.CameraData = None
             else:
                 self.position = None
                 self.orientation = None
                 self.geometryID = None
                 self.CameraCalibration = None
+                self.CameraData = None
                 self.operatorComment = None
                 self.overheating = None
                 print('Shot not provided, you need to define FILDposition')
