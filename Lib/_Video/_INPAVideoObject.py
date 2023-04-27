@@ -12,26 +12,28 @@ Introduced in version 0.8.0
 import os
 import math
 import logging
-import xarray as xr
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-import tkinter as tk                       # To open UI windows
-import Lib._Plotting as ssplt
-import Lib._Mapping as ssmap
+import xarray as xr
+import tkinter as tk
 import Lib._Paths as p
 import Lib._IO as ssio
 import Lib._GUIs as ssGUI             # For GUI elements
 import Lib.LibData as ssdat
+import Lib.errors as errors
+import Lib._Mapping as ssmap
+import Lib._Plotting as ssplt
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import Lib._Video._AuxFunctions as _aux
+from Lib._Machine import machine
 from Lib.version_suite import version
 from Lib._Video._FILD_INPA_Parent import FIV
-from Lib._Machine import machine
 from Lib._Scintillator import Scintillator
-import Lib._Video._AuxFunctions as _aux
-import Lib.errors as errors
+
 
 # -----------------------------------------------------------------------------
 # %% Auxiliary objects
+# -----------------------------------------------------------------------------
 logger = logging.getLogger('ScintSuite.INPAVideo')
 pa = p.Path(machine)
 del p
@@ -81,9 +83,9 @@ class INPAVideo(FIV):
 
     :Example of using this object:
         1:
-            Give shot number and INPA number (diag_ID, by default 1, by now there
-            is only one INPA in AUG). The code will predict the filename to
-            load. This option is the prefered one
+            Give shot number and INPA number (diag_ID, by default 1, by now
+            there is only one INPA in AUG). The code will predict the filename
+            to load. This option is the prefered one
 
         >>> import Lib as ss
         >>> vid = ss.vid.INPAVideo(shot=40412)
@@ -170,7 +172,7 @@ class INPAVideo(FIV):
             FIV.__init__(self, empty=empty)
 
     # --------------------------------------------------------------------------
-    # --- Get shot / magnetic data
+    # ---- Get shot / magnetic data
     # --------------------------------------------------------------------------
     def _getBangles(self):
         """Get the orientation of the field respec to the head."""
@@ -209,7 +211,7 @@ class INPAVideo(FIV):
         pass
 
     # --------------------------------------------------------------------------
-    # --- Remap
+    # ---- Remap
     # --------------------------------------------------------------------------
     def remap_loaded_frames(self, options: dict = {}):
         """
@@ -346,10 +348,10 @@ class INPAVideo(FIV):
         return phi, theta
 
     # --------------------------------------------------------------------------
-    # --- GUIs
+    # ---- GUIs/plot
     # --------------------------------------------------------------------------
     def GUI_frames_and_remap(self):
-        """GUI to explore camera and remapped frames"""
+        """GUI to explore camera and remapped frames."""
         text = 'Press TAB until the time slider is highlighted in red.'\
             + ' Once that happened, you can move the time with the arrows'\
             + ' of the keyboard, frame by frame'
@@ -363,7 +365,7 @@ class INPAVideo(FIV):
         root.destroy()
 
     def GUI_frames_and_traces(self):
-        """GUI to explore camera and remapped frames"""
+        """GUI to explore camera and remapped frames."""
         text = 'Press TAB until the time slider is highlighted in red.' \
                + ' Once that happened, you can move the time with the arrows' \
                + ' of the keyboard, frame by frame'
@@ -548,9 +550,12 @@ class INPAVideo(FIV):
             plt.tight_layout()
         plt.show()
 
+    # --------------------------------------------------------------------------
+    # ---- Camera calibration
+    # --------------------------------------------------------------------------
     def reloadCameraCalibration(self):
         """
-        Reload the camera calibration
+        Reload the camera calibration.
 
         Useful if you are iterating wuth the calibration file
 
@@ -559,3 +564,70 @@ class INPAVideo(FIV):
         INPAlogbook = ssdat.INPA_logbook(**self.logbookOptions)  # Logbook
         self.CameraCalibration = \
             INPAlogbook.getCameraCalibration(self.shot, self.diag_ID)
+
+    # --------------------------------------------------------------------------
+    # ---- Pitch profile
+    # --------------------------------------------------------------------------
+    def estimatePitchProfile(self, t: float, NBIline: dict = {}, rmin = 1.4,
+                             rmax = 2.2, IPBtSign: float = -1.0):
+        """
+        Estimate the pitch profile, based in geometry and equilibrium.
+
+        Jose Rueda - jrrueda@us.es
+
+        :param t: DESCRIPTION
+        :type t: float
+        :param NBIline: DESCRIPTION, defaults to {}
+        :type NBIline: dict, optional
+        :return: DESCRIPTION
+        :rtype: TYPE
+
+        """
+        # ---- Check inputs
+        if self.position is None:
+            errors.NotValidInput('position should be in the video object')
+        if t is None:
+            t = self.exp_dat.t.values.mean()
+        # ---- Get the points along the line
+        npoints = 150
+        points = np.zeros((npoints, 3))
+        points[0, :] = NBIline['origin']
+        for i in range(1, npoints):
+            points[i, :] = points[i-1, :] + NBIline['v']/100.0
+        Rpoints = np.sqrt(points[:, 0]**2 + points[:, 1]**2)
+        # Get only the points inside the view
+        flags = (Rpoints > rmin) * (Rpoints < rmax)
+        Rpoints = Rpoints[flags]
+        points = points[flags, :]
+        phipoints = np.arctan2(points[:, 1], points[:, 0])
+        zpoints = points[:, 1]
+        # ---- Get the magnetic field
+        br, bz, bt, bp =\
+            ssdat.get_mag_field(self.shot,
+                                Rpoints,
+                                zpoints,
+                                time=t,
+                                **self.BFieldOptions)
+        bx = np.array(br*np.cos(phipoints) - bt*np.sin(phipoints)).squeeze()
+        by = np.array(- br*np.cos(phipoints) + bt*np.cos(phipoints)).squeeze()
+        bz = np.array(bz).squeeze()
+        b = np.sqrt(bx**2 + by**2 + bz**2).squeeze()
+        # ---- Calculate the pitch
+        pitch = np.zeros(Rpoints.size)
+        phi_pinhole = self.position['phi_pinhole'] * np.pi / 180.0
+        pinhole = np.array((
+            self.position['R_pinhole'] * np.cos(phi_pinhole),
+            self.position['R_pinhole'] * np.sin(phi_pinhole),
+            self.position['z_pinhole']))
+        for i in range(pitch.size):
+            v = pinhole - points[i, :]
+            v /= np.linalg.norm(v)
+            pitch[i] = v[0] * bx[i] + v[1] * by[i] + v[2] * bz[i]
+            pitch[i] /= b[i]
+        self.pitchProfile = {
+            'R': Rpoints,
+            'phi': phipoints,
+            'z': zpoints,
+            'pitch': pitch * IPBtSign
+            }
+        return

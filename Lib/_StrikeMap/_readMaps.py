@@ -14,12 +14,13 @@ Private methods:
 
 Introduced in version 0.10.0
 """
-
+import logging
 import numpy as np
 import Lib.errors as errors
 from copy import deepcopy
 from Lib._basicVariable import BasicVariable
 
+logger = logging.getLogger('ScintSuite.StrikeMaps')
 # --- Order of the variables written in the strike map file.
 # If the there is no entrance for version X is because there were no changes in
 # the file structure
@@ -50,7 +51,7 @@ SINPAinpaOrder = {
 
 def _readSmapSINPA(filename: str):
     """
-    Read strike map data from a SINPA file
+    Read strike map data from a SINPA file.
 
     Jose Rueda: jrrueda
 
@@ -219,7 +220,7 @@ def _readSmapSINPA(filename: str):
 
 def _readSmapFILDSIM(filename: str):
     """
-    Read strike map data from a FILDSIM file
+    Read strike map data from a FILDSIM file.
 
     Jose Rueda: jrrueda
 
@@ -293,7 +294,7 @@ def _readSmapFILDSIM(filename: str):
 
 def readSmap(filename, code: str = None):
     """
-    Read a strike map from file
+    Read a strike map from file.
 
     Jose Rueda Rueda: jrrueda@us.es
 
@@ -309,7 +310,7 @@ def readSmap(filename, code: str = None):
         elif filename.endswith('.map'):
             code = 'SINPA'
         else:
-            print(filename)
+            logger.error(filename)
             msg = 'File name not code standard, you need to give the code'
             raise errors.NotValidInput(msg)
     if code == 'SINPA':

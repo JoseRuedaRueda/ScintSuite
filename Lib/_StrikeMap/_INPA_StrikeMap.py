@@ -10,6 +10,7 @@ import numpy as np
 import xarray as xr
 import Lib.LibData as ssdat
 import Lib.errors as errors
+import Lib._CustomFitModels as ssmodels
 from tqdm import tqdm
 from Lib._Machine import machine
 from scipy.signal import convolve
@@ -350,6 +351,7 @@ class Ismap(FILDINPA_Smap):
             variablesScint[1].capitalize()
         # Now perform the energy scaling:
         if energyFit is not None:
+            logger.info('Adding energy scaling')
             if isinstance(energyFit, str):
                 # The user give us the energy fit file
                 fit = lmfit.model.load_modelresult(energyFit)
@@ -383,6 +385,7 @@ class Ismap(FILDINPA_Smap):
             scaleFactor = xr.DataArray(scaleFactor, dims=keyToEval,
                                        coords={keyToEval: xToEval})
             self.instrument_function = self.instrument_function * scaleFactor
+
         # --- Add some units
         # TODO: This is a bit hardcored, so would be better in another way
         units = {
@@ -404,4 +407,39 @@ class Ismap(FILDINPA_Smap):
         self.instrument_function.attrs['B'] = B
         self.instrument_function.attrs['Z'] = Z
         self.instrument_function.attrs['A'] = A
+
+        # ---- Perform fitting
+        logger.info('Fitting to bivariant Normal distributions')
+        # Allocate a copy
+        self.instrument_function_fit = self.instrument_function.copy()
+        self.instrument_function_fit.attrs['Info'] = \
+            'Fitted to a BivariateNormal'
+        # Prepare the model
+        model = ssmodels.BivariateNormalDistribution
+        # Prepare grids
+        XX, YY = np.meshgrid(self.instrument_function.x,
+                             self.instrument_function.y,
+                             indexing='ij')
+        # Perfom the loop
+        for jk in range(self.instrument_function.kind.size):
+            if self.instrument_function.isel(kind=jk).sum() < 1.0e-8:  # So zero
+                continue
+            # Fit a bivariant spline for each scintilaltor position
+            for ixs in range(self.instrument_function.xs.size):
+                for iys in range(self.instrument_function.ys.size):
+                    matrix = self.instrument_function.isel(kind=jk,
+                                                           xs=ixs,
+                                                           ys=iys).values.copy()
+                    sumMatrix = matrix.sum()
+                    if sumMatrix < 1.0e-8:
+                        continue
+                    matrix /= sumMatrix
+                    params = ssmodels.guessParamsBivariateNormalDistribution(
+                        XX.flatten(), YY.flatten(), matrix.flatten())
+                    result = model.fit(data=matrix.flatten(),
+                                       params=params, x=XX.flatten(),
+                                       y=YY.flatten())
+                    self.instrument_function_fit.values[ixs, iys, :, :, jk] = \
+                        result.eval(x=XX.flatten(), y=YY.flatten()).reshape(
+                            XX.shape) * sumMatrix
         return

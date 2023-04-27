@@ -122,8 +122,8 @@ def remapAllLoadedFrames(video,
     # --------------------------------------------------------------------------
     # --- INPUTS CHECK AND PREPARATION
     # --------------------------------------------------------------------------
-    acceptedVars = ('energy', 'r0', 'gyroradius')
-    units = {'e0': 'keV', 'R0': 'm', 'gyroradius': 'cm'}
+    acceptedVars = ('energy', 'r0', 'gyroradius', 'rho_pol')
+    units = {'e0': 'keV', 'R0': 'm', 'gyroradius': 'cm', 'rho_pol': ' '}
     var_remap = [v.lower() for v in variables_to_remap]  # force small letter
     for v in var_remap:
         if v not in acceptedVars:
@@ -135,6 +135,10 @@ def remapAllLoadedFrames(video,
                 var_remap[i] = 'e0'
     else:
         wantEnergy = False
+    if 'rho_pol' in var_remap:
+        wantRho = True
+    else:
+        wantRho = False
     if 'r0' in var_remap:
         for i in range(2):
             if var_remap[i] == 'r0':
@@ -271,6 +275,8 @@ def remapAllLoadedFrames(video,
             smap = Ismap(os.path.join(smap_folder, name))
             if wantEnergy:
                 smap.calculate_energy(video.BField['B'].values[iframe], A, Z)
+            if wantRho:
+                smap.getRho(video.shot, video.exp_dat.t.values[iframe])
 
             smap.setRemapVariables(var_remap, verbose=False)
             # -- Calculate the pixel coordinates

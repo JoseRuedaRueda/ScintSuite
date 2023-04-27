@@ -2,6 +2,7 @@
 import numpy as np
 import xarray as xr
 import aug_sfutils as sfutils
+import Lib.errors as errors
 from scipy.interpolate import interp1d, interp2d, UnivariateSpline
 from Lib._Paths import Path
 from Lib.LibData.AUG.Equilibrium import get_rho, get_shot_basics
@@ -834,7 +835,8 @@ def get_tor_rotation_idi(shotnumber: int, time: float = None,
         sf = sfutils.SFREAD(shotnumber, 'IDI', edition=edition, exp=exp)
 
         if not sf.status:
-            raise Exception('Cannot open IDI shotfile for #%05d' % shotnumber)
+            raise errors.DatabaseError('Cannot open IDI shotfile for #%05d' %
+                                       shotnumber)
 
     # --- Getting the data
     data = np.array(sf('vt'))
@@ -863,9 +865,10 @@ def get_tor_rotation_idi(shotnumber: int, time: float = None,
         output['rho'].attrs['long_name'] = '$\\rho_p$'
         output['t'].attrs['long_name'] = 'Time'
         output['t'].attrs['units'] = 's'
+        output['data'].attrs['long_name'] = '$\\omega$'
+        output['data'].attrs['units'] = 'rad/s'
         output.attrs['diag'] = 'IDI'
         output.attrs['shot'] = shotnumber
-
 
     return output
 

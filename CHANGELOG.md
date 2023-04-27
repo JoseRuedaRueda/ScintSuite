@@ -1,3 +1,7 @@
+# 1.2.4 Documentation improvement
+- Improved docstrics
+- change some old prints into logger instances
+
 # 1.2.3: Minor correction
 ## Strikes:
 - Corrected 2Pi factor in the definition of the Transmission optical factor
