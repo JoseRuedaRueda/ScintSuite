@@ -1,7 +1,15 @@
 """
-Non-negat
+Solvers fortomography.
 """
+import logging
 import numpy as np
+logger = logging.getLogger('ScintSuite.Tomography.Solvers')
+try:
+    from sklearnex import patch_sklearn
+    patch_sklearn()
+    logger.info('Sklearn intel patched')
+except ModuleNotFoundError:
+    logger.warning('Sklearn intel not patched, tomography will be slow')
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
@@ -9,12 +17,13 @@ from scipy.optimize import nnls     # Non negative least squares
 from Lib._Tomography._meritFunctions import residual
 from sklearn.linear_model import ElasticNet  # ElaticNet
 
+
 # -----------------------------------------------------------------------------
 # --- SOLVERS AND REGRESSION ALGORITHMS
 # -----------------------------------------------------------------------------
 def ols(X, y):
     """
-    Perform an OLS inversion using the analytical solution
+    Perform an OLS inversion using the analytical solution.
 
     Jose Rueda: jrrueda@us.es
 
@@ -35,7 +44,7 @@ def ols(X, y):
 
 def nnlsq(X, y, **kargs):
     """
-    Perform a non-negative least squares inversion using scipy
+    Perform a non-negative least squares inversion using scipy.
 
     Jose Rueda: jrrueda@us.es
 
@@ -59,7 +68,7 @@ def nnlsq(X, y, **kargs):
 
 def tikhonov0(X, y, alpha, weight=None, **kargs):
     """
-    Perform a Ridge (0th Tikhonov) regression
+    Perform a Ridge (0th Tikhonov) regression.
 
     Jose Rueda: jrrueda@us.es
 
@@ -110,7 +119,8 @@ def nntikhonov0(X, y, alpha, **kargs):
     return beta, MSE, res, r2
 
 
-def Elastic_Net(X, y, alpha, l1_ratio=0.05, positive=True, max_iter=1000):
+def Elastic_Net(X, y, alpha, l1_ratio=0.05, positive=True, max_iter=1000,
+                **kargs):
     """
     Wrap for the elastic net function
 

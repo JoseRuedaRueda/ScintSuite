@@ -114,7 +114,7 @@ class GeneralStrikeMap(XYtoPixel):
         self._to_remap = [self._data[name] for name in variables_to_remap]
         self._remap_var_names = variables_to_remap
         if verbose:
-            print('Please call interp_grid to update the interpolators')
+            logger.warning('Please call interp_grid to update the interpolators')
 
     def interp_grid(self, frame_shape, method: int = 2,
                     verbose: bool = False,
@@ -148,7 +148,7 @@ class GeneralStrikeMap(XYtoPixel):
                 'var1_var2': 4D tensor for the remap to var1_var2
             }
         """
-        # --- Check inputs
+        # ---- Check inputs
         if self._coord_pix['x'] is None:
             raise Exception('Transform to pixel the strike map before')
         if variables_to_interpolate is None:
@@ -163,8 +163,8 @@ class GeneralStrikeMap(XYtoPixel):
             interpolator = scipy_interp.CloughTocher2DInterpolator
         else:
             raise errors.NotValidInput('Not recognized interpolation method')
-        if verbose:
-            print('Using %s interpolation of the grid' % met)
+
+        logger.debug('Using %s interpolation of the grid' % met)
         if self._grid_interp is not None:
             if self._grid_interp['method'] != met:
                 text = 'Interpolation method must equal the previous one'
@@ -548,14 +548,13 @@ class GeneralStrikeMap(XYtoPixel):
         memory_size = nx * ny * frame_shape[0] * frame_shape[1] \
             * 8 / 1024 / 1024 / 1024
         if memory_size > limitation:
-            print(memory_size)
             text = 'The requiring matrix will consume %2.1f Gb, this is above'\
                 % memory_size\
                 + 'the threshold. Increase it if you really want to proceed'
             raise errors.NotValidInput(text)
         transform = np.zeros((nx, ny,
                               frame_shape[0], frame_shape[1]), dtype='float64')
-        print('Calculating transformation matrix')
+        logger.info('Calculating transformation matrix')
         # This can be slightly confusing, but x,y are coordinates in the
         # camera sensor, and X,Y in the phase space.
         for i in tqdm(range(frame_shape[0])):

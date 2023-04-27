@@ -100,13 +100,13 @@ class FILDINPA_Smap(GeneralStrikeMap):
         """
         if (theta is not None) and (phi is not None):
             if verbose:
-                print('Theta and phi present, ignoring filename')
+                logger.warning('Theta and phi present, ignoring filename')
             name = guess_strike_map_name(phi, theta, geomID=GeomID,
                                          decimals=decimals)
             file = os.path.join(Path().ScintSuite, 'Data', 'RemapStrikeMaps',
                                 diagnostic, GeomID, name)
             if not os.path.isfile(file):
-                print(file)
+                logger.error('Looking for %s' % file)
                 raise errors.NotFoundStrikeMap('you need to calculate the map')
         GeneralStrikeMap.__init__(self,  file,
                                   variables_to_remap=variables_to_remap,
@@ -225,14 +225,14 @@ class FILDINPA_Smap(GeneralStrikeMap):
         :param  verbose: Flag to print some information
         """
         if self.strike_points is None:
-            print('Trying to load the strike points')
+            logger.info('Trying to load the strike points')
             self.load_strike_points()
         # --- Prepare options:
         diag_options = {
             'dx': 1.0,
             'dy': 0.1,
             'x_method': 'Gauss',
-            'y_method': 'Gauss'
+            'y_method': 'sGauss'
         }
         diag_options.update(diag_params)
         # Select the variables
@@ -563,7 +563,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         """
         # --- See if the interpolators are defined
         if self._map_interpolators is None:
-            print('Interpolators not calcualted. Calculating them')
+            logger.debug('Interpolators not calcualted. Calculating them')
             self._calculate_mapping_interpolators()
         # --- Proceed to remap
         # Get the shape of the map
@@ -589,10 +589,10 @@ class FILDINPA_Smap(GeneralStrikeMap):
             if name in self.strike_points.header['info'].keys():
                 was_there = True
                 if overwrite:
-                    print('%s found in the object, overwritting' % k)
+                    logger.warning('%s found in the object, overwritting' % k)
                     ivar = self.strike_points.header['info'][name]['i']
                 else:
-                    print('%s found in the object, skipping' % k)
+                    logger.info('%s found in the object, skipping' % k)
                     continue
             # Loop over the strike points pairs
             for ix in range(nx):
@@ -663,10 +663,10 @@ class FILDINPA_Smap(GeneralStrikeMap):
             if name in strikes.header['info'].keys():
                 was_there = True
                 if overwrite:
-                    print('%s found in the object, overwritting' % k)
+                    logger.warning('%s found in the object, overwritting' % k)
                     ivar = strikes.header['info'][name]['i']
                 else:
-                    print('%s found in the object, skipping' % k)
+                    logger.info('%s found in the object, skipping' % k)
                     continue
             # Loop over the strike points pairs
             for ix in range(nx):
@@ -675,10 +675,11 @@ class FILDINPA_Smap(GeneralStrikeMap):
                         n_strikes = \
                             strikes.header['counters'][ix, iy]
                         remap_data = np.zeros((n_strikes, 1))
-                        if (not k.endswith('pix')) and camera:
+                        if not k.endswith('pix'):
                             remap_data[:, 0] = \
                                 self._map_interpolators[k](
                                     strikes.data[ix, iy][:, [ix1, ix2]])
+
                         elif k.endswith('pix') and camera:
                             remap_data[:, 0] = \
                                 self._map_interpolators[k](
@@ -917,7 +918,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
             for i in range(index_gyr.size):
                 index_gyr[i] = \
                     np.argmin(np.abs(self.MC_variables[1].data - gyroradius[i]))
-            print('Found gyroradius: ', self.MC_variables[1].data)
+            logger.debug('Found gyroradius: %.2f' % self.MC_variables[1].data)
         else:
             # test if it is a number or an array of them
             if gyr_index is not None:
@@ -938,7 +939,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
             for i in range(index_pitch.size):
                 index_pitch[i] = \
                     np.argmin(np.abs(self.MC_variables[0].data - pitch[i]))
-            print('Found pitches: ', self.MC_variables[0].data[index_pitch])
+            logger.info('Found pitches: %.2f' %
+                        self.MC_variables[0].data[index_pitch])
         else:
             # test if it is a number or an array of them
             if pitch_index is not None:
@@ -1117,7 +1119,6 @@ class FILDINPA_Smap(GeneralStrikeMap):
         for k in par.keys():
             if par[k] is not None:
                 par2[k] = par[k]
-        print(par2)
         # - Open the figure, if needed
         if ax is None:
             fig, ax = plt.subplots()
@@ -1127,6 +1128,6 @@ class FILDINPA_Smap(GeneralStrikeMap):
         # - Plot the stuff
 
         self.instrument_function.sel(**par2).plot.imshow(ax=ax, cmap=cmap,
-                                                        interpolation=interpolation)
+                                                         interpolation=interpolation)
         ax = ssplt.axis_beauty(ax, ax_params,)
         return ax

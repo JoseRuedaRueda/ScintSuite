@@ -1,5 +1,5 @@
 """
-Sublibrary to load and process video files
+Sublibrary to load and process video files.
 
 Jose RuedaRueda: jrrueda@us.es   &   Pablo Oyola - pablo.oyola@ipp.mpg.de
 
@@ -16,12 +16,12 @@ It contains several subpackages:
 General user should not need each individual function of the package, just use
 the BVO, FILDVideo, VRTvideo, guess_filename as defined below
 """
-# Load the video objects
+# ---- Load the video objects
 from Lib._Video._BasicVideoObject import BVO
 from Lib._Video._FILDVideoObject import FILDVideo
 from Lib._Video._INPAVideoObject import INPAVideo
 from Lib._Video._VRTVideoObject import VRTVideo
-# Load the auxiliar libraries
+# ---- Load the auxiliar libraries
 import Lib._Video._PNGfiles as png
 import Lib._Video._TIFfiles as tif
 import Lib._Video._PCOfiles as pco

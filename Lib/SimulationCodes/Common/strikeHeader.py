@@ -85,7 +85,7 @@ orderStrikes = {
                     'i': 11,  # Column index in the file
                     'units': 'deg',  # Units
                     'longName': 'Incident angle on the scintillator',
-                    'shortName': '$\\phi_i$',
+                    'shortName': '$\\theta_i$',
                 },
                 'x0': {
                     'i': 12,  # Column index in the file
@@ -321,7 +321,7 @@ orderStrikes = {
                     'i': 11,  # Column index in the file
                     'units': 'deg',  # Units
                     'longName': 'Incident angle on the scintillator',
-                    'shortName': '$\\phi_i$',
+                    'shortName': '$\\theta_i$',
                 },
                 'x0': {
                     'i': 12,  # Column index in the file
@@ -575,7 +575,7 @@ orderStrikes = {
                     'i': 11,  # Column index in the file
                     'units': 'deg',  # Units
                     'longName': 'Incident angle on the scintillator',
-                    'shortName': '$\\phi_i$',
+                    'shortName': '$\\theta_i$',
                 },
                 'x0': {
                     'i': 12,  # Column index in the file
@@ -835,7 +835,7 @@ orderStrikes = {
                     'i': 11,  # Column index in the file
                     'units': 'deg',  # Units
                     'longName': 'Incident angle on the scintillator',
-                    'shortName': '$\\phi_i$',
+                    'shortName': '$\\theta_i$',
                 },
                 'x0': {
                     'i': 12,  # Column index in the file
@@ -1114,7 +1114,7 @@ orderStrikes = {
                     'i': 11,  # Column index in the file
                     'units': 'deg',  # Units
                     'longName': 'Incident angle on the scintillator',
-                    'shortName': '$\\phi_i$',
+                    'shortName': '$\\theta_i$',
                 },
                 'x0': {
                     'i': 12,  # Column index in the file
@@ -1397,7 +1397,7 @@ orderStrikes = {
                     'i': 11,  # Column index in the file
                     'units': 'deg',  # Units
                     'longName': 'Incident angle on the scintillator',
-                    'shortName': '$\\phi_i$',
+                    'shortName': '$\\theta_i$',
                 },
             },
             'collimator': {
@@ -1526,7 +1526,7 @@ orderStrikes = {
                         'i': 11,  # Column index in the file
                         'units': 'deg',  # Units
                         'longName': 'Incident angle on the scintillator',
-                        'shortName': '$\\phi_i$',
+                        'shortName': '$\\theta_i$',
                     },
                 },
                 2: {
@@ -1600,19 +1600,19 @@ orderStrikes = {
                         'i': 11,  # Column index in the file
                         'units': 'deg',  # Units
                         'longName': 'Incident angle on the scintillator',
-                        'shortName': '$\\phi_i$',
+                        'shortName': '$\\theta_i$',
                     },
                     'v1': {
                         'i': 12,  # Column index in the file
                         'units': ' ',  # Units
                         'longName': 'Projection of v final in e1',
-                        'shortName': '$\\phi_i$',
+                        'shortName': '$\\phi_1$',
                     },
                     'v2': {
                         'i': 13,  # Column index in the file
                         'units': ' ',  # Units
                         'longName': 'Projection of v final in e2',
-                        'shortName': '$\\phi_i$',
+                        'shortName': '$\\phi_2i$',
                     },
                 }
             },
@@ -1718,7 +1718,7 @@ orderStrikes = {
                 'i': 6,  # Column index in the file
                 'units': '$\\degree$',  # Units
                 'longName': 'Incident angle',
-                'shortName': '$\\phi$',
+                'shortName': '$\\theta$',
             },
         },  # End of version 0
         1: {
@@ -1768,7 +1768,7 @@ orderStrikes = {
                 'i': 6,  # Column index in the file
                 'units': '$\\degree$',  # Units
                 'longName': 'Incident angle',
-                'shortName': '$\\phi$',
+                'shortName': '$\\theta$',
             },
             'xi0': {
                 'i': 7,   # Column index in the file

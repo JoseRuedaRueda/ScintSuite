@@ -1,5 +1,5 @@
 """
-Suite Errors
+Suite Errors.
 
 Contains all the Sutie custom errors which can be raised by the ScintSuite
 
@@ -9,7 +9,7 @@ Jose Rueda: jrrueda@us.es
 
 # --- General exceptions
 class NotImplementedError(Exception):
-    """Raised if the feature is still not implemented"""
+    """Raised if the feature is still not implemented."""
 
     pass
 
@@ -73,7 +73,7 @@ class NotLoadedPositionDatabase(Exception):
 # --- SINPA/FILDSIM related exception
 class WrongNamelist(Exception):
     """
-    Raised when some namelist parameter are not consistent
+    Raised when some namelist parameter are not consistent.
 
     For example when you ask for 6 gyroradius but just give 6 of them
     """
@@ -83,23 +83,27 @@ class WrongNamelist(Exception):
 
 # --- Video related exception
 class NoFramesLoaded(Exception):
-    """Raised when you try to do something with the frames before loading   """
+    """Raised when you try to do something with the frames before loading."""
 
     pass
 
 
 # --- StrikeMap
 class NotFoundStrikeMap(Exception):
-    """Raised if the no StrikeMap is found in the database"""
+    """Raised if the no StrikeMap is found in the database."""
 
     pass
 
 
-# --- StrikeMap
 class NotFoundVariable(Exception):
-    """Raised if the no StrikeMap is found in the database"""
+    """Raised if the no StrikeMap is found in the database."""
 
     pass
+
+
+class CalculationError(Exception):
+    """Raised if something was wrong during calibration."""
+
 
 # --- Data not loaded into a class
 class NotDataPreloaded(Exception):
@@ -119,3 +123,4 @@ class InconsistentData(Exception):
     """
 
     pass
+

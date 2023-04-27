@@ -1,5 +1,4 @@
 """Scintillator class."""
-import numpy as np
 from Lib._Scintillator._mainClass import Scintillator as Scint
 from Lib.decorators import deprecated
 __all__ = ['Scintillator']

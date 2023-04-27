@@ -853,6 +853,10 @@ class fields:
         self.psipol['nR'] = np.array([nR], dtype=np.int32)
         self.psipol['nz'] = np.array([nz], dtype=np.int32)
         self.psipol['f'] = psipol.astype(dtype=np.float64)
+        self.psipol['Rmin'] = np.array((Rmin), dtype=np.float64)
+        self.psipol['Rmax'] = np.array((Rmax), dtype=np.float64)
+        self.psipol['zmin'] = np.array((zmin), dtype=np.float64)
+        self.psipol['zmax'] = np.array((zmax), dtype=np.float64)
         self.psipol_interp = lambda r, z, phi, time: \
             interpn((self.psipol['R'], self.psipol['z']),
                     self.psipol['f'], (r.flatten(), z.flatten()))
@@ -941,7 +945,7 @@ class fields:
 
         return psipol
 
-    def tofile(self, fid, bflag: bool = True, eflag: bool = False):
+    def tofile(self, fid, what: str='Bfield'):
         """
         Write the field to files following the i-HIBPsims scheme.
 
@@ -960,9 +964,8 @@ class fields:
             opened = True
         else:
             opened = False
-        if bflag is False and eflag is False:
-            raise Exception('Some flag has to be set to write to file!')
-        if bflag:
+
+        if what.lower() == 'bfield':
             # Write header with grid size information:
             self.Bfield['nR'].tofile(fid)
             self.Bfield['nz'].tofile(fid)
@@ -988,7 +991,7 @@ class fields:
                 self.Bfield['fx'].ravel(order='F').tofile(fid)
                 self.Bfield['fy'].ravel(order='F').tofile(fid)
                 self.Bfield['fz'].ravel(order='F').tofile(fid)
-        elif eflag:
+        elif what.lower() == 'efield':
             # Write header with grid size information:
             self.Efield['nR'].tofile(fid)
             self.Efield['nz'].tofile(fid)
@@ -1014,9 +1017,26 @@ class fields:
                 self.Efield['fx'].ravel(order='F').tofile(fid)
                 self.Efield['fy'].ravel(order='F').tofile(fid)
                 self.Efield['fz'].ravel(order='F').tofile(fid)
+        elif what.lower() == 'psipol':
+            self.psipol['nR'].tofile(fid)
+            self.psipol['nz'].tofile(fid)
+            self.psipol['nPhi'].tofile(fid)
+            self.psipol['nTime'].tofile(fid)
 
+            # Write grid ends:
+            self.psipol['Rmin'].tofile(fid)
+            self.psipol['Rmax'].tofile(fid)
+            self.psipol['zmin'].tofile(fid)
+            self.psipol['zmax'].tofile(fid)
+            self.psipol['Phimin'].tofile(fid)
+            self.psipol['Phimax'].tofile(fid)
+            self.psipol['Timemin'].tofile(fid)
+            self.psipol['Timemin'].tofile(fid)
+
+            # Write fields
+            self.psipol['f'].ravel(order='F').tofile(fid)
         else:
-            raise Exception('Not a valid combination of inputs')
+            raise ValueError('Not a valid field to be written.')
         if opened:
             fid.close()
 

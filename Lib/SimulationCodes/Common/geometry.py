@@ -340,7 +340,8 @@ class Geometry:
     Maintainers: Jose Rueda jrrueda@us.es & Pablo Oyola pablo.oyola@ipp.mpg.de
     """
 
-    def __init__(self, GeomID: str = 'Test0', code: str = 'SINPA', files=None):
+    def __init__(self, GeomID: str = 'Test0', code: str = 'SINPA', files=None,
+                 folder=None):
         """
         Initialise the class.
 
@@ -375,7 +376,8 @@ class Geometry:
                 'ps': np.array([0.0, 0.0, 0.0]),
             }
         elif code.lower() == 'sinpa':
-            folder = os.path.join(paths.SINPA, 'Geometry', GeomID)
+            if folder is None:
+                folder = os.path.join(paths.SINPA, 'Geometry', GeomID)
             dummy = f90nml.read(os.path.join(folder,
                                              'ExtraGeometryParams.txt'))
             self.ExtraGeometryParams = dummy['ExtraGeometryParams']
@@ -832,4 +834,3 @@ class Geometry:
                                                 + "_" + file_mod[ele['kind']])
 
 ##
-
