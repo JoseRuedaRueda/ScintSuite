@@ -121,7 +121,13 @@ class Scintillator(XYtoPixel):
             factor = {'m': 1.0,
                       'cm': 0.01,
                       'mm': 0.001,
-                      'inch': 0.01/2.54}.get(self.units)
+                      'inch': 0.01/2.54}
+            
+            if self.units not in factor:
+                factor = 1.0
+                logger.warning('XX: Not found units, assuming meters.')
+            else:
+                factor = factor[self.units]
 
             self._coord_real['x1'] *= factor
             self._coord_real['x2'] *= factor

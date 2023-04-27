@@ -74,110 +74,6 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
     return database
 
 
-def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
-                                  verbose: bool = True):
-    """
-    Read camera calibration database including distortion.
-
-    Jose Rueda Rueda: jrrueda@us.es
-    Hannah Lindl: hannah.lindl@ipp.mpg.de
-
-    :param filename: Complete path to the file with the calibrations
-    :param n_header: Number of header lines (5 in the oficial format)
-    :param verbose: if true, print some information in the command line
-
-    :return database: Pandas dataframe with the database
-    """
-    data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
-            'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
-            'deg': [], 'cal_type': [], 'diag_ID': [], 'c1': [],
-            'xcenter': [], 'ycenter': []}
-
-    # Read the file
-    if verbose:
-        print('Reading Camera database from: ', filename)
-    with open(filename) as f:
-        for i in range(n_header):
-            dummy = f.readline()
-        # Database itself
-        for line in f:
-            dummy = line.split()
-            data['CalID'].append(int(dummy[0]))
-            data['camera'].append(dummy[1])
-            data['shot1'].append(int(dummy[2]))
-            data['shot2'].append(int(dummy[3]))
-            data['xshift'].append(float(dummy[4]))
-            data['yshift'].append(float(dummy[5]))
-            data['xscale'].append(float(dummy[6]))
-            data['yscale'].append(float(dummy[7]))
-            data['deg'].append(float(dummy[8]))
-            data['cal_type'].append(dummy[9])
-            data['diag_ID'].append(int(dummy[10]))
-            data['c1'].append(float(dummy[11]))
-            data['xcenter'].append(float(dummy[12]))
-            data['ycenter'].append(float(dummy[13]))
-
-    # Transform to pandas
-    database = pd.DataFrame(data)
-    return database
-
-def readCameraCalibrationDatabase3(filename: str, n_header: int = 5,
-                                  verbose: bool = True):
-    """
-    Read camera calibration database including distortion and
-    different types of distortion models
-
-    Jose Rueda Rueda: jrrueda@us.es
-    Hannah Lindl: hannah.lindl@ipp.mpg.de
-
-    :param filename: Complete path to the file with the calibrations
-    :param n_header: Number of header lines (5 in the oficial format)
-    :param verbose: if true, print some information in the command line
-
-    :return database: Pandas dataframe with the database
-    """
-    data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
-            'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
-            'deg': [], 'cal_type': [], 'diag_ID': [], 'c1': [],
-            'xcenter': [], 'ycenter': [], 'nxpix': [], 'nypix': [],
-            'type': []}
-
-    # Read the file
-    if verbose:
-        print('Reading Camera database from: ', filename)
-    with open(filename) as f:
-        for i in range(n_header):
-            dummy = f.readline()
-        # Database itself
-        for line in f:
-            dummy = line.split()
-            if len(dummy) != 17:
-                print('wrong database format. revise database')
-                break
-
-            data['CalID'].append(int(dummy[0]))
-            data['camera'].append(dummy[1])
-            data['shot1'].append(int(dummy[2]))
-            data['shot2'].append(int(dummy[3]))
-            data['xshift'].append(float(dummy[4]))
-            data['yshift'].append(float(dummy[5]))
-            data['xscale'].append(float(dummy[6]))
-            data['yscale'].append(float(dummy[7]))
-            data['deg'].append(float(dummy[8]))
-            data['cal_type'].append(dummy[9])
-            data['diag_ID'].append(int(dummy[10]))
-            data['c1'].append(float(dummy[11]))
-            data['xcenter'].append(float(dummy[12]))
-            data['ycenter'].append(float(dummy[13]))
-            data['nxpix'].append(float(dummy[14]))
-            data['nypix'].append(float(dummy[15]))
-            data['type'].append(str(dummy[16]))
-
-    # Transform to pandas
-    database = pd.DataFrame(data)
-    return database
-
-
 def readTimeDependentCalibration(filename):
     fields = {
         1: ['time', 'xshift', 'yshift', 'xscale', 'yscale',
@@ -212,26 +108,8 @@ def readTimeDependentCalibration(filename):
 
 
 
-def get_database(filename: str = None):
-    """
-    select the correct way to read the database depending on the extension
-
-    Hannah Lindl: hannah.lindl@ippmpg.de
-
-    :param filename: filename of the database. Should have extension calib1, calib2 or calib3
-    """
-    if filename.endswith('.calib1'):
-        database = readCameraCalibrationDatabase(filename)
-    elif filename.endswith('.calib2'):
-        database = readCameraCalibrationDatabase2(filename)
-    elif filename.endswith('.calib3'):
-        database = readCameraCalibrationDatabase3(filename)
-    else:
-        print('unknown calibration database format')
-        return
-    return database
-
-def get_calibration_method(data, shot: int = None, diag_ID: int = None, method: str = None):
+def get_calibration_method(data, shot: int = None, diag_ID: int = None, 
+                           method: str = None):
     """
     Give the calibration parameters of a precise database entry
 

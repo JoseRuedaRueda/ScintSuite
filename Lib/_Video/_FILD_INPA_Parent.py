@@ -844,6 +844,7 @@ class FIV(BVO):
         metaDataFile = os.path.join(folder, 'metadata.txt')
         orientationFile = os.path.join(folder, 'orientation.json')
         positionFile = os.path.join(folder, 'position.json')
+        cameraData = os.path.join(folder, 'CameraData.json')
         tarFile = os.path.join(folder, str(self.shot) + '_' + self.diag +
                                str(self.diag_ID) + '_' + 'remap.tar')
         if os.path.isfile(tarFile) and not overwrite:
@@ -868,6 +869,8 @@ class FIV(BVO):
         json.dump(self.position, open(positionFile, 'w'))
         json.dump({k:v.tolist() for k,v in self.orientation.items()},
                   open(orientationFile, 'w' ) )
+        if self.CameraData is not None:
+            json.dump(self.CameraData, open(cameraData))
         # Create the tar file
         tar = tarfile.open(name=tarFile, mode='w')
         tar.add(magField, arcname='Bfield.nc')
@@ -878,6 +881,7 @@ class FIV(BVO):
         tar.add(metaDataFile, arcname='metadata.txt')
         tar.add(positionFile, arcname='position.json')
         tar.add(orientationFile, arcname='orientation.json')
+        tar.add(cameraData, arcname='CameraData.json')
         if 'frame_noise' in self.exp_dat:
             tar.add(noiseFrame, arcname='noiseFrame.nc')
         tar.close()

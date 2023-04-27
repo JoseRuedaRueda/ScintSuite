@@ -8,6 +8,7 @@ will be derived. Each of these derived video object will contain the individual
 routines to remap iHIBP, FILD or INPA data.
 """
 import os
+import f90nml
 import logging
 import numpy as np
 import xarray as xr
@@ -29,7 +30,9 @@ import Lib._Utilities as ssutilities
 import Lib._Video._AuxFunctions as aux
 from tqdm import tqdm                      # For waitbars
 from scipy import ndimage                  # To filter the images
+from Lib._Paths import Path
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 
 
 # --- Initialise the auxiliary objects
@@ -234,6 +237,7 @@ class BVO:
         ## Camera calibration to relate the scintillator and the camera sensor,
         # each diagnostic will read its camera calibration from its database
         self.CameraCalibration = None
+        self.CameraData = None
         ## Scintillator plate:
         self.scintillator = None
 
@@ -337,6 +341,34 @@ class BVO:
             nbase = nbase.squeeze()
         # Get the data-type
         dtype = M.dtype
+        # Apply the neccesary transformations
+        if self.CameraData is not None:
+            # Crop the frames if needed
+            if 'xmin' in self.CameraData:
+                xmax = self.CameraData['xmax']
+                xmin = self.CameraData['xmin']
+                px = np.arange(xmax - xmin)
+                M = M[xmin:xmax, :, :]
+            if 'ymin' in self.CameraData:
+                ymax = self.CameraData['ymax']
+                ymin = self.CameraData['ymin']
+                px = np.arange(ymax - ymin)
+                M = M[:, ymin:ymax, :]
+            # invert the frames if needed
+            if 'invertx' in self.CameraData:
+                if self.CameraData['invertx']:
+                    M = M[::-1, :, :]
+            if 'inverty' in self.CameraData:
+                if self.CameraData['inverty']:
+                    M = M[:, ::-1, :]
+            # Exchange xy if needed:
+            if 'exchangexy' in self.CameraData:
+                if self.CameraData['exchangexy']:
+                    M = M.transpose((1, 0, 2))
+                    px_tmp = px.copy()
+                    px = py.copy()
+                    py = px_tmp
+
         # Storage it
         self.exp_dat['frames'] = \
             xr.DataArray(M, dims=('px', 'py', 't'), coords={'t': tbase,
@@ -629,7 +661,7 @@ class BVO:
         return
 
     # --------------------------------------------------------------------------
-    # --- Plotting a GUIs
+    # --- Plotting and GUIs
     # --------------------------------------------------------------------------
     def plot_number_saturated_counts(self, ax_params: dict = {},
                                      line_params: dict = {},
@@ -989,6 +1021,23 @@ class BVO:
             mask = roi.getMask(self.exp_dat['frames'][:, :, 0].squeeze())
 
         return sstt.TimeTrace(self, mask, ROIname=ROIname), mask
+
+    def getCameraData(self, file: str = ''):
+        """
+        Read the camera data.
+
+        Jose Rueda Rueda
+        
+        :param file: if empty, we will load the camera datafile from the Data
+            folder taing into account the camera name from the calibration
+            database.
+        """
+        if file=='':
+            file = os.path.join(Path().ScintSuite, 'Data',
+                                'CameraGeneralParameters',
+                                self.CameraCalibration.camera + '.txt')
+        logger.info('Reading camera data: %s', file)
+        self.CameraData = f90nml.read(file)['camera']
 
     # --------------------------------------------------------------------------
     # --- Export

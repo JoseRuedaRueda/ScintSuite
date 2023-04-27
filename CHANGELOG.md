@@ -1,3 +1,7 @@
+# 1.2.5 Cameracalibration options
+- Included posibility to flip camera frames when loading it (via Camera Data Files)
+- Reverted changes to camera calibration data bases  added in version 1.2.2
+
 # 1.2.4 Documentation improvement
 - Improved docstrics
 - change some old prints into logger instances
