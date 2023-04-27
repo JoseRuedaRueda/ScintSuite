@@ -18,27 +18,35 @@ class Scintillator(XYtoPixel):
     """
     Class with the scintillator information.
 
+    :author: Jose Rueda-Rueda jrrueda@us.es
+
     As for the other XYtoPixel coordinated, x1,x2 define the scintillator plate
     x3 is the normal to the plate, and the object proyection in the camera
     sensor is given by x,y
+
+    :param     file: Path to the file with the scintillator geometry
+    :param     format: Code to which the file belongs, FILDSIM or SINPA
+    :param     material: Defaults to 'TG-green'
+    :param     particle: Defaults to 'D' (deuterium)
+    :param     thickness: thickness of the plate in mu-m
+
+    :Example:
+        >>> # Read the AUG FILD scintillator plate
+        >>> import os
+        >>> import Lib as ss
+        >>> fileScint = os.path.join(ss.paths.ScintSuite, 'Data', 'Plates',
+        >>>                          'FILD', 'AUG', 'AUG01.pl')
+        >>> scint = ss.scint.Scintillator(file=fileScint)
     """
 
     def __init__(self, file: str = None, format: str = 'FILDSIM',
-                 material: str = 'TgGreenA', particle='D', thickness=9):
-        """
-        Initialize the class.
-
-        - Geometry files
-        :param     file: Path to the file with the scintillator geometry
-        :param     format: Code to which the file belongs, FILDSIM or SINPA
-        - Efficiency related attributes
-        :param     material: Defaults to 'TG-green'
-        :param     particle: Defaults to 'D' (deuterium)
-        :param     thickness: thickness of the plate in mu-m
-        """
+                 material: str = 'TgGreenA',
+                 particle: str = 'D', thickness: int = 9):
+        """Initialize the class."""
+        # Init the parent class
         XYtoPixel.__init__(self)
 
-        # --- Allocate space for latter
+        # ---- Allocate space for latter
         ## Material used in the scintillator plate
         self.material = None
         ## Code defining the geometry
@@ -54,10 +62,10 @@ class Scintillator(XYtoPixel):
         ## Scintillator efficiency
         self.efficiency = None
 
-        # --- if possible read the geometry
+        # ---- if possible read the geometry
         if file is not None:
             self._read_geometry(file, format)
-        # --- if possible read the efficiency
+        # ---- if possible read the efficiency
         try:
             self._read_efficiency(material=material, particle=particle,
                                   thickness=thickness)
@@ -65,14 +73,16 @@ class Scintillator(XYtoPixel):
             pass
 
     # --------------------------------------------------------------------------
-    # --- Reading geometry
+    # ---- Geometry
     # --------------------------------------------------------------------------
-    def _read_geometry(self, file,  format):
+    def _read_geometry(self, file: str ,  format: str):
         """
-        Read the geometry file
-        :param  file:
-        :param  format:
-        :return:
+        Read the geometry file.
+
+        :author: Jose Rueda Rueda - jrrueda@us.es
+
+        :param  file: file to load
+        :param  format: 'FILDSIM' or 'SINPA', the format of the file read
         """
         self.geomFile = file
         ## Code defining the geometry
@@ -134,18 +144,21 @@ class Scintillator(XYtoPixel):
     # --------------------------------------------------------------------------
     # --- Reading the efficiency
     # --------------------------------------------------------------------------
-    def _read_efficiency(self, material: str = 'TgGreenA', particle: str='D',
-                         thickness: float=9):
+    def _read_efficiency(self, material: str = 'TgGreenA',
+                         particle: str = 'D',
+                         thickness: int = 9):
         """
-        Read the efficiency of the material of the scintillator for a given
-        particle.
+        Read the efficiency file.
 
-        Jose Rueda - jrrueda@us.es
+        :author: Jose Rueda-Rueda - jrrueda@us.es
 
-        :param material: material to load from the corresponding database.
-        :param particle: particle impinging on the scintillator.
-        :param thickness: thickness of the scintillator material.
+        :param material: Name of the material to load
+        :param particle: Name of the specie to load
+        :param thickness: Thickness of the scintillator material
 
+        :Notes:
+        - The particle, material and thickness will be used to deduce the name
+          of the fille to load: `<material>/<particle>_<thickness>.dat`
         """
         self.material = material
         self.particle = particle
@@ -153,17 +166,18 @@ class Scintillator(XYtoPixel):
         self.efficiency = \
             ScintillatorEfficiency(material=material, particle=particle,
                                    thickness=thickness, verbose=False)
+
     # --------------------------------------------------------------------------
-    # --- Mask for video timetraces
+    # ---- Mask for video timetraces
     # --------------------------------------------------------------------------
     def get_path_pix(self):
         """
-        Returns the path covered by the scintillator in pixel coordinates.
+        Return the path covered by the scintillator in pixel coordinates.
 
         This path allows latter to easily define a mask to integrate the video
         along it
 
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
+        :author: Pablo Oyola - pablo.oyola@ipp.mpg.de
         """
         xdum = self._coord_pix['x']
         ydum = self._coord_pix['y']
@@ -187,17 +201,20 @@ class Scintillator(XYtoPixel):
                                              ydum[3*i+2], ydum[3*i + 1],
                                              ydum[3*i], ydum[3*i + 2]])))
 
-        return np.array((x,y)).T[1:, ...]
+        return np.array((x, y)).T[1:, ...]
 
     def get_roi(self):
         """
-        Return a roipoly object with the countour of the scintillator
+        Return a roipoly object with the countour of the scintillator.
+
+        :author: Pablo Oyola
+
         :return: roipoly class
         """
         return roipoly(path=self.get_path_pix())
 
     # --------------------------------------------------------------------------
-    # --- Plotting
+    # ---- Plotting
     # --------------------------------------------------------------------------
     def plot_pix(self, ax=None, line_params: dict = {}):
         """
@@ -205,7 +222,7 @@ class Scintillator(XYtoPixel):
 
         :param  ax: axes where to plot
         :param  line_params: dictionary with the parameters to plot
-        :return: ax axes used to plot
+        :return ax: axes used to plot
         """
         plt_options = {
             'color': 'w',
@@ -245,7 +262,7 @@ class Scintillator(XYtoPixel):
 
         :param  ax: axes where to plot
         :param  line_params: dictionary with the parameters to plot
-        :return: Nothing, just update the plot
+        :return ax: the axes where the scintilator was drawn
         """
         plt_options = {
             'color': 'w',

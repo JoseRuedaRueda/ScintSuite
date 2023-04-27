@@ -11,12 +11,12 @@ logger = logging.getLogger('ScintSuite.Calibration')
 
 
 # -----------------------------------------------------------------------------
-# --- Aux functions
+# ---- Aux functions
 # -----------------------------------------------------------------------------
 def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
                                   verbose: bool = True):
     """
-    Read camera calibration database
+    Read camera calibration database.
 
     This function is different from the one implemented in the __init__ of the
     old object of the CalibrationDatabase. This one return the database as a
@@ -73,7 +73,8 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
     database = pd.DataFrame(data)
     return database
 
-def readCameraCalibrationDatabase2(filename: str, n_header: int = 5,
+
+def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
                                   verbose: bool = True):
     """
     Read camera calibration database including distortion.
@@ -176,6 +177,7 @@ def readCameraCalibrationDatabase3(filename: str, n_header: int = 5,
     database = pd.DataFrame(data)
     return database
 
+
 def readTimeDependentCalibration(filename):
     fields = {
         1: ['time', 'xshift', 'yshift', 'xscale', 'yscale',
@@ -207,6 +209,7 @@ def readTimeDependentCalibration(filename):
     calibration.attrs['Camera'] = camera
     calibration.attrs['geomID'] = geomID
     return calibration
+
 
 
 def get_database(filename: str = None):
@@ -277,7 +280,7 @@ def get_calibration_method(data, shot: int = None, diag_ID: int = None, method: 
 
 
 # ------------------------------------------------------------------------------
-# --- Calibration database object
+# ---- Calibration database object
 # ------------------------------------------------------------------------------
 class CalibrationDatabase:
     """Database of parameter to align the scintillator."""
@@ -424,6 +427,17 @@ class CalParams:
 
     In a future, it will contain the correction of the optical distortion and
     all the methods necessary to correct it.
+
+    :Example of Use:
+
+    >>> # Initialise the calibration object
+    >>> import Lib as ss
+    >>> import numpy as np
+    >>> cal = ss.mapping.CalParams()
+    >>> # Fill the calibration
+    >>> cal.xscale = cal.yscale = 27.0
+    >>> cal.xshift = cal.yshift = 0.0
+    >>> cal.deg = 25.0
     """
 
     def __init__(self):
@@ -462,6 +476,11 @@ class CalParams:
         Print calibration
 
         Jose Rueda: jrrueda@us.es
+
+        :Example of use:
+
+        >>> # Assume you have in your workspace a calibration called call
+        >>> cal.print()
         """
         print('xscale: ', self.xscale)
         print('yscale: ', self.yscale)
@@ -480,7 +499,14 @@ class CalParams:
         """
         Save the calibration in a netCDF file
 
+        :param filename: (str) name of the file for the calibration
+
         Jose Rueda: jrrueda@us.es
+
+        :Example of use:
+
+        >>> # Assume you have in your workspace a calibration called call
+        >>> cal.save2netCDF('calibration.nc')
         """
         logger.info('Saving results in: %s', filename)
         with netcdf.netcdf_file(filename, 'w') as f:

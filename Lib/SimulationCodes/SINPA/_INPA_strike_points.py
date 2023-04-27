@@ -1,28 +1,44 @@
 """
-Class containing INPA strike points
-"""
+Class containing INPA strike points.
 
-from Lib.SimulationCodes.Common.strikes import Strikes
-from Lib.SimulationCodes.FILDSIM.execution import get_gyroradius
+Jose Rueda Rueda: jrrueda@us.es
+"""
+import lmfit
+import logging
+import numpy as np
+import xarray as xr
 import Lib.LibData as ssdat
 import Lib.errors as errors
-import numpy as np
+# import Lib._StrikeMap as ssmap
+from Lib.SimulationCodes.Common.strikes import Strikes
+from Lib.SimulationCodes.FILDSIM.execution import get_gyroradius
+
+from Lib._Optics import FnumberTransmission, defocus
+
+# -----------------------------------------------------------------------------
+# %% Auxiliary objects
+# -----------------------------------------------------------------------------
+logger = logging.getLogger('ScintSuite.INPAStrikes')
 
 
+# -----------------------------------------------------------------------------
+# %% Strikes Objects
+# -----------------------------------------------------------------------------
 class INPAStrikes(Strikes):
     """
-    Strike object tunned for INPA strike points
+    Strike object tunned for INPA.
 
     Public methods not present in the parent class:
 
         calculatePitch: calculate the pitch of the markers
     """
+
     # -------------------------------------------------------------------------
-    # --- Gyroradius and pitch angle
+    # ---- Gyroradius and pitch angle
     # -------------------------------------------------------------------------
     def calculatePitch(self, Boptions: dict = {}, IPBtSign: float = -1.0):
         """
-        Calculate the pitch of the markers
+        Calculate the pitch of the markers.
 
         Jose Rueda: jrrueda@us.es
 
@@ -146,3 +162,135 @@ class INPAStrikes(Strikes):
                 },
             }
             self.header['info'].update(extra_column)
+
+    # -------------------------------------------------------------------------
+    # ---- Synthetic Signals
+    # -------------------------------------------------------------------------
+    def _getBHead(self, R, z):
+        """
+        Get the magnetic field.
+
+        :param R: (float) Radial position to calculate the magnetic field, m
+        :param z: (float) z position to calculate the magnetic field, m
+
+        :Example:
+        >>> # Load some INPA strikes in the strikes variable
+        >>> strikes._getBHead(self, R=1.91121, z=0.95836)
+
+        """
+        # ---- Load the magnetic field
+        br, bz, bt, bp = \
+            ssdat.get_mag_field(self.header['shot'],
+                                R,
+                                z,
+                                time=self.header['time'])
+        Bmod = np.sqrt(bt**2 + bp**2)[0]
+        self.B = {
+            'Br': np.array(br).squeeze(),
+            'Bz': np.array(bz).squeeze(),
+            'Bt': np.array(bt).squeeze(),
+            'B': Bmod,
+            }
+
+    def calculateSynthetiSignal(self,
+                                smap,
+                                R: float = 1.91121,
+                                z: float = 0.95836,
+                                nw: int = 480,
+                                nh: int = 640,
+                                opticalCalibration=None,
+                                remap_options: dict = {},
+                                remap_variables: tuple = ('R0', 'e0'),
+                                sigmaOptics: float = 0.0,
+                                includeOpticalTransmission: bool = True,
+                                energyFit: str = None,
+                                machine: str = 'AUG'
+                                ):
+        """
+        Calculate the INPA synthetic signal starting from the strikes.
+
+        :param R: (float) Radial position to calculate the magnetic field
+        :param z: (float) z position to calculate the magnetic field
+
+        """
+        # ---- Initialise the remap options
+        remap_parameters = {
+            'ymin': 10.0,      # Minimum energy [in keV]
+            'ymax': 100.0,     # Maximum energy [in keV]
+            'dy': 2.0,         # Interval of the gyroradius [in cm]
+            'xmin': 1.5,       # Minimum radious [in m]
+            'xmax': 2.12,      # Maximum radious [in m]
+            'dx': 0.01,        # radius
+            # methods for the interpolation
+            'method': 2,       # 2 Spline, 1 Linear (smap interpolation)
+            'decimals': 0,     # Precision for the strike map
+            'remap_method': 'MC',  # Remap algorithm
+            'MC_number': 200,
+            }
+        remap_parameters.update(remap_options)
+        # ---- Prepare the magnetic field
+        if self.B is None:
+            self._getBHead(R, z)
+        # ---- Prepare the strike map
+        # smap = ssmap.Ismap(file=smapFile)
+        smap.calculate_pixel_coordinates(opticalCalibration)
+        smap.calculate_energy(self.B['B'])
+        # ---- Transform to pixels
+        if 'xcam' not in self.header['info'].keys():
+            self.calculate_pixel_coordinates(opticalCalibration)
+        else:
+            text = 'Pixel position present in the object' +\
+                ', assuming they are right'
+            logger.warning(text)
+        # ---- Include optical transmission
+        if includeOpticalTransmission:
+            logger.info('Including F number.')
+            F = FnumberTransmission(diag='INPA', machine=machine,
+                                    geomID=self.header['geomID'])
+            self.applyGeometricTramission(F, opticalCalibration)
+        else:
+            logger.info('NOT including F number.')
+
+        # ---- Perform the remap in the camera space
+        if 'xcam_ycam' not in self.histograms.keys():
+            self.calculate_2d_histogram('xcam', 'ycam',
+                                        binsx=np.arange(nw+1),
+                                        binsy=np.arange(nh+1))
+            # Apply finite focus
+            if sigmaOptics > 0.05:
+                self.histograms['xcam_ycam_finiteFocus'] = \
+                    self.histograms['xcam_ycam'].copy()
+                for k in self.histograms['xcam_ycam_finiteFocus'].keys():
+                    for jk, kind in enumerate(self.histograms[
+                            'xcam_ycam_finiteFocus'].kind.values):
+                        total_counts = \
+                           self.histograms['xcam_ycam_finiteFocus'][k].sel(
+                                kind=kind).values.sum()
+                        if total_counts < 0:
+                            continue
+                        defocus_matrix = defocus(
+                            self.histograms['xcam_ycam_finiteFocus'][k].sel(
+                                kind=kind).values,
+                            coef_sigma=sigmaOptics)
+                        self.histograms['xcam_ycam_finiteFocus'][k].values[
+                            :, :, jk] = defocus_matrix.copy()
+        else:
+            logger.warning('Using xcam_ycam histogram present in the object')
+
+        # ---- Remap the camera strike points
+        self.remap(smap, remap_parameters, remap_variables)
+
+        # ---- Apply energy fit:
+        # Load the energy fit
+        if energyFit is not None and 'e0' in remap_variables:
+            fit = lmfit.model.load_modelresult(energyFit)
+            remap_name = remap_variables[0] + '_' + remap_variables[1] + '_remap'
+            yaxis = self.histograms[remap_name]['y']
+            factor = fit.eval(x=yaxis.values)
+            scale = xr.DataArray(factor, dims='y',
+                                 coords={'y': yaxis})
+            self.histograms[remap_name + '_Efit'] = \
+                self.histograms[remap_name] * scale
+            if sigmaOptics > 0.02:
+                self.histograms[remap_name + '_finiteFocus' + '_Efit'] = \
+                    self.histograms[remap_name + '_finiteFocus'] * scale

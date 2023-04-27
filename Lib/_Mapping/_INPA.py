@@ -18,7 +18,7 @@ import Lib._IO as ssio
 import Lib.errors as errors
 from tqdm import tqdm   # For waitbars
 from Lib._Machine import machine
-from Lib._Mapping._StrikeMap import StrikeMap
+from Lib._StrikeMap._INPA_StrikeMap import Ismap
 from Lib._SideFunctions import createGrid
 
 __all__ = ['remapAllLoadedFrames']
@@ -45,7 +45,8 @@ def remapAllLoadedFrames(video,
                          allIn: bool = False,
                          use_average: bool = False,
                          variables_to_remap: tuple = ('R0', 'gyroradius'),
-                         A: float = 2.01410178, Z: float = 1.0):
+                         A: float = 2.01410178, Z: float = 1.0,
+                         transformationMatrixLimit: float = 10.0):
     """
     Remap all loaded frames from an INPA video.
 
@@ -107,14 +108,22 @@ def remapAllLoadedFrames(video,
         -# 'tframes': time of the frames
         -# 'existing_smaps': array indicating which smaps where found in the
         database and which don't
-    :return   opt: dictionary containing all the input parameters
+
+    The remap options such as the code used, the number of decimals or the
+    location of the database of smaps are saved as attributes of the 'frames'
+    dataArray
+
+    :Notes:
+        - This function is not intended to be called alone except the user
+        really knows what is doing. Please use just the function
+        remap_all_loaded_frames() from the video object
     """
     print('.-. . -- .- .--. .--. .. -. --.')
     # --------------------------------------------------------------------------
     # --- INPUTS CHECK AND PREPARATION
     # --------------------------------------------------------------------------
-    acceptedVars = ('energy', 'r0', 'gyroradius')
-    units = {'e0': 'keV', 'R0': 'm', 'gyroradius': 'cm'}
+    acceptedVars = ('energy', 'r0', 'gyroradius', 'rho_pol')
+    units = {'e0': 'keV', 'R0': 'm', 'gyroradius': 'cm', 'rho_pol': ' '}
     var_remap = [v.lower() for v in variables_to_remap]  # force small letter
     for v in var_remap:
         if v not in acceptedVars:
@@ -126,11 +135,15 @@ def remapAllLoadedFrames(video,
                 var_remap[i] = 'e0'
     else:
         wantEnergy = False
+    if 'rho_pol' in var_remap:
+        wantRho = True
+    else:
+        wantRho = False
     if 'r0' in var_remap:
         for i in range(2):
             if var_remap[i] == 'r0':
                 var_remap[i] = 'R0'
-    
+
     # -- Check inputs strike map
     if map is None:
         got_smap = False
@@ -246,11 +259,25 @@ def remapAllLoadedFrames(video,
                 video.orientation['s3'],
                 geomID=video.geometryID, SINPA_options=code_options,
                 decimals=decimals, clean=True)
-        # Only reload the strike map if it is needed
-        if name != name_old:
-            smap = StrikeMap(1, os.path.join(smap_folder, name))
+        # Only reload the strike map if it is needed.
+        # We want a recalculation if:
+            # (a) we have another angle (name)
+            # (b) the module of the field is wuite differet and we need energy
+        if iframe > 0 and not got_smap:
+            # TODO: Ojo que si le doy un map y hay una Bt ramp, en energia no
+            # ira bien
+            Bflag = (abs((video.BField['B'].values[iframe]
+                          - video.BField['B'].values[iframe-1])/
+                         video.BField['B'].values[iframe]) > 0.001) * wantEnergy
+        else:
+            Bflag = True
+        if name != name_old or Bflag and not got_smap:
+            smap = Ismap(os.path.join(smap_folder, name))
             if wantEnergy:
                 smap.calculate_energy(video.BField['B'].values[iframe], A, Z)
+            if wantRho:
+                smap.getRho(video.shot, video.exp_dat.t.values[iframe])
+
             smap.setRemapVariables(var_remap, verbose=False)
             # -- Calculate the pixel coordinates
             smap.calculate_pixel_coordinates(video.CameraCalibration)
@@ -259,7 +286,8 @@ def remapAllLoadedFrames(video,
                              grid_params={'ymin': ymin, 'ymax': ymax,
                                           'dy': dy,
                                           'xmin': xmin, 'xmax': xmax,
-                                          'dx': dx})
+                                          'dx': dx},
+                             limitation=transformationMatrixLimit)
         name_old = name
         # remap the frames
         remaped_frames[:, :, iframe] = \

@@ -9,6 +9,7 @@ import logging
 import datetime
 import numpy as np
 from Lib.decorators import deprecated
+
 logger = logging.getLogger('ScintSuite.MappingCommon')
 try:
     import lmfit
@@ -20,7 +21,7 @@ __all__ = ['transform_to_pixel', 'XYtoPixel', '_fit_to_model_',
 
 
 # -----------------------------------------------------------------------------
-# --- Scintillator to pixels
+# ---- Real position to pixels
 # -----------------------------------------------------------------------------
 def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
     """
@@ -32,10 +33,25 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
     :param  x: np.array of positions to be transformed, x coordinate
     :param  y: np.array of positions to be transformed, y coordinate
     :param  cal: Object containing all the information for the
-    transformation, see class CalParams()
+        transformation, see class CalParams()
 
     :return xpixel: x positions in pixels
     :return ypixel: y position in pixels
+
+    :Example:
+
+    >>> # Initialise the calibration object
+    >>> import Lib as ss
+    >>> import numpy as np
+    >>> cal = ss.mapping.CalParams()
+    >>> # Fill the calibration
+    >>> cal.xscale = cal.yscale = 27.0
+    >>> cal.xshift = cal.yshift = 0.0
+    >>> cal.deg = 25.0
+    >>> # Apply the calibration
+    >>> x = np.array([35, 45, 22, 105])
+    >>> y = np.array([15, 35, 27, 106])
+    >>> xp, yp = ss.mapping.transform_to_pixel(x, y, cal)
     """
     eps = 1e-7  # Level for the distortion coefficient to be considered as
     #             zero (see below)
@@ -78,11 +94,11 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
 
 class XYtoPixel:
     """
-    Parent class for object with both coordinates in real and camera space
+    Parent class for object with both coordinates in real and camera space.
 
-    For example for Scintillator and strike maps, which contain information of
+    For example for Scintillator and strike-maps, which contain information of
     their coordinates in the real space and of their coordinates in the camera
-    (pixel) space
+    (pixel) space.
 
     It is not intended to be initialised directly by the user. The StrikeMap, or
     scintillator objects will do it. Pease use those child classes.
@@ -94,10 +110,10 @@ class XYtoPixel:
 
     def __init__(self):
         """
-        Initialise the object
+        Initialise the object.
 
         Notice that this is just a parent class, each child (scintillator or
-        strike map), will fill its contents as needed
+        strike map), will fill its contents as needed.
         """
         ## Coordinates of the vertex of the scintillator (X,Y,Z).
         self._coord_real = {
@@ -162,8 +178,9 @@ def estimate_effective_pixel_area(frame_shape, xscale: float, yscale: float,
 
     return area
 
+
 # -----------------------------------------------------------------------------
-# --- Fitting functions
+# ---- Fitting functions
 # -----------------------------------------------------------------------------
 def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
                    normalize: bool = True,
@@ -232,7 +249,7 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
 
 
 # -----------------------------------------------------------------------------
-# --- Remap and profiles
+# ---- Remap and profiles
 # -----------------------------------------------------------------------------
 def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
     """
@@ -250,11 +267,15 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
     :param  method: procedure for the remap
         - MC: Use the transformation matrix calculated with markers at the chip
         - centers: Consider just the center of each pixel (Old IDL method)
+
+    :Notes:
+    - The different modules and video objects will call this method
+      internally. Please ony call it directly if you know what you are doing
     """
     # --- 0: Check inputs
     if smap._grid_interp is None:
         text = '27: Interpolators not present in the strike map'\
-               +    ', calculating them with default settings'
+               + ', calculating them with default settings'
         logger.warning(text)
         if method.lower() == 'mc':
             # Deduce the needed grid. This is for the case we need to calculate

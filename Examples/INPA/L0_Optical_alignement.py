@@ -14,73 +14,73 @@ be in the scintillator reference system, if not, there would be a shift between
 SINPA coordinates and the calibration
 """
 import math
+import Lib as ss
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 from Lib._Video._TIFfiles import load_tiff
-import Lib as ss
+
 
 # -----------------------------------------------------------------------------
-# --- Settings
+# %% Settings
 # -----------------------------------------------------------------------------
 # File with the scintillator
 Scint_file = \
-    '/afs/ipp/home/r/ruejo/ScintSuite/Data/Plates/INPA/iAUG01/Scintillator.pl'
-SmapFile = \
-    '/afs/ipp/home/r/ruejo/SINPA/runs/CleanRestart/results/CleanRestart.map'
+    '/afs/ipp/home/r/ruejo/ScintSuite/Data/Plates/INPA/AUG/iAUG01/Scintillator.pl'
+SmapFile = None   # If none, the one from the library will be used
 FoilFile = \
-    '/afs/ipp/home/r/ruejo/ScintSuite/Data/Plates/INPA/iAUG01/Foil.pl'
+    '/afs/ipp/home/r/ruejo/ScintSuite/Data/Plates/INPA/AUG/iAUG01/Foil.pl'
 #    # 'test_attenuation/results/test_attenuation.map'
 format = 'FILDSIM'  # Code for which the geometry file is written
 # File with the calibration image (tif)
-calib_image = '/afs/ipp/home/r/ruejo/INPA_Calibration_images/' \
-    + '3_PIXEFLY_OBJETIVE_comissioning_2022_02.bmp'                      # ####
+# calib_image = '/afs/ipp/home/r/ruejo/INPA_Calibration_images/' \
+#     + '3_PIXEFLY_OBJETIVE_comissioning_2022_02.bmp'                      # ####
 # Video options
 diag_ID = 1  # INPA number
 shot = 40412  # Shot number
 tMinNoise = 0.1  # Min time for noise subtraction
 tMaxNoise = 0.4  # Max time for noise subtraction
-t = 1.74  # Times to overplot a frame from the video
-tmax = 1.9  # Maximum time to load
+t = 2.95  # Times to overplot a frame from the video
+tmax = 4.8  # Maximum time to load
 # x-scale to y scale
 XtoY = 1.0
 # modify section 3 if you have a custom format for the calibration image
 # Staring points for the calibration
-xshift = 35.85
-yshift = 74.5
-xscale = 2753.7
-xc = 270
-yc = 170
-c = -1.825e-3
-deg = -0.73
+xshift = 25.05
+yshift = 75.8
+xscale = 2632.22
+xc = 272.0
+yc = 155.0
+c = -1.77555e-3
+deg = -1.38
 
 
 # Scale maximum
 xshiftmax = 50
-yshiftmax = 120
-xscalemax = 3000
-xcmax = 1280
-ycmax = 800
+yshiftmax = 200
+xscalemax = 2800
+xcmax = 400
+ycmax = 300
 cmax = -0.5e-4
 degmax = 5.0
 
 # Scale minimum
 xshiftmin = 0
 yshiftmin = 20
-xscalemin = 2200
-xcmin = 0
-ycmin = 0
+xscalemin = 2400
+xcmin = 150
+ycmin = 100
 cmin = -20e-4
 degmin = -5.0
 
 # Remapping options
 par = {
-    'ymin': 10.0,      # Minimum energy [in cm]
-    'ymax': 100.0,     # Maximum energy [in cm]
-    'dy': 2.0,         # Interval of the energy [in cm]
-    'xmin': 1.4,     # Minimum pitch angle [in degrees]
-    'xmax': 2.2,     # Maximum pitch angle [in degrees]
-    'dx': 0.01,    # Pitch angle interval
+    'ymin': 10.0,      # Minimum energy [in keV]
+    'ymax': 100.0,     # Maximum energy [in keV]
+    'dy': 2.0,         # Interval of the energy [in keV]
+    'xmin': 1.4,       # Minimum pitch angle [in m]
+    'xmax': 2.2,       # Maximum pitch angle [in m]
+    'dx': 0.01,        # Radial interval
     # methods for the interpolation
     'method': 2,    # 2 Spline, 1 Linear (smap interpolation)
     'decimals': 0,  # Precision for the strike map (1 is more than enough)
@@ -89,11 +89,11 @@ par = {
     }
 geomID = 'iAUG01'
 # -----------------------------------------------------------------------------
-# --- Scintillator load and first alignement
+# %% Scintillator load and first alignement
 # -----------------------------------------------------------------------------
 scintillator = ss.mapping.Scintillator(Scint_file, format)
 foil = ss.mapping.Scintillator(FoilFile, format)
-smap = ss.mapping.StrikeMap(1, SmapFile)
+
 cal = ss.mapping.CalParams()
 cal.xshift = xshift
 cal.yshift = yshift
@@ -102,35 +102,52 @@ cal.yscale = xscale * XtoY
 cal.deg = deg
 scintillator.calculate_pixel_coordinates(cal)
 foil.calculate_pixel_coordinates(cal)
-smap.calculate_pixel_coordinates(cal)
+
 
 # -----------------------------------------------------------------------------
-# --- Image load and plot
+# %% Image load and plot
 # -----------------------------------------------------------------------------
-if calib_image.endswith('tif'):
-    img = load_tiff(calib_image)
-elif calib_image.endswith('png'):
-    raise Exception('To be implemented')
-else:
-    img = plt.imread(calib_image)
-    img = img[::-1, :]
+# if calib_image.endswith('tif'):
+#     img = load_tiff(calib_image)
+# elif calib_image.endswith('png'):
+#     raise Exception('To be implemented')
+# else:
+#     img = plt.imread(calib_image)
+#     img = img[::-1, :]
 vid = ss.vid.INPAVideo(shot=shot, diag_ID=diag_ID)
 vid.read_frame(t1=0.0, t2=tmax)
 fig, ax = plt.subplots()
 # adjust the main plot to make room for the sliders
 plt.subplots_adjust(left=0.4, bottom=0.5)
-ax.imshow(img, origin='lower', cmap=plt.get_cmap('gray'))
+# ax.imshow(img, origin='lower', cmap=plt.get_cmap('gray'))
 ss.plt.axis_beauty(ax, {'grid': 'both'})
 # Plot the frame
-vid.plot_frame(ax=ax, alpha=0.25, t=t, IncludeColorbar=False)
+vid.plot_frame(ax=ax, alpha=0.75, t=t, IncludeColorbar=False)
+
 # -----------------------------------------------------------------------------
-# --- Plot the scintillator plate
+# %% Strike map loading
+# -----------------------------------------------------------------------------
+if SmapFile is not None:
+    smap = ss.smap.Ismap(file=SmapFile)
+    smap.calculate_pixel_coordinates(cal)
+else:
+    phi, theta = vid.calculateBangles(t, verbose=False)
+    if phi < 0:
+        phi += 360.0
+    # phi = np.round(phi.values)
+    # theta = np.round(theta.values)
+    phi = round(phi)
+    theta = round(theta)
+    smap = ss.smap.Ismap(theta=theta, phi=phi)
+    smap.calculate_pixel_coordinates(cal)
+# -----------------------------------------------------------------------------
+# %% Plot the scintillator plate
 # -----------------------------------------------------------------------------
 scintillator.plot_pix(ax)
 smap.plot_pix(ax, labels=False)
 foil.plot_pix(ax)
 # -----------------------------------------------------------------------------
-# --- Remap te frame and plot the profiles
+# %% Remap te frame and plot the profiles
 # -----------------------------------------------------------------------------
 # Get the mangnetic field to translate the map into energy
 Geom = ss.simcom.geometry.Geometry(geomID)
@@ -151,7 +168,7 @@ energy_profile = vid.remap_dat['frames'].sum(dim='x')
 flags_R = vid.remap_dat['x'].values > 1.87
 flags_E = vid.remap_dat['y'].values > 62.0
 dummy = vid.remap_dat['frames'].sel(t=t, method='nearest')
-# - Axis for the profiles
+# - Axis for the profiles.,
 axR0 = plt.axes([0.5, 0.12, 0.25, 0.25])  # Total energy distribution
 profile_high_e = np.sum(dummy.values[:, flags_E], axis=(1))
 profile_high_R = np.sum(dummy.values[flags_R, :], axis=(0))
@@ -161,7 +178,7 @@ axEs = plt.axes([0.75, 0.12, 0.25, 0.25])
 axEs.plot(energy_profile['y'], energy_profile.sel(t=t, method='nearest'))
 axEs.plot(energy_profile['y'], profile_high_R)
 # -----------------------------------------------------------------------------
-# --- GUI
+# %% GUI
 # -----------------------------------------------------------------------------
 # Make a vertically oriented slider to control the undistorted calibration
 axxs = plt.axes([0.05, 0.25, 0.01, 0.63])

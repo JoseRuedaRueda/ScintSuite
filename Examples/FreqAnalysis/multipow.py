@@ -1,32 +1,36 @@
-"""Multi-pow analysis
+"""
+Multi-pow analysis.
 
 This script makes the cross-power spectral density calculation of the ECE and
 the magnetics.
 
 Pablo Oyola - pablo.oyola@ipp.mpg.de
+revised by Jose Rueda Rueda for version 1.2.2
 """
-
+import warnings
 import matplotlib
+
+import Lib as ss
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-import warnings
-import numpy as np
-import Lib as ss
-from Lib.LibFrequencyAnalysis import stft, sfft, get_nfft, myCPSD, stft2
+
 from tqdm import tqdm
+from Lib._FrequencyAnalysis import stft, sfft, get_nfft, myCPSD, stft2
+
 
 # -----------------------------------------------------------------------------
-# --- Scripts parameter definition.
+# %% Scripts parameter definition.
 # -----------------------------------------------------------------------------
 # Shot data and timing.
-shotnumber = 38023
-coilNumber = 1
-tBegin = 1.60
-tEnd   = 1.90
+shotnumber = 41090
+coilNumber = 14
+tBegin = 3.4
+tEnd   = 3.5
 
 # FFT options.
 #                        # For the window type, go to:
-windowType = 'hann'     # https://docs.scipy.org/doc/scipy/reference/
+windowType = 'hann'      # https://docs.scipy.org/doc/scipy/reference/
 #                        # generated/scipy.signal.get_window.html
 freqLims = np.array((80.0, 120.0))  # Frequency limits.
 freq1d = np.array((6.0, 8.0))  # Frequency limits for the plot in 1D.
@@ -35,7 +39,7 @@ specType = 'stft'  # Spectogram type:
 #                  # -> Short-Time Fourier Transform in time (stft)
 resolution = int(1000)
 timeResolution = 0.80  # Frequency resolution.
-cmap = matplotlib.cm.plasma # Colormap
+cmap = matplotlib.cm.plasma  # Colormap
 
 # Diagnostic for the electron gradient reading.
 diag_Te = 'IDA'
@@ -56,7 +60,7 @@ spec_abstype = 'linear'  # linear, sqrt or log
 spec_abstype_cpsd = 'linear'  # This is the same as above, but for the CPSD.
 
 # -----------------------------------------------------------------------------
-# --- Reading the data from the database.
+# %% Reading the data from the database.
 # -----------------------------------------------------------------------------
 mhi = ss.dat.get_magnetics(shotnumber, coilNumber, timeWindow=[tBegin, tEnd])
 ece = ss.dat.get_ECE(shotnumber, timeWindow=[tBegin, tEnd], fast=True)
@@ -87,7 +91,7 @@ elif specType == 'sfft':
                              fmax=freqLims[-1]*1000.0,
                              pass_DC=False, complex_spectrum=True)
 elif specType == 'stft2':
-    Sxx, freqs, times = stft2(mhi['time']-tEnd,  mhi['data'], nfft, 
+    Sxx, freqs, times = stft2(mhi['time']-tEnd,  mhi['data'], nfft,
                               window=windowType,
                               pass_DC=False, complex_spectrum=True,
                               resolution=resolution)
@@ -147,7 +151,7 @@ for ii in tqdm(np.arange(ece['Trad_norm'].shape[1])):
                                  fmax=freqLims[1]*1000.0,
                                  pass_DC=False, complex_spectrum=True)
     elif specType == 'stft2':
-        Syy, freqs, times = stft2(ece['time']-tEnd,  
+        Syy, freqs, times = stft2(ece['time']-tEnd,
                                   ece['Trad_norm'][:, ii].T,
                                   nfft,
                                   window=windowType,
@@ -157,7 +161,7 @@ for ii in tqdm(np.arange(ece['Trad_norm'].shape[1])):
         freqs = freqs[f0:f1]
         Syy = Syy[:, f0:f1]
         Syy /= Syy.max()
-    if ii == 0: 
+    if ii == 0:
         Sxx = Syy
     else:
         Sxx = np.dstack((Sxx, Syy))

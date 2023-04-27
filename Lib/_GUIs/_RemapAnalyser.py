@@ -1,17 +1,18 @@
 """Graphical elements to explore the camera frames"""
 import numpy as np
 import tkinter as tk                       # To open UI windows
+import Lib.errors as errors
 import matplotlib.backends.backend_tkagg as tkagg
 from matplotlib.figure import Figure
 from tkinter import ttk
 
 
 class ApplicationRemapAnalysis:
-    """Class to compare the profiles from the remap"""
+    """Class to compare the profiles from the remap."""
 
     def __init__(self, master, vid, translation: tuple = None):
         """
-        Create the window with the sliders
+        Create the window with the sliders.
 
         :param  master: Tk() opened
         :param  data: the dictionary of experimental frames
@@ -19,7 +20,10 @@ class ApplicationRemapAnalysis:
         """
         # --- Initialise the data container
         self.vid = vid
+        if vid.remap_dat is None:
+            raise errors.NotValidInput('My dear, there is no remap to plot')
         t = vid.remap_dat['t'].values
+
         # --- Create a tk container
         frame = tk.Frame(master)
         # Allows to the figure, to resize
