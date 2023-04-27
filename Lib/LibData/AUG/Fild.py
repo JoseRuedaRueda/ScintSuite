@@ -6,16 +6,17 @@ Jose Rueda: jrrueda@us.es
 
 import os
 import f90nml
+import logging
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from Lib._Machine import machine
-from Lib._Paths import Path
-from Lib._Mapping._Calibration import CalParams, readCameraCalibrationDatabase
-import Lib.LibData.AUG.DiagParam as params
 import Lib.errors as errors
+import Lib.LibData.AUG.DiagParam as params
+from Lib._Paths import Path
+from Lib._Machine import machine
 from Lib.decorators import deprecated
-import logging
+from Lib._Mapping._Calibration import CalParams, readCameraCalibrationDatabase
+
 logger = logging.getLogger('ScintSuite.Data')
 paths = Path(machine)
 __all__ = ['guessFILDfilename', 'load_FILD4_trajectory',
@@ -210,9 +211,12 @@ class FILD_logbook:
     Contain all geometrical parameters and path information of FILD
 
     Jose Rueda - jrrueda@us.es
-
-    Introduced in version 0.7.2
-    Re-written in version 0.7.8
+    
+    :param  cameraFile: path to the ACSII file containing the data
+    :param  geometryFile: path to the ACSII file containing the data
+    :param  positionFile: path to the excel file containing the data (the
+            url poiting to the internet logbook. It can be a path to a local
+            excel)
 
     Public methods:
         - getCameraCalibration(): find the camera parameters
@@ -220,6 +224,9 @@ class FILD_logbook:
         - getPosition(): get the position of the FILD head
         - getOrientation(): get the orientation of the FILD head
         - getGeomShots(): find all shots where a given collimator was installed
+    
+    Introduced in version 0.7.2
+    Re-written in version 0.7.8
     """
 
     def __init__(self,
@@ -228,15 +235,9 @@ class FILD_logbook:
                  positionFile: str = _positionDatabase,
                  verbose: bool = True):
         """
-        Initialise the object
+        Initialise the object.
 
         Read the three data bases and save them in atributes of the object
-
-        :param  cameraFile: path to the ACSII file containing the data
-        :param  geometryFile: path to the ACSII file containing the data
-        :param  positionFile: path to the excel file containing the data (the
-            url poiting to the internet logbook. It can be a path to a local
-            excel)
         """
         if verbose:
             print('.-.. --- --. -... --- --- -.-')

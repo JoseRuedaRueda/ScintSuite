@@ -15,17 +15,15 @@ import matplotlib.path as mplPath
 
 class roipoly:
     """
-    Create ROI with arbitrary shape from an image or via an input path provided
-    by the user.
+    Create ROI with arbitrary shape from an image or via an input path.
 
     Jose Rueda Rueda: jrrueda@us.es
     """
 
     def __init__(self, fig=None, ax=None, drawROI: bool = False,
-                 path: float=None):
+                 path: float = None):
         """
-        Initialise the ROI object either from an image-chosen ROI or with a
-        precomputed ROI.
+        Initialise the ROI object.
 
         :param  fig: Figure where the desired image is plotted
         :param  ax: axis where the image is plotted
@@ -43,10 +41,10 @@ class roipoly:
         if path is not None:
             path = np.atleast_2d(path)
             if path.ndim != 2:
-                raise ValueError('The input path must correspond to'+\
+                raise ValueError('The input path must correspond to' +
                                  ' a collection (X, Y) points')
             if path.shape[1] != 2:
-                raise ValueError('The input path must have axis=1 with size'+\
+                raise ValueError('The input path must have axis=1 with size' +
                                  ' = 2 (X, Y)')
 
             self.xpoints = path[:, 0]
@@ -81,7 +79,7 @@ class roipoly:
 
     def getMask(self, currentImage):
         """
-        Get the binary mask from the selected ROI points
+        Get the binary mask from the selected ROI points.
 
         Taken from the toupy code https://github.com/jcesardasilva/toupy
 
