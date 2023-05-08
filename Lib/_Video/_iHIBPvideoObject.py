@@ -433,14 +433,16 @@ class iHIBPvideo(BVO):
                 def gauss(x, *p):
                     A, mu, sigma = p
                     return A*np.exp(-(x-mu)**2/(2.*sigma**2))
-
-                popt, pcov = curve_fit(gauss, proj.px, proj, [200,300,100])
-                proj_fit = gauss(proj.px, *popt)
-                ax.plot(proj.px, proj_fit, c='r')
-                # plt.figure()
-                # plt.plot(proj.x, proj, 'x')
-                # plt.plot(proj.x, proj_fit)
-                proj = proj_fit
+                try:
+                    popt, pcov = curve_fit(gauss, proj.px, proj, [200,300,100])
+                    proj_fit = gauss(proj.px, *popt)
+                    ax.plot(proj.px, proj_fit, c='r')
+                    # plt.figure()
+                    # plt.plot(proj.x, proj, 'x')
+                    # plt.plot(proj.x, proj_fit)
+                    proj = proj_fit
+                except RuntimeError:
+                    proj[:] = np.nan
 
             if ax_was_none:
                 ax.set_xlabel('scintillator x [pix]')
@@ -451,4 +453,11 @@ class iHIBPvideo(BVO):
                 ax1 = self.plot_frame(t=t, plotScintillatorPlate=False,
                                       rot90=True)
                 ax1.plot(proj.px, proj.py.values*np.ones(len(proj.px)), c='w')
+
+            # import pandas as pd
+            # import pickle
+            # df = pd.DataFrame({'px': proj.px, 'I': proj})
+            # filename = '/afs/ipp/home/h/hlindl/Scripts/Data/S40984_0750_ivid_ypos357'
+            # with open(filename, 'wb') as f:
+            #     pickle.dump(df, f)
             return ax, proj

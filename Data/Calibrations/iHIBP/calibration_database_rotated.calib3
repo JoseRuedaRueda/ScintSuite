@@ -1,9 +1,11 @@
 # Text file containing information about the camera parameters. shift unit: [xs] = m. cal unit: [c1] = 1/pix (poly), [c1] = 1/pix² (non-poly)
-# Last Update: 03/10/2022
+# Last Update: 27/04/2023
 #FORMAT IS:
 #ID CAMERA           SHOT1   SHOT2   XS    YS   Xsc   Ysc     DEG    CAL     diag_ID  c1        xcenter   ycenter   nxpix      nypix      type
 
-0    JAI             40747   40935   97    720   4400  4400    -0.4    PIX      1    -1.68e-6     238      352      494         672       non-poly
-1    ROTATEDJAI      40936   40984   109   693   4400  4400    1.08    PIX      1    -1.68e-6     238      313      494         672       non-poly
-2    DMK             41225   41366   166   1080  6000  6000    -0.45   PIX      1    -6.50e-7     328      566      768        1024       non-poly
-3    DMK             41367   41378   164   1072  6000  6000    -0.45   PIX      1    -6.50e-7     332      549      768        1024       non-poly
+0    JAI             40042   40062   114   708   4400  4400    -0.5    PIX      1    -1.68e-6     233      339      494         672       non-poly
+1    JAI             40747   40935   97    720   4400  4400    -0.4    PIX      1    -1.68e-6     238      352      494         672       non-poly
+2    ROTATEDJAI      40936   40984   109   693   4400  4400    1.08    PIX      1    -1.68e-6     238      313      494         672       non-poly
+3    DMK             41225   41366   166   1080  6000  6000    -0.45   PIX      1    -6.50e-7     328      566      768        1024       non-poly
+4    DMK             41367   41389   166   1074  6000  6000    -0.48   PIX      1    -6.50e-7     328      571      768        1024       non-poly
+5    DMK             41390   41417   152   1085  6000  6000    -0.03   PIX      1    -6.50e-7     328      581      768        1024       non-poly

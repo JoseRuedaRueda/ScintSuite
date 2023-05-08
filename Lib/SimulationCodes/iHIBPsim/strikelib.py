@@ -98,7 +98,7 @@ __header0 = { 0: { 'name': 'id',      'longName': 'Marker ID',
               },
            20: { 'name': 'intensity',
                  'longName': 'Intensity hitting the scintillator',
-                 'shortName': 'I',     'units': 'A/m'
+                 'shortName': 'I',     'units': 'A/cm²'
               },
          }
 
@@ -766,14 +766,17 @@ class strikes:
                 p0 = [1e-9,300,200]
             else:
                 p0 = [1e-9,3.5, 3]
-            popt, pcov = curve_fit(gauss, proj.x, proj, p0)
-            proj_fit = gauss(proj.x, *popt)
-            ax.plot(proj.x, proj_fit, **kwargs)
-            # plt.figure()
-            # plt.plot(proj.x, proj, 'x')
-            # plt.plot(proj.x, proj_fit)
-            proj = proj_fit
-
+            try:
+                popt, pcov = curve_fit(gauss, proj.x, proj, p0)
+                proj_fit = gauss(proj.x, *popt)
+                ax.plot(proj.x, proj_fit, **kwargs)
+                # plt.figure()
+                # plt.plot(proj.x, proj, 'x')
+                # plt.plot(proj.x, proj_fit)
+                proj = proj_fit
+            except RuntimeError:
+                proj[:] = np.nan
+                print(proj.py.values)
         if flag_scint:
             if flag_pix:
                 ax1, _, _ = self.plot_frame(pix_x=pix_x, pix_y=pix_y)
@@ -781,6 +784,12 @@ class strikes:
                 ax1, _, _ = self.plotScintillator()
             ax1.plot(proj.x, proj.y.values*np.ones(len(proj.x)), c='w')
 
+        # import pandas as pd
+        # import pickle
+        # df = pd.DataFrame({'px': proj.x, 'I': proj})
+        # filename = '/afs/ipp/home/h/hlindl/Scripts/Data/S40984_0750_isim_ypos357'
+        # with open(filename, 'wb') as f:
+        #     pickle.dump(df, f)
         # if ax_was_none:
         ax.set_xlabel(r'$p_{x}$ [pix]')
         ax.set_ylabel(ylabel)

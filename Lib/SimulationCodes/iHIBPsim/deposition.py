@@ -12,6 +12,7 @@ import logging
 import math
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import os
 from scipy.interpolate import RectBivariateSpline
 from Lib.LibData import get_rho
@@ -305,6 +306,14 @@ class deposition:
         y = R*np.sin(phi)
 
         im = ax.scatter(x, y, z, c=w)
+        # divider = make_axes_locatable(ax)
+        # cax = divider.append_axes('right', size = 1,  pad=0.05)
+        # plt.colorbar(im, cax=cax, ticklocation='top')
+        cax = fig.add_axes([ax.get_position().x1+0.01,ax.get_position().y0,0.02,ax.get_position().height])
+        cbar = plt.colorbar(im, cax=cax)
+        cbar.ax.set_ylabel(r'Ion birth density [m$^{-3}$/m$^{3}$]')
+        ax.elev = 10
+        ax.azim = 0
 
         return ax
 
