@@ -13,22 +13,17 @@ logger = logging.getLogger('ScintSuite.Calibration')
 # -----------------------------------------------------------------------------
 # ---- Aux functions
 # -----------------------------------------------------------------------------
-def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
+def readCameraCalibrationDatabase(filename: str, n_header: int = 3,
                                   verbose: bool = True):
     """
     Read camera calibration database.
-
-    This function is different from the one implemented in the __init__ of the
-    old object of the CalibrationDatabase. This one return the database as a
-    pandas dataframe to be used in the new logbook, which are considered to be
-    the proper way of interacting with the camera calibrations. The
-    object CalibrationDatabase (see below) is deprecated for FILD and INPA
 
     Jose Rueda: jrrueda@us.es
 
     :param  filename: Complete path to the file with the calibrations
     :param  n_header: Number of header lines (5 in the oficial format)
     :param  verbose: if true, print some information in the command line
+        verbose is no longer used
 
     :return database: Pandas dataframe with the database
     """
@@ -38,39 +33,34 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 5,
             'xcenter': [], 'ycenter': []}
 
     # Read the file
-    if verbose:
-        print('Reading Camera database from: ', filename)
-    with open(filename) as f:
-        for i in range(n_header):
-            dummy = f.readline()
-        # Database itself
-        for line in f:
-            dummy = line.split()
-            data['CalID'].append(int(dummy[0]))
-            data['camera'].append(dummy[1])
-            data['shot1'].append(int(dummy[2]))
-            data['shot2'].append(int(dummy[3]))
-            data['xshift'].append(float(dummy[4]))
-            data['yshift'].append(float(dummy[5]))
-            data['xscale'].append(float(dummy[6]))
-            data['yscale'].append(float(dummy[7]))
-            data['deg'].append(float(dummy[8]))
-            data['cal_type'].append(dummy[9])
-            data['diag_ID'].append(int(dummy[10]))
-            try:  # If there is distortion information, it would be here
-                data['c1'].append(float(dummy[11]))
-                data['xcenter'].append(float(dummy[12]))
-                data['ycenter'].append(float(dummy[13]))
-            except IndexError:
-                continue
-    # If the c1 and c2 fields are empty, delete them to avoid issues in the
-    # pandas dataframe
-    if (len(data['c1']) == 0):
-        data.pop('c1')
-        data.pop('xcenter')
-        data.pop('ycenter')
-    # Transform to pandas
-    database = pd.DataFrame(data)
+    database = pd.read_csv(filename, skiprows=n_header, delim_whitespace=True)
+    # There are several ways of calling the colums, as some users have a
+    # different format. This is a way to make it compatible with all of them
+    acepted = {
+        'CalID': ['CalID', 'ID', 'cal_ID', 'calID',
+                  '#CalID','#id', '#ID', '#Cal_ID', '#CAL_ID'],
+        'camera': ['camera', 'cam', 'cam_1', 'cam_1_1', 'CAMERA'],
+        'shot1': ['shot1', 'shot', 'shot_1', 'shot1_1', 'PULSE_1', 'SHOT1'],
+        'shot2': ['shot2', 'shot_2', 'shot1_2', 'PULSE_2', 'SHOT2'],
+        'xshift': ['xshift', 'x_shift', 'x_shift_1', 'Xsh', 'XS', 'XSHIFT'],
+        'yshift': ['yshift', 'y_shift', 'y_shift_1', 'Ysh', 'YS', 'YSHIFT'], 
+        'xscale': ['xscale', 'x_scale', 'x_scale_1', 'Xsc', 'XSCALE', 'X_SCALE'], 
+        'yscale': ['yscale', 'y_scale', 'y_scale_1', 'Ysc', 'YSCALE', 'Y_SCALE'],
+        'deg': ['DEG', 'Deg'],
+        'cal_type': ['CAL', 'CALTYPE', 'CAL_TYPE'],
+        'diag_ID': ['diag_ID', 'diagID', 'diag', 'diag_1', 'diag_1_1', 
+                    'FILD_ID', 'fild_ID'], 
+        'c1': ['c1', 'c1_1', 'c1_2'],
+        'xcenter': ['xcenter', 'x_center', 'x_center_1', 'Xc'], 
+        'ycenter': ['ycenter', 'y_center', 'y_center_1', 'Yc'],
+        'nxpix': ['nxpix', 'nxpix_1', 'nxpix_1_1'],
+        'nypix': ['nypix', 'nypix_1', 'nypix_1_1'],
+        'type': ['type'],
+        }
+    for k in database.keys():
+        for k2 in acepted.keys():
+            if k in acepted[k2]:
+                database[k2] = database.pop(k)
     return database
 
 
@@ -163,7 +153,7 @@ def get_calibration_method(data, shot: int = None, diag_ID: int = None,
 class CalibrationDatabase:
     """Database of parameter to align the scintillator."""
 
-    def __init__(self, filename: str, n_header: int = 5):
+    def __init__(self, filename: str, n_header: int = 3):
         """
         Read the calibration database, to align the strike maps.
 
@@ -188,35 +178,7 @@ class CalibrationDatabase:
 
         # Read the file
         logger.info('Reading Camera database from: %s', filename)
-        with open(filename) as f:
-            for i in range(n_header):
-                dummy = f.readline()
-            # Database itself
-            for line in f:
-                dummy = line.split()
-                self.data['CalID'].append(int(dummy[0]))
-                self.data['camera'].append(dummy[1])
-                self.data['shot1'].append(int(dummy[2]))
-                self.data['shot2'].append(int(dummy[3]))
-                self.data['xshift'].append(float(dummy[4]))
-                self.data['yshift'].append(float(dummy[5]))
-                self.data['xscale'].append(float(dummy[6]))
-                self.data['yscale'].append(float(dummy[7]))
-                self.data['deg'].append(float(dummy[8]))
-                self.data['cal_type'].append(dummy[9])
-                self.data['diag_ID'].append(int(dummy[10]))
-                try:  # If there is distortion information, it would be here
-                    self.data['c1'].append(float(dummy[11]))
-                    self.data['xcenter'].append(float(dummy[12]))
-                    self.data['ycenter'].append(float(dummy[13]))
-                except IndexError:
-                    continue
-        # If the c1 and c2 fields are empty, delete them to avoid issues in the
-        # pandas self.dataframe
-        if len(self.data['c1']) == 0:
-            self.data.pop('c1')
-            self.data.pop('xcenter')
-            self.data.pop('ycenter')
+        self.data = readCameraCalibrationDatabase(filename, n_header=n_header)
 
     def write_database_to_txt(self, file: str = None):
         """
@@ -259,7 +221,7 @@ class CalibrationDatabase:
                 f.write(line)
             logger.info('File %s writen', file)
 
-    def get_calibration(self, shot, diag_ID):
+    def get_calibration(self, shot, diag_ID, type=None):
         """
         Give the calibration parameter of a precise database entry.
 
@@ -276,6 +238,9 @@ class CalibrationDatabase:
                     (self.data['shot2'][i] >= shot) * \
                     (self.data['diag_ID'][i] == diag_ID):
                 flags[i] = True
+            if type is not None:
+                if self.data['type'][i] != type:
+                    flags[i] = flags[i] * False
 
         n_true = sum(flags)
 
@@ -360,18 +325,8 @@ class CalParams:
         >>> # Assume you have in your workspace a calibration called call
         >>> cal.print()
         """
-        print('xscale: ', self.xscale)
-        print('yscale: ', self.yscale)
-        print('xshift: ', self.xshift)
-        print('yshift: ', self.yshift)
-        print('deg: ', self.deg)
-        print('xcenter: ', self.xcenter)
-        print('ycenter: ', self.ycenter)
-        print('c1: ', self.c1)
-        print('c2: ', self.c2)
-        print('nxpix:', self.nxpix)
-        print('nypix:', self.nypix)
-        print('type:', self.type)
+        for ikey in self.__dict__.keys():
+            print('%s:'%ikey, self.__dict__[ikey])
 
     def save2netCDF(self, filename):
         """
