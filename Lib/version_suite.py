@@ -6,7 +6,7 @@ import numpy as np
 from Lib._Machine import machine
 from Lib._Paths import Path
 
-version = '1.2.5'
+version = '1.2.6'
 codename = 'Pescaito Frito'
 
 logger = logging.getLogger('ScintSuite.Version')
