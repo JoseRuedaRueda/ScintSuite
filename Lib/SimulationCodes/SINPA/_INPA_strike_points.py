@@ -204,14 +204,15 @@ class INPAStrikes(Strikes):
                                 sigmaOptics: float = 0.0,
                                 includeOpticalTransmission: bool = True,
                                 energyFit: str = None,
-                                machine: str = 'AUG'
+                                machine: str = 'AUG',
+                                noiseLevel: float = 0.0
                                 ):
         """
         Calculate the INPA synthetic signal starting from the strikes.
 
         :param R: (float) Radial position to calculate the magnetic field
         :param z: (float) z position to calculate the magnetic field
-
+        :param noiseLevel: will be changed
         """
         # ---- Initialise the remap options
         remap_parameters = {
@@ -256,6 +257,15 @@ class INPAStrikes(Strikes):
             self.calculate_2d_histogram('xcam', 'ycam',
                                         binsx=np.arange(nw+1),
                                         binsy=np.arange(nh+1))
+            # ---- Add noise
+            if noiseLevel > 0.0:
+                logger.info('Adding random noise')
+                noise = noiseLevel * np.random.rand(nw * nh).reshape(nw, nh)
+                for k in self.histograms['xcam_ycam'].keys():
+                    for jk, kind in enumerate(self.histograms[
+                            'xcam_ycam'].kind.values):
+                        self.histograms['xcam_ycam'][k].values[
+                                :, :, jk] += noise
             # Apply finite focus
             if sigmaOptics > 0.05:
                 self.histograms['xcam_ycam_finiteFocus'] = \

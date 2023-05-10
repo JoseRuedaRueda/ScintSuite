@@ -10,6 +10,7 @@ import tarfile
 import numpy as np
 import xarray as xr
 import Lib.errors as errors
+import matplotlib.pyplot as plt
 import Lib._Tomography._martix_collapse as matrix
 import Lib._Tomography._solvers as solvers
 from tqdm import tqdm
@@ -87,7 +88,7 @@ class Tomography():
             # --- Now load the inversions
             supportedFiles = ['nnelasticnet.nc', 'nntikhonov0.nc',
                               'tikhonov0.nc',
-                              'nnlsq.nc', ]
+                              'nnlsq.nc', 'maxEntropy.nc']
             for file in supportedFiles:
                 filename = os.path.join(folder, file)
                 if os.path.isfile(filename):
@@ -315,6 +316,123 @@ class Tomography():
             xr.DataArray(r2, dims=('alpha', 'l1'))
         self.inversion['nnelasticnet']['residual'].attrs['long_name'] = '$r^2$'
 
+    def maximumEntropy(self, alpha, d=None,  **kargs):
+        """
+        Perform a 0th order Tikonov regularized non-negative regression
+
+        Jose Rueda-Rueda: jrrueda@us.es
+
+        :param  alpha: hyperparameter. Can be a number (single regression) or
+            a list or array. In this latter case, the regression will be done
+            for each value in the list (array)
+        :param  weights: weights, placeholder for the future
+        :param  **kargs: extra arguments for the nnlsqr solver
+        """
+        # --- Ensure we have an array or iterable:
+        if isinstance(alpha, (list, np.ndarray)):
+            alp = alpha
+        else:
+            alp = np.array([alpha])
+        n_alpha = len(alp)
+        # --- Initialise the variables
+        npoints, nfeatures = self.W2D.shape
+        beta = np.zeros((nfeatures, n_alpha))
+        MSE = np.zeros(n_alpha)
+        r2 = np.zeros(n_alpha)
+        res = np.zeros(n_alpha)
+        if d is not None:
+            d2 = matrix.collapse_array2D(d)
+        else:
+            d2 = d
+        # --- Perform the regression
+        logger.info('Performing maximum entropy regularization')
+        for i in tqdm(range(n_alpha)):
+            reg = solvers.EntropyFunctional(
+                self.W2D, self.s1D, alpha=alp[i], d=d2)
+            beta[:, i], MSE[i], res[i], r2[i] = reg.solve()
+        # --- reshape the coefficients and predict the MSE
+        logger.info('Reshaping the distribution')
+        beta_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_alpha))
+        for i in range(n_alpha):
+            beta_shaped[..., i]  = \
+                matrix.restore_array2D(beta[:,i], self.W.shape[2],
+                                       self.W.shape[3])
+        # --- Predict the solutions and get the MSE:
+        
+        # --- Save it in the dataset
+        self.inversion['maxEntropy'] = xr.Dataset()
+        self.inversion['maxEntropy']['F'] = xr.DataArray(
+                beta_shaped, dims=('x', 'y', 'alpha'),
+                coords={'x': self.W['x'], 'y': self.W['y'],
+                        'alpha': alp}
+        )
+        self.inversion['maxEntropy']['F'].attrs['long_name'] =\
+            'FI distribution'
+
+        self.inversion['maxEntropy']['alpha'].attrs['long_name'] =\
+            '$\\alpha$'
+
+        self.inversion['maxEntropy']['MSE'] = xr.DataArray(MSE, dims='alpha')
+        self.inversion['maxEntropy']['MSE'].attrs['long_name'] = 'MSE'
+
+        self.inversion['maxEntropy']['residual'] = \
+            xr.DataArray(res, dims='alpha')
+        self.inversion['maxEntropy']['residual'].attrs['long_name'] =\
+            'Residual'
+
+        self.inversion['maxEntropy']['r2'] = xr.DataArray(r2, dims='alpha')
+        self.inversion['maxEntropy']['residual'].attrs['long_name'] = '$r^2$'
+
+    def calculateLcurves(self, reconstructions =  None):
+        """
+        Calculate the L curve
+        
+        jose rueda: jrrueda@us.es
+        
+        :param reconstructions: list with strings with the names of the
+            reconstructions for the calculation of the L curve. If None, all
+            reconstructions in the 'inversion' attribute wil be used
+        """
+        if reconstructions is None:
+            reconstructions = self.inversion.keys()
+        for k in reconstructions:
+            x = self.inversion[k].MSE
+            y = self.inversion[k].F.sum(dim=('x', 'y'))
+            # It can be the case of elastic net, which has a second hyper param
+            if len(x.shape) == 1:
+                curv = self._calccurvature(x,y)
+                self.inversion[k]['curvature'] = \
+                    xr.DataArray(curv, dims='alpha')
+                self.inversion[k]['residual'].attrs['long_name'] = \
+                    'Curvature of the L curve'
+            if len(x.shape) == 2:
+                curvature = np.zeros(x.shape)
+                for i in range(self.inversion[k].l1.size):
+                    curvature[:, i] = self._calccurvature(x.isel(l1=i),
+                                                          y.isel(l1=i))
+                self.inversion[k]['curvature'] = \
+                    xr.DataArray(curvature, dims=('alpha', 'l1'))
+                self.inversion[k]['residual'].attrs['long_name'] = \
+                    'Curvature of the L curve'
+    def _calccurvature(self, x, y):
+        # perform an interpolation, with a lot of points, to avoid the noise
+        dx = np.gradient(x, x)  # first derivatives
+        dy = np.gradient(y, x)
+        d2x = np.gradient(dx, x)  # second derivatives
+        d2y = np.gradient(dy, x)
+        return np.abs(d2y) / (np.sqrt(1 + dy ** 2)) ** 1.5  # curvature
+    
+    # def _calccurvatureSurface(sef, x, y)
+    # ------------------------------------------------------------------------
+    # %% Potting block
+    # ------------------------------------------------------------------------
+    def plotLcurve(self, inversion: str='maxEntropy', ax=None):
+        if ax is None:
+            fig, ax = plt.subplots(2)
+        ax[0].plot(self.inversion[inversion].MSE,
+                   self.inversion[inversion].F.sum(dim=('x','y')))
+        ax[1].plot(self.inversion[inversion].MSE,
+                   self.inversion[inversion].curvature)
     def export(self, folder: str, createTar: bool = False):
         """
         Export the tomography data into a folder
@@ -330,9 +448,9 @@ class Tomography():
         logger.info('Saving results in: %s', folder)
         filesSaved = []
         # Export the different inversion results
-        for k in self.inversion.keys():
+        for k, inversion in self.inversion.items():
             fileToSave = os.path.join(folder, k + '.nc')
-            self.inversion[k].to_netcdf(fileToSave, format='NETCDF4')
+            inversion.to_netcdf(fileToSave, format='NETCDF4')
             filesSaved.append(fileToSave)
         # Export the signal
         fileToSave = os.path.join(folder, 'Signal.nc')
