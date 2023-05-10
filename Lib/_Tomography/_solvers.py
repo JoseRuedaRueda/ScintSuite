@@ -16,7 +16,9 @@ from sklearn.metrics import r2_score
 from scipy.optimize import nnls     # Non negative least squares
 from Lib._Tomography._meritFunctions import residual
 from sklearn.linear_model import ElasticNet  # ElaticNet
-
+from scipy.sparse import diags
+from scipy.sparse.linalg import inv
+from scipy.optimize import minimize, Bounds
 
 # -----------------------------------------------------------------------------
 # --- SOLVERS AND REGRESSION ALGORITHMS
@@ -145,3 +147,51 @@ def Elastic_Net(X, y, alpha, l1_ratio=0.05, positive=True, max_iter=1000,
     r2 = r2_score(y, y_pred)
     res = residual(y_pred, y)
     return reg.coef_, MSE, res, r2
+
+
+# -----------------------------------------------------------------------------
+# --- Maximum entropy regularization
+# -----------------------------------------------------------------------------
+class EntropyFunctional:
+    """
+    Auxiliary class to perform maximum entropy regularization.
+    
+    Transated from Julia code written by Luke Stagner:
+    https://github.com/lstagner/PPCF-58-4-2016/blob/master/PPCF16/src/entropy.jl
+    
+    :param A: Design matrix
+    :param b: Signal vector
+    :param alpha: hyperparameter (weight of the entropy)
+    :param d: default solution
+    :param tol: tolerance for the miminization
+    
+    """
+    
+    def __init__(self, A, b, alpha=1e0, d=None,
+                 tol: float = 1.0e-5):
+        self.A = A
+        self.b = b
+        self.m = None
+        self.alpha = np.atleast_1d(np.array([alpha]))
+        self.d = d if d is not None else np.mean(b) / np.mean(self.A, axis=0)
+        self.tol = tol
+        
+    def _objective(self, x):
+        # define the objective function to be minimized
+        entropy = -self.alpha[0] * np.sum(x - self.d - x*np.log(x/self.d))
+        residual = 0.5 * np.sum((self.A @ x - self.b)**2)
+        return entropy + residual
+
+    def solve(self):
+        # solve the optimization problem
+        bounds = Bounds([0]*len(self.d), [np.inf]*len(self.d))
+        cons = [{'type': 'ineq', 'fun': lambda x: x}]
+        self.m = minimize(self._objective, self.d, 
+                          bounds=bounds, constraints=cons, tol=self.tol,
+                          options={'maxiter': 500})
+        beta = self.m.x
+        ypredict = self.A @ beta
+        MSE = mean_squared_error(self.b, ypredict)
+        r2 = r2_score(self.b, ypredict)
+        res = residual(ypredict, self.b)
+        return self.m.x, MSE, res, r2

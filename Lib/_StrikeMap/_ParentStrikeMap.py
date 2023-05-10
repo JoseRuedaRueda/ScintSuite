@@ -559,6 +559,20 @@ class GeneralStrikeMap(XYtoPixel):
         # camera sensor, and X,Y in the phase space.
         for i in tqdm(range(frame_shape[0])):
             for j in range(frame_shape[1]):
+                # First look if the pixel center is inside the grid, to avoid 
+                # remapping pixel far away
+                X_center = \
+                    self._grid_interp['interpolators'][variables[0]](j + 0.5,
+                                                                     i + 0.5)
+                Y_center = \
+                    self._grid_interp['interpolators'][variables[1]](j + 0.5,
+                                                                     i + 0.5)
+                flagx = (X_center < (grid_options['xmin'] - grid_options['dx']))+\
+                    (X_center > (grid_options['xmax'] + grid_options['dx']))
+                flagy = (Y_center < (grid_options['ymin'] - grid_options['dy']))+\
+                    (X_center > (grid_options['ymax'] + grid_options['dy']))
+                if flagx+flagy:
+                    continue
                 # Generate markers coordinates in the chip, note the
                 # first dimmension of the frame is y-pixel
                 # (IDL heritage)
