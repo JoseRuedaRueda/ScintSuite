@@ -1334,7 +1334,7 @@ def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
 # %% ECE data.
 # -----------------------------------------------------------------------------
 def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = True,
-            rhopLimits: float = None):
+            rhopLimits: float = None, safetyChecks: bool = True):
     """
     Retrieves from the database the ECE data and the calibrations to obtain
     the electron temperature perturbations.
@@ -1348,6 +1348,8 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = True,
     :param  rhopLimits: limits in rho poloidal to retrieve the ECE. If None,
     the limits are set to [-1.0, 1.0], where the sign is conventional to
     HFS (-) and LFS (+)
+    :param safetyChecks: If True, ony channles were the signal in the slow and
+    fast channels 'agree' (their average are close) wil be considered
     """
 
     # --- Opening the shotfiles.
@@ -1527,7 +1529,9 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = True,
     # We erase the channels that have and average in the slow channels that
     # are not within the RMD signals. Also, take away those not within the
     # vessel.
-    avail_flag &= ((meanECE > minRMD) & (meanECE < maxRMD)) & (RmeanRMD > 1.03)
+    avail_flag &= (RmeanRMD > 1.03)
+    if safetyChecks:
+       avail_flag &= ((meanECE > minRMD) & (meanECE < maxRMD))
     del meanECE
     del maxRMD
     del minRMD

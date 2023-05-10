@@ -1,3 +1,8 @@
+# 1.2.6 Tomography and camera Upgrades
+- Camera calibration object upgraded, now will be compatibe with all the calibrationsDatabase formats
+- Calibration database object now use pandas as inner data storage
+- Maximum entropy regularization added to the solver options
+
 # 1.2.5 Cameracalibration options
 - Included posibility to flip camera frames when loading it (via Camera Data Files)
 - Reverted changes to camera calibration data bases  added in version 1.2.2
