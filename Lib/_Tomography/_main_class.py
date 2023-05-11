@@ -433,6 +433,7 @@ class Tomography():
                    self.inversion[inversion].F.sum(dim=('x','y')))
         ax[1].plot(self.inversion[inversion].MSE,
                    self.inversion[inversion].curvature)
+
     def export(self, folder: str, createTar: bool = False):
         """
         Export the tomography data into a folder

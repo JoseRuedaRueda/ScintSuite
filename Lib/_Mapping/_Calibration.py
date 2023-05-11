@@ -386,3 +386,23 @@ class CalParams:
             c2 = f.createVariable('c2', 'float64', ('number', ))
             c2[:] = self.c2
             c2.long_name = 'c2 (distortion) of the used calibration'
+
+    def save2txt(self, filename):
+        """
+        Save the calibration in a txt file
+
+        :param filename: (str) name of the file for the calibration
+
+        Jose Rueda: jrrueda@us.es
+
+        Example of use:
+        >>> # Assume you have in your workspace a calibration called call
+        >>> cal.save2txt('calibration.txt')
+        
+        """
+        with open(filename, 'w') as f:
+            f.write('# Calibration parameters\n')
+            f.write('# xscale yscale xshift yshift deg c1 c2 xcenter ycenter\n')
+            f.write('%f %f %f %f %f %f %f %f %f\n' % (
+                self.xscale, self.yscale, self.xshift, self.yshift, self.deg,
+                self.c1, self.c2, self.xcenter, self.ycenter))

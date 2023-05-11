@@ -25,6 +25,11 @@ def collapse_array4D(W: float):
     :param  W: 4D matrix
 
     :return W2D: Condensed 2D matrix
+
+    :Example:
+    >>> W = np.random.rand(3, 4, 5, 6)
+    >>> W2D = collapse_array4D(W)
+    >>> W2D.shape  #(12, 30)
     """
     ns = W.shape[0] * W.shape[1]
     npin = W.shape[2] * W.shape[3]
@@ -58,6 +63,11 @@ def restore_array4D(W: float, n0: int, n1: int, n2: int, n3: int):
     :param  W: 2D matrix
 
     :return W4D: restored 4D matrix
+
+    :Example:
+    >>> W = np.random.rand(12, 30)
+    >>> W4D = restore_array4D(W, 3, 4, 5, 6)
+    >>> W4D.shape  #(3, 4, 5, 6)
     """
     W4D = np.zeros((n0, n1, n2, n3))
     for irp in prange(n3):
@@ -80,6 +90,11 @@ def collapse_array2D(s: float):
     :param  s: 2D matrix
 
     :return s1d: Condensed 1D matrix
+
+    :Example:
+    >>> s = np.random.rand(3, 4)
+    >>> s1d = collapse_array2D(s)
+    >>> s1d.shape  #(12,)
     """
     ns = s.size
     s1d = np.zeros(ns)
@@ -99,6 +114,11 @@ def restore_array2D(s1d: float, nx: int, ny:int):
     :param  s: 1D matrix
 
     :return s2D: Condensed 2D matrix
+
+    :Example:
+    >>> s1d = np.random.rand(12)
+    >>> s2D = restore_array2D(s1d, 3, 4)
+    >>> s2D.shape  #(3, 4)
     """
     s2D = np.zeros((nx, ny))
     for irs in prange(ny):

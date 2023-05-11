@@ -1,5 +1,5 @@
 """
-Solvers fortomography.
+Solvers for tomography reconstructions.
 """
 import logging
 import numpy as np
@@ -23,7 +23,7 @@ from scipy.optimize import minimize, Bounds
 # -----------------------------------------------------------------------------
 # --- SOLVERS AND REGRESSION ALGORITHMS
 # -----------------------------------------------------------------------------
-def ols(X, y):
+def ols(X: np.ndarray, y: np.ndarray):
     """
     Perform an OLS inversion using the analytical solution.
 
@@ -31,10 +31,16 @@ def ols(X, y):
 
     :param  X: Design matrix
     :param  y: signal
-    :return beta: best fit coefficients
 
+    :return beta: best fit coefficients
     :return MSE: Mean squared error
+    :return res: Residual
     :return r2: R2 score
+
+    :Example:
+    >>> X = np.random.rand(10, 5)
+    >>> y = np.random.rand(10)
+    >>> beta, MSE, res, r2 = ols(X, y)
     """
     beta = np.linalg.lstsq(X, y, rcond=None)[0]
     y_pred = X @ beta
@@ -56,6 +62,7 @@ def nnlsq(X, y, **kargs):
 
     :return beta: best fit coefficients
     :return MSE: Mean squared error
+    :return res: Residual
     :return r2: R2 score
     """
     beta, dummy = nnls(X, y, **kargs)

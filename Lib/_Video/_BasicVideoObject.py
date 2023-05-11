@@ -156,10 +156,16 @@ class BVO:
                 elif file.endswith('.png') or file.endswith('.tif'):
                     file, name = os.path.split(file)
                 elif file.endswith('.mp4'):
+                    # This should not be done in this way, it is just a quick
+                    # fix to load the mp4 files. At the end of the day, mp4
+                    # format is not used by any diagnostic up to now, so it is
+                    # just for calibration and minor things
                     dummy = mp4.read_file(file)
-                    self.properties['width'] = dummy['width']
-                    self.properties['height'] = dummy['height']
-                    self.properties['fps'] = dummy['fps']
+                    self.properties = {
+                        'width': dummy['width'],
+                        'height': dummy['height'],
+                        'fps': dummy['fps'],
+                    }
                     self.exp_dat = xr.Dataset()
                     nt, nx, ny = dummy['frames'].shape
                     px = np.arange(nx)
@@ -170,7 +176,8 @@ class BVO:
                                      coords={'t': self.timebase.squeeze(),
                                              'px': px,
                                              'py': py})
-                    self.exp_dat['frames'] = self.exp_dat['frames'].transpose('px', 'py', 't')
+                    self.exp_dat['frames'] = \
+                        self.exp_dat['frames'].transpose('px', 'py', 't')
                     self.type_of_file = '.mp4'
                 else:
                     raise Exception('Not recognised file extension')
@@ -271,6 +278,12 @@ class BVO:
 
         :return M: 3D numpy array with the frames M[px,py,nframes] (if the
             internal flag is set to false)
+        
+        :Example:
+        >>> # Load a video from a diagnostic
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo(shot=41090)
+        >>> vid.read_frame()  # To load all the video
         """
         # --- Clean video if needed
         if 't' in self.exp_dat and internal:
@@ -378,16 +391,15 @@ class BVO:
         # --- Count saturated pixels
         max_scale_frames = 2 ** self.settings['RealBPP'] - 1
         threshold = threshold_saturation * max_scale_frames
-        print('Counting "saturated" pixels')
-        print('The threshold is set to: ', threshold, ' counts')
+        logger.info('Counting "saturated" pixels')
+        logger.info('The threshold is set to: %f counts', threshold)
         n_pixels_saturated = \
             np.sum(self.exp_dat['frames'].values >= threshold, axis=(0, 1))
         self.exp_dat['n_pixels_gt_threshold'] = xr.DataArray(
             n_pixels_saturated.astype('int32'), dims=('t'))
         self.exp_dat.attrs['threshold_for_counts'] = threshold_saturation
-        if verbose:
-            print('Maximum number of saturated pixels in a frame: '
-                  + str(self.exp_dat['n_pixels_gt_threshold'].values.max()))
+        logger.info('Maximum number of saturated pixels in a frame: %f',
+                    n_pixels_saturated.max())
 
     def subtract_noise(self, t1: float = None, t2: float = None,
                        frame: np.ndarray = None, flag_copy: bool = False):
@@ -411,6 +423,14 @@ class BVO:
         :param  flag_copy: If true, a copy of the frame will be stored
 
         :return  frame: the frame used for the noise subtraction
+
+        :Example:
+        >>> # Load a video from a diagnostic
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo(shot=41090)
+        >>> vid.read_frame()  # To load all the video
+        >>> # Average the frames between 0.1 and 0.2 and use them as noise frame
+        >>> vid.subtract_noise(0.1, 0.2)  
         """
         # --- Check the inputs
         if self.exp_dat is None:
@@ -515,6 +535,16 @@ class BVO:
             -# median:
                 size: 4, number of pixels considered
         :param  flag_copy: flag to copy or not the original frames
+
+        :Example:
+        >>> # Load a video from a diagnostic
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo(shot=41090)
+        >>> vid.read_frame()  # To load all the video
+        >>> # Average the frames between 0.1 and 0.2 and use them as noise frame
+        >>> vid.subtract_noise(0.1, 0.2)
+        >>> # Filter the frames
+        >>> vid.filter_frames(method='median', options={'size': 2})
         """
         logger.info('Filtering frames')
         # default options:
@@ -1042,7 +1072,7 @@ class BVO:
     # --------------------------------------------------------------------------
     # --- Export
     # --------------------------------------------------------------------------
-    def exportVideo(self, filename, flagAverage: bool = False):
+    def exportVideo(self, filename: str = None, flagAverage: bool = False):
         """
         Export video file
 
@@ -1055,6 +1085,14 @@ class BVO:
             GUI will appear to select the results
         :param  flagAverage: flag to indicate if we want to save the averaged
             frames
+        
+        :Example:
+        >>> # Load a video from a diagnostic
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo(shot=41090)
+        >>> vid.read_frame()  # To load all the video
+        >>> # Export the video
+        >>> vid.exportVideo()
         """
         if filename is None:
             filename = _ssio.ask_to_save(ext='*.nc')
