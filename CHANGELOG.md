@@ -2,6 +2,8 @@
 - Camera calibration object upgraded, now will be compatibe with all the calibrationsDatabase formats
 - Calibration database object now use pandas as inner data storage
 - Maximum entropy regularization added to the solver options
+- Improved documentation
+- Improved performance of MC remap
 
 # 1.2.5 Cameracalibration options
 - Included posibility to flip camera frames when loading it (via Camera Data Files)
