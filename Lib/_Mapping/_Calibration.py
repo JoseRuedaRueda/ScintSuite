@@ -387,6 +387,23 @@ class CalParams:
             c2[:] = self.c2
             c2.long_name = 'c2 (distortion) of the used calibration'
 
+            nxpix = f.createVariable('nxpix', 'float64', ('number', ))
+            nxpix[:] = self.nxpix
+            nxpix.long_name = 'nxpix of the used calibration'
+
+            nypix = f.createVariable('nypix', 'float64', ('number', ))
+            nypix[:] = self.nypix
+            nypix.long_name = 'nypix of the used calibration'
+
+            camera = f.createVariable('camera', 'S1', ('number', ))
+            camera[:] = self.camera
+            camera.long_name = 'camera type of the used calibration'
+
+            type = f.createVariable('type', 'S1', ('number', ))
+            type[:] = self.type
+            type.long_name = 'type of the used calibration'
+            
+
     def save2txt(self, filename):
         """
         Save the calibration in a txt file
@@ -406,3 +423,4 @@ class CalParams:
             f.write('%f %f %f %f %f %f %f %f %f\n' % (
                 self.xscale, self.yscale, self.xshift, self.yshift, self.deg,
                 self.c1, self.c2, self.xcenter, self.ycenter))
+
