@@ -4,6 +4,7 @@
 - Maximum entropy regularization added to the solver options
 - Improved documentation
 - Improved performance of MC remap
+- **Bug Soved** calibration was not exporting into netCDF the optional parameters like the nxpix or nypix introduced by HIBPcomunity
 
 # 1.2.5 Cameracalibration options
 - Included posibility to flip camera frames when loading it (via Camera Data Files)

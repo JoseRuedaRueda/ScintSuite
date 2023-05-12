@@ -349,18 +349,24 @@ def read_calibration(file=None, verbose: bool = False):
     logger.info('-.-. .- .-.. .. -... .-. .- - .. --- -.')
     cal = CalParams()
     list = ['xshift', 'yshift', 'xscale', 'yscale', 'deg', 'xcenter', 'ycenter',
-            'c1', 'c2']
+            'c1', 'c2', 'nxpix', 'nypix', 'camera']
     var = read_variable_ncdf(file, list, human=False, verbose=False)
     cal.xshift = var[0].data[:]
     cal.yshift = var[1].data[:]
     cal.xscale = var[2].data[:]
     cal.yscale = var[3].data[:]
     cal.deg = var[4].data[:]
+    # Load the optional parameters
     if var[5] is not None:
         cal.xcenter = var[5].data[:]
         cal.ycenter = var[6].data[:]
         cal.c1 = var[7].data[:]
         cal.c2 = var[8].data[:]
+    if var[9] is not None:
+        cal.nxpix = var[9].data[:]
+        cal.nypix = var[10].data[:]
+    if var[11] is not None:
+        cal.camera = var[11].data[:]
     return cal
 
 
