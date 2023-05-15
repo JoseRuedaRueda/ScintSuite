@@ -403,24 +403,3 @@ class CalParams:
             type[:] = self.type
             type.long_name = 'type of the used calibration'
             
-
-    def save2txt(self, filename):
-        """
-        Save the calibration in a txt file
-
-        :param filename: (str) name of the file for the calibration
-
-        Jose Rueda: jrrueda@us.es
-
-        Example of use:
-        >>> # Assume you have in your workspace a calibration called call
-        >>> cal.save2txt('calibration.txt')
-        
-        """
-        with open(filename, 'w') as f:
-            f.write('# Calibration parameters\n')
-            f.write('# xscale yscale xshift yshift deg c1 c2 xcenter ycenter\n')
-            f.write('%f %f %f %f %f %f %f %f %f\n' % (
-                self.xscale, self.yscale, self.xshift, self.yshift, self.deg,
-                self.c1, self.c2, self.xcenter, self.ycenter))
-

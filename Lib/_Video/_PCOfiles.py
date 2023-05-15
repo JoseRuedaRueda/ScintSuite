@@ -146,11 +146,11 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
 
         for file in sorted(os.listdir(video_object.path)):
             if file.endswith('.b16'):
-                current_frame = current_frame + 1
                 if current_frame in frames_number:
                     pngname = os.path.join(video_object.path, file)
                     dummy = load_pco(pngname)
                     M[:, :, counter] = dummy
                     counter = counter + 1
+                current_frame = current_frame + 1
         print('Number of loaded frames: ', counter)
     return M

@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import Lib._Tomography._martix_collapse as matrix
 import Lib._Tomography._solvers as solvers
 from tqdm import tqdm
+from Lib.version_suite import exportVersion
 
 
 # --- Auxiliary objects
@@ -414,6 +415,7 @@ class Tomography():
                     xr.DataArray(curvature, dims=('alpha', 'l1'))
                 self.inversion[k]['residual'].attrs['long_name'] = \
                     'Curvature of the L curve'
+    
     def _calccurvature(self, x, y):
         # perform an interpolation, with a lot of points, to avoid the noise
         dx = np.gradient(x, x)  # first derivatives
@@ -434,7 +436,8 @@ class Tomography():
         ax[1].plot(self.inversion[inversion].MSE,
                    self.inversion[inversion].curvature)
 
-    def export(self, folder: str, createTar: bool = False):
+    def export(self, folder: str, inversionKeys: list = None,
+               createTar: bool = False):
         """
         Export the tomography data into a folder
 
@@ -448,9 +451,14 @@ class Tomography():
         """
         logger.info('Saving results in: %s', folder)
         filesSaved = []
+        if inversionKeys is None:
+            inversionKeys = self.inversion.keys()
         # Export the different inversion results
         for k, inversion in self.inversion.items():
+            if k not in inversionKeys:
+                continue
             fileToSave = os.path.join(folder, k + '.nc')
+            logger.info('Saving: %s', fileToSave)
             inversion.to_netcdf(fileToSave, format='NETCDF4')
             filesSaved.append(fileToSave)
         # Export the signal
@@ -461,6 +469,9 @@ class Tomography():
         fileToSave = os.path.join(folder, 'WeightFunc.nc')
         self.W.to_netcdf(fileToSave, format='NETCDF4')
         filesSaved.append(fileToSave)
+        # Export the suite version
+        fileToSave = os.path.join(folder, 'SuiteVersion.txt')
+        exportVersion(fileToSave)
         # Compress into a TAR:
         if createTar:
             tarFile = os.path.join(folder, 'Complete.tar')
