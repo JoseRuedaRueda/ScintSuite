@@ -1,3 +1,6 @@
+# 1.2.7 Bug solve
+- Solves #86: issues when loading a discrete number of frames from pco, png or tiff formats
+
 # 1.2.6 Tomography and camera Upgrades
 - Camera calibration object upgraded, now will be compatibe with all the calibrationsDatabase formats
 - Calibration database object now use pandas as inner data storage

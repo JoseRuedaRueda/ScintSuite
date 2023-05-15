@@ -177,10 +177,8 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
                       video_object.imageheader['biHeight'],
                       len(frames_number)),
                      dtype=video_object.imageheader['framesDtype'])
-
         for file in sorted(os.listdir(video_object.path)):
             if file.endswith('.tif'):
-                current_frame = current_frame + 1
                 if current_frame in frames_number:
                     pngname = os.path.join(video_object.path, file)
                     dummy = load_tiff(pngname)
@@ -188,5 +186,6 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
                     counter = counter + 1
                 if counter == video_object.header['ImageCount']:
                     break
+                current_frame = current_frame + 1
         logger.info('Number of loaded frames: %i' % counter)
     return M
