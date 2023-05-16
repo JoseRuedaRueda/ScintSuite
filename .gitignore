@@ -45,3 +45,6 @@ DoxiDoc/*
 html/*
 .idea/*
 .spyproject/*
+.vscode
+.owncloudsync*
+.sync_journal*
