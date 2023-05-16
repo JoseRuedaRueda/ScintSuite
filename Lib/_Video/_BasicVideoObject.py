@@ -30,6 +30,7 @@ import Lib._Video._AuxFunctions as aux
 from tqdm import tqdm                      # For waitbars
 from scipy import ndimage                  # To filter the images
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.widgets import Slider, Button, RadioButtons
 
 
 # --- Initialise the auxiliary objects
@@ -153,7 +154,9 @@ class BVO:
                 elif file.endswith('.png') or file.endswith('.tif'):
                     file, name = os.path.split(file)
                 elif file.endswith('.mp4'):
-                    dummy = mp4.read_file(file)
+                    if not 'properties' in self.__dict__:
+                        self.properties = {}
+                    dummy = mp4.read_file(file, **self.properties)
 
                     frames = dummy.pop('frames')
                     self.properties.update(dummy)
@@ -890,6 +893,62 @@ class BVO:
                                      shot=self.shot)
         root.mainloop()
         root.destroy()
+
+    def GUI_frames_simple(self, flagAverage: bool = False, **kwargs):
+        """
+        Small GUI to explore camera frames using matplotlib widgets.
+
+        Pablo Oyola - poyola@us.es
+
+        :param flagAverage: flag to decide if we need to use the averaged frames
+            of the experimental ones in the GUI
+        """
+        text = 'Press TAB until the time slider is highlighted in red.'\
+            + ' Once that happend, you can move the time with the arrows'\
+            + ' of the keyboard, frame by frame'
+        logger.info('--. ..- ..')
+        logger.info(text)
+        logger.info('-... . ..- - -.--')
+
+        # Generating the figure.
+        fig, ax = plt.subplots(1)
+        div = make_axes_locatable(ax)
+        cax = div.append_axes('right', '5%', '5%')
+        slider_ax = div.append_axes('bottom', pad='15%', size='3%')
+
+        # Generating the slider.
+        if flagAverage:
+            tframes = self.avg_dat['t']
+            frames  = self.avg_dat['frames']
+        else:
+            tframes = self.exp_dat['t']
+            frames  = self.exp_dat['frames']
+
+        # Plotting the initial frame (t=0)
+        extent = [frames.py.min(), frames.py.max(), frames.px.min(), frames.px.max()]
+        im = ax.imshow(frames.sel(t=0, method='nearest'), origin='lower', 
+                       extent=extent, **kwargs)
+        slider = Slider(slider_ax, 'Time', tframes.values[0], tframes.values[-1], 
+                        valinit=tframes.sel(t=0, method='nearest').values,
+                        valstep=tframes.values, orientation='horizontal', 
+                        initcolor='red')
+        
+        # Drawing the scintillator.
+        if self.scintillator is not None:
+            self.scintillator.plot_pix(ax=ax)
+
+        # Setting up the colorbar.
+        fig.colorbar(im, cax=cax, label='Counts')
+
+        def update(val):
+            im.set_data(frames.sel(t=val, method='nearest'))
+            fig.canvas.draw_idle()
+
+        slider.on_changed(update)
+        plt.show()
+
+        return ax, slider
+        
 
     # --------------------------------------------------------------------------
     # --- Properties
