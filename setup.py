@@ -41,14 +41,7 @@ with open('.setup/authors.txt', 'rt') as fh:
 
 # Reading the keywords from the file.
 with open('.setup/keywords.txt', 'rt') as fh:
-    keywords = [line.strip() for line in fh]
-
-print('Installing ScintSuite version 1.2.7 (Pescaito Frito)')
-print('Author: %s' % author_list[0])
-print('Email: %s' % email_list[0])
-print('Keywords: %s' % ', '.join(keywords))
-print('Description: %s' % short_desc)
-print('Long description: %s' % long_desc)
+    keywords = [line.strip() for line in fh]+
 
 setup(
     name='ScintSuite',
@@ -66,7 +59,8 @@ setup(
     include_package_data=True,
     zip_safe=False,
     extras_require=optional_dependencies,
-    python_requires='>=3.7'
+    python_requires='>=3.7',
+    py_modules=['Lib'],
 )
 
 
