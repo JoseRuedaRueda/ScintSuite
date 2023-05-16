@@ -7,7 +7,7 @@ from setuptools import setup
 import sys
 import os
 
-libpath = os.path.join(os.dirname(__file__), 'Lib')
+libpath = os.path.join(os.path.dirname(__file__), 'Lib')
 sys.path.append(libpath)
 
 from Lib.version_suite import version
