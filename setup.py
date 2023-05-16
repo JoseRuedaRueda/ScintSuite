@@ -25,7 +25,7 @@ with open('.setup/optional_requirements.txt', 'rt') as fh:
 # Loading the long description from the .setup/README.md file.
 with open('.setup/description.txt', 'rt') as fh:
     short_desc = fh.readline()
-    long_desc = fh.read()
+    long_desc = fh.readline()
 
 # Loading author list from the .setup/authors.txt file.
 with open('.setup/authors.txt', 'rt') as fh:
@@ -40,6 +40,12 @@ with open('.setup/authors.txt', 'rt') as fh:
 with open('.setup/keywords.txt', 'rt') as fh:
     keywords = [line.strip() for line in fh]
 
+print('Installing ScintSuite version 1.2.7 (Pescaito Frito)')
+print('Author: %s' % author_list[0])
+print('Email: %s' % email_list[0])
+print('Keywords: %s' % ', '.join(keywords))
+print('Description: %s' % short_desc)
+print('Long description: %s' % long_desc)
 
 setup(
     name='ScintSuite',
