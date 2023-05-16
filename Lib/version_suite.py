@@ -1,4 +1,4 @@
-"""Just the version of the suite, to label outputs"""
+"""Just the version of the suite, to label outputs."""
 import git
 import logging
 import datetime
@@ -6,8 +6,8 @@ import numpy as np
 from Lib._Machine import machine
 from Lib._Paths import Path
 
-version = '1.2.1'
-codename = 'Melon con Jamon'
+version = '1.2.7'
+codename = 'Pescaito Frito'
 
 logger = logging.getLogger('ScintSuite.Version')
 

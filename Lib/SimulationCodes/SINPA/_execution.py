@@ -272,7 +272,7 @@ def write_namelist(nml, p=None, overwrite=True):
 
     :param  nml: namelist containing the desired fields.
     :param  p: full path towards the run directory for SINPA. In principle it
-        will take it from the path of the suite. Please do not use this input
+        will take it from the path of the namelist. Please do not use this input
         except you really know what are you doing and want to change something
     :param  overwrite: flag to overwrite the namelist (if exist)
 
@@ -343,7 +343,8 @@ def check_files(runID: str):
     return go
 
 
-def executeRun(runID: str, queue: bool = False, cluster: str = 'MPCDF'):
+def executeRun(runID: str, queue: bool = False, cluster: str = 'MPCDF',
+               namelistFile: str = None):
     """
     Execute a SINPA simulation
 
@@ -357,7 +358,11 @@ def executeRun(runID: str, queue: bool = False, cluster: str = 'MPCDF'):
     """
     if not queue:       # Just execute the code in the current terminal
         SINPAbinary = os.path.join(paths.SINPA, 'bin', 'SINPA.go')
-        p = os.path.join(paths.SINPA, 'runs', runID, 'inputs', runID + '.cfg')
+        if namelistFile is None:
+            p = os.path.join(paths.SINPA, 'runs', runID, 'inputs',
+                             runID + '.cfg')
+        else:
+            p = namelistFile
         os.system(SINPAbinary + ' ' + p)
     else:  # Prepare a simulation to be launched in the queue
         if cluster.lower() == 'mpcdf':

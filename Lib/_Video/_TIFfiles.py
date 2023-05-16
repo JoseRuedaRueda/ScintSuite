@@ -19,8 +19,9 @@ from skimage import io                     # To load images
 # --- Auxiliary objects
 logger = logging.getLogger('ScintSuite.Video')
 
+
 def read_data(path):
-    """To Be implemented."""
+    """To Be documented."""
     f = []
     look_for_tiff = True
     for file in os.listdir(path):
@@ -36,22 +37,26 @@ def read_data(path):
             look_for_tiff = False
     # If no tif was found, raise and error
     if look_for_tiff:
-        print('No .tif files in the folder...')
+        logger.error('No .tif files in the folder...')
+        raise Exception('No tiff files found!')
         return 0, 0, 0, 0
     n_files = len(f)
     if n_files == 0:
-        print('no txt file with the information found in the directory!!')
+        logger.error('no txt file with the information found!')
+        raise Exception('no times for the tiff files found')
         return 0, 0, 0, 0
     elif n_files > 1:
-        print('Several txt files found, loop to find the namelist...')
-        print('if there are 2 fortran namelist, this can give unwanted result')
+        logger.warning('Several txt files found,', +
+                       ' loop to find the namelist...')
+        logger.warning('if there are 2 fortran namelist,' +
+                       ' this can give unwanted result')
         for file in f:
             name = os.path.join(path, file)
-            print('Trying with: %s' % name)
+            logger.info('Trying with: %s' % name)
             nml = f90nml.read(name)
             if len(nml.keys()) == 0:
                 continue   # This is not the file we were looking for
-            print('Success!')
+            logger.info('Success!')
             nml = nml['config']  # just take the main namelist dict
     else:  # Just one txt, assume is the good one
         name = os.path.join(path, f[0])
@@ -69,16 +74,16 @@ def read_data(path):
         text = 'In the Tiff there is no info about the real '\
             + 'BitesPerPixel used in the camera. Assumed that the BPP'\
             + ' coincides with the byte size of the variable!!!'
-        print(text)
+        logger.warning(text)
     except KeyError:
-        print(imageheader['framesDtype'].name)
+        logger.error(imageheader['framesDtype'].name)
         raise Exception('Expected uint8,16,32,64 in the frames')
     return header, imageheader, settings, time_base[:].flatten()
 
 
 def load_tiff(filename: str):
     """
-    Load the tiff files
+    Load the tiff files.
 
     Assume there is only one frame per file
 
@@ -166,16 +171,14 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
         current_frame = 0
         if limitation and \
                 size_frame * len(frames_number) > limit:
-            print('Loading all frames is too much')
+            logger.error('Loading all frames is too much')
             return 0
         M = np.zeros((video_object.imageheader['biWidth'],
                       video_object.imageheader['biHeight'],
                       len(frames_number)),
                      dtype=video_object.imageheader['framesDtype'])
-
         for file in sorted(os.listdir(video_object.path)):
             if file.endswith('.tif'):
-                current_frame = current_frame + 1
                 if current_frame in frames_number:
                     pngname = os.path.join(video_object.path, file)
                     dummy = load_tiff(pngname)
@@ -183,5 +186,6 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
                     counter = counter + 1
                 if counter == video_object.header['ImageCount']:
                     break
-        print('Number of loaded frames: ', counter)
+                current_frame = current_frame + 1
+        logger.info('Number of loaded frames: %i' % counter)
     return M
