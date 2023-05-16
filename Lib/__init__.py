@@ -15,10 +15,12 @@ import logging
 ## ----------------------------------------------------------------------------
 # --- Filters and color handler, logging
 
+home = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
 try:
-    home = os.getenv("HOME")
+    # home = os.getenv("HOME")
     file = \
-        os.path.join(home, 'ScintSuite', 'Data',
+        os.path.join(home, 'Data',
                      'MyData', 'IgnoreWarnings.txt')
     to_ignore = str(f90nml.read(file)['Warnings']['warningstoignore'])
 except FileNotFoundError:
