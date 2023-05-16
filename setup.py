@@ -47,14 +47,13 @@ setup(
     name='ScintSuite',
     version='1.2.7',
     description=short_desc,
-    long_description=long_desc,
     author = author_list,
     author_email = email_list,
     url = 'https://gitlab.mpcdf.mpg.de/ruejo/scintsuite',
     maintainer=author_list[0],
     maintainer_email=email_list[0],
     license='GPLv3',
-    classifiers=keywords,
+    keywords=keywords,
     install_requires=install_requires,
     include_package_data=True,
     zip_safe=False,
@@ -62,10 +61,3 @@ setup(
     python_requires='>=3.7',
     py_modules=['Lib'],
 )
-
-
-import shutil
-# We will now configure the system for the user.
-shutil.copyfile('Data/MyDataTemplates/Paths.txt', 'Data/MyData/Paths.txt')
-shutil.copyfile('Data/MyDataTemplates/IgnoreWarnings.txt', 'Data/MyData/IgnoreWarnings.txt')
-shutil.copyfile('Data/MyDataTemplates/plotting_default_param.cfg', 'plotting_default_param.cfg')
