@@ -46,7 +46,7 @@ with open('.setup/keywords.txt', 'rt') as fh:
 setup(
     name='ScintSuite',
     version='1.2.7',
-    descritpion=short_desc,
+    description=short_desc,
     long_description=long_desc,
     author = author_list,
     author_email = email_list,
