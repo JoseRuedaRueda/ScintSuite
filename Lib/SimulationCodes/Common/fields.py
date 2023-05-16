@@ -27,6 +27,9 @@ class fields:
             b) readBfromAUG: to fetch the fields from the AUG database.
 
         Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+        :Example:
+        >>> fields = fields()
         """
         self.bdims = 0
         self.edims = 0
@@ -159,8 +162,12 @@ class fields:
         --> Bphi[nR, nPhi, nz]: float64
         --> Bz[nR, nPhi, nz]: float64
 
-        :param  path: Full path to the field.
-        :param  field_name: name of the field to store.
+        :param  Bfile: Full path to the magnetic field.
+        :param  Efile: Full path to the electric field file.
+
+        :Example:
+        >>> fields = fields()
+        >>> fields.readFiles(Bfile='Bfield.dat', Efile='Efield.dat')
         """
         self.bdims = 0
         self.edims = 0
@@ -374,6 +381,14 @@ class fields:
         :param  zmax: Maximum Z to get the magnetic equilibrium.
         :param  nR: Number of points to define the B field grid in R direction.
         :param  nz: Number of points to define the B field grid in Z direction.
+        
+        :Example:
+        >>> import Lib.SimulationCodes.Common.fields as fields
+        >>> fields = fields()
+        >>> fields.readBfromDB(shotnumber=34570, time=2.5, exp='AUGD',
+        >>>                    diag='EQI', edition=0, Rmin=1.03, Rmax=2.65,
+        >>>                    zmin=-1.224, zmax=1.05, nR=128, nz=256)
+
         """
         self.bdims = 0
         self.edims = 0
@@ -447,12 +462,12 @@ class fields:
         self.exp = exp
 
     def readBfromDBSinglePoint(self, shotnumber: int = 39612,
-                               time: float = 2.5, R0: float = 190.0,
-                               z0: float = 92.0,
+                               time: float = 2.5, R0: float = 1.90,
+                               z0: float = 0.9,
                                exp: str = 'AUGD', diag: str = 'EQI',
                                edition: int = 0,
-                               Rmin: float = 160.0, Rmax: float = 220.0,
-                               zmin: float = 80.0, zmax: float = 120.0,
+                               Rmin: float = 1.60, Rmax: float = 2.20,
+                               zmin: float = 0.8, zmax: float = 1.200,
                                nR: int = 40, nz: int = 80):
         """
         Read field from machine database, single point
@@ -481,6 +496,16 @@ class fields:
         :param  zmax: Maximum Z to get the magnetic equilibrium.
         :param  nR: Number of points to define the B field grid in R direction.
         :param  nz: Number of points to define the B field grid in Z direction.
+        
+        :Example:
+        >>> import Lib.SimulationCodes.Common.fields as fields
+        >>> fields = fields()
+        >>> fields.readBfromDBSinglePoint(shotnumber=34570, time=2.5,
+        >>>                               R0=1.9, z0=0.92, exp='AUGD',
+        >>>                               diag='EQI', edition=0, Rmin=1.6,
+        >>>                               Rmax=2.0, zmin=0.8, zmax=1.2,
+        >>>                               nR=40, nz=80)
+
         """
         self.bdims = 0
 
@@ -591,6 +616,13 @@ class fields:
         :param  zmax: Maximum Z to get the magnetic equilibrium.
         :param  nR: Number of points to define the B field grid in R direction.
         :param  nz: Number of points to define the B field grid in Z direction.
+
+        :Example:
+        >>> import Lib.SimulationCodes.Common.fields as fields
+        >>> fields = fields()
+        >>> fields.createFromSingleB(B=[0.0, 0.0, 1.0], Rmin=1.6, Rmax=2.0,
+        >>>                          zmin=0.8, zmax=1.2, nR=40, nz=80)
+
         """
         self.bdims = 0
 
@@ -662,6 +694,12 @@ class fields:
 
         :param  F: array with field, [fx, fy, fz]
         :param  field: 'B' or 'E', the field you want to generate
+
+        :Example:
+        >>> import Lib.SimulationCodes.Common.fields as fields
+        >>> fields = fields()
+        >>> fields.createHomogeneousField(F=[0.0, 0.0, 1.0], field='B')
+
         """
         if field.lower() == 'b':
             self.bdims = 0
@@ -719,6 +757,19 @@ class fields:
 
         Note: Please see SINPA documentation for a nice drawing of the
         different angles
+
+        :Example:
+        >>> import Lib.SimulationCodes.Common.fields as fields
+        >>> fields = fields()
+        >>> fields.createHomogeneousFieldThetaPhi(theta=0.0, phi=0.0,
+        >>>                                      field_mod=1.0, field='B',
+        >>>                                      u1=np.array((1.0, 0.0, 0.0)),
+        >>>                                      u2=np.array((0.0, 1.0, 0.0)),
+        >>>                                      u3=np.array((0.0, 0.0, 1.0)),
+        >>>                                      IpBt_sign=-1.0,
+        >>>                                      verbose=True,
+        >>>                                      diagnostic='FILD')
+
         """
         # --- Set field flags:
         if field.lower() == 'b':
@@ -785,6 +836,15 @@ class fields:
         :param  zmax: Maximum Z to get the magnetic equilibrium.
         :param  nR: Number of points to define the B field grid in R direction.
         :param  nz: Number of points to define the B field grid in Z direction.
+        
+        :Example:
+        >>> import Lib.SimulationCodes.Common.fields as fields
+        >>> fields = fields()
+        >>> fields.readPsiPolfromDB(shotnumber=34570, time=2.5, exp='AUGD',
+        >>>                          diag='EQI', edition=0, Rmin=1.03,
+        >>>                          Rmax=2.65, zmin=-1.224, zmax=1.05,
+        >>>                          nR=128, nz=256)
+
         """
         # Getting from the database.
         R = np.linspace(Rmin, Rmax, num=nR)
@@ -817,6 +877,10 @@ class fields:
         self.psipol['nPhi'] = np.array([1], dtype=np.int32)
         self.psipol['nTime'] = np.array([1], dtype=np.int32)
         self.psipol['f'] = psipol.astype(dtype=np.float64)
+        self.psipol['Rmin'] = np.array((Rmin), dtype=np.float64)
+        self.psipol['Rmax'] = np.array((Rmax), dtype=np.float64)
+        self.psipol['zmin'] = np.array((zmin), dtype=np.float64)
+        self.psipol['zmax'] = np.array((zmax), dtype=np.float64)
         self.psipol_interp = lambda r, z, phi, time: \
             interpn((self.psipol['R'], self.psipol['z']),
                     self.psipol['f'], (r.flatten(), z.flatten()))
@@ -843,6 +907,9 @@ class fields:
         :return Bz: Vertical component of the magnetic field.
         :return Bphi: Toroidal component of the magnetic field.
 
+        :Example:
+        >>> # Assuming that the field has been loaded in the class
+        >>> field.getBfield(R=1.9, z=0.92, phi=0.0, t=2.5)
         """
         if self.bdims != 0:
             Br = self.Brinterp(R, z, phi, t)
@@ -872,6 +939,10 @@ class fields:
         :return Er: Radial component of the magelectricnetic field.
         :return Ez: Vertical component of the electric field.
         :return Ephi: Toroidal component of the electric field.
+
+        :Example:
+        >>> # Assuming that the field has been loaded in the class
+        >>> field.getEfield(R=1.9, z=0.92, phi=0.0, t=2.5)
         """
         if self.edims != 0:
             Er = self.Erinterp(R, z, phi, t)
@@ -897,6 +968,11 @@ class fields:
         flux is only stored for a single time, it will be ignored.
 
         :return psipol: Poloidal flux at the input points.
+
+        :Example:
+        >>> # Assuming that the field has been loaded in the class
+        >>> field.getPsipol(R=1.9, z=0.92, phi=0.0, t=2.5)
+
         """
         if self.psipol_on:
             psipol = self.psipol_interp(R, z, phi, t)
@@ -918,6 +994,11 @@ class fields:
         :param  eflag: states if the electric field has to be written.
         Default to False. If this is set to True, the magnetic field
         will not be written.
+
+        :Example:
+        >>> # Assuming that the field has been loaded in the class
+        >>> field.tofile(fid='field.bin', what='Bfield')
+        
         """
         if isinstance(fid, str):
             fid = open(fid, 'wb')

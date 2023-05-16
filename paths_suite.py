@@ -59,6 +59,7 @@ def paths_of_the_suite():
     if machine == 'AUG':
         cluster = os.getenv('HOST')
         if cluster[:4] != 'toki':
+            print('We are in %s' % cluster)
             print('We are not in toki')
             print('The suite has not been tested outside toki')
             print('Things can go wrong!')

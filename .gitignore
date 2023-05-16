@@ -24,6 +24,7 @@ Per_*
 fort*
 *.avi
 *.mp4
+*.pdf
 Data/MyData/paths.txt
 # -----------------------------------------------------------------------------
 # --- Folders to ignore

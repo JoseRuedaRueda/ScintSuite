@@ -106,7 +106,8 @@ class INPA_logbook:
         self.logbookVersion = None
         # Load the camera database
         self.CameraCalibrationDatabase = \
-            readCameraCalibrationDatabase(cameraFile, verbose=verbose)
+            readCameraCalibrationDatabase(cameraFile, verbose=verbose, 
+                                          n_header=3)
         # Load the position database
         # The position database is not distributed with the ScintSuite, so it
         # can happend that it is not available. For that reason, just in case
@@ -215,7 +216,7 @@ class INPA_logbook:
         elif n_true > 1:
             print('Several entries fulfill the condition')
             print('Possible entries:')
-            print(self.data['CalID'][flags])
+            print(self.CameraCalibrationDatabase['CalID'][flags])
             raise errors.FoundSeveralCameraCalibration()
         else:
             cal = CalParams()
@@ -303,58 +304,6 @@ class INPA_logbook:
                                          (default['s3'] * uz).sum(),
                                          (default['s3'] * uphi).sum()])
         return position, orientation
-        """
-        Return all shots in the database position database with a geomID
-
-        :param  geomID: ID of the geometry we are insterested in
-        :param  maxR: if present, only shots for which R < maxR will be
-            considered. Default values are, for each manipulator:
-                1: 2.5 m
-                2: 2.2361 m
-                5: 1.795 m
-        :param  verbose: flag to print in the console the number of shots found
-            using that geometry
-        """
-        # Minimum insertion
-        minin = {
-            1: 2.5,
-            2: 2.2361,
-            5: 1.795,
-        }
-        # get the shot interval for this geometry
-        flags_geometry = self.geometryDatabase['GeomID'] == geomID
-        n_instalations = sum(flags_geometry)
-        if n_instalations == 0:
-            raise errors.NotFoundGeomID('Not found geometry? revise input')
-
-        instalations = self.geometryDatabase[flags_geometry]
-        if verbose:
-            print('This geometry was installed %i times:' % n_instalations)
-        for i in range(n_instalations):
-            print('From shot %i to %i' % (instalations.shot1.values[i],
-                                          instalations.shot2.values[i]))
-        if instalations.diag_ID.values[0] == 4:
-            raise errors.NotImplementedError('Not for FILD4, sorry')
-
-        # Look in the postition in the database
-        shots = np.empty(0, dtype=int)
-        for i in range(n_instalations):
-            shot1 = instalations.shot1.values[i]
-            shot2 = instalations.shot2.values[i]
-            diag_ID = instalations.diag_ID.values[i]
-            FILD_name = 'FILD' + str(diag_ID)
-            # find all shot in which FILD measured
-            flags1 = (self.positionDatabase.shot >= shot1) &\
-                (self.positionDatabase.shot <= shot2)
-            # get the positions, to determine if the given FILD was inserted
-            if maxR is None:
-                maxR = minin[diag_ID]
-
-            flags2 = self.positionDatabase[flags1][FILD_name]['R [m]'] < maxR
-            shots = \
-                np.append(shots,
-                          self.positionDatabase[flags1].shot.values[flags2][:])
-        return shots
 
     def getComment(self, shot: int):
         """
@@ -372,6 +321,7 @@ class INPA_logbook:
         elif isinstance(shot, np.ndarray):
             shotl = shot
         else:
+            print('Input type: ', type(shot))
             raise errors.NotValidInput('Check shot input')
 
         # Check the overheating
@@ -397,9 +347,9 @@ class INPA_logbook:
           'z_pinhole': dummy['z_pinhole'],
           'phi_pinhole': dummy['phi_pinhole'],
           # Reference point on the scintillator (to get B)
-          'R_scintillator': dummy['r_pinhole'],
-          'z_scintillator': dummy['z_pinhole'],
-          'phi_scintillator': dummy['phi_pinhole'],
+          'R_scintillator': dummy['r_scintillator'],
+          'z_scintillator': dummy['z_scintillator'],
+          'phi_scintillator': dummy['phi_scintillator'],
           # Reference system in the pinhole
           's1': np.array(dummy['s1']),
           's2': np.array(dummy['s2']),

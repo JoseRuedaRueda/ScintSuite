@@ -1,5 +1,5 @@
 """
-Routines to read strike map data from FILDSIM/SINPA
+Routines to read strike map data from FILDSIM/SINPA.
 
 Jose Rueda Rueda
 
@@ -14,33 +14,34 @@ Private methods:
 
 Introduced in version 0.10.0
 """
-
+import logging
 import numpy as np
 import Lib.errors as errors
 from copy import deepcopy
 from Lib._basicVariable import BasicVariable
 
+logger = logging.getLogger('ScintSuite.StrikeMaps')
 # --- Order of the variables written in the strike map file.
 # If the there is no entrance for version X is because there were no changes in
 # the file structure
 FILDSIMorder = {
     0: {  # ID0 of the code version
-        'name': ['gyroradius', 'pitch', 'x3', 'x1', 'x2', 'avg_ini_gyrophase',
-                 'n_strike_points', 'collimator_factor', 'avg_incident_angle'],
+        'name': ['gyroradius', 'pitch', 'x3', 'x1', 'x2', 'avgIniGyrophase',
+                 'n_strike_points', 'collimator_factor', 'avgIncidentAngle'],
         'units': ['cm', 'degree', 'cm', 'cm', 'cm', 'rad', '', '', 'degree'],
     },
 }
 SINPAfildOrder = {
     0: {  # ID0 of the code version
-        'name': ['gyroradius', 'pitch', 'x3', 'x1', 'x2', 'avg_ini_gyrophase',
-                 'n_strike_points', 'collimator_factor', 'avg_incident_angle'],
+        'name': ['gyroradius', 'pitch', 'x3', 'x1', 'x2', 'avgIniGyrophase',
+                 'n_strike_points', 'collimator_factor', 'avgIncidentAngle'],
         'units': ['cm', 'degree', 'm', 'm', 'm', 'rad', '', '', 'degree'],
     },
 }
 SINPAinpaOrder = {
     0: {  # ID0 of the code version
-        'name': ['gyroradius', 'alpha', 'x3', 'x1', 'x2', 'avg_ini_gyrophase',
-                 'n_strike_points', 'collimator_factor', 'avg_incident_angle',
+        'name': ['gyroradius', 'alpha', 'x3', 'x1', 'x2', 'avgIniGyrophase',
+                 'n_strike_points', 'collimator_factor', 'avgIncidentAngle',
                  'x0', 'y0', 'z0', 'd0'],
         'units': ['cm', 'rad', 'm', 'm', 'm', 'rad', '', '', 'degree', 'm',
                   'm', 'm', 'm'],
@@ -50,7 +51,7 @@ SINPAinpaOrder = {
 
 def _readSmapSINPA(filename: str):
     """
-    Read strike map data from a SINPA file
+    Read strike map data from a SINPA file.
 
     Jose Rueda: jrrueda
 
@@ -219,7 +220,7 @@ def _readSmapSINPA(filename: str):
 
 def _readSmapFILDSIM(filename: str):
     """
-    Read strike map data from a FILDSIM file
+    Read strike map data from a FILDSIM file.
 
     Jose Rueda: jrrueda
 
@@ -293,7 +294,7 @@ def _readSmapFILDSIM(filename: str):
 
 def readSmap(filename, code: str = None):
     """
-    Read a strike map from file
+    Read a strike map from file.
 
     Jose Rueda Rueda: jrrueda@us.es
 
@@ -309,6 +310,7 @@ def readSmap(filename, code: str = None):
         elif filename.endswith('.map'):
             code = 'SINPA'
         else:
+            logger.error(filename)
             msg = 'File name not code standard, you need to give the code'
             raise errors.NotValidInput(msg)
     if code == 'SINPA':

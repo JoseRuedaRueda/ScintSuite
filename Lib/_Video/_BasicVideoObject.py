@@ -8,6 +8,7 @@ will be derived. Each of these derived video object will contain the individual
 routines to remap iHIBP, FILD or INPA data.
 """
 import os
+import f90nml
 import logging
 import numpy as np
 import xarray as xr
@@ -29,6 +30,7 @@ import Lib._Utilities as ssutilities
 import Lib._Video._AuxFunctions as aux
 from tqdm import tqdm                      # For waitbars
 from scipy import ndimage                  # To filter the images
+from Lib._Paths import Path
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import Slider, Button, RadioButtons
 
@@ -170,7 +172,8 @@ class BVO:
                                      coords={'t': self.timebase.squeeze(),
                                              'px': px,
                                              'py': py})
-                    self.exp_dat['frames'] = self.exp_dat['frames'].transpose('px', 'py', 't')
+                    self.exp_dat['frames'] = \
+                        self.exp_dat['frames'].transpose('px', 'py', 't')
                     self.type_of_file = '.mp4'
                 else:
                     raise Exception('Not recognised file extension')
@@ -237,6 +240,7 @@ class BVO:
         ## Camera calibration to relate the scintillator and the camera sensor,
         # each diagnostic will read its camera calibration from its database
         self.CameraCalibration = None
+        self.CameraData = None
         ## Scintillator plate:
         self.scintillator = None
 
@@ -270,6 +274,12 @@ class BVO:
 
         :return M: 3D numpy array with the frames M[px,py,nframes] (if the
             internal flag is set to false)
+        
+        :Example:
+        >>> # Load a video from a diagnostic
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo(shot=41090)
+        >>> vid.read_frame()  # To load all the video
         """
         # --- Clean video if needed
         if 't' in self.exp_dat and internal:
@@ -288,10 +298,11 @@ class BVO:
             tmax_video = self.timebase.max()
             if t2 > tmax_video:
                 text = 'T2 was not in the video file:' +\
-                    'Taking %.3f as initial point' % tmax_video
+                    'Taking %.3f as final point' % tmax_video
                 logger.warning('18: %s' % text)
             it1 = np.argmin(abs(self.timebase-t1))
             it2 = np.argmin(abs(self.timebase-t2))
+            print(it1, it2)
             frames_number = np.arange(start=it1, stop=it2+1, step=1)
         logger.info('Reading frames: ')
         if self.type_of_file == '.cin':
@@ -340,6 +351,34 @@ class BVO:
             nbase = nbase.squeeze()
         # Get the data-type
         dtype = M.dtype
+        # Apply the neccesary transformations
+        if self.CameraData is not None:
+            # Crop the frames if needed
+            if 'xmin' in self.CameraData:
+                xmax = self.CameraData['xmax']
+                xmin = self.CameraData['xmin']
+                px = np.arange(xmax - xmin)
+                M = M[xmin:xmax, :, :]
+            if 'ymin' in self.CameraData:
+                ymax = self.CameraData['ymax']
+                ymin = self.CameraData['ymin']
+                px = np.arange(ymax - ymin)
+                M = M[:, ymin:ymax, :]
+            # invert the frames if needed
+            if 'invertx' in self.CameraData:
+                if self.CameraData['invertx']:
+                    M = M[::-1, :, :]
+            if 'inverty' in self.CameraData:
+                if self.CameraData['inverty']:
+                    M = M[:, ::-1, :]
+            # Exchange xy if needed:
+            if 'exchangexy' in self.CameraData:
+                if self.CameraData['exchangexy']:
+                    M = M.transpose((1, 0, 2))
+                    px_tmp = px.copy()
+                    px = py.copy()
+                    py = px_tmp
+
         # Storage it
         self.exp_dat['frames'] = \
             xr.DataArray(M, dims=('px', 'py', 't'), coords={'t': tbase,
@@ -349,16 +388,15 @@ class BVO:
         # --- Count saturated pixels
         max_scale_frames = 2 ** self.settings['RealBPP'] - 1
         threshold = threshold_saturation * max_scale_frames
-        print('Counting "saturated" pixels')
-        print('The threshold is set to: ', threshold, ' counts')
+        logger.info('Counting "saturated" pixels')
+        logger.info('The threshold is set to: %f counts', threshold)
         n_pixels_saturated = \
             np.sum(self.exp_dat['frames'].values >= threshold, axis=(0, 1))
         self.exp_dat['n_pixels_gt_threshold'] = xr.DataArray(
             n_pixels_saturated.astype('int32'), dims=('t'))
         self.exp_dat.attrs['threshold_for_counts'] = threshold_saturation
-        if verbose:
-            print('Maximum number of saturated pixels in a frame: '
-                  + str(self.exp_dat['n_pixels_gt_threshold'].values.max()))
+        logger.info('Maximum number of saturated pixels in a frame: %f',
+                    n_pixels_saturated.max())
 
     def subtract_noise(self, t1: float = None, t2: float = None,
                        frame: np.ndarray = None, flag_copy: bool = False):
@@ -382,6 +420,14 @@ class BVO:
         :param  flag_copy: If true, a copy of the frame will be stored
 
         :return  frame: the frame used for the noise subtraction
+
+        :Example:
+        >>> # Load a video from a diagnostic
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo(shot=41090)
+        >>> vid.read_frame()  # To load all the video
+        >>> # Average the frames between 0.1 and 0.2 and use them as noise frame
+        >>> vid.subtract_noise(0.1, 0.2)  
         """
         # --- Check the inputs
         if self.exp_dat is None:
@@ -486,6 +532,16 @@ class BVO:
             -# median:
                 size: 4, number of pixels considered
         :param  flag_copy: flag to copy or not the original frames
+
+        :Example:
+        >>> # Load a video from a diagnostic
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo(shot=41090)
+        >>> vid.read_frame()  # To load all the video
+        >>> # Average the frames between 0.1 and 0.2 and use them as noise frame
+        >>> vid.subtract_noise(0.1, 0.2)
+        >>> # Filter the frames
+        >>> vid.filter_frames(method='median', options={'size': 2})
         """
         logger.info('Filtering frames')
         # default options:
@@ -632,7 +688,7 @@ class BVO:
         return
 
     # --------------------------------------------------------------------------
-    # --- Plotting a GUIs
+    # --- Plotting and GUIs
     # --------------------------------------------------------------------------
     def plot_number_saturated_counts(self, ax_params: dict = {},
                                      line_params: dict = {},
@@ -1051,10 +1107,27 @@ class BVO:
 
         return sstt.TimeTrace(self, mask, ROIname=ROIname), mask
 
+    def getCameraData(self, file: str = ''):
+        """
+        Read the camera data.
+
+        Jose Rueda Rueda
+        
+        :param file: if empty, we will load the camera datafile from the Data
+            folder taing into account the camera name from the calibration
+            database.
+        """
+        if file=='':
+            file = os.path.join(Path().ScintSuite, 'Data',
+                                'CameraGeneralParameters',
+                                self.CameraCalibration.camera + '.txt')
+        logger.info('Reading camera data: %s', file)
+        self.CameraData = f90nml.read(file)['camera']
+
     # --------------------------------------------------------------------------
     # --- Export
     # --------------------------------------------------------------------------
-    def exportVideo(self, filename, flagAverage: bool = False):
+    def exportVideo(self, filename: str = None, flagAverage: bool = False):
         """
         Export video file
 
@@ -1067,6 +1140,14 @@ class BVO:
             GUI will appear to select the results
         :param  flagAverage: flag to indicate if we want to save the averaged
             frames
+        
+        :Example:
+        >>> # Load a video from a diagnostic
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo(shot=41090)
+        >>> vid.read_frame()  # To load all the video
+        >>> # Export the video
+        >>> vid.exportVideo()
         """
         if filename is None:
             filename = _ssio.ask_to_save(ext='*.nc')

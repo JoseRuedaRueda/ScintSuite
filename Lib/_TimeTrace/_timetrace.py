@@ -356,18 +356,19 @@ class TimeTrace(BasicSignalVariable):
         if correct_baseline == 'end':
             baseline_level = y[-15:-2].mean().astype(y.dtype)
             y += -baseline_level
-            print('Baseline corrected using the last points')
-            print('Baseline level: ', round(baseline_level))
+            logger.info('Baseline corrected using the last points')
+            logger.info('Baseline level: %i' % round(baseline_level))
 
         elif correct_baseline == 'ini':
             baseline_level = y[3:8].mean().astype(y.dtype)
             y += -baseline_level
-            print('Baseline corrected using the initial points')
-            print('Baseline level: ', round(baseline_level))
+            logger.info('Baseline corrected using the initial points')
+            logger.info('Baseline level: %i' % round(baseline_level))
         else:
-            print('Not applying any correction')
+            logger.info('Not applying any baseline correction')
 
         if normalised:
+            logger.debug('Normalising the data')
             y /= y.max()
 
         # create and plot the figure
@@ -380,23 +381,25 @@ class TimeTrace(BasicSignalVariable):
         ax.plot(self['t'], y, **line_options)
         ax_options.update(ax_params)
         ax = ssplt.axis_beauty(ax, ax_options)
-        plt.tight_layout()
+
         if created_ax:
+            plt.tight_layout()
             fig.show()
         plt.draw()
         return ax
 
     def plot_all(self, ax_par: dict = {}, line_par: dict = {}):
         """
-        Plot the sum time trace, the average timetrace and the std ones
+        Plot the sum time trace, the average timetrace and the std ones.
 
         Jose Rueda: jrrueda@us.es
 
         Plot the sum, std and average of the roi
+
         :param  options: Dictionary containing the options for the axis_beauty
         function. Notice, the y and x label are fixed, if present in the
         options, they will be ignored
-        :return fig_tt: figure where the time trace has been plotted
+
         :return axes: list of axes where the lines have been plotted
         """
         # Initialise the options for the plotting

@@ -8,6 +8,7 @@ calculated by the code and plot the different information on it
 """
 import os
 import math
+import f90nml
 import logging
 import numpy as np
 import xarray as xr
@@ -228,7 +229,21 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
         if header['FILDSIMmode']:
             header['npitch'] = header['nXI']
             header['pitch'] = header['XI']
+        # ---- Get the geometry id
+        # Try to get the grometry id
+        try:
+            resultDir, name = os.path.split(filename)
+            runID = name.split('.')[0]
+            mainDir, dummy = os.path.split(resultDir)
+            namelistFile = os.path.join(mainDir, 'inputs', runID + '.cfg')
+            nml = f90nml.read(namelistFile)
+            dummy, geomDir = os.path.split(nml['config']['geomfolder'])
+            header['geomID'] = geomDir
+        except FileNotFoundError:
+            header['geomID'] = None
+            logger.warning('Not found SINPA namelist')
         if verbose:
+            print('File %s'%filename)
             print('Total number of strike points: ',
                   np.sum(header['counters']))
             print('SINPA version: ', header['versionID1'], '.',
@@ -398,6 +413,8 @@ class Strikes:
         self.code = code
         ## Rest of the histograms
         self.histograms = {}
+        ## Magnetic field at the detector
+        self.B = None
 
     def calculate_2d_histogram(self, varx: str = 'xcx', vary: str = 'yxc',
                                binsx: float = None, binsy: float = None):
@@ -532,29 +549,26 @@ class Strikes:
                         data[:, :, ik] += H
                         # Weight histogram
                         if jw is not None:
-                            weig = self.data[ia, ig][f, jw]
                             H, xedges, yedges = \
                                 np.histogram2d(self.data[ia, ig][f, jx],
                                                self.data[ia, ig][f, jy],
                                                bins=(edgesx, edgesy),
-                                               weights=weig)
+                                               weights=self.data[ia, ig][f, jw])
                             dataS[:, :, ik] += H
                         # Entrance weight histogram
                         if jw0 is not None:
-                            weig = self.data[ia, ig][f, jw0]
                             H, xedges, yedges = \
                                 np.histogram2d(self.data[ia, ig][f, jx],
                                                self.data[ia, ig][f, jy],
                                                bins=(edgesx, edgesy),
-                                               weights=weig)
+                                               weights=self.data[ia, ig][f, jw0])
                             data0[:, :, ik] += H
                         if jwc is not None:
-                            weig = self.data[ia, ig][f, jwc]
                             H, xedges, yedges = \
                                 np.histogram2d(self.data[ia, ig][f, jx],
                                                self.data[ia, ig][f, jy],
                                                bins=(edgesx, edgesy),
-                                               weights=weig)
+                                               weights=self.data[ia, ig][f, jwc])
                             dataC[:, :, ik] += H
         xcen = 0.5 * (xedges[1:] + xedges[:-1])
         ycen = 0.5 * (yedges[1:] + yedges[:-1])
@@ -602,7 +616,7 @@ class Strikes:
         if jwc is not None:
             dataC /= deltax * deltay
             self.histograms[histName]['wcam'] = xr.DataArray(
-                data0, dims=('x', 'y', 'kind'),
+                dataC, dims=('x', 'y', 'kind'),
                 coords={'x': xcen, 'y': ycen, 'kind': supportedKinds}
             )
             self.histograms[histName]['wcam'].attrs['Description'] = \
@@ -1110,9 +1124,9 @@ class Strikes:
         ax_options = {
             'grid': 'both',
             'xlabel': self.header['info'][varx]['shortName']
-            + self.header['info'][varx]['units'],
+            + ' [' + self.header['info'][varx]['units'] + ']',
             'ylabel': self.header['info'][vary]['shortName']
-            + self.header['info'][vary]['units']
+            + ' [' + self.header['info'][vary]['units'] + ']'
         }
         ax_options.update(ax_params)
         mar_options = {
@@ -1182,7 +1196,8 @@ class Strikes:
 
         warning: Only fully tested for SINPA strike points
         """
-        logger.warning('20: Only fully tested for SINPA strike points')
+        if self.header['FILDSIMmode']:
+            logger.warning('20: Only fully tested for SINPA strike points')
         # See if there is already camera positions in the data
         if 'xcam' in self.header['info'].keys():
             text = 'The camera values are there, we will overwrite them'
@@ -1262,7 +1277,7 @@ class Strikes:
                     rs = np.sqrt((self.data[ia, ig][:, iix] - xc)**2
                                  + (self.data[ia, ig][:, iiy] - yc)**2)
                     F = F_object.f_number(rs)
-                    T = math.pi / (2*F)**2
+                    T = 1.0 /2.0/ (2*F)**2
                     if overwrite:
                         self.data[ia, ig][:, iiwcam] = \
                             T * self.data[ia, ig][:, iiw]
@@ -1360,7 +1375,8 @@ class Strikes:
                                            ys * factor,
                                            zs * factor))
 
-    def remap(self, smap, options, variables_to_remap: tuple = ('R0', 'e0')):
+    def remap(self, smap, options, variables_to_remap: tuple = ('R0', 'e0'),
+              transformationMatrixExtraOptions: dict = {}):
         """
         Remap the camera histogram as it was a camera frame
 
@@ -1420,7 +1436,8 @@ class Strikes:
             # In this case, this is un-avoidable
             smap.interp_grid(frame_shape, method=options['method'],
                              MC_number=options['MC_number'],
-                             grid_params=grid_options)
+                             grid_params=grid_options,
+                             **transformationMatrixExtraOptions)
         else:
             calc_is_needed = 0  # By default assume not
             # If we are not going to use MC, no need of recalculate
@@ -1447,15 +1464,6 @@ class Strikes:
 
         name = variables_to_remap[0] + '_' + variables_to_remap[1] + '_remap'
         self.histograms[name] = xr.Dataset()
-        # {
-        #     0: {
-        #         'xcen': xcenter,
-        #         'xedges': xedges,
-        #         'ycen': ycenter,
-        #         'yedges': yedges,
-        #         'H': None
-        #     }
-        # }
         for k in self.histograms['xcam_ycam'].keys():
             nkinds = self.histograms['xcam_ycam'].kind.size
             data = np.zeros((xedges.size-1, yedges.size-1, nkinds))
@@ -1464,13 +1472,33 @@ class Strikes:
                               x_edges=xedges, y_edges=yedges, mask=None,
                               method=options['remap_method'])
             self.histograms[name][k] = xr.DataArray(data, dims=('x', 'y', 'kind'),
-                                                 coords={'x':xcenter,
+                                                 coords={'x': xcenter,
                                                          'y': ycenter,
                                                          'kind': self.histograms['xcam_ycam'].kind})
         self.histograms[name].attrs = {
             'xedges': xedges,
             'yedges': yedges,
             }
+        # Now repeat for the finite focus
+        if 'xcam_ycam_finiteFocus' in self.histograms.keys():
+            name = variables_to_remap[0] + '_' + variables_to_remap[1] +\
+                '_remap_finiteFocus'
+            self.histograms[name] = xr.Dataset()
+            for k in self.histograms['xcam_ycam_finiteFocus'].keys():
+                nkinds = self.histograms['xcam_ycam_finiteFocus'].kind.size
+                data = np.zeros((xedges.size-1, yedges.size-1, nkinds))
+                for j in range(nkinds):
+                    data[:, :, j] = remap(smap, self.histograms['xcam_ycam_finiteFocus'][k].isel(kind=j).values,
+                                  x_edges=xedges, y_edges=yedges, mask=None,
+                                  method=options['remap_method'])
+                self.histograms[name][k] = xr.DataArray(data, dims=('x', 'y', 'kind'),
+                                                     coords={'x': xcenter,
+                                                             'y': ycenter,
+                                                             'kind': self.histograms['xcam_ycam_finiteFocus'].kind})
+            self.histograms[name].attrs = {
+                'xedges': xedges,
+                'yedges': yedges,
+                }
 
     @property
     def shape(self):

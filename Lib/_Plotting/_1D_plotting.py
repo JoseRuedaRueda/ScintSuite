@@ -1,6 +1,7 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import matplotlib.collections as mcoll
 import matplotlib.path as mpath
@@ -91,7 +92,7 @@ def overplot_trace(ax, x, y, line_params={}, ymin=0., ymax=0.95):
 
 
 def multiline(xs, ys, c, ax=None, line_params: dict = {},
-              cmap='bwr'):
+              cmap='bwr', IncludeColorbar: bool = True):
     """
     Plot lines with different colorings
 
@@ -131,6 +132,57 @@ def multiline(xs, ys, c, ax=None, line_params: dict = {},
     #    Note: adding a collection doesn't autoscalee xlim/ylim
     ax.add_collection(lc)
     ax.autoscale()
+    if IncludeColorbar:
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        plt.colorbar(lc, cax=cax)
+    return lc
+
+
+def colorline(ax, x, y, z, **kwargs):
+    """
+    Plot lines coloured according to a given weight.
+
+    Taken from:
+    http://nbviewer.ipython.org/github/dpsanders/matplotlib-examples/blob/master/colorline.ipynb
+    http://matplotlib.org/examples/pylab_examples/multicolored_line.html
+
+    :param ax: axis to plot the data.
+    :param x: values along the horizontal direction of the line to plot.
+    :param y: values along the vertical direction of the line to plot.
+    :param z: values of the weight color for each part of the line.
+    :param kwargs: keyword arguments to send to axis.addCollection. Among others:
+        :cmap: colormap for the plotting.
+        :linewidth: width of the line.
+        :linestyle: style of the line.
+    ...
+    """
+
+    # Special case if a single number:
+    try:
+        _ = iter(z)
+    except TypeError:
+        z = np.array([z])
+
+    z = np.asarray(z)
+
+    vmin = z.min()
+    vmax = z.max()
+
+    options = { 'linestyle': '-',
+                'alpha': 1.0,
+                'linewidth': 1.0,
+                'norm': plt.Normalize(vmin, vmax)
+               }
+
+    options.update(kwargs)
+
+
+    segments = make_segments(x, y)
+    lc = mcoll.LineCollection(segments, array=z, **options)
+
+    ax.add_collection(lc)
+
     return lc
 
 
