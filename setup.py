@@ -41,7 +41,7 @@ with open('.setup/authors.txt', 'rt') as fh:
 
 # Reading the keywords from the file.
 with open('.setup/keywords.txt', 'rt') as fh:
-    keywords = [line.strip() for line in fh]+
+    keywords = [line.strip() for line in fh]
 
 setup(
     name='ScintSuite',
