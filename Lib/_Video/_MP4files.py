@@ -9,7 +9,8 @@ import ffmpeg
 import os
 from skvideo.io import vread as video_read
 
-def read_file(fn: str, force_gray: bool=True, bpp: int=None):
+def read_file(fn: str, force_gray: bool=True, bpp: int=None, pix_fmt: str=None,
+              bits_size: int=None, **kwargs):
     """
     Load the data from the video using the ffmpeg package.
 
@@ -22,6 +23,11 @@ def read_file(fn: str, force_gray: bool=True, bpp: int=None):
     into a gray scale.
     :param bpp: bits per pixel. If None, the full size of the video is considered
     as useful data.
+    :param pix_fmt: pixel format. If None, the pixel format of the video is
+    considered.
+    :param bits_size: bits per pixel to actually read from the file. If None,
+    the full size of the video is considered as useful data.
+    :param kwargs: stub.
     """
 
     prop = ffmpeg.probe(fn)['streams'][0]
@@ -30,29 +36,53 @@ def read_file(fn: str, force_gray: bool=True, bpp: int=None):
     fps = int(prop['avg_frame_rate'].split('/')[0].strip())
     nf  = int(prop['nb_frames'])
 
-    # frames = video_read(fn).squeeze()
-    # if frames.ndim > 3:
-    #     frames = frames.mean(axis=-1)
+    print(f'Dynamic range = {prop["bits_per_raw_sample"]} bits')
+    print(f'Pixel format = {prop["pix_fmt"]}')
 
-    pix_fmt = prop['pix_fmt']
-    bits_size = int(prop['bits_per_raw_sample'])
+    if (bpp is None) and (pix_fmt is None) and (bits_size is None):
+        # We rely on scikit video reader.
+        video = video_read(fn, as_grey=force_gray).squeeze()
 
-    dtype = { 8: np.uint8,
-              16: np.uint16
-            }.get(bits_size)
+        # Getting the minimum floating point type to store the data.
+        if video.dtype == np.uint8:
+            dtype = np.float16
+        elif video.dtype == np.uint16:
+            dtype = np.float32
+        elif video.dtype == np.uint32:
+            dtype = np.float32
+        elif video.dtype == np.float32:
+            dtype = np.float32
+        elif video.dtype == np.float64:
+            dtype = np.float64
+        else:
+            dtype = float
 
-    shape = [nf, height, width, -1]
-
-    out = ffmpeg.input(fn).output('pipe:', format='rawvideo',
-                                  pix_fmt='gray16le').run(quiet=True)[0]
-
-    if bpp is None:
-        shift = 0
+        # Saving the video as a numpy array in float.
+        frames = video.astype(dtype=dtype)
     else:
-        shift = bits_size - bpp
-    video = np.right_shift(np.frombuffer(out, np.uint16).reshape(shape), shift)
+        if pix_fmt is None:
+            pix_fmt = prop['pix_fmt']
+        if bits_size is None:
+            bits_size = int(prop['bits_per_raw_sample'])
 
-    frames = video.astype(float).squeeze()
+        dtype = { 8: np.uint8,
+                16: np.uint16
+                }.get(bits_size)
+
+        shape = [nf, height, width, -1]
+
+        out = ffmpeg.input(fn).output('pipe:', format='rawvideo',
+                                    pix_fmt=pix_fmt).run(quiet=True)[0]
+
+        if bpp is None:
+            shift = 0
+        else:
+            shift = bits_size - bpp
+        video = np.right_shift(np.frombuffer(out, bits_size).reshape(shape), shift)
+
+        dtype = 'float%d' % (2*int(np.ceil((bits_size - bpp)/8)))
+
+        frames = video.astype(dtype=dtype).squeeze()
 
     output = { 'nf': nf, #  Number of frames.
                'width': width, # Number of pixels along horizontal.
