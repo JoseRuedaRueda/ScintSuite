@@ -17,10 +17,13 @@ with open('.setup/requirements.txt', 'rt') as fh:
     for line in fh:
         install_requires.append(line.strip())
     
-optional_dependencies = list()
+optional_dependencies = dict()
 with open('.setup/optional_requirements.txt', 'rt') as fh:
     for line in fh:
-        optional_dependencies.append(line.strip())
+        tmp = line.split(':')
+        name = tmp[0] # Name of the dependency.
+        dependency = tmp[1].split(',') # Dependencies of the dependency.
+        optional_dependencies[name] = dependency
 
 # Loading the long description from the .setup/README.md file.
 with open('.setup/description.txt', 'rt') as fh:
