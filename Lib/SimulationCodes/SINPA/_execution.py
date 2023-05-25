@@ -283,7 +283,7 @@ def write_namelist(nml, p=None, overwrite=True):
     keys_lower_config = [key.lower() for key in nml['config'].keys()]
     keys_input = [key for key in nml['inputParams'].keys()]
     keys_config = [key for key in nml['config'].keys()]
-    # Check gyr and xi
+    # Check gyr and xi, adn run ID
     for ik, k in enumerate(keys_lower_config):
         if k == 'ngyroradius':
             for ik2, k2 in enumerate(keys_lower_input):
@@ -292,13 +292,16 @@ def write_namelist(nml, p=None, overwrite=True):
                         len(nml['inputParams'][keys_input[ik2]])
                     if noMecabeFlag:
                         raise errors.WrongNamelist('Revise n of gyroradius')
-        if k == 'nxi':
+        elif k == 'nxi':
             for ik2, k2 in enumerate(keys_lower_input):
                 if k2 == 'xi':
                     noMecabeFlag = nml['config'][keys_config[ik]] != \
                         len(nml['inputParams'][keys_input[ik2]])
                     if noMecabeFlag:
                         raise errors.WrongNamelist('Revise n of xi')
+        elif k == 'runid':
+            if len(nml['config'][keys_config[ik]]) > 50:
+                raise errors.WrongNamelist('runID is too long, reduce it!')
     # Initialise the path
     if p is None:
         p = nml['config']['runfolder']

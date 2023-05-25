@@ -97,6 +97,9 @@ import Lib.errors as err
 import Lib.LibData as dat
 import Lib._ELM as ELM
 
+# custom fits models
+import Lib._CustomFitModels as cfm
+
 # Mapping
 import Lib._Mapping as mapping
 

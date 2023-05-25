@@ -46,7 +46,7 @@ def remapAllLoadedFrames(video,
                          use_average: bool = False,
                          variables_to_remap: tuple = ('R0', 'gyroradius'),
                          A: float = 2.01410178, Z: float = 1.0,
-                         transformationMatrixLimit: float = 10.0):
+                         transformationMatrixLimit: float = 10.0) -> xr.Dataset:
     """
     Remap all loaded frames from an INPA video.
 

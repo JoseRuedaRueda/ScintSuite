@@ -114,7 +114,7 @@ class MHDmode():
         self._calcTAEfreq()
         self._calcEAEfreq()
 
-    def _calcGAMfreq(self):
+    def _calcGAMfreq(self) -> None:
         """
         Evaluate the GAM frequency
 
@@ -128,7 +128,7 @@ class MHDmode():
         self.freq['GAM'].attrs['long_name'] = '$f_{GAM}$'
         self.freq['GAM'].attrs['units'] = 'Hz'
 
-    def _calcTAEfreq(self):
+    def _calcTAEfreq(self) -> None:
         """
         Evaluate the central frequency of the TAE gap
 
@@ -139,7 +139,7 @@ class MHDmode():
         if self.freq['TAE'].mean() < 0.0:
             self.freq['TAE'] *= -1.0  # the q profile was defined as negative
 
-    def _calcEAEfreq(self):
+    def _calcEAEfreq(self) -> None:
         """
         Evaluate the central frequency of the EAE gap
 
@@ -148,7 +148,7 @@ class MHDmode():
         self.freq['EAE'] = \
             self._va0['data']/2.0/cnt.pi/self._q['data']/self._R0['data']
 
-    def _calcRSAEfreq(self, n: int, m: int):
+    def _calcRSAEfreq(self, n: int, m: int) -> None:
         """
         Evaluate the central frequency of the RSAE in the zero pressure limit
 
@@ -161,7 +161,7 @@ class MHDmode():
         self.freq['RSAE'] = (m - n * qmin['data']) *\
             self._va0['data']/2.0/cnt.pi/qmin['data']/self._R0['data']
 
-    def getSAWcontinuum(self, ntor: int, t: float, mpol = np.arange(6)):
+    def getSAWcontinuum(self, ntor: int, t: float, mpol = np.arange(6))->dict:
         """
         Obtain SAW continuum in its simpler form from the analytical equation.
 
@@ -240,7 +240,7 @@ class MHDmode():
 
     def plot(self, var: str = 'GAM', rho: float = 0.0, ax=None, line_params={},
              units: str = 'kHz', t: tuple = None, smooth: int = 0,
-             n: float=None):
+             n: float=None)->plt.axes:
         """
         Plot the mode frequency.
 
@@ -308,3 +308,4 @@ class MHDmode():
                     **line_opitons)
         plt.draw()
         plt.show()
+        return ax

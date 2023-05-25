@@ -5,6 +5,7 @@ Jose Rueda-Rueda: jrrueda@us.es
 
 """
 import os
+import json
 import logging
 import tarfile
 import numpy as np
@@ -69,11 +70,16 @@ class Tomography():
             # --- Now normalise them (optional)
             self.norms = {
                 's': self.s1D.max(),
-                'W': self.W2D.max()
+                'W': self.W2D.max(),
+                'normalised': np.array([0]),
             }
             if normalise:
                 self.s1D /= self.norms['s']
                 self.W2D /= self.norms['W']
+                self.norms['normalised'][0] = 1
+            else:
+                self.norms['normalised'][0] = 0
+            self.folder = None
         else:
             if W is not None or s is not None:
                 logger.warning('30: Folder argument present, ignorig W and s.')
@@ -81,11 +87,26 @@ class Tomography():
             self.W = xr.load_dataarray(os.path.join(folder, 'WeightFunc.nc'))
             self.s = xr.load_dataarray(os.path.join(folder, 'Signal.nc'))
             self.inversion = {}
+            try:
+                self.norms = json.load(open(os.path.join(folder, 'norms.json')))
+                needGuess = False
+            except FileNotFoundError:
+                text = 'Old tomography files, not present norms.' +\
+                    'it will be assumed data was normalised'
+                logger.warning(text)
+                self.norms = {}
+                needGuess = True
             # --- Now collapse the signal and the weight function
             logger.info('Collapsing W: ')
             self.W2D = matrix.collapse_array4D(self.W.values)
             logger.info('Collapsing Signal')
             self.s1D = matrix.collapse_array2D(self.s.values.squeeze())
+            if needGuess:
+                self.norms = {
+                    's': self.s1D.max(),
+                    'W': self.W2D.max(),
+                    'normalised': np.array([1]),
+                }
             # --- Now load the inversions
             supportedFiles = ['nnelasticnet.nc', 'nntikhonov0.nc',
                               'tikhonov0.nc',
@@ -96,9 +117,9 @@ class Tomography():
                     key = file.split('.')[0]
                     logger.info('reading %s', filename)
                     self.inversion[key] = xr.load_dataset(filename)
+            self.folder = folder
 
-
-    def nnlsq(self, **kargs):
+    def nnlsq(self, **kargs) -> None:
         """
         Perform an nnlsq inversion
 
@@ -126,7 +147,7 @@ class Tomography():
         self.inversion['nnlsq']['r2'] = xr.DataArray(r2)
         self.inversion['nnlsq']['residual'].attrs['long_name'] = '$r^2$'
 
-    def tikhonov0(self, alpha, weights=None, **kargs):
+    def tikhonov0(self, alpha, weights=None, **kargs) -> None:
         """
         Perform a 0th order Tikonov regularized regression
 
@@ -183,7 +204,7 @@ class Tomography():
         self.inversion['tikhonov0']['r2'] = xr.DataArray(r2, dims='alpha')
         self.inversion['tikhonov0']['residual'].attrs['long_name'] = '$r^2$'
 
-    def nntikhonov0(self, alpha, **kargs):
+    def nntikhonov0(self, alpha, **kargs) -> None:
         """
         Perform a 0th order Tikonov regularized non-negative regression
 
@@ -243,7 +264,7 @@ class Tomography():
         self.inversion['nntikhonov0']['r2'] = xr.DataArray(r2, dims='alpha')
         self.inversion['nntikhonov0']['residual'].attrs['long_name'] = '$r^2$'
 
-    def nnElasticNet(self, alpha, l1_ratio, **kargs):
+    def nnElasticNet(self, alpha, l1_ratio, **kargs) -> None:
         """
         Perform a 0th order Tikonov regularized non-negative regression
 
@@ -317,7 +338,7 @@ class Tomography():
             xr.DataArray(r2, dims=('alpha', 'l1'))
         self.inversion['nnelasticnet']['residual'].attrs['long_name'] = '$r^2$'
 
-    def maximumEntropy(self, alpha, d=None,  **kargs):
+    def maximumEntropy(self, alpha, d=None,  **kargs) -> None:
         """
         Perform a 0th order Tikonov regularized non-negative regression
 
@@ -384,7 +405,7 @@ class Tomography():
         self.inversion['maxEntropy']['r2'] = xr.DataArray(r2, dims='alpha')
         self.inversion['maxEntropy']['residual'].attrs['long_name'] = '$r^2$'
 
-    def calculateLcurves(self, reconstructions =  None):
+    def calculateLcurves(self, reconstructions =  None) -> None:
         """
         Calculate the L curve
         
@@ -397,14 +418,14 @@ class Tomography():
         if reconstructions is None:
             reconstructions = self.inversion.keys()
         for k in reconstructions:
-            x = self.inversion[k].MSE
-            y = self.inversion[k].F.sum(dim=('x', 'y'))
+            x = self.inversion[k].residual
+            y = np.sqrt((self.inversion[k].F)**2).sum(dim=('x', 'y'))
             # It can be the case of elastic net, which has a second hyper param
             if len(x.shape) == 1:
                 curv = self._calccurvature(x,y)
                 self.inversion[k]['curvature'] = \
                     xr.DataArray(curv, dims='alpha')
-                self.inversion[k]['residual'].attrs['long_name'] = \
+                self.inversion[k]['curvature'].attrs['long_name'] = \
                     'Curvature of the L curve'
             if len(x.shape) == 2:
                 curvature = np.zeros(x.shape)
@@ -413,10 +434,10 @@ class Tomography():
                                                           y.isel(l1=i))
                 self.inversion[k]['curvature'] = \
                     xr.DataArray(curvature, dims=('alpha', 'l1'))
-                self.inversion[k]['residual'].attrs['long_name'] = \
+                self.inversion[k]['curvature'].attrs['long_name'] = \
                     'Curvature of the L curve'
     
-    def _calccurvature(self, x, y):
+    def _calccurvature(self, x, y) -> np.ndarray:
         # perform an interpolation, with a lot of points, to avoid the noise
         dx = np.gradient(x, x)  # first derivatives
         dy = np.gradient(y, x)
@@ -424,30 +445,128 @@ class Tomography():
         d2y = np.gradient(dy, x)
         return np.abs(d2y) / (np.sqrt(1 + dy ** 2)) ** 1.5  # curvature
     
-    # def _calccurvatureSurface(sef, x, y)
+    def calculateBiasAndTotalRatio(self, trueSolution: xr.DataArray,
+                                reconstructions: list =  None) -> None:
+        """
+        Calculate the bias and the total ratio of FI to the true solution
+        
+        jose rueda: jrrueda@us.es
+
+        :param trueSolution: xr.DataArray with the true solution
+        :param reconstructions: list with strings with the names of the
+            inversion methods for the calculation of the bias. If None, all
+            present in the object will be used
+        
+        """
+        # --- Check the input
+        if reconstructions is None:
+            reconstructions = self.inversion.keys()
+        # --- interpolate the trueSolution in the grid
+        
+        # --- Calculate the bias
+        for k in reconstructions:
+            # ---- interpolate the true solution
+            # I make it here in case each iversion method was reconstructed
+            # using a different grid
+            trueSolInterp = trueSolution.interp(x=self.inversion[k].F.x,
+                                                y=self.inversion[k].F.y)
+            # deltaE = trueSolution.y[1] - trueSolution.y[0]
+            # deltaE2 = self.inversion[k].F.y[1] - self.inversion[k].F.y[0]
+            # First invert the normalization
+            if self.norms['normalised'][0]:
+                F = self.inversion[k].F * self.norms['s'] / self.norms['W']
+                factor = self.norms['s'] / self.norms['W']
+            else:
+                F = self.inversion[k].F
+                factor = 1.0
+            deltaX = self.inversion[k].F.x[1] - self.inversion[k].F.x[0]
+            deltaY = self.inversion[k].F.y[1] - self.inversion[k].F.y[0]
+            Omega = deltaX.values * deltaY.values
+            factor /= Omega
+            F /= Omega
+            # Now calculate the bias
+            bias = F - trueSolInterp
+            # Store the bias in place
+            self.inversion[k]['bias'] = bias
+            self.inversion[k]['bias'].attrs['long_name'] = 'Bias'
+            # Now calculate the total ratio
+            totalRatio = F.sum(('x', 'y'), skipna=True) \
+                / trueSolInterp.sum(('x', 'y'), skipna=True)
+            self.inversion[k]['totalRatio'] = totalRatio
+            self.inversion[k]['totalRatio'].attrs['long_name'] = \
+                'Total ratio of FI to the true solution'
+            self.inversion[k]['desnormalizationFactor'] = factor
+            
+
     # ------------------------------------------------------------------------
     # %% Potting block
     # ------------------------------------------------------------------------
-    def plotLcurve(self, inversion: str='maxEntropy', ax=None):
+    def plotLcurve(self, inversion: str='maxEntropy', ax=None,
+                   line_params: dict = {}) -> plt.Axes:
+        """
+        Plot the L curve and the MSE
+
+        Jose Rueda: jrrueda@us.es
+
+        :param inversion: name of the inversion to plot.
+        :param ax: axes to plot the data, should be an array of 2 axis, in the 
+            first one, the L curve will be plotted, in the second one, the
+            curvature of the L curve will be plotted. If the axis are not
+            created, the labels will not be changed.
+        
+        :return ax: axes where the data has been plotted, list of 2 axes
+        """
+        # ---- Initialise the settings
+        line_options = {
+            'lw': 0.75,
+            'marker': '+',
+            'ms': 3,
+        }
+        line_options.update(line_params)
+        if 'label' not in line_options.keys():
+            line_options['label'] = inversion
         if ax is None:
-            fig, ax = plt.subplots(2)
-        ax[0].plot(self.inversion[inversion].MSE,
-                   self.inversion[inversion].F.sum(dim=('x','y')))
-        ax[1].plot(self.inversion[inversion].MSE,
-                   self.inversion[inversion].curvature)
+            fig, ax = plt.subplots(2,2)
+            ax[1, 0].set_xlabel('Residual')
+            ax[1, 0].set_ylabel('k')
+            ax[0, 0].set_ylabel('|FI|')            
+            
+            ax[1, 1].set_xlabel('Alpha')
+            ax[1, 1].set_xscale('log')
+            ax[0, 1].set_xscale('log')
+            ax[1, 1].set_ylabel('k')
+            ax[0, 1].set_ylabel('Residual')
+        # ---- Plot the data
+        ax[0, 0].plot(self.inversion[inversion].residual,
+                   self.inversion[inversion].F.sum(dim=('x','y')),
+                   **line_options)
+        ax[1, 0].plot(self.inversion[inversion].residual,
+                   self.inversion[inversion].curvature,
+                   **line_options)        
+        # ---- Plot the data
+        ax[0, 1].plot(self.inversion[inversion].alpha,
+                   self.inversion[inversion].residual,
+                   **line_options)
+        ax[1, 1].plot(self.inversion[inversion].alpha,
+                   self.inversion[inversion].curvature,
+                   **line_options)
+        ax[0, 0].get_figure().show()
+        return ax
 
     def export(self, folder: str, inversionKeys: list = None,
-               createTar: bool = False):
+               createTar: bool = False) -> str:
         """
         Export the tomography data into a folder
 
-        :param folder: DESCRIPTION
-        :type folder: TYPE
-        :return: DESCRIPTION
-        :rtype: TYPE
+        Jose Rueda: jrrueda@us.es
 
-        #TODO :add norms and suite version
+        :param folder: folder where the data will be saved
+        :param inversionKeys: list of strings with the names of the inversion
+            methods to be saved. If None, all will be saved
+        :param createTar: if True, a TAR file will be created with all the
+            exported files
 
+        :return folder: folder where the data has been saved
         """
         logger.info('Saving results in: %s', folder)
         filesSaved = []
@@ -469,9 +588,15 @@ class Tomography():
         fileToSave = os.path.join(folder, 'WeightFunc.nc')
         self.W.to_netcdf(fileToSave, format='NETCDF4')
         filesSaved.append(fileToSave)
+        # Export the normalizations
+        fileToSave = os.path.join(folder, 'norms.json')
+        json.dump({k:v.tolist() for k,v in self.norms.items()},
+                  open(fileToSave, 'w' ))
+        filesSaved.append(fileToSave)
         # Export the suite version
         fileToSave = os.path.join(folder, 'SuiteVersion.txt')
         exportVersion(fileToSave)
+        filesSaved.append(fileToSave)
         # Compress into a TAR:
         if createTar:
             tarFile = os.path.join(folder, 'Complete.tar')
@@ -479,3 +604,4 @@ class Tomography():
             for f in filesSaved:
                 tar.add(f, arcname=os.path.split(f)[-1])
             tar.close()
+        return folder
