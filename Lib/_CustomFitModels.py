@@ -21,7 +21,7 @@ fun = 'amp / (2.0*pi*sx*sy*sqrt(1-rho**2)) * ' + \
     '2.0*rho*(x-mux)*(y-muy)/sx/sy)/(2.0*(1-rho**2)))'
 BivariateNormalDistribution = ExpressionModel(fun, independent_vars=['x', 'y'])
 
-def guessParamsBivariateNormalDistribution(x, y, z):
+def guessParamsBivariateNormalDistribution(x, y, z)->lmfit.parameter.Parameters:
     """
     Guess the parameters for the bivariate normal distribution
 
@@ -58,3 +58,22 @@ def guessParamsBivariateNormalDistribution(x, y, z):
     p['muy'].set(muy, min=0.5*muy, max=1.5*muy)
     p['mux'].set(mux, min=0.5*mux, max=1.5*mux)
     return p
+
+# -----------------------------------------------------------------------------
+# %% Multiple Gaussian
+# -----------------------------------------------------------------------------
+def multiGaussian(n: int) -> lmfit.model.CompositeModel:
+    """
+    Create a composite model with n gaussian functions
+
+    :param n : (int) Number of gaussian functions to include in the composite model
+    
+    :return out: lmfit.models.CompositeModel Composite model with n gaussian functions
+    """
+    # ---- Create the composite model
+    compositeModel = lmfit.models.GaussianModel(prefix='g0_')
+    for i in range(n-1):
+        prefix = 'g' + str(i+1) + '_'
+        compositeModel = \
+            compositeModel + lmfit.models.GaussianModel(prefix=prefix)
+    return compositeModel

@@ -1,5 +1,6 @@
 """Routines to read and write the fields for PSFT simulation codes"""
 import numpy as np
+import xarray as xr
 import matplotlib.pyplot as plt
 from scipy.interpolate import interpn
 import Lib.LibData as ssdat
@@ -1268,3 +1269,32 @@ class fields:
         plt.tight_layout()
 
         return ax
+
+    def toDataset(self):
+        """
+        Export fields to a data set
+
+        Useful to be compatible with the gyrokinetic object from iHIBPtracker
+        WIP
+        """
+        data = xr.Dataset()
+        if self.bdims == 2:
+            data['Br'] = xr.DataArray(self.Bfield['fr'],
+                                           dims=('R', 'z'),
+                                           coords={'R':self.Bfield['R'],
+                                        'z':self.Bfield['z']})
+            data['Bz'] = xr.DataArray(self.Bfield['fz'],
+                                dims=('R', 'z'),
+                                coords={'R':self.Bfield['R'],
+                                        'z':self.Bfield['z']})
+            data['Bphi'] = xr.DataArray(self.Bfield['ft'],
+                                dims=('R', 'z'),
+                                coords={'R':self.Bfield['R'],
+                                        'z':self.Bfield['z']})
+            data['Psi'] = xr.DataArray(self.psipol['f'],
+                                dims=('R', 'z'),
+                                coords={'R':self.Bfield['R'],
+                                        'z':self.Bfield['z']})
+            data['B'] = np.sqrt(data['Br']**2 + data['Bz']**2+data['Bphi']**2)
+        return data
+                                        

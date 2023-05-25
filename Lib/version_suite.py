@@ -6,15 +6,19 @@ import numpy as np
 from Lib._Machine import machine
 from Lib._Paths import Path
 
-version = '1.2.7'
-codename = 'Pescaito Frito'
+version = '1.2.8'
+codename = 'IceCream'
 
 logger = logging.getLogger('ScintSuite.Version')
 
 
-def exportVersion(filename):
+def exportVersion(filename)->str:
     """
     Save the version of the suite into a file
+
+    :param filename: Name of the file to save the version
+
+    :return: Name of the file where the version is saved
     """
     v = version.split('.')
     v1 = int(v[0])
@@ -32,9 +36,10 @@ def exportVersion(filename):
         f.write('Date: %s\n' % data['date'])
         f.write('Commit responsible: %s\n' % data['author'])
         f.write('Mail: %s\n' % data['email'])
+    return filename
 
 
-def readVersion(filename):
+def readVersion(filename)->np.ndarray:
     with open(filename, 'r') as f:
         v = np.zeros(3, dtype='int')
         for i in range(3):
@@ -42,7 +47,7 @@ def readVersion(filename):
     return v
 
 
-def readGITcommit():
+def readGITcommit()->dict:
     """
     Read the information of the latest Suite Commit
 
@@ -62,7 +67,7 @@ def readGITcommit():
     return out
 
 
-def printGITcommit():
+def printGITcommit()->None:
     """
     Print the information of the latest suite commit
     :return:

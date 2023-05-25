@@ -119,7 +119,7 @@ class Ismap(FILDINPA_Smap):
     # --- Database interaction
     # -------------------------------------------------------------------------
     def getRho(self, shot, time, coord: str = 'rho_pol',
-               extra_options: dict = {},):
+               extra_options: dict = {},) -> None:
         """
         Get the rho coordinates associated to each strike point.
 
