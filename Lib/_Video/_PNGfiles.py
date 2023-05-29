@@ -12,9 +12,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Lib._Video._AuxFunctions as aux
 from skimage import io                     # To load images
+from typing import List, Dict, Union
 
 
-def read_data(path, YOLO: bool = False):
+def read_data(path, YOLO: bool = False)-> List[Union[Dict, np.ndarray]]:
     """
     Read info for a case where the measurements are stored as png
 

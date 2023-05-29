@@ -143,7 +143,7 @@ def ask_to_open_dir(path: str = None) -> str:
 # -----------------------------------------------------------------------------
 # --- General reading
 # -----------------------------------------------------------------------------
-def read_variable_ncdf(file, varNames, human=True, verbose=True)->list:
+def read_variable_ncdf(file:str , varNames, human=True, verbose=True)->list:
     """
     Read a variable from a  netCDF file
 
@@ -183,7 +183,7 @@ def read_variable_ncdf(file, varNames, human=True, verbose=True)->list:
     return out
 
 
-def print_netCDF_content(file, long_name=False)->None:
+def print_netCDF_content(file: str, long_name=False)->None:
     """
     Print the list of variables in a netcdf file
 
@@ -274,7 +274,7 @@ def save_mask(mask, filename=None, nframe=None, shot=None, frame=None)->str:
     return filename
 
 
-def load_mask(filename)->dict:
+def load_mask(filename: str)->dict:
     """
     Load a binary mask to use in timetraces, remaps or VRT images
 
@@ -307,7 +307,7 @@ def load_mask(filename)->dict:
 # -----------------------------------------------------------------------------
 # --- TimeTraces
 # -----------------------------------------------------------------------------
-def read_timetrace(file=None) -> None:
+def read_timetrace(file: str = None) -> None:
     """
     Read a timetrace created with the suite
 
@@ -319,7 +319,7 @@ def read_timetrace(file=None) -> None:
 # -----------------------------------------------------------------------------
 # --- Calibration
 # -----------------------------------------------------------------------------
-def read_calibration(file=None, verbose: bool = False)->CalParams:
+def read_calibration(file: str = None, verbose: bool = False)->CalParams:
     """
     Read the used calibration from a remap netCDF file
 
@@ -428,7 +428,7 @@ def read_camera_properties(file: str)->dict:
 # -----------------------------------------------------------------------------
 # --- Tomography
 # -----------------------------------------------------------------------------
-@deprecated('Use the export option from the strike map!!!')
+# @deprecated('Use the export option from the strike map!!!')
 def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
                 efficiency: bool = False):
     """

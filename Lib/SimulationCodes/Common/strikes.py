@@ -15,7 +15,9 @@ import xarray as xr
 import Lib.errors as errors
 import Lib._Plotting as ssplt
 import matplotlib.pyplot as plt
+from Lib.version_suite import exportVersion
 from copy import deepcopy
+from typing import Union, List, Tuple, Dict, Any, Optional
 from Lib._Paths import Path
 from Lib._Machine import machine
 from mpl_toolkits.mplot3d import Axes3D
@@ -351,8 +353,12 @@ class Strikes:
     the different information on it
     """
 
-    def __init__(self, runID: str = None, type: str = 'MapScintillator',
-                 file: str = None, verbose: bool = True, code: str = 'SINPA'):
+    def __init__(self, 
+                 runID: Optional[str] = None, 
+                 type: Optional [str] = 'MapScintillator',
+                 file: Optional[str] = None, 
+                 verbose: Optional[bool] = True, 
+                 code: Optional[str] = 'SINPA'):
         """
         Initialise the object reading data from a SINPA file.
 
@@ -416,8 +422,12 @@ class Strikes:
         ## Magnetic field at the detector
         self.B = None
 
+    # -------------------------------------------------------------------------
+    # --- Histogram calculation
+    # -------------------------------------------------------------------------
     def calculate_2d_histogram(self, varx: str = 'xcx', vary: str = 'yxc',
-                               binsx: float = None, binsy: float = None):
+                               binsx: Optional[Union[int, np.ndarray]] = None,
+                               binsy: Optional[Union[int, np.ndarray]] = None) -> None:
         """
         Calculate any 2D histogram of strike points variables
 
@@ -639,7 +649,7 @@ class Strikes:
         self.histograms[histName].attrs['area'] = deltax * deltay
 
     def calculate_1d_histogram(self, var: str = 'xcx',
-                               bins: float = None):
+                               bins: Optional[Union[int, np.ndarray]] = None) -> None:
         """
         Calculate any 1D histogram of strike points variables
 
@@ -760,9 +770,12 @@ class Strikes:
                         'H': H.astype(float)/deltax
                     }
 
-    def get(self, var, gyroradius_index=None, XI_index=None):
+    # -------------------------------------------------------------------------
+    # --- Data handling block
+    # -------------------------------------------------------------------------
+    def get(self, var, gyroradius_index=None, XI_index=None)->np.ndarray:
         """
-        Return an array with the values of 'var' for all strike points
+        Return an array with the values of 'var' for all strike points.
 
         Jose Rueda - jrrueda@us.es
 
@@ -809,11 +822,15 @@ class Strikes:
                     var.append(self.data[ia, ig][:, column_to_plot])
         return np.array(var).flatten()
 
-    def plot3D(self, per=0.1, ax=None, mar_params={},
+    # -------------------------------------------------------------------------
+    # --- Plotting functions
+    # -------------------------------------------------------------------------
+    def plot3D(self, per: float = 0.1, ax: Optional[plt.Axes] = None, 
+               mar_params: dict = {},
                gyroradius_index=None, XI_index=None,
                where: str = 'Head'):
         """
-        Plot the strike points in a 3D axis as scatter points
+        Plot the strike points in a 3D axis as scatter points.
 
         Jose Rueda: jrrueda@us.es
 
@@ -1182,6 +1199,9 @@ class Strikes:
         plt.draw()
         return ax
 
+    # -------------------------------------------------------------------------
+    # --- Optics modeling
+    # -------------------------------------------------------------------------
     def calculate_pixel_coordinates(self, calibration,):
         """
         Get the position of the markers in the camera sensor.
@@ -1300,13 +1320,16 @@ class Strikes:
             }
             self.header['info'].update(extra_column)
 
-    def points_to_txt(self, per=0.1,
+    # -------------------------------------------------------------------------
+    # --- Export block
+    # -------------------------------------------------------------------------
+    def points_to_txt(self, per: float = 0.1,
                       gyroradius_index=None, XI_index=None,
                       where: str = 'Head',
                       units: str = 'mm',
                       file_name_save: str = 'Strikes.txt'):
         """
-        Store strike points to txt file to easily load in CAD software
+        Store strike points to txt file to easily load in CAD software.
 
         Anton van Vuen: avanvuuren@us.es
 
@@ -1322,6 +1345,8 @@ class Strikes:
         scintillator]. For oldFILDSIM, use just head
         :param  units: Units in which to save the strike positions.
         :param  filename: name of the text file to store strikepoints in
+
+        :return file_name_save: name of the text file to store strikepoints in
         """
         # --- Chose the variable we want to plot
         if where.lower() == 'head':
@@ -1374,11 +1399,46 @@ class Strikes:
                                         % (xs * factor,
                                            ys * factor,
                                            zs * factor))
+        return file_name_save
 
-    def remap(self, smap, options, variables_to_remap: tuple = ('R0', 'e0'),
-              transformationMatrixExtraOptions: dict = {}):
+    
+    def exportHistograms(self, folder: str = 'Remaps', 
+                          overwrite: bool = False) -> str:
         """
-        Remap the camera histogram as it was a camera frame
+        Export the histograms to a folder.
+
+        Jose Rueda: jrrueda@us.es
+
+        :param  folder: folder where to store the histograms
+        :param  overwrite: if True, overwrite the files
+
+        :return folder: folder where the histograms have been stored
+        """
+        # --- Check the inputs
+        if not os.path.isdir(folder):
+            os.mkdir(folder)
+        # --- Export the histograms
+        for key, histogram in self.histograms.items():
+            filename = os.path.join(folder, key + '.nc')
+            if os.path.isfile(filename) and not overwrite:
+                logger.warning('File %s already exists! Not saving' % filename)
+                continue
+            histogram.to_netCDF(filename, format='NETCDF4')
+        # --- Export the version of the suite
+        filename = os.path.join(folder, 'version.txt')
+        if os.path.isfile(filename) and not overwrite:
+            logger.warning('Version File already exsits! Not saving')
+        else:
+            exportVersion(filename)
+        return folder
+
+    # -------------------------------------------------------------------------
+    # --- remap
+    # -------------------------------------------------------------------------
+    def remap(self, smap, options, variables_to_remap: tuple = ('R0', 'e0'),
+              transformationMatrixExtraOptions: dict = {}) -> None:
+        """
+        Remap the camera histogram as it was a camera frame.
 
         Jose Rueda: jrrueda@us.es
 
@@ -1504,7 +1564,7 @@ class Strikes:
     def shape(self):
         return self._shape
 
-    def __call__(self, var: str):
+    def __call__(self, var: str) -> np.ndarray:
         """Call for the object"""
         try:
             out = self.get(var)
