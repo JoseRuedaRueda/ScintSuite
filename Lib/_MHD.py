@@ -240,7 +240,7 @@ class MHDmode():
 
     def plot(self, var: str = 'GAM', rho: float = 0.0, ax=None, line_params={},
              units: str = 'kHz', t: tuple = None, smooth: int = 0,
-             n: float=None)->plt.axes:
+             n: float=None)->plt.Axes:
         """
         Plot the mode frequency.
 
