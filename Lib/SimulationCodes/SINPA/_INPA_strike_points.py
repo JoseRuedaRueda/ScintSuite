@@ -337,6 +337,7 @@ class INPAStrikes(Strikes):
         # ---- Remap the camera strike points
         # Internal note, the calculation of the transformation matrix is done
         # inside the remap function from the strike object
+
         self.remap(smap, remap_parameters, remap_variables)
 
         # ---- Apply energy fit:

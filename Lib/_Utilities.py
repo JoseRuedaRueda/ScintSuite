@@ -1,5 +1,5 @@
 """
-Useful models and auxiliary functions
+Useful models and auxiliary functions.
 
 Here I placed routines useful for the analysis but which in principle are not
 designed to be inserted in the main suite. For example a routine which given

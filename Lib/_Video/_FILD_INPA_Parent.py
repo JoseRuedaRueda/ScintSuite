@@ -881,7 +881,8 @@ class FIV(BVO):
         tar.add(metaDataFile, arcname='metadata.txt')
         tar.add(positionFile, arcname='position.json')
         tar.add(orientationFile, arcname='orientation.json')
-        tar.add(cameraData, arcname='CameraData.json')
+        if self.CameraData is not None:
+            tar.add(cameraData, arcname='CameraData.json')
         if 'frame_noise' in self.exp_dat:
             tar.add(noiseFrame, arcname='noiseFrame.nc')
         tar.close()
