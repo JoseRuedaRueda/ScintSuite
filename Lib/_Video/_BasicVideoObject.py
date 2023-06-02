@@ -133,7 +133,7 @@ class BVO:
                 self.shot = aux.guess_shot(file, ssdat.shot_number_length)
             # Fill the object depending if we have a .cin file or not
             if os.path.isfile(file):
-                logger.info('Looking for the file: ', file)
+                logger.info('Looking for the file: %s' % file)
                 ## Path to the file and filename
                 self.path, self.file_name = os.path.split(file)
                 ## Name of the file (full path)
