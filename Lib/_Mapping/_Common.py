@@ -9,6 +9,7 @@ import logging
 import datetime
 import numpy as np
 from Lib.decorators import deprecated
+from Lib._Mapping._Calibration import CalParams
 
 logger = logging.getLogger('ScintSuite.MappingCommon')
 try:
@@ -23,7 +24,7 @@ __all__ = ['transform_to_pixel', 'XYtoPixel', '_fit_to_model_',
 # -----------------------------------------------------------------------------
 # ---- Real position to pixels
 # -----------------------------------------------------------------------------
-def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
+def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal: CalParams):
     """
     Transform from X,Y coordinates (scintillator) to pixels in the camera.
 
@@ -130,7 +131,7 @@ class XYtoPixel:
         }
         self.CameraCalibration = None
 
-    def calculate_pixel_coordinates(self, cal):
+    def calculate_pixel_coordinates(self, cal) -> None:
         """
         Transfom real coordinates into pixel.
 

@@ -15,9 +15,10 @@ from tqdm import tqdm
 from Lib._Machine import machine
 from scipy.signal import convolve
 from Lib._basicVariable import BasicVariable
-from Lib._SideFunctions import createGrid, gkern
+from Lib._SideFunctions import createGrid, gkern, createGrid1D
 from Lib.SimulationCodes.FILDSIM import get_energy
 from Lib.SimulationCodes.Common.strikes import Strikes
+from Lib.SimulationCodes.SINPA._INPA_strike_points import INPAStrikes
 from Lib._StrikeMap._FILD_INPA_ParentStrikeMap import FILDINPA_Smap
 
 logger = logging.getLogger('ScintSuite.INPAstrikeMap')
@@ -161,18 +162,18 @@ class Ismap(FILDINPA_Smap):
     # --- Weight function calculation
     # --------------------------------------------------------------------------
     def build_weight_matrix(self, strikes,
-                            variablesScint: tuple = ('R0', 'e0'),
-                            variablesFI: tuple = ('R0', 'e0'),
-                            weight: str = 'weight0',
-                            gridFI: dict = None,
-                            sigmaOptics: float = 4.5,
-                            verbose: bool = True,
-                            normFactor: float = 1.0,
-                            energyFit=None,
-                            B: float = 1.8,
-                            Z: float = 1.0,
-                            A: float = 2.01410,
-                            ):
+                                    variablesScint: tuple = ('R0', 'e0'),
+                                    variablesFI: tuple = ('R0', 'e0'),
+                                    weight: str = 'weight0',
+                                    gridFI: dict = None,
+                                    sigmaOptics: float = 4.5,
+                                    verbose: bool = True,
+                                    normFactor: float = 1.0,
+                                    energyFit=None,
+                                    B: float = 1.8,
+                                    Z: float = 1.0,
+                                    A: float = 2.01410,
+                                    ) -> None:
         """
         Build the INPA weight function.
 
@@ -332,6 +333,368 @@ class Ismap(FILDINPA_Smap):
         #                              mode='same')
 
         # Now perform the tensor product
+        vol = xvol * yvol
+        W = np.tensordot(Tmatrix, H, axes=2) / vol / normFactor
+        # save it
+        self.instrument_function =\
+            xr.DataArray(W,
+                         dims=('xs', 'ys', 'x', 'y', 'kind'),
+                         coords={'kind': [5, 6, 7, 8], 'xs': gridT['x'],
+                                 'ys': gridT['y'], 'x': xCen, 'y': yCen})
+        self.instrument_function['kind'].attrs['long_name'] = 'Kind'
+        self.instrument_function['xs'].attrs['long_name'] = \
+            variablesScint[0].capitalize()
+        self.instrument_function['x'].attrs['long_name'] = \
+            variablesFI[0].capitalize()
+        self.instrument_function['y'].attrs['long_name'] = \
+            variablesFI[1].capitalize()
+        self.instrument_function['ys'].attrs['long_name'] = \
+            variablesScint[1].capitalize()
+        # Now perform the energy scaling:
+        if energyFit is not None:
+            logger.info('Adding energy scaling')
+            if isinstance(energyFit, str):
+                # The user give us the energy fit file
+                fit = lmfit.model.load_modelresult(energyFit)
+            else:
+                # Assume we have a fit object
+                fit = energyFit
+            # So, now, we need to see which scintillator variable is energy
+            # or gyroradius
+            if ('energy' in variablesScint) or ('e0' in variablesScint):
+                dumNames = np.array(variablesScint)
+                i = np.where((dumNames == 'e0') | (dumNames == 'energy'))[0]
+                if i == 0:
+                    keyToEval = 'xs'
+                else:
+                    keyToEval = 'ys'
+                xToEval = self.instrument_function[keyToEval]
+                scaleFactor = fit.eval(x=xToEval.values)
+
+            elif 'gyroradius' in variablesScint:
+                dumNames = np.array(variablesScint)
+                i = np.where((dumNames == 'gyroradius'))[0]
+                if i == 0:
+                    keyToEval = 'xs'
+                else:
+                    keyToEval = 'ys'
+                # Now move to energy
+                xToEval = self.instrument_function[keyToEval]
+                energyToEval = get_energy(xToEval.values, B, A, Z)
+                scaleFactor = fit.eval(x=energyToEval)
+
+            scaleFactor = xr.DataArray(scaleFactor, dims=keyToEval,
+                                       coords={keyToEval: xToEval})
+            self.instrument_function = self.instrument_function * scaleFactor
+
+        # --- Add some units
+        # TODO: This is a bit hardcored, so would be better in another way
+        units = {
+            'r0': 'm',
+            'gyroradius': 'cm',
+            'gyroradius0': 'cm',
+            'energy': 'keV',
+            'rho': ''
+            }
+        for k in self.instrument_function.coords.keys():
+            try:
+                self.instrument_function[k].attrs['units'] =\
+                    units[self.instrument_function[k].attrs['long_name'].lower()]
+            except KeyError:
+                pass
+        # --- Add other metadata:
+        self.instrument_function.attrs['sigmaOptics'] = sigmaOptics
+        self.instrument_function.attrs['normFactor'] = normFactor
+        self.instrument_function.attrs['B'] = B
+        self.instrument_function.attrs['Z'] = Z
+        self.instrument_function.attrs['A'] = A
+
+        # ---- Perform fitting
+        logger.info('Fitting to bivariant Normal distributions')
+        # Allocate a copy
+        self.instrument_function_fit = self.instrument_function.copy()
+        self.instrument_function_fit.attrs['Info'] = \
+            'Fitted to a BivariateNormal'
+        # Prepare the model
+        model = ssmodels.BivariateNormalDistribution
+        # Prepare grids
+        XX, YY = np.meshgrid(self.instrument_function.x,
+                             self.instrument_function.y,
+                             indexing='ij')
+        # Perfom the loop
+        for jk in range(self.instrument_function.kind.size):
+            if self.instrument_function.isel(kind=jk).sum() < 1.0e-8:  # So zero
+                continue
+            # Fit a bivariant spline for each scintilaltor position
+            for ixs in range(self.instrument_function.xs.size):
+                for iys in range(self.instrument_function.ys.size):
+                    matrix = self.instrument_function.isel(kind=jk,
+                                                           xs=ixs,
+                                                           ys=iys).values.copy()
+                    sumMatrix = matrix.sum()
+                    if sumMatrix < 1.0e-8:
+                        continue
+                    matrix /= sumMatrix
+                    params = ssmodels.guessParamsBivariateNormalDistribution(
+                        XX.flatten(), YY.flatten(), matrix.flatten())
+                    result = model.fit(data=matrix.flatten(),
+                                       params=params, x=XX.flatten(),
+                                       y=YY.flatten())
+                    self.instrument_function_fit.values[ixs, iys, :, :, jk] = \
+                        result.eval(x=XX.flatten(), y=YY.flatten()).reshape(
+                            XX.shape) * sumMatrix
+        return
+
+    def kiwi(self, strikes,
+                        weight: str = 'weight0',
+                                    gridFI: dict = None,
+                                    sigmaOptics: float = 4.5,
+                                    verbose: bool = True,
+                                    normFactor: float = 1.0,
+                                    energyFit=None,
+                                    B: float = 1.8,
+                                    Z: float = 1.0,
+                                    A: float = 2.01410,
+                                    kind: float = 5.0,
+                                    z0: float = 0.10,
+                                    pitch0: float = 0.65,
+                                    ) -> None:
+        """
+        Build the INPA weight function.
+
+        Note, this function only works for R0, e0 as scintillator variables
+        and R0, e0, pitch and z as FI variables. As explained in 
+        J. Rueda-Rueda: Tomography paper 2023.
+
+        For a complete documentation of how each submatrix is defined from the
+        physics point of view, please see full and detailed INPA notes
+
+        :param  strikes: SINPA strikes from the FIDASIM simulation with constant
+            FBM. Notice that it can also be just a string pointing towards the
+            strike file
+        :param  variablesScint: tuple of variable to spawn the scintillator space
+        :param  variablesFI: tuple of variables to spawn the FI space
+        :param  weigt: name of the weight to be selected
+        :param  gridFI: grid for the variables in the FI phase space
+        :param  sigmaOptics: fine resolution sigma of the optical system
+        :param  verbose: flag to incldue information in the console
+        :param  normFactor: Overal factor to scale the weight matrix
+
+        Notes:
+        - Scintillator grid cannot be included as input because is taken from
+            the transformation matrix
+        - The normFactor is though to be used as the constant value of the
+            FBM set for the FIDASIM simulation, to eliminate this constant dummy
+            factor
+
+        TODO: Include fine resolution depending of the optical axis
+        """
+        # Block 0: Loading and settings ----------------------------------------
+        # --- Check inputs
+        if strikes is None:
+            raise errors.NotValidInput('I need some strikes!')
+        if self.CameraCalibration is None:
+            raise errors.NotFoundCameraCalibration('I need the camera calib')
+        if self._grid_interp.keys() is None:
+            raise errors.NotValidInput('Need to calculate interpolators first')
+        if 'transformation_matrix' not in self._grid_interp.keys():
+            raise errors.NotValidInput('Need to calculate T matrix first')
+        # --- Initialise default grid
+        if gridFI is None:
+            gridFI = {
+                'Rmin': 1.55,
+                'Rmax': 2.20,
+                'dR': 0.015,
+                'Emin': 15.0,
+                'Emax': 100.0,
+                'dE': 1.0,
+                'pitchmin': 0.0,
+                'pitchmax': 1.0,
+                'dpitch': 0.05,
+                'zmin': -0.5,
+                'zmax': 0.5,
+                'dz': 0.05
+            }
+        # --- Load/put in place the strikes
+        if isinstance(strikes, (str,)):
+            if os.path.isfile(strikes):
+                self.secondaryStrikes = \
+                    Strikes(file=strikes, verbose=verbose, code='SINPA')
+            else:
+                self.secondaryStrikes = \
+                    Strikes(runID=strikes, verbose=verbose, code='SINPA')
+        elif isinstance(strikes, (Strikes, INPAStrikes)):
+            self.secondaryStrikes = strikes
+        else:
+            print(type(strikes))
+            raise errors.NotValidInput('Error in the input strikes')
+        # --- Calculate camera position, if not done outside:
+        if 'xcam' not in self.secondaryStrikes.header['info'].keys():
+            self.secondaryStrikes.calculate_pixel_coordinates(
+                self.CameraCalibration)
+        else:
+            text = 'Strikes already contain pixel position!' +\
+                'Assuming you did it with the same calibration than the map'
+            logger.warning(text)
+        # --- Prepare the names
+        variablesScint = ('R0', 'e0')
+        nameT = variablesScint[0] + '_' + variablesScint[1]
+        # --- Get the Tmatrix
+        Tmatrix = self._grid_interp['transformation_matrix'][nameT]
+        gridT = self._grid_interp['transformation_matrix'][nameT+'_grid']
+        camera_frame = Tmatrix.shape[2:4]
+        # --- Get the index of the different colums
+        variablesFI = ('R0', 'e0', 'pitch0', 'z0')
+        jpx = self.secondaryStrikes.header['info']['ycam']['i']
+        jpy = self.secondaryStrikes.header['info']['xcam']['i']
+        jR = self.secondaryStrikes.header['info'][variablesFI[0]]['i']
+        jE = self.secondaryStrikes.header['info'][variablesFI[1]]['i']
+        jpitch = self.secondaryStrikes.header['info'][variablesFI[2]]['i']
+        jz = self.secondaryStrikes.header['info'][variablesFI[3]]['i']
+        jkind = self.secondaryStrikes.header['info']['kind']['i']
+        jw = self.secondaryStrikes.header['info'][weight]['i']
+        # Block 1: Preparation phase -------------------------------------------
+        # --- Prepare the grids
+        # - Edges
+        pxEdges = np.arange(camera_frame[0]+1) - 0.5
+        pyEdges = np.arange(camera_frame[1]+1) - 0.5
+        nR, Redges =  createGrid1D(gridFI['Rmin'], gridFI['Rmax'], gridFI['dR'])
+        nE, Eedges =  createGrid1D(gridFI['Emin'], gridFI['Emax'], gridFI['dE'])
+        nPitch, pitchedges =  createGrid1D(gridFI['pitchmin'], gridFI['pitchmax'], gridFI['dpitch'])
+        nZ, zedges =  createGrid1D(gridFI['zmin'], gridFI['zmax'], gridFI['dz'])
+        kindEdges = [kind-0.5, kind+0.5]
+        # - reduced edges
+        kzRed = np.digitize(z0, zedges)
+        zRed = [zedges[kzRed-1], zedges[kzRed]]
+        kpRed = np.digitize(pitch0, pitchedges)
+        pRed = [pitchedges[kpRed-1], pitchedges[kpRed]]
+        # - Centers
+        pxCen = 0.5 * (pxEdges[:-1] + pxEdges[1:])
+        pyCen = 0.5 * (pxEdges[:-1] + pxEdges[1:])
+        RCen = 0.5 * (Redges[:-1] + Redges[1:])
+        ECen = 0.5 * (Eedges[:-1] + Eedges[1:])
+        pitchCen = 0.5 * (pitchedges[:-1] + pitchedges[1:])
+        zCen = 0.5 * (zedges[:-1] + zedges[1:])
+        # - Volume
+        Rvol = Redges[1] - Redges[0]
+        Evol = Eedges[1] - Eedges[0]
+        pitchvol = pitchedges[1] - pitchedges[0]
+        zvol = zedges[1] - zedges[0]
+
+        # By definition, the space in pixel space is 1, so there is no need of
+        # calculate that volume.
+        # --- Prepare the data
+        nStrikes = self.secondaryStrikes.data[0, 0].shape[0]
+        dummy = np.zeros((nStrikes, 7))
+
+        dummy[:, 0] = self.secondaryStrikes.data[0, 0][:, jpx]
+        dummy[:, 1] = self.secondaryStrikes.data[0, 0][:, jpy]
+        dummy[:, 2] = self.secondaryStrikes.data[0, 0][:, jE]
+        dummy[:, 3] = self.secondaryStrikes.data[0, 0][:, jpitch]
+        dummy[:, 4] = self.secondaryStrikes.data[0, 0][:, jR]
+        dummy[:, 5] = self.secondaryStrikes.data[0, 0][:, jz]
+        dummy[:, 6] = self.secondaryStrikes.data[0, 0][:, jkind]
+        if weight is not None:
+            w = self.secondaryStrikes.data[0, 0][:, jw]
+        else:
+            w = np.ones(nStrikes)
+        
+        # Reduce the values
+        flagsz = (dummy[:, 5] >= zRed[0]) * (dummy[:, 5] < zRed[1]) 
+        flagspitch = (dummy[:, 3] >= pRed[0]) * (dummy[:, 3] < pRed[1]) 
+        flagsK = (dummy[:, 6] >= kindEdges[0]) * (dummy[:, 6] < kindEdges[1]) 
+        flagsT = flagsz*flagspitch*flagsK
+        nPositive = flagsT.sum()
+        print('---------------', nPositive)
+        dummy2 = np.zeros((nPositive, 4))
+        dummy2[:, 0] = dummy[flagsT, 0]
+        dummy2[:, 1] = dummy[flagsT, 1]
+        dummy2[:, 2] = dummy[flagsT, 2]
+        dummy2[:, 3] = dummy[flagsT, 4]
+        w = w[flagsT]
+        
+        # --- Calculate the pixel position
+        # Block 2: Calculation phase -------------------------------------------
+        edges = [pxEdges, pyEdges, Eedges, Redges]
+        logger.info('Performing the 4D histogram')
+        print(len(pxEdges), len(pyEdges), len(Eedges), 
+              len(Redges))
+        H, edges_hist = np.histogramdd(
+                dummy2,
+                bins=edges,
+                weights=w,
+        )
+        print('-----------------', H.sum())
+        # check there is nothing negative
+        totalWeightBeforeOptics = H.sum()
+        # Add the finite focus of the optics
+        if sigmaOptics > 0.01:
+            logger.info('Adding finite focus')
+            kernel = gkern(int(6.0*sigmaOptics)+1, sig=sigmaOptics)
+            print(H.shape)
+            for kE in tqdm(range(H.shape[2])):
+                for kR in range(H.shape[3]):
+                    if np.sum(H[:,:, kE, kR])>0:
+                        H[..., kE, kR] =\
+                            convolve(H[..., kE, kR].squeeze(),
+                                     kernel, mode='same')
+            # Check the integrity of the WF
+            totalWeightAfterOptics = H.sum()
+            deltaWeight = abs(totalWeightAfterOptics-totalWeightBeforeOptics)\
+                / totalWeightBeforeOptics
+            logger.debug('Change of weight due to optics: %f ' % deltaWeight)
+            if deltaWeight > 0.001:
+                logger.error('Total Wegith before the optic focus: %f',
+                             totalWeightBeforeOptics)
+                logger.error('Total Wegith after the optic focus: %f',
+                             totalWeightAfterOptics)
+                errorText = 'Problem applying the convolution, weight changed'
+                raise errors.CalculationError(errorText)
+            # set to zero the negative celss due to numerical errors
+            H[H < 0.0] = 0.0
+        else:
+            logger.info('Not considering finite focusing')
+
+        # if True:
+        #     kernel = gkern(5, sig=1)
+        #     for jx in tqdm(range(H.shape[0])):
+        #         for jy in range(H.shape[1]):
+        #             for kj in range(H.shape[4]):
+        #                 H[jx, jy, :, :, kj] = \
+        #                     convolve(H[jx, jy, :, :, kj].squeeze(), kernel,
+        #                              mode='same')
+        # Now perform the tensor product
+        W4D = np.tensordot(Tmatrix, H, axes=2)
+        # Now calculate the INPA sensitivity in pitch and z, R
+        dummy = np.zeros((flagsK.sum(), 3))
+        dummy[:, 0] = self.secondaryStrikes.data[0, 0][flagsK, jpitch]
+        dummy[:, 1] = self.secondaryStrikes.data[0, 0][flagsK, jR]
+        dummy[:, 2] = self.secondaryStrikes.data[0, 0][flagsK, jz]
+        if weight is not None:
+            w = self.secondaryStrikes.data[0, 0][:, jw]
+        else:
+            w = np.ones(nStrikes)
+        edges = [pitchedges, Redges, zedges]
+        logger.info('Performing the 3D histogram')
+        psi, edges_hist = np.histogramdd(
+                dummy,
+                bins=edges,
+                weights=w,
+        )
+        # Now renormalise the histogram
+        for kR in range(psi.shape[1]):
+            psi[:, kR, :] /= psi[:, kR, :].sum()
+        # Now remmove the lambda, z dependence
+        dum4D_histogram = W4D.copy()
+        for kR in range(psi.shape[1]):
+            if psi[kpRed, kR, kzRed] > 0.0:
+                dum4D_histogram[:, :, :, kR] /= psi[kpRed, kR, kzRed]
+        dummy = xr.DataArray(dum4D_histogram,
+                         dims=('xs', 'ys', 'E', 'R', ),
+                         coords={'xs': gridT['x'],
+                                 'ys': gridT['y'], 'E': ECen,
+                                 'R': RCen, })
+        return dummy
         vol = xvol * yvol
         W = np.tensordot(Tmatrix, H, axes=2) / vol / normFactor
         # save it

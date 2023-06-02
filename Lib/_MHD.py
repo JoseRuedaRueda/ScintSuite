@@ -118,7 +118,7 @@ class MHDmode():
         """
         Evaluate the GAM frequency
 
-        following expresion (1) of W.W. Heidbrink Nucl. Fusion 61 (2021)
+        Following expresion (1) of W.W. Heidbrink Nucl. Fusion 61 (2021)
         """
         self.freq['GAM'] = np.sqrt(
             1.0 / 2.0 / cnt.pi**2 / self._mi / self._R0['data']**2
@@ -132,7 +132,7 @@ class MHDmode():
         """
         Evaluate the central frequency of the TAE gap
 
-        following eq (1) of W.W. Heidbrink PRL 71 1993
+        Following eq (1) of W.W. Heidbrink PRL 71 1993
         """
         self.freq['TAE'] = \
             self._va0['data']/4.0/cnt.pi/self._q['data']/self._R0['data']
@@ -143,7 +143,7 @@ class MHDmode():
         """
         Evaluate the central frequency of the EAE gap
 
-        following eq (8) of L. VILLARD NUCLEAR FUSION, Vo1.32,N0.10 (1992)
+        Following eq (8) of L. VILLARD NUCLEAR FUSION, Vo1.32,N0.10 (1992)
         """
         self.freq['EAE'] = \
             self._va0['data']/2.0/cnt.pi/self._q['data']/self._R0['data']
@@ -152,7 +152,7 @@ class MHDmode():
         """
         Evaluate the central frequency of the RSAE in the zero pressure limit
 
-        following eq from M. A. Van Zeeland, et al. Phys. Plasmas 14, 2007
+        Following eq from M. A. Van Zeeland, et al. Phys. Plasmas 14, 2007
 
         Warning, it does not check that the q profile is actually sheared, just
         take the minimum value

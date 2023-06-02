@@ -1,6 +1,7 @@
 # 1.2.8 Minor improvements
 - Improvements in tomography object
 - Improvements in documentation (added return types hints)
+- Corrected a bug in strikes.calculate_2d_histograms: limits not well captured when using bins=None
 
 # 1.2.7 Bug solve
 - Solves #86: issues when loading a discrete number of frames from pco, png or tiff formats

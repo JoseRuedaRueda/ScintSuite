@@ -16,6 +16,8 @@ import Lib._Tomography._martix_collapse as matrix
 import Lib._Tomography._solvers as solvers
 from tqdm import tqdm
 from Lib.version_suite import exportVersion
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.widgets import Slider
 
 
 # --- Auxiliary objects
@@ -418,8 +420,8 @@ class Tomography():
         if reconstructions is None:
             reconstructions = self.inversion.keys()
         for k in reconstructions:
-            x = self.inversion[k].residual
-            y = np.sqrt((self.inversion[k].F)**2).sum(dim=('x', 'y'))
+            x = np.log10(self.inversion[k].MSE)
+            y = np.log10(np.sqrt((self.inversion[k].F)**2).sum(dim=('x', 'y')))
             # It can be the case of elastic net, which has a second hyper param
             if len(x.shape) == 1:
                 curv = self._calccurvature(x,y)
@@ -527,20 +529,23 @@ class Tomography():
             line_options['label'] = inversion
         if ax is None:
             fig, ax = plt.subplots(2,2)
-            ax[1, 0].set_xlabel('Residual')
+            ax[1, 0].set_xlabel('MSE')
             ax[1, 0].set_ylabel('k')
             ax[0, 0].set_ylabel('|FI|')            
-            
+            ax[0, 0].set_xscale('log')
+            ax[1, 0].set_xscale('log')
+            ax[1, 0].set_yscale('log')
+            ax[0, 0].set_yscale('log')
             ax[1, 1].set_xlabel('Alpha')
             ax[1, 1].set_xscale('log')
             ax[0, 1].set_xscale('log')
             ax[1, 1].set_ylabel('k')
             ax[0, 1].set_ylabel('Residual')
         # ---- Plot the data
-        ax[0, 0].plot(self.inversion[inversion].residual,
-                   self.inversion[inversion].F.sum(dim=('x','y')),
+        ax[0, 0].plot(self.inversion[inversion].MSE,
+                   np.sqrt((self.inversion[inversion].F)**2).sum(dim=('x', 'y')),
                    **line_options)
-        ax[1, 0].plot(self.inversion[inversion].residual,
+        ax[1, 0].plot(self.inversion[inversion].MSE,
                    self.inversion[inversion].curvature,
                    **line_options)        
         # ---- Plot the data
@@ -553,6 +558,215 @@ class Tomography():
         ax[0, 0].get_figure().show()
         return ax
 
+    def GUIprofiles(self, inversion: str= 'nntikhonov0', true_solution= None, jl1=None):
+        """
+        Plot the profiles of the inversion
+
+        Jose Rueda:
+        """
+        # Check input
+        if inversion not in self.inversion.keys():
+            raise ValueError(f'The input {inversion} is not stored in the data.')
+        if jl1 is None:
+            data = self.inversion[inversion].F.copy()
+            curvature = self.inversion[inversion].curvature
+            MSE = self.inversion[inversion].MSE
+        else:
+            data = self.inversion[inversion].F.isel(l1=jl1).copy()
+            curvature = self.inversion[inversion].isel(l1=jl1).curvature
+            MSE = self.inversion[inversion].isel(l1=jl1).MSE
+        logAlpha = np.log10(self.inversion[inversion].alpha.values)
+        # logL1 = np.log10(self.inversion[inversion].L1)
+        # renormalize the data
+        if self.norms['normalised'][0]:
+            factor = self.norms['s'] / self.norms['W']
+        else:
+            factor = 1.0
+        deltaX = data.x[1] - data.x[0]
+        deltaY = data.y[1] - data.y[0]
+        Omega = deltaX.values * deltaY.values
+        factor /= Omega
+        data *= factor
+        # Now calculate the profiles
+        Eprof = data.sum('x')
+        Rprof = data.sum('y')
+        # Interpolate the true solution in the grid
+        trueSolInterp = true_solution.interp(x=data.x, y=data.y)
+        # get the profiles
+        EprofTrue = trueSolInterp.sum('x')
+        RprofTrue = trueSolInterp.sum('y')
+        Total = np.sqrt((data**2).sum(dim=('x','y')))
+        fig, ax = plt.subplots(2,2)
+        ax[0,0].plot(EprofTrue.y, EprofTrue, '--k', label='True',)
+        ax[1,0].plot(RprofTrue.x, RprofTrue, '--k', label='True',)
+        ax[0, 1].plot(MSE, Total)
+        ax[1, 1].plot(self.inversion[inversion].alpha, curvature) 
+        ax[0, 1].set_xscale('log')
+        ax[0, 1].set_yscale('log')       
+        ax[1, 1].set_xscale('log')
+        ax[1, 1].set_yscale('log')
+        # We will now check how many slider-variables are actually
+        # varying.
+        slider_vars = ['alpha']
+        lineE, = ax[0, 0].plot(Eprof.y, Eprof.isel(alpha=0))
+        lineR, = ax[1, 0].plot(Rprof.x, Rprof.isel(alpha=0))
+        pointRes, = ax[0, 1].plot(MSE[0], Total[0], 'o')
+        pointCurv, = ax[1, 1].plot(self.inversion[inversion].alpha[0],
+                                   curvature[0], 'o')
+        # Base updater.
+        def base_updater(slider_var: str, val):
+            # Updating the plotter.
+            slider_vars_val[slider_var] = 10.0**val
+            E2plot = Eprof.sel(method='nearest',
+                               **slider_vars_val).values            
+            R2plot = Rprof.sel(method='nearest',
+                               **slider_vars_val).values
+            if slider_var == 'alpha':
+                ialpha = np.argmin(np.abs(Eprof.alpha.values - slider_vars_val[slider_var]))
+                ax[0,1].set_title('ialpha: %i'% ialpha)
+            lineE.set_ydata(E2plot)
+            lineR.set_ydata(R2plot)
+            pointRes.set_xdata(MSE.sel(method='nearest',
+                               **slider_vars_val).values)
+            pointRes.set_ydata(Total.sel(method='nearest',**slider_vars_val).values)
+            pointCurv.set_xdata(self.inversion[inversion].alpha.sel(method='nearest',
+                                 **slider_vars_val).values)
+            pointCurv.set_ydata(curvature.sel(method='nearest',
+                                    **slider_vars_val).values)
+            ax[0, 0].relim()
+            ax[0, 0].autoscale_view()
+            ax[1, 0].relim()
+            ax[1, 0].autoscale_view()
+            
+
+
+        # Creating the axes divider.
+        ax_div = make_axes_locatable(ax[0, 1])
+        axes_sliders = list()
+        slider_vars_val = dict()
+        sliders = list()
+        copy_var = slider_vars.copy()
+        for ii, ivar in enumerate(slider_vars):
+            iax = ax_div.append_axes('bottom', '5%', pad='15%')
+            axes_sliders.append(iax)
+            islider = Slider(
+                ax=iax,
+                label='%s' % slider_vars[ii],
+                valstep=logAlpha,
+                valinit=logAlpha[0],
+                valmin=logAlpha.min(),
+                valmax=logAlpha.max()
+            )
+            islider.on_changed(lambda val: base_updater(copy_var[ii], val))
+
+            slider_vars_val[ivar] = logAlpha[0]
+            sliders.append(islider)
+
+
+        return ax, [lineE, lineR], sliders
+    
+    def GUIprofilesInversion2D(self, inversion: str= 'nntikhonov0', true_solution= None):
+        """
+        Plot the profiles of the inversion and the inversion in 2D in a subplot.
+
+        Jose Rueda:
+        """
+        # Check input
+        if inversion not in self.inversion.keys():
+            raise ValueError(f'The input {inversion} is not stored in the data.')
+        data = self.inversion[inversion].F.copy()
+        logAlpha = np.log10(self.inversion[inversion].alpha.values)
+        # logL1 = np.log10(self.inversion[inversion].L1)
+        # renormalize the data
+        if self.norms['normalised'][0]:
+            factor = self.norms['s'] / self.norms['W']
+        else:
+            factor = 1.0
+        deltaX = data.x[1] - data.x[0]
+        deltaY = data.y[1] - data.y[0]
+        Omega = deltaX.values * deltaY.values
+        factor /= Omega
+        data *= factor
+        # Now calculate the profiles
+        Eprof = data.sum('x')
+        Rprof = data.sum('y')
+        # Interpolate the true solution in the grid
+        trueSolInterp = true_solution.interp(x=data.x, y=data.y)
+        # get the profiles
+        EprofTrue = trueSolInterp.sum('x')
+        RprofTrue = trueSolInterp.sum('y')
+        Total = self.inversion[inversion].F.sum(dim=('x','y'))
+        fig, ax = plt.subplots(2,2)
+        ax[0,0].plot(EprofTrue.y, EprofTrue, '--k', label='True',)
+        ax[1,0].plot(RprofTrue.x, RprofTrue, '--k', label='True',)
+        ax[0, 1].plot(self.inversion[inversion].MSE,
+                      Total)
+        # ax[1, 1].plot(self.inversion[inversion].alpha,
+        #               self.inversion[inversion].curvature) 
+        ax[0, 1].set_xscale('log')
+        ax[0, 1].set_yscale('log')       
+        # ax[1, 1].set_xscale('log')
+        # ax[1, 1].set_yscale('log')
+        # We will now check how many slider-variables are actually
+        # varying.
+        slider_vars = ['alpha']
+        lineE, = ax[0, 0].plot(Eprof.y, Eprof.isel(alpha=0))
+        lineR, = ax[1, 0].plot(Rprof.x, Rprof.isel(alpha=0))
+        pointRes, = ax[0, 1].plot(self.inversion[inversion].MSE[0],
+                                  Total[0], 'o')
+        img = data.isel(alpha=0).T.plot.imshow(ax=ax[1,1])
+        # Base updater.
+        def base_updater(slider_var: str, val):
+            # Updating the plotter.
+            slider_vars_val[slider_var] = 10.0**val
+            E2plot = Eprof.sel(method='nearest',
+                               **slider_vars_val).values            
+            R2plot = Rprof.sel(method='nearest',
+                               **slider_vars_val).values
+            if slider_var == 'alpha':
+                ialpha = np.argmin(np.abs(Eprof.alpha.values - slider_vars_val[slider_var]))
+                ax[0,1].set_title('ialpha: %i'% ialpha)
+            lineE.set_ydata(E2plot)
+            lineR.set_ydata(R2plot)
+            pointRes.set_xdata(self.inversion[inversion].MSE.sel(method='nearest',
+                               **slider_vars_val).values)
+            pointRes.set_ydata(Total.sel(method='nearest',**slider_vars_val).values)
+
+            img.set_data(data.sel(method='nearest',**slider_vars_val ).values.T)
+            ax[0, 0].relim()
+            ax[0, 0].autoscale_view()
+            ax[1, 0].relim()
+            ax[1, 0].autoscale_view()
+            
+
+
+        # Creating the axes divider.
+        ax_div = make_axes_locatable(ax[0, 1])
+        axes_sliders = list()
+        slider_vars_val = dict()
+        sliders = list()
+        copy_var = slider_vars.copy()
+        for ii, ivar in enumerate(slider_vars):
+            iax = ax_div.append_axes('bottom', '5%', pad='15%')
+            axes_sliders.append(iax)
+            islider = Slider(
+                ax=iax,
+                label='%s' % slider_vars[ii],
+                valstep=logAlpha,
+                valinit=logAlpha[0],
+                valmin=logAlpha.min(),
+                valmax=logAlpha.max()
+            )
+            islider.on_changed(lambda val: base_updater(copy_var[ii], val))
+
+            slider_vars_val[ivar] = logAlpha[0]
+            sliders.append(islider)
+
+
+        return ax, [lineE, lineR], sliders
+    # ------------------------------------------------------------------------
+    # %% Export block
+    # ------------------------------------------------------------------------
     def export(self, folder: str, inversionKeys: list = None,
                createTar: bool = False) -> str:
         """
