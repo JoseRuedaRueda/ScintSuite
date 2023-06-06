@@ -275,19 +275,12 @@ class CalibrationDatabase:
         shot1 = self.data['shot1']
         shot2 = self.data['shot2']
 
-        if shot < shot1.min():
-            raise errors.NotFoundCameraCalibration(
-                'Shot is smaller than the first calibration in the database')
-        elif shot > shot2.max():
-            raise errors.NotFoundCameraCalibration(
-                'Shot is bigger than the last calibration in the database')
-        else:
-            idx = np.argmin(np.abs(shot - shot1))
-            if shot > shot1[idx]:
-                idx = np.argmin(np.abs(shot - shot2))
-            cal = CalParams()
-            for ikey in self.data.keys():
-                cal.__dict__[ikey] = self.data[ikey][idx]
+        idx = np.argmin(np.abs(shot - shot1))
+        if shot > shot1[idx]:
+            idx = np.argmin(np.abs(shot - shot2))
+        cal = CalParams()
+        for ikey in self.data.keys():
+            cal.__dict__[ikey] = self.data[ikey][idx]
 
         return cal
 
