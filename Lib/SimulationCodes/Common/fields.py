@@ -816,7 +816,8 @@ class fields:
                          edition: int = 0,
                          Rmin: float = 1.03, Rmax: float = 2.65,
                          zmin: float = -1.224, zmax: float = 1.05,
-                         nR: int = 128, nz: int = 256):
+                         nR: int = 128, nz: int = 256,
+                         coord_type: str='psipol'):
         """
         Fetchs the psi_pol = rho_pol(R, z) map from the AUG database using
         input grid.
@@ -851,11 +852,25 @@ class fields:
         z = np.linspace(zmin, zmax, num=nz)
         RR, zz = np.meshgrid(R, z)
         grid_shape = RR.shape
-        psipol = ssdat.get_psipol(shotnumber, RR.flatten(), zz.flatten(),
-                                  diag=diag, time=time, exp=exp)
-
-        # Reshaping into the original shape.
-        psipol = np.reshape(psipol, grid_shape).T
+        if coord_type == 'psipol':
+            psipol = ssdat.get_psipol(shotnumber, RR.flatten(), zz.flatten(),
+                                      diag=diag, time=time, exp=exp)
+    
+            # Reshaping into the original shape.
+            psipol = np.reshape(psipol, grid_shape).T
+        elif coord_type == 'rhopol':
+            print('getting rhopol')
+            psipol = ssdat.get_rho(shotnumber, RR.flatten(), zz.flatten(),
+                                   diag=diag, time=time, exp=exp,
+                                   coord_out='rho_pol')
+            psipol = np.reshape(psipol, grid_shape).T
+        elif coord_type == 'rhotor':
+            psipol = ssdat.get_rho(shotnumber, RR.flatten(), zz.flatten(),
+                                   diag=diag, time=time, exp=exp,
+                                   coord_out='rho_tor')
+            psipol = np.reshape(psipol, grid_shape).T
+        else:
+            raise ValueError(f'Magnetic coordinate {coord_type} not recognized')
 
         # Creating the interpolating function.
         self.psipol['R'] = np.array(R, dtype=np.float64)
