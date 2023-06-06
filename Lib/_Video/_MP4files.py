@@ -49,7 +49,7 @@ def read_file(fn: str, force_gray: bool=True, bpp: int=None, pix_fmt: str=None,
         elif video.dtype == np.uint16:
             dtype = np.float32
         elif video.dtype == np.uint32:
-            dtype = np.float32
+            dtype = np.float64
         elif video.dtype == np.float32:
             dtype = np.float32
         elif video.dtype == np.float64:
@@ -66,7 +66,7 @@ def read_file(fn: str, force_gray: bool=True, bpp: int=None, pix_fmt: str=None,
             bits_size = int(prop['bits_per_raw_sample'])
 
         dtype = { 8: np.uint8,
-                16: np.uint16
+                  16: np.uint16
                 }.get(bits_size)
 
         shape = [nf, height, width, -1]
