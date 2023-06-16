@@ -124,8 +124,8 @@ class Scintillator(XYtoPixel):
                       'inch': 0.01/2.54}
             
             if self.units not in factor:
-                factor = 1.0
-                logger.warning('XX: Not found units, assuming meters.')
+                factor = 0.01
+                logger.warning('XX: Not found units, assuming cm.')
             else:
                 factor = factor[self.units]
 

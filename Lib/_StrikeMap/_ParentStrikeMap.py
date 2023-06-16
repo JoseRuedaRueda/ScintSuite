@@ -570,7 +570,7 @@ class GeneralStrikeMap(XYtoPixel):
                 flagx = (X_center < (grid_options['xmin'] - grid_options['dx']))+\
                     (X_center > (grid_options['xmax'] + grid_options['dx']))
                 flagy = (Y_center < (grid_options['ymin'] - grid_options['dy']))+\
-                    (X_center > (grid_options['ymax'] + grid_options['dy']))
+                    (Y_center > (grid_options['ymax'] + grid_options['dy']))
                 if flagx+flagy:
                     continue
                 # Generate markers coordinates in the chip, note the

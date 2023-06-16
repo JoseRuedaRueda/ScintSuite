@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import Lib._Tomography._martix_collapse as matrix
 import Lib._Tomography._solvers as solvers
 from tqdm import tqdm
+from scipy import linalg
 from Lib.version_suite import exportVersion
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import Slider
@@ -99,7 +100,7 @@ class Tomography():
                 self.norms = {}
                 needGuess = True
             # --- Now collapse the signal and the weight function
-            logger.info('Collapsing W: ')
+            logger.info('Collapsing W ')
             self.W2D = matrix.collapse_array4D(self.W.values)
             logger.info('Collapsing Signal')
             self.s1D = matrix.collapse_array2D(self.s.values.squeeze())
@@ -121,6 +122,37 @@ class Tomography():
                     self.inversion[key] = xr.load_dataset(filename)
             self.folder = folder
 
+    # -------------------------------------------------------------------------
+    # %% Weight decomposition and manipulation block
+    # -------------------------------------------------------------------------
+    def svdWeightMatrix(self, **kargs) -> xr.Dataset:
+        """
+        """
+        # ---- Calculate the decomposition mamtrices
+        U, s, Vh = linalg.svd(self.W2D)
+        # ---- Allocate the output matrices
+        ns = s.size
+        Ureshaped = np.zeros((ns, self.W.shape[0], self.W.shape[1]))
+        Vreshaped = np.zeros((ns, self.W.shape[2], self.W.shape[3]))
+        for js in range(ns):
+            Ureshaped[js, :, :] =\
+                matrix.restore_array2D(U[:, js], self.W.shape[0], 
+                                       self.W.shape[1])            
+                                       
+            Vreshaped[js, :, :] =\
+                matrix.restore_array2D(Vh[js, :], self.W.shape[2], 
+                                       self.W.shape[3])
+        # The transpose is because we need the matrix V, and the scipy output is
+        # the v transposed.
+        out = xr.Dataset()
+        out['U'] = xr.DataArray(Ureshaped, dim=('sigma', 'xs', 'ys'),
+                                coords={'sigma': s, 'xs': self.W.xs,
+                                        'ys': self.W.ys})
+        out['V'] = xr.DataArray(Vreshaped, dims=('sigma', 'x', 'y'),
+                                coords={'sigma': s, 'x': self.W.x, 'y': self.W.y})
+        return out
+
+    
     def nnlsq(self, **kargs) -> None:
         """
         Perform an nnlsq inversion
@@ -590,15 +622,17 @@ class Tomography():
         # Now calculate the profiles
         Eprof = data.sum('x')
         Rprof = data.sum('y')
-        # Interpolate the true solution in the grid
-        trueSolInterp = true_solution.interp(x=data.x, y=data.y)
-        # get the profiles
-        EprofTrue = trueSolInterp.sum('x')
-        RprofTrue = trueSolInterp.sum('y')
+        if true_solution is not None:
+            # Interpolate the true solution in the grid
+            trueSolInterp = true_solution.interp(x=data.x, y=data.y)
+            # get the profiles
+            EprofTrue = trueSolInterp.sum('x')
+            RprofTrue = trueSolInterp.sum('y')
         Total = np.sqrt((data**2).sum(dim=('x','y')))
         fig, ax = plt.subplots(2,2)
-        ax[0,0].plot(EprofTrue.y, EprofTrue, '--k', label='True',)
-        ax[1,0].plot(RprofTrue.x, RprofTrue, '--k', label='True',)
+        if true_solution is not None:
+            ax[0,0].plot(EprofTrue.y, EprofTrue, '--k', label='True',)
+            ax[1,0].plot(RprofTrue.x, RprofTrue, '--k', label='True',)
         ax[0, 1].plot(MSE, Total)
         ax[1, 1].plot(self.inversion[inversion].alpha, curvature) 
         ax[0, 1].set_xscale('log')
@@ -663,9 +697,9 @@ class Tomography():
             sliders.append(islider)
 
 
-        return ax, [lineE, lineR], sliders
+        return ax, [lineE, lineR], sliders, Eprof, Rprof, EprofTrue, RprofTrue
     
-    def GUIprofilesInversion2D(self, inversion: str= 'nntikhonov0', true_solution= None):
+    def GUIprofilesInversion2D(self, inversion: str= 'nntikhonov0', true_solution= None, jl1=None):
         """
         Plot the profiles of the inversion and the inversion in 2D in a subplot.
 
@@ -674,7 +708,12 @@ class Tomography():
         # Check input
         if inversion not in self.inversion.keys():
             raise ValueError(f'The input {inversion} is not stored in the data.')
-        data = self.inversion[inversion].F.copy()
+        if jl1 is None:
+            data = self.inversion[inversion].F.copy()
+            MSE = self.inversion[inversion].MSE
+        else:
+            data = self.inversion[inversion].F.isel(l1=jl1).copy()
+            MSE = self.inversion[inversion].isel(l1=jl1).MSE
         logAlpha = np.log10(self.inversion[inversion].alpha.values)
         # logL1 = np.log10(self.inversion[inversion].L1)
         # renormalize the data
@@ -695,7 +734,7 @@ class Tomography():
         # get the profiles
         EprofTrue = trueSolInterp.sum('x')
         RprofTrue = trueSolInterp.sum('y')
-        Total = self.inversion[inversion].F.sum(dim=('x','y'))
+        Total = np.sqrt(self.inversion[inversion].F**2).sum(dim=('x','y'))
         fig, ax = plt.subplots(2,2)
         ax[0,0].plot(EprofTrue.y, EprofTrue, '--k', label='True',)
         ax[1,0].plot(RprofTrue.x, RprofTrue, '--k', label='True',)
@@ -712,7 +751,7 @@ class Tomography():
         slider_vars = ['alpha']
         lineE, = ax[0, 0].plot(Eprof.y, Eprof.isel(alpha=0))
         lineR, = ax[1, 0].plot(Rprof.x, Rprof.isel(alpha=0))
-        pointRes, = ax[0, 1].plot(self.inversion[inversion].MSE[0],
+        pointRes, = ax[0, 1].plot(MSE[0],
                                   Total[0], 'o')
         img = data.isel(alpha=0).T.plot.imshow(ax=ax[1,1])
         # Base updater.
@@ -728,7 +767,7 @@ class Tomography():
                 ax[0,1].set_title('ialpha: %i'% ialpha)
             lineE.set_ydata(E2plot)
             lineR.set_ydata(R2plot)
-            pointRes.set_xdata(self.inversion[inversion].MSE.sel(method='nearest',
+            pointRes.set_xdata(MSE.sel(method='nearest',
                                **slider_vars_val).values)
             pointRes.set_ydata(Total.sel(method='nearest',**slider_vars_val).values)
 
