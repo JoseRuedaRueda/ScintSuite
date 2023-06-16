@@ -122,13 +122,13 @@ def remapAllLoadedFrames(video,
     # --------------------------------------------------------------------------
     # --- INPUTS CHECK AND PREPARATION
     # --------------------------------------------------------------------------
-    acceptedVars = ('energy', 'r0', 'gyroradius', 'rho_pol')
+    acceptedVars = ('energy', 'r0', 'gyroradius', 'rho_pol', 'e0')
     units = {'e0': 'keV', 'R0': 'm', 'gyroradius': 'cm', 'rho_pol': ' '}
     var_remap = [v.lower() for v in variables_to_remap]  # force small letter
     for v in var_remap:
         if v not in acceptedVars:
             raise errors.NotValidInput('Variables not accepted for INPA remap')
-    if 'energy' in var_remap:
+    if ('energy' in var_remap) or ('e0' in var_remap):
         wantEnergy = True
         for i in range(2):
             if var_remap[i] == 'energy':
@@ -164,7 +164,7 @@ def remapAllLoadedFrames(video,
         # tranform to bool
         mask = mask.astype(bool)
     # -- Check the tipe of remap
-    if remap_method.lower() == 'centers':
+    if (remap_method.lower() == 'centers') or (remap_method.lower() == 'griddata'):
         MC_number = 0  # to turn off the transformation matrix calculation
     # -- Prepare the frames
     if not use_average:

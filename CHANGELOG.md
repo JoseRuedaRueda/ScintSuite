@@ -1,3 +1,8 @@
+# 1.2.9 Minor improvemments
+- Defocus in optis now done with a gaussian comvulution instead of scipy gaussian blurr.
+- Included calculate 4D histogram in strikes.
+- *Bug correction* corrected a sall bug when passing an array and an integer as bin limits for strikes histograms.
+
 # 1.2.8 Minor improvements
 - Improvements in tomography object
 - Improvements in documentation (added return types hints)

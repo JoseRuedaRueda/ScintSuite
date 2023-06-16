@@ -8,9 +8,9 @@ Introduced in version 6.0.0
 import os
 import f90nml
 import numpy as np
-# import math
+# import math Lib/SimulationCodes/Common
 import Lib.SimulationCodes.SINPA._reading as reading
-import Lib.SimulationCodes.Common.fields as simcomFields
+from ..Common import fields as simcomFields
 import Lib.SimulationCodes.Common.geometry as simcomGeo
 from Lib._Machine import machine
 from Lib._Paths import Path
