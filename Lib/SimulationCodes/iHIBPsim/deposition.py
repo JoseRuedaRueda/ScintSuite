@@ -199,7 +199,7 @@ class deposition:
 
 
             xlabel = '$\\rho_{pol}$ [-]'
-            ylabel = 'Ion birth density [$m^{-3}$/(unit $\\rho_{pol}$)]'
+            ylabel = r'$\Delta j_b$ [$m^{-3}$/($\rho_\mathrm{pol}$)]'
         else:
             raise ValueError('Axis = %s not recognized'%xaxis)
 
@@ -208,8 +208,8 @@ class deposition:
         if label_sci:
             magn = math.floor(math.log10(np.max(H)))
             H = H/(10**magn)
-            ylabel = 'Ion birth density [$10^{%.2d} m^{-3}/\\rho_{pol}$]'%(magn)
-
+            ylabel = r'$\Delta j_b$ [$10^{%.2d}$ m$^{-3}/\rho_\mathrm{pol}$]'%(magn)
+            ax.set_ylabel(ylabel)
         ax.plot(grr, H, **line_params)
 
         if ax_was_none:
@@ -270,7 +270,7 @@ class deposition:
                        origin='lower', **spec_params)
 
         if ax_was_none:
-            zlabel = 'Ion birth density($m^{-3}/m^2$)'
+            zlabel = r'$\Delta j_b$ (m^${-3}$/m$^2$)'
             ax.set_xlabel(xlabel)
             ax.set_ylabel(ylabel)
 
@@ -279,7 +279,8 @@ class deposition:
 
         return ax
 
-    def plot3d(self, ax=None, **plt_params):
+    def plot3d(self, ax=None, label_sci: bool=False,
+               **plt_params):
         """"
         Plots the deposition using a 3D scatter plot.
 
@@ -295,6 +296,8 @@ class deposition:
         if ax_was_none:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection = '3d')
+        else:
+            fig = ax.get_figure()
 
         R = data.sel(variable='Rmajor').values
         z = data.sel(variable='Z').values
@@ -305,13 +308,22 @@ class deposition:
         x = R*np.cos(phi)
         y = R*np.sin(phi)
 
+        if label_sci:
+            magn = math.floor(math.log10(np.max(w)))
+            w = w/(10**magn)
+            cbar_label = r'$\Delta j_b$ [$10^{%.2d}$ m$^{-3}$/m$^{-3}$]'%(magn)
+        else:
+            cbar_label = r'$\Delta j_b$ [m$^{-3}$/m$^{3}$]'
         im = ax.scatter(x, y, z, c=w)
         # divider = make_axes_locatable(ax)
         # cax = divider.append_axes('right', size = 1,  pad=0.05)
         # plt.colorbar(im, cax=cax, ticklocation='top')
         cax = fig.add_axes([ax.get_position().x1+0.01,ax.get_position().y0,0.02,ax.get_position().height])
+        # cax = divider.append_axes('right', size='5%', pad=0.05)
+        ax_pos = ax.get_position()
+        cax.set_position([ax_pos.x1+0.02, ax_pos.y0, 0.03, ax_pos.height])
         cbar = plt.colorbar(im, cax=cax)
-        cbar.ax.set_ylabel(r'Ion birth density [m$^{-3}$/m$^{3}$]')
+        cbar.ax.set_ylabel(cbar_label)
         ax.elev = 10
         ax.azim = 0
 

@@ -856,7 +856,7 @@ class BVO:
         if IncludeColorbar:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
-            plt.colorbar(img, label='Counts', cax=cax)
+            plt.colorbar(img, label=r'$I_c$ [Counts]', cax=cax)
         if plt_label:
             ax.text(0.05, 0.9, '#' + str(self.shot),
                     horizontalalignment='left',
@@ -872,8 +872,8 @@ class BVO:
             ax.axes.xaxis.set_ticklabels([])
             ax.axes.yaxis.set_ticklabels([])
         else:
-            ax.set_xlabel('Pixel')
-            ax.set_ylabel('Pixel')
+            ax.set_xlabel(r'$p_x$ [pix]')
+            ax.set_ylabel(r'$p_y$ [pix]')
         # Shot the figure
         if created:
             fig.show()

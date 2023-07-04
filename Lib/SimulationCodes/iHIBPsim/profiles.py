@@ -15,6 +15,7 @@ import os
 import Lib.LibData as dat
 import warnings
 import matplotlib.pyplot as plt
+import math
 
 from scipy.interpolate import interpn, UnivariateSpline
 from copy import copy
@@ -616,7 +617,8 @@ class ihibpProfiles:
             tmp['set'] = True
 
     def plot1d(self, profName:str,  ax, fig, timeSlice: int=0,
-               line_params: dict={}, setLabels: bool=False):
+               line_params: dict={}, setLabels: bool=False,
+               label_sci: bool=False):
         """
         Plotting function for the 1D profiles as a function of the rhopol
         variable.
@@ -653,6 +655,22 @@ class ihibpProfiles:
         # corresponding to the time axis.
         if toplot.ndim == 2:
             toplot = toplot[:, timeSlice]
+
+        if label_sci:
+            magn = math.floor(math.log10(np.max(toplot)))
+            toplot = toplot/(10**magn)
+
+            if profName.lower() == 'ne':
+                label = '$n_e$'
+                unit = 'm$^{-3}$'
+            if profName.lower() == 'te':
+                label = '$T_e$'
+                unit = r'$^\circ$C'
+            ylabel = r'%s [$10^{%.2d}$ %s]'%(label, magn, unit)
+            ax.set_xlabel(r'$\rho_\mathrm{pol}$')
+            ax.set_ylabel(ylabel)
+            setLabels = False
+
 
         im = ax.plot(self.prof1D[profName]['rhop'], toplot, **line_params)
 
@@ -722,7 +740,8 @@ class ihibpProfiles:
         return im, cbar
 
     def plot(self, profName: str, view: str='2D', ax=None, fig=None,
-             phiSlice: int=0, timeSlice: int=0, **kwargs):
+             phiSlice: int=0, timeSlice: int=0, label_sci: bool=False,
+             **kwargs):
         """
         Wrapper to the plotting routines of the profiles. This routine
         can plot 1D or 2D profiles if needed.
@@ -752,7 +771,7 @@ class ihibpProfiles:
         if view == '1D':
             return self.plot1d(profName, ax, fig=plt.gcf(),
                                timeSlice=timeSlice, setLabels=~axis_needed,
-                               line_params=kwargs)
+                               line_params=kwargs, label_sci=label_sci)
 
         elif view == '2D':
             return self.plot2d(profName, ax, fig=plt.gcf(), phiSlice=phiSlice,

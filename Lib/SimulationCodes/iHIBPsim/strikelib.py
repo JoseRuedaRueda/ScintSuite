@@ -98,7 +98,7 @@ __header0 = { 0: { 'name': 'id',      'longName': 'Marker ID',
               },
            20: { 'name': 'intensity',
                  'longName': 'Intensity hitting the scintillator',
-                 'shortName': 'I',     'units': 'A/cm²'
+                 'shortName': 'j',     'units': 'A/cm²'
               },
          }
 
@@ -192,17 +192,17 @@ class strikes:
 
         # Setting distances in the scintillator in cm.
         self.data['x1'] = self.data['x1']*100.0
-        self.data['x1'].attrs['units'] = '$cm$'
+        self.data['x1'].attrs['units'] = 'cm'
         self.data['x1'].attrs['long_name'] = 'X Scintillator'
         self.data['x1'].attrs['short_name'] = '$X_{scint}$'
 
         self.data['x2'] = - self.data['x2']*100.0
-        self.data['x2'].attrs['units'] = '$cm$'
+        self.data['x2'].attrs['units'] = 'cm'
         self.data['x2'].attrs['long_name'] = 'Y Scintillator'
         self.data['x2'].attrs['short_name'] = '$Y_{scint}$'
 
         self.data['x3'] = self.data['x3']*100.0
-        self.data['x3'].attrs['units'] = '$cm$'
+        self.data['x3'].attrs['units'] = 'cm'
         self.data['x3'].attrs['long_name'] = 'Z Scintillator'
         self.data['x3'].attrs['short_name'] = '$Z_{scint}$'
 
@@ -706,7 +706,7 @@ class strikes:
         return ax, im, frame
 
 
-    def project_horizontal(self, y_pos: int = None, dx: float=0.025, dy: float=0.05, #0.025, 0.05
+    def project_horizontal(self, y_pos: int = None, dx: float=0.0125, dy: float=0.025,
                            ax=None, flag_pix: bool=False, pix_x: int=None,
                            pix_y: int=None, cbar_sci: bool=False,
                            flag_scint: bool=False, i_roll: int = 0,
@@ -756,27 +756,30 @@ class strikes:
         ax_was_none = ax is None
         if ax_was_none:
             fig, ax = plt.subplots()
-        ax.plot(proj.x, proj, **kwargs)
+        if not 'label' in kwargs:
+            ax.plot(proj.x, proj, label=r'$j_\mathrm{sim}$', **kwargs)
+        else:
+            ax.plot(proj.x, proj, **kwargs)
 
         if flag_gauss:
             def gauss(x, *p):
                 A, mu, sigma = p
                 return A*np.exp(-(x-mu)**2/(2.*sigma**2))
             if flag_pix:
-                p0 = [1e-9,300,200]
+                if cbar_sci:
+                    p0 = [1,300,200]
+                else:
+                    p0 = [1e-9,300,200]
             else:
                 p0 = [1e-9,3.5, 3]
             try:
                 popt, pcov = curve_fit(gauss, proj.x, proj, p0)
                 proj_fit = gauss(proj.x, *popt)
-                ax.plot(proj.x, proj_fit, **kwargs)
-                # plt.figure()
-                # plt.plot(proj.x, proj, 'x')
-                # plt.plot(proj.x, proj_fit)
+                ax.plot(proj.x, proj_fit, c='red', label='Gaussian')
                 proj = proj_fit
             except RuntimeError:
                 proj[:] = np.nan
-                print(proj.py.values)
+
         if flag_scint:
             if flag_pix:
                 ax1, _, _ = self.plot_frame(pix_x=pix_x, pix_y=pix_y)

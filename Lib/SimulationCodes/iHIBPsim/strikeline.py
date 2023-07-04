@@ -573,11 +573,9 @@ class strikeLine:
 
         origin = diagparams.iHIBP['port_center']
         map_s = self.map_s
-        beam = beamTrajectory(start=origin, beta=beta,
-                                                    theta=theta,
-                                                    Rmax=max(map_s).values,
-                                                    Rmin=min(map_s).values,
-                                                    Ns = len(map_s))
+        beam = beamTrajectory(start=origin, beta=beta, theta=theta,
+                              Rmax=max(map_s).values,
+                              Rmin=min(map_s).values, Ns = len(map_s))
 
         rho = get_rho(shot, beam['Rbeam'][::-1], beam['zbeam'][::-1],
                       time = time)[0]
@@ -664,7 +662,9 @@ class strikeLine:
 
         return ax, line
 
-    def plot_weight(self, xaxis: str='rmajor', ax=None, **line_options):
+    def plot_weight(self, xaxis: str='rmajor', ax=None, 
+                    label_sci: bool=False, magn: int=None, 
+                    **line_options):
         """
         Presents the weight along the strike line using as reference the
         initial parameter chosen in the simulation.
@@ -691,12 +691,18 @@ class strikeLine:
             logger.info('Xaxis only accepts rhopol or rmajor. Rmajor will be \
                          plotted.')
             xaxis = 'rmajor'
-        line = ax.plot(x.values, y.values, **line_options)
+        if label_sci:
+            if magn == None:
+                magn = math.floor(math.log10(np.max(y.values)))
+            y = y.values/(10**magn)
+            ylabel = ' ' + r'$I$ [$10^{%.1d}$ A]'%(magn)
+        else:
+            y = y.values
+            ylabel = '%s %s [%s]'%(self.w.longName, self.w.shortName,
+                               self.w.units)
+        line = ax.plot(x.values, y, **line_options)
 
         ax.set_xlabel(xlabel)
-
-        ylabel = '%s %s [%s]'%(self.w.longName, self.w.shortName,
-                               self.w.units)
         ax.set_ylabel(ylabel)
 
         ax.grid('both')
@@ -900,7 +906,8 @@ class strikeLineCollection:
         return ax, lc
 
     def plot_weight(self, time: Union[int, float]=None, ax=None,
-                    xaxis='rmajor', **line_options):
+                    xaxis='rmajor', label_sci: bool=False, magn: int=None,
+                    **line_options):
         """
         Plot a given weight profile for input time(s) or time index(indices).
 
@@ -934,13 +941,17 @@ class strikeLineCollection:
             idx = idx[0]
             if 'label' not in line_options:
                 line_options['label'] = 't = %.3f s'%self.time[idx]
-            ax, lc = self[idx].plot_weight(ax=ax, xaxis=xaxis,**line_options)
+            ax, lc = self[idx].plot_weight(ax=ax, xaxis=xaxis,
+                                           label_sci=label_sci, 
+                                           magn=magn,**line_options)
         else:
             lc = list()
             for ii in idx:
                 if 'label' not in line_options:
                     line_options['label'] = 't = %.3f s'%self.time[ii]
                 ax, tmp = self[ii].plot_weight(ax=ax, xaxis=xaxis,
+                                               label_sci=label_sci, 
+                                               magn=magn,
                                                **line_options)
                 lc.append(tmp)
 

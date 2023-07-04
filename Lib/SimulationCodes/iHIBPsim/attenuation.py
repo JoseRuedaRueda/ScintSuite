@@ -123,7 +123,7 @@ def plotTable1D(table: dict, ax=None, ax_options: dict = {},
     if 'grid' not in ax_options:
         ax_options['grid'] = 'both'
     if 'linewidth' not in line_options:
-        line_options['linewidth'] = 2
+        line_options['linewidth'] = 4
 
     # --- Checking input table.
     ax_options['xlabel'] = ''
@@ -148,8 +148,8 @@ def plotTable1D(table: dict, ax=None, ax_options: dict = {},
         label_add = table['reaction']
     else:
         label_add = label
-    ax.plot(table['base'], table['sigma'], **line_options,
-            label=label_add)
+    ax.plot(table['base'], table['sigma'],
+            label=label_add, **line_options,)
 
     if grid and axis_was_none:
         ax.grid(True, which='minor', linestyle=':')
@@ -187,7 +187,7 @@ def plotTable2D(table: dict, v: float = None, ax=None, ax_options: dict = {},
     if 'grid' not in ax_options:
         ax_options['grid'] = 'both'
     if 'linewidth' not in line_options:
-        line_options['linewidth'] = 2
+        line_options['linewidth'] = 4
 
     # --- Checking input table.
     ax_options['xlabel'] = ''
@@ -228,7 +228,7 @@ def plotTable2D(table: dict, v: float = None, ax=None, ax_options: dict = {},
             ax.plot(T, table['sigma'][ii, :], **line_options, label=label_add)
     else:
         it = np.argmin(abs(v_all-v))
-        ax.plot(T, sigma[it, :], **line_options, label = label_add)
+        ax.plot(T, sigma[it, :], label = label_add, **line_options)
     if grid and axis_was_none:
         ax.grid(True, which='minor', linestyle=':')
         ax.minorticks_on()

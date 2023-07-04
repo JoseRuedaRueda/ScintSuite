@@ -445,8 +445,8 @@ class iHIBPvideo(BVO):
                     proj[:] = np.nan
 
             if ax_was_none:
-                ax.set_xlabel('scintillator x [pix]')
-                ax.set_ylabel('Counts')
+                ax.set_xlabel('$p_x$ [pix]')
+                ax.set_ylabel('$I_c$ [Counts]')
                 plt.tight_layout()
 
             if flag_scint:
