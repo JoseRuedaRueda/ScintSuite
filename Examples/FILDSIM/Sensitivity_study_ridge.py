@@ -16,7 +16,7 @@ function has been changed and the script does not work at all now.
 contact Jose Rueda (jrrueda@us.es) by email and he will update this 'tutorial'
 """
 
-import Lib as ss
+import ScintSuite.as ss
 import numpy as np
 import tkinter as tk
 # -----------------------------------------------------------------------------

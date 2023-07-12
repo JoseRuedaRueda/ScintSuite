@@ -26,7 +26,7 @@ The suite will not work without them:
 #### Complete list:
 In a clean-typical python installation with anaconda, taking care only of the packages and versions listed above should be enough and the suite will run smoothly, but python package dependence can sometimes a mess. As an indication, in the folder `Data/TestedEnv` you can find the result of the command `pip list` in a python environment where the suite was tested and working fine. So if you find a series of problems with packages versions, try to create your virtual environment and reproduce the installed package list detailed there. The files are labeled with the Suite version for which they were tested and 'Optx', meaning 'Option x', as different user can have different list of packages which could work.
 
-### Cloning the suite and installing (dev Mode)
+### Cloning the suite and installing (dev Mode. Install method 1)
 In order to clone the suite just open a terminal in your home directory and type:
 ```bash
  git clone https://gitlab.mpcdf.mpg.de/ruejo/scintsuite.git ScintSuite
@@ -45,7 +45,7 @@ pandas==1.3.1
 ```
 Once the python modules are created, you need to create the folder `MyData` inside the Data folder, and copy in it the .txt files which are located in `Data/MyDataTemplates`. These are the configuration files of the Suite, they are needed to import the sutie and can be modified (the ones in MYData folder) to change the behaviour of the plotting, warning, paths... If you installed the sutie with the script: `first_run.py` this step was done already, so you can ignore it
 
-### Cloning and installed the suite (vainilla user)
+### Cloning and installed the suite (vainilla user. Install method 2)
 The code can be installed via pip, just change `<branch>` for the name of the branch you want to install 
 ```bash
 cd 
@@ -59,9 +59,11 @@ This will install all requirement via pip. It is needed that your machine suppor
 ### Getting started
 **Importing the suite**
 
-*Short story*: Go to the main directory of the suite in your python terminal and run: `import Lib as ss` (or change ss by the name you want)
+*Short story*: 
+- DevUser (install method 1): Go to the main directory of the suite in your python terminal and run: `import ScintSuite as ss` (or change ss by the name you want)
+- VainillaUser (install method 2): run `import ScintSuite as ss` from whatever place, as this is already in your python path
 
-*Long story*: In order to import the ScintSuite as `import Lib as MyAwesomeName`, you need to set in your environment the different paths to the external modules. For example, in the case of AUG, the path towards the AUG-python library. To do this, you just need to run the file path suite. For example, just type in a python terminal `run paths_suite` (being on the main Suite directory). After running it, you should be able to import the suite from everywhere in your computer. However, if your working directory is the root directory of the Suite, there is no need of running this line, you can just execute directly `import Lib as MyAwesomeName` and enjoy (as the function path_suite is called in the Sutie `__init__.py`)
+*Long story*: (only for method 1 of installation) In order to import the ScintSuite as `import ScintSuite as MyAwesomeName`, you need to set in your environment the different paths to the external modules. For example, in the case of AUG, the path towards the AUG-python library. To do this, you just need to run the file path suite. For example, just type in a python terminal `run paths_suite` (being on the main Suite directory). After running it, you should be able to import the suite from everywhere in your computer. However, if your working directory is the root directory of the Suite, there is no need of running this line, you can just execute directly `import ScintSuite as MyAwesomeName` and enjoy (as the function path_suite is called in the Sutie `__init__.py`)
 
 **Using it**
 

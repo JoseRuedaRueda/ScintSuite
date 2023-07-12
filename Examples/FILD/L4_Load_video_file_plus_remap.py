@@ -8,7 +8,7 @@ jose Rueda: jrrueda@us.es
 
 Note; Written for version 0.3.0. Checked for version 1.0.0
 """
-import Lib as ss
+import ScintSuite.as ss
 import matplotlib.pyplot as plt
 from time import time
 # -----------------------------------------------------------------------------

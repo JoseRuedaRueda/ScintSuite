@@ -10,7 +10,7 @@ waste of resources. Use please L13
 Note: Done for version 0.5.3, reised for version 0.9.0
 """
 
-import Lib as ss
+import ScintSuite.as ss
 import matplotlib.pyplot as plt
 
 # -----------------------------------------------------------------------------

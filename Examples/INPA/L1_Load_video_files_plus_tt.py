@@ -14,7 +14,7 @@ Notice this is not machine independent as I will load signals from the AUG
 database directly using the augshotfiles ignore last section and comment the
 import aug_sfutils as sf in order to work with other machines
 """
-import Lib as ss
+import ScintSuite.as ss
 import numpy as np
 import matplotlib.pyplot as plt
 import aug_sfutils as sf

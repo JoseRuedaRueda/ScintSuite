@@ -16,7 +16,7 @@ to initialise. Therefore the example lines around lines 21 can be different in
 your machine.
 Please have a look at the help of your logbook object
 """
-import Lib as ss
+import ScintSuite.as ss
 from pprint import pprint
 
 # -----------------------------------------

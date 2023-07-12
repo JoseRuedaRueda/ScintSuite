@@ -13,7 +13,7 @@ Lina Velarde: lvelarde@us.es
 
 Note: Written for version 0.5.3. Revised for version 1.0.0
 """
-import Lib as ss
+import ScintSuite.as ss
 import numpy as np
 import matplotlib.pyplot as plt
 from time import time

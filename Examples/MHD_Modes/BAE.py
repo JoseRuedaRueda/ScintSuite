@@ -3,7 +3,7 @@ Calculate BAE frequency
 
 Done for version 0.5.1
 """
-import Lib as ss
+import ScintSuite.as ss
 import numpy as np
 import scipy.signal as sp
 import matplotlib.pyplot as plt
