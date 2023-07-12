@@ -28,6 +28,7 @@ def paths_of_the_suite():
     SUITE_DIR = os.getcwd()
     Suite_LIBs = {
         'Base': SUITE_DIR,
+        
     }
 
     # -- Machine dependent folders:
@@ -35,7 +36,8 @@ def paths_of_the_suite():
         'AUG': {
             'AUG_Python': '/afs/ipp/aug/ads-diags/common/python/lib',
             'Giovanni': '/afs/ipp/home/g/git/python/fbm/',
-            'FIDASIM4': os.path.join(os.getenv("HOME"), 'FIDASIM4')
+            'FIDASIM4': os.path.join(os.getenv("HOME"), 'FIDASIM4'),
+            'ihipsim': os.path.join(os.getenv("HOME"), 'ihibpsim', 'python')
             # 'Suite_AUG': os.path.join(SUITE_DIR, 'Lib/LibData/AUG')
         },
         'MU': {

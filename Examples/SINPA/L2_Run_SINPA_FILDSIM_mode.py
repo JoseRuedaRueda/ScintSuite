@@ -30,7 +30,7 @@ nml_options = {   # Se the PDF documentation for a complete desription of these
         'geomfolder': os.path.join(paths.SINPA, 'Geometry', geomID),
         'FILDSIMmode': True,
         'nxi': 8,
-        'nGyroradius': 5,
+        'nGyroradius': 10,
         'nMap': 50000,
         'n1': 1.0,
         'r1': 1.2,
@@ -51,7 +51,7 @@ nml_options = {   # Se the PDF documentation for a complete desription of these
          'minAngle': -2.2,
          'dAngle': 1.0,
          'XI': [85.0, 80.0, 70.0, 60.0, 50.0, 40.0, 30.0, 20.0],
-         'rL': [1.75, 2.0, 3., 4.0, 5.0],
+         'rL': [1.75, 2.0, 3., 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
          'maxT': 0.00000008
     },
 }

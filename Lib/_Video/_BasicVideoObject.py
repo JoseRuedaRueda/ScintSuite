@@ -302,7 +302,6 @@ class BVO:
                 logger.warning('18: %s' % text)
             it1 = np.argmin(abs(self.timebase-t1))
             it2 = np.argmin(abs(self.timebase-t2))
-            print(it1, it2)
             frames_number = np.arange(start=it1, stop=it2+1, step=1)
         logger.info('Reading frames: ')
         if self.type_of_file == '.cin':

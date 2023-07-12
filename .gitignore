@@ -25,6 +25,9 @@ fort*
 *.avi
 *.mp4
 *.pdf
+core.*
+*.js
+*.nc
 Data/MyData/paths.txt
 # -----------------------------------------------------------------------------
 # --- Folders to ignore

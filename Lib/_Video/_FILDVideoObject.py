@@ -3,16 +3,18 @@ FILD Video object
 
 This module contains the child class from BVO. This child is designed to handle
 FILD experimental data. It allows you to load the video files as well as call
-the routines to calculate the remap
+the routines to calculate the remap.
 
 Jose Rueda Rueda: jrrueda@us.es
 Lina Velarde Gallardo: lvelarde@us.es
 """
 import os
+import logging
 import numpy as np
 import xarray as xr
 import tkinter as tk                       # To open UI windows
 import Lib._Paths as p
+import Lib.errors as sserrors
 import Lib._GUIs as ssGUI             # For GUI elements
 import Lib.LibData as ssdat
 import Lib._Mapping as ssmap
@@ -24,10 +26,11 @@ import matplotlib.colors as colors
 from Lib._Video._FILD_INPA_Parent import FIV
 from Lib._Machine import machine
 
+
 # --- Auxiliary objects
 pa = p.Path(machine)
 del p
-
+logger = logging.getLogger('ScintSuite.FILDVideo')
 
 # ------------------------------------------------------------------------------
 # --- FILD video class
@@ -370,14 +373,36 @@ class FILDVideo(FIV):
         :param  nlev: Number of levels for the contourf plots (deprecated, as we
             now use imshow to plot the data)
         :param  cbar_tick_format: format for the colorbar ticks
-        :param  max_gyr: maximum value for colorbar plot in gyroradius
+        :param  max_gyr: maximum value for colorbar plot in gyroradius 
+            (deprecated, please use max_y_profile_cbar)
         :param  min_gyr: minimum value for colorbar plot in gyroradius
+            (deprecated, please use min_y_profile_cbar)
         :param  max_pitch: maximum value for colorbar plot in pitch
+            (deprecated, please use max_x_profile_cbar)
         :param  min_pitch: minimum value for colorbar plot in pitch
+            (deprecated, please use min_x_profile_cbar)
         :param  scale: Color scale to plot, up to know only implemeneted for
                the gyroradius plot. it accept 'linear' and 'log'
         :param  interpolation: interpolation method for plt.imshow
+        :param max_y_profile_cbar: maximum value for the colorbar of the profile over y
+        :param min_y_profile_cbar: minimum value for the colorbar of the profile over y
+        :param max_x_profile_cbar: similar to the previous but for x
+        :param min_x_profile_cbar: similar to the previous but for x
         """
+        # ---- Check the settings
+        if max_gyr is not None:
+            logger.warning('Deprecated option, please use max_y_profile_cbar')
+            max_y_profile_cbar = max_gyr
+        if min_gyr is not None:
+            logger.warning('Deprecated option, please use min_y_profile_cbar')
+            min_y_profile_cbar = min_gyr
+        if max_pitch is not None:
+            logger.warning('Deprecated option, please use max_x_profile_cbar')
+            max_x_profile_cbar = max_pitch
+        if min_pitch is not None:
+            logger.warning('Deprecated option, please use min_x_profile_cbar')
+            min_x_profile_cbar = min_pitch
+
         # --- Initialise the plotting options
         # Color map
         if ccmap is None:
@@ -395,18 +420,21 @@ class FILDVideo(FIV):
             extra_options_plot = {
                 'norm': colors.PowerNorm(0.5)
             }
+        else:
+            raise sserrors.NotValidInput('Not understood scale')
         if t is None:  # 2d plots
-            # --- Gyroradius profiles
+            # --- Gyroradius profiles (integral over x)
             fig1, ax1 = plt.subplots()   # Open figure and plot
-            dummy = self.remap_dat['sprofy'].copy()
+            dummy = self.remap_dat['integral_over_x'].copy()
             if normalise:
-                dummy /= self.remap_dat['sprofy'].max()
+                dummy /= self.remap_dat['integral_over_x'].max()
             cont = ax1.imshow(dummy, cmap=cmap,
-                              vmin=min_gyr, vmax=max_gyr,
+                              vmin=min_y_profile_cbar, 
+                              vmax=max_y_profile_cbar,
                               extent=[self.remap_dat['tframes'][0],
                                       self.remap_dat['tframes'][-1],
-                                      self.remap_dat['yaxis'][0],
-                                      self.remap_dat['yaxis'][-1]],
+                                      self.remap_dat['y'][0],
+                                      self.remap_dat['y'][-1]],
                               aspect='auto', origin='lower',
                               interpolation=interpolation,
                               **extra_options_plot)
@@ -418,8 +446,8 @@ class FILDVideo(FIV):
                      color='w', verticalalignment='bottom',
                      transform=ax1.transAxes)
             plt.text(0.05, 0.9,
-                     str(self.remap_dat['options']['pprofmin']) + 'º to '
-                     + str(self.remap_dat['options']['pprofmax']) + 'º',
+                     str(self.remap_dat['integral_over_x'].attrs['xmin']) + 'º to '
+                     + str(self.remap_dat['integral_over_x'].attrs['xmax']) + 'º',
                      horizontalalignment='left',
                      color='w', verticalalignment='top',
                      transform=ax1.transAxes)
@@ -429,20 +457,21 @@ class FILDVideo(FIV):
                      transform=ax1.transAxes)
             ax_params['xlabel'] = 'Time [s]'
             ax_params['ylabel'] = self.remap_dat['ylabel'] + ' [' +\
-                self.remap_dat['yunits'] + ']'
+                self.remap_dat['y'].untis + ']'
             ax1 = ssplt.axis_beauty(ax1, ax_params)
             plt.tight_layout()
-            # --- Pitch profiles in time
+            # --- Pitch profiles in time (integral over y)
             fig2, ax2 = plt.subplots()   # Open figure and draw the image
-            dummy = self.remap_dat['sprofx'].copy()
+            dummy = self.remap_dat['integral_over_y'].copy()
             if normalise:
                 dummy /= dummy.max()
             cont = ax2.imshow(dummy, cmap=cmap,
-                              vmin=min_gyr, vmax=max_gyr,
+                              vmin=min_x_profile_cbar, 
+                              vmax=max_x_profile_cbar,
                               extent=[self.remap_dat['tframes'][0],
                                       self.remap_dat['tframes'][-1],
-                                      self.remap_dat['xaxis'][0],
-                                      self.remap_dat['xaxis'][-1]],
+                                      self.remap_dat['x'][0],
+                                      self.remap_dat['x'][-1]],
                               aspect='auto', origin='lower',
                               interpolation=interpolation,
                               ** extra_options_plot)
@@ -455,8 +484,8 @@ class FILDVideo(FIV):
                      color='w', verticalalignment='bottom',
                      transform=ax2.transAxes)
             plt.text(0.05, 0.9,
-                     str(self.remap_dat['options']['rprofmin']) + 'cm to '
-                     + str(self.remap_dat['options']['rprofmax']) + 'cm',
+                     str(self.remap_dat['integral_over_y'].attrs['ymin']) + 'cm to '
+                     + str(self.remap_dat['integral_over_y'].attrs['ymax']) + 'cm',
                      horizontalalignment='left',
                      color='w', verticalalignment='top',
                      transform=ax2.transAxes)
@@ -466,10 +495,11 @@ class FILDVideo(FIV):
                      transform=ax2.transAxes)
             ax_params['xlabel'] = 'Time [s]'
             ax_params['ylabel'] = self.remap_dat['xlabel'] + ' [' +\
-                self.remap_dat['xunits'] + ']'
+                self.remap_dat['x'].units + ']'
             ax2 = ssplt.axis_beauty(ax2, ax_params)
             plt.tight_layout()
         else:  # The line plots:
+            raise sserrors.NotImplementedError('Sorry, not implemented')
             # Set the grid option for plotting
             if 'grid' not in ax_params:
                 ax_params['grid'] = 'both'

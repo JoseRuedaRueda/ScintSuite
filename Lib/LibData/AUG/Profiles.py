@@ -3,8 +3,10 @@ import numpy as np
 import xarray as xr
 import aug_sfutils as sfutils
 import Lib.errors as errors
-from scipy.interpolate import interp1d, interp2d, UnivariateSpline
+from typing import Optional
 from Lib._Paths import Path
+from scipy.interpolate import interp1d, interp2d, UnivariateSpline
+
 from Lib.LibData.AUG.Equilibrium import get_rho, get_shot_basics
 import logging
 logger = logging.getLogger('ScintSuite.Data')
@@ -840,12 +842,14 @@ def get_tor_rotation_idi(shotnumber: int, time: float = None,
 
     # --- Getting the data
     data = np.array(sf('vt'))
+    unc = np.array(sf('vt_unc'))
     timebase = np.array(sf.gettimebase('vt'))
 
     # --- If a time window is provided, we cut out the data.
     if time is not None:
         t0, t1 = timebase.searchsorted(time)
         data = data[t0:t1, :]
+        unc = unc[t0:t1, :]
         timebase = timebase[t0:t1]
 
     # --- Saving to a dictionary and output:
@@ -862,11 +866,15 @@ def get_tor_rotation_idi(shotnumber: int, time: float = None,
                 data.T, dims=('rho', 't'),
                 coords={'rho': np.array(sf.getareabase('vt')[..., 0]),
                         't': timebase})
+        output['uncertainty'] = xr.DataArray(unc.T, dims=('rho', 't'))
         output['rho'].attrs['long_name'] = '$\\rho_p$'
         output['t'].attrs['long_name'] = 'Time'
         output['t'].attrs['units'] = 's'
         output['data'].attrs['long_name'] = '$\\omega$'
         output['data'].attrs['units'] = 'rad/s'
+
+        output['uncertainty'].attrs['long_name'] = '$\\sigma\\omega$'
+        output['uncertainty'].attrs['units'] = 'rad/s'
         output.attrs['diag'] = 'IDI'
         output.attrs['shot'] = shotnumber
 
@@ -1333,8 +1341,10 @@ def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
 # -----------------------------------------------------------------------------
 # %% ECE data.
 # -----------------------------------------------------------------------------
-def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = True,
-            rhopLimits: float = None, safetyChecks: bool = True):
+def get_ECE(shotnumber: int, timeWindow: Optional[list] = None, 
+            fast: bool = True,
+            rhopLimits: Optional[float] = None, 
+            safetyChecks: bool = True):
     """
     Retrieves from the database the ECE data and the calibrations to obtain
     the electron temperature perturbations.
@@ -1428,13 +1438,20 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = True,
     itmin = np.argmin(np.abs(timebase2 - timeWindow[0]))
     itmax = np.argmin(np.abs(timebase2 - timeWindow[1]))
     if fast:
-        rA = np.mean(rA_rmd.data[itmin:itmax], axis=0)
-        zA = np.mean(zA_rmd.data[itmin:itmax], axis=0)
+        if itmin != itmax:
+            rA = np.mean(rA_rmd.data[itmin:itmax], axis=0)
+            zA = np.mean(zA_rmd.data[itmin:itmax], axis=0)
+
+        else:
+            rA = np.mean(rA_rmd.data[itmin:(itmin + 1)], axis=0)
+            zA = np.mean(zA_rmd.data[itmin:(itmin + 1)], axis=0)
+        
         time_avg = np.mean(timeWindow)
         rhop = sfutils.rz2rho(equ, rA, zA, t_in=time_avg, coord_out='rho_pol',
-                          extrapolate=True).flatten()
+                        extrapolate=True).flatten()
         rhot = sfutils.rz2rho(equ, rA, zA, t_in=time_avg, coord_out='rho_tor',
-                          extrapolate=True).flatten()
+                        extrapolate=True).flatten()
+
     else:
 
         # # As the R and z are not calculated for all the points that ECE is
@@ -1530,6 +1547,7 @@ def get_ECE(shotnumber: int, timeWindow: float = None, fast: bool = True,
     # are not within the RMD signals. Also, take away those not within the
     # vessel.
     avail_flag &= (RmeanRMD > 1.03)
+    print(avail_flag.sum())
     if safetyChecks:
        avail_flag &= ((meanECE > minRMD) & (meanECE < maxRMD))
     del meanECE
@@ -1704,3 +1722,25 @@ def correctShineThroughECE(ecedata: dict, diag: str = 'IDA', exp: str = 'AUGD',
         for ii in range(ecedata['fft']['spec'].shape[1]):
             ecedata['fft']['spec_dte'][:, ii, :] /= dte_eval
     return ecedata
+
+
+# -----------------------------------------------------------------------------
+# %% ECE data.
+# -----------------------------------------------------------------------------
+def get_Zeff(shot: int):
+    """
+    Get the Zeff effective profile from IDZ
+    """
+    IDZ = sfutils.SFREAD('IDZ', shot)
+    if not IDZ.status:
+        raise errors.DatabaseError('Not shotfile')
+    Zeff = IDZ ('Zeff')
+    t = IDZ.gettimebase('Zeff')
+    rho = IDZ.getareabase('Zeff')
+    unc = IDZ('Zeff_unc')
+    z = xr.Dataset()
+    z['data'] = xr.DataArray(Zeff, dims=('t', 'rho'), 
+                             coords={'t':t, 'rho':rho[:, 0]})
+    z['uncertainty'] = xr.DataArray(unc, dims=('t', 'rho'), 
+                             coords={'t':t, 'rho':rho[:, 0]})
+    return z

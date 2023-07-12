@@ -6,6 +6,7 @@ import xarray as xr
 import Lib._Plotting as ssplt
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+from typing import Optional
 from Lib._IO import ask_to_open
 from scipy.stats.mstats import mquantiles
 from matplotlib.ticker import NullFormatter
@@ -100,8 +101,10 @@ class pySpecView:
 
     def plot(self, ax=None, scale='log', cmap=None,
              IncludeColorbar: bool = True, vmax=1.0e6, vmin=1.0e3,
-             cross_phasogram: bool = False, gamma: float = 0.5,
-             label: bool = True):
+             cross_phasogram: bool = False, 
+             gamma: float = 0.5,
+             label: bool = True,
+             n_cross_phasogram: Optional[int] = None,):
         """
         Plot the spectogram or the cross_phasogram
 
@@ -149,6 +152,8 @@ class pySpecView:
                 np.linspace(0, 1, N_max - N_min + 1, endpoint=False))
             cmap = matplotlib.colors.ListedColormap(
                 color_for_cbar(self._dat['mode colorbar'][1], 1))
+            cmap.set_bad('white')
+            cmap.set_under('white')
         # --- Plot the figure
         if not cross_phasogram:
             img = ax.imshow(
@@ -157,8 +162,8 @@ class pySpecView:
                         self._dat['fvec'][0]/1000.0, self._dat['fvec'][-1]/1000.0],
                 origin='lower', aspect='auto', cmap=cmap, **extra_options)
         else:
-            dummy = self._dat['cross-phasogram']
-            dummy = self._gammaTransform(dummy)
+            dummy0 = self._dat['cross-phasogram']
+            dummy = self._gammaTransform(dummy0)
             # # Taken from Giovanni's code
             N_min = self._dat['mode colorbar'][0].min()
             N_max = self._dat['mode colorbar'][0].max()
@@ -166,6 +171,13 @@ class pySpecView:
             color_for_cbar = colorize(
                     np.linspace(0, 1, N_max - N_min + 1, endpoint=False))
             z = color_for_cbar(dummy[1], dummy[0])
+            if n_cross_phasogram is not None:
+                j = self._dat['mode colorbar'][0, :]==n_cross_phasogram
+                j = self._dat['mode colorbar'][1, j]
+                mask = dummy0[1] == j
+                z[~mask] = np.nan
+                z = np.ma.array (z, mask=np.isnan(z))
+                extra_options['interpolation'] = 'nearest'
             img = ax.imshow(
                 z,
                 extent=[self._dat['tvec'][0], self._dat['tvec'][-1],
