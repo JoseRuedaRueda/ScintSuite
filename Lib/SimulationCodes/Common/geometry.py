@@ -23,7 +23,7 @@ import f90nml
 paths = Path(machine)
 
 
-def read_element(file: str, code: str = 'SINPA'):
+def read_element(file: str, code: str = 'SINPA') -> dict:
     """
     Read a SINPA of FILDSIM gemetric element.
 
@@ -116,7 +116,7 @@ def read_element(file: str, code: str = 'SINPA'):
 
 def plotLinesElement(geom: dict, ax=None, line_params: dict = {},
                      referenceSystem='absolute', plot2D: bool = False,
-                     units: str = 'cm'):
+                     units: str = 'cm') -> plt.Axes:
     """
     Plot a geometry element.
 

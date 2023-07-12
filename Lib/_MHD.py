@@ -114,11 +114,11 @@ class MHDmode():
         self._calcTAEfreq()
         self._calcEAEfreq()
 
-    def _calcGAMfreq(self):
+    def _calcGAMfreq(self) -> None:
         """
         Evaluate the GAM frequency
 
-        following expresion (1) of W.W. Heidbrink Nucl. Fusion 61 (2021)
+        Following expresion (1) of W.W. Heidbrink Nucl. Fusion 61 (2021)
         """
         self.freq['GAM'] = np.sqrt(
             1.0 / 2.0 / cnt.pi**2 / self._mi / self._R0['data']**2
@@ -128,31 +128,31 @@ class MHDmode():
         self.freq['GAM'].attrs['long_name'] = '$f_{GAM}$'
         self.freq['GAM'].attrs['units'] = 'Hz'
 
-    def _calcTAEfreq(self):
+    def _calcTAEfreq(self) -> None:
         """
         Evaluate the central frequency of the TAE gap
 
-        following eq (1) of W.W. Heidbrink PRL 71 1993
+        Following eq (1) of W.W. Heidbrink PRL 71 1993
         """
         self.freq['TAE'] = \
             self._va0['data']/4.0/cnt.pi/self._q['data']/self._R0['data']
         if self.freq['TAE'].mean() < 0.0:
             self.freq['TAE'] *= -1.0  # the q profile was defined as negative
 
-    def _calcEAEfreq(self):
+    def _calcEAEfreq(self) -> None:
         """
         Evaluate the central frequency of the EAE gap
 
-        following eq (8) of L. VILLARD NUCLEAR FUSION, Vo1.32,N0.10 (1992)
+        Following eq (8) of L. VILLARD NUCLEAR FUSION, Vo1.32,N0.10 (1992)
         """
         self.freq['EAE'] = \
             self._va0['data']/2.0/cnt.pi/self._q['data']/self._R0['data']
 
-    def _calcRSAEfreq(self, n: int, m: int):
+    def _calcRSAEfreq(self, n: int, m: int) -> None:
         """
         Evaluate the central frequency of the RSAE in the zero pressure limit
 
-        following eq from M. A. Van Zeeland, et al. Phys. Plasmas 14, 2007
+        Following eq from M. A. Van Zeeland, et al. Phys. Plasmas 14, 2007
 
         Warning, it does not check that the q profile is actually sheared, just
         take the minimum value
@@ -161,7 +161,7 @@ class MHDmode():
         self.freq['RSAE'] = (m - n * qmin['data']) *\
             self._va0['data']/2.0/cnt.pi/qmin['data']/self._R0['data']
 
-    def getSAWcontinuum(self, ntor: int, t: float, mpol = np.arange(6)):
+    def getSAWcontinuum(self, ntor: int, t: float, mpol = np.arange(6))->dict:
         """
         Obtain SAW continuum in its simpler form from the analytical equation.
 
@@ -240,7 +240,7 @@ class MHDmode():
 
     def plot(self, var: str = 'GAM', rho: float = 0.0, ax=None, line_params={},
              units: str = 'kHz', t: tuple = None, smooth: int = 0,
-             n: float=None):
+             n: float=None)->plt.Axes:
         """
         Plot the mode frequency.
 
@@ -308,3 +308,4 @@ class MHDmode():
                     **line_opitons)
         plt.draw()
         plt.show()
+        return ax

@@ -11,11 +11,12 @@ import Lib._IO as ssio
 import Lib.errors as errors
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-
+from scipy.signal import convolve
 from Lib._Paths import Path
 from Lib._Machine import machine
 from Lib._Utilities import distmat
 from Lib._Mapping._Common import XYtoPixel
+from Lib._SideFunctions import gkern
 from tqdm import tqdm
 from scipy.sparse import lil_matrix
 from scipy.ndimage import gaussian_filter
@@ -224,8 +225,10 @@ def defocus(frame, coef_sigma=1.0,
         lista = False
     # If the signam is just one number, we will call the scipy convolution,
     # which is order of magnetude faster
+    
     if not lista:
-        output = gaussian_filter(frame, coef_sigma)
+        kernel = gkern(int(6.0*coef_sigma)+1, sig=coef_sigma)
+        output = convolve(frame, kernel, mode='same')
     else:
         # Create the ouput matrix
         n1, n2 = frame.shape
