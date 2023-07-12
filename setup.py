@@ -2,7 +2,7 @@
 Installer file for the package.
 """
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 import sys
 import os
@@ -45,7 +45,7 @@ with open('.setup/keywords.txt', 'rt') as fh:
 
 setup(
     name='ScintSuite',
-    version='1.2.7',
+    version='1.2.12',
     description=short_desc,
     author = author_list,
     author_email = email_list,
@@ -59,5 +59,6 @@ setup(
     zip_safe=False,
     extras_require=optional_dependencies,
     python_requires='>=3.7',
-    py_modules=['Lib'],
+    packages=find_packages(),
+    # py_modules=['ScintSuite'],
 )

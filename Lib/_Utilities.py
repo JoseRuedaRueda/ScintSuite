@@ -24,7 +24,7 @@ except ImportError:
     logger.warning('12: Old version of shapely, but things should work')
 try:
     from numba import njit, prange
-except:
+except ModuleNotFoundError:
     logger.warning('10: You cannot use neutron filters')
 
 
