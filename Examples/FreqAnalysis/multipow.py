@@ -25,27 +25,27 @@ from Lib._FrequencyAnalysis import stft, sfft, get_nfft, myCPSD, stft2
 # Shot data and timing.
 shotnumber = 41090
 coilNumber = 14
-tBegin = 3.4
-tEnd   = 3.5
+tBegin = 4.04
+tEnd   = 4.06
 
 # FFT options.
 #                        # For the window type, go to:
 windowType = 'hann'      # https://docs.scipy.org/doc/scipy/reference/
 #                        # generated/scipy.signal.get_window.html
-freqLims = np.array((80.0, 120.0))  # Frequency limits.
-freq1d = np.array((6.0, 8.0))  # Frequency limits for the plot in 1D.
+freqLims = np.array((100.0, 130.0))  # Frequency limits.
+freq1d = np.array((110.0, 125.0))  # Frequency limits for the plot in 1D.
 specType = 'stft'  # Spectogram type:
 #                  # -> Short-Time Fourier Transform in frequency (sfft)
 #                  # -> Short-Time Fourier Transform in time (stft)
 resolution = int(1000)
-timeResolution = 0.80  # Frequency resolution.
+timeResolution = 0.75  # Frequency resolution.
 cmap = matplotlib.cm.plasma  # Colormap
 
 # Diagnostic for the electron gradient reading.
 diag_Te = 'IDA'
 exp_Te  = 'AUGD'
 ed_Te   = 0
-
+useCorrectedECE = True  # if true, use the corrected ECE spectra with the Te grad
 # Plotting flags:
 plot_spectrograms   = True # Plot the spectrogram for MHI and ECE and the
 #                          # sample CPSD for cross-checking.
@@ -55,7 +55,8 @@ plot_vessel_flag    = False    # Plots the vessel and the separatrix
 #                              # with the ECE and pick up coil position.
 
 # Plotting options.
-ece_rhop_plot = 0.90  # rho_pol of the ECE to plot.
+ece_rhop_plot = 0.35  # rho_pol of the ECE to plot.
+ece_number_plot = 56  # if not None, ece_rho_plot will be ignored
 spec_abstype = 'linear'  # linear, sqrt or log
 spec_abstype_cpsd = 'linear'  # This is the same as above, but for the CPSD.
 
@@ -66,7 +67,7 @@ mhi = ss.dat.get_magnetics(shotnumber, coilNumber, timeWindow=[tBegin, tEnd])
 ece = ss.dat.get_ECE(shotnumber, timeWindow=[tBegin, tEnd], fast=True)
 
 # -----------------------------------------------------------------------------
-# --- Magnetic spectrogram -  Calculation
+# %% Magnetic spectrogram -  Calculation
 # -----------------------------------------------------------------------------
 # This assumes that the data is uniformly taken in time.
 dt = mhi['time'][1] - mhi['time'][0]  # For the sampling time.
@@ -77,7 +78,8 @@ nfft = int(nfft)
 print('Computing the magnetics spectrogram...')
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 if specType == 'stft':
-    Sxx, freqs, times = stft(mhi['time']-tEnd,  mhi['data'], nfft,
+    Sxx, freqs, times = stft(mhi['time']-tEnd,  mhi['data'].astype(np.single), 
+                             nfft,
                              window=windowType,
                              tmin=tBegin-tEnd, tmax=0.00,
                              fmin=freqLims[0]*1000.0,
@@ -120,8 +122,8 @@ if 'phase_corr' in mhi:
     mhi['fft']['spec'] *= np.tile(np.exp(1j*mhi['phase_corr']['interp'](freqs/1000.)),
                                (len(times), 1)).T
 del Bdot
-#%% -----------------------------------------------------------------------------
-# --- ECE spectrogram - Calculation
+# -----------------------------------------------------------------------------
+# %% ECE spectrogram - Calculation
 # -----------------------------------------------------------------------------
 dt = ece['time'][1] - ece['time'][0]
 
@@ -174,13 +176,18 @@ ece['fft'] = {
               }
 
 # Correct the spectra with the dTe_dr (derivative wrt the major radius!)
-ece = ss.dat.correctShineThroughECE(ece, diag=diag_Te,
+
+if useCorrectedECE:
+    eceKey = 'spec'
+    ece = ss.dat.correctShineThroughECE(ece, diag=diag_Te,
                                     exp=exp_Te, edition=ed_Te)
+else:
+    eceKey = 'spec_dte'
 warnings.filterwarnings('default')
 
 
-#%% -----------------------------------------------------------------------------
-# --- Spectrogram plotting.
+# -----------------------------------------------------------------------------
+# %% Spectrogram plotting.
 # -----------------------------------------------------------------------------
 if plot_spectrograms:
     plt.ion()
@@ -221,13 +228,18 @@ if plot_spectrograms:
 
     # Plotting the ECE.
     # Find the nearest channel.
-    nchann = (np.abs(ece['rhop'] - ece_rhop_plot)).argmin()
+    if ece_number_plot is None:
+        nchann = (np.abs(ece['rhop'] - ece_rhop_plot)).argmin()
+    else:
+        nchann = (ece['channels'] == ece_number_plot)
+        if nchann.sum() == 0:
+            raise Exception('Channel not available')
 
     print('Plotting TradA:'+str(ece['channels'][nchann]))
     print('rho_pol = '+str(ece['rhop'][nchann]))
 
     # --- Plotting ECE sample channel.
-    eceplot = np.abs(ece['fft']['spec'][:, :, nchann]).T
+    eceplot = np.abs(ece['fft'][eceKey][:, :, nchann].squeeze()).T
 
     if spec_abstype == 'linear':
         im2 = ax[0][1].imshow(eceplot, origin='lower',
@@ -264,28 +276,30 @@ if plot_spectrograms:
 
     # --- Plotting the correlation matrix in (freq, time).
     t, freq, A = myCPSD(mhi['fft']['B'],
-                        ece['fft']['spec'][:, :, nchann].T,
+                        ece['fft'][eceKey][:, :, nchann].T,
                         mhi['fft']['time'], mhi['fft']['freq'],
                         ece['fft']['time'], ece['fft']['freq'])
 
     xcor_plot = np.abs(A)
+    vmax = xcor_plot.max()
 
     if spec_abstype == 'linear':
         im3 = ax[1][0].imshow(xcor_plot, origin='lower',
                               extent=(t[0], t[-1], freq[0], freq[-1]),
                               aspect='auto', interpolation='nearest',
-                              cmap=cmap)
+                              cmap=cmap, vmax=vmax)
     elif spec_abstype == 'log':
         im3 = ax[1][0].imshow(xcor_plot, origin='lower',
                               extent=(t[0], t[-1], freq[0], freq[-1]),
                               aspect='auto', interpolation='nearest',
                               norm=colors.LogNorm(eceplot.min(), eceplot.max()),
-                              cmap=cmap)
+                              cmap=cmap, vmax=vmax)
     elif spec_abstype == 'sqrt':
         im3 = ax[1][0].imshow(xcor_plot, origin='lower',
                               extent=(t[0], t[-1], freq[0], freq[-1]),
                               aspect='auto', interpolation='nearest',
-                              cmap=cmap, norm=colors.PowerNorm(gamma=0.50))
+                              cmap=cmap, norm=colors.PowerNorm(gamma=0.50),
+                              vmax=vmax)
 
     ax[1][0].set_title('Cross-correlation')
     ax[1][0].set_xlabel('Time [s]')
@@ -309,8 +323,8 @@ if plot_spectrograms:
     del eceplot
     del mhiplot
 
-#%% -----------------------------------------------------------------------------
-# --- ECE data plotting.
+#-----------------------------------------------------------------------------
+# %% ECE data plotting.
 # -----------------------------------------------------------------------------
 if plot_Te_sample:
     fig1, ax1 = plt.subplots(nrows=1, ncols=2)
@@ -329,12 +343,12 @@ if plot_Te_sample:
 
     plt.tight_layout()
 
-#%% -----------------------------------------------------------------------------
-# --- Computing the radial correlation.
+# -----------------------------------------------------------------------------
+# %% Computing the radial correlation.
 # -----------------------------------------------------------------------------
 for ii in tqdm(np.arange(ece['rhop'].shape[0])):
     A = myCPSD(mhi['fft']['spec'],
-               ece['fft']['spec'][:, :, ii].T,
+               ece['fft'][eceKey][:, :, ii].T,
                mhi['fft']['time'], mhi['fft']['freq'],
                ece['fft']['time'], ece['fft']['freq'])[2]
 
@@ -355,7 +369,7 @@ ece['xrel'] = {
 }
 
 # -----------------------------------------------------------------------------
-# --- Plotting the cross-correlation.
+# %% Plotting the cross-correlation.
 # -----------------------------------------------------------------------------
 if plot_profiles:
     fig3, ax3 = plt.subplots(nrows=1, ncols=2)
@@ -366,14 +380,16 @@ if plot_profiles:
         'antialiased': True
     }
 
-    if spec_abstype_cpsd == 'log':
-        opts['norm'] = colors.LogNorm(ece['xrel']['data2D'].min(),
-                                      ece['xrel']['data2D'].max())
-    elif spec_abstype_cpsd == 'sqrt':
-        opts['norm'] = colors.PowerNorm(gamma=0.50)
-
-    im5 = ax3[0].pcolormesh(ece['xrel']['rho'], ece['xrel']['freq'],
-                            ece['xrel']['data2D'], **opts)
+    # if spec_abstype_cpsd == 'log':
+    #     opts['norm'] = colors.LogNorm(ece['xrel']['data2D'].min(),
+    #                                   ece['xrel']['data2D'].max())
+    # elif spec_abstype_cpsd == 'sqrt':
+    #     opts['norm'] = colors.PowerNorm(gamma=0.50)
+    sortIndex = np.argsort(ece['xrel']['rho'])
+    im5 = ax3[0].contourf(ece['xrel']['rho'][sortIndex], 
+                          ece['xrel']['freq'],
+                          np.log10(ece['xrel']['data2D'][:, sortIndex]),
+                          levels=20, **opts)
 
     ax3[0].set_xlim([0, 1.0])
     ax3[0].set_title('Cross-correlation vs. rhopol')
@@ -409,7 +425,7 @@ if plot_profiles:
     plt.show()
 
 # -----------------------------------------------------------------------------
-# --- Plotting the vessel and the ECE positions.
+# %% Plotting the vessel and the ECE positions.
 # -----------------------------------------------------------------------------
 if plot_vessel_flag:
     fig4, ax4 = plt.subplots(1)

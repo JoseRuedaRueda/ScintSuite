@@ -9,6 +9,7 @@ import Lib.LibData.AUG.DiagParam as params
 
 # import dd                # Module to load shotfiles
 from tqdm import tqdm
+from typing import Optional
 from Lib._Paths import Path
 from scipy.interpolate import interp1d
 
@@ -152,7 +153,7 @@ def magneticPhaseCorrection(coilnumber: int, coilgrp: str, freq: float = None,
 
 
 def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
-                  timeWindow: float = None):
+                  timeWindow: Optional[list] = None):
     """
     Retrieve from the shot file the magnetic data information.
 
