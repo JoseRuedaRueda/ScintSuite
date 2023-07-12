@@ -26,7 +26,7 @@ The suite will not work without them:
 #### Complete list:
 In a clean-typical python installation with anaconda, taking care only of the packages and versions listed above should be enough and the suite will run smoothly, but python package dependence can sometimes a mess. As an indication, in the folder `Data/TestedEnv` you can find the result of the command `pip list` in a python environment where the suite was tested and working fine. So if you find a series of problems with packages versions, try to create your virtual environment and reproduce the installed package list detailed there. The files are labeled with the Suite version for which they were tested and 'Optx', meaning 'Option x', as different user can have different list of packages which could work.
 
-### Cloning the suite and installing
+### Cloning the suite and installing (dev Mode)
 In order to clone the suite just open a terminal in your home directory and type:
 ```bash
  git clone https://gitlab.mpcdf.mpg.de/ruejo/scintsuite.git ScintSuite
@@ -44,6 +44,18 @@ pyfftw==0.12.0
 pandas==1.3.1
 ```
 Once the python modules are created, you need to create the folder `MyData` inside the Data folder, and copy in it the .txt files which are located in `Data/MyDataTemplates`. These are the configuration files of the Suite, they are needed to import the sutie and can be modified (the ones in MYData folder) to change the behaviour of the plotting, warning, paths... If you installed the sutie with the script: `first_run.py` this step was done already, so you can ignore it
+
+### Cloning and installed the suite (vainilla user)
+The code can be installed via pip, just change `<branch>` for the name of the branch you want to install 
+```bash
+cd 
+git clone https://gitlab.mpcdf.mpg.de/ruejo/scintsuite ScintSuite
+cd ScintSuite
+git checkout <branch>
+python first_run_pip.py
+pip install .
+```
+This will install all requirement via pip. It is needed that your machine support pip installation of python packages
 ### Getting started
 **Importing the suite**
 
