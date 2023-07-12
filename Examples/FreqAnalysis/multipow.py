@@ -10,13 +10,13 @@ revised by Jose Rueda Rueda for version 1.2.2
 import warnings
 import matplotlib
 
-import Lib as ss
+import ScintSuite.as ss
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 
 from tqdm import tqdm
-from Lib._FrequencyAnalysis import stft, sfft, get_nfft, myCPSD, stft2
+from ScintSuite._FrequencyAnalysis import stft, sfft, get_nfft, myCPSD, stft2
 
 
 # -----------------------------------------------------------------------------

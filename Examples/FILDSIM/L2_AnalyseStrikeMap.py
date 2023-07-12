@@ -5,7 +5,7 @@ Analyse the strike map (resolutions, sigmas, etc)
 
 Jose Rueda Rueda: jrrueda@us.es
 """
-import Lib as ss
+import ScintSuite.as ss
 import matplotlib.pyplot as plt
 import numpy as np
 

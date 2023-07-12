@@ -8,7 +8,7 @@ Done for version 0.4.10
 lines marked with #### at the end should be addapted to your paths for the
 example to work
 """
-import Lib as ss
+import ScintSuite.as ss
 import os
 import numpy as np
 import matplotlib.pyplot as plt

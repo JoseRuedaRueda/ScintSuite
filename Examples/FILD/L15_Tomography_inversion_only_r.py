@@ -10,7 +10,7 @@ Done in 02/09/2021
 Note: efficiency is included, but with default parameters, D in Tg green
 """
 
-import Lib as ss
+import ScintSuite.as ss
 import numpy as np
 import tkinter as tk
 

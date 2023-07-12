@@ -14,7 +14,7 @@ send me an email with the results (jrrueda@us.es)
 You must execute first the function paths.py!
 """
 
-import Lib as ss
+import ScintSuite.as ss
 import os
 
 
