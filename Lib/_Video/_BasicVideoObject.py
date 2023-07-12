@@ -274,7 +274,7 @@ class BVO:
 
         :return M: 3D numpy array with the frames M[px,py,nframes] (if the
             internal flag is set to false)
-        
+
         :Example:
         >>> # Load a video from a diagnostic
         >>> import Lib as ss
@@ -427,7 +427,7 @@ class BVO:
         >>> vid = ss.vid.INPAVideo(shot=41090)
         >>> vid.read_frame()  # To load all the video
         >>> # Average the frames between 0.1 and 0.2 and use them as noise frame
-        >>> vid.subtract_noise(0.1, 0.2)  
+        >>> vid.subtract_noise(0.1, 0.2)
         """
         # --- Check the inputs
         if self.exp_dat is None:
@@ -489,6 +489,7 @@ class BVO:
                 print(nx, nxf, ny, nyf)
                 text = 'The noise frame has not the correct shape'
                 raise errors.NotValidInput(text)
+
         # Save the frame in the structure
         self.exp_dat['frame_noise'] = xr.DataArray(frame.squeeze(),
                                                    dims=('px', 'py'))
@@ -982,13 +983,13 @@ class BVO:
 
         # Plotting the initial frame (t=0)
         extent = [frames.py.min(), frames.py.max(), frames.px.min(), frames.px.max()]
-        im = ax.imshow(frames.sel(t=0, method='nearest'), origin='lower', 
+        im = ax.imshow(frames.sel(t=0, method='nearest'), origin='lower',
                        extent=extent, **kwargs)
-        slider = Slider(slider_ax, 'Time', tframes.values[0], tframes.values[-1], 
+        slider = Slider(slider_ax, 'Time', tframes.values[0], tframes.values[-1],
                         valinit=tframes.sel(t=0, method='nearest').values,
-                        valstep=tframes.values, orientation='horizontal', 
+                        valstep=tframes.values, orientation='horizontal',
                         initcolor='red')
-        
+
         # Drawing the scintillator.
         if self.scintillator is not None:
             self.scintillator.plot_pix(ax=ax)
@@ -1004,7 +1005,7 @@ class BVO:
         plt.show()
 
         return ax, slider
-        
+
 
     # --------------------------------------------------------------------------
     # --- Properties
@@ -1112,7 +1113,7 @@ class BVO:
         Read the camera data.
 
         Jose Rueda Rueda
-        
+
         :param file: if empty, we will load the camera datafile from the Data
             folder taing into account the camera name from the calibration
             database.
@@ -1140,7 +1141,7 @@ class BVO:
             GUI will appear to select the results
         :param  flagAverage: flag to indicate if we want to save the averaged
             frames
-        
+
         :Example:
         >>> # Load a video from a diagnostic
         >>> import Lib as ss
@@ -1213,4 +1214,3 @@ class BVO:
         logger.debug(f'Saving to file {fn}')
         mp4.write_file(fn=fn, video=data, bit_size=bits_size,
                        encoding=encoding, fps=fps)
-
