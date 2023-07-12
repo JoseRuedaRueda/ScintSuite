@@ -52,3 +52,5 @@ html/*
 .owncloudsync*
 .sync_journal*
 .vscode/*
+build/*
+*.egg-info/
