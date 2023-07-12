@@ -38,6 +38,16 @@ def trace(frames, mask):
     :return std_of_roi: numpy array with the std of the pixels inside the mask
     :return max_of_roi: numpy array with the max of the pixels inside the mask
     """
+    # TODO: Beofre this was just:
+    # sum_of_roi = np.sum(frames[mask, :], axis=0, dtype=float)
+    # mean_of_roi = np.mean(frames[mask, :], axis=0, dtype=float)
+    # std_of_roi = np.std(frames[mask, :], axis=0, dtype=float)
+    # max_of_roi = frames[mask, :].max(axis=0)
+    # easier and more efficient, but Pablo observced saturation of the TT due
+    # to overflow of the dtype when working in his personal computer
+    # in  principle, the flag dtype=float is preciselly to avoid it, but
+    # as a caution we went back to the old and not efficient way, to avoid 
+    # that issue. Please, check this in a newer numpy version in case is gone
     
     nt = frames.shape[-1]
     sum_of_roi = np.zeros((nt,), dtype='float64')
