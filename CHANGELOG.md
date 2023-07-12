@@ -1,34 +1,15 @@
-# 1.2.8: Improvements from iHIBP modeling.
-## _MP4files
-- Using the ffmpeg package to read the MP4 file.
+# 1.2.10 Release for the iHIBPsim branch.
+- Release to the dev-branch with the recent modifications for the compability with the i-HIBPsim package.
 
-## BasicVideoObject
-- New routine to write the video data into video files (MP4 only available now).
-- Corrected part related to MP4 loading.
+# 1.2.9 Minor improvemments
+- Defocus in optis now done with a gaussian comvulution instead of scipy gaussian blurr.
+- Included calculate 4D histogram in strikes.
+- *Bug correction* corrected a sall bug when passing an array and an integer as bin limits for strikes histograms.
 
-## Decorators
-- *false_njit* introduced to avoid issues with *import numba* but keeping the structure. It is a fake wrapper that  does nothing to the wrapped function.
-
-## Timetrace
-- Included shortcuts to mean, averages and sums as properties of the class.
-
-## Equilibrium
-- Correction to the function *get_mag_field*. Now it uses the *exp* input to get the equilibrium.
-
-## Fields
-- Added possibility to get the *psipol* and write to file. Writing function rewritten in a more convenient fashion. Instead of *e_flags*, *b_flags*, now it accepts the name of the field as input.
-
-## iHIBP beam camera.
-- Signal-to-noise ratio computed in the iHIBPwatchdog cameras.
-
-## VRT video object.
-- Updated to the new API of the MP4 reader.
-- TODO: need to update the XML reader.
-
-## iHIBPsim orbits
-- New orbit API for the v3.4 iHIBPsim. The older version still in the suite, but marked as deprecated!
-- Added checks in the old iHIBPsim version to avoid mistakes reading the files.
-
+# 1.2.8 Minor improvements
+- Improvements in tomography object
+- Improvements in documentation (added return types hints)
+- Corrected a bug in strikes.calculate_2d_histograms: limits not well captured when using bins=None
 
 # 1.2.7 Bug solve
 - Solves #86: issues when loading a discrete number of frames from pco, png or tiff formats
