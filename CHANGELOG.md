@@ -1,3 +1,10 @@
+# 1.2.11 Minor improvements
+- pitchProfile from INPA video is now a data array
+- corrected bug in get_ECE when the time interval was too short for the slow channel to have more than 1 point
+- Revised multipow example. Solved issue in input data type
+- Deprecated translate remap energy
+- revived plot_profiles_time() from video object
+
 # 1.2.10 Release for the iHIBPsim branch.
 - Release to the dev-branch with the recent modifications for the compability with the i-HIBPsim package.
 
