@@ -25,6 +25,7 @@ from Lib._Video._VRTVideoObject import VRTVideo
 import Lib._Video._PNGfiles as png
 import Lib._Video._TIFfiles as tif
 import Lib._Video._PCOfiles as pco
+import Lib._Video._bayesian as noise
 
 from Lib._Machine import machine as _machine
 if _machine == 'AUG':

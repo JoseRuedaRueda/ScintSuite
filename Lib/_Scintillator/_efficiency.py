@@ -100,9 +100,9 @@ class ScintillatorEfficiency:
         """
         file = os.path.join(paths.ScintSuite, 'Data', 'ScintillatorEfficiency',
                             material, particle + '_' + str(thickness) + '.dat')
-        logger.info('Reading efficiency file: ' + file)
         ## Efficiency data:
         self.data = read_scintillator_efficiency(file, verbose)
+        logger.info('Reading efficiency file: ' + file)
 
     def __call__(self, E, kwargs: dict = {}):
         """

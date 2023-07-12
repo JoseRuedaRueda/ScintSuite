@@ -22,7 +22,7 @@ try:
     pyfftw.interfaces.cache.set_keepalive_time(30)
 except ModuleNotFoundError:
     print('Only partial support for fft')
-    print('Install pyfft for full support')
+    print('Install pyfftw for full support')
 
 # -----------------------------------------------------------------------------
 # --- Band filters

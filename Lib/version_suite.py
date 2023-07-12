@@ -6,7 +6,7 @@ import numpy as np
 from Lib._Machine import machine
 from Lib._Paths import Path
 
-version = '1.2.8'
+version = '1.2.10'
 codename = 'IceCream'
 
 logger = logging.getLogger('ScintSuite.Version')

@@ -277,11 +277,13 @@ class Scintillator(XYtoPixel):
         plt_options.update(line_params)
 
         # Selectin the units for plotting.
-        factor = { 'm': 1.0,
-                   'cm': 100.0,
-                   'mm': 1000.0,
-                   'inch': 100.0/2.54
-                 }.get(units)
+        factor = 1.0
+        if units is not None:
+            factor = { 'm': 1.0,
+                       'cm': 100.0,
+                       'mm': 1000.0,
+                       'inch': 100.0/2.54
+                     }.get(units)
 
         if ax is None:
             fig, ax = plt.subplots()

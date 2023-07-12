@@ -41,7 +41,7 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     # If the equilibrium object is not an input, let create it
     # created = False
     if equ is None:
-        equ = sf.EQU(shot, diag=diag, ed=ed)
+        equ = sf.EQU(shot, diag=diag, ed=ed, exp=exp)
     # Now calculate the field
     # br, bz, bt = equ.rz2brzt(Rin, zin, t_in=time)
     br, bz, bt = sf.rz2brzt(equ, r_in=Rin, z_in=zin, t_in=time)

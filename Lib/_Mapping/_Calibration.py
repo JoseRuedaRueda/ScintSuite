@@ -174,7 +174,8 @@ class CalibrationDatabase:
         self.data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
                      'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
                      'deg': [], 'cal_type': [], 'diag_ID': [], 'c1': [],
-                     'xcenter': [], 'ycenter': []}
+                     'xcenter': [], 'ycenter': [], 'type': [],
+                     'nxpix': [], 'nypix': []}
 
         # Read the file
         logger.info('Reading Camera database from: %s', filename)
@@ -229,10 +230,12 @@ class CalibrationDatabase:
         :param  camera: Camera used
         :param  cal_type: Type of calibration we want
         :param  diag_ID: ID of the diagnostic we want
+        :param  typ: type of calibration. Poly or non-poly. Only used
+                     when there is type-dependent calibrations.
 
         :return cal: CalParams() object
         """
-        flags = np.zeros(len(self.data['CalID']))
+        flags = np.zeros(len(self.data['CalID']), dtype=bool)
         for i in range(len(self.data['CalID'])):
             if (self.data['shot1'][i] <= shot) * \
                     (self.data['shot2'][i] >= shot) * \
@@ -250,13 +253,34 @@ class CalibrationDatabase:
         elif n_true > 1:
             print('Several entries fulfill the condition')
             print('Possible entries:')
-            print(self.data['ID'][flags])
+            print(self.data['diag_ID'][flags])
             raise errors.FoundSeveralCameraCalibration()
         else:
             dummy = np.argmax(np.array(flags))
             cal = CalParams()
             for ikey in self.data.keys():
                 cal.__dict__[ikey] = self.data[ikey][dummy]
+
+        return cal
+    
+    def get_nearest_calibration(self, shot: int):
+        """
+        Return the calibration data from the nearest shot in the database.
+
+        Pablo Oyola - poyola@us.es
+
+        :param shot: Shot number for which we want the calibration.
+        """
+        # Find the nearest calibration
+        shot1 = self.data['shot1']
+        shot2 = self.data['shot2']
+
+        idx = np.argmin(np.abs(shot - shot1))
+        if shot > shot1[idx]:
+            idx = np.argmin(np.abs(shot - shot2))
+        cal = CalParams()
+        for ikey in self.data.keys():
+            cal.__dict__[ikey] = self.data[ikey][idx]
 
         return cal
 
@@ -308,25 +332,42 @@ class CalParams:
         ## Y-pixel position of the optical axis
         self.ycenter = 0.0
         ## camera size in x
-        self.nxpix = 0.0
+        self.nxpix = 0
         ## camera size in y
-        self.nypix = 0.0
+        self.nypix = 0
         ## used calibration method
         self.type = ''
 
     def print(self):
         """
-        Print calibration
-
-        Jose Rueda: jrrueda@us.es
-
-        :Example of use:
-
+        Print calibration.
+        
         >>> # Assume you have in your workspace a calibration called call
         >>> cal.print()
         """
         for ikey in self.__dict__.keys():
             print('%s:'%ikey, self.__dict__[ikey])
+
+    def __str__(self):
+        """
+        Print the calibration via the print routine.
+
+        Pablo Oyola - poyola@us.es
+        """
+        text =  ''
+        text =  'xscale: ' + str(self.xscale) + '\n'
+        text += 'yscale: ' + str(self.yscale) + '\n'
+        text += 'xshift: ' + str(self.xshift) + '\n'
+        text += 'yshift: ' + str(self.yshift) + '\n'
+        text += 'deg: ' + str(self.deg) + '\n'
+        text += 'xcenter: ' + str(self.xcenter) + '\n'
+        text += 'ycenter: ' + str(self.ycenter) + '\n'
+        text += 'c1: ' + str(self.c1) + '\n'
+        text += 'c2: ' + str(self.c2) + '\n'
+        text += 'nxpix:' + str(self.nxpix) + '\n'
+        text += 'nypix:' + str(self.nypix) + '\n'
+        text += 'type:' + str(self.type)
+        return text
 
     def save2netCDF(self, filename):
         """
