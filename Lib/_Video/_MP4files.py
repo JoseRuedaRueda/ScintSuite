@@ -78,9 +78,9 @@ def read_file(fn: str, force_gray: bool=True, bpp: int=None, pix_fmt: str=None,
             shift = 0
         else:
             shift = bits_size - bpp
-        video = np.right_shift(np.frombuffer(out, bits_size).reshape(shape), shift)
+        video = np.right_shift(np.frombuffer(out, dtype).reshape(shape), shift)
 
-        dtype = 'float%d' % (2*int(np.ceil((bits_size - bpp)/8)))
+        # dtype = 'float%d' % (2*int(np.ceil((bits_size - bpp)/8)))
 
         frames = video.astype(dtype=dtype).squeeze()
 
@@ -166,5 +166,3 @@ def write_file(fn: str, video: float, bit_size: int=16, bpp: int=None,
     proc.stdin.write(data.tobytes())
     proc.stdin.close()
     proc.wait()
-
-
