@@ -4,6 +4,7 @@ from Lib._Machine import machine
 from Lib._SideFunctions import update_case_insensitive
 import f90nml
 
+from Lib import home
 
 class Path:
     """
@@ -16,35 +17,19 @@ class Path:
 
     def __init__(self, machine=machine):
         """Initialise the class"""
-        home = os.getenv("HOME")
-        self.FILDSIM = os.path.join(home, 'FILDSIM/')
-        self.SINPA = os.path.join(home, 'SINPA/')
-        self.FIDASIM4 = os.path.join(home, 'FIDASIM4/')
-        self.ScintSuite = os.path.join(home, 'ScintSuite/')
+        # home = os.getenv("HOME")
+        home_dir_user = os.getenv("HOME")
+        self.FILDSIM = os.path.join(home_dir_user, 'FILDSIM/')
+        self.SINPA = os.path.join(home_dir_user, 'SINPA/')
+        self.FIDASIM4 = os.path.join(home_dir_user, 'FIDASIM4/')
+        self.ScintSuite = home
         self.Results = os.path.join(self.ScintSuite, 'Results')
         self.FILDStrikeMapsRemap = os.path.join(self.ScintSuite, 'Data',
                                                 'StrikeMaps', 'FILD', 'Remap')
         self.FILDPositionDatabase = ''
         self.INPALogbook = ''
 
-        self.iHIBPsim = os.path.join(home, 'ihibpsim')
-        self.ihibp_bins = os.path.join(self.iHIBPsim, 'bin')
-        self.ihibp_res = os.path.join(self.iHIBPsim, 'sims')
-        self.ihibp_repo = os.path.join(self.iHIBPsim, 'repo')
-        self.tracker = os.path.join(self.ihibp_bins, 'tracker.go')
-
-        self.ihibp_calibration_db = os.path.join(self.ScintSuite,
-                                                 'Data',
-                                                 'Calibrations',
-                                                 'iHIBP',
-                                                 'calibration_database.calib3')
-        self.ihibp_scint_plate = os.path.join(self.ScintSuite,
-                                              'Data', 'Plates', 'iHIBP',
-                                              'aug_iHIBP_2020_12.pl')
-        self.ihibpsim_strline_database = os.path.join(self.ScintSuite, 'Data',
-                                                      'StrikeMaps', 'iHIBP')
         if machine == 'AUG':
-            self.iHIBP_videos = '/afs/ipp/home/a/augd/rawfiles/VRT/'
             self.FILDStrikeMapsRemap += '/AUG/'
             self.bcoils_phase_corr = os.path.join(self.ScintSuite,
                                                   'Data',

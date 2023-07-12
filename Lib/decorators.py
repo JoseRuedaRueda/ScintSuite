@@ -86,3 +86,16 @@ def deprecated(reason):
 
     else:
         raise TypeError(repr(type(reason)))
+
+def false_njit(func, *args0, **kwargs0):
+    """
+    Used to mockup the njit. Basically, does nothing.
+
+    Pablo Oyola - poyola@us.es
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        func(*args, **kwargs)
+
+    return wrapper

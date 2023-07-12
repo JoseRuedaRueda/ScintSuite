@@ -38,10 +38,21 @@ def trace(frames, mask):
     :return std_of_roi: numpy array with the std of the pixels inside the mask
     :return max_of_roi: numpy array with the max of the pixels inside the mask
     """
-    sum_of_roi = np.sum(frames[mask, :], axis=0, dtype=float)
-    mean_of_roi = np.mean(frames[mask, :], axis=0, dtype=float)
-    std_of_roi = np.std(frames[mask, :], axis=0, dtype=float)
-    max_of_roi = frames[mask, :].max(axis=0)
+    
+    nt = frames.shape[-1]
+    sum_of_roi = np.zeros((nt,), dtype='float64')
+    mean_of_roi = np.zeros((nt,), dtype='float64')
+    std_of_roi = np.zeros((nt,), dtype='float64')
+    max_of_roi = np.zeros((nt,), dtype='float64')
+    
+    nmask_valid = frames[mask, 0].size
+    
+    for it in range(nt):
+        sum_of_roi[it]  = frames[mask, it].astype('float64').sum()
+        mean_of_roi[it] = sum_of_roi[it] / nmask_valid
+        std_of_roi[it]  = np.std(frames[mask, it].astype('float64'))
+        max_of_roi[it]  = np.nanmax(frames[mask, it].astype('float64'))
+        
     return sum_of_roi, mean_of_roi, std_of_roi, max_of_roi
 
 
@@ -433,3 +444,33 @@ class TimeTrace(BasicSignalVariable):
         plt.show()
 
         return [ax_tt1, ax_tt2, ax_tt3]
+
+    @property
+    def mean_of_roi(self):
+        """
+        Return the mean of the ROI.
+
+        Pablo Oyola - poyola@us.es
+        """
+
+        return self._data['mean_of_roi'].copy()
+
+    @property
+    def sum_of_roi(self):
+        """
+        Return the mean of the ROI.
+
+        Pablo Oyola - poyola@us.es
+        """
+
+        return self._data['sum_of_roi'].copy()
+
+    @property
+    def std_of_roi(self):
+        """
+        Standard deviation of the ROI.
+
+        Pablo Oyola - poyola@us.es
+        """
+
+        return self._data['std_of_roi'].copy()
