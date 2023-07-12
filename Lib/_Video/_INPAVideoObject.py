@@ -600,7 +600,7 @@ class INPAVideo(FIV):
         Rpoints = Rpoints[flags]
         points = points[flags, :]
         phipoints = np.arctan2(points[:, 1], points[:, 0])
-        zpoints = points[:, 1]
+        zpoints = points[:, 2]
         # ---- Get the magnetic field
         br, bz, bt, bp =\
             ssdat.get_mag_field(self.shot,
@@ -624,10 +624,10 @@ class INPAVideo(FIV):
             v /= np.linalg.norm(v)
             pitch[i] = v[0] * bx[i] + v[1] * by[i] + v[2] * bz[i]
             pitch[i] /= b[i]
-        self.pitchProfile = {
-            'R': Rpoints,
-            'phi': phipoints,
-            'z': zpoints,
-            'pitch': pitch * IPBtSign
-            }
+        self.pitchProfile = xr.Dataset()
+        self.pitchProfile['R'] = xr.DataArray(Rpoints, coords={'R': Rpoints})
+        self.pitchProfile['phi']= xr.DataArray(phipoints, dims='R')
+        self.pitchProfile['z']= xr.DataArray(zpoints, dims='R')
+        self.pitchProfile['pitch']= xr.DataArray(pitch * IPBtSign, dims='R')
+
         return

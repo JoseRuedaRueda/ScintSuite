@@ -39,13 +39,16 @@ logger = logging.getLogger('ScintSuite.Video')
 
 class FIV(BVO):
     """
-    Class containing common methods for INPA and FILD videos
+    Class containing common methods for INPA and FILD videos.
 
     Jose Rueda: jrrueda@us.es
 
     Introduced in version 0.9.0
 
     Note FIV stands for FILD INPA Video
+
+    This method is not supposed to be initialised directly, please call its
+    children FILDVideo or INPAVideo.
 
     - Public methods (*indicate methods coming from the parent class):
         - *read_frame: Load a given range of frames
@@ -112,7 +115,7 @@ class FIV(BVO):
     # --------------------------------------------------------------------------
     def _getB(self, extra_options: dict = {}, use_average: bool = False):
         """
-        Get the magnetic field in the FILD position
+        Get the magnetic field in the FILD position.
 
         Jose Rueda - jrrueda@us.es
 
@@ -669,84 +672,86 @@ class FIV(BVO):
         else:
             output['integral_over_xy'].attrs['mask'] = 0
         return output
-
-    def translate_remap_to_energy(self, Emin: float = 10.0, Emax: float = 99.0,
-                                  dE: int = 1.0, useAverageB: bool = True,
-                                  specie: str = 'D'):
-        """
-        Transform the remap from Gyroradius to Energy
-
-        Introduced in version 0.9.5
-
-        :param  Emin: Minimum energy for the new axis
-        :param  Emax: Maximum energy for the new axis
-        :param  dE: spacing for the new axis
-        :param  useAverageB: flag to use the average value of the field or the
-            time-dependent field
-        :param  specie: assumed specie of the incident ion (H, D, T, He...)
-        """
-        # See if there is remap data
-        if (self.remap_dat is None) or (self.BField is None):
-            raise Exception('You need to remap first!')
-        # See if there remap data has the same length of the B field (the user
-        # may have use the average in one of them...)
-        nx, ny, nt = self.remap_dat['frames'].shape
-        nt2 = self.BField['B'].size
-        if nt != nt2:
-            raise Exception('The B points do not agree with the remap!!!')
-        # Get the specie Mass and charge
-        par = sspar.species_info[specie.upper()]
-        # Prepare the new energy axis
-        ne = int((Emax-Emin)/dE) + 1
-        Eedges = Emin - dE/2 + np.arange(ne+1) * dE
-        E = 0.5 * (Eedges[0:-1] + Eedges[1:])
-        rl = self.remap_dat['yaxis']
-        if useAverageB:
-            B = self.BField['B'].mean()
-            K = ssFILDSIM.get_energy(rl, B, A=par['A'], Z=par['Z']) / 1000.0
-            factor = math.sqrt(par['A'] * sspar.amu2kg / 2.0) / B / par['Z'] \
-                / sspar.ec / np.sqrt(K)
-            frames = self.remap_dat['frames'] / factor[None, :, None]
-            # Now comes the slow part, this need to be optimized, but let's go:
-            print('Interpolating in the new energy grid')
-            new_frames = np.zeros((nx, ne, nt))
-            for it in tqdm(range(nt)):
-                for ixi in range(nx):
-                    # Interpolate the signal in the K array:
-                    f2 = interp1d(K, frames[ixi, :, it].squeeze(),
-                                  kind='cubic', fill_value=0.0,
-                                  bounds_error=False)
-                    new_frames[ixi, :, it] = f2(E)
-        else:
-            # Now comes the slow part, this need to be optimized, but let's go:
-            frames = self.remap_dat['frames'].copy()
-            new_frames = np.zeros((nx, ne, nt))
-            print('Interpolating in the new energy grid')
-            for it in tqdm(range(nt)):
-                B = self.BField['B'][it]
-                K = ssFILDSIM.get_energy(rl, B, A=par['A'], Z=par['Z'])/1000.0
-                factor = math.sqrt(par['A'] * sspar.amu2kg / 2.0) / B  \
-                    / par['Z'] / sspar.ec / np.sqrt(K)
-                frames[:, :, it] /= factor[None, :]
-                for ixi in range(nx):
-                    # Interpolate the signal in the K array:
-                    f2 = interp1d(K, frames[ixi, :, it].squeeze(),
-                                  kind='cubic', fill_value=0.0,
-                                  bounds_error=False)
-                    new_frames[ixi, :, it] = f2(E)
-        # Now save the remap in the proper place
-        if 'translations' not in self.remap_dat.keys():
-            self.remap_dat['translations'] = {}
-        if specie.upper() not in self.remap_dat['translations'].keys():
-            self.remap_dat['translations'][specie.upper()] = {}
-        self.remap_dat['translations'][specie.upper()][1] = {
-            'xaxis': self.remap_dat['xaxis'],
-            'xaxisLabel': '%s [%s]' % (self.remap_dat['xlabel'],
-                                       self.remap_dat['xunits']),
-            'yaxis': E,
-            'yaxisLabel': 'Energy [keV]',
-            'frames': new_frames
-        }
+    
+    # THIS IS DEPRECATED; RUN THE REMAP IN ENERGY DIRECTLY!!!
+    # THIS IS HERE FOR FUTURE RECOVERY WITH PITCH TRANSLATIONS AND SO ON
+        # def translate_remap_to_energy(self, Emin: float = 10.0, Emax: float = 99.0,
+        #                              dE: int = 1.0, useAverageB: bool = True,
+        #                              specie: str = 'D'):
+        #    """
+        #    Transform the remap from Gyroradius to Energy
+        #
+        #    Introduced in version 0.9.5
+        #
+        #    :param  Emin: Minimum energy for the new axis
+        # :param  Emax: Maximum energy for the new axis
+        # :param  dE: spacing for the new axis
+        # :param  useAverageB: flag to use the average value of the field or the
+        #     time-dependent field
+        # :param  specie: assumed specie of the incident ion (H, D, T, He...)
+        # """
+        # # See if there is remap data
+        # if (self.remap_dat is None) or (self.BField is None):
+        #     raise Exception('You need to remap first!')
+        # # See if there remap data has the same length of the B field (the user
+        # # may have use the average in one of them...)
+        # nx, ny, nt = self.remap_dat['frames'].shape
+        # nt2 = self.BField['B'].size
+        # if nt != nt2:
+        #     raise Exception('The B points do not agree with the remap!!!')
+        # # Get the specie Mass and charge
+        # par = sspar.species_info[specie.upper()]
+        # # Prepare the new energy axis
+        # ne = int((Emax-Emin)/dE) + 1
+        # Eedges = Emin - dE/2 + np.arange(ne+1) * dE
+        # E = 0.5 * (Eedges[0:-1] + Eedges[1:])
+        # rl = self.remap_dat['yaxis']
+        # if useAverageB:
+        #     B = self.BField['B'].mean()
+        #     K = ssFILDSIM.get_energy(rl, B, A=par['A'], Z=par['Z']) / 1000.0
+        #     factor = math.sqrt(par['A'] * sspar.amu2kg / 2.0) / B / par['Z'] \
+        #         / sspar.ec / np.sqrt(K)
+        #     frames = self.remap_dat['frames'] / factor[None, :, None]
+        #     # Now comes the slow part, this need to be optimized, but let's go:
+        #     print('Interpolating in the new energy grid')
+        #     new_frames = np.zeros((nx, ne, nt))
+        #     for it in tqdm(range(nt)):
+        #         for ixi in range(nx):
+        #             # Interpolate the signal in the K array:
+        #             f2 = interp1d(K, frames[ixi, :, it].squeeze(),
+        #                           kind='cubic', fill_value=0.0,
+        #                           bounds_error=False)
+        #             new_frames[ixi, :, it] = f2(E)
+        # else:
+        #     # Now comes the slow part, this need to be optimized, but let's go:
+        #     frames = self.remap_dat['frames'].copy()
+        #     new_frames = np.zeros((nx, ne, nt))
+        #     print('Interpolating in the new energy grid')
+        #     for it in tqdm(range(nt)):
+        #         B = self.BField['B'][it]
+        #         K = ssFILDSIM.get_energy(rl, B, A=par['A'], Z=par['Z'])/1000.0
+        #         factor = math.sqrt(par['A'] * sspar.amu2kg / 2.0) / B  \
+        #             / par['Z'] / sspar.ec / np.sqrt(K)
+        #         frames[:, :, it] /= factor[None, :]
+        #         for ixi in range(nx):
+        #             # Interpolate the signal in the K array:
+        #             f2 = interp1d(K, frames[ixi, :, it].squeeze(),
+        #                           kind='cubic', fill_value=0.0,
+        #                           bounds_error=False)
+        #             new_frames[ixi, :, it] = f2(E)
+        # # Now save the remap in the proper place
+        # if 'translations' not in self.remap_dat.keys():
+        #     self.remap_dat['translations'] = {}
+        # if specie.upper() not in self.remap_dat['translations'].keys():
+        #     self.remap_dat['translations'][specie.upper()] = {}
+        # self.remap_dat['translations'][specie.upper()][1] = {
+        #     'xaxis': self.remap_dat['xaxis'],
+        #     'xaxisLabel': '%s [%s]' % (self.remap_dat['xlabel'],
+        #                                self.remap_dat['xunits']),
+        #     'yaxis': E,
+        #     'yaxisLabel': 'Energy [keV]',
+        #     'frames': new_frames
+        # }
 
     # --------------------------------------------------------------------------
     # --- GUIs block

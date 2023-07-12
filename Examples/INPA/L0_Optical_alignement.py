@@ -19,7 +19,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 from Lib._Video._TIFfiles import load_tiff
-
+plt.ion()
 
 # -----------------------------------------------------------------------------
 # %% Settings
@@ -37,22 +37,22 @@ format = 'FILDSIM'  # Code for which the geometry file is written
 #     + '3_PIXEFLY_OBJETIVE_comissioning_2022_02.bmp'                      # ####
 # Video options
 diag_ID = 1  # INPA number
-shot = 40412  # Shot number
+shot = 41090  # Shot number
 tMinNoise = 0.1  # Min time for noise subtraction
 tMaxNoise = 0.4  # Max time for noise subtraction
-t = 2.95  # Times to overplot a frame from the video
+t = 4.02  # Times to overplot a frame from the video
 tmax = 4.8  # Maximum time to load
 # x-scale to y scale
 XtoY = 1.0
 # modify section 3 if you have a custom format for the calibration image
 # Staring points for the calibration
-xshift = 25.05
-yshift = 75.8
+xshift = 48.77
+yshift = 141.0
 xscale = 2632.22
-xc = 272.0
-yc = 155.0
+xc = 292.2
+yc = 238.1
 c = -1.77555e-3
-deg = -1.38
+deg = 1.5
 
 
 # Scale maximum
@@ -115,7 +115,7 @@ foil.calculate_pixel_coordinates(cal)
 #     img = plt.imread(calib_image)
 #     img = img[::-1, :]
 vid = ss.vid.INPAVideo(shot=shot, diag_ID=diag_ID)
-vid.read_frame(t1=0.0, t2=tmax)
+vid.read_frame(t1=t-0.5, t2=tmax)
 fig, ax = plt.subplots()
 # adjust the main plot to make room for the sliders
 plt.subplots_adjust(left=0.4, bottom=0.5)

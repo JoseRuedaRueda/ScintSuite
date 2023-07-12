@@ -1,3 +1,10 @@
+# 1.2.11 Minor improvements
+- pitchProfile from INPA video is now a data array
+- corrected bug in get_ECE when the time interval was too short for the slow channel to have more than 1 point
+- Revised multipow example. Solved issue in input data type
+- Deprecated translate remap energy
+- revived plot_profiles_time() from video object
+
 # 1.2.9 Minor improvemments
 - Defocus in optis now done with a gaussian comvulution instead of scipy gaussian blurr.
 - Included calculate 4D histogram in strikes.
