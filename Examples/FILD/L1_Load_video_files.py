@@ -8,7 +8,7 @@ jose Rueda: jrrueda@us.es
 
 Note; Written for version 0.1.8.  Revised for version 1.0.0
 """
-import Lib as ss
+import ScintSuite.as ss
 # -----------------------------------------------------------------------------
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------

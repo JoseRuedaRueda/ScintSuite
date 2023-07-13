@@ -6,7 +6,7 @@ Done in 07/08/2021
 Revised for version 0.8.0
 """
 
-import Lib as ss
+import ScintSuite.as ss
 import numpy as np
 import tkinter as tk
 

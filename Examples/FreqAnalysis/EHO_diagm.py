@@ -18,8 +18,8 @@ import matplotlib.colors as colors
 import matplotlib.cm as colormaps
 import warnings
 import numpy as np
-import Lib.LibFrequencyAnalysis as lf
-from Lib.LibData.AUG.Profiles import get_diag_freq as diagCorr
+import ScintSuite.LibFrequencyAnalysis as lf
+from ScintSuite.LibData.AUG.Profiles import get_diag_freq as diagCorr
 from LibPlotting import p1D_shaded_error as plot_error_band
 from scipy.interpolate import interp1d
 
@@ -88,7 +88,7 @@ search_high_n = False
 
 #%% Reading magnetics and making spectrogram.
 # -----------------------------------------------------------------------------
-mhi = Lib.dat.get_magnetics(shotnumber, coilNumber, timeWindow=[tBegin, tEnd])
+mhi = ScintSuite.dat.get_magnetics(shotnumber, coilNumber, timeWindow=[tBegin, tEnd])
 
 # Getting the parameters for the spectrogram.
 dt = mhi['time'][1] - mhi['time'][0] # For the sampling time.
@@ -289,7 +289,7 @@ plt.show()
 
 #%%  Loading the rotation velocity.
 # -----------------------------------------------------------------------------
-vtor = Lib.dat.get_tor_rotation(shotnumber=shotnumber, time=[tBegin, tEnd],
+vtor = ScintSuite.dat.get_tor_rotation(shotnumber=shotnumber, time=[tBegin, tEnd],
                                 diag=vtor_diag, exp=vtor_exp, 
                                 edition=vtor_edition,
                                 smooth_factor = 150.0, rhop0=0.2,

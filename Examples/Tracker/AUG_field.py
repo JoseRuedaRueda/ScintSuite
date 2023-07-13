@@ -5,7 +5,7 @@ Jose Rueda: jrrueda@us.es
 
 Done for version 0.4.10
 """
-import Lib as ss
+import ScintSuite.as ss
 import os
 import numpy as np
 

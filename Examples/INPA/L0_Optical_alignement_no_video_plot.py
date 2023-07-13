@@ -14,8 +14,8 @@ SINPA coordinates and the calibration
 """
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
-from Lib.LibVideo.TIFfiles import load_tiff
-import Lib as ss
+from ScintSuite.LibVideo.TIFfiles import load_tiff
+import ScintSuite.as ss
 
 # -----------------------------------------------------------------------------
 # --- Settings

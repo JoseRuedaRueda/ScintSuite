@@ -7,7 +7,7 @@ situations with lot of noise
 Created for version 0.8.0
 Revised for version 1.0.0
 """
-import Lib as ss
+import ScintSuite.as ss
 
 # --- Settings
 # - General settings
