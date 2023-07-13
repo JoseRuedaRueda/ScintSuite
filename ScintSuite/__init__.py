@@ -176,7 +176,6 @@ paths = p.Path(machine)
 # Non tokamak independent libraries
 if machine == 'AUG':
     import ScintSuite.SimulationCodes.torbeam as torbeam
-    import ScintSuite.SimulationCodes.iHIBPsim as ihibp
 
 # Delete the intermediate variables to 'clean'
 del p
