@@ -311,6 +311,7 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
     try:
         te = np.array(sf('Te')).T
         te_unc = np.array(sf('Te_unc')).T
+        gradTe = np.array(sf('dTe_dr')).T
         rhop = np.array(sf.getareabase('Te'))
         timebase = np.array(sf('time'))
 
@@ -323,6 +324,7 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
         time = timebase
         tmp_te = te
         tmp_unc = te_unc
+        tmp_dTe = gradTe
     else:
         tmp_te = interp1d(timebase, te, kind='linear', axis=0,
                           bounds_error=False, fill_value=np.nan,
@@ -331,12 +333,17 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
                            kind='linear', axis=0,
                            bounds_error=False, fill_value=np.nan,
                            assume_sorted=True)(time).T
+        tmp_dTe = interp1d(timebase, gradTe,
+                           kind='linear', axis=0,
+                           bounds_error=False, fill_value=np.nan,
+                           assume_sorted=True)(time).T
     if not xArrayOutput:
         output = {
             'rhop': rhop[:, 0],
             'time': time,
             'data': tmp_te,
-            'uncertainty': tmp_unc}
+            'uncertainty': tmp_unc,
+            'gradient': tmp_dTe}
     else:
         output = xr.Dataset()
         tmp_te = np.atleast_2d(tmp_te)
@@ -350,6 +357,10 @@ def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
         output['uncertainty'] = xr.DataArray(tmp_unc.T, dims=('rho', 't'))
         output['uncertainty'].attrs['long_name'] = '$\\Delta T_e$'
         output['uncertainty'].attrs['units'] = '$eV$'
+        tmp_dTe = np.atleast_2d(tmp_dTe)
+        output['gradient'] = xr.DataArray(tmp_dTe.T, dims=('rho', 't'))
+        # output['gradient'].attrs['long_name'] = '$\\Nabla T_e$'
+        # output['gradient'].attrs['units'] = '$eV$'
 
         output['rho'].attrs['long_name'] = '$\\rho_p$'
         output['t'].attrs['long_name'] = 'Time'
