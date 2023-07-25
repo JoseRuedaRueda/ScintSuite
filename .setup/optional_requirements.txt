@@ -1,3 +1,4 @@
 NUMBA: numba>=0.57.1
 SKLEARNEX: scikit-learn-intelex>=2023.2.0
 ODFPY: odfpy>=1.4.1
+H5NETCDF: h5netcdf>=1.2.0

@@ -159,7 +159,7 @@ def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
 
     # equ.read_pfm()
     i = np.argmin(np.abs(equ.time - time))
-    PFM = equ.pfm[:, :, i].squeeze()
+    PFM = np.array(equ.pfm[:, :, i]).squeeze().astype(float)
     psipol = interpn((equ.Rmesh, equ.Zmesh), PFM, (Rin, zin), fill_value=0.0)
 
     return psipol
