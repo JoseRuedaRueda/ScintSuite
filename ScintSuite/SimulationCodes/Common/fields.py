@@ -362,7 +362,8 @@ class fields:
                     edition: int = 0,
                     Rmin: float = 1.03, Rmax: float = 2.65,
                     zmin: float = -1.224, zmax: float = 1.05,
-                    nR: int = 128, nz: int = 256):
+                    nR: int = 128, nz: int = 256,
+                    readPsi: bool = True):
         """
         Read field from machine database.
 
@@ -382,6 +383,7 @@ class fields:
         :param  zmax: Maximum Z to get the magnetic equilibrium.
         :param  nR: Number of points to define the B field grid in R direction.
         :param  nz: Number of points to define the B field grid in Z direction.
+        :param readPsi: if true, read also psi pol from the database
         
         :Example:
         >>> import ScintSuite.SimulationCodes.Common.fields as fields
@@ -437,22 +439,23 @@ class fields:
         # Creating the interpolating functions.
         self.Brinterp = lambda r, z, phi, time: \
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['fr'],
-                    (r.flatten(), z.flatten()))
+                    (np.atleast_1d(r).flatten(), np.atleast_1d(z).flatten()))
 
         self.Bzinterp = lambda r, z, phi, time: \
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['fz'],
-                    (r.flatten(), z.flatten()))
+                    (np.atleast_1d(r).flatten(), np.atleast_1d(z).flatten()))
 
         self.Bphiinterp = lambda r, z, phi, time: \
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['ft'],
-                    (r.flatten(), z.flatten()))
+                    (np.atleast_1d(r).flatten(), np.atleast_1d(z).flatten()))
 
         # Retrieving as well the poloidal magnetic flux.
-        self.readPsiPolfromDB(time=time, shotnumber=shotnumber,
-                              exp=exp, diag=diag, edition=edition,
-                              Rmin=Rmin, Rmax=Rmax,
-                              zmin=zmin, zmax=zmax,
-                              nR=nR, nz=nz)
+        if readPsi:
+            self.readPsiPolfromDB(time=time, shotnumber=shotnumber,
+                                exp=exp, diag=diag, edition=edition,
+                                Rmin=Rmin, Rmax=Rmax,
+                                zmin=zmin, zmax=zmax,
+                                nR=nR, nz=nz)
 
         # Saving the input data to the class.
         self.Bfield_from_shot_flag = True
