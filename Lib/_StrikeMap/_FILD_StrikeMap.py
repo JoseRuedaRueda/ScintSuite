@@ -111,7 +111,7 @@ class Fsmap(FILDINPA_Smap):
             logger.info('Strikes not loaded, loading')
             self.load_strike_points()
         if self._resolutions is None:
-            self.calculate_phase_space_resolution(diag_params=diag_parameters)
+            self.calculate_phase_space_resolution()
         # --- Prepare the grid
         nxs, nys, xedgess, yedgess = createGrid(**grid_options_scint)
         xcenterss = (xedgess[:-1] + xedgess[1:]) * 0.5
@@ -123,7 +123,7 @@ class Fsmap(FILDINPA_Smap):
         names = [self._resolutions['variables'][k].name for k in range(2)]
         models = [self._resolutions['model_' + dum] for dum in names]
         logger.info('Calculating FILD weight matrix')
-
+        logger.debug('Applied models: ' + models[0] + ' ' +  models[1])
         # --- Prepare model and efficiency
         # Prepare the model based on the resolution calculation:
         # Just for consitency, use the same one we use for the resolution
@@ -149,10 +149,10 @@ class Fsmap(FILDINPA_Smap):
                 else:
                     dummy = ycentersp
                 if names[k] == 'energy' or names[k] == 'e0':
-                    eff = efficiency.interpolator(dummy)
+                    eff = efficiency(dummy).values
                 elif names[k] == 'gyroradius':
-                    energy = get_energy(dummy, B, A, Z)
-                    eff = efficiency.interpolator(energy)
+                    energy = get_energy(dummy, B, A, Z) / 1000.0
+                    eff = efficiency(energy).values
             logger.info('Considering scintillator efficiency in W')
         else:
             eff = np.ones(ycentersp.size)
@@ -170,7 +170,7 @@ class Fsmap(FILDINPA_Smap):
                         self._interpolators_instrument_function[names[0]][k](
                                 xcentersp[ll], ycentersp[kk])
                 y_parameters = {}
-                for k in parameters_to_consider[models[0]]:
+                for k in parameters_to_consider[models[1]]:
                     y_parameters[k] = \
                         self._interpolators_instrument_function[names[1]][k](
                                 xcentersp[ll], ycentersp[kk])
@@ -182,9 +182,9 @@ class Fsmap(FILDINPA_Smap):
                     # Calculate the contribution:
                     dummy = col_factor * \
                             models_func[models[0]](XX.flatten(),
-                                                  **x_parameters) * \
+                                                   **x_parameters) * \
                             models_func[models[1]](YY.flatten(),
-                                                  **y_parameters) \
+                                                   **y_parameters) \
                             * eff[kk]
                     res_matrix[:, :, ll, kk] = np.reshape(dummy, XX.shape).T
                 else:
@@ -193,13 +193,10 @@ class Fsmap(FILDINPA_Smap):
         # --- Now fill the weight function
         self.instrument_function = xr.DataArray(
                 res_matrix, dims=('xs', 'ys', 'x', 'y'),
-                coords={'xs':xcenterss, 'ys': ycenterss, 'xp': xcentersp,
-                        'yp': ycentersp}
+                coords={'xs': xcenterss, 'ys': ycenterss, 'x': xcentersp,
+                        'y': ycentersp}
         )
         self.instrument_function['xs'].attrs['long_name'] = names[0].capitalize()
         self.instrument_function['x'].attrs['long_name'] = names[0].capitalize()
         self.instrument_function['y'].attrs['long_name'] = names[1].capitalize()
         self.instrument_function['ys'].attrs['long_name'] = names[1].capitalize()
-
-
-

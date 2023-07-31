@@ -1,5 +1,5 @@
 """
-Useful models and auxiliary functions
+Useful models and auxiliary functions.
 
 Here I placed routines useful for the analysis but which in principle are not
 designed to be inserted in the main suite. For example a routine which given
@@ -25,13 +25,13 @@ except ImportError:
 try:
     from numba import njit, prange
 except:
-    logger.wargning('10: You cannot use neutron filters')
+    logger.warning('10: You cannot use neutron filters')
 
 
 # -----------------------------------------------------------------------------
 # --- Pitch methods:
 # -----------------------------------------------------------------------------
-def pitch2pitch(P0: float, def_in: int = 0, def_out: int = 2):
+def pitch2pitch(P0: float, def_in: int = 0, def_out: int = 2)->np.ndarray:
     """
     Transform between the different pitch definitions
 
@@ -81,7 +81,7 @@ def pitch2pitch(P0: float, def_in: int = 0, def_out: int = 2):
     return P1
 
 
-def pitch_at_other_place(R0, P0, R):
+def pitch_at_other_place(R0, P0, R)->np.ndarray:
     """
     Given the pitch a a place R0, calculate the pitch at a location R
 
@@ -105,7 +105,7 @@ def pitch_at_other_place(R0, P0, R):
 # -----------------------------------------------------------------------------
 # --- Matrix filters
 # -----------------------------------------------------------------------------
-def neutron_filter(M, nsigma: int = 3):
+def neutron_filter(M: np.ndarray, nsigma: int = 3)->np.ndarray:
     """
     Remove pixels affected by neutrons
 
@@ -159,7 +159,8 @@ def neutronAndDeadFilter(M: float, nsigma: float = 3.0, dead: bool = True):
 # -----------------------------------------------------------------------------
 # --- Trapped passing boundary
 # -----------------------------------------------------------------------------
-def TP_boundary(shot, z0, t, Rmin=1.5, Rmax=2.1, zmin=-0.9, zmax=0.9):
+def TP_boundary(shot, z0, t, Rmin=1.5, Rmax=2.1, 
+                zmin=-0.9, zmax=0.9)->xr.DataArray:
     """
     Approximate the TP TP_boundary
 
@@ -193,7 +194,7 @@ def TP_boundary(shot, z0, t, Rmin=1.5, Rmax=2.1, zmin=-0.9, zmax=0.9):
     output = xr.DataArray(tp, dims='R', coords={'R': r})
     output.attrs['long_name'] = '$\\lambda_{b}$'
     output.attrs['Description'] = '|pitch_TP|= sqrt(Rmin/R)'
-    
+
     return output
 
 
@@ -282,7 +283,7 @@ def ELM_filter(s, s_timebase, tELM, offset=0.):
 # -----------------------------------------------------------------------------
 # --- Matrix manipulation
 # -----------------------------------------------------------------------------
-def distmat(a, index: tuple):
+def distmat(a: np.ndarray, index: tuple)->np.ndarray:
     """
     Get index distance to a given point
 

@@ -8,6 +8,7 @@ will be derived. Each of these derived video object will contain the individual
 routines to remap iHIBP, FILD or INPA data.
 """
 import os
+import f90nml
 import logging
 import numpy as np
 import xarray as xr
@@ -30,7 +31,9 @@ import Lib._Utilities as ssutilities
 import Lib._Video._AuxFunctions as aux
 from tqdm import tqdm                      # For waitbars
 from scipy import ndimage                  # To filter the images
+from Lib._Paths import Path
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.widgets import Slider, Button, RadioButtons
 
 
 # --- Initialise the auxiliary objects
@@ -131,7 +134,7 @@ class BVO:
                 self.shot = aux.guess_shot(file, ssdat.shot_number_length)
             # Fill the object depending if we have a .cin file or not
             if os.path.isfile(file):
-                logger.info('Looking for the file: ', file)
+                logger.info('Looking for the file: %s' % file)
                 ## Path to the file and filename
                 self.path, self.file_name = os.path.split(file)
                 ## Name of the file (full path)
@@ -175,21 +178,24 @@ class BVO:
                     self.exp_dat['frames'] = self.exp_dat['frames']
                     self.type_of_file = '.nc'
                 elif file.endswith('.mp4'):
-                    dummy = mp4.read_file(file)
-                    self.properties['width'] = dummy['width']
-                    self.properties['height'] = dummy['height']
-                    self.properties['fps'] = dummy['fps']
+                    if not 'properties' in self.__dict__:
+                        self.properties = {}
+                    dummy = mp4.read_file(file, **self.properties)
+
+                    frames = dummy.pop('frames')
+                    self.properties.update(dummy)
                     self.exp_dat = xr.Dataset()
-                    nt, nx, ny = dummy['frames'].shape
+                    nt, nx, ny = frames.shape
                     px = np.arange(nx)
                     py = np.arange(ny)
 
                     self.exp_dat['frames'] = \
-                        xr.DataArray(dummy['frames'], dims=('t', 'px', 'py'),
+                        xr.DataArray(frames, dims=('t', 'px', 'py'),
                                      coords={'t': self.timebase.squeeze(),
                                              'px': px,
                                              'py': py})
-                    self.exp_dat['frames'] = self.exp_dat['frames'].transpose('px', 'py', 't')
+                    self.exp_dat['frames'] = \
+                        self.exp_dat['frames'].transpose('px', 'py', 't')
                     self.type_of_file = '.mp4'
                 else:
                     raise Exception('Not recognised file extension')
@@ -272,6 +278,7 @@ class BVO:
         ## Camera calibration to relate the scintillator and the camera sensor,
         # each diagnostic will read its camera calibration from its database
         self.CameraCalibration = None
+        self.CameraData = None
         ## Scintillator plate:
         self.scintillator = None
 
@@ -305,6 +312,12 @@ class BVO:
 
         :return M: 3D numpy array with the frames M[px,py,nframes] (if the
             internal flag is set to false)
+
+        :Example:
+        >>> # Load a video from a diagnostic
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo(shot=41090)
+        >>> vid.read_frame()  # To load all the video
         """
         # --- Clean video if needed
         if 't' in self.exp_dat and internal:
@@ -323,7 +336,7 @@ class BVO:
             tmax_video = self.timebase.max()
             if t2 > tmax_video:
                 text = 'T2 was not in the video file:' +\
-                    'Taking %.3f as initial point' % tmax_video
+                    'Taking %.3f as final point' % tmax_video
                 logger.warning('18: %s' % text)
             it1 = np.argmin(abs(self.timebase-t1))
             it2 = np.argmin(abs(self.timebase-t2))
@@ -379,6 +392,34 @@ class BVO:
             nbase = nbase.squeeze()
         # Get the data-type
         dtype = M.dtype
+        # Apply the neccesary transformations
+        if self.CameraData is not None:
+            # Crop the frames if needed
+            if 'xmin' in self.CameraData:
+                xmax = self.CameraData['xmax']
+                xmin = self.CameraData['xmin']
+                px = np.arange(xmax - xmin)
+                M = M[xmin:xmax, :, :]
+            if 'ymin' in self.CameraData:
+                ymax = self.CameraData['ymax']
+                ymin = self.CameraData['ymin']
+                px = np.arange(ymax - ymin)
+                M = M[:, ymin:ymax, :]
+            # invert the frames if needed
+            if 'invertx' in self.CameraData:
+                if self.CameraData['invertx']:
+                    M = M[::-1, :, :]
+            if 'inverty' in self.CameraData:
+                if self.CameraData['inverty']:
+                    M = M[:, ::-1, :]
+            # Exchange xy if needed:
+            if 'exchangexy' in self.CameraData:
+                if self.CameraData['exchangexy']:
+                    M = M.transpose((1, 0, 2))
+                    px_tmp = px.copy()
+                    px = py.copy()
+                    py = px_tmp
+
         # Storage it
         self.exp_dat['frames'] = \
             xr.DataArray(M, dims=('px', 'py', 't'), coords={'t': tbase,
@@ -388,16 +429,15 @@ class BVO:
         # --- Count saturated pixels
         max_scale_frames = 2 ** self.settings['RealBPP'] - 1
         threshold = threshold_saturation * max_scale_frames
-        print('Counting "saturated" pixels')
-        print('The threshold is set to: ', threshold, ' counts')
+        logger.info('Counting "saturated" pixels')
+        logger.info('The threshold is set to: %f counts', threshold)
         n_pixels_saturated = \
             np.sum(self.exp_dat['frames'].values >= threshold, axis=(0, 1))
         self.exp_dat['n_pixels_gt_threshold'] = xr.DataArray(
             n_pixels_saturated.astype('int32'), dims=('t'))
         self.exp_dat.attrs['threshold_for_counts'] = threshold_saturation
-        if verbose:
-            print('Maximum number of saturated pixels in a frame: '
-                  + str(self.exp_dat['n_pixels_gt_threshold'].values.max()))
+        logger.info('Maximum number of saturated pixels in a frame: %f',
+                    n_pixels_saturated.max())
 
     def subtract_noise(self, t1: float = None, t2: float = None,
                        frame: np.ndarray = None, flag_copy: bool = False):
@@ -421,6 +461,14 @@ class BVO:
         :param  flag_copy: If true, a copy of the frame will be stored
 
         :return  frame: the frame used for the noise subtraction
+
+        :Example:
+        >>> # Load a video from a diagnostic
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo(shot=41090)
+        >>> vid.read_frame()  # To load all the video
+        >>> # Average the frames between 0.1 and 0.2 and use them as noise frame
+        >>> vid.subtract_noise(0.1, 0.2)
         """
         # --- Check the inputs
         if self.exp_dat is None:
@@ -482,6 +530,7 @@ class BVO:
                 print(nx, nxf, ny, nyf)
                 text = 'The noise frame has not the correct shape'
                 raise errors.NotValidInput(text)
+
         # Save the frame in the structure
         self.exp_dat['frame_noise'] = xr.DataArray(frame.squeeze(),
                                                    dims=('px', 'py'))
@@ -525,6 +574,16 @@ class BVO:
             -# median:
                 size: 4, number of pixels considered
         :param  flag_copy: flag to copy or not the original frames
+
+        :Example:
+        >>> # Load a video from a diagnostic
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo(shot=41090)
+        >>> vid.read_frame()  # To load all the video
+        >>> # Average the frames between 0.1 and 0.2 and use them as noise frame
+        >>> vid.subtract_noise(0.1, 0.2)
+        >>> # Filter the frames
+        >>> vid.filter_frames(method='median', options={'size': 2})
         """
         logger.info('Filtering frames')
         # default options:
@@ -671,7 +730,7 @@ class BVO:
         return
 
     # --------------------------------------------------------------------------
-    # --- Plotting a GUIs
+    # --- Plotting and GUIs
     # --------------------------------------------------------------------------
     def plot_number_saturated_counts(self, ax_params: dict = {},
                                      line_params: dict = {},
@@ -820,9 +879,11 @@ class BVO:
                     tf = self.getTime(frame_index, flagAverage)
                     dummy = self.getFrame(t, flagAverage)
                 elif len(t)==2:
-                    print('plotting averaged frames')
+                    logger.debug('Plotting averaged frames')
                     flag_time_range =True
-                    frames = self.exp_dat['frames'].where((self.exp_dat['t']>t[0]) & (self.exp_dat['t']<t[1]), drop = True)
+                    frames = self.exp_dat['frames'].where((self.exp_dat['t']>t[0]) & \
+                                                          (self.exp_dat['t']<t[1]),
+                                                          drop = True)
                     t[0] = min(frames.t)
                     t[1] = max(frames.t)
                     dummy = frames.mean(dim = 't')
@@ -947,6 +1008,62 @@ class BVO:
         root.mainloop()
         root.destroy()
 
+    def GUI_frames_simple(self, flagAverage: bool = False, **kwargs):
+        """
+        Small GUI to explore camera frames using matplotlib widgets.
+
+        Pablo Oyola - poyola@us.es
+
+        :param flagAverage: flag to decide if we need to use the averaged frames
+            of the experimental ones in the GUI
+        """
+        text = 'Press TAB until the time slider is highlighted in red.'\
+            + ' Once that happend, you can move the time with the arrows'\
+            + ' of the keyboard, frame by frame'
+        logger.info('--. ..- ..')
+        logger.info(text)
+        logger.info('-... . ..- - -.--')
+
+        # Generating the figure.
+        fig, ax = plt.subplots(1)
+        div = make_axes_locatable(ax)
+        cax = div.append_axes('right', '5%', '5%')
+        slider_ax = div.append_axes('bottom', pad='15%', size='3%')
+
+        # Generating the slider.
+        if flagAverage:
+            tframes = self.avg_dat['t']
+            frames  = self.avg_dat['frames']
+        else:
+            tframes = self.exp_dat['t']
+            frames  = self.exp_dat['frames']
+
+        # Plotting the initial frame (t=0)
+        extent = [frames.py.min(), frames.py.max(), frames.px.min(), frames.px.max()]
+        im = ax.imshow(frames.sel(t=0, method='nearest'), origin='lower',
+                       extent=extent, **kwargs)
+        slider = Slider(slider_ax, 'Time', tframes.values[0], tframes.values[-1],
+                        valinit=tframes.sel(t=0, method='nearest').values,
+                        valstep=tframes.values, orientation='horizontal',
+                        initcolor='red')
+
+        # Drawing the scintillator.
+        if self.scintillator is not None:
+            self.scintillator.plot_pix(ax=ax)
+
+        # Setting up the colorbar.
+        fig.colorbar(im, cax=cax, label='Counts')
+
+        def update(val):
+            im.set_data(frames.sel(t=val, method='nearest'))
+            fig.canvas.draw_idle()
+
+        slider.on_changed(update)
+        plt.show()
+
+        return ax, slider
+
+
     # --------------------------------------------------------------------------
     # --- Properties
     # --------------------------------------------------------------------------
@@ -1048,10 +1165,27 @@ class BVO:
 
         return sstt.TimeTrace(self, mask, ROIname=ROIname), mask
 
+    def getCameraData(self, file: str = ''):
+        """
+        Read the camera data.
+
+        Jose Rueda Rueda
+
+        :param file: if empty, we will load the camera datafile from the Data
+            folder taing into account the camera name from the calibration
+            database.
+        """
+        if file=='':
+            file = os.path.join(Path().ScintSuite, 'Data',
+                                'CameraGeneralParameters',
+                                self.CameraCalibration.camera + '.txt')
+        logger.info('Reading camera data: %s', file)
+        self.CameraData = f90nml.read(file)['camera']
+
     # --------------------------------------------------------------------------
     # --- Export
     # --------------------------------------------------------------------------
-    def exportVideo(self, filename, flagAverage: bool = False):
+    def exportVideo(self, filename: str = None, flagAverage: bool = False):
         """
         Export video file
 
@@ -1064,6 +1198,14 @@ class BVO:
             GUI will appear to select the results
         :param  flagAverage: flag to indicate if we want to save the averaged
             frames
+
+        :Example:
+        >>> # Load a video from a diagnostic
+        >>> import Lib as ss
+        >>> vid = ss.vid.INPAVideo(shot=41090)
+        >>> vid.read_frame()  # To load all the video
+        >>> # Export the video
+        >>> vid.exportVideo()
         """
         if filename is None:
             filename = _ssio.ask_to_save(ext='*.nc')
@@ -1076,3 +1218,56 @@ class BVO:
             self.exp_dat.to_netcdf(filename)
         else:
             self.avg_dat.to_netcdf(filename)
+
+    def save(self, fn: str, t0: float=None, t1: float=None,
+             flagAverage: bool=False, mode: str=None):
+        """
+        Writes to a video file the data in exp_dat / avg_dat. The type of video
+        is decided upon the filename extension or from the mode parameter.
+
+        Pablo Oyola - poyola@us.es
+
+        :param fn: filename of the video. If an extension is detected, the
+        corresponding ? is used.
+        :param t0: initial time to save the video. If None, the video is written
+        starting from the starting available data.
+        :param t1: final time to save the video. If None, the video is written
+        unitl the end available data.
+        :param flagAverage: use the averaged data instead.
+        :param mode: if an extension is not detected in the input filename, the
+        user is required to say which kind of video file is to used.
+        """
+
+        if not fn.endswith('mp4') and (mode != 'mp4'):
+            raise NotImplementedError('Only MP4 writing is supported.')
+
+        # Saving to file.
+        if not fn.endswith('mp4'):
+            fn = fn + '.mp4'
+
+
+        if flagAverage:
+            data = self.avg_dat.frames.values
+        else:
+            data = self.exp_dat.frames.values
+
+        # Retrieving the properties of the video.
+        try:
+            bits_size = self.properties['bits_size']
+        except KeyError:
+            bits_size = 16
+
+        # Setting the enconding.
+        if data.ndim > 3:
+            encoding = 'rgb'
+        else:
+            encoding = 'grey'
+
+        # Getting the FPS.
+        dt = self.exp_dat.t.values[1] - self.exp_dat.t.values[0]
+        fps = int(1/dt)
+
+        # Saving
+        logger.debug(f'Saving to file {fn}')
+        mp4.write_file(fn=fn, video=data, bit_size=bits_size,
+                       encoding=encoding, fps=fps)

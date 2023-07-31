@@ -43,7 +43,8 @@ def remapAllLoadedFrames(video,
                          allIn: bool = False,
                          use_average: bool = False,
                          variables_to_remap: tuple = ('pitch', 'gyroradius'),
-                         A: float = 2.01410178, Z: float = 1.0):
+                         A: float = 2.01410178, Z: float = 1.0,
+                         transformationMatrixLimit: float = 10.0) -> xr.Dataset:
     """
     Remap all loaded frames from a FILD video.
 
@@ -110,9 +111,15 @@ def remapAllLoadedFrames(video,
         -# 'phi_used': phi_used for the remap [deg]
         -# 'existing_smaps': array indicating which smaps where found in the
         database and which don't
+
     The remap options such as the code used, the number of decimals or the
     location of the database of smaps are saved as attributes of the 'frames'
     dataArray
+
+    :Notes:
+        - This function is not intended to be called alone except the user
+        really knows what is doing. Please use just the function
+        remap_all_loaded_frames() from the video object
     """
     # --------------------------------------------------------------------------
     # --- INPUTS CHECK AND PREPARATION
@@ -161,7 +168,7 @@ def remapAllLoadedFrames(video,
         file = ssio.check_open_file(mask)
         [mask] = ssio.read_variable_ncdf(file, ['mask'], human=True)
         # tranform to bool
-        mask = mask.astype(bool)
+        mask = mask.data.astype(bool)
     # -- Check the tipe of remap
     if remap_method.lower() == 'centers':
         MC_number = 0  # to turn off the transformation matrix calculation
@@ -295,7 +302,8 @@ def remapAllLoadedFrames(video,
                              grid_params={'ymin': ymin, 'ymax': ymax,
                                           'dy': dy,
                                           'xmin': xmin, 'xmax': xmax,
-                                          'dx': dx})
+                                          'dx': dx},
+                             limitation=transformationMatrixLimit)
         name_old = name
         # remap the frames
         remaped_frames[:, :, iframe] = \

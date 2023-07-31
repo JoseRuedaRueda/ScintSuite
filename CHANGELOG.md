@@ -1,5 +1,61 @@
+# 1.2.11 Minor improvements
+- pitchProfile from INPA video is now a data array
+- corrected bug in get_ECE when the time interval was too short for the slow channel to have more than 1 point
+- Revised multipow example. Solved issue in input data type
+- Deprecated translate remap energy
+- revived plot_profiles_time() from video object
 
-# 1.2.1: Melon with Jamon
+# 1.2.10 Release for the iHIBPsim branch.
+- Release to the dev-branch with the recent modifications for the compability with the i-HIBPsim package.
+
+# 1.2.9 Minor improvemments
+- Defocus in optis now done with a gaussian comvulution instead of scipy gaussian blurr.
+- Included calculate 4D histogram in strikes.
+- *Bug correction* corrected a sall bug when passing an array and an integer as bin limits for strikes histograms.
+
+# 1.2.8 Minor improvements
+- Improvements in tomography object
+- Improvements in documentation (added return types hints)
+- Corrected a bug in strikes.calculate_2d_histograms: limits not well captured when using bins=None
+
+# 1.2.7 Bug solve
+- Solves #86: issues when loading a discrete number of frames from pco, png or tiff formats
+
+# 1.2.6 Tomography and camera Upgrades
+- Camera calibration object upgraded, now will be compatibe with all the calibrationsDatabase formats
+- Calibration database object now use pandas as inner data storage
+- Maximum entropy regularization added to the solver options
+- Improved documentation
+- Improved performance of MC remap
+- **Bug Soved** calibration was not exporting into netCDF the optional parameters like the nxpix or nypix introduced by HIBPcomunity
+
+# 1.2.5 Cameracalibration options
+- Included posibility to flip camera frames when loading it (via Camera Data Files)
+- Reverted changes to camera calibration data bases  added in version 1.2.2
+
+# 1.2.4 Documentation improvement
+- Improved docstrics
+- change some old prints into logger instances
+
+# 1.2.3: Minor correction
+## Strikes:
+- Corrected 2Pi factor in the definition of the Transmission optical factor
+## First run:
+- Added missing module of ffmpeg for iHIBP videos in the first run script
+
+# 1.2.2: Acedias
+## FirstRun
+- Included numpy, numba and scipy insallation in the first run script
+## Mapping
+- variable transformationMatrixLimit included as as iput for the remap, to increase the allowed size fo the transformation matrix in the remap
+## Others
+- Minor Bug correction and documentation improvements
+# 1.2.1:
+## StrikeMaps
+- avg_ini_gyrophase, avg_ini_gyrophase, renamed to avgIniGyrophase, avgIncidentAngle, to avoid issues in the automatic remap
+## Plotting
+- IncludeColorMap flag added to multiline()
+
 ## iHIBPVideo
 - changed guessiHIBPfilename to use correct video filename for different discharges
 - fixed ihibp_get_time_basis to give correct timebase
@@ -38,7 +94,10 @@
 - getGeomShots() removed from INPA object
 ## Simulation codes
 - Added compatibility with SINPA 4
-
+## Tomography
+- Polished the tomography object, added scan in L1 for the elastic net. Added export and import features to the object
+## Others
+- Minor upgrades in comments and documentation
 
 # 1.1.0: Melon con Jamon
 ## FIDASIM library

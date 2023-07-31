@@ -80,35 +80,39 @@ def read_scintillator_efficiency(file, verb: bool = False):
 
 
 # ------------------------------------------------------------------------------
-# --- Main class with efficiency
+# ---- Main class with efficiency
 # ------------------------------------------------------------------------------
 class ScintillatorEfficiency:
-    """Class containing the scintillator efficiency"""
+    """Class containing the scintillator efficiency."""
 
     def __init__(self, material: str = 'TgGreenA', particle: str = 'D',
                  thickness: int = 9,  verbose: bool = False):
         """
-        Load data
+        Load data.
 
         :param  material: material of the plate
         :param  particle: particle which is being launch
         :param  thickness: thickness of the scintillator power
+
+        :Notes:
+        - The particle, material and thickness will be used to deduce the name
+          of the fille to load: `<material>/<particle>_<thickness>.dat`
         """
         file = os.path.join(paths.ScintSuite, 'Data', 'ScintillatorEfficiency',
                             material, particle + '_' + str(thickness) + '.dat')
-        logger.info('Reading efficiency file: ' + file)
         ## Efficiency data:
         self.data = read_scintillator_efficiency(file, verbose)
+        logger.info('Reading efficiency file: ' + file)
 
     def __call__(self, E, kwargs: dict = {}):
         """
-        Wrapper to the interpolator.
+        Wrap the interpolator.
 
         By default, extrapolation is selected
-        :param E:
-        :param kwargs:
-        :return:
+        :param E: input energy, in keV
+        :param kwargs: optional arguments for the interpolator
+        :return: interpolated vallues
         """
         kwargs2 = {'fill_value': 'extrapolate'}
         kwargs2.update(kwargs)
-        return self.data.interp(E=E, kwargs=kwargs2)
+        return self.data.interp(E=E, kwargs=kwargs2).values

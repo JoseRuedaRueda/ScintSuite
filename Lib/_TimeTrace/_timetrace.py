@@ -38,10 +38,21 @@ def trace(frames, mask):
     :return std_of_roi: numpy array with the std of the pixels inside the mask
     :return max_of_roi: numpy array with the max of the pixels inside the mask
     """
-    sum_of_roi = np.sum(frames[mask, :], axis=0, dtype=float)
-    mean_of_roi = np.mean(frames[mask, :], axis=0, dtype=float)
-    std_of_roi = np.std(frames[mask, :], axis=0, dtype=float)
-    max_of_roi = frames[mask, :].max(axis=0)
+    
+    nt = frames.shape[-1]
+    sum_of_roi = np.zeros((nt,), dtype='float64')
+    mean_of_roi = np.zeros((nt,), dtype='float64')
+    std_of_roi = np.zeros((nt,), dtype='float64')
+    max_of_roi = np.zeros((nt,), dtype='float64')
+    
+    nmask_valid = frames[mask, 0].size
+    
+    for it in range(nt):
+        sum_of_roi[it]  = frames[mask, it].astype('float64').sum()
+        mean_of_roi[it] = sum_of_roi[it] / nmask_valid
+        std_of_roi[it]  = np.std(frames[mask, it].astype('float64'))
+        max_of_roi[it]  = np.nanmax(frames[mask, it].astype('float64'))
+        
     return sum_of_roi, mean_of_roi, std_of_roi, max_of_roi
 
 
@@ -356,18 +367,19 @@ class TimeTrace(BasicSignalVariable):
         if correct_baseline == 'end':
             baseline_level = y[-15:-2].mean().astype(y.dtype)
             y += -baseline_level
-            print('Baseline corrected using the last points')
-            print('Baseline level: ', round(baseline_level))
+            logger.info('Baseline corrected using the last points')
+            logger.info('Baseline level: %i' % round(baseline_level))
 
         elif correct_baseline == 'ini':
             baseline_level = y[3:8].mean().astype(y.dtype)
             y += -baseline_level
-            print('Baseline corrected using the initial points')
-            print('Baseline level: ', round(baseline_level))
+            logger.info('Baseline corrected using the initial points')
+            logger.info('Baseline level: %i' % round(baseline_level))
         else:
-            print('Not applying any correction')
+            logger.info('Not applying any baseline correction')
 
         if normalised:
+            logger.debug('Normalising the data')
             y /= y.max()
 
         # create and plot the figure
@@ -380,23 +392,25 @@ class TimeTrace(BasicSignalVariable):
         ax.plot(self['t'], y, **line_options)
         ax_options.update(ax_params)
         ax = ssplt.axis_beauty(ax, ax_options)
-        plt.tight_layout()
+
         if created_ax:
+            plt.tight_layout()
             fig.show()
         plt.draw()
         return ax
 
     def plot_all(self, ax_par: dict = {}, line_par: dict = {}):
         """
-        Plot the sum time trace, the average timetrace and the std ones
+        Plot the sum time trace, the average timetrace and the std ones.
 
         Jose Rueda: jrrueda@us.es
 
         Plot the sum, std and average of the roi
+
         :param  options: Dictionary containing the options for the axis_beauty
         function. Notice, the y and x label are fixed, if present in the
         options, they will be ignored
-        :return fig_tt: figure where the time trace has been plotted
+
         :return axes: list of axes where the lines have been plotted
         """
         # Initialise the options for the plotting
@@ -430,3 +444,33 @@ class TimeTrace(BasicSignalVariable):
         plt.show()
 
         return [ax_tt1, ax_tt2, ax_tt3]
+
+    @property
+    def mean_of_roi(self):
+        """
+        Return the mean of the ROI.
+
+        Pablo Oyola - poyola@us.es
+        """
+
+        return self._data['mean_of_roi'].copy()
+
+    @property
+    def sum_of_roi(self):
+        """
+        Return the mean of the ROI.
+
+        Pablo Oyola - poyola@us.es
+        """
+
+        return self._data['sum_of_roi'].copy()
+
+    @property
+    def std_of_roi(self):
+        """
+        Standard deviation of the ROI.
+
+        Pablo Oyola - poyola@us.es
+        """
+
+        return self._data['std_of_roi'].copy()

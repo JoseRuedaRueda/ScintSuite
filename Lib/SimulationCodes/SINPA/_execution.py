@@ -8,9 +8,9 @@ Introduced in version 6.0.0
 import os
 import f90nml
 import numpy as np
-# import math
+# import math Lib/SimulationCodes/Common
 import Lib.SimulationCodes.SINPA._reading as reading
-import Lib.SimulationCodes.Common.fields as simcomFields
+from ..Common import fields as simcomFields
 import Lib.SimulationCodes.Common.geometry as simcomGeo
 from Lib._Machine import machine
 from Lib._Paths import Path
@@ -272,7 +272,7 @@ def write_namelist(nml, p=None, overwrite=True):
 
     :param  nml: namelist containing the desired fields.
     :param  p: full path towards the run directory for SINPA. In principle it
-        will take it from the path of the suite. Please do not use this input
+        will take it from the path of the namelist. Please do not use this input
         except you really know what are you doing and want to change something
     :param  overwrite: flag to overwrite the namelist (if exist)
 
@@ -283,7 +283,7 @@ def write_namelist(nml, p=None, overwrite=True):
     keys_lower_config = [key.lower() for key in nml['config'].keys()]
     keys_input = [key for key in nml['inputParams'].keys()]
     keys_config = [key for key in nml['config'].keys()]
-    # Check gyr and xi
+    # Check gyr and xi, adn run ID
     for ik, k in enumerate(keys_lower_config):
         if k == 'ngyroradius':
             for ik2, k2 in enumerate(keys_lower_input):
@@ -292,13 +292,16 @@ def write_namelist(nml, p=None, overwrite=True):
                         len(nml['inputParams'][keys_input[ik2]])
                     if noMecabeFlag:
                         raise errors.WrongNamelist('Revise n of gyroradius')
-        if k == 'nxi':
+        elif k == 'nxi':
             for ik2, k2 in enumerate(keys_lower_input):
                 if k2 == 'xi':
                     noMecabeFlag = nml['config'][keys_config[ik]] != \
                         len(nml['inputParams'][keys_input[ik2]])
                     if noMecabeFlag:
                         raise errors.WrongNamelist('Revise n of xi')
+        elif k == 'runid':
+            if len(nml['config'][keys_config[ik]]) > 50:
+                raise errors.WrongNamelist('runID is too long, reduce it!')
     # Initialise the path
     if p is None:
         p = nml['config']['runfolder']
@@ -343,7 +346,8 @@ def check_files(runID: str):
     return go
 
 
-def executeRun(runID: str, queue: bool = False, cluster: str = 'MPCDF'):
+def executeRun(runID: str, queue: bool = False, cluster: str = 'MPCDF',
+               namelistFile: str = None):
     """
     Execute a SINPA simulation
 
@@ -357,7 +361,11 @@ def executeRun(runID: str, queue: bool = False, cluster: str = 'MPCDF'):
     """
     if not queue:       # Just execute the code in the current terminal
         SINPAbinary = os.path.join(paths.SINPA, 'bin', 'SINPA.go')
-        p = os.path.join(paths.SINPA, 'runs', runID, 'inputs', runID + '.cfg')
+        if namelistFile is None:
+            p = os.path.join(paths.SINPA, 'runs', runID, 'inputs',
+                             runID + '.cfg')
+        else:
+            p = namelistFile
         os.system(SINPAbinary + ' ' + p)
     else:  # Prepare a simulation to be launched in the queue
         if cluster.lower() == 'mpcdf':

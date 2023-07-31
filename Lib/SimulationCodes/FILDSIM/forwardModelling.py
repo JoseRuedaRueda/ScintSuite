@@ -62,7 +62,7 @@ def gaussian_input_distribution(r0, sr0, p0, sp0, B=1.8, A=2.0, Z=1, F=1e6,
     return distro
 
 
-def read_ASCOT_distribution(file, version: int = 4, IpBt_sign=-1.0):
+def read_ASCOT_distribution(file, version: int = 4, IpBt_sign=-1.0, B=None):
     """
     Read a distribution coming from ASCOT
 
@@ -83,13 +83,20 @@ def read_ASCOT_distribution(file, version: int = 4, IpBt_sign=-1.0):
         names = []
         help = []
         units = []
-        for i in range(10, 29):
-            nam, h = header[i].split('-')
-            names.append(nam.strip())
-            help.append(h.strip())
-            dummy, dummy2 = h.split('(')
-            uni, dummy = dummy2.split(')')
-            units.append(uni.strip())
+        try:
+            for i in range(10, 29):
+                nam, h = header[i].split('-')
+                names.append(nam.strip())
+                help.append(h.strip())
+                dummy, dummy2 = h.split('(')
+                uni, dummy = dummy2.split(')')
+                units.append(uni.strip())
+        except ValueError:
+            # We havve a dummy file with no header
+            names = ['R', 'phi', 'z', 'energy', 'pitch', 
+                     'Anum', 'Znum', 'weight', 'time']
+            header = 'Hardcored format file'
+            units = ['m', 'm', 'deg', 'eV', '', 'proton', 'e', 'ions/MC', 's']
         out['header'] = header
         out['help'] = help
         out['units'] = units
@@ -105,7 +112,8 @@ def read_ASCOT_distribution(file, version: int = 4, IpBt_sign=-1.0):
                 out['B'] = np.sqrt(out['Bphi']**2 + out['Bz']**2
                                    + out['BR']**2)
             except KeyError:
-                print('Not possible to calculate B')
+                print('Not possible to calculate B, assuming from inputs')
+                out['B'] = B*np.ones(out['n'])
 
         # --- Try to calculate the pitch:
         if 'pitch' not in out.keys():
@@ -125,7 +133,7 @@ def read_ASCOT_distribution(file, version: int = 4, IpBt_sign=-1.0):
                 out['gyroradius'] = r
             except KeyError:
                 print('Not possible to calculate gyroradius')
-        return out
+    return out
 
 
 def distribution_tomography_frame(g_grid, p_grid, coefficients,
@@ -198,6 +206,8 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
             'signal': signal matrix [ngyr, npitch], the units will be the ones
             of the input, divided by dgyr and dpitch. And, if efficiency is
             included, multiplied by photons/ions
+    
+    TODO: Units of energy for the fficiecny calculation now are assumed as keV
     """
     # Initialise the diag_params:
     diag_parameters = {
@@ -213,20 +223,20 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
             smap.load_strike_points()
         else:
             smap.load_strike_points(spoints)
-    if smap.resolution is None:
-        smap.calculate_resolutions(diag_params=diag_parameters)
+    if smap._resolutions is None:
+        smap.calculate_phase_space_resolution(diag_params=diag_parameters)
 
     # --- Prepare the models for the signal calculation:
     # Just for consitency, use the same one we use for the resolution
     # calculation
-    if smap.resolution['pitch_model'] == 'Gauss':
+    if smap._resolutions['model_pitch'] == 'Gauss':
         pitch_func = lmfit.models.GaussianModel().func
-    elif smap.resolution['pitch_model'] == 'sGauss':
+    elif smap._resolutions['model_pitch'] == 'sGauss':
         pitch_func = lmfit.models.SkewedGaussianModel().func
 
-    if smap.resolution['gyroradius_model'] == 'Gauss':
+    if smap._resolutions['model_gyroradius'] == 'Gauss':
         g_func = lmfit.models.GaussianModel().func
-    elif smap.resolution['gyroradius_model'] == 'sGauss':
+    elif smap._resolutions['model_gyroradius'] == 'sGauss':
         g_func = lmfit.models.SkewedGaussianModel().func
     # --- Calculate the signal:
     # Make the comparison if efficiency is None or not, to avoid doing it
@@ -236,10 +246,10 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
     else:
         eff = False
     # Remove all the values outside the Smap, to avoid NaN:
-    gmax = smap.unique_gyroradius.max()
-    gmin = smap.unique_gyroradius.min()
-    ppmax = smap.unique_pitch.max()
-    ppmin = smap.unique_pitch.min()
+    gmax = smap.MC_variables[1].data.max()
+    gmin = smap.MC_variables[1].data.min()
+    ppmax = smap.MC_variables[0].data.max()
+    ppmin = smap.MC_variables[0].data.min()
     flags = (distro['gyroradius'] > gmin) * (distro['gyroradius'] < gmax) \
         * (distro['pitch'] > ppmin) * (distro['pitch'] < ppmax)
     flags = flags.astype(bool)
@@ -275,22 +285,23 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
     for i in range(len(distro_gyr)):
         # Interpolate sigmas, gammas and collimator_factor
         g_parameters = {}
-        for k in parameters_to_consider[smap.resolution['gyroradius_model']]:
+        for k in parameters_to_consider[smap._resolutions['model_gyroradius']]:
             g_parameters[k] = \
-                smap.interpolators['gyroradius'][k](
-                    distro_gyr[i], distro_pitch[i])
+                smap._interpolators_instrument_function['gyroradius'][k](
+                    distro_pitch[i], distro_gyr[i])
         p_parameters = {}
-        for k in parameters_to_consider[smap.resolution['pitch_model']]:
+        for k in parameters_to_consider[smap._resolutions['model_pitch']]:
             p_parameters[k] = \
-                smap.interpolators['pitch'][k](distro_gyr[i], distro_pitch[i])
+                smap._interpolators_instrument_function['pitch'][k](
+                    distro_pitch[i], distro_gyr[i])
 
-        col_factor = smap.interpolators['collimator_factor'](
-            distro_gyr[i], distro_pitch[i]) / 100.0
+        col_factor = smap._interpolators_instrument_function['collimator_factor'](
+            distro_pitch[i], distro_gyr[i]) / 100.0
 
         if eff:
             signal += col_factor * g_func(g_grid.flatten(), **g_parameters) \
                 * pitch_func(p_grid.flatten(), **p_parameters)\
-                * distro_w[i] * efficiency.interpolator(distro_energy[i])
+                * distro_w[i] * efficiency(distro_energy[i]/1000.0)
         else:
             dummy = col_factor * g_func(g_grid.flatten(), **g_parameters) \
                     * pitch_func(p_grid.flatten(), **p_parameters)\
@@ -411,13 +422,13 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     # --- Check inputs and initialise the settings
     # check/load strike map
     if isinstance(smap, str):  # if it is string, load the file.
-        if spoints is None:
-            raise Exception('StrikePoints file needed!!')
+        # if spoints is None:
+        #     raise Exception('StrikePoints file needed!!')
         print('Reading strike map: ', smap)
         smap = ssmapping.StrikeMap(file=smap)
         smap.load_strike_points(spoints)
-    if smap.resolution is None:
-        smap.calculate_resolutions(diag_params=diag_parameters)
+    if smap._resolutions is None:
+        smap.calculate_phase_space_resolution(diag_params=diag_parameters)
     # check/load the scintillator
     if isinstance(scintillator, str):  # if it is string, load the file.
         print('Reading scintillator: ', scintillator)
@@ -429,10 +440,10 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
         ysize = camera_parameters['px_y_size'] * camera_parameters['ny']
         chip_min_length = np.minimum(xsize, ysize)
 
-        xscint_size = scintillator.coord_real[:, 1].max() \
-            - scintillator.coord_real[:, 1].min()
-        yscint_size = scintillator.coord_real[:, 2].max() \
-            - scintillator.coord_real[:, 2].min()
+        xscint_size = scintillator.coord_real['x1'].max() \
+            - scintillator.coord_real['x1'].min()
+        yscint_size = scintillator.coord_real['x1'].max() \
+            - scintillator.coord_real['x2'].min()
         scintillator_max_length = np.maximum(xscint_size, yscint_size)
 
         beta = chip_min_length / scintillator_max_length
@@ -442,13 +453,14 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
         camera_parameters = ssio.read_camera_properties(camera_parameters)
     # Grid for the synthetic signal at the scintillator
     scint_signal_options = {
-        'gmin': 1.5,
-        'gmax': 10.0,
-        'dg': 0.1,
+        'rmin': 1.5,
+        'rmax': 10.0,
+        'dr': 0.1,
         'pmin': 20.0,
         'pmax': 80.0,
         'dp': 1.0,
     }
+    scint_signal_options.update(scint_synthetic_signal_params)
     # Noise options:
     noise_options = {
         'dark_readout': {
@@ -492,6 +504,7 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     # Camera range:
     max_count = 2 ** camera_parameters['range'] - 1
     # --- Calculate the synthetic signal at the scintillator
+    print(scint_signal_options)
     scint_signal = synthetic_signal_remap(pinhole_distribution, smap,
                                           efficiency=efficiency,
                                           **scint_signal_options)
@@ -500,20 +513,21 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     px_center = int(camera_parameters['ny'] / 2)
     py_center = int(camera_parameters['nx'] / 2)
     # center the scintillator at the coordinate origin
-    y_scint_center = 0.5 * (scintillator.coord_real[:, 1].max()
-                            + scintillator.coord_real[:, 1].min())
-    x_scint_center = 0.5 * (scintillator.coord_real[:, 2].max()
-                            + scintillator.coord_real[:, 2].min())
-    scintillator.coord_real[:, 1] -= y_scint_center
-    scintillator.coord_real[:, 2] -= x_scint_center
+    y_scint_center = 0.5 * (scintillator._coord_real['x2'].max()
+                            + scintillator._coord_real['x2'].min())
+    x_scint_center = 0.5 * (scintillator._coord_real['x1'].max()
+                            + scintillator._coord_real['x1'].min())
+    scintillator._coord_real['x2'] -= y_scint_center
+    scintillator._coord_real['x1']-= x_scint_center
     # shift the strike map by the same quantity:
-    smap.y -= y_scint_center
-    smap.z -= x_scint_center
+    smap._data['x2'].data -= y_scint_center
+    smap._data['x1'].data -= x_scint_center
     # center of the scintillator in pixel space
     px_0 = px_center + px_shift
     py_0 = py_center + py_shift
     # Scale to relate scintillator to camera
     xscale = optics_parameters['beta'] / camera_parameters['px_x_size']
+    print('Xscale: ', xscale)
     yscale = optics_parameters['beta'] / camera_parameters['px_y_size']
     # calculate the pixel position of the scintillator vertices
     transformation_params = ssmapping.CalParams()
@@ -524,12 +538,13 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     scintillator.calculate_pixel_coordinates(transformation_params)
     # Align the strike map:
     smap.calculate_pixel_coordinates(transformation_params)
-    smap.interp_grid((camera_parameters['nx'], camera_parameters['ny']))
+    smap.interp_grid((camera_parameters['nx'], camera_parameters['ny']),
+                     MC_number=0)
 
     # --- Map scintillator and grid to frame
     n_gyr = scint_signal['gyroradius'].size
     n_pitch = scint_signal['pitch'].size
-    synthetic_frame = np.zeros(smap.gyr_interp.shape)
+    synthetic_frame = np.zeros(smap._grid_interp['gyroradius'].shape)
     for ir in range(n_gyr):
         # Gyroradius limits to integrate
         gmin = scint_signal['gyroradius'][ir] - scint_signal['dgyr'] / 2.
@@ -539,13 +554,13 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
             pmin = scint_signal['pitch'][ip] - scint_signal['dp'] / 2.
             pmax = scint_signal['pitch'][ip] + scint_signal['dp'] / 2.
             # Look for the pixels which cover this region:
-            flags = (smap.gyr_interp >= gmin) * (smap.gyr_interp < gmax) \
-                * (smap.pit_interp >= pmin) * (smap.pit_interp < pmax)
+            flags = (smap._grid_interp['gyroradius'] >= gmin) * (smap._grid_interp['gyroradius'] < gmax) \
+                * (smap._grid_interp['pitch'] >= pmin) * (smap._grid_interp['pitch'] < pmax)
             flags = flags.astype(bool)
             # If there are some pixels, just divide the value weight among them
             n = np.sum(flags)
             if n > 0:
-                synthetic_frame[flags] = scint_signal['signal'][ir, ip] / n \
+                synthetic_frame[flags] = scint_signal['signal'][ip, ir] / n \
                     * scint_signal['dgyr'] * scint_signal['dp']
     # --- Now apply all factors
     # Divide by 4\pi, ie, assume isotropic emission of the scintillator
@@ -562,6 +577,7 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     synthetic_frame *= exp_time
     # Pass to integer, as we are dealing with counts
     synthetic_frame = synthetic_frame.astype(np.int)
+    original_frame = synthetic_frame.copy()
     # --- Add noise
     noise = {
         'dark_readout': None,
@@ -629,14 +645,17 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     output = {
         'noise': noise,
         'camera_frame': distorted_frame,
-        'original_camera_frame': synthetic_frame,
+        'original_camera_frame_no_dist': synthetic_frame,
+        'original_camera_frame': original_frame,
+        'remap_frame': scint_signal
     }
     if plot:
         fig, ax = plt.subplots()
-        ax.imshow(distorted_frame, cmap=ssplt.Gamma_II(), origin='lower',
-                  vmin=0, vmax=vmax)
-        smap.plot_pix(ax)
+        img = ax.imshow(distorted_frame, cmap=ssplt.Gamma_II(), origin='lower',
+                  vmin=0, vmax=255)
+        smap.plot_pix(ax, labels=False)
         scintillator.plot_pix(ax)
+        plt.colorbar(img)
         fig.show()
     return output
 

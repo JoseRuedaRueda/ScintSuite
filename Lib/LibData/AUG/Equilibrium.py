@@ -41,7 +41,7 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     # If the equilibrium object is not an input, let create it
     # created = False
     if equ is None:
-        equ = sf.EQU(shot, diag=diag, ed=ed)
+        equ = sf.EQU(shot, diag=diag, ed=ed, exp=exp)
     # Now calculate the field
     # br, bz, bt = equ.rz2brzt(Rin, zin, t_in=time)
     br, bz, bt = sf.rz2brzt(equ, r_in=Rin, z_in=zin, t_in=time)
@@ -352,7 +352,18 @@ def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
         }
     else:
         output = xr.Dataset()
-        jend = np.where(np.isnan(rhop[:, 0]))[0][0]
+        found = False
+        counter = 0
+        while not found:
+            try:
+                jend = np.where(np.isnan(rhop[:, counter]))[0][0]
+                found = True
+            except IndexError:
+                counter += 1
+                if counter == rhop.shape[1]:
+                    print(counter)
+                    raise Exception('problem with the base')
+
         output['data'] = xr.DataArray(qpsi[:jend, :], dims=('rho', 't'),
                                       coords={'rho': rhop[:jend, 0],
                                       't': timebasis})
@@ -468,7 +479,8 @@ def get_ECRH_traces(shot: int, time: float = None, ec_list: list = None):
     return output
 
 
-def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None):
+def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None,
+                  xArrayOutput: bool = False):
     """
     Returns the total ECRH power from the ECS shotfile in AUG.
 
@@ -487,8 +499,8 @@ def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None):
             'Cannot get the ECS shotfile for #%05d' % shot)
 
     pecrh = sf_ecs(name='PECRH')
-    time = sf_ecs('TIME')
-    print(time)
+    time = sf_ecs.gettimebase('PECRH')
+
 
     if tBeg is None:
         t0 = 0
@@ -504,10 +516,17 @@ def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None):
     pecrh = pecrh[t0:t1]
     time = time[t0:t1]
 
-    output = {
-        'power': pecrh,
-        'time': time
-    }
+    if xArrayOutput:
+        output = xr.DataArray(pecrh/1.0e6, dims='t', coords={'t': time})
+        output.attrs['long_name'] = '$P_{ECRH}$'
+        output.attrs['units'] = 'MW'
+        output.attrs['diag'] = 'ECS'
+        output.attrs['signal'] = 'PECRH'
+    else:
+        output = {
+            'power': pecrh,
+            'time': time
+        }
 
     return output
 
