@@ -167,6 +167,8 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             if header['FoilElossModel'] == 1:
                 header['FoilElossParameters'] = np.fromfile(fid, 'float64', 2)
             elif header['FoilElossModel'] == 2:
+                header['FoilElossParameters'] = np.fromfile(fid, 'float64', 3) 
+            elif header['FoilElossModel'] == 5:
                 header['FoilElossParameters'] = np.fromfile(fid, 'float64', 3)
             header['FoilYieldModel'] = np.fromfile(fid, 'int32', 1)[0]
             if header['FoilYieldModel'] == 1:
