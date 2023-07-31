@@ -9,20 +9,22 @@ import logging
 import datetime
 import numpy as np
 from Lib.decorators import deprecated
+from Lib._Mapping._Calibration import CalParams
+from scipy.interpolate import griddata
 logger = logging.getLogger('ScintSuite.MappingCommon')
 try:
     import lmfit
 except (ImportError, ModuleNotFoundError):
-    logger.wargning('10: You cannot calculate resolutions')
+    logger.warning('10: You cannot calculate resolutions')
 __all__ = ['transform_to_pixel', 'XYtoPixel', '_fit_to_model_',
            'remap', 'gyr_profile', 'pitch_profile',
            'estimate_effective_pixel_area']
 
 
 # -----------------------------------------------------------------------------
-# --- Scintillator to pixels
+# ---- Real position to pixels
 # -----------------------------------------------------------------------------
-def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
+def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal: CalParams):
     """
     Transform from X,Y coordinates (scintillator) to pixels in the camera.
 
@@ -32,10 +34,25 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
     :param  x: np.array of positions to be transformed, x coordinate
     :param  y: np.array of positions to be transformed, y coordinate
     :param  cal: Object containing all the information for the
-    transformation, see class CalParams()
+        transformation, see class CalParams()
 
     :return xpixel: x positions in pixels
     :return ypixel: y position in pixels
+
+    :Example:
+
+    >>> # Initialise the calibration object
+    >>> import Lib as ss
+    >>> import numpy as np
+    >>> cal = ss.mapping.CalParams()
+    >>> # Fill the calibration
+    >>> cal.xscale = cal.yscale = 27.0
+    >>> cal.xshift = cal.yshift = 0.0
+    >>> cal.deg = 25.0
+    >>> # Apply the calibration
+    >>> x = np.array([35, 45, 22, 105])
+    >>> y = np.array([15, 35, 27, 106])
+    >>> xp, yp = ss.mapping.transform_to_pixel(x, y, cal)
     """
     eps = 1e-7  # Level for the distortion coefficient to be considered as
     #             zero (see below)
@@ -69,7 +86,7 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
                 rp_copy[flags] = rp_copy
             else:
                 # When k < 0, there is no way the determinant goes to negative.
-                rp_copy = rp_copy
+                rp_copy = rp.copy()
             d = (1-np.sqrt(1-4*cal.c1*rp**2))/(2*cal.c1*rp)
             xpixel = xp*(1+cal.c1*d**2) + cal.xcenter
             ypixel = yp*(1+cal.c1*d**2) + cal.ycenter
@@ -78,11 +95,11 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal):
 
 class XYtoPixel:
     """
-    Parent class for object with both coordinates in real and camera space
+    Parent class for object with both coordinates in real and camera space.
 
-    For example for Scintillator and strike maps, which contain information of
+    For example for Scintillator and strike-maps, which contain information of
     their coordinates in the real space and of their coordinates in the camera
-    (pixel) space
+    (pixel) space.
 
     It is not intended to be initialised directly by the user. The StrikeMap, or
     scintillator objects will do it. Pease use those child classes.
@@ -94,10 +111,10 @@ class XYtoPixel:
 
     def __init__(self):
         """
-        Initialise the object
+        Initialise the object.
 
         Notice that this is just a parent class, each child (scintillator or
-        strike map), will fill its contents as needed
+        strike map), will fill its contents as needed.
         """
         ## Coordinates of the vertex of the scintillator (X,Y,Z).
         self._coord_real = {
@@ -114,7 +131,7 @@ class XYtoPixel:
         }
         self.CameraCalibration = None
 
-    def calculate_pixel_coordinates(self, cal):
+    def calculate_pixel_coordinates(self, cal) -> None:
         """
         Transfom real coordinates into pixel.
 
@@ -162,8 +179,9 @@ def estimate_effective_pixel_area(frame_shape, xscale: float, yscale: float,
 
     return area
 
+
 # -----------------------------------------------------------------------------
-# --- Fitting functions
+# ---- Fitting functions
 # -----------------------------------------------------------------------------
 def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
                    normalize: bool = True,
@@ -232,7 +250,7 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
 
 
 # -----------------------------------------------------------------------------
-# --- Remap and profiles
+# ---- Remap and profiles
 # -----------------------------------------------------------------------------
 def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
     """
@@ -250,11 +268,16 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
     :param  method: procedure for the remap
         - MC: Use the transformation matrix calculated with markers at the chip
         - centers: Consider just the center of each pixel (Old IDL method)
+        - griddata: Consider the center ofeach pixel and interpolate among them
+
+    :Notes:
+    - The different modules and video objects will call this method
+      internally. Please ony call it directly if you know what you are doing
     """
     # --- 0: Check inputs
     if smap._grid_interp is None:
         text = '27: Interpolators not present in the strike map'\
-               +    ', calculating them with default settings'
+               + ', calculating them with default settings'
         logger.warning(text)
         if method.lower() == 'mc':
             # Deduce the needed grid. This is for the case we need to calculate
@@ -279,13 +302,14 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
                              grid_params=grid_params)
         else:
             smap.interp_grid(frame.shape, MC_number=0)
-
+    if mask is not None and method.lower() == 'griddata':
+        raise NotImplementedError('Sorry, not implemented')
     if method.lower() == 'mc':  # Monte Carlo approach to the remap
         # Get the name of the transformation matrix to use
         name = smap._to_remap[0].name + '_' + smap._to_remap[1].name
         if mask is None:
             H = np.tensordot(smap._grid_interp['transformation_matrix'][name],
-                             frame, 2)
+                             frame.astype(float), 2)
         else:
             # Set to zero everything outside the mask
             dummy_frame = frame.copy()
@@ -293,7 +317,31 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
             # Perform the tensor product as before
             H = np.tensordot(smap._grid_interp['transformation_matrix'][name],
                              dummy_frame, 2)
-
+    elif method.lower() == 'griddata': # grid data interpolation
+        logger.warning('This method does not conserve the signal integral. Avoid it')
+        namex = smap._to_remap[0].name
+        namey = smap._to_remap[1].name
+        # --- 1: Information of the calibration
+        # Get the phase variables at each pixel
+        x = smap._grid_interp[namex].flatten()
+        y = smap._grid_interp[namey].flatten()
+        dummy = np.column_stack((x, y))
+        # --- 2: Remap
+        xcenter = 0.5 * (x_edges[1:] + x_edges[:-1])
+        ycenter = 0.5 * (y_edges[1:] + y_edges[:-1])
+        XX, YY = np.meshgrid(xcenter, ycenter, indexing='ij')
+        if mask is None:
+            z = frame.flatten().astype(float)
+        else:
+            z = frame.copy().astype(float)
+            z[~mask] = 0
+            z = z.flatten()
+        H = griddata(dummy, z, (XX.flatten(), YY.flatten()),
+                     method='linear', fill_value=0).reshape(XX.shape)
+        # Normalise H to counts per unit of each axis
+        delta_x = xcenter[1] - xcenter[0]
+        delta_y = ycenter[1] - ycenter[0]
+        H /= delta_x * delta_y
     else:  # similar to old IDL implementation, faster but noisy
         namex = smap._to_remap[0].name
         namey = smap._to_remap[1].name
@@ -304,9 +352,9 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
 
         # --- 2: Remap (via histogram)
         if mask is None:
-            z = frame.flatten()
+            z = frame.flatten().astype(float)
         else:
-            z = frame.copy()
+            z = frame.copy().astype(float)
             z[~mask] = 0
             z = z.flatten()
         H, xedges, yedges = np.histogram2d(x, y, bins=[x_edges, y_edges],

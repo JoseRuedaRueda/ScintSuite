@@ -22,7 +22,7 @@ try:
     pyfftw.interfaces.cache.set_keepalive_time(30)
 except ModuleNotFoundError:
     print('Only partial support for fft')
-    print('Install pyfft for full support')
+    print('Install pyfftw for full support')
 
 # -----------------------------------------------------------------------------
 # --- Band filters
@@ -459,6 +459,7 @@ def myCPSD(sig1, sig2, time1, freq1, time2, freq2):
                            bounds_error=False)
     sig2_fun_i  = interp2d(time2, freq2, sig2.imag, kind='linear',
                            bounds_error=False)
+    # The -j is because we need to multiply by the complex conjugate
     sig2_on1  = sig2_fun_r(time1, freq1) - 1j*sig2_fun_i(time1, freq1)
 
     # Computing the element-wise matrix product:

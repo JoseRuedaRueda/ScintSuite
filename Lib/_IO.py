@@ -22,9 +22,10 @@ from scipy.io import netcdf
 from Lib._Mapping._Calibration import CalParams
 from Lib.version_suite import version
 from Lib._Paths import Path
+from Lib.decorators import deprecated
 from Lib._Video._FILDVideoObject import FILDVideo
 from Lib._Video._INPAVideoObject import INPAVideo
-
+from typing import Union
 
 # Initialise the objects
 logger = logging.getLogger('ScintSuite.IO')
@@ -34,7 +35,7 @@ paths = Path()
 # -----------------------------------------------------------------------------
 # --- Checking and asking for files
 # -----------------------------------------------------------------------------
-def check_save_file(file):
+def check_save_file(file) -> str:
     """
     Check if the file exist, if yes, open a window to select a new filename
 
@@ -42,7 +43,7 @@ def check_save_file(file):
 
     :param  file: the filename to test if exist
 
-    :return out: fir file does not exist, return the same filename, if exist,
+    :return out: if file does not exist, return the same filename, if exist,
     open a window for the user to select the filename he wants
     """
     if not os.path.isfile(file):
@@ -55,7 +56,7 @@ def check_save_file(file):
     return out
 
 
-def check_open_file(file):
+def check_open_file(file) -> str:
     """
     Check if the file exist, if no, open a window to select a new filename
 
@@ -77,7 +78,7 @@ def check_open_file(file):
     return out
 
 
-def ask_to_save(dir=None, ext=None):
+def ask_to_save(dir=None, ext=None) -> str:
     """
     Open a dialogue to choose the file to be saved
 
@@ -97,7 +98,7 @@ def ask_to_save(dir=None, ext=None):
     return out
 
 
-def ask_to_open(dir: str = None, ext: str = None, filetype=None):
+def ask_to_open(dir: str = None, ext: str = None, filetype=None) -> str:
     """
     Open a dialogue to choose the file to be opened
 
@@ -122,7 +123,7 @@ def ask_to_open(dir: str = None, ext: str = None, filetype=None):
     return out
 
 
-def ask_to_open_dir(path: str = None):
+def ask_to_open_dir(path: str = None) -> str:
     """
     Open a dialogue to choose the directory to be opened
 
@@ -142,7 +143,7 @@ def ask_to_open_dir(path: str = None):
 # -----------------------------------------------------------------------------
 # --- General reading
 # -----------------------------------------------------------------------------
-def read_variable_ncdf(file, varNames, human=True, verbose=True):
+def read_variable_ncdf(file:str , varNames, human=True, verbose=True)->list:
     """
     Read a variable from a  netCDF file
 
@@ -154,6 +155,7 @@ def read_variable_ncdf(file, varNames, human=True, verbose=True):
     open a window for the user to select the proper file, if False, we assume
     that this functions used inside some kind of automatic way by some script
     so just give an exception
+    :param  verbose: deprecated, no longer use
     :return data: values of the variable
     :return units: physical units
     :return long_name: name of the variable
@@ -170,19 +172,18 @@ def read_variable_ncdf(file, varNames, human=True, verbose=True):
     out = []
     varfile = netcdf.netcdf_file(file, 'r', mmap=False).variables
     for ivar in range(len(listNames)):
-        if verbose:
-            print('Reading: ', listNames[ivar])
+        logger.info('Reading: %s' % listNames[ivar])
         try:
             dummy = varfile[listNames[ivar]]
             out.append(dummy)
             del dummy
         except KeyError:
-            print('Var not found')
+            logger.warning('Var %s not found' % listNames[ivar])
             out.append(None)
     return out
 
 
-def print_netCDF_content(file, long_name=False):
+def print_netCDF_content(file: str, long_name=False)->None:
     """
     Print the list of variables in a netcdf file
 
@@ -205,7 +206,7 @@ def print_netCDF_content(file, long_name=False):
 # -----------------------------------------------------------------------------
 # --- ROIs
 # -----------------------------------------------------------------------------
-def save_mask(mask, filename=None, nframe=None, shot=None, frame=None):
+def save_mask(mask, filename=None, nframe=None, shot=None, frame=None)->str:
     """
     Save the mask used in timetraces and remap calculations
 
@@ -216,6 +217,8 @@ def save_mask(mask, filename=None, nframe=None, shot=None, frame=None):
     :param  nframe: the frame number used to define the roi (optional)
     :param  shot: Shot number of the video used to define the roi (optional)
     :param  frame: Frame used to define the roi
+
+    :return filename: (str) the filename used to save the mask
     """
     # --- Check if the file exist
     if filename is None:    # If no file is given, just take the 'standard'
@@ -268,9 +271,10 @@ def save_mask(mask, filename=None, nframe=None, shot=None, frame=None):
         m[:] = mask
         m.units = ' '
         m.long_name = 'Binary mask'
+    return filename
 
 
-def load_mask(filename):
+def load_mask(filename: str)->dict:
     """
     Load a binary mask to use in timetraces, remaps or VRT images
 
@@ -303,36 +307,19 @@ def load_mask(filename):
 # -----------------------------------------------------------------------------
 # --- TimeTraces
 # -----------------------------------------------------------------------------
-# def read_timetrace(file=None):
-#     """
-#     Read a timetrace created with the suite
-#
-#     Jose Rueda: jrrueda@us.es
-#
-#     Note: If just a txt file is passed as input, only the trace will be loaded,
-#     as the mask and extra info are not saved in the txt. netcdf files are
-#     preferred
-#
-#     @todo: implement netcdf part
-#
-#     :param  filename: full path to the file to load, if none, a window will
-#     pop-up to do this selection
-#     """
-#     if file is None:
-#         file = ' '
-#         file = check_open_file(file)
-#         if file == '':
-#             raise Exception('You must select a file!!!')
-#     TT = sstt.TimeTrace()
-#     TT.time_base, TT.sum_of_roi, TT.mean_of_roi, TT.std_of_roi =\
-#         np.loadtxt(file, skiprows=2, unpack=True, delimiter='   ,   ')
-#     return TT
+def read_timetrace(file: str = None) -> None:
+    """
+    Read a timetrace created with the suite
+
+    Jose Rueda: jrrueda@us.es
+    """
+    raise Exception('Deprecated function, use ss.tt.TimeTrace() instead')
 
 
 # -----------------------------------------------------------------------------
 # --- Calibration
 # -----------------------------------------------------------------------------
-def read_calibration(file=None, verbose: bool = False):
+def read_calibration(file: str = None, verbose: bool = False)->CalParams:
     """
     Read the used calibration from a remap netCDF file
 
@@ -349,25 +336,31 @@ def read_calibration(file=None, verbose: bool = False):
     logger.info('-.-. .- .-.. .. -... .-. .- - .. --- -.')
     cal = CalParams()
     list = ['xshift', 'yshift', 'xscale', 'yscale', 'deg', 'xcenter', 'ycenter',
-            'c1', 'c2']
+            'c1', 'c2', 'nxpix', 'nypix', 'camera']
     var = read_variable_ncdf(file, list, human=False, verbose=False)
     cal.xshift = var[0].data[:]
     cal.yshift = var[1].data[:]
     cal.xscale = var[2].data[:]
     cal.yscale = var[3].data[:]
     cal.deg = var[4].data[:]
+    # Load the optional parameters
     if var[5] is not None:
         cal.xcenter = var[5].data[:]
         cal.ycenter = var[6].data[:]
         cal.c1 = var[7].data[:]
         cal.c2 = var[8].data[:]
+    if var[9] is not None:
+        cal.nxpix = var[9].data[:]
+        cal.nypix = var[10].data[:]
+    if var[11] is not None:
+        cal.camera = var[11].data[:]
     return cal
 
 
 # -----------------------------------------------------------------------------
 # --- Figures
 # -----------------------------------------------------------------------------
-def save_object_pickle(file, obj):
+def save_object_pickle(file, obj) -> str:
     """
     Just a wrapper to the pickle library to write files
 
@@ -375,6 +368,8 @@ def save_object_pickle(file, obj):
     :param  file: full path to the file to write the object
     :param  obj: object to be saved, can be a list if you want to save several
     ones
+
+    :param file: full path to the file to write the object
     """
     file = check_save_file(file)
     if file == '':
@@ -383,7 +378,7 @@ def save_object_pickle(file, obj):
     print('Saving object in: ', file)
     with open(file, 'wb') as f:
         pickle.dump(obj, f, protocol=4)
-    return
+    return file
 
 
 def load_object_pickle(file):
@@ -405,7 +400,7 @@ def load_object_pickle(file):
 # -----------------------------------------------------------------------------
 # --- Camera properties
 # -----------------------------------------------------------------------------
-def read_camera_properties(file: str):
+def read_camera_properties(file: str)->dict:
     """
     Read namelist with the camera properties
 
@@ -433,6 +428,7 @@ def read_camera_properties(file: str):
 # -----------------------------------------------------------------------------
 # --- Tomography
 # -----------------------------------------------------------------------------
+# @deprecated('Use the export option from the strike map!!!')
 def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
                 efficiency: bool = False):
     """
@@ -538,9 +534,11 @@ def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
 # -----------------------------------------------------------------------------
 # --- Remaped videos
 # -----------------------------------------------------------------------------
-def load_remap(filename, diag='FILD'):
+def load_remap(filename, diag='FILD')->Union[FILDVideo, INPAVideo]:
     """
     Load a tar remap file into a video object
+
+    :param filename: path to the .tar file or the folder containing the files
     """
     if not os.path.isdir(filename):
         if filename is None:
@@ -573,9 +571,12 @@ def load_remap(filename, diag='FILD'):
     noise_frame = os.path.join(dummyFolder, 'noiseFrame.nc')
     position = os.path.join(dummyFolder, 'position.json')
     orientation = os.path.join(dummyFolder, 'orientation.json')
+    CameraData = os.path.join(dummyFolder, 'CameraData.json')
     if os.path.isfile(noise_frame):
         vid.exp_dat = xr.Dataset()
         vid.exp_dat['frame_noise'] = xr.load_dataarray(noise_frame)
+    if os.path.isfile(CameraData):
+        vid.CameraData = json.load(open(CameraData))
     with open(os.path.join(dummyFolder, 'metadata.txt'), 'r') as f:
         vid.shot = int(f.readline().split(':')[-1])
         vid.diag_ID = int(f.readline().split(':')[-1])
@@ -592,6 +593,8 @@ def load_remap(filename, diag='FILD'):
         vid._getNe()
     return vid
 
+
+@deprecated("Only for old FILD files, use load_remap for new ones instead")
 def load_FILD_remap(filename: str = None, verbose=True,
                     encoding: str = 'utf-8'):
     """

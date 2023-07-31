@@ -12,9 +12,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Lib._Video._AuxFunctions as aux
 from skimage import io                     # To load images
+from typing import List, Dict, Union
 
 
-def read_data(path, YOLO: bool = False):
+def read_data(path, YOLO: bool = False)-> List[Union[Dict, np.ndarray]]:
     """
     Read info for a case where the measurements are stored as png
 
@@ -185,7 +186,7 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
     :return M: array of frames, [px in x, px in y, number of frames]
     """
     # Frames would have a name as shot-framenumber.png example: 30585-001.png
-    print('Reading PNG files')
+    # print('Reading PNG files')
     # check the size of the files, data will be saved as float32
     size_frame = video_object.imageheader['biWidth'] * \
         video_object.imageheader['biWidth'] * 2 / 1024 / 1024
@@ -223,12 +224,12 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
 
         for file in sorted(os.listdir(video_object.path)):
             if file.endswith('.png'):
-                current_frame = current_frame + 1
                 if current_frame in frames_number:
                     pngname = os.path.join(video_object.path, file)
                     dummy = load_png(pngname)
                     M[:, :, counter] = dummy
                     counter = counter + 1
+                current_frame = current_frame + 1
                 if counter == video_object.header['ImageCount']:
                     break
         print('Number of loaded frames: ', counter)

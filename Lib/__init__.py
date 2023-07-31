@@ -12,18 +12,37 @@ documentation
 import os
 import f90nml
 import logging
+import shutil
 ## ----------------------------------------------------------------------------
 # --- Filters and color handler, logging
 
+home = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
 try:
-    home = os.getenv("HOME")
     file = \
-        os.path.join(home, 'ScintSuite', 'Data',
+        os.path.join(home, 'Data',
                      'MyData', 'IgnoreWarnings.txt')
     to_ignore = str(f90nml.read(file)['Warnings']['warningstoignore'])
 except FileNotFoundError:
+    file_template = \
+        os.path.join(home, 'Data', 'MyDataTemplates', 'IgnoreWarnings.txt')
+    shutil.copyfile(file_template, file)
     to_ignore = 'None'
 
+# Checking if paths and plot files are also in the MyData.
+file = os.path.join(home, 'Data',
+                    'MyData', 'Paths.txt')
+if not os.path.isfile(file):
+    file_template = \
+        os.path.join(home, 'Data', 'MyDataTemplates', 'Paths.txt')
+    shutil.copyfile(file_template, file)
+
+file = os.path.join(home, 'Data',
+                    'MyData', 'plotting_default_param.cfg')
+if not os.path.isfile(file):
+    file_template = \
+        os.path.join(home, 'Data', 'MyDataTemplates', 'plotting_default_param.cfg')
+    shutil.copyfile(file_template, file)
 
 class _NoParsingFilter(logging.Filter):
     def filter(self, record, to_ignore=to_ignore):
@@ -75,7 +94,7 @@ if len(Suite_logger.handlers) == 0:
     hnd = logging.StreamHandler()
     hnd.setFormatter(_CustomFormatter())
     Suite_logger.addHandler(hnd)
-Suite_logger.setLevel(logging.DEBUG)
+Suite_logger.setLevel(logging.INFO)
 Suite_logger.addFilter(_NoParsingFilter())
 Suite_logger.propagate = False
 
@@ -96,6 +115,9 @@ import Lib.errors as err
 # Load data
 import Lib.LibData as dat
 import Lib._ELM as ELM
+
+# custom fits models
+import Lib._CustomFitModels as cfm
 
 # Mapping
 import Lib._Mapping as mapping

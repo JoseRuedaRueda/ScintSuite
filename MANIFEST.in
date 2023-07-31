@@ -1,0 +1,15 @@
+recursive-include .setup *.txt
+recursive-include Data *.txt *.calib1 *.calib2 *.calib3 *.yml *.1 *.md *.cfg *.dat *.pl
+recursive-include Data *.org
+recursive-include Examples *.py *.org *.md
+recursive-include Extra_doc *.py *.org *.md
+recursive-include Lib *.py
+include .gitignore
+include CHANGELOG.md
+include CODE_OF_CONDUCT.md
+include Doxyfile
+include *.py
+include LICENSE.md
+include MANIFEST.in
+include paths_suite.py
+include README.md

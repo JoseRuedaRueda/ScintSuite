@@ -11,7 +11,7 @@ import pandas as pd
 from Lib._Paths import Path
 from Lib._Machine import machine
 from urllib.error import HTTPError
-from Lib._Mapping._Calibration import CalParams
+from Lib._Mapping._Calibration import CalParams, readCameraCalibrationDatabase
 import Lib.LibData.MU.DiagParam as params
 paths = Path(machine)
 
@@ -90,7 +90,8 @@ class FILD_logbook:
             print('.-.. --- --. -... --- --- -.-')
         # Load the camera database
         self.CameraCalibrationDatabase = \
-            self._readCameraCalibrationDatabase(cameraFile, verbose=verbose)
+            readCameraCalibrationDatabase(cameraFile, verbose=verbose,
+                                          n_header=3)
         # Load the position database
         # The position database is not distributed with the ScintSuite, so it
         # can happend that it is not available. For that reason, just in case
@@ -106,49 +107,6 @@ class FILD_logbook:
         self.geometryDatabase = \
             self._readGeometryDatabase(geometryFile, verbose=verbose)
         print('..-. .. -. .- .-.. .-.. -.--')
-
-    def _readCameraCalibrationDatabase(self, filename: str, n_header: int = 5,
-                                       verbose: bool = True):
-        """
-        Read the calibration database, to align the strike maps.
-
-        See the help PDF located at the readme file for a full description of
-        each available parameter
-
-        @author Jose Rueda Rueda: jrrueda@us.es
-
-        :param  filename: Complete path to the file with the calibrations
-        :param  n_header: Number of header lines (5 in the oficial format)
-
-        :return database: Pandas dataframe with the database
-        """
-        data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
-                'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
-                'deg': [], 'cal_type': [], 'diag_ID': []}
-
-        # Read the file
-        if verbose:
-            print('Reading Camera database from: ', filename)
-        with open(filename) as f:
-            for i in range(n_header):
-                dummy = f.readline()
-            # Database itself
-            for line in f:
-                dummy = line.split()
-                data['CalID'].append(int(dummy[0]))
-                data['camera'].append(dummy[1])
-                data['shot1'].append(int(dummy[2]))
-                data['shot2'].append(int(dummy[3]))
-                data['xshift'].append(float(dummy[4]))
-                data['yshift'].append(float(dummy[5]))
-                data['xscale'].append(float(dummy[6]))
-                data['yscale'].append(float(dummy[7]))
-                data['deg'].append(float(dummy[8]))
-                data['cal_type'].append(dummy[9])
-                data['diag_ID'].append(int(dummy[10]))
-        # Transform to pandas
-        database = pd.DataFrame(data)
-        return database
 
     def _readPositionDatabase(self, filename: str, verbose: bool = True):
         """

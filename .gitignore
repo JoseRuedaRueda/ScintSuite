@@ -24,6 +24,10 @@ Per_*
 fort*
 *.avi
 *.mp4
+*.pdf
+core.*
+*.js
+*.nc
 Data/MyData/paths.txt
 # -----------------------------------------------------------------------------
 # --- Folders to ignore
@@ -44,3 +48,7 @@ DoxiDoc/*
 html/*
 .idea/*
 .spyproject/*
+.vscode
+.owncloudsync*
+.sync_journal*
+.vscode/*

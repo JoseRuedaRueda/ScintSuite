@@ -28,6 +28,7 @@ def paths_of_the_suite():
     SUITE_DIR = os.getcwd()
     Suite_LIBs = {
         'Base': SUITE_DIR,
+        
     }
 
     # -- Machine dependent folders:
@@ -35,7 +36,8 @@ def paths_of_the_suite():
         'AUG': {
             'AUG_Python': '/afs/ipp/aug/ads-diags/common/python/lib',
             'Giovanni': '/afs/ipp/home/g/git/python/fbm/',
-            'FIDASIM4': os.path.join(os.getenv("HOME"), 'FIDASIM4')
+            'FIDASIM4': os.path.join(os.getenv("HOME"), 'FIDASIM4'),
+            'ihipsim': os.path.join(os.getenv("HOME"), 'ihibpsim', 'python')
             # 'Suite_AUG': os.path.join(SUITE_DIR, 'Lib/LibData/AUG')
         },
         'MU': {
@@ -59,6 +61,7 @@ def paths_of_the_suite():
     if machine == 'AUG':
         cluster = os.getenv('HOST')
         if cluster[:4] != 'toki':
+            print('We are in %s' % cluster)
             print('We are not in toki')
             print('The suite has not been tested outside toki')
             print('Things can go wrong!')

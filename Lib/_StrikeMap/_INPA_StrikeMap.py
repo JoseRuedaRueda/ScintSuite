@@ -4,17 +4,21 @@ Strike map for the INPA diagnostic
 Jose Rueda: jrrueda@us.es
 """
 import os
+import lmfit
 import logging
 import numpy as np
 import xarray as xr
 import Lib.LibData as ssdat
 import Lib.errors as errors
+import Lib._CustomFitModels as ssmodels
 from tqdm import tqdm
 from Lib._Machine import machine
 from scipy.signal import convolve
-from Lib._SideFunctions import createGrid, gkern
 from Lib._basicVariable import BasicVariable
+from Lib._SideFunctions import createGrid, gkern, createGrid1D
+from Lib.SimulationCodes.FILDSIM import get_energy
 from Lib.SimulationCodes.Common.strikes import Strikes
+from Lib.SimulationCodes.SINPA._INPA_strike_points import INPAStrikes
 from Lib._StrikeMap._FILD_INPA_ParentStrikeMap import FILDINPA_Smap
 
 logger = logging.getLogger('ScintSuite.INPAstrikeMap')
@@ -112,13 +116,13 @@ class Ismap(FILDINPA_Smap):
         # Allocate space for latter
         self.secondaryStrikes = None
 
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # --- Database interaction
-    #---------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def getRho(self, shot, time, coord: str = 'rho_pol',
-               extra_options: dict = {},):
+               extra_options: dict = {},) -> None:
         """
-        Get the rho coordinates associated to each strike point
+        Get the rho coordinates associated to each strike point.
 
         Jose Rueda: jrrueda@us.es
 
@@ -158,16 +162,20 @@ class Ismap(FILDINPA_Smap):
     # --- Weight function calculation
     # --------------------------------------------------------------------------
     def build_weight_matrix(self, strikes,
-                            variablesScint: tuple = ('R0', 'e0'),
-                            variablesFI: tuple = ('R0', 'e0'),
-                            weight: str = 'weight0',
-                            gridFI: dict = None,
-                            sigmaOptics: float = 4.5,
-                            verbose: bool = True,
-                            normFactor: float = 1.0,
-                            ):
+                                    variablesScint: tuple = ('R0', 'e0'),
+                                    variablesFI: tuple = ('R0', 'e0'),
+                                    weight: str = 'weight0',
+                                    gridFI: dict = None,
+                                    sigmaOptics: float = 4.5,
+                                    verbose: bool = True,
+                                    normFactor: float = 1.0,
+                                    energyFit=None,
+                                    B: float = 1.8,
+                                    Z: float = 1.0,
+                                    A: float = 2.01410,
+                                    ) -> None:
         """
-        Build the INPA weight function
+        Build the INPA weight function.
 
         For a complete documentation of how each submatrix is defined from the
         physics point of view, please see full and detailed INPA notes
@@ -182,20 +190,22 @@ class Ismap(FILDINPA_Smap):
         :param  sigmaOptics: fine resolution sigma of the optical system
         :param  verbose: flag to incldue information in the console
         :param  normFactor: Overal factor to scale the weight matrix
+
         Notes:
         - Scintillator grid cannot be included as input because is taken from
             the transformation matrix
         - The normFactor is though to be used as the constant value of the
             FBM set for the FIDASIM simulation, to eliminate this constant dummy
             factor
-        TODO:Include fine resolution depending of the optical axis
+
+        TODO: Include fine resolution depending of the optical axis
         """
         # Block 0: Loading and settings ----------------------------------------
         # --- Check inputs
         if strikes is None:
             raise errors.NotValidInput('I need some strikes!')
         if self.CameraCalibration is None:
-            raise errors.NotFoundCameraCalibration('I need the camera calibr')
+            raise errors.NotFoundCameraCalibration('I need the camera calib')
         if self._grid_interp.keys() is None:
             raise errors.NotValidInput('Need to calculate interpolators first')
         if 'transformation_matrix' not in self._grid_interp.keys():
@@ -218,8 +228,18 @@ class Ismap(FILDINPA_Smap):
             else:
                 self.secondaryStrikes = \
                     Strikes(runID=strikes, verbose=verbose, code='SINPA')
-        else:
+        elif isinstance(strikes, Strikes):
             self.secondaryStrikes = strikes
+        else:
+            raise errors.NotValidInput('Error in the input strikes')
+        # --- Calculate camera position, if not done outside:
+        if 'xcam' not in self.secondaryStrikes.header['info'].keys():
+            self.secondaryStrikes.calculate_pixel_coordinates(
+                self.CameraCalibration)
+        else:
+            text = 'Strikes already contain pixel position!' +\
+                'Assuming you did it with the same calibration than the map'
+            logger.warning(text)
         # --- Prepare the names
         nameT = variablesScint[0] + '_' + variablesScint[1]
         # --- Get the Tmatrix
@@ -239,6 +259,7 @@ class Ismap(FILDINPA_Smap):
         pxEdges = np.arange(camera_frame[0]+1) - 0.5
         pyEdges = np.arange(camera_frame[1]+1) - 0.5
         nx, ny, xedges, yedges = createGrid(**gridFI)
+        kindEdges = [4.5, 5.5, 6.5, 7.5, 8.5]
         # - Centers
         pxCen = 0.5 * (pxEdges[:-1] + pxEdges[1:])
         pyCen = 0.5 * (pxEdges[:-1] + pxEdges[1:])
@@ -247,48 +268,80 @@ class Ismap(FILDINPA_Smap):
         # - Volume
         xvol = xCen[1] - xCen[0]
         yvol = yCen[1] - yCen[0]
+        # By definition, the space in pixel space is 1, so there is no need of
+        # calculate that volume.
         # --- Prepare the data
-        flags3 = self.secondaryStrikes.data[0, 0][:, jkind] == 5
-        flags2 = self.secondaryStrikes.data[0, 0][:, jkind] == 6
-        flags = flags2 + flags3
-        nStrikes = flags.sum()
-        dummy = np.zeros((nStrikes, 4))
-        dummy[:, 0] = self.secondaryStrikes.data[0, 0][flags, jpx]
-        dummy[:, 1] = self.secondaryStrikes.data[0, 0][flags, jpy]
-        dummy[:, 2] = self.secondaryStrikes.data[0, 0][flags, jX]
-        dummy[:, 3] = self.secondaryStrikes.data[0, 0][flags, jY]
-        if weight is None:
-            w = self.secondaryStrikes.data[0, 0][flags, jw]
+        nStrikes = self.secondaryStrikes.data[0, 0].shape[0]
+        dummy = np.zeros((nStrikes, 5))
+
+        dummy[:, 0] = self.secondaryStrikes.data[0, 0][:, jpx]
+        dummy[:, 1] = self.secondaryStrikes.data[0, 0][:, jpy]
+        dummy[:, 2] = self.secondaryStrikes.data[0, 0][:, jX]
+        dummy[:, 3] = self.secondaryStrikes.data[0, 0][:, jY]
+        dummy[:, 4] = self.secondaryStrikes.data[0, 0][:, jkind]
+        if weight is not None:
+            w = self.secondaryStrikes.data[0, 0][:, jw]
         else:
             w = np.ones(nStrikes)
 
         # --- Calculate the pixel position
-        self.secondaryStrikes.calculate_pixel_coordinates(self.CameraCalibration)
         # Block 2: Calculation phase -------------------------------------------
-        edges = [pxEdges, pyEdges, xedges, yedges]
+        edges = [pxEdges, pyEdges, xedges, yedges, kindEdges]
+        logger.info('Performing the 5D histogram')
         H, edges_hist = np.histogramdd(
                 dummy,
                 bins=edges,
                 weights=w,
         )
+        # check there is nothing negative
+        totalWeightBeforeOptics = H.sum()
         # Add the finite focus of the optics
         if sigmaOptics > 0.01:
             logger.info('Adding finite focus')
             kernel = gkern(int(6.0*sigmaOptics)+1, sig=sigmaOptics)
+
             for kx in tqdm(range(H.shape[2])):
                 for ky in range(H.shape[3]):
-                    H[..., kx, ky] = convolve(H[..., kx, ky].squeeze(), kernel,
-                                              mode='same')
+                    for kj in range(H.shape[4]):
+                        H[..., kx, ky, kj] = \
+                            convolve(H[..., kx, ky, kj].squeeze(), kernel,
+                                     mode='same')
+            # Check the integrity of the WF
+            totalWeightAfterOptics = H.sum()
+            deltaWeight = abs(totalWeightAfterOptics-totalWeightBeforeOptics)\
+                / totalWeightBeforeOptics
+            logger.debug('Change of weight due to optics: %f ' % deltaWeight)
+            if deltaWeight > 0.001:
+                logger.error('Total Wegith before the optic focus: %f',
+                             totalWeightBeforeOptics)
+                logger.error('Total Wegith after the optic focus: %f',
+                             totalWeightAfterOptics)
+                errorText = 'Problem applying the convolution, weight changed'
+                raise errors.CalculationError(errorText)
+            # set to zero the negative celss due to numerical errors
+            H[H < 0.0] = 0.0
         else:
             logger.info('Not considering finite focusing')
+
+        # if True:
+        #     kernel = gkern(5, sig=1)
+        #     for jx in tqdm(range(H.shape[0])):
+        #         for jy in range(H.shape[1]):
+        #             for kj in range(H.shape[4]):
+        #                 H[jx, jy, :, :, kj] = \
+        #                     convolve(H[jx, jy, :, :, kj].squeeze(), kernel,
+        #                              mode='same')
 
         # Now perform the tensor product
         vol = xvol * yvol
         W = np.tensordot(Tmatrix, H, axes=2) / vol / normFactor
         # save it
-        self.instrument_function = xr.DataArray(W, dims=('xs', 'ys', 'x', 'y'),
-                              coords={'xs': gridT['x'], 'ys': gridT['y'],
-                                      'x': xCen, 'y': yCen})
+        self.instrument_function =\
+            xr.DataArray(W,
+                         dims=('xs', 'ys', 'x', 'y', 'kind'),
+                         coords={'kind': [5, 6, 7, 8], 'xs': gridT['x'],
+                                 'ys': gridT['y'], 'x': xCen, 'y': yCen})
+        self.instrument_function['kind'].attrs['long_name'] = 'Kind'
         self.instrument_function['xs'].attrs['long_name'] = \
             variablesScint[0].capitalize()
         self.instrument_function['x'].attrs['long_name'] = \
@@ -297,5 +350,97 @@ class Ismap(FILDINPA_Smap):
             variablesFI[1].capitalize()
         self.instrument_function['ys'].attrs['long_name'] = \
             variablesScint[1].capitalize()
+        # Now perform the energy scaling:
+        if energyFit is not None:
+            logger.info('Adding energy scaling')
+            if isinstance(energyFit, str):
+                # The user give us the energy fit file
+                fit = lmfit.model.load_modelresult(energyFit)
+            else:
+                # Assume we have a fit object
+                fit = energyFit
+            # So, now, we need to see which scintillator variable is energy
+            # or gyroradius
+            if ('energy' in variablesScint) or ('e0' in variablesScint):
+                dumNames = np.array(variablesScint)
+                i = np.where((dumNames == 'e0') | (dumNames == 'energy'))[0]
+                if i == 0:
+                    keyToEval = 'xs'
+                else:
+                    keyToEval = 'ys'
+                xToEval = self.instrument_function[keyToEval]
+                scaleFactor = fit.eval(x=xToEval.values)
 
+            elif 'gyroradius' in variablesScint:
+                dumNames = np.array(variablesScint)
+                i = np.where((dumNames == 'gyroradius'))[0]
+                if i == 0:
+                    keyToEval = 'xs'
+                else:
+                    keyToEval = 'ys'
+                # Now move to energy
+                xToEval = self.instrument_function[keyToEval]
+                energyToEval = get_energy(xToEval.values, B, A, Z)
+                scaleFactor = fit.eval(x=energyToEval)
+
+            scaleFactor = xr.DataArray(scaleFactor, dims=keyToEval,
+                                       coords={keyToEval: xToEval})
+            self.instrument_function = self.instrument_function * scaleFactor
+
+        # --- Add some units
+        # TODO: This is a bit hardcored, so would be better in another way
+        units = {
+            'r0': 'm',
+            'gyroradius': 'cm',
+            'gyroradius0': 'cm',
+            'energy': 'keV',
+            'rho': ''
+            }
+        for k in self.instrument_function.coords.keys():
+            try:
+                self.instrument_function[k].attrs['units'] =\
+                    units[self.instrument_function[k].attrs['long_name'].lower()]
+            except KeyError:
+                pass
+        # --- Add other metadata:
+        self.instrument_function.attrs['sigmaOptics'] = sigmaOptics
+        self.instrument_function.attrs['normFactor'] = normFactor
+        self.instrument_function.attrs['B'] = B
+        self.instrument_function.attrs['Z'] = Z
+        self.instrument_function.attrs['A'] = A
+
+        # ---- Perform fitting
+        logger.info('Fitting to bivariant Normal distributions')
+        # Allocate a copy
+        self.instrument_function_fit = self.instrument_function.copy()
+        self.instrument_function_fit.attrs['Info'] = \
+            'Fitted to a BivariateNormal'
+        # Prepare the model
+        model = ssmodels.BivariateNormalDistribution
+        # Prepare grids
+        XX, YY = np.meshgrid(self.instrument_function.x,
+                             self.instrument_function.y,
+                             indexing='ij')
+        # Perfom the loop
+        for jk in range(self.instrument_function.kind.size):
+            if self.instrument_function.isel(kind=jk).sum() < 1.0e-8:  # So zero
+                continue
+            # Fit a bivariant spline for each scintilaltor position
+            for ixs in range(self.instrument_function.xs.size):
+                for iys in range(self.instrument_function.ys.size):
+                    matrix = self.instrument_function.isel(kind=jk,
+                                                           xs=ixs,
+                                                           ys=iys).values.copy()
+                    sumMatrix = matrix.sum()
+                    if sumMatrix < 1.0e-8:
+                        continue
+                    matrix /= sumMatrix
+                    params = ssmodels.guessParamsBivariateNormalDistribution(
+                        XX.flatten(), YY.flatten(), matrix.flatten())
+                    result = model.fit(data=matrix.flatten(),
+                                       params=params, x=XX.flatten(),
+                                       y=YY.flatten())
+                    self.instrument_function_fit.values[ixs, iys, :, :, jk] = \
+                        result.eval(x=XX.flatten(), y=YY.flatten()).reshape(
+                            XX.shape) * sumMatrix
         return

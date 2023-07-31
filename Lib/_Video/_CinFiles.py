@@ -765,7 +765,7 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     return cin_settings
 
 
-def read_image_header(filename: str, bit_pos: int, verbose: bool = False):
+def read_image_header(filename: str, bit_pos: int, verbose: bool = False) -> dict:
     """
     Read the image header of a .cin file
 
