@@ -584,9 +584,13 @@ def load_remap(filename, diag='FILD')->Union[FILDVideo, INPAVideo]:
         vid.geometryID = f.readline().split(':')[-1].split('\n')[0].strip()
         vid.settings = {}
         vid.settings['RealBPP'] = int(f.readline().split(':')[-1])
-    vid.position = json.load(open(position))
+    fid = open(position)
+    vid.position = json.load(fid)
+    fid.close()
+    fid = open(orientation)
     vid.orientation = \
-        {k:np.array(v) for k,v in json.load(open(orientation)).items()}
+        {k:np.array(v) for k,v in json.load(fid).items()}
+    fid.close()
     logger.info('Remap generated with version %i.%i.%i'%(v[0], v[1], v[2]))
     if diag.lower() == 'inpa':
         vid._getNBIpower()

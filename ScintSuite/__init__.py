@@ -130,7 +130,7 @@ import ScintSuite.SimulationCodes.FILDSIM as fildsim
 import ScintSuite.SimulationCodes.SINPA as sinpa
 import ScintSuite.SimulationCodes.Common as simcom
 try:
-    import pyLib as fidasim
+    import FIDASIM4py as fidasim
 except ModuleNotFoundError:
     pass
 

@@ -18,9 +18,9 @@ import matplotlib.colors as colors
 import matplotlib.cm as colormaps
 import warnings
 import numpy as np
-import ScintSuite.LibFrequencyAnalysis as lf
+import ScintSuite._FrequencyAnalysis as lf
 from ScintSuite.LibData.AUG.Profiles import get_diag_freq as diagCorr
-from LibPlotting import p1D_shaded_error as plot_error_band
+from ScintSuite._Plotting import p1D_shaded_error as plot_error_band
 from scipy.interpolate import interp1d
 
 
