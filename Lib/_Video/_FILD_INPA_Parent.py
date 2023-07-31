@@ -232,7 +232,7 @@ class FIV(BVO):
     # --------------------------------------------------------------------------
     # --- Time Traces
     # --------------------------------------------------------------------------
-    def getTimeTrace(self, t: float = None, mask=None, ROIname: str = None):
+    def getTimeTrace(self, t: float = None, mask=None, ROIname: str = None, vmax: int=None):
         """
         Calculate the timeTrace of the video. Extended method from parent class
 
@@ -250,7 +250,7 @@ class FIV(BVO):
         """
         if mask is not None or t is not None:
             trace, mask = super().getTimeTrace(t=t, mask=mask,
-                                           ROIname=ROIname)
+                                           ROIname=ROIname, vmax=vmax)
         else:
             mask = \
                 self.ROIscintillator.getMask(self.exp_dat['frames'][:, :,
@@ -274,6 +274,7 @@ class FIV(BVO):
                    flagAverage:bool = False,
                    normalise=None,
                    smap_labels: bool = False,
+                   rotate_frame: bool = False,
                    fontsize: int = 12, tickssize: int = 10):
         """
         Plot a frame from the loaded frames
@@ -318,6 +319,7 @@ class FIV(BVO):
             if normalise == <number> it would be normalised to this value
             if normalise == None, nothing will be done
         :param  smap_labels: boolean flag to plot the labels of the strike map
+        :param rotate_frame: boolean flag to rotate the frame the rotation angle of the optical parameters
         :param  fontsize: Fontsize of shot number, time stamp, xlabel, ylabel, colorbar label
         :param  tickssize: Fontsize of axis ticks and colorbar ticks
 
@@ -331,7 +333,8 @@ class FIV(BVO):
             IncludeColorbar=IncludeColorbar,
             RemoveAxisTicksLabels=RemoveAxisTicksLabels,
             flagAverage=flagAverage,
-            normalise=normalise,
+            normalise=normalise, 
+            rotate_frame=rotate_frame,
             fontsize=fontsize, tickssize=tickssize
         )
         # Get the frame number
@@ -515,7 +518,7 @@ class FIV(BVO):
                 ax.set_ylabel('E [keV]')
             fig.show()
             plt.tight_layout()
-            ax.tick_params(labelsize=tickssize)
+            ax.tick_params(labelsize=tickssize, direction='out')
         return ax
 
     def plotBangles(self, ax_params: dict = {}, line_params: dict = {},

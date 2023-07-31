@@ -732,7 +732,7 @@ class BVO:
                    xlim: float = None, ylim: float = None,
                    scale: str = 'linear',
                    alpha: float = 1.0, IncludeColorbar: bool = True,
-                   RemoveAxisTicksLabels: bool = False,
+                   RemoveAxisTicksLabels: bool = False, rotate_frame: bool = False,
                    flagAverage: bool = False, normalise=None, extent: float=None,
                    fontsize: int = 12, tickssize: int = 10):
         """
@@ -766,6 +766,7 @@ class BVO:
             if normalise == 1 it would be normalised to the maximum
             if normalise == <number> it would be normalised to this value
             if normalise == None, nothing will be done
+        param rotate_frame: boolean flag to rotate the frame the rotation angle of the optical parameters
         :param  fontsize: Fontsize of shot number, time stamp, xlabel, ylabel, colorbar label
         :param  tickssize: Fontsize of axis ticks and colorbar ticks
 
@@ -868,8 +869,14 @@ class BVO:
         if extent is not None:
             extra_options['extent'] = extent
 
-        img = ax.imshow(dummy, origin='lower', cmap=cmap,
+        if rotate_frame:
+            imgR = ndimage.rotate(dummy, -self.CameraCalibration.deg, reshape=False)
+            img = ax.imshow(imgR, cmap=cmap,
                         alpha=alpha, **extra_options)
+        else:
+            img = ax.imshow(dummy, origin='lower', cmap=cmap,
+                        alpha=alpha, **extra_options)
+        
         # Set the axis limit
         if xlim is not None:
             ax.set_xlim(xlim)
@@ -909,6 +916,7 @@ class BVO:
             plt.tight_layout()
             ax.tick_params(labelsize=tickssize)
         return ax
+
 
     def GUI_frames(self, flagAverage: bool = False):
         """
@@ -1016,7 +1024,7 @@ class BVO:
             t = float(self.avg_dat['tframes'][it])
         return t
 
-    def getTimeTrace(self, t: float = None, mask=None, ROIname: str =None):
+    def getTimeTrace(self, t: float = None, mask=None, ROIname: str =None, vmax: int=None):
         """
         Calculate the timeTrace of the video
 
@@ -1031,7 +1039,7 @@ class BVO:
         """
         if mask is None:
             # - Plot the frame
-            ax_ref = self.plot_frame(t=t)
+            ax_ref = self.plot_frame(t=t, vmax=vmax)
             fig_ref = plt.gcf()
             # - Define roi
             roi = sstt.roipoly(fig_ref, ax_ref)
