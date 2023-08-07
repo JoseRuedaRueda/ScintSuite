@@ -764,7 +764,8 @@ class Tomography():
                                **slider_vars_val).values
             if slider_var == 'alpha':
                 ialpha = np.argmin(np.abs(Eprof.alpha.values - slider_vars_val[slider_var]))
-                ax[0,1].set_title('ialpha: %i'% ialpha)
+                ax[0, 1].set_title('ialpha: %i'% ialpha)
+                ax[1, 1].set_title('alpha: %.2e' % Eprof.alpha[ialpha])
             lineE.set_ydata(E2plot)
             lineR.set_ydata(R2plot)
             pointRes.set_xdata(MSE.sel(method='nearest',
@@ -772,6 +773,7 @@ class Tomography():
             pointRes.set_ydata(Total.sel(method='nearest',**slider_vars_val).values)
 
             img.set_data(data.sel(method='nearest',**slider_vars_val ).values.T)
+            
             ax[0, 0].relim()
             ax[0, 0].autoscale_view()
             ax[1, 0].relim()
