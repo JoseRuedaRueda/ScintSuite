@@ -6,7 +6,7 @@ Created on Mon May  3 15:49:04 2021
 @author: poyo
 """
 
-import Lib as ss
+import ScintSuite.as ss
 import LibFrequencyAnalysis as lf
 import numpy as np
 import matplotlib.pyplot as plt

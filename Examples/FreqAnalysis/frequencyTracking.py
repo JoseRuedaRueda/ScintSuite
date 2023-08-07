@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import warnings
 import numpy as np
-import Lib as ss
+import ScintSuite.as ss
 import LibFrequencyAnalysis as lf
 from LibPlotting import p1D_shaded_error as plot_error_band
 from scipy.interpolate import interp1d

@@ -12,7 +12,7 @@ IMPORTANT: If you select SINPA as code format, the scintillaor coordinate must
 be in the scintillator reference system, if not, there would be a shift between
 SINPA coordinates and the calibration
 """
-import Lib as ss
+import ScintSuite.as ss
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 from pco_tools import pco_reader as pco   # For pixefly calibration frames

@@ -6,7 +6,7 @@ Jose Rueda Rueda: jrrueda@us.es
 Note: Done for version 0.5.3. Revised for version 0.9.0
 """
 
-import Lib as ss
+import ScintSuite.as ss
 import matplotlib.pyplot as plt
 import numpy as np
 

@@ -13,7 +13,7 @@ import mapeq_20200507 as meq
 import matplotlib.pylab as plt
 import matplotlib as mpl
 import numpy as np
-import Lib as ss
+import ScintSuite.as ss
 # -----------------------------------------------------------------------------
 # --- Settings
 # -----------------------------------------------------------------------------

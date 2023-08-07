@@ -20,7 +20,7 @@ Revised for version 0.8.0
 import numpy as np
 import matplotlib.pyplot as plt
 # Suite packages
-import Lib as ss
+import ScintSuite.as ss
 
 # -----------------------------------------------------------------------------
 # Section 0: Settings

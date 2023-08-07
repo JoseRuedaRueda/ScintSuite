@@ -9,7 +9,7 @@ Jose Rueda: jrrueda@us.es
 """
 
 import numpy as np
-import Lib as ss
+import ScintSuite.as ss
 import scipy.interpolate as interp
 
 
