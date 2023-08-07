@@ -25,7 +25,9 @@ except ImportError:
 try:
     from numba import njit, prange
 except ModuleNotFoundError:
-    logger.warning('10: You cannot use neutron filters')
+    from ScintSuite.decorators import false_njit as njit
+    prange = range
+    logger.warning('10: Neutron filters will be slow (NUMBA missing')
 
 
 # -----------------------------------------------------------------------------
