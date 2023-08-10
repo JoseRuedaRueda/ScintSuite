@@ -13,7 +13,7 @@ jose Rueda: jrrueda@us.es
 
 Note: Written for version 0.2.6. Revised for version 0.7.3
 """
-import Lib as ss
+import ScintSuite.as ss
 import matplotlib.pyplot as plt
 import numpy as np
 from time import time

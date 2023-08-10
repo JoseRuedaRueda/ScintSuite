@@ -12,7 +12,7 @@ a quite view of were the losses are coming from
 # -----------------------------------------------------------------------------
 import numpy as np
 import matplotlib.pyplot as plt
-import Lib as ss
+import ScintSuite.as ss
 # -----------------------------------------------------------------------------
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------

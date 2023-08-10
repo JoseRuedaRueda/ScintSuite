@@ -7,7 +7,7 @@ Note: Done for version 0.7.3 of the suite
 
 Please see L$ example of the SINPA code for an updated version.
 """
-import Lib as ss
+import ScintSuite.as ss
 import numpy as np
 
 # --- Settings:

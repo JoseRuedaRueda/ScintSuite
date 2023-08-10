@@ -1,3 +1,11 @@
+# 1.3.1 Numba bypass
+- Minor bug fix and comment improvements
+- Alpha parameter now properly shown in tomography GUI
+- Added dummy decorators to use the suite in the absents of NUMBA
+
+# 1.3.0 PIP release
+- Changed name from Lib to ScintSuite in order to be installable via PIP
+
 # 1.2.11 Minor improvements
 - pitchProfile from INPA video is now a data array
 - corrected bug in get_ECE when the time interval was too short for the slow channel to have more than 1 point

@@ -10,7 +10,7 @@ done for version 0.5.1
 Note: Please change (in your local copy on MyRoutines!!!) lines ending
 with # -#
 """
-import Lib as ss
+import ScintSuite.as ss
 import matplotlib.pyplot as plt
 import numpy as np
 # -----------------------------------------------------------------------------

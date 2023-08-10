@@ -16,7 +16,7 @@ Created for version 0.5.0. Revised for version 0.8.0
 # General python packages
 import numpy as np
 import matplotlib.pyplot as plt
-import Lib as ss
+import ScintSuite.as ss
 
 
 # -----------------------------------------------------------------------------

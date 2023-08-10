@@ -14,11 +14,11 @@ be in the scintillator reference system, if not, there would be a shift between
 SINPA coordinates and the calibration
 """
 import math
-import Lib as ss
+import ScintSuite.as ss
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
-from Lib._Video._TIFfiles import load_tiff
+from ScintSuite._Video._TIFfiles import load_tiff
 plt.ion()
 
 # -----------------------------------------------------------------------------
