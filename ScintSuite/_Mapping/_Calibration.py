@@ -33,7 +33,10 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 3,
             'xcenter': [], 'ycenter': []}
 
     # Read the file
-    database = pd.read_csv(filename, skiprows=n_header, delim_whitespace=True)
+    try:
+        database = pd.read_csv(filename, skiprows=n_header, delim_whitespace=True)
+    except pd.errors.ParserError:
+        database = {}
     # There are several ways of calling the colums, as some users have a
     # different format. This is a way to make it compatible with all of them
     acepted = {
@@ -61,6 +64,10 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 3,
         for k2 in acepted.keys():
             if k in acepted[k2]:
                 database[k2] = database.pop(k)
+    if 'CalID' not in database.keys() and 'camera' not in database.keys():
+        n_header += 1
+        database = readCameraCalibrationDatabase(filename, n_header=n_header)
+
     return database
 
 
