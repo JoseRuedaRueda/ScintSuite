@@ -1,4 +1,4 @@
-import Lib as ss
+import ScintSuite.as ss
 import matplotlib.pyplot as plt
 import sys
 sys.path.append('/afs/ipp/aug/ads-diags/common/python/lib')

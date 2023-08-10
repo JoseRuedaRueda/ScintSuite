@@ -14,7 +14,7 @@ last revision:
     SINPA (uFILDSIM): version 2.3
 """
 import os
-import Lib as ss
+import ScintSuite.as ss
 import matplotlib.pyplot as plt
 
 # --- Settings

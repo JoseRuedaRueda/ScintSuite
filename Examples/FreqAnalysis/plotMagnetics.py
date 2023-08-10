@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import warnings
 import numpy as np
-import Lib as ss
-import Lib.LibFrequencyAnalysis as lf
+import ScintSuite.as ss
+import ScintSuite.LibFrequencyAnalysis as lf
 
 # -----------------------------------------------------------------------------
 # --- Scripts parameter definition.
