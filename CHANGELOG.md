@@ -1,3 +1,7 @@
+# 1.3.2 Minor polishing
+- `timeWindow` option of the get_ECE function can now be a tuple
+- Add recursive finding to read Calibration database to alow having more header lines than the Suite standard
+
 # 1.3.1 Numba bypass
 - Minor bug fix and comment improvements
 - Alpha parameter now properly shown in tomography GUI

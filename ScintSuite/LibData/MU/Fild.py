@@ -90,7 +90,7 @@ class FILD_logbook:
         # Load the camera database
         self.CameraCalibrationDatabase = \
             readCameraCalibrationDatabase(cameraFile, verbose=verbose,
-                                          n_header=3)
+                                          n_header=0)
         # Load the position database
         # The position database is not distributed with the ScintSuite, so it
         # can happend that it is not available. For that reason, just in case
