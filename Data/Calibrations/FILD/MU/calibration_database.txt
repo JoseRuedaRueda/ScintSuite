@@ -1,5 +1,5 @@
 # Text file containing information about the calibration parameters
-# Definition of pulses in process. 
+# Definition of pulses in process. # Both calibrations 5 and 6 are for FILD at R=1.49m
 #FORMAT IS:
 #CAL_ID	CAMERA	PULSE_1	PULSE_2	XSHIFT	YSHIFT	  XSCALE	  YSCALE 	   DEG	    CAL_TYPE	FILD_ID
 
@@ -7,4 +7,5 @@
 2	       PCO	  45082	  46514	   -412.5	 348.1   10400	   -10400	   43.6	      PIX	   	1
 3          XIMEA  46515   46799    926     16.8     6233       -6233       -70.4      PIX       1
 4          XIMEA  46800	  48020	   889	   -1.7   	7132	   -7132	   -70.5	  PIX	   	1
-5          XIMEA  48021   99999    832.3   9.5      6316       -6316       -70.5      PIX       1
+5          XIMEA  48021   48168    832.3   9.5      6316       -6316       -70.5      PIX       1
+6          XIMEA  48169   99999    818.7   10.9      6280       -6280       -67.8      PIX       1
