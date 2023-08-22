@@ -277,8 +277,7 @@ class FIV(BVO):
                    flagAverage:bool = False,
                    normalise=None,
                    smap_labels: bool = False,
-                   rotate_frame: bool = False,
-                   fontsize: int = 12, tickssize: int = 10):
+                   rotate_frame: bool = False):
         """
         Plot a frame from the loaded frames
 
@@ -323,8 +322,6 @@ class FIV(BVO):
             if normalise == None, nothing will be done
         :param  smap_labels: boolean flag to plot the labels of the strike map
         :param rotate_frame: boolean flag to rotate the frame the rotation angle of the optical parameters
-        :param  fontsize: Fontsize of shot number, time stamp, xlabel, ylabel, colorbar label
-        :param  tickssize: Fontsize of axis ticks and colorbar ticks
 
         :return ax: the axes where the frame has been drawn
         """
@@ -337,8 +334,7 @@ class FIV(BVO):
             RemoveAxisTicksLabels=RemoveAxisTicksLabels,
             flagAverage=flagAverage,
             normalise=normalise, 
-            rotate_frame=rotate_frame,
-            fontsize=fontsize, tickssize=tickssize
+            rotate_frame=rotate_frame
         )
         # Get the frame number
         if t is not None:
@@ -384,9 +380,7 @@ class FIV(BVO):
                          IncludeColorbar: bool = True,
                          color_labels_in_plot: str = 'w',
                          normalise: bool = False,
-                         translation: tuple = None,
-                         fontsize: int = 12,
-                         tickssize: int = 10):
+                         translation: tuple = None):
         """
         Plot a frame from the remaped frames
 
@@ -406,8 +400,6 @@ class FIV(BVO):
         :param  color_labels_in_plot: Color for the labels in the plot
         :param  translation: tuple with the desired specie and translation to
             plot. Example ('D', 1)
-        :param  fontsize: Fontsize of shot number, time stamp, xlabel, ylabel, colorbar label
-        :param  tickssize: Fontsize of axis ticks and colorbar ticks
         
 
         :return ax: the axes where the frame has been drawn
@@ -497,31 +489,29 @@ class FIV(BVO):
             cax = divider.append_axes("right", size="5%", pad=0.05)
             cbar = plt.colorbar(img, label='Counts [a.u.]', cax=cax,
                          format=cbar_tick_format)
-            cbar.ax.tick_params(labelsize=tickssize)
-            cbar.set_label(label='Counts [a.u.]', size=fontsize)
+            cbar.set_label(label='Counts [a.u.]')
         # Set the labels with t and shot
         ax.text(0.05, 0.9, '#' + str(self.shot),
                 horizontalalignment='left',
                 color=color_labels_in_plot, verticalalignment='bottom',
-                transform=ax.transAxes, fontsize=fontsize)
+                transform=ax.transAxes)
         plt.text(0.95, 0.9, 't = ' + str(round(tf, 3)) + (' s'),
                  horizontalalignment='right',
                  color=color_labels_in_plot, verticalalignment='bottom',
-                 transform=ax.transAxes, fontsize=fontsize)
+                 transform=ax.transAxes)
 
         if created:
             if translation is None:
                 ax.set_ylabel('%s [%s]' %
                               (self.remap_dat['y'].attrs['long_name'].capitalize(),
-                               self.remap_dat['y'].attrs['units']), fontsize=fontsize)
+                               self.remap_dat['y'].attrs['units']))
                 ax.set_xlabel('%s [%s]' %
                               (self.remap_dat['x'].attrs['long_name'].capitalize(),
-                               self.remap_dat['x'].attrs['units']), fontsize=fontsize)
+                               self.remap_dat['x'].attrs['units']))
             elif translation[1] == 1:
                 ax.set_ylabel('E [keV]')
             fig.show()
             plt.tight_layout()
-            ax.tick_params(labelsize=tickssize, direction='out')
         return ax
 
     def plotBangles(self, ax_params: dict = {}, line_params: dict = {},

@@ -13,7 +13,7 @@ logger = logging.getLogger('ScintSuite.Calibration')
 # -----------------------------------------------------------------------------
 # ---- Aux functions
 # -----------------------------------------------------------------------------
-def readCameraCalibrationDatabase(filename: str, n_header: int = 3,
+def readCameraCalibrationDatabase(filename: str, n_header: int = 0,
                                   verbose: bool = True):
     """
     Read camera calibration database.
