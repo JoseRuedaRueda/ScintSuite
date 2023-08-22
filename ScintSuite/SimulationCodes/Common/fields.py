@@ -7,7 +7,7 @@ import ScintSuite.LibData as ssdat
 import ScintSuite._Plotting as ssplt
 import ScintSuite.errors as errors
 import math
-from Lib._Machine import machine
+from ScintSuite._Machine import machine
 import os
 import netCDF4 as nc
 

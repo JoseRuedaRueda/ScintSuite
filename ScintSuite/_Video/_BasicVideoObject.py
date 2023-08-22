@@ -789,11 +789,10 @@ class BVO:
                    verbose: bool = True,
                    vmin: int = 0, vmax: int = None,
                    xlim: float = None, ylim: float = None,
-                   scale: str = 'linear',
+                   scale: str = 'linear', tround: int = 3,
                    alpha: float = 1.0, IncludeColorbar: bool = True,
                    RemoveAxisTicksLabels: bool = False, rotate_frame: bool = False,
-                   flagAverage: bool = False, normalise=None, extent: float=None,
-                   fontsize: int = 12, tickssize: int = 10):
+                   flagAverage: bool = False, normalise=None, extent: float=None):
         """
         Plot a frame from the loaded frames
 
@@ -815,6 +814,7 @@ class BVO:
         :param xlim: tuple with the x-axis limits
         :param ylim: tuple with the y-axis limits
         :param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
+        :param tround: Number of decimals that we will round the time value to
         :param alpha: transparency factor, 0.0 is 100 % transparent
         :param IncludeColorbar: flag to include a colorbar
         :param RemoveAxisTicksLabels: boolean flag to remove the numbers in the
@@ -826,8 +826,6 @@ class BVO:
             if normalise == <number> it would be normalised to this value
             if normalise == None, nothing will be done
         param rotate_frame: boolean flag to rotate the frame the rotation angle of the optical parameters
-        :param  fontsize: Fontsize of shot number, time stamp, xlabel, ylabel, colorbar label
-        :param  tickssize: Fontsize of axis ticks and colorbar ticks
 
         :return ax: the axes where the frame has been drawn
         """
@@ -945,7 +943,7 @@ class BVO:
             ax.set_ylim(ylim)
 
         if flag_time_range == False:
-            tf = str(round(tf, 4))
+            tf = str(round(tf, tround))
         else:
             tf = '(%.3f, %.3f)' %(t[0],t[1])
 
@@ -953,29 +951,27 @@ class BVO:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
             cbar = plt.colorbar(img, label='Counts', cax=cax)
-            cbar.ax.tick_params(labelsize=tickssize)
-            cbar.set_label(label='Counts [a.u.]', size=fontsize)
+            cbar.set_label(label='Counts [a.u.]')
         ax.text(0.05, 0.9, '#' + str(self.shot),
                 horizontalalignment='left',
                 color='w', verticalalignment='bottom',
-                transform=ax.transAxes, fontsize=fontsize)
+                transform=ax.transAxes)
         ax.text(0.95, 0.9, 't = ' + tf + (' s'),
                  horizontalalignment='right',
                  color='w', verticalalignment='bottom',
-                 transform=ax.transAxes, fontsize=fontsize)
+                 transform=ax.transAxes)
         if RemoveAxisTicksLabels:
             ax.axes.xaxis.set_ticklabels([])
             ax.axes.yaxis.set_ticklabels([])
             ax.axes.xaxis.set_ticks([])
             ax.axes.yaxis.set_ticks([])
         else:
-            ax.set_xlabel('Pixel', fontsize=fontsize)
-            ax.set_ylabel('Pixel', fontsize=fontsize)
+            ax.set_xlabel('Pixel')
+            ax.set_ylabel('Pixel')
         # Shot the figure
         if created:
             fig.show()
             plt.tight_layout()
-            ax.tick_params(labelsize=tickssize)
         return ax
 
 
