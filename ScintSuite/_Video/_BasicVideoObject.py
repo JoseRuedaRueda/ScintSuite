@@ -26,7 +26,7 @@ import ScintSuite._Video._PNGfiles as png
 import ScintSuite._Video._PCOfiles as pco
 import ScintSuite._Video._MP4files as mp4
 import ScintSuite._Video._TIFfiles as tif
-import Lib._Video._NetCDF4files as ncdf
+import ScintSuite._Video._NetCDF4files as ncdf
 import ScintSuite._Utilities as ssutilities
 import ScintSuite._Video._AuxFunctions as aux
 from tqdm import tqdm                      # For waitbars
@@ -943,7 +943,7 @@ class BVO:
             ax.set_ylim(ylim)
 
         if flag_time_range == False:
-            tf = str(round(tf, tround))
+            tf = f'%.{tround}f'%tf
         else:
             tf = '(%.3f, %.3f)' %(t[0],t[1])
 

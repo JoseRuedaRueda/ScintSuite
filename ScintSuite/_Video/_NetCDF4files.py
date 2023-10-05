@@ -41,6 +41,11 @@ def read_file_anddata(filename):
     fps = data['fps'][:].data
     exp = data['exposure'][:].data
     try:
+        RFILD = data['RFILD'][:].data
+    except IndexError:
+        print('No RFILD field in netcdf.')
+        print('Will look in the logbook.')
+    try:
         analoggain = data['gain'][:].data
     except IndexError:
         analoggain = 0

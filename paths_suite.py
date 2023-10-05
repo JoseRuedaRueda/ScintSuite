@@ -67,7 +67,6 @@ def paths_of_the_suite():
             print('Things can go wrong!')
     elif machine == 'MU':
         print('You are in MU')
-        print('This environment is still being tested')
 
 
 if __name__ == "__main__":
