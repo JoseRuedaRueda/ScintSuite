@@ -789,10 +789,11 @@ class BVO:
                    verbose: bool = True,
                    vmin: int = 0, vmax: int = None,
                    xlim: float = None, ylim: float = None,
-                   scale: str = 'linear', tround: int = 3,
+                   scale: str = 'linear', 
                    alpha: float = 1.0, IncludeColorbar: bool = True,
-                   RemoveAxisTicksLabels: bool = False, rotate_frame: bool = False,
-                   flagAverage: bool = False, normalise=None, extent: float=None):
+                   RemoveAxisTicksLabels: bool = False,
+                   flagAverage: bool = False, normalise=None, extent: float=None, tround: int = 3,
+                   rotate_frame: bool = False,):
         """
         Plot a frame from the loaded frames
 
