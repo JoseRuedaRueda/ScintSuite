@@ -12,6 +12,8 @@ import os
 import logging
 import numpy as np
 import xarray as xr
+import f90nml
+import logging
 import tkinter as tk                       # To open UI windows
 import ScintSuite._Paths as p
 import ScintSuite.errors as sserrors
@@ -21,14 +23,17 @@ import ScintSuite._Mapping as ssmap
 import ScintSuite._Plotting as ssplt
 import ScintSuite._Video._AuxFunctions as _aux
 import ScintSuite.SimulationCodes.FILDSIM as ssFILDSIM
+import ScintSuite.SimulationCodes.SINPA as ssSINPA
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+from tqdm import tqdm   # For waitbars
 from ScintSuite._Video._FILD_INPA_Parent import FIV
 from ScintSuite._Machine import machine
 
 
 # --- Auxiliary objects
-pa = p.Path(machine)
+logger = logging.getLogger('ScintSuite.FILDMapping')
+paths = p.Path(machine)
 del p
 logger = logging.getLogger('ScintSuite.FILDVideo')
 
@@ -148,6 +153,8 @@ class FILDVideo(FIV):
                 self.geometryID = FILDlogbook.getGeomID(shot, diag_ID)
                 self.CameraCalibration = \
                     FILDlogbook.getCameraCalibration(shot, diag_ID)
+                # self.cameraGeneralParameters = \
+                    # FILDlogbook.getCameraGeneralParameters(shot, diag_ID)
                 try:
                     self.operatorComment =\
                         FILDlogbook.getComment(self.shot)
@@ -174,15 +181,15 @@ class FILDVideo(FIV):
                 print('You need to define FILDorientation')
                 print('You need to define FILDgeometry')
                 print('You need to give the camera parameters')
-           
+
             # Particular options for the magnetic field calculation
             self.BFieldOptions = Boptions
 
             # Try to load the scintillator plate
             if self.geometryID is not None:
-                platename = os.path.join(pa.ScintSuite, 'Data', 'Plates', 'FILD',
+                platename = os.path.join(paths.ScintSuite, 'Data', 'Plates', 'FILD',
                                          machine, self.geometryID + '.pl')
-                platename2 = os.path.join(pa.ScintSuite, 'Data', 'Plates',
+                platename2 = os.path.join(paths.ScintSuite, 'Data', 'Plates',
                                          'FILD',
                                          machine, self.geometryID + '.txt')
                 for plate in [platename, platename2]:
@@ -204,23 +211,128 @@ class FILDVideo(FIV):
         else:
             FIV.__init__(self, empty=empty)
 
-    def _getBangles(self):
+    def _getBangles(self, checkdatabase: bool = True, decimals: int = 1,
+                    allIn: bool = False):
         """
-        Get the orientation of the field respec to the head
+        Get the orientation of the field respec to the head.
+        If the name of the corresponding strike maps for each pair of angles is
+        desired, checkdatabase should be True, and the desired precision should
+        be specified.
 
         Jose Rueda: jrrueda@us.es
+        Lina Velarde: lvelarde@us.es
+
+        :param    checkdatabase: Flag to check the strikemap database and return
+                  the names for each case.
+        :param     allIn: boolean flag to disconnect the interaction with the user.
+              When looking for the strike map in the database, we will take
+              the closer one available in time, without expecting an answer for
+              the user. This option was implemented to remap large number of
+              shots 'automatically' without interaction from the user needed.
+              Option not used if you give an input strike map
+        :param    decimals: Number of decimals that will be used for the strikemap
+                  name.
+        @TODO: add posibility to look for smaps in other folder
         """
         if self.orientation is None:
-            raise Exception('FILD orientation not know')
+            raise Exception('FILD orientation not known')
         phi, theta = \
             ssFILDSIM.calculate_fild_orientation(
                 self.BField['BR'], self.BField['Bz'], self.BField['Bt'],
                 self.orientation['alpha'], self.orientation['beta']
             )
+        phi = phi.values
+        theta = theta.values
         self.Bangles = xr.Dataset()
+        self.strikemap = xr.Dataset()
         self.Bangles['phi'] = \
             xr.DataArray(phi, dims=('t'), coords={'t': self.BField['t'].values})
         self.Bangles['theta'] = xr.DataArray(theta, dims=('t'))
+        # ----------------------------------------------------------------------
+        # --- STRIKE MAP SEARCH
+        # ----------------------------------------------------------------------
+        if checkdatabase:
+            nframes = self.exp_dat['t'].size
+            exist = np.zeros(nframes, bool)
+            name = ' '      # To save the name of the strike map
+
+            # -- See if the strike map exist in the folder
+            smap_folder = os.path.join(paths.ScintSuite, 'Data', 'RemapStrikeMaps',
+                                       'FILD', self.geometryID)
+            logger.info('Looking for strikemaps in: %s', smap_folder)
+            # -- Check which code generated the library
+            namelistFile = os.path.join(smap_folder, 'parameters.cfg')
+            nml = f90nml.read(namelistFile)
+            if 'n_pitch' in nml['config']:
+                FILDSIM = True
+            else:
+                FILDSIM = False
+            for iframe in tqdm(range(nframes)):
+                if FILDSIM:
+                    logger.info('This is deprecated, please use SINPA (uFILDSIM)')
+                    name = ssFILDSIM.guess_strike_map_name(
+                        phi[iframe], theta[iframe], geomID=self.geometryID,
+                        decimals=decimals
+                        )
+                else:
+                    name = ssSINPA.execution.guess_strike_map_name(
+                        phi[iframe], theta[iframe], geomID=self.geometryID,
+                        decimals=decimals
+                        )
+                logger.debug(os.path.join(smap_folder, name))
+                # See if the strike map exist
+                if os.path.isfile(os.path.join(smap_folder, name)):
+                    exist[iframe] = True
+            # -- See how many we need to calculate
+            nnSmap = np.sum(~exist)  # Number of Smaps missing
+            dummy = np.arange(nframes)     #
+            existing_index = dummy[exist]  # Index of the maps we have
+            non_existing_index = dummy[~exist]
+            theta_used = np.round(theta, decimals=decimals)
+            phi_used = np.round(phi, decimals=decimals)
+
+            # The variable x will be the flag to calculate or not more strike maps
+            if nnSmap == 0:
+                print('--. .-. . .- -')
+                text = 'Ideal situation, not a single map needs to be calculated'
+                logger.info(text)
+            elif nnSmap == nframes:
+                print('Non a single strike map, full calculation needed')
+            elif nnSmap != 0:
+                if not allIn:
+                    print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
+                    print('Write 1 to proceed, 0 to take the closer'
+                        + '(in time) existing strikemap')
+                    xx = int(input('Enter answer:'))
+                else:
+                    xx = 0
+                if xx == 0:
+                    print('We will not calculate new strike maps')
+                    print('Looking for the closer ones')
+                    for i in tqdm(range(len(non_existing_index))):
+                        ii = non_existing_index[i]
+                        icloser = ssextra.find_nearest_sorted(existing_index, ii)
+                        theta_used[ii] = np.round(theta[icloser], decimals=decimals)
+                        phi_used[ii] = np.round(phi[icloser], decimals=decimals)
+
+            self.Bangles['phi_used'] = xr.DataArray(phi_used, dims=('t'))
+            self.Bangles['phi_used'].attrs['long_name'] = 'Used phi angle'
+            self.Bangles['phi_used'].attrs['units'] = 'Degree'
+            self.Bangles['phi_used'].attrs['decimals'] = decimals
+
+            self.Bangles['theta_used'] = xr.DataArray(theta_used, dims=('t'))
+            self.Bangles['theta_used'].attrs['long_name'] = 'Used theta angle'
+            self.Bangles['theta_used'].attrs['units'] = 'Degree'
+            self.Bangles['theta_used'].attrs['decimals'] = decimals
+
+            self.strikemap['exist'] = xr.DataArray(exist, dims=('t'))
+            self.strikemap['exist'].attrs['long_name'] = 'Existing strikemaps'
+            self.strikemap.attrs['smap_folder'] = smap_folder
+            if FILDSIM:
+                self.strikemap.attrs['CodeUsed'] = 'FILDSIM'
+            else:
+                self.strikemap.attrs['CodeUsed'] = 'SINPA'
+
 
     def _checkStrikeMapDatabase():
         pass
@@ -263,7 +375,7 @@ class FILDVideo(FIV):
                 self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles is None:
                 self._getBangles()
-            # Check if we need to recaluculate them because they do not
+            # Check if we need to recalculate them because they do not
             # have the proper length (ie they were calculated for the exp_dat
             # not the average)
             if self.BField['BR'].size != nt:
@@ -565,4 +677,3 @@ class FILDVideo(FIV):
         if self.scintillator is not None:
             self.scintillator.calculate_pixel_coordinates(self.CameraCalibration)
             self.ROIscintillator = self.scintillator.get_roi()
-

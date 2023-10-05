@@ -7,6 +7,7 @@ import ScintSuite.LibData as ssdat
 import ScintSuite._Plotting as ssplt
 import ScintSuite.errors as errors
 import math
+from ScintSuite._Machine import machine
 import os
 import netCDF4 as nc
 
@@ -403,11 +404,12 @@ class fields:
         RR, zz = np.meshgrid(R, z)
         grid_shape = RR.shape
         br, bz, bt, bp = ssdat.get_mag_field(shotnumber, RR.flatten(),
-                                             zz.flatten(),
-                                             exp=exp,
-                                             ed=edition,
-                                             diag=diag,
-                                             time=time)
+                                        zz.flatten(),
+                                        exp=exp,
+                                        ed=edition,
+                                        diag=diag,
+                                        time=time)
+
         del RR
         del zz
         del bp
@@ -460,10 +462,12 @@ class fields:
         # Saving the input data to the class.
         self.Bfield_from_shot_flag = True
         self.shotnumber = shotnumber
-        self.edition = edition
         self.timepoint = time
-        self.diag = diag
-        self.exp = exp
+        if machine != 'MU':
+            self.diag = diag
+            self.exp = exp
+            self.edition = edition
+
 
     def readBfromDBSinglePoint(self, shotnumber: int = 39612,
                                time: float = 2.5, R0: float = 1.90,
