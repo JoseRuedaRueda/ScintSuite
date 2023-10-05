@@ -404,11 +404,12 @@ class fields:
         RR, zz = np.meshgrid(R, z)
         grid_shape = RR.shape
         br, bz, bt, bp = ssdat.get_mag_field(shotnumber, RR.flatten(),
-                                             zz.flatten(),
-                                             time=time,
-                                             exp=exp,
-                                             ed=edition,
-                                             diag=diag)
+                                        zz.flatten(),
+                                        exp=exp,
+                                        ed=edition,
+                                        diag=diag,
+                                        time=time)
+
         del RR
         del zz
         del bp
