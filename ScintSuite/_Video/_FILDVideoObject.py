@@ -23,7 +23,7 @@ import ScintSuite._Mapping as ssmap
 import ScintSuite._Plotting as ssplt
 import ScintSuite._Video._AuxFunctions as _aux
 import ScintSuite.SimulationCodes.FILDSIM as ssFILDSIM
-import ScintSuite.SimulationCodes.FILDSIM as ssSINPA
+import ScintSuite.SimulationCodes.SINPA as ssSINPA
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from tqdm import tqdm   # For waitbars
@@ -252,7 +252,7 @@ class FILDVideo(FIV):
         # --- STRIKE MAP SEARCH
         # ----------------------------------------------------------------------
         if checkdatabase:
-            nframes = self.exp_dat['frames'].shape[2]
+            nframes = self.exp_dat['t'].size
             exist = np.zeros(nframes, bool)
             name = ' '      # To save the name of the strike map
 
