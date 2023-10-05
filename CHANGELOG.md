@@ -1,3 +1,6 @@
+# 1.3.3 BAngles calculation
+- BAngles can now be calculated without having to perform the remap
+
 # 1.3.2 Minor polishing
 - `timeWindow` option of the get_ECE function can now be a tuple
 - Add recursive finding to read Calibration database to alow having more header lines than the Suite standard
