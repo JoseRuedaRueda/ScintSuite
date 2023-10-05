@@ -29,20 +29,32 @@ def get_mag_field(shot: int, Rin, zin, time: float, **kwargs):
         pass
     else:  # it should be just a number
         time = np.array([time])
-    br = np.zeros(time.shape)
-    bz = np.zeros(time.shape)
-    bp = np.zeros(time.shape)
-    bt = np.zeros(time.shape)
+    
+    if not isinstance(Rin, np.ndarray):
+        Rin = np.array([Rin])
+    if not isinstance(zin, np.ndarray):
+        zin = np.array([zin])
+
+    br = np.zeros((time.shape[0], Rin.shape[0]))
+    bz = np.zeros((time.shape[0], Rin.shape[0]))
+    bp = np.zeros((time.shape[0], Rin.shape[0]))
+    bt = np.zeros((time.shape[0], Rin.shape[0]))
 
     for ii in range(len(time)):
         efit_eq = equilibrium(
             shot="/common/uda-scratch/lkogan/efitpp_eshed/epm{:0>6}.nc".
-            format(shot) if shot < 44849 else shot,
+            format(shot) if shot < 44000 else shot,
             device='MASTU', time=time[ii]
         )
-        br[ii] = efit_eq.BR(Rin, zin)
-        bz[ii] = efit_eq.BZ(Rin, zin)
-        bp[ii] = efit_eq.Bp(Rin, zin)
-        bt[ii] = efit_eq.Bt(Rin, zin)
+        # efit_eq = equilibrium(
+        #     shot="/common/uda-scratch/lkogan/efitpp_eshed/epm{:0>6}.nc".
+        #     format(shot) if shot < 44849 else shot,
+        #     device='MASTU', time=time[ii]
+        # )
+        for jj in range(len(Rin)):
+            br[ii, jj] = efit_eq.BR(Rin[jj], zin[jj])
+            bz[ii, jj] = efit_eq.BZ(Rin[jj], zin[jj])
+            bp[ii, jj] = efit_eq.Bp(Rin[jj], zin[jj])
+            bt[ii, jj] = efit_eq.Bt(Rin[jj], zin[jj])
 
     return br, bz, bt, bp
