@@ -1123,19 +1123,35 @@ class BVO:
 
         return frame.copy()
 
-    def getTime(self, it: int, flagAverage: bool = False):
+    def getTime(self, it: int, flagAverage: bool = False, videoFrame:bool = False):
         """
         Get the time corresponding to a loaded frame number
 
         Jose Rueda: jrrueda@us.es
 
-        :param  it: frame number (relative to the loaded frames)
+        :param  it: frame number 
         :param  flagAverage: flag to look at the averaged or raw frames
+        :param  videoFrame: flag to decide whether we look for the frame in the video
+            or the array. If videoFrame==True getTime will return the time corresponding
+            to the recorded frame it. If == False, it will return the time corresponding
+            to the loaded frame it.
+        
+        Example, imaging that you read the frames 300-350 from the recorded video
+        >>> vid.getTime(301, videoFrame=True) would yield the same that
+        >>> vid.getTime(1)
+
         """
         if not flagAverage:
-            t = float(self.exp_dat['t'].values[it])
+            if not videoFrame:
+                t = float(self.exp_dat['t'].values[it])
+            else:
+                fi = self.getFrameIndex(frame_number=it)
+                t = float(self.exp_dat.t.isel(t=fi).values)
         else:
-            t = float(self.avg_dat['tframes'][it])
+            if not videoFrame:
+                t = float(self.avg_dat['tframes'][it])
+            else:
+                raise Exception('Video frame has no meaning when loading averages')
         return t
 
     def getTimeTrace(self, t: float = None, mask=None, ROIname: str =None, vmax: int=None):
