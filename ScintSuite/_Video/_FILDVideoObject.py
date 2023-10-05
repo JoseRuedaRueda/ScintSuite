@@ -279,6 +279,7 @@ class FILDVideo(FIV):
                         phi[iframe], theta[iframe], geomID=self.geometryID,
                         decimals=decimals
                         )
+                logger.debug(os.path.join(smap_folder, name))
                 # See if the strike map exist
                 if os.path.isfile(os.path.join(smap_folder, name)):
                     exist[iframe] = True
