@@ -101,7 +101,7 @@ def write_stl_geometry_files(root_dir
         y1y2y3 = mesh_obj.y  
         z1z2z3 = mesh_obj.z  
     
-        itriang = 131 # choose some triangle of the Scintilator plate to calculate normal vector
+        itriang = 508 # choose some triangle of the Scintilator plate to calculate normal vector, 131 for the new geometry
         p1 = np.array((x1x2x3[itriang, 0],
                        y1y2y3[itriang, 0],
                        z1z2z3[itriang, 0]) ) * 0.001 #convert mm to m
@@ -115,8 +115,8 @@ def write_stl_geometry_files(root_dir
         scint_norm = get_normal_vector(p1, p2, p3)        
         
       
-        ps = p2 #Arbitrarily choose the first point as the reference point
-        u1_scint = p2 - p3
+        ps = p1 #Arbitrarily choose the first point as the reference point, for the new geom is p2 here, and p2 - p3 down in u1_scint 
+        u1_scint = p1 - p2
         u1_scint /= np.linalg.norm(u1_scint) #Only needed to align the scintilattor
         
         rot = ss.sinpa.geometry.calculate_rotation_matrix(scint_norm, u1 = -u1_scint
@@ -201,15 +201,15 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------
     plt.close('all')
 
-    Test = True  # if true don't do run, just check the input geometry
+    Test = False  # if true don't do run, just check the input geometry
     # test geometry
     plot_plate_geometry = True
     plot_3D = False
 
-    run_code = True  # Set flag to run FILDSIM
+    run_code = False  # Set flag to run FILDSIM
     run_slit = [True, False, False, False] # Run particles starting at slits set to true, starting with ur, ul, lr,ll
-    read_slit = [True, True, False, False] # Read results from diffrent slits
-    string_mod = '75620_1004s' #Choose unique run identifier, like shot number and time
+    read_slit = [True, False, False, False] # Read results from diffrent slits
+    string_mod = 'test' #Choose unique run identifier, like shot number and time
     run_names = [string_mod+'_ur_', string_mod + '_ul',string_mod+'_lr', string_mod + '_ll']
     read_results = not run_code # Flag to read output after run
     ###
@@ -234,8 +234,8 @@ if __name__ == '__main__':
     # Magnetic field input
     ###
     new_b_field = True  #Generate new b_field file for FILDSIM. This is slow so this flag lets you use the od
-    Br, Bz, Bt = 0.0, 0.0, 1.4   #[T] just for testing for now
-    Br, Bt, Bz = -0.0025, -1.1013, 0.1469 #(Br, Bphi, Bz) #75620@1.004s
+    Br, Bz, Bt = 0.0, 0.0, -1.4   #[T] just for testing for now
+    #Br, Bt, Bz = -0.0025, -1.1013, 0.1469 #(Br, Bphi, Bz) #75620@1.004s
     modB = np.sqrt(Br**2 + Bz**2 + Bt**2)    
     use_ascot_B = False
     use_single_B = True
@@ -248,7 +248,7 @@ if __name__ == '__main__':
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(1e4)   
+    n_markers = int(1e3)   
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
@@ -286,11 +286,11 @@ if __name__ == '__main__':
     beta = 0.0  #Besides we use TCV coordinates, so for ow this is not needed
     #STL files
     geom_dir = os.path.join(paths.SINPA,'Geometry/')
-    collimator_stl_files = {'collimator_upper': geom_dir+'TCV_FILD/CollimatorUP_1mm_TCVCordinates_MP0mm.stl',
-                            'collimator_lower': geom_dir+'TCV_FILD/CollimatorDOWN_08mm_TCVCordinates_MP0mm.stl',
-                            'heatshield': geom_dir+'TCV_FILD/HeatShield_TCVCordinates_MP0mm.stl'
+    collimator_stl_files = {'collimator_upper': geom_dir+'TCV_FILD/Collimator08_FILD2022TCVCordinates_MP0mm.stl',
+                            #'collimator_lower': geom_dir+'TCV_FILD/CollimatorDOWN_08mm_TCVCordinates_MP0mm.stl',
+                            'heatshield': geom_dir+'TCV_FILD/HeatShield_FILD2022TCVCordinates_MP0mm.stl'
                             }
-    scintillator_stl_files = {'scintillator':  geom_dir+'TCV_FILD/ScintillatorNEW_TCVCordinates_MP0mm.stl'}
+    scintillator_stl_files = {'scintillator':  geom_dir+'TCV_FILD/Scintillator_FILD2022TCVCordinates_MP0mm.stl'}
     #Pinhole coordinates in [mm]
     pinholes = [{}, {}, {}, {}]
     pinholes[0]['pinholeKind'] =1
@@ -823,7 +823,7 @@ if __name__ == '__main__':
                             fig4.colorbar(im2, ax=ax4, label='Counts')
                             fig4.tight_layout()
                 if plot_resolutions:
-                    Smap[i].calculate_resolutions(min_statistics = 1000)
+                    Smap[i].calculate_resolutions(min_statistics = 10)
                     Smap[i].plot_resolutions()
                 if plot_gyro_res:
                     Smap[i].plot_resolution_fits(var='Gyroradius',
