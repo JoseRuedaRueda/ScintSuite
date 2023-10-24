@@ -188,39 +188,43 @@ class FIV(BVO):
 
         :return full_name_smap: Name of the used strike map
         """
+        # # Get Bangles
+        # if self.Bangles is None:
+        #     self._getB()
+        #     self._getBangles()
         # Get the frame number
         if t is not None:
             frame_index = np.argmin(abs(self.exp_dat['t'].values - t))
-            theta_used = self.remap_dat['theta_used'].values[frame_index]
-            phi_used = self.remap_dat['phi_used'].values[frame_index]
+            theta_used = self.Bangles['theta_used'].values[frame_index]
+            phi_used = self.Bangles['phi_used'].values[frame_index]
         else:
             frame_index = self.exp_dat['nframes'].values == frame_number
-            theta_used = self.remap_dat['theta_used'].values[frame_index][0]
-            phi_used = self.remap_dat['phi_used'].values[frame_index][0]
+            theta_used = self.Bangles['theta_used'].values[frame_index][0]
+            phi_used = self.Bangles['phi_used'].values[frame_index][0]
 
         # Get the full name of the file
-        if self.diag == 'FILD' and self.remap_dat['frames'].attrs['CodeUsed'].lower() == 'fildsim':
+        if self.diag == 'FILD' and self.strikemap.attrs['CodeUsed'].lower() == 'fildsim':
             name__smap = ssFILDSIM.guess_strike_map_name(
                 phi_used, theta_used, geomID=self.geometryID,
-                decimals=self.remap_dat['frames'].attrs['decimals'])
+                decimals=self.Bangles['theta_used'].attrs['decimals'])
         elif self.diag == 'FILD':
             name__smap = ssSINPA.execution.guess_strike_map_name(
                 phi_used, theta_used, geomID=self.geometryID,
-                decimals=self.remap_dat['frames'].attrs['decimals']
+                decimals=self.Bangles['theta_used'].attrs['decimals']
                 )
         elif self.diag == 'INPA':
             name__smap = ssSINPA.execution.guess_strike_map_name(
                 phi_used, theta_used, geomID=self.geometryID,
-                decimals=self.remap_dat['frames'].attrs['decimals']
+                decimals=self.Bangles['theta_used'].attrs['decimals']
                 )
         else:
             raise Exception('Diagnostic not understood')
-        smap_folder = self.remap_dat['frames'].attrs['smap_folder']
+        smap_folder = self.strikemap.attrs['smap_folder']
         full_name_smap = os.path.join(smap_folder, name__smap)
 
         if verbose:
-            theta_calculated = self.remap_dat['theta'].values[frame_index]
-            phi_calculated = self.remap_dat['phi'].values[frame_index]
+            theta_calculated = self.Bangles['theta'].values[frame_index]
+            phi_calculated = self.Bangles['phi'].values[frame_index]
             print('Calculated theta: ', theta_calculated)
             print('Used theta: ', theta_used)
             print('Calculated phi: ', phi_calculated)
@@ -231,7 +235,7 @@ class FIV(BVO):
     # --------------------------------------------------------------------------
     # --- Time Traces
     # --------------------------------------------------------------------------
-    def getTimeTrace(self, t: float = None, mask=None, ROIname: str = None):
+    def getTimeTrace(self, t: float = None, mask=None, ROIname: str = None, vmax: int=None):
         """
         Calculate the timeTrace of the video. Extended method from parent class
 
@@ -249,7 +253,7 @@ class FIV(BVO):
         """
         if mask is not None or t is not None:
             trace, mask = super().getTimeTrace(t=t, mask=mask,
-                                           ROIname=ROIname)
+                                           ROIname=ROIname, vmax=vmax)
         else:
             mask = \
                 self.ROIscintillator.getMask(self.exp_dat['frames'][:, :,
@@ -272,7 +276,8 @@ class FIV(BVO):
                    RemoveAxisTicksLabels: bool = False,
                    flagAverage:bool = False,
                    normalise=None,
-                   smap_labels: bool = False):
+                   smap_labels: bool = False,
+                   rotate_frame: bool = False):
         """
         Plot a frame from the loaded frames
 
@@ -316,6 +321,7 @@ class FIV(BVO):
             if normalise == <number> it would be normalised to this value
             if normalise == None, nothing will be done
         :param  smap_labels: boolean flag to plot the labels of the strike map
+        :param rotate_frame: boolean flag to rotate the frame the rotation angle of the optical parameters
 
         :return ax: the axes where the frame has been drawn
         """
@@ -327,7 +333,8 @@ class FIV(BVO):
             IncludeColorbar=IncludeColorbar,
             RemoveAxisTicksLabels=RemoveAxisTicksLabels,
             flagAverage=flagAverage,
-            normalise=normalise
+            normalise=normalise, 
+            rotate_frame=rotate_frame
         )
         # Get the frame number
         if t is not None:
@@ -393,6 +400,7 @@ class FIV(BVO):
         :param  color_labels_in_plot: Color for the labels in the plot
         :param  translation: tuple with the desired specie and translation to
             plot. Example ('D', 1)
+        
 
         :return ax: the axes where the frame has been drawn
         """
@@ -479,14 +487,15 @@ class FIV(BVO):
         if IncludeColorbar:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
-            plt.colorbar(img, label='Counts [a.u.]', cax=cax,
+            cbar = plt.colorbar(img, label='Counts [a.u.]', cax=cax,
                          format=cbar_tick_format)
+            cbar.set_label(label='Counts [a.u.]')
         # Set the labels with t and shot
         ax.text(0.05, 0.9, '#' + str(self.shot),
                 horizontalalignment='left',
                 color=color_labels_in_plot, verticalalignment='bottom',
                 transform=ax.transAxes)
-        plt.text(0.95, 0.9, 't = ' + str(round(tf, 4)) + (' s'),
+        plt.text(0.95, 0.9, 't = ' + str(round(tf, 3)) + (' s'),
                  horizontalalignment='right',
                  color=color_labels_in_plot, verticalalignment='bottom',
                  transform=ax.transAxes)
@@ -871,8 +880,13 @@ class FIV(BVO):
             f.write('geom_ID: %s\n'%self.geometryID)
             f.write('CameraFileBPP: %s\n'%self.settings['RealBPP'])
 
+<<<<<<< HEAD
         json.dump(self.position, open(positionFile, 'w'))
         json.dump({k:np.atleast_1d(v).tolist() for k,v in self.orientation.items()},
+=======
+        json.dump(self.position, open(positionFile, 'w' ) )
+        json.dump({k:np.array(v).tolist() for k,v in self.orientation.items()},
+>>>>>>> 2ce665f09519c47315de84a80b5188f774624be7
                   open(orientationFile, 'w' ) )
         if self.CameraData is not None:
             json.dump(self.CameraData, open(cameraData))

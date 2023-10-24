@@ -8,8 +8,9 @@ import os
 import f90nml
 import numpy as np
 import pandas as pd
-from ScintSuite._Machine import machine
+from urllib.error import HTTPError
 from ScintSuite._Paths import Path
+from ScintSuite._Machine import machine
 from ScintSuite._Mapping._Calibration import CalParams, readCameraCalibrationDatabase
 import ScintSuite.LibData.MU.DiagParam as params
 paths = Path(machine)
@@ -42,7 +43,7 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
 
     :return file: the name of the file/folder
     """
-    base_dir = params.FILD[diag_ID-1]['path']
+    base_dir = params.FILD[diag_ID-1]['path'](shot)
     extension = params.FILD[diag_ID-1]['extension'](shot)
     shot_str = str(shot)
     name = shot_str + extension
@@ -99,7 +100,7 @@ class FILD_logbook:
             self.positionDatabase = \
                 self._readPositionDatabase(positionFile, verbose=verbose)
             self.flagPositionDatabase = True
-        except FileNotFoundError:
+        except (FileNotFoundError, HTTPError):
             self.flagPositionDatabase = False
             print('Not found position database, we will use the defaults')
         # Load the geometry database
@@ -156,6 +157,16 @@ class FILD_logbook:
         database = pd.DataFrame(data)
         return database
 
+    def getCameraGeneralParameters(self, shot: int, diag_ID: int = 1):
+        """
+        Read the camera general properties
+        """
+        calib = self.getCameraCalibration(shot, diag_ID)
+        filename = os.path.join(paths.ScintSuite, 'Data',
+                                'CameraGenralParameters', 
+                                calib.camera.lower()+'.txt')
+        return f90nml.read(filename)
+    
     def getCameraCalibration(self, shot: int, diag_ID: int = 1):
         """
         Get the camera calibration parameters for a shot
@@ -242,47 +253,22 @@ class FILD_logbook:
             'phi': 0.0,
         }
         dummy = self.positionDatabase['FILD'+str(FILDid)]
-        if FILDid != 4:
-            if 'R [m]' in dummy.keys():  # Look for R
-                position['R'] = dummy['R [m]'].values[i]
-            else:  # Take the default approx value
-                print('R not in the logbook, returning default')
-                position['R'] = default['R']
-            if 'Z [m]' in dummy.keys() and flag:  # Look for Z
-                position['z'] = dummy['Z [m]'].values[i]
-            else:  # Take the default approx value
-                print('Z not in the logbook, returning default')
-                position['z'] = default['z']
-            if 'Phi [deg]' in dummy.keys() and flag:  # Look for phi
-                position['phi'] = dummy['Phi [deg]'].values[i]
-            else:  # Take the default approx value
-                print('Phi not in the logbook, returning default')
-                position['phi'] = default['phi']
-        else:  # We have FILD4, the movable FILD
-            # Ideally, we will have an optic calibration database which is
-            # position dependent, therefore we should keep all the FILD
-            # trayectory.
-            # However, this calibration database was not given by the previous
-            # operator of the 'in-shot' movable FILD, neither any details of
-            # the optical design which could allow us to create it. So until we
-            # dismount and examine the diagnostic piece by piece, this
-            # trayectory is irrelevant, we will just keep the average position,
-            # which is indeed 'okeish', as the resolution of this FILD in AUG
-            # is poor, so a small missalignement will not be noticed.
-            # To calculate this average position, I will take the average of
-            # the positions at least 5 mm further from the minimum limit
-            dummy2 = load_FILD4_trajectory(shot)
-            if dummy2['position'] is not None:
-                min = dummy2['position']['R'].min()
-                flags = dummy2['position']['R'] > (min + 0.005)
-                position['R'] = dummy2['position']['R'][flags].mean()
-                position['z'] = dummy2['position']['z'][flags].mean()
-            else:    # Shot not found in the database
-                position['R'] = default['R']
-                position['z'] = default['z']
-            # FILD4 phi is always the same:
+        if 'R [m]' in dummy.keys():  # Look for R
+            position['R'] = dummy['R [m]'].values[i]
+        else:  # Take the default approx value
+            print('R not in the logbook, returning default')
+            position['R'] = default['R']
+        if 'Z [m]' in dummy.keys() and flag:  # Look for Z
+            position['z'] = dummy['Z [m]'].values[i]
+        else:  # Take the default approx value
+            print('Z not in the logbook, returning default')
+            position['z'] = default['z']
+        if 'Phi [deg]' in dummy.keys() and flag:  # Look for phi
+            position['phi'] = dummy['Phi [deg]'].values[i]
+        else:  # Take the default approx value
             print('Phi not in the logbook, returning default')
             position['phi'] = default['phi']
+        
         return position
 
     def getOrientation(self, shot, FILDid):
@@ -322,7 +308,8 @@ class FILD_logbook:
             print('Beta angle not in the logbook, returning default')
             return default
         default['beta'] = beta
-
+        if default['beta'] == np.nan:
+            print('Beta is Nan. Be careful!!')
         return default
 
     def getAdqFreq(self, shot: int, diag_ID: int = 1):
@@ -336,7 +323,7 @@ class FILD_logbook:
         :param  FILDid: manipulator id
         """
         # Get always the default as a reference:
-        default = params.FILD[diag_ID-1]['adqfreq']
+        default = params.FILD[diag_ID-1]['adqfreq'](shot)
         # First check that we have loaded the position logbook
         if not self.flagPositionDatabase:
             print('Logbook not loaded, returning default values')
@@ -368,7 +355,7 @@ class FILD_logbook:
         :param  FILDid: manipulator id
         """
         # Get always the default as a reference:
-        default = params.FILD[diag_ID-1]['t_trig']
+        default = params.FILD[diag_ID-1]['t_trig'](shot)
         # First check that we have loaded the position logbook
         if not self.flagPositionDatabase:
             print('Logbook not loaded, returning default values')
