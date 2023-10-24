@@ -19,8 +19,7 @@ import ScintSuite.SimulationCodes.FILDSIM as ssFILDSIM
 import ScintSuite.SimulationCodes.SINPA as ssSINPA
 from tqdm import tqdm   # For waitbars
 from ScintSuite._Machine import machine
-from ScintSuite._Mapping._StrikeMap import StrikeMap
-
+from ScintSuite._StrikeMap._FILD_StrikeMap import Fsmap as StrikeMap
 # --- Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.FILDMapping')
 paths = p.Path(machine)
@@ -278,7 +277,7 @@ def remapAllLoadedFrames(video,
                     decimals=decimals, clean=True)
         # Only reload the strike map if it is needed
         if name != name_old:
-            smap = StrikeMap(0, os.path.join(smap_folder, name))
+            smap = StrikeMap(file=os.path.join(smap_folder, name))
             # -- Set the remap variables
             if wantEnergy:
                 smap.calculate_energy(video.BField['B'].values[iframe], A, Z)

@@ -25,7 +25,6 @@ else:
     
 try:
     import aug_sfutils as sfutils
-    import get_gc            # Module to load vessel component
 except ModuleNotFoundError:
     logging.warning('You somehow got here without AUG utils')
 
@@ -49,12 +48,12 @@ def poloidal_vessel(shot: int = 30585, simplified: bool = False):
         r = []
         z = []
         # Get vessel coordinates
-        gc_r, gc_z = get_gc.get_gc(shot)
-        for key in gc_r.keys():
+        gc_d =  sfutils.getgc(shot)
+        for gc in gc_d.values():
             # print(key)
-            r += list(gc_r[key][:])
+            r += list(gc.r)
             r.append(np.nan)
-            z += list(gc_z[key][:])
+            z += list(gc.z)
             z.append(np.nan)
         return np.array((r, z)).transpose()
     else:

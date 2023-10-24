@@ -104,7 +104,8 @@ class pySpecView:
              cross_phasogram: bool = False, 
              gamma: float = 0.5,
              label: bool = True,
-             n_cross_phasogram: Optional[int] = None,):
+             n_cross_phasogram: Optional[int] = None, 
+             interpolation='nearest'):
         """
         Plot the spectogram or the cross_phasogram
 
