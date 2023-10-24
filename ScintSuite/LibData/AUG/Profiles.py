@@ -1408,6 +1408,8 @@ def get_ECE(shotnumber: int, timeWindow: Optional[list] = None,
 
     if timeWindow is None:
         timeWindow = [time[0], time[-1]]
+    else:
+        timeWindow = np.atleast_1d(timeWindow)
 
     timeWindow[0] = np.maximum(time[0], timeWindow[0])
     timeWindow[1] = np.minimum(time[-1], timeWindow[-1])

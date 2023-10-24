@@ -527,7 +527,7 @@ class Strikes:
         self.histograms[histName] = xr.Dataset()
         # kind of markers:
         supportedKinds = [0, 5, 6, 7, 8]
-        if self.header['FILDSIMmode']:
+        if self.header['FILDSIMmode'] or jk is None:
             supportedKinds = [0,]
         nkinds = len(supportedKinds)
         # Prepare the matrices
@@ -543,16 +543,22 @@ class Strikes:
         if jwc is not None:
             dataC = np.zeros((edgesx.size - 1, edgesy.size - 1, nkinds))
         for ik, k in enumerate(supportedKinds):
+            logger.debug('Histograming kind %i'%k)
             for ig in range(self.header['ngyr']):
                 for ia in range(self.header['nXI']):
                     if self.header['counters'][ia, ig] > 1:
                         # Skip if there are not markers of that kind
                         if k != 0:
-                            f = self.data[ig, ia][:, jk].astype(int) == k
+                            f = self.data[ia, ig][:, jk].astype(int) == k
                             if f.sum() == 0:
                                 continue
                         else:
-                            f = np.ones(self.data[ig, ia][:, 0].size, bool)
+                            f = np.ones(self.data[ia, ig][:, 0].size, bool)
+                        logger.debug('Matrix %i %i  flags %i'%(
+                            self.data[ia, ig].shape[0],
+                            self.data[ia, ig].shape[1],
+                            f.size
+                        ))
                         # Count histogram
                         H, xedges, yedges = \
                             np.histogram2d(self.data[ia, ig][f, jx],
