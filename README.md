@@ -22,6 +22,12 @@ The suite will not work without them:
 - mesh: To deal with CAD files
 - numba > 0.55.1 to perform fast iHIBPsim xsection calculations and tomography
 - odfpy: To read INPA logbook (which is written in an .ODS file)
+For MAST-U users:
+- pyEquilibrium:
+  git clone https://git.ccfe.ac.uk/SOL_Transport/pyEquilibrium.git -b lkogan_aeqdsk pyEquilibrium
+  pip install –user ./pyEquilibrium
+
+
 
 #### Complete list:
 In a clean-typical python installation with anaconda, taking care only of the packages and versions listed above should be enough and the suite will run smoothly, but python package dependence can sometimes a mess. As an indication, in the folder `Data/TestedEnv` you can find the result of the command `pip list` in a python environment where the suite was tested and working fine. So if you find a series of problems with packages versions, try to create your virtual environment and reproduce the installed package list detailed there. The files are labeled with the Suite version for which they were tested and 'Optx', meaning 'Option x', as different user can have different list of packages which could work.
@@ -34,7 +40,7 @@ In order to clone the suite just open a terminal in your home directory and type
 To install all non-standard (not machine dependent) packages, you can give a try the script: `first_run.py`. It will work in personal computers and *standard installations* although things can go wrong if your system has some particular rights limitations and you are not allowed to change them using =pip install=. In these cases, you should use a virtual environment:
 
 1. Install virtualenv: `pip install virtualenv`
-2. Create your virtual environment (let us call it SSvirtualenv): `virtualenv -p python3 --system-site-packages SSvirtualenv`
+2. Create your virtual environment (let us call it SSvirtualenv): `virtualenv -p python3 --system-site-packages SSvirtualenv` [Note: for MU users, this has to be done as `python -m virtualenv ...`]
 3. Activate your virtual environment (remember to do this everytime you are using ScintSuite or add it to your login script): `source SSvirtualenv/bin/activate`
 4. Force install the compatible versions using `pip install modulename==X.X.X`. A list of compatible versions is listed here (checked in MAST-U and JET):
 ```python
@@ -43,6 +49,10 @@ scikit-image==0.16.2
 pyfftw==0.12.0
 pandas==1.3.1
 ```
+For MU, you will probably also need:
+`openpyxl==3.0.3`
+`pco-tools`
+
 Once the python modules are created, you need to create the folder `MyData` inside the Data folder, and copy in it the .txt files which are located in `Data/MyDataTemplates`. These are the configuration files of the Suite, they are needed to import the sutie and can be modified (the ones in MYData folder) to change the behaviour of the plotting, warning, paths... If you installed the sutie with the script: `first_run.py` this step was done already, so you can ignore it
 
 ### Cloning and installed the suite (vainilla user. Install method 2)
