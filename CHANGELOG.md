@@ -1,3 +1,7 @@
+# 1.3.5 Update netCDF library for MU
+- The netCDF library has been updated to read new standard MU format
+
+
 # 1.3.4 Home flexibility
 - The code can now be intalled away from your home directory using the env variable ScintSuitePath
 - *Bug fixing*: Small bug when reading old FILD remaps when the total number per pixel was not properly read

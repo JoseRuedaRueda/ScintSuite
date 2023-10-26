@@ -6,7 +6,7 @@ import numpy as np
 from ScintSuite._Machine import machine
 from ScintSuite._Paths import Path
 
-version = '1.3.4'
+version = '1.3.5'
 codename = 'PIPas BBQ'
 
 logger = logging.getLogger('ScintSuite.Version')
