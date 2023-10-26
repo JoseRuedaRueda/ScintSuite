@@ -14,20 +14,24 @@ IB_sign = Bt_sign * It_sign
 # -----------------------------------------------------------------------------
 #                           FILD PARAMETERS
 # -----------------------------------------------------------------------------
-# All values except for beta, are extracted from XXXXXXXXXXX:
-#
-firstShot = 46515
-fild1 = {'adqfreq': lambda shot:\
-    23 if shot < firstShot else 100,  # Extension of the video
-    't_trig': lambda shot:\
-    -2.5 if shot < firstShot else -1.0,
-    'extension': lambda shot: '' if shot < firstShot else '.nc', 
-    'label': 'FILD1', 'path': lambda shot:\
+firstShotXIMEA = 46515
+firstShotPrefix = 48578
+def prefix(shot:int):
+    if shot < firstShotPrefix:
+        pref = ''
+    elif (shot > firstShotPrefix) and (shot<100000):
+        pref = 'xfx0'
+    else:
+        pref = 'xfx'
+    return pref
+fild1 = {'adqfreq': lambda shot: 23 if shot < firstShotXIMEA else 500,  
+    't_trig': lambda shot: -2.5 if shot < firstShotXIMEA else -1.0,
+    'extension': lambda shot: '' if shot < firstShotXIMEA else '.nc', # Extension of the video
+    'prefix': prefix, # Prefix of the file name
+    'label': 'FILD1', 
+    'path': lambda shot:\
     # '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShot else '/fild-data/XIMEAshotfiles'}
     # '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShot else '/FILD1_remote_store'}
-    '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShot else '/home/jqw5960/mastu/experiments/SHOTFILES_XIMEA'}
-# fild1 = {'adqfreq': 23, 't_trig': -2.5,
-#          'extension': lambda shot: '', 'label': 'FILD1', 'camera': 'CCD',
-#          'path': ,}
+    '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShotXIMEA else '/home/jqw5960/mastu/experiments/SHOTFILES_XIMEA'}
 
 FILD = (fild1,)

@@ -45,8 +45,9 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
     """
     base_dir = params.FILD[diag_ID-1]['path'](shot)
     extension = params.FILD[diag_ID-1]['extension'](shot)
+    prefix = params.FILD[diag_ID-1]['prefix'](shot)
     shot_str = str(shot)
-    name = shot_str + extension
+    name = prefix + shot_str + extension
     file = os.path.join(base_dir, name)
     return file
 
@@ -315,6 +316,7 @@ class FILD_logbook:
     def getAdqFreq(self, shot: int, diag_ID: int = 1):
         """
         Get the adquisition frequency from the database
+        Since XIMEA in use, this is deprecated, as the frames per second are stored in the video.
 
         Jose Rueda - jrrueda@us.es
         Lina Velarde - lvelarde@us.es
@@ -369,12 +371,12 @@ class FILD_logbook:
             return default
         # --- Get the postion
         dummy = self.positionDatabase['FILD'+str(diag_ID)]
-        if 'CCDqe trigger time [s]' in dummy.keys():  # Look for adqfreq
-            adqfreq = dummy['CCDqe trigger time [s]'].values[i]
+        if 'CCDqe trigger time [s]' in dummy.keys():  # Look for tTrig
+            tTrig = dummy['CCDqe trigger time [s]'].values[i]
         else:  # Take the default approx value
             print('Trigger time not in the logbook, returning default')
-            adqfreq = default
-        return adqfreq
+            tTrig = default
+        return tTrig
 
     def getGeomShots(self, geomID, maxR: float = None):
         """
