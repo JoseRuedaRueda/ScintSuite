@@ -1,3 +1,10 @@
+# 1.3.4 Home flexibility
+- The code can now be intalled away from your home directory using the env variable ScintSuitePath
+- *Bug fixing*: Small bug when reading old FILD remaps when the total number per pixel was not properly read
+- *Major Bug fix*: Tiff video read was broken
+- *Bug fixing*: np.float removed from vessel library
+
+
 # 1.3.3 BAngles calculation
 - BAngles can now be calculated without having to perform the remap
 - netCDF4 files can be read and analysed
