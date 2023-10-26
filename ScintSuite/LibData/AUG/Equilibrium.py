@@ -217,12 +217,16 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
     eqh_ssq = np.array(sfo('SSQ')).T
 
     # Unpacking the data.
-    ssq = dict()
+    ssq = {}
     for jssq in range(eqh_ssq.shape[1]):
         tmp = b''.join(eqh_ssqnames[:, jssq]).strip()
-        lbl = tmp.decode('utf8')
+        lbl = tmp.decode('utf-8')
         if lbl.strip() != '':
-            ssq[lbl] = eqh_ssq[t0:t1, jssq]
+            tmp = b''.join(eqh_ssqnames[:, jssq]).strip()
+            lbl = tmp.decode('utf-8')
+            if lbl.strip() != '':
+                decoded_key = lbl.replace('\x00', '')
+                ssq[decoded_key] = eqh_ssq[t0:t1, jssq]
 
     # Reading from the equilibrium the magnetic flux at the axis and in the
     # separatrix.

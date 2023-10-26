@@ -24,6 +24,7 @@ import ScintSuite._Plotting as ssplt
 import ScintSuite._Video._AuxFunctions as _aux
 import ScintSuite.SimulationCodes.FILDSIM as ssFILDSIM
 import ScintSuite.SimulationCodes.SINPA as ssSINPA
+import ScintSuite._Utilities as ssextra
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from tqdm import tqdm   # For waitbars

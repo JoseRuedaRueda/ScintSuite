@@ -156,6 +156,7 @@ class BVO:
                     self.type_of_file = '.cin'
                 elif file.endswith('.png') or file.endswith('.tif'):
                     file, name = os.path.split(file)
+                    self.path = file
                 elif file.endswith('.nc'):
                     dummy, self.header, self.imageheader, self.settings,\
                          = ncdf.read_file_anddata(file)
@@ -217,35 +218,25 @@ class BVO:
                 count_png = 0
                 count_tif = 0
                 count_pco = 0
-                count_nc = 0
-                print('f is:', f)
-                print('type of f is: ', type(f))
-                if type(f) == list:
-                    for i in range(len(f)):
-                        if f[i].endswith('.png'):
-                            count_png += 1
-                            if count_png == 3:
-                                self.type_of_file = '.png'
-                                print('Found PNG files!')
-                                break
-                        elif f[i].endswith('.b16'):
-                            count_pco += 1
-                            if count_pco == 3:
-                                self.type_of_file = '.b16'
-                                print('Found PCO files!')
-                                break
-                elif type(f) == str:
-                    print('Type of f is in fact str. Well done.')
-                    if f.endswith('.nc'):
-                        count_nc += 1
-                        if count_nc == 1:
-                            self.type_of_file = '.nc'
-                            print('Found netCDF files!')
+                for i in range(len(f)):
+                    if f[i].endswith('.png'):
+                        count_png += 1
+                        if count_png == 3:
+                            self.type_of_file = '.png'
+                            print('Found PNG files!')
+                            break
+                    elif f[i].endswith('.b16'):
+                        count_pco += 1
+                        if count_pco == 3:
+                            self.type_of_file = '.b16'
+                            print('Found PCO files!')
+                            break
                     elif f[i].endswith('.tif'):
                         count_tif += 1
                         if count_tif == 1:
                             self.type_of_file = '.tif'
                             print('Found tif files!')
+                            break
                 else:
                     raise Exception('Type of f variable not found. Please revise code.')
                  # if we do not have .png or tiff, give an error

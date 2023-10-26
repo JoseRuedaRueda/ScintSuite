@@ -63,7 +63,7 @@ git clone https://gitlab.mpcdf.mpg.de/ruejo/scintsuite ScintSuite
 cd ScintSuite
 git checkout <branch>
 python first_run_pip.py
-pip install .
+pip install -e .
 ```
 This will install all requirement via pip. It is needed that your machine support pip installation of python packages
 ### Getting started
@@ -85,7 +85,7 @@ There are three files containing the paths and routes for the suite:
 - `LibPaths.py`: Located inside the Lib folder, there they are all the paths pointing towards the different codes (FILDSIM, INPASIM etc) and the results/strike maps directories. Again do not modify this file just to put your custom paths, please.
 - `MyData/Paths.txt`: It could happen that you have FILDSIM, SINPA or whatever installed in a route which is not *the official*. Inside this file, you can set all these paths. The file should be created when you run the script `first_run.py`; although you can always copy it from the `Data/MyDataTemplates folder`.
 
-**Important:** The suite must be installed in your home directory. The reason for this is that I found no other way for the Suite to localise this custom directory. Please, if you find a woraround for this, send me an email and we will be happy to implement it.
+**Important:** If the ScintSuite is not installed in your home directory, you need to define the EnvVar `ScintSuitePath` pointing towards the installation location of the code. If that variable is not defined, the code will assume it is located in your home dir. 
 
 VRT related paths are hardcoded. There is a significant number of them and overloading LibPaths seems like a poor solution. Blame Javier Hidalgo for this (jhsalaverri@us.es)
 

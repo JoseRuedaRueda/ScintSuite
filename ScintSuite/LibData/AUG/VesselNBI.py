@@ -95,8 +95,8 @@ def toroidal_vessel(rot: float = -np.pi/8.0*3.0):
                 break
             else:
                 dummy = line.split()
-                xx = np.float(dummy[0])
-                yy = np.float(dummy[1])
+                xx = float(dummy[0])
+                yy = float(dummy[1])
                 xy_vessel[cc, 0] = xx * np.cos(rot) - yy * np.sin(rot)
                 xy_vessel[cc, 1] = xx * np.sin(rot) + yy * np.cos(rot)
             cc += 1

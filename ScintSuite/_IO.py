@@ -583,7 +583,12 @@ def load_remap(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
         vid.diag = diag.upper()
         vid.geometryID = f.readline().split(':')[-1].split('\n')[0].strip()
         vid.settings = {}
-        vid.settings['RealBPP'] = int(f.readline().split(':')[-1])
+        # sometimes, the data is save like [8] instead of 8, so let's use a try
+        numberline = f.readline()  
+        try:
+            vid.settings['RealBPP'] = int(numberline.split(':')[-1])
+        except ValueError:
+            vid.settings['RealBPP'] = numberline.split(':')[-1].split('[')[1]
     fid = open(position)
     vid.position = json.load(fid)
     fid.close()

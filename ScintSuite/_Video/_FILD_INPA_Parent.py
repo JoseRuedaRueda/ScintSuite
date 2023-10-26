@@ -880,13 +880,8 @@ class FIV(BVO):
             f.write('geom_ID: %s\n'%self.geometryID)
             f.write('CameraFileBPP: %s\n'%self.settings['RealBPP'])
 
-<<<<<<< HEAD
         json.dump(self.position, open(positionFile, 'w'))
         json.dump({k:np.atleast_1d(v).tolist() for k,v in self.orientation.items()},
-=======
-        json.dump(self.position, open(positionFile, 'w' ) )
-        json.dump({k:np.array(v).tolist() for k,v in self.orientation.items()},
->>>>>>> 2ce665f09519c47315de84a80b5188f774624be7
                   open(orientationFile, 'w' ) )
         if self.CameraData is not None:
             json.dump(self.CameraData, open(cameraData))
