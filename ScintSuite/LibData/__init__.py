@@ -5,5 +5,7 @@ if machine == 'AUG':
     from ScintSuite.LibData.AUG import *
 elif machine == 'MU':
     from ScintSuite.LibData.MU import *
+elif machine == 'TCV':
+    from ScintSuite.LibData.TCV import *
 else:
     from ScintSuite.LibData.Generic import *

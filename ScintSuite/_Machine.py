@@ -17,7 +17,7 @@ elif os.path.isdir('/afs/ipp/aug/ads-diags/common/python/lib'):
         machine = 'AUG'
     except ModuleNotFoundError:
         machine = 'Generic'
-elif os.path.isdir('/NoTivoli/'):
+elif os.path.isdir('/NoTivoli'):
     machine = 'TCV'
 else:
     machine = 'Generic'

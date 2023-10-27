@@ -20,13 +20,17 @@ paths = Path(machine)
 import requests
 from bs4 import BeautifulSoup
 ##
+##
+import requests
+from bs4 import BeautifulSoup
+##
 
 # --- Default files:
-# _cameraDatabase = os.path.join(paths.ScintSuite, 'Data', 'Calibrations',
-#                               'FILD', 'TCV', 'calibration_database.txt')
-#_geometryDatabase = os.path.join(paths.ScintSuite, 'Data',
-#                                 'Calibrations', 'FILD', 'TCV',
-#                                 'Geometry_logbook.txt')
+_cameraDatabase = os.path.join(paths.ScintSuite, 'Data', 'Calibrations',
+                               'FILD', 'TCV', 'calibration_database.txt')
+_geometryDatabase = os.path.join(paths.ScintSuite, 'Data',
+                                 'Calibrations', 'FILD', 'TCV',
+                                 'Geometry_logbook.txt')
 #_positionDatabase = paths.FILDPositionDatabase
 #_geometrdefault = os.path.join(paths.ScintSuite, 'Data',
 #                              'Calibrations', 'FILD', 'TCV',
@@ -76,6 +80,8 @@ class FILD_logbook:
     """
 
     def __init__(self,
+                 cameraFile: str = _cameraDatabase,
+                 geometryFile: str = _geometryDatabase,
                  positionFile: str = 'https://spcwiki.epfl.ch/wiki/FILD/Logbook',
                  verbose: bool = True):
         """
@@ -91,7 +97,22 @@ class FILD_logbook:
         """
         if verbose:
             print('.-.. --- --. -... --- --- -.-')
-            
+
+        # Load the camera database
+        try:    
+            self.CameraCalibrationDatabase = \
+            readCameraCalibrationDatabase(cameraFile, verbose=verbose,
+                                          n_header=0)
+        except:
+            pass
+        # Load the geometry database
+        try:
+            self.geometryDatabase = \
+            self._readGeometryDatabase(geometryFile, verbose=verbose)
+        except:
+            print('vould not read the geometry database')
+            pass
+
         self.wikilink = positionFile
         
         return 
@@ -153,14 +174,17 @@ class FILD_logbook:
                 wiki_data.append(row_data)
                 
             # Identify the row where the shot is stored
+            irow = 1
             for i in range(1,np.shape(wiki_data,)[0]):     
                 if shot == int(wiki_data[i][0]):
-                    row = i
-                    
-        collimator_width = float(wiki_data[i][2][10:13])
-        slit = int(wiki_data[i][2][25])
-        geometry = 'col' + str(collimator_width) + 'mm_slit' + str(slit) + \
-                     '_' + str(year)
+                    irow = i
+
+        geometry =  'dummy'
+        if shot == int(wiki_data[irow][0]):            
+            collimator_width = float(wiki_data[irow][2][10:13])
+            slit = int(wiki_data[irow][2][25])
+            geometry = 'col' + str(collimator_width) + 'mm_slit' + str(slit) + \
+                        '_' + str(year)
         
         return geometry
 
@@ -208,6 +232,7 @@ class FILD_logbook:
         :param  shot: integer, shot number
         :param  FILDid: manipulator number
         """
+        '''
         flags = (self.geometryDatabase['shot1'] <= shot) & \
             (self.geometryDatabase['shot2'] >= shot) & \
             (self.geometryDatabase['diag_ID'] == FILDid)
@@ -218,7 +243,9 @@ class FILD_logbook:
             raise Exception('More than onw entry found, revise')
         else:
             id = self.geometryDatabase[flags].GeomID.values[0]
-        return id
+
+        '''
+        return 'TCV2023'#id
 
     def getPosition(self, shot: int, FILDid: int = 1, verbose=True):
         """
@@ -273,6 +300,7 @@ class FILD_logbook:
         :param  shot: shot number to look in the database
         :param  FILDid: manipulator id
         """
+        '''
         geomID = self.getGeomID(shot, FILDid)
         default = self._getOrientationDefault(geomID)
         # First check that we have loaded the position logbook
@@ -302,7 +330,8 @@ class FILD_logbook:
             return default
         default['beta'] = beta
 
-        return default
+        '''
+        return 0#default
 
     def getAdqFreq(self, shot: int, diag_ID: int = 1):
         """

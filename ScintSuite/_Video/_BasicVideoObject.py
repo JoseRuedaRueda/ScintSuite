@@ -25,6 +25,7 @@ import ScintSuite._Video._CinFiles as cin
 import ScintSuite._Video._PNGfiles as png
 import ScintSuite._Video._PCOfiles as pco
 import ScintSuite._Video._MP4files as mp4
+import ScintSuite._Video._MATfiles as mat
 import ScintSuite._Video._TIFfiles as tif
 import ScintSuite._Utilities as ssutilities
 import ScintSuite._Video._AuxFunctions as aux
@@ -175,6 +176,39 @@ class BVO:
                     self.exp_dat['frames'] = \
                         self.exp_dat['frames'].transpose('px', 'py', 't')
                     self.type_of_file = '.mp4'
+                elif file.endswith('.mat'):
+                    #if not 'properties' in self.__dict__:
+                    #    self.properties = {}
+                    dummy = mat.read_file(file)#, **self.properties)
+
+                    ## Time array
+                    ##TODO check that the timebase is correctly defined AJVV
+                    #Suggetsion from POLEY:
+                    #t0=(double(b.secs(2))+double(b.usecs(2))*1e-6)-(double(b.secs(1))+double(b.usecs(1))*1e-6);
+                    #time=(double(b.secs)+double(b.usecs)*1e-6)-(double(b.secs(1))+double(b.usecs(1))*1e-6)+t0;
+
+                    self.timebase = dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
+                    
+                    #import IPython
+                    #IPython.embed()
+                    frames = dummy.pop('/dat') #frames are stored in "/dat"
+                    frames = frames[:,:,::-1]
+                    #self.properties.update(dummy)
+                    self.exp_dat = xr.Dataset()
+                    nt, nx, ny = frames.shape
+                    px = np.arange(nx)
+                    py = np.arange(ny)
+
+                    self.exp_dat['frames'] = \
+                        xr.DataArray(frames, dims=('t', 'px', 'py'),
+                                     coords={'t': self.timebase.squeeze(),
+                                             'px': px,
+                                             'py': py})
+                    self.exp_dat['frames'] = \
+                        self.exp_dat['frames'].transpose('py', 'px', 't')
+                    
+                   
+                    self.type_of_file = '.mat'                    
                 else:
                     raise Exception('Not recognised file extension')
             else:
