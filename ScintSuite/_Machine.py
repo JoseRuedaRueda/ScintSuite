@@ -17,6 +17,8 @@ elif os.path.isdir('/afs/ipp/aug/ads-diags/common/python/lib'):
         machine = 'AUG'
     except ModuleNotFoundError:
         machine = 'Generic'
+elif os.path.isdir('/NoTivoli/'):
+    machine = 'TCV'
 else:
     machine = 'Generic'
     text = 'Not recognised tokamak enviroment, no database available'
