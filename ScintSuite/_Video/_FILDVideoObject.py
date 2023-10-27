@@ -141,11 +141,13 @@ class FILDVideo(FIV):
             self.diag = 'FILD'
             ## Diagnostic ID (FILD manipulator number)
             self.diag_ID = diag_ID
+            print(shot)
+            #shot = None
             if shot is not None:
                 self.position = FILDlogbook.getPosition(shot, diag_ID)
                 self.orientation = \
                     FILDlogbook.getOrientation(shot, diag_ID)
-                self.geometryID = FILDlogbook.getGeomID(shot, diag_ID)
+                self.geometryID = 'TCV2023'#FILDlogbook.getGeomID(shot, diag_ID)
                 self.CameraCalibration = \
                     FILDlogbook.getCameraCalibration(shot, diag_ID)
                 try:
@@ -165,7 +167,7 @@ class FILDVideo(FIV):
             else:
                 self.position = None
                 self.orientation = None
-                self.geometryID = None
+                self.geometryID = 'TCV2023'
                 self.CameraCalibration = None
                 self.CameraData = None
                 self.operatorComment = None
@@ -188,6 +190,7 @@ class FILDVideo(FIV):
                 for plate in [platename, platename2]:
                     if os.path.isfile(plate):
                         self.scintillator = ssmap.Scintillator(file=plate)
+                        self.scintillator.code = 'fildsim'
                         self.scintillator.calculate_pixel_coordinates(
                                 self.CameraCalibration)
                         self.ROIscintillator = self.scintillator.get_roi()

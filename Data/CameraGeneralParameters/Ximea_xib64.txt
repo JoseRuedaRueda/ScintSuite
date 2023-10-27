@@ -1,0 +1,12 @@
+&camera
+camera_name='Ximea xiB-64',   ! Name of the camera
+nx = 1280,                     ! Number of pixels x direction
+ny = 864,                      ! Number of pixels y direction
+px_x_size = 13.7e-4,            ! Length of the pixel, x direction [cm]
+px_y_size = 13.7e-4,            ! Length of the pixel, y direction [cm]
+qe = 0.25,                     ! QE at scintillator wavelength
+ad_gain = 1.0,                 ! Analog to digital gain
+range = 10,                    ! Dynamic range, in bits
+dark_noise = 14,               ! Dark noise, in electrons, centroid
+readout_noise = 1,             ! Readout noise + dark sigma of the noise, elec
+/

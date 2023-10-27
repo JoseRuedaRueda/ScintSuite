@@ -16,6 +16,10 @@ from ScintSuite._Mapping._Calibration import CalParams, readCameraCalibrationDat
 import ScintSuite.LibData.TCV.DiagParam as params
 paths = Path(machine)
 
+##
+import requests
+from bs4 import BeautifulSoup
+##
 
 # --- Default files:
 _cameraDatabase = os.path.join(paths.ScintSuite, 'Data', 'Calibrations',
@@ -23,33 +27,33 @@ _cameraDatabase = os.path.join(paths.ScintSuite, 'Data', 'Calibrations',
 _geometryDatabase = os.path.join(paths.ScintSuite, 'Data',
                                  'Calibrations', 'FILD', 'TCV',
                                  'Geometry_logbook.txt')
-_positionDatabase = paths.FILDPositionDatabase
-_geometrdefault = os.path.join(paths.ScintSuite, 'Data',
-                               'Calibrations', 'FILD', 'TCV',
-                               'GeometryDefaultParameters.txt')
-_defaultFILDdata = f90nml.read(_geometrdefault)
+#_positionDatabase = paths.FILDPositionDatabase
+#_geometrdefault = os.path.join(paths.ScintSuite, 'Data',
+#                              'Calibrations', 'FILD', 'TCV',
+#                               'GeometryDefaultParameters.txt')
+#_defaultFILDdata = f90nml.read(_geometrdefault)
 
 
 # --- Auxiliar routines to find the path towards the camera files
-def guessFILDfilename(shot: int, diag_ID: int = 1):
-    """
-    Guess the filename of a video
-
-    Jose Rueda Rueda: jrrueda@us.es
-
-    Note Juanfran criteria of organising files is assumed: .../<shot>/...
-
-    :param  shot: shot number
-    :param  diag_ID: FILD manipulator number
-
-    :return file: the name of the file/folder
-    """
-    base_dir = params.FILD[diag_ID-1]['path']
-    extension = params.FILD[diag_ID-1]['extension'](shot)
-    shot_str = str(shot)
-    name = shot_str + extension
-    file = os.path.join(base_dir, name)
-    return file
+#def guessFILDfilename(shot: int, diag_ID: int = 1):
+#    """
+#    Guess the filename of a video
+#
+#    Jose Rueda Rueda: jrrueda@us.es
+#
+#    Note Juanfran criteria of organising files is assumed: .../<shot>/...
+#
+#    :param  shot: shot number
+#    :param  diag_ID: FILD manipulator number
+#
+#    :return file: the name of the file/folder
+#    """
+#    base_dir = params.FILD[diag_ID-1]['path']
+#    extension = params.FILD[diag_ID-1]['extension'](shot)
+#    shot_str = str(shot)
+#    name = shot_str + extension
+#    file = os.path.join(base_dir, name)
+#    return file
 
 
 # --- FILD object
@@ -74,7 +78,7 @@ class FILD_logbook:
     def __init__(self,
                  cameraFile: str = _cameraDatabase,
                  geometryFile: str = _geometryDatabase,
-                 positionFile: str = _positionDatabase,
+                 positionFile: str = 'https://spcwiki.epfl.ch/wiki/FILD/Logbook',
                  verbose: bool = True):
         """
         Initialise the object
@@ -89,40 +93,44 @@ class FILD_logbook:
         """
         if verbose:
             print('.-.. --- --. -... --- --- -.-')
+
         # Load the camera database
-        self.CameraCalibrationDatabase = \
+        try:    
+            self.CameraCalibrationDatabase = \
             readCameraCalibrationDatabase(cameraFile, verbose=verbose,
                                           n_header=0)
-        # Load the position database
-        # The position database is not distributed with the ScintSuite, so it
-        # can happend that it is not available. For that reason, just in case
-        # we do a try
-        try:
-            self.positionDatabase = \
-                self._readPositionDatabase(positionFile, verbose=verbose)
-            self.flagPositionDatabase = True
-        except FileNotFoundError:
-            self.flagPositionDatabase = False
-            print('Not found position database, we will use the defaults')
+        except:
+            pass
         # Load the geometry database
-        self.geometryDatabase = \
+        try:
+            self.geometryDatabase = \
             self._readGeometryDatabase(geometryFile, verbose=verbose)
-        print('..-. .. -. .- .-.. .-.. -.--')
+        except:
+            print('vould not read the geometry database')
+            pass
 
-    def _readPositionDatabase(self, filename: str, verbose: bool = True):
+        self.wikilink = positionFile
+        
+        return 
+
+ 
+    def _readPositionDatabase(self, data: list, verbose: bool = True):
         """
         Read the excel containing the position database
 
         :param  filename: path or url pointing to the logbook
         :param  verbose: flag to print some info
+      
+        #dummy = pd.read_excel(filename, engine='openpyxl', header=[0, 1])
+        #dummy['shot'] = dummy.Shot.Number.values.astype(int)
+        
         """
-        if verbose:
-            print('Looking for the position database: ', filename)
-        dummy = pd.read_excel(filename, engine='openpyxl', header=[0, 1])
-        dummy['shot'] = dummy.Shot.Number.values.astype(int)
-        return dummy
+         
+    
+        
+        return None
 
-    def _readGeometryDatabase(self, filename: str, n_header: int = 3,
+    def _readGeometryDatabase(self, shot = int,
                               verbose: bool = True):
         """
         Read the Geometry database
@@ -137,26 +145,44 @@ class FILD_logbook:
 
         :return database: Pandas dataframe with the database
         """
-        data = {'CalID': [], 'shot1': [], 'shot2': [],
-                'GeomID': [], 'diag_ID': []}
+        
+         # First load the logbook from the SPC-wiki
+        response = requests.get(self.wikilink,verify=False)
+        
+        wiki_data = response.text
+        soup = BeautifulSoup(wiki_data, 'html.parser')
+        # Load from the soup the tables of the logbook wikipage
+        wiki_table = soup.find_all('table',class_='wikitable') 
+        # Choose the logbook table 
+        if shot <= 77469:
+            Logbook_table = wiki_table[3] #year 2022
+            year = 2022
+        else:
+            Logbook_table = wiki_table[4] #year 2023
+            year = 2023
+                          
+        if Logbook_table:
+            rows = Logbook_table.find_all('tr')
+            wiki_data = [] 
+            for row in rows:
+                columns = row.find_all(['td', 'th']) 
+                row_data = [col.text.strip() for col in columns]
+                wiki_data.append(row_data)
+                
+            # Identify the row where the shot is stored
+            irow = 1
+            for i in range(1,np.shape(wiki_data,)[0]):     
+                if shot == int(wiki_data[i][0]):
+                    irow = i
 
-        # Read the file
-        if verbose:
-            print('Reading Geometry database from: ', filename)
-        with open(filename) as f:
-            for i in range(n_header):
-                dummy = f.readline()
-            # Database itself
-            for line in f:
-                dummy = line.split()
-                data['CalID'].append(int(dummy[0]))
-                data['shot1'].append(int(dummy[1]))
-                data['shot2'].append(int(dummy[2]))
-                data['GeomID'].append(dummy[3])
-                data['diag_ID'].append(int(dummy[4]))
-        # Transform to pandas
-        database = pd.DataFrame(data)
-        return database
+        geometry =  'dummy'
+        if shot == int(wiki_data[irow][0]):            
+            collimator_width = float(wiki_data[irow][2][10:13])
+            slit = int(wiki_data[irow][2][25])
+            geometry = 'col' + str(collimator_width) + 'mm_slit' + str(slit) + \
+                        '_' + str(year)
+        
+        return geometry
 
     def getCameraCalibration(self, shot: int, diag_ID: int = 1):
         """
@@ -202,6 +228,7 @@ class FILD_logbook:
         :param  shot: integer, shot number
         :param  FILDid: manipulator number
         """
+        '''
         flags = (self.geometryDatabase['shot1'] <= shot) & \
             (self.geometryDatabase['shot2'] >= shot) & \
             (self.geometryDatabase['diag_ID'] == FILDid)
@@ -212,9 +239,11 @@ class FILD_logbook:
             raise Exception('More than onw entry found, revise')
         else:
             id = self.geometryDatabase[flags].GeomID.values[0]
-        return id
 
-    def getPosition(self, shot: int, FILDid: int = 1):
+        '''
+        return 'TCV2023'#id
+
+    def getPosition(self, shot: int, FILDid: int = 1, verbose=True):
         """
         Get the position of the FILD detector.
 
@@ -223,68 +252,39 @@ class FILD_logbook:
         :param  shot: shot number to look in the database
         :param  FILDid: manipulator id
         """
-        # Get always the default as a reference:
-        geomID = self.getGeomID(shot, FILDid)
-        default = self._getPositionDefault(geomID)
-        # First check that we have loaded the position logbook
-        if not self.flagPositionDatabase:
-            print('Position database not loaded, returning default values')
-            return default
-        # Get the shot index in the database
-        if shot in self.positionDatabase['shot'].values:
-            i, = np.where(self.positionDatabase['shot'].values == shot)[0]
-            flag = True
+        # First load the logbook from the SPC-wiki
+        response = requests.get(self.wikilink,verify=False)
+        
+        wiki_data = response.text
+        soup = BeautifulSoup(wiki_data, 'html.parser')
+        # Load from the soup the tables of the logbook wikipage
+        wiki_table = soup.find_all('table',class_='wikitable') 
+        # Choose the logbook table 
+        if shot <= 77469:
+            Logbook_table = wiki_table[3] #year 2022
+            year = 2022
         else:
-            print('Shot not found in logbook, returning the default values')
-            return default
-        # --- Get the postion
-        position = {        # Initialise the position
-            'R': 0.0,
-            'z': 0.0,
-            'phi': 0.0,
-        }
-        dummy = self.positionDatabase['FILD'+str(FILDid)]
-        if FILDid != 4:
-            if 'R [m]' in dummy.keys():  # Look for R
-                position['R'] = dummy['R [m]'].values[i]
-            else:  # Take the default approx value
-                print('R not in the logbook, returning default')
-                position['R'] = default['R']
-            if 'Z [m]' in dummy.keys() and flag:  # Look for Z
-                position['z'] = dummy['Z [m]'].values[i]
-            else:  # Take the default approx value
-                print('Z not in the logbook, returning default')
-                position['z'] = default['z']
-            if 'Phi [deg]' in dummy.keys() and flag:  # Look for phi
-                position['phi'] = dummy['Phi [deg]'].values[i]
-            else:  # Take the default approx value
-                print('Phi not in the logbook, returning default')
-                position['phi'] = default['phi']
-        else:  # We have FILD4, the movable FILD
-            # Ideally, we will have an optic calibration database which is
-            # position dependent, therefore we should keep all the FILD
-            # trayectory.
-            # However, this calibration database was not given by the previous
-            # operator of the 'in-shot' movable FILD, neither any details of
-            # the optical design which could allow us to create it. So until we
-            # dismount and examine the diagnostic piece by piece, this
-            # trayectory is irrelevant, we will just keep the average position,
-            # which is indeed 'okeish', as the resolution of this FILD in AUG
-            # is poor, so a small missalignement will not be noticed.
-            # To calculate this average position, I will take the average of
-            # the positions at least 5 mm further from the minimum limit
-            dummy2 = load_FILD4_trajectory(shot)
-            if dummy2['position'] is not None:
-                min = dummy2['position']['R'].min()
-                flags = dummy2['position']['R'] > (min + 0.005)
-                position['R'] = dummy2['position']['R'][flags].mean()
-                position['z'] = dummy2['position']['z'][flags].mean()
-            else:    # Shot not found in the database
-                position['R'] = default['R']
-                position['z'] = default['z']
-            # FILD4 phi is always the same:
-            print('Phi not in the logbook, returning default')
-            position['phi'] = default['phi']
+            Logbook_table = wiki_table[4] #year 2023
+            year = 2023
+                          
+        if Logbook_table:
+            rows = Logbook_table.find_all('tr')
+            wiki_data = [] 
+            for row in rows:
+                columns = row.find_all(['td', 'th']) 
+                row_data = [col.text.strip() for col in columns]
+                wiki_data.append(row_data)
+                
+            # Identify the row where the shot is stored
+            for i in range(1,np.shape(wiki_data,)[0]):     
+                if shot == int(wiki_data[i][0]):
+                    row = i
+                   
+          
+        if verbose:
+            print('Looking for the position database: ')
+            position = int(wiki_data[i][3])
+  
         return position
 
     def getOrientation(self, shot, FILDid):
@@ -296,6 +296,7 @@ class FILD_logbook:
         :param  shot: shot number to look in the database
         :param  FILDid: manipulator id
         """
+        '''
         geomID = self.getGeomID(shot, FILDid)
         default = self._getOrientationDefault(geomID)
         # First check that we have loaded the position logbook
@@ -325,7 +326,8 @@ class FILD_logbook:
             return default
         default['beta'] = beta
 
-        return default
+        '''
+        return 0#default
 
     def getAdqFreq(self, shot: int, diag_ID: int = 1):
         """

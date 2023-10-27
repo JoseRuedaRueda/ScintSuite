@@ -172,14 +172,16 @@ class ApplicationShowVid:
             ssplt.remove_lines(self.canvas.figure.axes[0])
             # choose the new one:
             # get parameters of the map
-            theta_used = self.remap_dat['theta_used'].values[it]
-            phi_used = self.remap_dat['phi_used'].values[it]
+            #theta_used = self.remap_dat['theta_used'].values[it]
+            #phi_used = self.remap_dat['phi_used'].values[it]
 
             # Get the full name of the file
-            name__smap = sssinpa.execution.guess_strike_map_name(
-                phi_used, theta_used, geomID=self.GeomID,
-                decimals=self.remap_dat['frames'].attrs['decimals'])
-            smap_folder = self.remap_dat['frames'].attrs['smap_folder']
+            #name__smap = sssinpa.execution.guess_strike_map_name(
+            #    phi_used, theta_used, geomID=self.GeomID,
+            #    decimals=self.remap_dat['frames'].attrs['decimals'])
+            name__smap = '77971@0.4_ul.map'
+            #smap_folder = self.remap_dat['frames'].attrs['smap_folder']
+            smap_folder = '/home/jansen/SINPA/runs/77971@0.4_ul/results'
             full_name_smap = os.path.join(smap_folder, name__smap)
             # Load the map:
             smap = ssmap.StrikeMap(0, full_name_smap)
