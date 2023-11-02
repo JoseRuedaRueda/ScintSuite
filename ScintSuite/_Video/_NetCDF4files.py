@@ -16,7 +16,9 @@ except ModuleNotFoundError:
 
 def read_file_anddata(filename):
     """
-    Read netCDF4 files. 
+    Read netCDF4 files from MU format. 
+    It will try to read the old format (before shot ~48580), and if that fails will
+    read the standard format.
     Read info for a case where the measurements are stored as .nc
     Return a series of dictionaries, with all the info we can extract from the XIMEA files.
 
@@ -35,35 +37,58 @@ def read_file_anddata(filename):
         exposure in us
     """
     data = nc.Dataset(filename, 'r')
-    vid = data['video'][:].data
-    time = data['time'][:].data
-    timebase = (time[:]-time[0])/1e6 - 0.100 # in s
-    fps = data['fps'][:].data
-    exp = data['exposure'][:].data
-    try:
-        RFILD = data['RFILD'][:].data
-    except IndexError:
-        print('No RFILD field in netcdf.')
-        print('Will look in the logbook.')
-    try:
-        analoggain = data['gain'][:].data
-    except IndexError:
-        analoggain = 0
-        print('No _gain_ field in netcdf.')
+    try: #try reading old format
+        vid = data['video'][:].data
+        time = data['time'][:].data
+        timebase = (time[:]-time[0])/1e6 - 0.100 # in s
+        fps = data['fps'][:].data
+        exp = data['exposure'][:].data
         try:
-            print('Trying _analoggain_ field.')
-            analoggain = data['analoggain'][:].data
-            print('That worked! _analoggain_ field found.')
+            RFILD = data['RFILD'][:].data
         except IndexError:
-            print('No _analoggain_ field either. Setting to 0.')
+            print('No RFILD field in netcdf.')
+            print('Will look in the logbook.')
+        try:
+            analoggain = data['gain'][:].data
+        except IndexError:
             analoggain = 0
-    try:
-        print('Trying _diggain_ field.')
-        digitalgain = data['diggain'][:].data
-        print('That worked! _diggain_ field found.')
-    except IndexError:
-        print('No _diggain_ field. Setting to 0.')
-        digitalgain = 0
+            print('No _gain_ field in netcdf.')
+            try:
+                print('Trying _analoggain_ field.')
+                analoggain = data['analoggain'][:].data
+                print('That worked! _analoggain_ field found.')
+            except IndexError:
+                print('No _analoggain_ field either. Setting to 0.')
+                analoggain = 0
+        try:
+            print('Trying _diggain_ field.')
+            digitalgain = data['diggain'][:].data
+            print('That worked! _diggain_ field found.')
+        except IndexError:
+            print('No _diggain_ field. Setting to 0.')
+            digitalgain = 0
+    except: # it must be in standard format then
+        vid = data['xfx']['video'][:].data
+        time = data['xfx']['time'][:].data 
+        timebase = (time[:]-time[0])/1e6 - 0.100 # in s
+        fps = data['devices']['fps'][:].data
+        exp = data['devices']['exposure'][:].data
+        try:
+            RFILD = data['devices']['RFILD'][:].data
+        except IndexError:
+            print('No RFILD field in netcdf.')
+            print('Will look in the logbook.')
+        try:
+            analoggain = data['devices']['analoggain'][:].data
+        except IndexError:
+            print('No _analoggain_ field. Setting to 0.')
+            analoggain = 0
+        try:
+            digitalgain = data['devices']['diggain'][:].data
+        except IndexError:
+            print('No _diggain_ field. Setting to 0.')
+            digitalgain = 0
+    
     data.close()
  
     frames = {'nf': vid.shape[2],
@@ -98,7 +123,9 @@ def read_file_anddata(filename):
 
 def load_nc(filename: str, frame_number: int = None):
     """
-    Load the nc with an order compatible with IDL
+    Load the nc with an order compatible with IDL 
+    It will try to read the old format (before shot ~48580), and if that fails will
+    read the standard format.
 
     IDL load things internally in a way different from python. In order the new
     suite to be compatible with all FILD calibrations of the last 15 years,
@@ -108,9 +135,15 @@ def load_nc(filename: str, frame_number: int = None):
     """
     data = nc.Dataset(filename, mode='r')
     if frame_number is None:
-        dummy = data['video'][:]
+        try:
+            dummy = data['video'][:]
+        except:
+            dummy = data['xfx']['video'][:]
     else:
-        dummy = data['video'][..., frame_number]
+        try:
+            dummy = data['video'][..., frame_number]
+        except:
+            dummy = data['xfx']['video'][..., frame_number]
 
     return dummy[::-1, ...]
 
