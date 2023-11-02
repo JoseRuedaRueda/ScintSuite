@@ -1,3 +1,6 @@
+# 1.3.5 Shares path
+- Updated basic pathjs of AUG FILD and INPa to the shares
+
 # 1.3.4 Home flexibility
 - The code can now be intalled away from your home directory using the env variable ScintSuitePath
 - *Bug fixing*: Small bug when reading old FILD remaps when the total number per pixel was not properly read
