@@ -189,8 +189,7 @@ class BVO:
 
                     self.timebase = dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
                     
-                    #import IPython
-                    #IPython.embed()
+
                     frames = dummy.pop('/dat') #frames are stored in "/dat"
                     frames = frames[:,:,::-1]
                     #self.properties.update(dummy)
@@ -199,14 +198,22 @@ class BVO:
                     px = np.arange(nx)
                     py = np.arange(ny)
 
+                    #import IPython
+                    #IPython.embed()
+
                     self.exp_dat['frames'] = \
                         xr.DataArray(frames, dims=('t', 'px', 'py'),
                                      coords={'t': self.timebase.squeeze(),
                                              'px': px,
                                              'py': py})
-                    self.exp_dat['frames'] = \
-                        self.exp_dat['frames'].transpose('py', 'px', 't')
                     
+                    if ny>nx:
+                        #For some reason the calibration videos are transposed
+                        self.exp_dat['frames'] = \
+                            self.exp_dat['frames'].transpose('px', 'py', 't')
+                    else:
+                        self.exp_dat['frames'] = \
+                            self.exp_dat['frames'].transpose('py', 'px', 't')                        
                    
                     self.type_of_file = '.mat'                    
                 else:

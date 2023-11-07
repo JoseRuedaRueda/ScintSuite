@@ -141,8 +141,6 @@ class FILDVideo(FIV):
             self.diag = 'FILD'
             ## Diagnostic ID (FILD manipulator number)
             self.diag_ID = diag_ID
-            print(shot)
-            #shot = None
             if shot is not None:
                 self.position = FILDlogbook.getPosition(shot, diag_ID)
                 self.orientation = \
@@ -167,7 +165,7 @@ class FILDVideo(FIV):
             else:
                 self.position = None
                 self.orientation = None
-                self.geometryID = 'TCV2023'
+                self.geometryID = 'None'
                 self.CameraCalibration = None
                 self.CameraData = None
                 self.operatorComment = None
