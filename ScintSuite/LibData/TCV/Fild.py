@@ -256,13 +256,17 @@ class FILD_logbook:
 
     def getPosition(self, shot: int, FILDid: int = 1, verbose=True):
         """
-        Get the position of the FILD detector.
+        Get the position of the FILD detector. If a None shot is given return 0
 
-        Jose Rueda - jrrueda@us.es
+        Jesus Poley-Sanjuan - jesus.poley@epfl.ch
 
         :param  shot: shot number to look in the database
         :param  FILDid: manipulator id
         """
+        if shot == None:
+            return 0
+
+
         # First load the logbook from the SPC-wiki
         response = requests.get(self.wikilink,verify=False)
         
@@ -291,7 +295,7 @@ class FILD_logbook:
                 if shot == int(wiki_data[i][0]):
                     row = i
                    
-          
+        position = 0
         if verbose:
             print('Looking for the position database: ')
             position = int(wiki_data[i][3])
@@ -302,11 +306,16 @@ class FILD_logbook:
         """
         Get the orientation
 
-        In MU the beta angle can change.
+        Only the old probehead could be rotated
 
         :param  shot: shot number to look in the database
         :param  FILDid: manipulator id
+
+        To be implemented:
+
         """
+
+
         '''
         geomID = self.getGeomID(shot, FILDid)
         default = self._getOrientationDefault(geomID)

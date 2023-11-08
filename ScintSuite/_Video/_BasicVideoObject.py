@@ -199,20 +199,23 @@ class BVO:
                     px = np.arange(nx)
                     py = np.arange(ny)
 
+                    #import IPython
+                    #IPython.embed()
+
                     self.exp_dat['frames'] = \
                         xr.DataArray(frames, dims=('t', 'px', 'py'),
                                      coords={'t': self.timebase.squeeze(),
                                              'px': px,
                                              'py': py})
-                    self.exp_dat['frames'] = \
-                        self.exp_dat['frames'].transpose('py', 'px', 't')
-                    nbase = np.array([nt])
-                    print(nbase)
-                    self.exp_dat['nframes'] = nt
-                    self.exp_dat['theta_used'] = 0
-                    self.exp_dat['phi_used'] = 0
-                    #xr.DataArray(nbase, dims=('t'))
-                    #self.exp_dat.attrs['dtype'] = frames.dtype
+                    
+                    if ny>nx:
+                        #For some reason the calibration videos are transposed
+                        self.exp_dat['frames'] = \
+                            self.exp_dat['frames'].transpose('px', 'py', 't')
+                    else:
+                        self.exp_dat['frames'] = \
+                            self.exp_dat['frames'].transpose('py', 'px', 't')                        
+                   
                     self.type_of_file = '.mat'                    
                 else:
                     raise Exception('Not recognised file extension')

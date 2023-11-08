@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import ScintSuite._Plotting as ssplt
 import ScintSuite.SimulationCodes.SINPA as sssinpa
 import ScintSuite._Mapping as ssmap
+import ScintSuite._IO as io
 from matplotlib.figure import Figure
 from tkinter import ttk
 
@@ -15,7 +16,8 @@ class ApplicationShowVid:
     """Class to show the camera frames"""
 
     def __init__(self, master, data, remap_dat, GeomID='AUG02',
-                 calibration=None, scintillator=None, shot: int = None):
+                 calibration=None, scintillator=None, apd_fibres=None,
+                 shot: int = None):
         """
         Create the window with the sliders
 
@@ -41,6 +43,7 @@ class ApplicationShowVid:
         self.GeomID = GeomID
         self.CameraCalibration=calibration
         self.scintillator = scintillator
+        self.apd_fibres = apd_fibres
         t = data['t'].values
         # --- Create a tk container
         frame = tk.Frame(master)
@@ -142,6 +145,17 @@ class ApplicationShowVid:
                                       command=self.scint_Button_change,
                                       takefocus=0, state=state)
         self.scint_button.grid(row=3, column=4)
+        # --- Button for the APD:
+        # If there is not APD data, deactivate the button
+        state = tk.NORMAL
+        # Initialise the variable of the button
+        self.checkVar3 = tk.BooleanVar()
+        self.checkVar3.set(False)
+        # Create the button
+        self.apd_button = tk.Button(master, text="Draw APD",
+                                      command=self.apd_Button_change,
+                                      takefocus=0, state=state)
+        self.apd_button.grid(row=3, column=1)
         # Draw and show
         self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=0, column=0, columnspan=5,
@@ -196,6 +210,9 @@ class ApplicationShowVid:
             # Plot the scintillator:
         if self.checkVar2.get():
             self.scintillator.plot_pix(ax=self.canvas.figure.axes[0])
+        if self.checkVar3.get():
+            for i in range(len(self.apd_data)):
+                self.canvas.figure.axes[0].plot(self.apd_data[i][:,0], 830 - self.apd_data[i][:,1], 'r-')
         self.canvas.draw()
 
     def set_scale(self):
@@ -223,4 +240,25 @@ class ApplicationShowVid:
         # Now update the value
         self.checkVar2.set(not self.checkVar2.get())
         print('Draw scintillator :', self.checkVar2.get())
+        self.canvas.draw()
+
+
+    def apd_Button_change(self):
+        """Decide to plot or not the APD fibre positions"""
+        if self.checkVar3.get():
+            ssplt.remove_lines(self.canvas.figure.axes[0])
+        else:
+            path_dir = io.ask_to_open_dir()
+            ch = 1
+            self.apd_data = []
+            #import IPython
+            #IPython.embed()
+            while os.path.isfile(path_dir + '/ch_'+str(ch)+'.txt'):
+                self.apd_data.append(np.genfromtxt(path_dir + '/ch_'+str(ch)+'.txt'))
+                ch+=1
+             
+
+        # Now update the value
+        self.checkVar3.set(not self.checkVar3.get())
+        print('Draw APD fibres :', self.checkVar3.get())
         self.canvas.draw()
