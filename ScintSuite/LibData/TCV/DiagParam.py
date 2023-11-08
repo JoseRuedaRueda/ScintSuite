@@ -15,9 +15,9 @@ IB_sign = Bt_sign * It_sign
 #                           FILD PARAMETERS
 # -----------------------------------------------------------------------------
 # All values except for beta, are extracted from XXXXXXXXXXX:
-#
-fild1 = {'adqfreq': 23, 't_trig': -2.5,
-         'extension': lambda shot: '', 'label': 'FILD1', 'camera': 'CCD',
+#modified by J. Poley, 7/11/2023
+fild1 = {'adqfreq': 1000, 't_trig': 0.,
+         'extension': lambda shot: '', 'label': 'FILD', 'camera': 'CCD',
          'path': '/videodata/pcfild002/data/fild002',}
 
 FILD = (fild1,)

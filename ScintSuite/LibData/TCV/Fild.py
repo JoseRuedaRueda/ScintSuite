@@ -13,7 +13,7 @@ import pandas as pd
 from ScintSuite._Machine import machine
 from ScintSuite._Paths import Path
 from ScintSuite._Mapping._Calibration import CalParams, readCameraCalibrationDatabase
-#import ScintSuite.LibData.TCV.DiagParam as params
+import ScintSuite.LibData.TCV.DiagParam as params
 paths = Path(machine)
 
 ##
@@ -100,25 +100,25 @@ class FILD_logbook:
 
         # Load the camera database
         try:    
-            self.CameraCalibrationDatabase = \
-            readCameraCalibrationDatabase(cameraFile, verbose=verbose,
-                                          n_header=0)
+           self.CameraCalibrationDatabase = \
+           readCameraCalibrationDatabase(cameraFile, verbose=verbose,
+                                        n_header=0)
         except:
-            pass
+           pass
         # Load the geometry database
-        try:
-            self.geometryDatabase = \
-            self._readGeometryDatabase(geometryFile, verbose=verbose)
-        except:
-            print('vould not read the geometry database')
-            pass
+        #try:
+        #    self.geometryDatabase = \
+        #    self._readGeometryDatabase(geometryFile, verbose=verbose)
+        #except:
+        #    print('could not read the geometry database')
+        #    pass
 
         self.wikilink = positionFile
         
         return 
 
  
-    def _readPositionDatabase(self, data: list, verbose: bool = True):
+    def _readPositionDatabase(self, shot: int, verbose: bool = True):
         """
         Read the excel containing the position database
 
@@ -129,8 +129,6 @@ class FILD_logbook:
         #dummy['shot'] = dummy.Shot.Number.values.astype(int)
         
         """
-         
-    
         
         return None
 
@@ -245,7 +243,16 @@ class FILD_logbook:
             id = self.geometryDatabase[flags].GeomID.values[0]
 
         '''
-        return 'TCV2023'#id
+        
+        if shot <= 77469:
+            
+            id = 'TCV2022'
+            
+        else:
+            
+            id = 'TCV2023'
+            
+        return id
 
     def getPosition(self, shot: int, FILDid: int = 1, verbose=True):
         """

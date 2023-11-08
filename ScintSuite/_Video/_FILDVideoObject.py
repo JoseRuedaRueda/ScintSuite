@@ -126,6 +126,8 @@ class FILDVideo(FIV):
             if shot is None:
                 shot = _aux.guess_shot(file, ssdat.shot_number_length)
             # Initialise the logbook
+            ### Poley:  Add the dictionary with the options to initialise the logbook
+            logbookOptions = {}
             self.logbookOptions = logbookOptions
             FILDlogbook = ssdat.FILD_logbook(**logbookOptions)  # Logbook
             try:
@@ -147,7 +149,7 @@ class FILDVideo(FIV):
                 self.position = FILDlogbook.getPosition(shot, diag_ID)
                 self.orientation = \
                     FILDlogbook.getOrientation(shot, diag_ID)
-                self.geometryID = 'TCV2023'#FILDlogbook.getGeomID(shot, diag_ID)
+                self.geometryID = FILDlogbook.getGeomID(shot, diag_ID)
                 self.CameraCalibration = \
                     FILDlogbook.getCameraCalibration(shot, diag_ID)
                 try:
