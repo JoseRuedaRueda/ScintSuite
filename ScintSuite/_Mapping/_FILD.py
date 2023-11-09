@@ -19,7 +19,7 @@ import ScintSuite.SimulationCodes.FILDSIM as ssFILDSIM
 import ScintSuite.SimulationCodes.SINPA as ssSINPA
 from tqdm import tqdm   # For waitbars
 from ScintSuite._Machine import machine
-from ScintSuite._Mapping._StrikeMap import StrikeMap
+from ScintSuite._StrikeMap._FILD_StrikeMap import Fsmap
 
 # --- Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.FILDMapping')
@@ -159,6 +159,7 @@ def remapAllLoadedFrames(video,
         nml = f90nml.read(namelistFile)
         if 'n_pitch' in nml['config']:
             FILDSIM = True
+            logger.info('This is deprecated, please use SINPA (uFILDSIM)')                 
         else:
             FILDSIM = False
     # -- Check the mask
@@ -193,65 +194,75 @@ def remapAllLoadedFrames(video,
     name = ' '      # To save the name of the strike map
     name_old = ' '  # To avoid loading twice in a row the same map
     if not got_smap:
-        # -- Collect the angles
-        phi = video.Bangles['phi'].values
-        theta = video.Bangles['theta'].values
-        # Check that the angles were calculated for the frames (it can happen
-        # that the user recalculate the angles after averaging, so they are
-        # evaluated in the original time base). There is a check in the video
-        # object before calling this function, but just in case
-        if (phi.size != nframes) or (theta.size != nframes):
-            print('Number of frames: ', nframes)
-            print('Size of phi: ', phi.size)
-            print('Size of theta: ', theta.size)
-            raise errors.NotValidInput('Wrong length of phi and theta')
-        # -- See if the strike map exist in the folder
-        logger.info('Looking for strikemaps in: %s', smap_folder)
-        for iframe in tqdm(range(nframes)):
-            if FILDSIM:
-                logger.info('This is deprecated, please use SINPA (uFILDSIM)')
-                name = ssFILDSIM.guess_strike_map_name(
-                    phi[iframe], theta[iframe], geomID=video.geometryID,
-                    decimals=decimals
-                    )
-            else:
-                name = ssSINPA.execution.guess_strike_map_name(
-                    phi[iframe], theta[iframe], geomID=video.geometryID,
-                    decimals=decimals
-                    )
-            # See if the strike map exist
-            if os.path.isfile(os.path.join(smap_folder, name)):
-                exist[iframe] = True
-        # -- See how many we need to calculate
-        nnSmap = np.sum(~exist)  # Number of Smaps missing
-        dummy = np.arange(nframes)     #
-        existing_index = dummy[exist]  # Index of the maps we have
-        non_existing_index = dummy[~exist]
-        theta_used = np.round(theta, decimals=decimals)
-        phi_used = np.round(phi, decimals=decimals)
-        # The variable x will be the flag to calculate or not more strike maps
-        if nnSmap == 0:
-            print('--. .-. . .- -')
-            text = 'Ideal situation, not a single map needs to be calculated'
-            logger.info(text)
-        elif nnSmap == nframes:
-            print('Non a single strike map, full calculation needed')
-        elif nnSmap != 0:
-            if not allIn:
-                print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
-                print('Write 1 to proceed, 0 to take the closer'
-                      + '(in time) existing strikemap')
-                xx = int(input('Enter answer:'))
-            else:
-                xx = 0
-            if xx == 0:
-                print('We will not calculate new strike maps')
-                print('Looking for the closer ones')
-                for i in tqdm(range(len(non_existing_index))):
-                    ii = non_existing_index[i]
-                    icloser = ssextra.find_nearest_sorted(existing_index, ii)
-                    theta_used[ii] = theta[icloser]
-                    phi_used[ii] = phi[icloser]
+        if decimals != video.Bangles['phi_used'].attrs['decimals']:
+            print('Recalculating theta-phi')
+            # CHANGE FROM HERE
+            # -- Collect the angles
+            phi = video.Bangles['phi'].values
+            theta = video.Bangles['theta'].values
+            # Check that the angles were calculated for the frames (it can happen
+            # that the user recalculate the angles after averaging, so they are
+            # evaluated in the original time base). There is a check in the video
+            # object before calling this function, but just in case
+            if (phi.size != nframes) or (theta.size != nframes):
+                print('Number of frames: ', nframes)
+                print('Size of phi: ', phi.size)
+                print('Size of theta: ', theta.size)
+                raise errors.NotValidInput('Wrong length of phi and theta')
+            # -- See if the strike map exists in the folder
+            logger.info('Looking for strikemaps in: %s', smap_folder)
+            for iframe in tqdm(range(nframes)):
+                if FILDSIM:
+                    name = ssFILDSIM.guess_strike_map_name(
+                        phi[iframe], theta[iframe], geomID=video.geometryID,
+                        decimals=decimals
+                        )
+                else:
+                    name = ssSINPA.execution.guess_strike_map_name(
+                        phi[iframe], theta[iframe], geomID=video.geometryID,
+                        decimals=decimals
+                        )
+                # See if the strike map exist
+                if os.path.isfile(os.path.join(smap_folder, name)):
+                    exist[iframe] = True
+                        # -- See how many we need to calculate
+            nnSmap = np.sum(~exist)  # Number of Smaps missing
+            dummy = np.arange(nframes)     #
+            existing_index = dummy[exist]  # Index of the maps we have
+            non_existing_index = dummy[~exist]
+            theta_used = np.round(theta, decimals=decimals)
+            phi_used = np.round(phi, decimals=decimals)
+            # The variable x will be the flag to calculate or not more strike maps
+            if nnSmap == 0:
+                print('--. .-. . .- -')
+                text = 'Ideal situation, not a single map needs to be calculated'
+                logger.info(text)
+            elif nnSmap == nframes:
+                print('Non a single strike map, full calculation needed')
+            elif nnSmap != 0:
+                if not allIn:
+                    print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
+                    print('Write 1 to proceed, 0 to take the closer'
+                        + '(in time) existing strikemap')
+                    xx = int(input('Enter answer:'))
+                else:
+                    xx = 0
+                if xx == 0:
+                    print('We will not calculate new strike maps')
+                    print('Looking for the closer ones')
+                    for i in tqdm(range(len(non_existing_index))):
+                        ii = non_existing_index[i]
+                        icloser = ssextra.find_nearest_sorted(existing_index, ii)
+                        theta_used[ii] = np.round(theta[icloser], decimals=decimals)
+                        phi_used[ii] = np.round(phi[icloser], decimals=decimals)
+        else:
+            theta_used = video.Bangles['theta_used'].values
+            theta = video.Bangles['theta'].values
+            phi = video.Bangles['phi'].values
+            phi_used = video.Bangles['phi_used'].values
+            exist = video.strikemap['exist'].values
+
+
     else:  # the case the smap was passed as input
         theta = np.zeros(nframes)
         phi = np.zeros(nframes)
@@ -272,13 +283,14 @@ def remapAllLoadedFrames(video,
                     geomID=video.geometryID, FILDSIM_options=code_options,
                     decimals=decimals, clean=True)
             else:  # SINPA CODE
+                
                 name = ssSINPA.execution.find_strike_map_FILD(
                     phi_used[iframe], theta_used[iframe], smap_folder,
                     geomID=video.geometryID, SINPA_options=code_options,
                     decimals=decimals, clean=True)
         # Only reload the strike map if it is needed
         if name != name_old:
-            smap = StrikeMap(0, os.path.join(smap_folder, name))
+            smap = Fsmap(file=os.path.join(smap_folder, name))
             # -- Set the remap variables
             if wantEnergy:
                 smap.calculate_energy(video.BField['B'].values[iframe], A, Z)

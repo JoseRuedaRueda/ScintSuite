@@ -26,6 +26,7 @@ import ScintSuite._Video._PNGfiles as png
 import ScintSuite._Video._PCOfiles as pco
 import ScintSuite._Video._MP4files as mp4
 import ScintSuite._Video._TIFfiles as tif
+import ScintSuite._Video._NetCDF4files as ncdf
 import ScintSuite._Utilities as ssutilities
 import ScintSuite._Video._AuxFunctions as aux
 from tqdm import tqdm                      # For waitbars
@@ -79,7 +80,7 @@ class BVO:
         Initialise the class
 
         :param  file: For the initialization, file (full path) to be loaded,
-            if the path point to a .cin or .mp4 file, the .cin file will be
+            if the path point to a .cin, a .nc or .mp4 file, the .cin file will be
             loaded. If the path points to a folder, the program will look for
             png files or tiff files inside (tiff coming soon). You can also
             point to a png or tiff file. In this case, the folder name will be
@@ -155,6 +156,28 @@ class BVO:
                     self.type_of_file = '.cin'
                 elif file.endswith('.png') or file.endswith('.tif'):
                     file, name = os.path.split(file)
+                    self.path = file
+                elif file.endswith('.nc'):
+                    dummy, self.header, self.imageheader, self.settings,\
+                         = ncdf.read_file_anddata(file)
+                    # self.properties['width'] = dummy['width']
+                    # self.properties['height'] = dummy['height']
+                    # self.properties['fps'] = dummy['fps']
+                    # self.properties['exposure'] = dummy['exp']
+                    # self.properties['gain'] = dummy['gain']
+                    self.timebase = dummy['timebase']
+                    self.exp_dat = xr.Dataset()
+                    nx, ny, nt = dummy['frames'].shape
+                    px = np.arange(nx)
+                    py = np.arange(ny)
+
+                    self.exp_dat['frames'] = \
+                        xr.DataArray(dummy['frames'], dims=('px', 'py', 't'),
+                                     coords={'px': px,
+                                             'py': py,
+                                             't': self.timebase.squeeze()})
+                    self.exp_dat['frames'] = self.exp_dat['frames']
+                    self.type_of_file = '.nc'
                 elif file.endswith('.mp4'):
                     if not 'properties' in self.__dict__:
                         self.properties = {}
@@ -202,23 +225,25 @@ class BVO:
                             self.type_of_file = '.png'
                             print('Found PNG files!')
                             break
-                    elif f[i].endswith('.tif'):
-                        count_tif += 1
-                        if count_tif == 1:
-                            self.type_of_file = '.tif'
-                            print('Found tif files!')
-                            break
                     elif f[i].endswith('.b16'):
                         count_pco += 1
                         if count_pco == 3:
                             self.type_of_file = '.b16'
                             print('Found PCO files!')
                             break
-                    # if we do not have .png or tiff, give an error
-                supported_type = ['.png', '.tif', '.b16']
+                    elif f[i].endswith('.tif'):
+                        count_tif += 1
+                        if count_tif == 1:
+                            self.type_of_file = '.tif'
+                            print('Found tif files!')
+                            break
+                else:
+                    raise Exception('Type of f variable not found. Please revise code.')
+                 # if we do not have .png or tiff, give an error
+                supported_type = ['.png', '.tif', '.b16', '.nc']
                 if self.type_of_file not in supported_type:
                     print(self.type_of_file)
-                    raise Exception('No .pgn, .tiff nor .b16 files found')
+                    raise Exception('No .pgn, .tiff, .nc nor .b16 files found')
 
                 # If we have a .png file, a .txt must be present with the
                 # information of the exposure time and from a basic frame we
@@ -229,6 +254,10 @@ class BVO:
                 elif self.type_of_file == '.b16':
                     self.header, self.imageheader, self.settings,\
                         self.timebase = pco.read_data(
+                            self.path, adfreq, t_trig)
+                elif self.type_of_file == '.nc':
+                    self.header, self.imageheader, self.settings,\
+                        self.timebase = ncdf.read_data(
                             self.path, adfreq, t_trig)
                 elif self.type_of_file == '.tif':
                     self.header, self.imageheader, self.settings,\
@@ -315,6 +344,10 @@ class BVO:
                                limitation=limitation, limit=limit)
         elif self.type_of_file == '.b16':
             M = pco.read_frame(self, frames_number,
+                               limitation=limitation, limit=limit,
+                               verbose=verbose)
+        elif self.type_of_file == '.nc':
+            M = ncdf.read_frame(self, frames_number,
                                limitation=limitation, limit=limit,
                                verbose=verbose)
         else:
@@ -747,10 +780,11 @@ class BVO:
                    verbose: bool = True,
                    vmin: int = 0, vmax: int = None,
                    xlim: float = None, ylim: float = None,
-                   scale: str = 'linear',
+                   scale: str = 'linear', 
                    alpha: float = 1.0, IncludeColorbar: bool = True,
                    RemoveAxisTicksLabels: bool = False,
-                   flagAverage: bool = False, normalise=None, extent: float=None):
+                   flagAverage: bool = False, normalise=None, extent: float=None, tround: int = 3,
+                   rotate_frame: bool = False,):
         """
         Plot a frame from the loaded frames
 
@@ -772,6 +806,7 @@ class BVO:
         :param xlim: tuple with the x-axis limits
         :param ylim: tuple with the y-axis limits
         :param scale: Scale for the plot: 'linear', 'sqrt', or 'log'
+        :param tround: Number of decimals that we will round the time value to
         :param alpha: transparency factor, 0.0 is 100 % transparent
         :param IncludeColorbar: flag to include a colorbar
         :param RemoveAxisTicksLabels: boolean flag to remove the numbers in the
@@ -782,6 +817,7 @@ class BVO:
             if normalise == 1 it would be normalised to the maximum
             if normalise == <number> it would be normalised to this value
             if normalise == None, nothing will be done
+        param rotate_frame: boolean flag to rotate the frame the rotation angle of the optical parameters
 
         :return ax: the axes where the frame has been drawn
         """
@@ -884,8 +920,14 @@ class BVO:
         if extent is not None:
             extra_options['extent'] = extent
 
-        img = ax.imshow(dummy, origin='lower', cmap=cmap,
+        if rotate_frame:
+            imgR = ndimage.rotate(dummy, -self.CameraCalibration.deg, reshape=False)
+            img = ax.imshow(imgR, cmap=cmap,
                         alpha=alpha, **extra_options)
+        else:
+            img = ax.imshow(dummy, origin='lower', cmap=cmap,
+                        alpha=alpha, **extra_options)
+        
         # Set the axis limit
         if xlim is not None:
             ax.set_xlim(xlim)
@@ -893,14 +935,15 @@ class BVO:
             ax.set_ylim(ylim)
 
         if flag_time_range == False:
-            tf = str(round(tf, 3))
+            tf = f'%.{tround}f'%tf
         else:
             tf = '(%.3f, %.3f)' %(t[0],t[1])
 
         if IncludeColorbar:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
-            plt.colorbar(img, label='Counts', cax=cax)
+            cbar = plt.colorbar(img, label='Counts', cax=cax)
+            cbar.set_label(label='Counts [a.u.]')
         ax.text(0.05, 0.9, '#' + str(self.shot),
                 horizontalalignment='left',
                 color='w', verticalalignment='bottom',
@@ -912,6 +955,8 @@ class BVO:
         if RemoveAxisTicksLabels:
             ax.axes.xaxis.set_ticklabels([])
             ax.axes.yaxis.set_ticklabels([])
+            ax.axes.xaxis.set_ticks([])
+            ax.axes.yaxis.set_ticks([])
         else:
             ax.set_xlabel('Pixel')
             ax.set_ylabel('Pixel')
@@ -920,6 +965,7 @@ class BVO:
             fig.show()
             plt.tight_layout()
         return ax
+
 
     def GUI_frames(self, flagAverage: bool = False):
         """
@@ -1068,22 +1114,38 @@ class BVO:
 
         return frame.copy()
 
-    def getTime(self, it: int, flagAverage: bool = False):
+    def getTime(self, it: int, flagAverage: bool = False, videoFrame:bool = False):
         """
         Get the time corresponding to a loaded frame number
 
         Jose Rueda: jrrueda@us.es
 
-        :param  it: frame number (relative to the loaded frames)
+        :param  it: frame number 
         :param  flagAverage: flag to look at the averaged or raw frames
+        :param  videoFrame: flag to decide whether we look for the frame in the video
+            or the array. If videoFrame==True getTime will return the time corresponding
+            to the recorded frame it. If == False, it will return the time corresponding
+            to the loaded frame it.
+        
+        Example, imaging that you read the frames 300-350 from the recorded video
+        >>> vid.getTime(301, videoFrame=True) would yield the same that
+        >>> vid.getTime(1)
+
         """
         if not flagAverage:
-            t = float(self.exp_dat['t'].values[it])
+            if not videoFrame:
+                t = float(self.exp_dat['t'].values[it])
+            else:
+                fi = self.getFrameIndex(frame_number=it)
+                t = float(self.exp_dat.t.isel(t=fi).values)
         else:
-            t = float(self.avg_dat['tframes'][it])
+            if not videoFrame:
+                t = float(self.avg_dat['tframes'][it])
+            else:
+                raise Exception('Video frame has no meaning when loading averages')
         return t
 
-    def getTimeTrace(self, t: float = None, mask=None, ROIname: str =None):
+    def getTimeTrace(self, t: float = None, mask=None, ROIname: str =None, vmax: int=None):
         """
         Calculate the timeTrace of the video
 
@@ -1098,7 +1160,7 @@ class BVO:
         """
         if mask is None:
             # - Plot the frame
-            ax_ref = self.plot_frame(t=t)
+            ax_ref = self.plot_frame(t=t, vmax=vmax)
             fig_ref = plt.gcf()
             # - Define roi
             roi = sstt.roipoly(fig_ref, ax_ref)

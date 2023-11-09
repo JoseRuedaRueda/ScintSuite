@@ -7,6 +7,7 @@ import ScintSuite.LibData as ssdat
 import ScintSuite._Plotting as ssplt
 import ScintSuite.errors as errors
 import math
+from ScintSuite._Machine import machine
 import os
 import netCDF4 as nc
 
@@ -362,7 +363,8 @@ class fields:
                     edition: int = 0,
                     Rmin: float = 1.03, Rmax: float = 2.65,
                     zmin: float = -1.224, zmax: float = 1.05,
-                    nR: int = 128, nz: int = 256):
+                    nR: int = 128, nz: int = 256,
+                    readPsi: bool = True):
         """
         Read field from machine database.
 
@@ -382,6 +384,7 @@ class fields:
         :param  zmax: Maximum Z to get the magnetic equilibrium.
         :param  nR: Number of points to define the B field grid in R direction.
         :param  nz: Number of points to define the B field grid in Z direction.
+        :param readPsi: if true, read also psi pol from the database
         
         :Example:
         >>> import ScintSuite.SimulationCodes.Common.fields as fields
@@ -401,11 +404,12 @@ class fields:
         RR, zz = np.meshgrid(R, z)
         grid_shape = RR.shape
         br, bz, bt, bp = ssdat.get_mag_field(shotnumber, RR.flatten(),
-                                             zz.flatten(),
-                                             exp=exp,
-                                             ed=edition,
-                                             diag=diag,
-                                             time=time)
+                                        zz.flatten(),
+                                        exp=exp,
+                                        ed=edition,
+                                        diag=diag,
+                                        time=time)
+
         del RR
         del zz
         del bp
@@ -437,30 +441,33 @@ class fields:
         # Creating the interpolating functions.
         self.Brinterp = lambda r, z, phi, time: \
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['fr'],
-                    (r.flatten(), z.flatten()))
+                    (np.atleast_1d(r).flatten(), np.atleast_1d(z).flatten()))
 
         self.Bzinterp = lambda r, z, phi, time: \
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['fz'],
-                    (r.flatten(), z.flatten()))
+                    (np.atleast_1d(r).flatten(), np.atleast_1d(z).flatten()))
 
         self.Bphiinterp = lambda r, z, phi, time: \
             interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['ft'],
-                    (r.flatten(), z.flatten()))
+                    (np.atleast_1d(r).flatten(), np.atleast_1d(z).flatten()))
 
         # Retrieving as well the poloidal magnetic flux.
-        self.readPsiPolfromDB(time=time, shotnumber=shotnumber,
-                              exp=exp, diag=diag, edition=edition,
-                              Rmin=Rmin, Rmax=Rmax,
-                              zmin=zmin, zmax=zmax,
-                              nR=nR, nz=nz)
+        if readPsi:
+            self.readPsiPolfromDB(time=time, shotnumber=shotnumber,
+                                exp=exp, diag=diag, edition=edition,
+                                Rmin=Rmin, Rmax=Rmax,
+                                zmin=zmin, zmax=zmax,
+                                nR=nR, nz=nz)
 
         # Saving the input data to the class.
         self.Bfield_from_shot_flag = True
         self.shotnumber = shotnumber
-        self.edition = edition
         self.timepoint = time
-        self.diag = diag
-        self.exp = exp
+        if machine != 'MU':
+            self.diag = diag
+            self.exp = exp
+            self.edition = edition
+
 
     def readBfromDBSinglePoint(self, shotnumber: int = 39612,
                                time: float = 2.5, R0: float = 1.90,

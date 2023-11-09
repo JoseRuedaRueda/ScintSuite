@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter as savgol
 import aug_sfutils as sf
 import ScintSuite.LibData.AUG.DiagParam as params
-import Lib as ss
+import ScintSuite.LibData as ssdat
 import f90nml
 import ScintSuite.errors as errors
 from ScintSuite._Paths import Path
@@ -108,7 +108,7 @@ def FILD2sep(shot: int, geomID: int,  insertion: float = None, t: float = None,
     """
     geomID = geomID.lower()
     if insertion is None:
-        lb = ss.dat.FILD_logbook()
+        lb = ssdat.FILD_logbook()
         print('Logbook values are taken:')
         # Get the used collimator geometries in that shot
         col_geom = []

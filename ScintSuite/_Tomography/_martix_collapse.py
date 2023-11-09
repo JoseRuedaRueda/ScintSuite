@@ -10,7 +10,9 @@ logger = logging.getLogger('ScintSuite.Tomography')
 try:
     from numba import njit, prange
 except:
-    logger.wargning('10: You cannot use tomography')
+    from ScintSuite.decorators import false_njit as njit
+    prange = range
+    logger.warning('10: Matrix collapses will be pretty slow')
 
 # ------------------------------------------------------------------------------
 # --- Matrix handling

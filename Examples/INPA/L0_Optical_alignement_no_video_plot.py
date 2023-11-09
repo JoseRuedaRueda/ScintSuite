@@ -14,17 +14,17 @@ SINPA coordinates and the calibration
 """
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
-from ScintSuite.LibVideo.TIFfiles import load_tiff
-import ScintSuite.as ss
+from ScintSuite._Video._TIFfiles import load_tiff
+import ScintSuite as ss
 
 # -----------------------------------------------------------------------------
 # --- Settings
 # -----------------------------------------------------------------------------
 # File with the scintillator
 Scint_file = \
-    '/afs/ipp/home/r/ruejo/ScintSuite/Data/Plates/INPA/iAUG01/Scintillator.pl'
+    '/afs/ipp/home/r/ruejo/ScintSuite/Data/Plates/INPA/AUG/iAUG01/Scintillator.pl'
 FoilFile = \
-    '/afs/ipp/home/r/ruejo/ScintSuite/Data/Plates/INPA/iAUG01/Foil.pl'
+    '/afs/ipp/home/r/ruejo/ScintSuite/Data/Plates/INPA/AUG/iAUG01/Foil.pl'
 #    # 'test_attenuation/results/test_attenuation.map'
 format = 'FILDSIM'  # Code for which the geometry file is written
 # File with the calibration image (tif)
@@ -91,7 +91,7 @@ ss.plt.axis_beauty(ax, {'grid': 'both'})
 # -----------------------------------------------------------------------------
 # --- Plot the scintillator plate
 # -----------------------------------------------------------------------------
-scintillator.plot_pix(ax, plt_par={'color': 'g'})
+scintillator.plot_pix(ax, line_params={'color': 'g'})
 foil.plot_pix(ax)
 # -----------------------------------------------------------------------------
 # --- GUI
@@ -178,7 +178,7 @@ def update(val):
     ss.plt.remove_lines(ax)
     ax.plot([axxc_slider.val], [axyc_slider.val], '.r')
 
-    scintillator.plot_pix(ax, plt_par={'color': 'g'})
+    scintillator.plot_pix(ax, line_params={'color': 'g'})
     foil.plot_pix(ax)
     plt.draw_all()
 
