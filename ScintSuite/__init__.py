@@ -20,6 +20,10 @@ import shutil
 home = os.getenv("ScintSuitePath")
 if home is None:
     home = os.path.join(os.getenv("HOME"), 'ScintSuite')
+
+# Chekcing and creating the MyData folder
+if not os.path.isdir(os.path.join(home, 'Data', 'MyData')):
+    os.mkdir(os.path.join(home, 'Data', 'MyData'))
 try:
     file = \
         os.path.join(home, 'Data',
