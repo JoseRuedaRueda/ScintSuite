@@ -123,6 +123,7 @@ class ApplicationShowVid:
             state = tk.DISABLED
         else:
             state = tk.NORMAL
+        state = tk.NORMAL
         # Initialise the variable of the button
         self.checkVar1 = tk.BooleanVar()
         self.checkVar1.set(False)
@@ -193,9 +194,9 @@ class ApplicationShowVid:
             #name__smap = sssinpa.execution.guess_strike_map_name(
             #    phi_used, theta_used, geomID=self.GeomID,
             #    decimals=self.remap_dat['frames'].attrs['decimals'])
-            name__smap = '77971@0.4_ul.map'
+            name__smap = '77971@0.4_ur.map'
             #smap_folder = self.remap_dat['frames'].attrs['smap_folder']
-            smap_folder = '/home/jansen/SINPA/runs/77971@0.4_ul/results'
+            smap_folder = '/home/jansen/SINPA/runs/77971@0.4_ur/results'
             full_name_smap = os.path.join(smap_folder, name__smap)
             # Load the map:
             smap = ssmap.StrikeMap(0, full_name_smap)
@@ -212,7 +213,7 @@ class ApplicationShowVid:
             self.scintillator.plot_pix(ax=self.canvas.figure.axes[0])
         if self.checkVar3.get():
             for i in range(len(self.apd_data)):
-                self.canvas.figure.axes[0].plot(self.apd_data[i][:,0], 830 - self.apd_data[i][:,1], 'r-')
+                self.canvas.figure.axes[0].plot(self.apd_data[i][:,0], self.apd_data[i][:,1], 'r-')
         self.canvas.draw()
 
     def set_scale(self):

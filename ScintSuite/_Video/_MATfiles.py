@@ -20,7 +20,7 @@ def read_file(filename: str):
     #filename = '/videodata/pcfild002/data/fild002/74718.mat'
     
 
-    ###Method for reading mat files into a 
+    ###Method for reading TCV .mat files into a 
     def get_ds_dictionaries(name, node):
         fullname = node.name
         if isinstance(node, h5py.Dataset):

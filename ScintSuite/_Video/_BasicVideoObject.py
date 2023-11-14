@@ -201,7 +201,7 @@ class BVO:
 
                     #import IPython
                     #IPython.embed()
-
+                    self.exp_dat['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))
                     self.exp_dat['frames'] = \
                         xr.DataArray(frames, dims=('t', 'px', 'py'),
                                      coords={'t': self.timebase.squeeze(),

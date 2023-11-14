@@ -210,13 +210,13 @@ if __name__ == '__main__':
     plot_3D = False
 
     shot = 75620
-    time = 1.020
+    time = 1.005
 
     run_code = True  # Set flag to run FILDSIM
-    run_slit = [True, False] # Run particles starting at slits set to true, starting with ur, ul, lr,ll
+    run_slit = [True, False] # Run particles starting at slits set to true, starting with ul, ur, ll,lr
     read_slit = [True, False] # Read results from diffrent slits
     string_mod = 'scint_2022_test1'#'%i@%.3f' %(shot, time)  #Choose unique run identifier, like shot number and time
-    run_names = [string_mod+'_ur', string_mod + '_ul']
+    run_names = [string_mod+'_ul', string_mod + '_ur']
     read_results = not run_code # Flag to read output after run
     ###
     #Input settings
@@ -259,31 +259,31 @@ if __name__ == '__main__':
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(1e3)   
+    n_markers = int(1e5)   
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
     #Grids
     #Gyroradii grid in [cm]
 
-    #energy_arrays = np.array([5000, 7000, 9000, 11000, 13000, 15000, 17000, 19000, 21000, 23000, 25000, 27000, 29000, 31000,  33000, 35000, 37000, 39000, 41000, 43000, 45000, 47000])
-    energy_arrays = np.array([13000, 15000, 17000, 25000, 27000, 29000])
+    energy_arrays = np.array([5000, 7000, 9000, 11000, 13000, 15000, 17000, 19000, 21000, 23000, 25000, 27000, 29000, 31000,  33000, 35000, 37000, 39000, 41000, 43000, 45000, 47000])
+    #energy_arrays = np.array([13000, 15000, 17000, 25000, 27000, 29000])
     g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
 
 
     gyro_arrays = [list(np.around(g_r, decimals = 2)), #For each indivudual slit, ur->ll [2.0, 4.0],#
                    g_r]
     #pitch angle grid in [degrees]
-    #p = np.array([ 0.4500, 0.4700, 0.4900, 0.5100, 0.5300, 0.5500, 0.5700, 0.5900, 0.6000, 0.6100, 0.6300, 0.6500, 0.6700, 0.6900, 0.7100, 0.7300])
-    p = np.array([0.5500, 0.6500, 0.6700])
+    p = np.array([ 0.4500, 0.4700, 0.4900, 0.5100, 0.5300, 0.5500, 0.5700, 0.5900, 0.6000, 0.6100, 0.6300, 0.6500, 0.6700, 0.6900, 0.7100, 0.7300])
+    #p = np.array([0.5500, 0.6500, 0.6700])
 
     pitch_arrays = [ list(np.around(np.rad2deg(np.arccos(p)), decimals = 2)),
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 2))
                     ]
     #Range of gyrophase to use. Smaller range can be used, but for now allow all gyrophases
     
-    gyrophase_range = [ np.array([4.75,5.0]), #UR 10, 12 (anton)
-                        np.array([7.6,8.6]) #UL
+    gyrophase_range = [ [10.9, 11.4],  #[9.8,12.2] ,  #UR
+                        [7.2,8.6]  #UL
     ]
 
     #gyrophase_range = np.array([np.deg2rad(0),np.deg2rad(360)])
