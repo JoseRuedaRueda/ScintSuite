@@ -20,11 +20,12 @@ from matplotlib.widgets import Slider
 ## ----------------------------------------------------------------------------
 # --- Settings
 # -----------------------------------------------------------------------------
-shot = 77980
-time = 0.407
-vmax = 512
+shot = 75555
+time = 0.007
+vmax = 850
 
-Scint_file = '/home/jansen/ScintSuite/Data/Plates/FILD/TCV/TCV2023.txt'   # ####
+Scint_file = '/home/jansen/ScintSuite/Data/Plates/FILD/TCV/TCV2022.txt'
+#Scint_file = '/home/jansen/ScintSuite/Data/Plates/FILD/TCV/TCV2023.txt'   # ####
 format = 'fildsim'  # Code for which the geometry file is written
 # File with the calibration image (png)
 calib_image = '/videodata/pcfild002/data/fild002/' + \

@@ -179,35 +179,60 @@ class BVO:
                 elif file.endswith('.mat'):
                     #if not 'properties' in self.__dict__:
                     #    self.properties = {}
-                    dummy = mat.read_file(file)#, **self.properties)
+                    dummy, method = mat.read_file(file)#, **self.properties)
 
                     ## Time array
                     ##TODO check that the timebase is correctly defined AJVV
                     #Suggetsion from POLEY:
                     #t0=(double(b.secs(2))+double(b.usecs(2))*1e-6)-(double(b.secs(1))+double(b.usecs(1))*1e-6);
                     #time=(double(b.secs)+double(b.usecs)*1e-6)-(double(b.secs(1))+double(b.usecs(1))*1e-6)+t0;
-                    t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
-                    self.timebase = t0 + dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
                     
                     #import IPython
                     #IPython.embed()
-                    frames = dummy.pop('/dat') #frames are stored in "/dat"
-                    frames = frames[:,:,::-1]
-                    #self.properties.update(dummy)
-                    self.exp_dat = xr.Dataset()
-                    nt, nx, ny = frames.shape
-                    px = np.arange(nx)
-                    py = np.arange(ny)
-
-                    #import IPython
-                    #IPython.embed()
-
-                    self.exp_dat['frames'] = \
+                    ##POLEY: add flag for different types of loading of the mat file
+                    if method == 'h5py':
+                            
+                        t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
+                        self.timebase = t0 + dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
+                        frames = dummy.pop('/dat') #frames are stored in "/dat"
+                        frames = frames[:,:,::-1]
+                        #self.properties.update(dummy)
+                        self.exp_dat = xr.Dataset()
+                        nt, nx, ny = frames.shape
+                        px = np.arange(nx)
+                        py = np.arange(ny)
+                        self.exp_dat['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))                    
+                        self.exp_dat['frames'] = \
                         xr.DataArray(frames, dims=('t', 'px', 'py'),
-                                     coords={'t': self.timebase.squeeze(),
-                                             'px': px,
-                                             'py': py})
+                                    coords={'t': self.timebase.squeeze(),
+                                            'px': px,
+                                            'py': py})
                     
+                    if method == 'scipy':
+                        
+                        t0 = dummy['b']['secs'][0][0][0][1] - dummy['b']['secs'][0][0][0][0] + (dummy['b']['usecs'][0][0][0][1] - dummy['b']['usecs'][0][0][0][0])*1e-6
+                        self.timebase = t0 + dummy['b']['secs'][0][0][0] - dummy['b']['secs'][0][0][0][0] + (dummy['b']['usecs'][0][0][0] - dummy['b']['usecs'][0][0][0][0])*1e-6                                          
+                        frames = dummy.pop('dat') #frames are stored in "/dat"                    
+                        frames = frames[:,:,::-1]
+                        #self.properties.update(dummy)
+                        self.exp_dat = xr.Dataset()
+                        ny, nx, nt = frames.shape
+                        px = np.arange(nx)
+                        py = np.arange(ny)
+                        self.exp_dat['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))                    
+                        self.exp_dat['frames'] = \
+                        xr.DataArray(frames, dims=('py', 'px', 't'),
+                                     coords={'py': py,
+                                             'px': px,
+                                             't': self.timebase.squeeze()})
+                        
+                    
+                   
+
+                    #import IPython
+                    #IPython.embed()
+                
+                                       
                     if ny>nx:
                         #For some reason the calibration videos are transposed
                         self.exp_dat['frames'] = \
@@ -359,6 +384,10 @@ class BVO:
             M = pco.read_frame(self, frames_number,
                                limitation=limitation, limit=limit,
                                verbose=verbose)
+            
+        ### Poley: add .mat file 
+        elif self.type_of_file == '.mat':
+            M = mat.read_frame(self,self.path)
         else:
             raise Exception('Not initialised / not implemented file type?')
         # --- End here if we just want the frame

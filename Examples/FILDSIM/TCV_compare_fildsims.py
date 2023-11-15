@@ -209,13 +209,13 @@ if __name__ == '__main__':
     plot_plate_geometry = True
     plot_3D = False
 
-    shot = 75620
-    time = 1.020
+    shot = 78452
+    time = 1.512
 
     run_code = True  # Set flag to run FILDSIM
     run_slit = [True, False] # Run particles starting at slits set to true, starting with ur, ul, lr,ll
     read_slit = [True, False] # Read results from diffrent slits
-    string_mod = 'scint_2022_test1'#'%i@%.3f' %(shot, time)  #Choose unique run identifier, like shot number and time
+    string_mod = 'scint_2023_test1'#'%i@%.3f' %(shot, time)  #Choose unique run identifier, like shot number and time
     run_names = [string_mod+'_ur', string_mod + '_ul']
     read_results = not run_code # Flag to read output after run
     ###
@@ -242,14 +242,16 @@ if __name__ == '__main__':
     new_b_field = True  #Generate new b_field file for FILDSIM. This is slow so this flag lets you use the od
     Br, Bz, Bt = 0.0, 0.0, 1.4   #[T] just for testing for now
     Br, Bt, Bz = 0.0141, -1.1328, 0.1532 #(Br, Bphi, Bz) #75620@1.020s
-    modB = np.sqrt(Br**2 + Bz**2 + Bt**2)    
+    modB = np.sqrt(Br**2 + Bz**2 + Bt**2)  
+
     use_ascot_B = False
     use_single_B = True
     if use_single_B and run_code:
         Rin = -17 *0.001
         Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rin, time)
         modB = np.sqrt(Br**2 + Bz**2 + Bt**2) 
-
+ 
+    print(modB)  
     ascot_bfield_File ='Fields/std_bfield.pickle' 
     ascot_boozer_File = 'Fields/std_boozer.pickle'
     dist_file = ''
@@ -266,16 +268,16 @@ if __name__ == '__main__':
     #Grids
     #Gyroradii grid in [cm]
 
-    #energy_arrays = np.array([5000, 7000, 9000, 11000, 13000, 15000, 17000, 19000, 21000, 23000, 25000, 27000, 29000, 31000,  33000, 35000, 37000, 39000, 41000, 43000, 45000, 47000])
-    energy_arrays = np.array([13000, 15000, 17000, 25000, 27000, 29000])
+    #energy_arrays = np.array([3000, 7000, 11000, 15000, 19000, 23000, 27000, 31000, 35000, 39000, 43000, 47000, 51000])
+    energy_arrays = np.array([5000, 8000, 11000, 14000, 17000, 20000, 23000, 26000, 29000, 32000, 38000, 45000])
     g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
 
 
     gyro_arrays = [list(np.around(g_r, decimals = 2)), #For each indivudual slit, ur->ll [2.0, 4.0],#
                    g_r]
     #pitch angle grid in [degrees]
-    #p = np.array([ 0.4500, 0.4700, 0.4900, 0.5100, 0.5300, 0.5500, 0.5700, 0.5900, 0.6000, 0.6100, 0.6300, 0.6500, 0.6700, 0.6900, 0.7100, 0.7300])
-    p = np.array([0.5500, 0.6500, 0.6700])
+    #p = np.array([0.32,0.36,0.4,0.4500, 0.4900, 0.5300, 0.5700, 0.6000, 0.6400, 0.6800, 0.7200, 0.7600, 0.8000, 0.8400, 0.8800, 0.9200, 0.96])
+    p = np.array([0.32,0.4, 0.4800, 0.5600, 0.6400, 0.7200, 0.8000, 0.88])
 
     pitch_arrays = [ list(np.around(np.rad2deg(np.arccos(p)), decimals = 2)),
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 2))
@@ -294,14 +296,14 @@ if __name__ == '__main__':
     beta = 0.0  #Besides we use TCV coordinates, so for ow this is not needed
     #STL files
     geom_dir = os.path.join(paths.SINPA,'Geometry/')
-    collimator_stl_files = {#'collimator_upper': geom_dir+'TCV_FILD/2022/Collimator1_FILD2022TCVCordinates_MP0mm.stl',
-                            'collimator_lower': geom_dir+'TCV_FILD/2022/Collimator08_FILD2022TCVCordinates_MP0mm.stl',  #alternative collimator
+    collimator_stl_files = {'collimator_upper': geom_dir+'TCV_FILD/2022/Collimator1_FILD2022TCVCordinates_MP0mm.stl',
+                            #'collimator_lower': geom_dir+'TCV_FILD/2022/Collimator08_FILD2022TCVCordinates_MP0mm.stl',  #alternative collimator
                             'heatshield': geom_dir+'TCV_FILD/2022/HeatShield_FILD2022TCVCordinates_MP0mm.stl'
                             }
     scintillator_stl_files = {'scintillator':  geom_dir+'TCV_FILD/2022/Scintillator_FILD2022TCVCordinates_MP0mm.stl'}
     #Pinhole coordinates in [mm]
     pinholes = [{}, {}]
-    '''
+    
     ### 1.0mm collimator
     pinholes[0]['pinholeKind'] =1
     pinholes[0]['pinholeCentre'] = None
@@ -337,7 +339,7 @@ if __name__ == '__main__':
                                       [-257.259, 1125.73, 35.4414],
                                       [-255.298, 1126.12, 35.4414],
                                       [-255.142, 1125.33, 35.4414] ] )#upper left
-    
+    '''
     # -----------------------------------------------------------------------------
     # --- Run SINPA FILDSIM
     # -----------------------------------------------------------------------------

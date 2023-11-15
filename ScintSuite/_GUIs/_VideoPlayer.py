@@ -193,9 +193,9 @@ class ApplicationShowVid:
             #name__smap = sssinpa.execution.guess_strike_map_name(
             #    phi_used, theta_used, geomID=self.GeomID,
             #    decimals=self.remap_dat['frames'].attrs['decimals'])
-            name__smap = '77971@0.4_ul.map'
+            name__smap = 'scint_2022_test1_ur.map'
             #smap_folder = self.remap_dat['frames'].attrs['smap_folder']
-            smap_folder = '/home/jansen/SINPA/runs/77971@0.4_ul/results'
+            smap_folder = '/home/poley/NoTivoli/ScintSuite/SINPA/runs/scint_2022_test1_ur/results/'
             full_name_smap = os.path.join(smap_folder, name__smap)
             # Load the map:
             smap = ssmap.StrikeMap(0, full_name_smap)
