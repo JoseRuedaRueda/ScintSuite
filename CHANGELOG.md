@@ -1,3 +1,7 @@
+# 1.3.6 Updated fild export
+- Updated pip requirements
+- Updated export fild, for the case of single smap used in remap
+
 # 1.3.5 Shares path, Update netCDF library for MU
 - Updated basic pathjs of AUG FILD and INPa to the shares
 - The netCDF library has been updated to read new standard MU format
