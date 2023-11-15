@@ -189,20 +189,18 @@ class BVO:
                     
                     #import IPython
                     #IPython.embed()
-                    ##POLEY: add flag for different types of loading of the mat file
-                    if method == 'h5py':
-                            
-                        t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
-                        self.timebase = t0 + dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
-                        frames = dummy.pop('/dat') #frames are stored in "/dat"
-                        frames = frames[:,:,::-1]
-                        #self.properties.update(dummy)
-                        self.exp_dat = xr.Dataset()
-                        nt, nx, ny = frames.shape
-                        px = np.arange(nx)
-                        py = np.arange(ny)
-                        self.exp_dat['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))                    
-                        self.exp_dat['frames'] = \
+                    frames = dummy.pop('/dat') #frames are stored in "/dat"
+                    frames = frames[:,:,::-1]
+                    #self.properties.update(dummy)
+                    self.exp_dat = xr.Dataset()
+                    nt, nx, ny = frames.shape
+                    px = np.arange(nx)
+                    py = np.arange(ny)
+
+                    #import IPython
+                    #IPython.embed()
+                    self.exp_dat['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))
+                    self.exp_dat['frames'] = \
                         xr.DataArray(frames, dims=('t', 'px', 'py'),
                                     coords={'t': self.timebase.squeeze(),
                                             'px': px,

@@ -11,7 +11,10 @@ def read_file(filename: str):
     :param  filename: full path pointing to the .mat file
     '''
     #filename = '/videodata/pcfild002/data/fild002/74718.mat'
-    def get_ds_dictionaries(name, node): ###Method for reading older .mat files into a structure
+    
+
+    ###Method for reading TCV .mat files into a 
+    def get_ds_dictionaries(name, node):
         fullname = node.name
         if isinstance(node, h5py.Dataset):
         # node is a dataset

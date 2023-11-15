@@ -209,14 +209,14 @@ if __name__ == '__main__':
     plot_plate_geometry = True
     plot_3D = False
 
-    shot = 78452
-    time = 1.512
+    shot = 75620
+    time = 1.005
 
     run_code = True  # Set flag to run FILDSIM
-    run_slit = [True, False] # Run particles starting at slits set to true, starting with ur, ul, lr,ll
+    run_slit = [True, False] # Run particles starting at slits set to true, starting with ul, ur, ll,lr
     read_slit = [True, False] # Read results from diffrent slits
-    string_mod = 'scint_2023_test1'#'%i@%.3f' %(shot, time)  #Choose unique run identifier, like shot number and time
-    run_names = [string_mod+'_ur', string_mod + '_ul']
+    string_mod = 'scint_2022_test1'#'%i@%.3f' %(shot, time)  #Choose unique run identifier, like shot number and time
+    run_names = [string_mod+'_ul', string_mod + '_ur']
     read_results = not run_code # Flag to read output after run
     ###
     #Input settings
@@ -261,7 +261,7 @@ if __name__ == '__main__':
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(1e3)   
+    n_markers = int(1e5)   
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
@@ -284,8 +284,8 @@ if __name__ == '__main__':
                     ]
     #Range of gyrophase to use. Smaller range can be used, but for now allow all gyrophases
     
-    gyrophase_range = [ np.array([4.75,5.0]), #UR 10, 12 (anton)
-                        np.array([7.6,8.6]) #UL
+    gyrophase_range = [ [10.9, 11.4],  #[9.8,12.2] ,  #UR
+                        [7.2,8.6]  #UL
     ]
 
     #gyrophase_range = np.array([np.deg2rad(0),np.deg2rad(360)])

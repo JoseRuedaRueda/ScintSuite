@@ -39,25 +39,23 @@ _geometryDatabase = os.path.join(paths.ScintSuite, 'Data',
 
 
 # --- Auxiliar routines to find the path towards the camera files
-#def guessFILDfilename(shot: int, diag_ID: int = 1):
-#    """
-#    Guess the filename of a video
-#
-#    Jose Rueda Rueda: jrrueda@us.es
-#
-#    Note Juanfran criteria of organising files is assumed: .../<shot>/...
-#
-#    :param  shot: shot number
-#    :param  diag_ID: FILD manipulator number
-#
-#    :return file: the name of the file/folder
-#    """
-#    base_dir = params.FILD[diag_ID-1]['path']
-#    extension = params.FILD[diag_ID-1]['extension'](shot)
-#    shot_str = str(shot)
-#    name = shot_str + extension
-#    file = os.path.join(base_dir, name)
-#    return file
+def guessFILDfilename(shot: int, diag_ID: int = 1):
+   """
+   Guess the filename of a video
+
+   Jose Rueda Rueda: jrrueda@us.es
+
+   :param  shot: shot number
+   :param  diag_ID: FILD manipulator number
+
+   :return file: the name of the file/folder
+   """
+   base_dir = params.FILD[diag_ID-1]['path']
+   extension = params.FILD[diag_ID-1]['extension'](shot)
+   shot_str = str(shot)
+   name = shot_str + extension
+   file = os.path.join(base_dir, name)
+   return file
 
 
 # --- FILD object
@@ -106,17 +104,16 @@ class FILD_logbook:
         except:
            pass
         # Load the geometry database
-        #try:
-        #    self.geometryDatabase = \
-        #    self._readGeometryDatabase(geometryFile, verbose=verbose)
-        #except:
-        #    print('could not read the geometry database')
-        #    pass
+        try:
+           self.geometryDatabase = \
+           self._readGeometryDatabase(geometryFile, verbose=verbose)
+        except:
+           print('could not read the geometry database')
+           pass
 
         self.wikilink = positionFile
         
         return 
-
  
     def _readPositionDatabase(self, shot: int, verbose: bool = True):
         """
@@ -132,7 +129,43 @@ class FILD_logbook:
         
         return None
 
-    def _readGeometryDatabase(self, shot = int,
+    def _readGeometryDatabase(self, filename: str, n_header: int = 3,
+                              verbose: bool = True):
+        """
+        Read the Geometry database
+
+        See the help PDF located at the readme file for a full description of
+        each available parameter
+
+        @author Jose Rueda Rueda: jrrueda@us.es
+
+        :param  filename: Complete path to the file with the calibrations
+        :param  n_header: Number of header lines (5 in the oficial format)
+
+        :return database: Pandas dataframe with the database
+        """
+        data = {'CalID': [], 'shot1': [], 'shot2': [],
+                'GeomID': [], 'diag_ID': []}
+
+        # Read the file
+        if verbose:
+            print('Reading Geometry database from: ', filename)
+        with open(filename) as f:
+            for i in range(n_header):
+                dummy = f.readline()
+            # Database itself
+            for line in f:
+                dummy = line.split()
+                data['CalID'].append(int(dummy[0]))
+                data['shot1'].append(int(dummy[1]))
+                data['shot2'].append(int(dummy[2]))
+                data['GeomID'].append(dummy[3])
+                data['diag_ID'].append(int(dummy[4]))
+        # Transform to pandas
+        database = pd.DataFrame(data)
+        return database
+
+    def get_collimator_data(self, shot = int,
                               verbose: bool = True):
         """
         Read the Geometry database
@@ -230,7 +263,6 @@ class FILD_logbook:
         :param  shot: integer, shot number
         :param  FILDid: manipulator number
         """
-        '''
         flags = (self.geometryDatabase['shot1'] <= shot) & \
             (self.geometryDatabase['shot2'] >= shot) & \
             (self.geometryDatabase['diag_ID'] == FILDid)
@@ -241,16 +273,6 @@ class FILD_logbook:
             raise Exception('More than onw entry found, revise')
         else:
             id = self.geometryDatabase[flags].GeomID.values[0]
-
-        '''
-        
-        if shot <= 77469:
-            
-            id = 'TCV2022'
-            
-        else:
-            
-            id = 'TCV2023'
             
         return id
 

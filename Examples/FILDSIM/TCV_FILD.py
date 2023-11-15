@@ -104,7 +104,7 @@ def write_stl_geometry_files(root_dir
         y1y2y3 = mesh_obj.y  
         z1z2z3 = mesh_obj.z  
     
-        itriang = 508 # choose some triangle of the Scintilator plate to calculate normal vector, 131 for the new geometry
+        itriang = 131 # choose some triangle of the Scintilator plate to calculate normal vector, 131 for the new geometry
         p1 = np.array((x1x2x3[itriang, 0],
                        y1y2y3[itriang, 0],
                        z1z2z3[itriang, 0]) ) * 0.001 #convert mm to m
@@ -118,8 +118,8 @@ def write_stl_geometry_files(root_dir
         scint_norm = get_normal_vector(p1, p2, p3)        
         
       
-        ps = p1 #Arbitrarily choose the first point as the reference point, for the new geom is p2 here, and p2 - p3 down in u1_scint 
-        u1_scint = p1 - p2
+        ps = p2 #Arbitrarily choose the first point as the reference point, for the new geom is p2 here, and p2 - p3 down in u1_scint 
+        u1_scint = p2 - p3
         u1_scint /= np.linalg.norm(u1_scint) #Only needed to align the scintilattor
         
         rot = ss.sinpa.geometry.calculate_rotation_matrix(-scint_norm, u1 = u1_scint
@@ -210,15 +210,15 @@ if __name__ == '__main__':
     plot_3D = False
 
     run_code = False  # Set flag to run FILDSIM
-    run_slit = [False, True, False, False] # Run particles starting at slits set to true, starting with ur, ul, lr,ll
+    run_slit = [False, True, False, False] # Run particles starting at slits set to true, starting with ul, ur, ll,lr
     read_slit = [False, True, False, False] # Read results from diffrent slits
     string_mod = '77971@0.4' #Choose unique run identifier, like shot number and time
-    run_names = [string_mod+'_ur_', string_mod + '_ul',string_mod+'_lr', string_mod + '_ll']
+    run_names = [string_mod+'_ul', string_mod + '_ur',string_mod+'_ll', string_mod + '_lr']
     read_results = not run_code # Flag to read output after run
     ###
     #Input settings
     ###
-    self_shadowing = True  #Flag to remove markers that would have been shadowed, leave this on
+    self_shadowing = False  #Flag to remove markers that would have been shadowed, leave this on
     backtrace = False  #Do backtracing
     ###
     #Output data to save
@@ -257,7 +257,7 @@ if __name__ == '__main__':
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(1e3)   
+    n_markers = int(1e4)   
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
@@ -267,9 +267,10 @@ if __name__ == '__main__':
                    [0.75, 1.0, 1.5, 2., 2.5, 3., 3.5, 4.0], 
                    [0.75, 1.0, 1.5, 2., 2.5, 3., 3.5, 4.0],
                    [0.75, 1.0, 1.5, 2., 2.5, 3., 3.5, 4.0]]
+    
     #pitch angle grid in [degrees]
     pitch_arrays = [[90., 85., 80., 75., 70.,65., 60, 55., 50., 45., 40., 35., 30., 25., 20., 15., 10., 5.],
-                    [95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145., 150., 155., 160., 165., 170., 175., 180.],
+                    [90., 95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145., 150., 155., 160., 165., 170., 175.],
                     [95., 105., 115., 125., 135., 145., 155., 165., 175.],
                     [90., 85., 80., 75., 70., 55., 35., 25., 15., 5.]]
     #Range of gyrophase to use. Smaller range can be used, but for now allow all gyrophases
@@ -288,6 +289,8 @@ if __name__ == '__main__':
     #                   [np.deg2rad(0),np.deg2rad(360)]
     #                  ]
     ###
+
+
     # FILD probe head
     ###    
     alpha = 0.0 # TCV FILD has no inclination or rotation angles.
@@ -307,7 +310,7 @@ if __name__ == '__main__':
     pinholes[0]['points'] = np.array([[-192.96, 1137.7, 35.4992],  #Important, the vector p1 to p2 should be one dimension, and 
                                       [-193.155, 1138.68, 35.4992], # the vector p2 to p3 the other dimension of the slit
                                       [-195.117, 1138.29, 35.4992],
-                                      [-194.922, 1137.31, 35.4992]] ) #upper right, looking from plasma to FILD head
+                                      [-194.922, 1137.31, 35.4992]] ) #upper left, looking from camera to FILD head
 
     pinholes[1]['pinholeKind'] =1
     pinholes[1]['pinholeCentre'] = None
@@ -315,7 +318,7 @@ if __name__ == '__main__':
     pinholes[1]['points'] = np.array([[-257.104, 1124.94, 35.5002],
                                       [-257.299, 1125.92, 35.5002],
                                       [-255.337, 1126.31, 35.5002],
-                                      [-255.142, 1125.33, 35.5002] ] )#upper left
+                                      [-255.142, 1125.33, 35.5002] ] )#upper right
 
     pinholes[2]['pinholeKind'] =1
     pinholes[2]['pinholeCentre'] = None
@@ -323,7 +326,7 @@ if __name__ == '__main__':
     pinholes[2]['points'] = np.array([[-192.961, 1137.7, -10.5008],
                                       [-193.117, 1138.49, -10.5008],
                                       [-195.079, 1138.1, -10.5007],
-                                      [-194.922, 1137.31, -10.5007]] )#lower right, looking from plasma to FILD head
+                                      [-194.922, 1137.31, -10.5007]] )#lower left, looking from plasma to FILD head
 
     pinholes[3]['pinholeKind'] =1
     pinholes[3]['pinholeCentre'] = None
@@ -331,7 +334,7 @@ if __name__ == '__main__':
     pinholes[3]['points'] = np.array([[-257.104, 1124.94, -10.4998],
                                       [-257.26, 1125.73, -10.4998],
                                       [-255.299, 1126.12, -10.4998],
-                                      [-255.143, 1125.33, -10.4998] ] )#lower left   
+                                      [-255.143, 1125.33, -10.4998] ] )#lower right   
 
     # -----------------------------------------------------------------------------
     # --- Run SINPA FILDSIM

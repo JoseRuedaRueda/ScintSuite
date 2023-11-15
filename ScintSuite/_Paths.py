@@ -19,8 +19,11 @@ class Path:
         """Initialise the class"""
         # home = os.getenv("HOME")
         home_dir_user = os.getenv("HOME")
+        if machine == 'TCV':
+            home_dir_user = home_dir_user #+ '/NoTivoli'
+
         self.FILDSIM = os.path.join(home_dir_user, 'FILDSIM/')
-        self.SINPA = os.path.join(home_dir_user, 'NoTivoli', 'ScintSuite', 'SINPA/')
+        self.SINPA = os.path.join(home_dir_user,  'SINPA/')
         self.FIDASIM4 = os.path.join(home_dir_user, 'FIDASIM4/')
         self.ScintSuite = home
         self.Results = os.path.join(self.ScintSuite, 'Results')
