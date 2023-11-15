@@ -563,8 +563,12 @@ def load_remap(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
     else:
         raise errors.NotValidInput('Not suported diagnostic')
     vid.remap_dat = xr.load_dataset(os.path.join(dummyFolder, 'remap.nc'))
-    vid.Bangles = xr.load_dataset(os.path.join(dummyFolder, 'Bfield.nc'))
-    vid.BField = xr.load_dataset(os.path.join(dummyFolder, 'BfieldAngles.nc'))
+    try:
+        vid.Bangles = xr.load_dataset(os.path.join(dummyFolder, 'Bfield.nc'))
+        vid.BField = xr.load_dataset(os.path.join(dummyFolder, 'BfieldAngles.nc'))
+    except FileNotFoundError:
+        logger.warning('Bfield not found, not loaded')
+        # This happens if the remap was done with a single smap
     vid.CameraCalibration = \
         read_calibration(os.path.join(dummyFolder, 'CameraCalibration.nc'))
     v = ver.readVersion(os.path.join(dummyFolder, 'version.txt'))
