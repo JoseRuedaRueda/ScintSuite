@@ -320,7 +320,7 @@ class FILD_logbook:
         position = 0
         if verbose:
             print('Looking for the position database: ')
-            position = int(wiki_data[i][3])
+            position = float(wiki_data[i][3])
   
         return position
 

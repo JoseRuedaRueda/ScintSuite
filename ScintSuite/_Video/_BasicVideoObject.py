@@ -34,7 +34,7 @@ from scipy import ndimage                  # To filter the images
 from ScintSuite._Paths import Path
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import Slider, Button, RadioButtons
-
+import gc
 
 # --- Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.Video')
@@ -184,8 +184,7 @@ class BVO:
                     ## Time array
                     ##TODO check that the timebase is correctly defined AJVV
                     #Suggetsion from POLEY:
-                    #t0=(double(b.secs(2))+double(b.usecs(2))*1e-6)-(double(b.secs(1))+double(b.usecs(1))*1e-6);
-                    #time=(double(b.secs)+double(b.usecs)*1e-6)-(double(b.secs(1))+double(b.usecs(1))*1e-6)+t0;
+
                     t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
                     self.timebase = t0 + dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
                     
@@ -207,7 +206,6 @@ class BVO:
                                      coords={'t': self.timebase.squeeze(),
                                              'px': px,
                                              'py': py})
-                    
                     if ny>nx:
                         #For some reason the calibration videos are transposed
                         self.exp_dat['frames'] = \
@@ -215,6 +213,8 @@ class BVO:
                     else:
                         self.exp_dat['frames'] = \
                             self.exp_dat['frames'].transpose('py', 'px', 't')                        
+ 
+                    self.exp_orig_dat = self.exp_dat.copy()                      
                    
                     self.type_of_file = '.mat'                    
                 else:
@@ -285,7 +285,8 @@ class BVO:
         self.CameraData = None
         ## Scintillator plate:
         self.scintillator = None
-
+        gc.collect()
+        gc.enable()
     # --------------------------------------------------------------------------
     # --- Manage Frames
     # --------------------------------------------------------------------------
@@ -359,11 +360,17 @@ class BVO:
             M = pco.read_frame(self, frames_number,
                                limitation=limitation, limit=limit,
                                verbose=verbose)
+        elif self.type_of_file == '.mat':
+            M = np.array(self.exp_orig_dat['frames'][ :, :, frames_number])
         else:
             raise Exception('Not initialised / not implemented file type?')
         # --- End here if we just want the frame
         if not internal:
             return M
+
+        #import IPython
+        #IPython.embed()    
+
         # --- Save the stuff in the structure
         # Get the spatial axes
         nx, ny, nt = M.shape
@@ -375,7 +382,7 @@ class BVO:
         if frames_number is None:
             nframes = np.arange(nt) + 1
         else:
-            nframes = frames_number
+            nframes = np.array(frames_number)
         # Quick solve for the case we have just one frame
         try:
             if len(tframes) != 1:
@@ -421,6 +428,8 @@ class BVO:
                     py = px_tmp
 
         # Storage it
+        import IPython
+        IPython.embed()
         self.exp_dat['frames'] = \
             xr.DataArray(M, dims=('px', 'py', 't'), coords={'t': tbase,
                                                             'px': px, 'py': py})
@@ -991,6 +1000,7 @@ class BVO:
                                      shot=self.shot)
         root.mainloop()
         root.destroy()
+        gc.collect()
 
     def GUI_frames_simple(self, flagAverage: bool = False, **kwargs):
         """
@@ -1044,7 +1054,7 @@ class BVO:
 
         slider.on_changed(update)
         plt.show()
-
+        gc.collect()
         return ax, slider
 
 
