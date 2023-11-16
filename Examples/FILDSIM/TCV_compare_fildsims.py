@@ -209,13 +209,13 @@ if __name__ == '__main__':
     plot_plate_geometry = True
     plot_3D = False
 
-    shot = 75620
-    time = 1.005
+    shot = 78452
+    time = 1.512
 
     run_code = True  # Set flag to run FILDSIM
     run_slit = [True, False] # Run particles starting at slits set to true, starting with ul, ur, ll,lr
     read_slit = [True, False] # Read results from diffrent slits
-    string_mod = 'scint_2022_test1'#'%i@%.3f' %(shot, time)  #Choose unique run identifier, like shot number and time
+    string_mod = 'scint_2023_test1'#'%i@%.3f' %(shot, time)  #Choose unique run identifier, like shot number and time
     run_names = [string_mod+'_ul', string_mod + '_ur']
     read_results = not run_code # Flag to read output after run
     ###
@@ -261,7 +261,7 @@ if __name__ == '__main__':
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(1e5)   
+    n_markers = int(1e4)
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
@@ -296,13 +296,14 @@ if __name__ == '__main__':
     beta = 0.0  #Besides we use TCV coordinates, so for ow this is not needed
     #STL files
     geom_dir = os.path.join(paths.SINPA,'Geometry/')
-    collimator_stl_files = {'collimator_upper': geom_dir+'TCV_FILD/2022/Collimator1_FILD2022TCVCordinates_MP0mm.stl',
-                            #'collimator_lower': geom_dir+'TCV_FILD/2022/Collimator08_FILD2022TCVCordinates_MP0mm.stl',  #alternative collimator
+    collimator_stl_files = {'collimator_1mm': geom_dir+'TCV_FILD/2022/Collimator1_FILD2022TCVCordinates_MP0mm.stl',
+                            #'collimator_08mm': geom_dir+'TCV_FILD/2022/Collimator08_FILD2022TCVCordinates_MP0mm.stl',  #alternative collimator
                             'heatshield': geom_dir+'TCV_FILD/2022/HeatShield_FILD2022TCVCordinates_MP0mm.stl'
                             }
     scintillator_stl_files = {'scintillator':  geom_dir+'TCV_FILD/2022/Scintillator_FILD2022TCVCordinates_MP0mm.stl'}
     #Pinhole coordinates in [mm]
     pinholes = [{}, {}]
+    
     
     ### 1.0mm collimator
     pinholes[0]['pinholeKind'] =1
@@ -339,6 +340,7 @@ if __name__ == '__main__':
                                       [-257.259, 1125.73, 35.4414],
                                       [-255.298, 1126.12, 35.4414],
                                       [-255.142, 1125.33, 35.4414] ] )#upper left
+    '''
     '''
     # -----------------------------------------------------------------------------
     # --- Run SINPA FILDSIM

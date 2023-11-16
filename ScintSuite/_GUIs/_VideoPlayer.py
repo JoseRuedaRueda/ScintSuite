@@ -11,7 +11,6 @@ import ScintSuite._IO as io
 from matplotlib.figure import Figure
 from tkinter import ttk
 
-
 class ApplicationShowVid:
     """Class to show the camera frames"""
 
@@ -85,7 +84,7 @@ class ApplicationShowVid:
         # We need a new frame because the toolbar uses 'pack' internally and we
         # are using 'grid' to place our elements, so they are not compatible
         self.toolbarFrame = tk.Frame(master=master)
-        self.toolbarFrame.grid(row=4, column=1, columnspan=5)
+        self.toolbarFrame.grid(row=5, column=1, columnspan=5)
         self.toolbar = \
             tkagg.NavigationToolbar2Tk(self.canvas, self.toolbarFrame)
         self.toolbar.update()
@@ -132,6 +131,14 @@ class ApplicationShowVid:
                                      command=self.smap_Button_change,
                                      takefocus=0, state=state)
         self.smap_button.grid(row=3, column=3)
+
+        self.checkSmapDatabase = tk.BooleanVar()
+        self.checkSmapDatabase.set(False)
+        self.smap_checkbox = tk.Checkbutton(master, text="Use database",
+                                     takefocus=0, state=tk.NORMAL,
+                                     variable = self.checkSmapDatabase)
+        self.smap_checkbox.grid(row=4, column=3)
+
         # --- Button for the Scintillator:
         # If there is not scintillator data, deactivate the button
         if self.scintillator is None:
@@ -156,7 +163,7 @@ class ApplicationShowVid:
         self.apd_button = tk.Button(master, text="Draw APD",
                                       command=self.apd_Button_change,
                                       takefocus=0, state=state)
-        self.apd_button.grid(row=3, column=1)
+        self.apd_button.grid(row=4, column=4)
         # Draw and show
         self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=0, column=0, columnspan=5,
@@ -168,6 +175,7 @@ class ApplicationShowVid:
         self.qButton = tk.Button(master, text="Quit", command=master.quit)
         self.qButton.grid(row=3, column=5)
         frame.grid()
+        plt.show()  #AJVV needed to install qt5 event loop, to overplot lines on the canvas using plt
 
     def change_cmap(self, cmap_cname):
         """Change frame cmap"""
@@ -186,20 +194,21 @@ class ApplicationShowVid:
             # remove the old one
             ssplt.remove_lines(self.canvas.figure.axes[0])
             # choose the new one:
-            # get parameters of the map
-            #theta_used = self.remap_dat['theta_used'].values[it]
-            #phi_used = self.remap_dat['phi_used'].values[it]
-
-            # Get the full name of the file
-            #name__smap = sssinpa.execution.guess_strike_map_name(
-            #    phi_used, theta_used, geomID=self.GeomID,
-            #    decimals=self.remap_dat['frames'].attrs['decimals'])
-            name__smap = 'scint_2022_test1_ur.map'
-            #smap_folder = self.remap_dat['frames'].attrs['smap_folder']
-            smap_folder = '/home/poley/NoTivoli/ScintSuite/SINPA/runs/scint_2022_test1_ur/results/'
-            full_name_smap = os.path.join(smap_folder, name__smap)
-            # Load the map:
-            smap = ssmap.StrikeMap(0, full_name_smap)
+            if self.checkSmapDatabase.get():
+                # get parameters of the map
+                theta_used = self.remap_dat['theta_used'].values[it]
+                phi_used = self.remap_dat['phi_used'].values[it]
+                # Get the full name of the file
+                name__smap = sssinpa.execution.guess_strike_map_name(
+                    phi_used, theta_used, geomID=self.GeomID,
+                    decimals=self.remap_dat['frames'].attrs['decimals'])
+                smap_folder = self.remap_dat['frames'].attrs['smap_folder']
+                full_name_smap = os.path.join(smap_folder, name__smap)
+                # Load the map:
+                smap = ssmap.StrikeMap(0, full_name_smap)
+            else:
+                ##use user selected strikemap instead
+                smap = ssmap.StrikeMap(0, self.full_name_smap)
             # Calculate pixel coordinates
             smap.calculate_pixel_coordinates(self.CameraCalibration)
             # Plot the map
@@ -215,6 +224,7 @@ class ApplicationShowVid:
             for i in range(len(self.apd_data)):
                 self.canvas.figure.axes[0].plot(self.apd_data[i][:,0], self.apd_data[i][:,1], 'r-')
         self.canvas.draw()
+        
 
     def set_scale(self):
         """Set color scale"""
@@ -231,6 +241,11 @@ class ApplicationShowVid:
         # Now update the value
         self.checkVar1.set(not self.checkVar1.get())
         print('Draw Smap :', self.checkVar1.get())
+
+        if self.checkVar1.get():
+            if not self.checkSmapDatabase.get():
+                self.full_name_smap = io.ask_to_open()
+
         self.canvas.draw()
 
     def scint_Button_change(self):

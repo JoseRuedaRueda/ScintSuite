@@ -34,7 +34,7 @@ from scipy import ndimage                  # To filter the images
 from ScintSuite._Paths import Path
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import Slider, Button, RadioButtons
-
+import gc
 
 # --- Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.Video')
@@ -184,8 +184,7 @@ class BVO:
                     ## Time array
                     ##TODO check that the timebase is correctly defined AJVV
                     #Suggetsion from POLEY:
-                    #t0=(double(b.secs(2))+double(b.usecs(2))*1e-6)-(double(b.secs(1))+double(b.usecs(1))*1e-6);
-                    #time=(double(b.secs)+double(b.usecs)*1e-6)-(double(b.secs(1))+double(b.usecs(1))*1e-6)+t0;
+
                     t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
                     self.timebase = t0 + dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
 
@@ -239,9 +238,13 @@ class BVO:
                             self.exp_dat['frames'].transpose('px', 'py', 't')
                     else:
                         self.exp_dat['frames'] = \
-                            self.exp_dat['frames'].transpose('py', 'px', 't')                        
+                            self.exp_dat['frames'].transpose('py', 'px', 't')
+ 
+                                        
                    
-                    self.type_of_file = '.mat'                    
+                    self.type_of_file = '.mat'     
+
+                    self.settings = {'RealBPP': 10}             
                 else:
                     raise Exception('Not recognised file extension')
             else:
@@ -310,7 +313,8 @@ class BVO:
         self.CameraData = None
         ## Scintillator plate:
         self.scintillator = None
-
+        gc.collect()
+        gc.enable()
     # --------------------------------------------------------------------------
     # --- Manage Frames
     # --------------------------------------------------------------------------
@@ -348,9 +352,7 @@ class BVO:
         >>> vid = ss.vid.INPAVideo(shot=41090)
         >>> vid.read_frame()  # To load all the video
         """
-        # --- Clean video if needed
-        if 't' in self.exp_dat and internal:
-            self.exp_dat = xr.Dataset()
+
         # --- Select frames to load
         if (frames_number is not None) and (t1 is not None):
             raise errors.NotValidInput('You cannot give frames number and time')
@@ -384,15 +386,24 @@ class BVO:
             M = pco.read_frame(self, frames_number,
                                limitation=limitation, limit=limit,
                                verbose=verbose)
-            
-        ### Poley: add .mat file 
         elif self.type_of_file == '.mat':
-            M = mat.read_frame(self,self.path)
+            if not hasattr(self, 'exp_orig_dat'):
+                self.exp_orig_dat = self.exp_dat.copy()  
+
+            M = np.array(self.exp_orig_dat['frames'][ :, :, frames_number])
         else:
             raise Exception('Not initialised / not implemented file type?')
         # --- End here if we just want the frame
         if not internal:
             return M
+
+        # --- Clean video if needed
+        if 't' in self.exp_dat and internal:
+            self.exp_dat = xr.Dataset()
+
+        #import IPython
+        #IPython.embed()    
+
         # --- Save the stuff in the structure
         # Get the spatial axes
         nx, ny, nt = M.shape
@@ -404,7 +415,7 @@ class BVO:
         if frames_number is None:
             nframes = np.arange(nt) + 1
         else:
-            nframes = frames_number
+            nframes = np.array(frames_number)
         # Quick solve for the case we have just one frame
         try:
             if len(tframes) != 1:
@@ -455,6 +466,8 @@ class BVO:
                                                             'px': px, 'py': py})
         self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
         self.exp_dat.attrs['dtype'] = dtype
+
+
         # --- Count saturated pixels
         max_scale_frames = 2 ** self.settings['RealBPP'] - 1
         threshold = threshold_saturation * max_scale_frames
@@ -1020,6 +1033,7 @@ class BVO:
                                      shot=self.shot)
         root.mainloop()
         root.destroy()
+        gc.collect()
 
     def GUI_frames_simple(self, flagAverage: bool = False, **kwargs):
         """
@@ -1073,7 +1087,7 @@ class BVO:
 
         slider.on_changed(update)
         plt.show()
-
+        gc.collect()
         return ax, slider
 
 
