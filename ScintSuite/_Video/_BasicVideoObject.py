@@ -212,11 +212,13 @@ class BVO:
                             self.exp_dat['frames'].transpose('px', 'py', 't')
                     else:
                         self.exp_dat['frames'] = \
-                            self.exp_dat['frames'].transpose('py', 'px', 't')                        
+                            self.exp_dat['frames'].transpose('py', 'px', 't')
  
-                    self.exp_orig_dat = self.exp_dat.copy()                      
+                                        
                    
-                    self.type_of_file = '.mat'                    
+                    self.type_of_file = '.mat'     
+
+                    self.settings = {'RealBPP': 10}             
                 else:
                     raise Exception('Not recognised file extension')
             else:
@@ -324,9 +326,7 @@ class BVO:
         >>> vid = ss.vid.INPAVideo(shot=41090)
         >>> vid.read_frame()  # To load all the video
         """
-        # --- Clean video if needed
-        if 't' in self.exp_dat and internal:
-            self.exp_dat = xr.Dataset()
+
         # --- Select frames to load
         if (frames_number is not None) and (t1 is not None):
             raise errors.NotValidInput('You cannot give frames number and time')
@@ -361,12 +361,19 @@ class BVO:
                                limitation=limitation, limit=limit,
                                verbose=verbose)
         elif self.type_of_file == '.mat':
+            if not hasattr(self, 'exp_orig_dat'):
+                self.exp_orig_dat = self.exp_dat.copy()  
+
             M = np.array(self.exp_orig_dat['frames'][ :, :, frames_number])
         else:
             raise Exception('Not initialised / not implemented file type?')
         # --- End here if we just want the frame
         if not internal:
             return M
+
+        # --- Clean video if needed
+        if 't' in self.exp_dat and internal:
+            self.exp_dat = xr.Dataset()
 
         #import IPython
         #IPython.embed()    
@@ -428,13 +435,13 @@ class BVO:
                     py = px_tmp
 
         # Storage it
-        import IPython
-        IPython.embed()
         self.exp_dat['frames'] = \
             xr.DataArray(M, dims=('px', 'py', 't'), coords={'t': tbase,
                                                             'px': px, 'py': py})
         self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
         self.exp_dat.attrs['dtype'] = dtype
+
+
         # --- Count saturated pixels
         max_scale_frames = 2 ** self.settings['RealBPP'] - 1
         threshold = threshold_saturation * max_scale_frames
