@@ -118,7 +118,10 @@ class BVO:
                 file, name_png = os.path.split(filename)
             else:
                 file = filename
+
         # Initialise some variables
+        ## Actions performed on the video
+        self.actions = []
         ## Type of video
         self.type_of_file = None
         ## Loaded experimental data
@@ -466,6 +469,7 @@ class BVO:
             raise errors.NoFramesLoaded('Load the frames first')
         logger.info('.--. ... ..-. -')
         logger.info('Substracting noise')
+        frame0_input = frame
         if frame is None:
             if t1 > t2:
                 print('t1: ', t1)
@@ -546,11 +550,18 @@ class BVO:
         dummy.values[dummy.values < 0] = 0.0  # Clean the negative values
         self.exp_dat['frames'].values = dummy.astype(original_dtype)
 
+        # Adding the action to the list
+        self.actions.append({'action': 'subtract_noise',
+                             't1': t1,
+                             't2': t2,
+                             'frame': frame0_input,
+                             'flag_copy': flag_copy})
+
         logger.info('-... -.-- . / -... -.-- .')
         return frame.astype(original_dtype)
 
     def filter_frames(self, method: str = 'median', options: dict = {},
-                      flag_copy: bool = False):
+                      flag_copy: bool = False, disable_bar: bool = False):
         """
         Filter the camera frames
 
@@ -608,17 +619,23 @@ class BVO:
                 median_options['size'] = None
             # Now update the options
             median_options.update(options)
-            for i in tqdm(range(nt)):
+            for i in tqdm(range(nt), disable=disable_bar):
                 self.exp_dat['frames'][:, :, i] = \
                     ndimage.median_filter(self.exp_dat['frames'].values[:, :, i],
                                           **median_options)
         elif method == 'gaussian':
             logger.info('Gaussian filter selected!')
             gaussian_options.update(options)
-            for i in tqdm(range(nt)):
+            for i in tqdm(range(nt), disable=disable_bar):
                 self.exp_dat['frames'][:, :, i] = \
                     ndimage.gaussian_filter(self.exp_dat['frames'].values[:, :, i],
                                             **gaussian_options)
+        
+        # Adding this action to the list
+        self.actions.append({'action': 'filter_frames',
+                             'method': method,
+                             'options': options,
+                             'flag_copy': flag_copy})
         logger.info('\\n-... -.-- . / -... -.-- .')
         return
 
@@ -718,6 +735,7 @@ class BVO:
             raise Exception('A copy of the original frames was not found!')
         else:
             self.exp_dat['frames'] = self.exp_dat['original_frames'].copy()
+            self.actions = [] # We remove all the actions performed.
         return
 
     # --------------------------------------------------------------------------
