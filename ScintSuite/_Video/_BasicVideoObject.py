@@ -186,7 +186,9 @@ class BVO:
                     #Suggetsion from POLEY:
                     #t0=(double(b.secs(2))+double(b.usecs(2))*1e-6)-(double(b.secs(1))+double(b.usecs(1))*1e-6);
                     #time=(double(b.secs)+double(b.usecs)*1e-6)-(double(b.secs(1))+double(b.usecs(1))*1e-6)+t0;
-                    
+                    t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
+                    self.timebase = t0 + dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
+
                     #import IPython
                     #IPython.embed()
                     frames = dummy.pop('/dat') #frames are stored in "/dat"
