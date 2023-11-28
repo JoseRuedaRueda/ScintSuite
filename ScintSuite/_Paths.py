@@ -20,7 +20,7 @@ class Path:
         # home = os.getenv("HOME")
         home_dir_user = os.getenv("HOME")
         if machine == 'TCV':
-            home_dir_user = home_dir_user #+ '/NoTivoli'
+            home_dir_user = home_dir_user + '/NoTivoli'
 
         self.FILDSIM = os.path.join(home_dir_user, 'FILDSIM/')
         self.SINPA = os.path.join(home_dir_user, 'SINPA/')

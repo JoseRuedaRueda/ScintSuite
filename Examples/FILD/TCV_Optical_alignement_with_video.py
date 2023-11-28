@@ -24,7 +24,7 @@ shot = 75555
 time = 0.407
 vmax = 1200
 
-Scint_file = '/home/jansen/ScintSuite/Data/Plates/FILD/TCV/TCV2022.txt'   # ####
+Scint_file = '/home/jansen/NoTivoli/ScintSuite/Data/Plates/FILD/TCV/TCV2022.txt'   # ####
 format = 'fildsim'  # Code for which the geometry file is written
 # File with the calibration image (png)
 calib_image = '/videodata/pcfild002/data/fild002/' + \
@@ -53,7 +53,8 @@ degmin = -180
 ## ----------------------------------------------------------------------------
 # --- Load video
 # -----------------------------------------------------------------------------
-vid = ss.vid.FILDVideo(shot = shot)
+#vid = ss.vid.FILDVideo(shot = shot)
+vid = ss.vid.FILDVideo(file='/tmp/poley/75555.mat')
 #vid.read_frame(t1=time-0.3, t2=time+0.3)
 ## -----------------------------------------------------------------------------
 # --- Scintillator load and first alignement
