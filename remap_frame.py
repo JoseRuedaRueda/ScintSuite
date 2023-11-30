@@ -17,7 +17,7 @@ from time import time
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 78452
+shot = 75620
 diag_ID = 1  # 6 for rFILD
 t1 = 0     # Initial time to be loaded, [s]
 t2 = 0.002     # Final time to be loaded [s]
@@ -43,7 +43,7 @@ options_filter = {
 #     'sigma': 1        # sigma of the gaussian for the convolution (in pixels)
 # }
 
-smap = ssmap.StrikeMap(0, '/home/poley/NoTivoli/ScintSuite/SINPA/runs/scint_2023_test1_ur/results/scint_2023_test1_ur.map')
+smap = ssmap.StrikeMap(0, '/home/poley/NoTivoli/SINPA/runs/Benchmark_75620_ur/results/Benchmark_75620_ur.map')
 #smap = ssmap.StrikeMap(0, '/home/jansen/SINPA/runs/77971@0.4_ur/results/77971@0.4_ur.map')
 cal = CalParams()
 cal.xscale = 18317
@@ -58,12 +58,12 @@ smap.setRemapVariables(('pitch', 'e0'), verbose=False)
 # - Remapping options:
 save_remap = False  # If true, the remap will be saved in a netCDF file
 par = {
-    'ymin': 1.0,      # Minimum gyroradius [in cm]
+    'ymin': 5.0,      # Minimum gyroradius [in cm]
     'ymax': 45.0,     # Maximum gyroradius [in cm]
-    'dy': 4.0,        # Interval of the gyroradius [in cm]
-    'xmin': 20,     # Minimum pitch angle [in degrees]
-    'xmax': 60,     # Maximum pitch angle [in degrees]
-    'dx': 0.5,    # Pitch angle interval
+    'dy': 1,        # Interval of the gyroradius [in cm]
+    'xmin': 100,     # Minimum pitch angle [in degrees]
+    'xmax': 150,     # Maximum pitch angle [in degrees]
+    'dx': 0.4,    # Pitch angle interval
     # method for the interpolation
     'method': 2,  # 2 Spline, 1 Linear
     'decimals': 1,
@@ -78,8 +78,8 @@ plot_profiles_in_time = False   # Plot the time evolution of pitch and r
 # --- Section 1: Load video
 # -----------------------------------------------------------------------------
 # - open the video file:
-filename='/home/poley/NoTivoli/ScintSuite/11111.mat'
-#filename='/videodata/pcfild002/data/fild002/75620.mat'
+#filename='/home/poley/NoTivoli/ScintSuite/11111.mat'
+filename='/tmp/poley/75620.mat'
 vid = ss.vid.FILDVideo(file=filename)
 
 # -----------------------------------------------------------------------------
@@ -94,6 +94,7 @@ if apply_filter:
 # --- Section 4: Remap
 # -----------------------------------------------------------------------------
 # - Remap frames:
+vid.read_frame([1005,1006])
 vid.remap_loaded_frames(par)
 
 # - Plot:

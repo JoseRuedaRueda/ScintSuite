@@ -179,7 +179,7 @@ class BVO:
                 elif file.endswith('.mat'):
                     #if not 'properties' in self.__dict__:
                     #    self.properties = {}
-                    dummy, method = mat.read_file(file)#, **self.properties)
+                    dummy = mat.read_file(file)#, **self.properties)
 
                     ## Time array
                     ##TODO check that the timebase is correctly defined AJVV
@@ -207,6 +207,7 @@ class BVO:
                                             'px': px,
                                             'py': py})
                     
+                    '''
                     if method == 'scipy':
                         
                         t0 = dummy['b']['secs'][0][0][0][1] - dummy['b']['secs'][0][0][0][0] + (dummy['b']['usecs'][0][0][0][1] - dummy['b']['usecs'][0][0][0][0])*1e-6
@@ -224,7 +225,7 @@ class BVO:
                                      coords={'py': py,
                                              'px': px,
                                              't': self.timebase.squeeze()})
-                        
+                    '''
                     
                    
 

@@ -54,7 +54,7 @@ def write_stl_geometry_files(root_dir
     '''
     run_folder = run_name + '/'
     directory = os.path.join(root_dir, run_folder)
-
+    print(directory)
     if not os.path.exists(directory):
         os.makedirs(directory)
         print('Making directory')
@@ -209,13 +209,13 @@ if __name__ == '__main__':
     plot_plate_geometry = True
     plot_3D = False
 
-    shot = 78452
-    time = 1.512
+    shot = 75620
+    time = 1.015
 
     run_code = True  # Set flag to run FILDSIM
-    run_slit = [True, False] # Run particles starting at slits set to true, starting with ul, ur, ll,lr
-    read_slit = [True, False] # Read results from diffrent slits
-    string_mod = 'scint_2023_test1'#'%i@%.3f' %(shot, time)  #Choose unique run identifier, like shot number and time
+    run_slit = [False, True] # Run particles starting at slits set to true, starting with ul, ur, ll,lr
+    read_slit = [False, True] # Read results from diffrent slits
+    string_mod = 'Benchmark_75620'#'%i@%.3f' %(shot, time)  #Choose unique run identifier, like shot number and time
     run_names = [string_mod+'_ul', string_mod + '_ur']
     read_results = not run_code # Flag to read output after run
     ###
@@ -261,23 +261,23 @@ if __name__ == '__main__':
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(1e4)
+    n_markers = int(3e4)
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
     #Grids
     #Gyroradii grid in [cm]
 
-    #energy_arrays = np.array([3000, 7000, 11000, 15000, 19000, 23000, 27000, 31000, 35000, 39000, 43000, 47000, 51000])
-    energy_arrays = np.array([5000, 8000, 11000, 14000, 17000, 20000, 23000, 26000, 29000, 32000, 38000, 45000])
+    energy_arrays = np.array([3000, 7000, 11000, 15000, 19000, 23000, 25000, 29000, 33000, 37000, 41000, 45000, 49000, 53000, 57000, 61000])
+    #energy_arrays = np.array([5000, 8000, 11000, 14000, 17000, 20000, 23000, 26000, 29000, 32000, 38000, 45000])
     g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
 
 
     gyro_arrays = [list(np.around(g_r, decimals = 2)), #For each indivudual slit, ur->ll [2.0, 4.0],#
-                   g_r]
+                   list(np.around(g_r, decimals = 2))]
     #pitch angle grid in [degrees]
-    #p = np.array([0.32,0.36,0.4,0.4500, 0.4900, 0.5300, 0.5700, 0.6000, 0.6400, 0.6800, 0.7200, 0.7600, 0.8000, 0.8400, 0.8800, 0.9200, 0.96])
-    p = np.array([0.32,0.4, 0.4800, 0.5600, 0.6400, 0.7200, 0.8000, 0.88])
+    p = np.array([0.1, 0.14, 0.18, 0.22, 0.26, 0.30, 0.34, 0.38, 0.42, 0.46, 0.5, 0.54, 0.58, 0.62, 0.66, 0.7, 0.74, 0.78, 0.82, 0.86, 0.9, 0.94, 0.98])
+    #p = np.array([0.32,0.4, 0.4800, 0.5600, 0.6400, 0.7200, 0.8000, 0.88])
 
     pitch_arrays = [ list(np.around(np.rad2deg(np.arccos(p)), decimals = 2)),
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 2))
@@ -296,15 +296,15 @@ if __name__ == '__main__':
     beta = 0.0  #Besides we use TCV coordinates, so for ow this is not needed
     #STL files
     geom_dir = os.path.join(paths.SINPA,'Geometry/')
-    collimator_stl_files = {'collimator_1mm': geom_dir+'TCV_FILD/2022/Collimator1_FILD2022TCVCordinates_MP0mm.stl',
-                            #'collimator_08mm': geom_dir+'TCV_FILD/2022/Collimator08_FILD2022TCVCordinates_MP0mm.stl',  #alternative collimator
+    collimator_stl_files = {#'collimator_1mm': geom_dir+'TCV_FILD/2022/Collimator1_FILD2022TCVCordinates_MP0mm.stl',
+                            'collimator_08mm': geom_dir+'TCV_FILD/2022/Collimator08_FILD2022TCVCordinates_MP0mm.stl',  #alternative collimator
                             'heatshield': geom_dir+'TCV_FILD/2022/HeatShield_FILD2022TCVCordinates_MP0mm.stl'
                             }
     scintillator_stl_files = {'scintillator':  geom_dir+'TCV_FILD/2022/Scintillator_FILD2022TCVCordinates_MP0mm.stl'}
     #Pinhole coordinates in [mm]
     pinholes = [{}, {}]
     
-    
+    '''
     ### 1.0mm collimator
     pinholes[0]['pinholeKind'] =1
     pinholes[0]['pinholeCentre'] = None
@@ -340,8 +340,8 @@ if __name__ == '__main__':
                                       [-257.259, 1125.73, 35.4414],
                                       [-255.298, 1126.12, 35.4414],
                                       [-255.142, 1125.33, 35.4414] ] )#upper left
-    '''
-    '''
+
+ 
     # -----------------------------------------------------------------------------
     # --- Run SINPA FILDSIM
     # -----------------------------------------------------------------------------
