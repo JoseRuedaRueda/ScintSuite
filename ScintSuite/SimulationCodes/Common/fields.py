@@ -36,6 +36,7 @@ class fields:
         self.bdims = 0
         self.edims = 0
         self.psipol_on = False
+        self.psipol_type = None
         self.Bfield = {
             'R': np.array((0), dtype=np.float64),
             'nR': np.array((1), dtype=np.int32),
@@ -468,7 +469,6 @@ class fields:
             self.exp = exp
             self.edition = edition
 
-
     def readBfromDBSinglePoint(self, shotnumber: int = 39612,
                                time: float = 2.5, R0: float = 1.90,
                                z0: float = 0.9,
@@ -866,17 +866,20 @@ class fields:
     
             # Reshaping into the original shape.
             psipol = np.reshape(psipol, grid_shape).T
+            self.psipol_type = 'psipol'
         elif coord_type == 'rhopol':
             print('getting rhopol')
             psipol = ssdat.get_rho(shotnumber, RR.flatten(), zz.flatten(),
                                    diag=diag, time=time, exp=exp,
                                    coord_out='rho_pol')
             psipol = np.reshape(psipol, grid_shape).T
+            self.psipol_type = 'rhopol'
         elif coord_type == 'rhotor':
             psipol = ssdat.get_rho(shotnumber, RR.flatten(), zz.flatten(),
                                    diag=diag, time=time, exp=exp,
                                    coord_out='rho_tor')
             psipol = np.reshape(psipol, grid_shape).T
+            self.psipol_type = 'rhotor'
         else:
             raise ValueError(f'Magnetic coordinate {coord_type} not recognized')
 
