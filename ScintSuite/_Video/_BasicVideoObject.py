@@ -967,12 +967,13 @@ class BVO:
         return ax
 
 
-    def GUI_frames(self, flagAverage: bool = False):
+    def GUI_frames(self, flagAverage: bool = False, mask=None):
         """
         Small GUI to explore camera frames
 
         :param  flagAverage: flag to decide if we need to use the averaged frames
             of the experimental ones in the GUI
+        :param  mask: to plot a small coloured mask on top of the image
         """
         text = 'Press TAB until the time slider is highlighted in red.'\
             + ' Once that happend, you can move the time with the arrows'\
@@ -986,13 +987,13 @@ class BVO:
             ssGUI.ApplicationShowVid(root, self.avg_dat, self.remap_dat,
                                      self.geometryID,
                                      self.CameraCalibration,
-                                     shot=self.shot)
+                                     shot=self.shot, mask=mask)
         else:
             ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat,
                                      GeomID=self.geometryID,
                                      calibration=self.CameraCalibration,
                                      scintillator=self.scintillator,
-                                     shot=self.shot)
+                                     shot=self.shot, mask=mask)
         root.mainloop()
         root.destroy()
 
