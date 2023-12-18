@@ -16,7 +16,7 @@ last revision:
     ScintSuite: version 1.0.4
     SINPA (uFILDSIM): version 2.3
 """
-import ScintSuite.as ss
+import ScintSuite as ss
 
 # --- Settings
 geom_ID = 'FILD1'

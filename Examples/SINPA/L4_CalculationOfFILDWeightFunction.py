@@ -6,7 +6,7 @@ Done for Suite Commit: 7677c5397a125262d56ade69b681aa61defd3de4
 """
 import os
 import numpy as np
-import ScintSuite.as ss
+import ScintSuite as ss
 
 # ----------------------------------------------------------------------------
 # %% Settigns
