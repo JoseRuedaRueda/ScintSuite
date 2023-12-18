@@ -518,8 +518,8 @@ class fields:
         self.bdims = 0
 
         # Getting from the database.
-        R = np.linspace(Rmin, Rmax, num=nR) / 100.0
-        z = np.linspace(zmin, zmax, num=nz) / 100.0
+        R = np.linspace(Rmin, Rmax, num=nR)
+        z = np.linspace(zmin, zmax, num=nz)
         RR, zz = np.meshgrid(R, z)
         grid_shape = RR.shape
         br, bz, bt, bp = ssdat.get_mag_field(shotnumber, RR.flatten(),
