@@ -1488,7 +1488,7 @@ class Strikes:
     def plot1D(self, var='beta', gyroradius_index=None, XI_index=None, ax=None,
                ax_params: dict = {}, nbins: int = 20, includeW: bool = False,
                normalise: bool = False, var_for_threshold: str = None,
-               levels: tuple = None):
+               levels: tuple = None, line_params: dict = {}):
         """
         Plot (and calculate) the histogram of the selected variable
 
@@ -1573,7 +1573,7 @@ class Strikes:
                     xc = 0.5 * (xe[:-1] + xe[1:])
                     if normalise:
                         H /= np.abs(H).max()
-                    ax.plot(xc, H)
+                    ax.plot(xc, H, **line_params)
         # axis beauty:
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
