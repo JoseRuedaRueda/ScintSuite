@@ -14,13 +14,13 @@ last revision:
     SINPA (uFILDSIM): version 2.3
 """
 import os
-import ScintSuite.as ss
+import ScintSuite as ss
 import matplotlib.pyplot as plt
 
 # --- Settings
-runID = 'MU01_map_-016.00000_010.00000'  # runID of the performed SINPA simulation
-smap_flag = False  # execute the strike_map demonstration block
-orbits_flag = True  # execute the orbit demonstration block
+runID = 'Example_test'  # runID of the performed SINPA simulation
+smap_flag = True  # execute the strike_map demonstration block
+orbits_flag = False  # execute the orbit demonstration block
 collimator_flag = True  # execute the collimator demonstration block
 
 
@@ -83,9 +83,9 @@ if smap_flag:
     # This is kinda deprecates, still use the old sintax, will be changed in the
     # next version
     smap.plot_phase_space_resolution_fits(var='Gyroradius',
-                              XI_index=3,
+                              XI_index=5,
                               gyroradius=None, pitch=None,
-                              kind_of_plot='normal',
+                              kind_of_plot='bar',
                               include_legend=True)
     plt.show()
 
@@ -104,7 +104,7 @@ if orbits_flag:
     # Plot the geometry on top
     # Note. HARDCORED GEOMETRY!!!
     # One could just read the geom ID from the namelist, but I was lazy.
-    Geom = ss.simcom.Geometry(GeomID='MU01')
+    Geom = ss.simcom.Geometry(GeomID='FILD1')
     Geom.plot3Dfilled(ax=ax, units='m')
     # plot the 'wrong orbits', to be sure that the are just orbits exceeding
     # the scintillator and nothing is wrong with the code
