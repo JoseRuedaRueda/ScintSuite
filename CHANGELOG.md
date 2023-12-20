@@ -1,3 +1,28 @@
+# 1.3.6 Updated fild export
+- Updated pip requirements
+- Updated export fild, for the case of single smap used in remap
+
+# 1.3.5 Shares path, Update netCDF library for MU
+- Updated basic pathjs of AUG FILD and INPa to the shares
+- The netCDF library has been updated to read new standard MU format
+
+# 1.3.4 Home flexibility
+- The code can now be intalled away from your home directory using the env variable ScintSuitePath
+- *Bug fixing*: Small bug when reading old FILD remaps when the total number per pixel was not properly read
+- *Major Bug fix*: Tiff video read was broken
+- *Bug fixing*: np.float removed from vessel library
+
+# 1.3.3 BAngles calculation
+- BAngles can now be calculated without having to perform the remap
+- netCDF4 files can be read and analysed
+- The time instant can be calculated for the absolute or relative frame number
+- MU default position updated
+- Camera general parameters can now be read
+
+# 1.3.2 Minor polishing
+- `timeWindow` option of the get_ECE function can now be a tuple
+- Add recursive finding to read Calibration database to alow having more header lines than the Suite standard
+
 # 1.3.1 Numba bypass
 - Minor bug fix and comment improvements
 - Alpha parameter now properly shown in tomography GUI

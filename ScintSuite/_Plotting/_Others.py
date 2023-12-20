@@ -19,7 +19,8 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
                        levels: float = None, label_surf: bool = True,
                        coord_type: str = 'rho_pol',
                        axis_ratio: str = 'equal',
-                       units: str = 'm', color=None, view: str = 'pol'):
+                       units: str = 'm', color=None, view: str = 'pol',
+                       linestyle: str = '-'):
     """
     Plot the flux surfaces of a given shot in AUG for a given time point.
 
@@ -80,7 +81,7 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
     # --- Plotting the flux surfaces.
     if view.lower() == 'pol' or view.lower() == 'poloidal':
         CS = ax.contour(factor * R, factor * z, rho, levels,
-                        linewidths=linewidth,
+                        linewidths=linewidth,linestyle=linestyle,
                         colors=color)
         if label_surf:
             ax.clabel(CS, inline=1, fontsize=10)

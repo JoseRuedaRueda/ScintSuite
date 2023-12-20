@@ -392,6 +392,21 @@ class FILDINPA_Smap(GeneralStrikeMap):
                             np.vstack((xxx[~flags], yyy[~flags])).T,
                             data[~flags]
                         )
+            # Trey with uncertainties
+            unc_name = 'unc_' + name
+            if unc_name in self._resolutions.keys():  # If the uncertainty is
+                dummy[unc_name] = {}                 # calculated
+                for key in self._resolutions[unc_name].keys():  # Loop in parameters
+                    data = self._resolutions[unc_name][key].T.flatten()  # parameter
+                    # The transpose is to match dimension of the mesh-grid
+                    # Now delete the NaN cell
+                    flags = np.isnan(data)
+                    if np.sum(~flags) > 4:  # If at least we have 4 points
+                        dummy[unc_name][key] = \
+                            scipy_interp.LinearNDInterpolator(
+                                np.vstack((xxx[~flags], yyy[~flags])).T,
+                                data[~flags]
+                            )
         # The collimator factor is not inside the resolution dictionary, so
         # we need an independent call
         # First thing is to ensure that the matrix is created in the same

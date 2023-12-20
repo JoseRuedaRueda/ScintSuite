@@ -37,8 +37,10 @@ def paths_of_the_suite():
             'AUG_Python': '/afs/ipp/aug/ads-diags/common/python/lib',
             'Giovanni': '/afs/ipp/home/g/git/python/fbm/',
             'FIDASIM4': os.path.join(os.getenv("HOME"), 'FIDASIM4'),
-            'ihipsim': os.path.join(os.getenv("HOME"), 'ihibpsim', 'python')
+            'ihipsim': os.path.join(os.getenv("HOME"), 'ihibpsim', 'python'),
             # 'Suite_AUG': os.path.join(SUITE_DIR, 'Lib/LibData/AUG')
+            'fakeSF': '/afs/ipp-garching.mpg.de/home/r/ruejo/aug_sfutilsJose',
+            'fakeSF2': '/afs/ipp-garching.mpg.de/home/r/ruejo/'
         },
         'MU': {
             # 'MU_Python': '/usr/local/modules/default/python',
@@ -67,7 +69,6 @@ def paths_of_the_suite():
             print('Things can go wrong!')
     elif machine == 'MU':
         print('You are in MU')
-        print('This environment is still being tested')
 
 
 if __name__ == "__main__":
