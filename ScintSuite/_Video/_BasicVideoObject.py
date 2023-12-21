@@ -208,10 +208,11 @@ class BVO:
 
                         self.exp_dat = xr.Dataset()
                         #The APD has 8 by 16 pixels, however the fibre bundle viewing the scintillator is 13 by 10.
-                        nt, nx, ny = len(self.timebase), 13, 10   #The scintillator 
+                        nt, nx, ny = len(self.timebase), 10, 13   #The scintillator 
                         apd_data = np.array(data['data'])
                         #It's more intuative to work in the scintilator matrix, therefore we add two dummy channels
-                        apd_data = np.append(apd_data.flatten(), np.zeros( nt*2 )*np.nan )
+                        apd_data = np.append(apd_data.flatten(), np.zeros( nt*2 ) )
+                        #apd_data = np.reshape(apd_data, (nt) )
                         apd_data = np.reshape(apd_data, (nx, ny, nt) )
 
                         # Matplotlib imshow considers the first index to be the rox index. So we relable to axis to fit this convention
