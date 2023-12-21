@@ -177,19 +177,18 @@ class BVO:
                         self.exp_dat['frames'].transpose('px', 'py', 't')
                     self.type_of_file = '.mp4'
                 elif file.endswith('.mat'):
-                    #if not 'properties' in self.__dict__:
-                    #    self.properties = {}
                     dummy = mat.read_file(file)#, **self.properties)
 
-                    ## Time array
-                    ##TODO check that the timebase is correctly defined AJVV
-                    #Suggetsion from POLEY:
+                    if '/b/secs' in dummy.keys():
+                        t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
+                        self.timebase = t0 + dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
+                    else:
+                        self.timebase = np.linspace(0, dummy['/b/meas_length'][0][0], dummy['/b/n_data'][0][0])
 
-                    t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
-                    self.timebase = t0 + dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
-                    
-                    #import IPython
-                    #IPython.embed()
+
+                    if not np.sum(self.timebase):
+                        self.timebase = np.arange(len(self.timebase))
+
                     frames = dummy.pop('/dat') #frames are stored in "/dat"
                     frames = frames[:,:,::-1]  #flip the image in the y direction.
                     #self.properties.update(dummy)
@@ -199,20 +198,13 @@ class BVO:
                     # Matplotlib imshow considers the first index to be the rox index. So we relable to axis to fit this convention
                     py = np.arange(nx)
                     px = np.arange(ny)
-
-                    #import IPython
-                    #IPython.embed()
-                    
                     self.exp_dat['frames'] = \
                         xr.DataArray(np.transpose(frames, axes = [2, 1, 0]), dims=('px', 'py', 't'),
                                      coords={'t': self.timebase.squeeze(),
                                              'px': px,
                                              'py': py})
-                    
                     self.exp_dat['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))
-                   
                     self.type_of_file = '.mat'     
-
                     self.settings = {'RealBPP': 10}             
                 else:
                     raise Exception('Not recognised file extension')

@@ -9,3 +9,4 @@ Jesus Poley-Sanjuan - jesus.poley@epfl.ch
 from ScintSuite.LibData.TCV.DiagParam import *
 from ScintSuite.LibData.TCV.Equilibrium import *
 from ScintSuite.LibData.TCV.Fild import *
+from ScintSuite.LibData.TCV.Misc import *

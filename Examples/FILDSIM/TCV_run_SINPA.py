@@ -12,13 +12,12 @@ import matplotlib.pylab as plt
 import ScintSuite as ss
 from ScintSuite._Machine import machine
 from ScintSuite._Paths import Path
-paths = Path(machine)  ##Implement later
+paths = Path(machine)
 
 import pickle
 
 from matplotlib import cm
 from stl import mesh 
-
 
 import ScintSuite.LibData.TCV.Equilibrium as TCV_equilibrium
 
@@ -41,13 +40,15 @@ def write_stl_geometry_files(root_dir
                               , run_name = ''
                               , collimator_stl_files = {}
                               , scintillator_stl_files = {}
+                              #, itriang_scint = 0
+                              , ps = [0,0,0]
+                              , u1_scint = [1,0,0]
+                              , scint_norm = [0,1,0]
                               , pinhole = []
                               ):
     '''
     Parameters
     ----------
-
-
     Returns
     -------
     None.
@@ -75,8 +76,7 @@ def write_stl_geometry_files(root_dir
                                               collimator_filename, 
                                               convert_mm_2_m = True)      
 
-    scint_norm = [1., 0., 0.] 
-    ps = np.zeros(3)
+
     rot = np.identity(3)
     # Dummy scintillator normal vector,reference point and rotation vector
     #, in case we don't include a scintillator in the run
@@ -96,38 +96,11 @@ def write_stl_geometry_files(root_dir
         ss._CAD.write_file_for_fortran_numpymesh(scintillator_stl_files[scint], 
                                          scint_filename, 
                                          convert_mm_2_m = True) 
-        
-        # --- Open and load the stil file
-        
-        mesh_obj = mesh.Mesh.from_file(scintillator_stl_files[scint])
-    
-        x1x2x3 = mesh_obj.x  
-        y1y2y3 = mesh_obj.y  
-        z1z2z3 = mesh_obj.z  
-    
-        itriang = 131 # choose some triangle of the Scintilator plate to calculate normal vector, 131 for the new geometry
-        p1 = np.array((x1x2x3[itriang, 0],
-                       y1y2y3[itriang, 0],
-                       z1z2z3[itriang, 0]) ) * 0.001 #convert mm to m
-        p2 = np.array((x1x2x3[itriang, 1],
-                       y1y2y3[itriang, 1],
-                       z1z2z3[itriang, 1]) ) * 0.001 #convert mm to m
-        p3 = np.array((x1x2x3[itriang, 2],
-                       y1y2y3[itriang, 2],
-                       z1z2z3[itriang, 2]) ) * 0.001 #convert mm to m
-        
-        scint_norm = get_normal_vector(p1, p2, p3)        
-        ps = p2 #Arbitrarily choose the first point as the reference point, for the new geom is p2 here, and p2 - p3 down in u1_scint 
-        u1_scint = p2 - p3
 
-        
-        u1_scint /= np.linalg.norm(u1_scint) #Only needed to align the scintilattor
-        
-        rot = ss.sinpa.geometry.calculate_rotation_matrix(-scint_norm, u1 = u1_scint
+        rot = ss.sinpa.geometry.calculate_rotation_matrix(scint_norm, u1 = u1_scint
                                                           ,verbose=False)[0]
 
    
-    
     ## Pinhole properties
     pinhole_points =pinhole['points']
     pinhole_points = pinhole_points * 0.001 #convert Catia points to m
@@ -205,16 +178,30 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------
     plt.close('all')
 
-    Test = False  # if true don't do run, just check the input geometry
+    Test = True  # if true don't do run, just check the input geometry
     # test geometry
     plot_plate_geometry = True
     plot_3D = False
 
-    run_code = False  # Set flag to run FILDSIM
-    run_slit = [False, True, False, False] # Run particles starting at slits set to true, starting with ul, ur, ll,lr
+    shot = 79300
+    Rinsertion = -16.8 #[mm] #negative means insertedl
+    if shot <=77469:
+        year = 2022
+    else:
+        year = 2023
+
+    time = 1.27
+    use_reduced_stl_models = True
+    use_1mm_pinhole = True
+
+
+    run_code = True  # Set flag to run FILDSIM
+    run_slit = [False, True, False, False]  # Run particles starting at slits set to true, starting with ul, ur, ll, lr
     read_slit = [False, True, False, False] # Read results from diffrent slits
-    string_mod = '75620@1.020' #Choose unique run identifier, like shot number and time
-    run_names = [string_mod+'_ul', string_mod + '_ur_r3',string_mod+'_ll', string_mod + '_lr']
+    slits = ['ul', 'ur', 'll', 'lr']
+    idx_slit = np.where(run_slit)[0][0]
+    run_name = '%i@%.3f' %(shot, time) #Choose unique run identifier, like shot number and time
+    run_names = [run_name +'_ul', run_name +'_ur', run_name +'_ll', run_name +'_lr']
     read_results = not run_code # Flag to read output after run
     ###
     #Input settings
@@ -229,116 +216,189 @@ if __name__ == '__main__':
     if save_orbits:
         nGyro = 36
         maxT = 0.000006 *  1
+        nGyro = 360
+        maxT = 0.00000006 
     else:
         nGyro = 360
         maxT = 0.00000006 
     
     save_self_shadowing_collimator_strike_points = False
     ###
-    # Magnetic field input
-    ###
-    new_b_field = True  #Generate new b_field file for FILDSIM. This is slow so this flag lets you use the od
-    Br, Bz, Bt = 0.0, 0.0, -1.4   #[T] just for testing for now
-    #Br, Bt, Bz = -0.0025, -1.1013, 0.1469 #(Br, Bphi, Bz) #75620@1.004s
-    modB = np.sqrt(Br**2 + Bz**2 + Bt**2)    
-    use_ascot_B = False
-    use_single_B = True
-
-
-    ascot_bfield_File ='Fields/std_bfield.pickle' 
-    ascot_boozer_File = 'Fields/std_boozer.pickle'
-    dist_file = ''
-    #End Magnetic field input
-
-    ###
-    # Marker inputs
-    ###
-    #Number of markers per pitch-gyroradius pair
-    n_markers = int(1e4)   
-    # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
-    n1 = 0.0
-    r1 = 0.0
-    #Grids
-    #Gyroradii grid in [cm]
-    gyro_arrays = [[0.75, 1.0, 1.5, 2., 2.5, 3., 3.5, 4.0], #For each indivudual slit, ur->ll [2.0, 4.0],#
-                   [0.75, 1.0, 1.5, 2., 2.5, 3., 3.5, 4.0], 
-                   [0.75, 1.0, 1.5, 2., 2.5, 3., 3.5, 4.0],
-                   [0.75, 1.0, 1.5, 2., 2.5, 3., 3.5, 4.0]]
-    
-    #pitch angle grid in [degrees]
-    pitch_arrays = [[90., 85., 80., 75., 70.,65., 60, 55., 50., 45., 40., 35., 30., 25., 20., 15., 10., 5.],
-                    [90., 95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145., 150., 155., 160., 165., 170., 175.],
-                    [95., 105., 115., 125., 135., 145., 155., 165., 175.],
-                    [90., 85., 80., 75., 70., 55., 35., 25., 15., 5.]]
-    #Range of gyrophase to use. Smaller range can be used, but for now allow all gyrophases
-
-
-    gyrophase_range = [ [9.8,12.2] ,  #UR
-                        [7.2,8.6],  #UL
-                        [10.9,11.5], #LL
-                        [7.8, 8.3]  #LR
-                        ]
-
-
-    #gyrophase_range = [ [np.deg2rad(0),np.deg2rad(360)] ,
-    #                   [np.deg2rad(0),np.deg2rad(360)] ,
-    #                   [np.deg2rad(0),np.deg2rad(360)] ,
-    #                   [np.deg2rad(0),np.deg2rad(360)]
-    #                  ]
-    ###
-
-
     # FILD probe head
     ###    
     alpha = 0.0 # TCV FILD has no inclination or rotation angles.
     beta = 0.0  #Besides we use TCV coordinates, so for ow this is not needed
     #STL files
     geom_dir = os.path.join(paths.SINPA,'Geometry/')
-    collimator_stl_files = {'collimator_upper': geom_dir+'TCV_FILD/2023/CollimatorUP_1mm_TCVCordinates_MP0mm.stl',
-                            #'collimator_lower': geom_dir+'TCV_FILD/2023/CollimatorDOWN_08mm_TCVCordinates_MP0mm.stl',
-                            'heatshield': geom_dir+'TCV_FILD/2023/HeatShield_TCVCordinates_MP0mm.stl'
+    
+    reduced_string = ['', 'reduced', '_reduced']
+    slitSize_string = ['08', '10']
+    year_string = str(year)
+    use_upper_slit = slits[idx_slit][0]=='u'
+    collimator_string = ['DOWN', 'UP','']
+
+    collimator_stl_files = {'heatshield': geom_dir+'TCV_FILD/%s/%s/HeatShield_%s%s.stl'%(year_string, 
+                                                                                            reduced_string[int(use_reduced_stl_models)], 
+                                                                                            year_string, 
+                                                                                            reduced_string[int(use_reduced_stl_models)])
                             }
-    scintillator_stl_files = {'scintillator':  geom_dir+'TCV_FILD/2023/ScintillatorNEW_TCVCordinates_MP0mm.stl'}
+    scintillator_stl_files = {'scintillator':geom_dir+'TCV_FILD/%s/%s/Scintillator_%s%s.stl'%(year_string, 
+                                                                                              reduced_string[int(use_reduced_stl_models)], 
+                                                                                              year_string,
+                                                                                              reduced_string[int(use_reduced_stl_models)])
+                                }
+    collimator_stl_files['collimator'] = geom_dir+'TCV_FILD/%s/%s/Collimator%s_%s_%s%s.stl'%(year_string, 
+                                                                                            reduced_string[int(use_reduced_stl_models)], 
+                                                                                            collimator_string[int(use_upper_slit) + 2023%year], 
+                                                                                            slitSize_string[int(use_1mm_pinhole)]+'mm', 
+                                                                                            year_string, 
+                                                                                            reduced_string[int(use_reduced_stl_models)])
+
+
+    if year == 2022:
+        #choose points on scintillator for reference coordinate system
+        p1 = np.array([-195.63, 1130.03, 29.4993]) * 0.001 #convert mm to m
+        p2 = np.array([-209.592, 1127.26, 29.4993]) * 0.001 
+        p3 = np.array([-210.13, 1127.15, -4.66387]) * 0.001
+
+        scint_norm = get_normal_vector(p1, p2, p3)        
+        ps = p1 
+        u1_scint = p2 - p1
+        u1_scint /= np.linalg.norm(u1_scint)
+
+    if year == 2023:
+        p1 = np.array([-195.225, 1130.11, 29.8262]) * 0.001 
+        p2 = np.array([-210.381, 1127.1, 29.8262] ) * 0.001
+        p3 = np.array([-202.901, 1128.59, -14.5706]) * 0.001
+
+        scint_norm = get_normal_vector(p1, p2, p3)        
+        ps = p2 
+        u1_scint = p2 - p1
+        u1_scint /= np.linalg.norm(u1_scint)     
+               
+
     #Pinhole coordinates in [mm]
     pinholes = [{}, {}, {}, {}]
-    pinholes[0]['pinholeKind'] =1
-    pinholes[0]['pinholeCentre'] = None
-    pinholes[0]['pinholeRadius'] = None
-    pinholes[0]['points'] = np.array([[-192.96, 1137.7, 35.4992],  #Important, the vector p1 to p2 should be one dimension, and 
-                                      [-193.155, 1138.68, 35.4992], # the vector p2 to p3 the other dimension of the slit
-                                      [-195.117, 1138.29, 35.4992],
-                                      [-194.922, 1137.31, 35.4992]] ) #upper left, looking from camera to FILD head
+    if use_1mm_pinhole:
+        ### 1.0mm collimator
+        pinholes[0]['pinholeKind'] =1
+        pinholes[0]['pinholeCentre'] = None
+        pinholes[0]['pinholeRadius'] = None
+        pinholes[0]['points'] = np.array([[-192.96, 1137.7, 35.4414],  #Important, the vector p1 to p2 should be one dimension, and 
+                                        [-193.155, 1138.68, 35.4414],  # the vector p2 to p3 the other dimension of the slit
+                                        [-195.117, 1138.29, 35.4414],
+                                        [-194.921, 1137.31, 35.4414]] ) #upper right, looking from plasma to FILD head
 
-    pinholes[1]['pinholeKind'] =1
-    pinholes[1]['pinholeCentre'] = None
-    pinholes[1]['pinholeRadius'] = None
-    pinholes[1]['points'] = np.array([[-257.104, 1124.94, 35.5002],
-                                      [-257.299, 1125.92, 35.5002],
-                                      [-255.337, 1126.31, 35.5002],
-                                      [-255.142, 1125.33, 35.5002] ] )#upper right
+        pinholes[1]['pinholeKind'] =1
+        pinholes[1]['pinholeCentre'] = None
+        pinholes[1]['pinholeRadius'] = None
+        pinholes[1]['points'] = np.array([[-257.103, 1124.94, 35.4414],
+                                        [-257.298, 1125.92, 35.4414],
+                                        [-255.337, 1126.31, 35.4414],
+                                        [-255.142, 1125.33, 35.4414] ] )#upper left
 
-    pinholes[2]['pinholeKind'] =1
-    pinholes[2]['pinholeCentre'] = None
-    pinholes[2]['pinholeRadius'] = None
-    pinholes[2]['points'] = np.array([[-192.961, 1137.7, -10.5008],
-                                      [-193.117, 1138.49, -10.5008],
-                                      [-195.079, 1138.1, -10.5007],
-                                      [-194.922, 1137.31, -10.5007]] )#lower left, looking from plasma to FILD head
-
-    pinholes[3]['pinholeKind'] =1
-    pinholes[3]['pinholeCentre'] = None
-    pinholes[3]['pinholeRadius'] = None
-    pinholes[3]['points'] = np.array([[-257.104, 1124.94, -10.4998],
-                                      [-257.26, 1125.73, -10.4998],
-                                      [-255.299, 1126.12, -10.4998],
-                                      [-255.143, 1125.33, -10.4998] ] )#lower right   
+        if year == 2023:
+            pinholes[0]['points'] = np.array([[-192.96, 1137.7, 35.4992],  
+                                            [-193.155, 1138.68, 35.4992], 
+                                            [-195.117, 1138.29, 35.4992],
+                                            [-194.922, 1137.31, 35.4992]] ) 
 
 
-    if use_single_B and run_code:
-        shot = 79300
-        time = 1.19
-        Rin = -17 *0.001
-        Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rin, time)
+            pinholes[1]['points'] = np.array([[-257.104, 1124.94, 35.5002],
+                                            [-257.299, 1125.92, 35.5002],
+                                            [-255.337, 1126.31, 35.5002],
+                                            [-255.142, 1125.33, 35.5002] ] )
+
+    else:    
+        ### 0.8mm collimator
+
+        pinholes[0]['pinholeKind'] =1
+        pinholes[0]['pinholeCentre'] = None
+        pinholes[0]['pinholeRadius'] = None
+        pinholes[0]['points'] = np.array([[-192.96, 1137.7, 35.4414],  #Important, the vector p1 to p2 should be one dimension, and 
+                                        [-193.155, 1138.68, 35.4414],  # the vector p2 to p3 the other dimension of the slit
+                                        [-195.117, 1138.29, 35.4414],
+                                        [-194.921, 1137.31, 35.4414]] ) #upper right, looking from plasma to FILD head
+
+        pinholes[1]['pinholeKind'] =1
+        pinholes[1]['pinholeCentre'] = None
+        pinholes[1]['pinholeRadius'] = None
+        pinholes[1]['points'] = np.array([[-257.103, 1124.94, 35.4414],
+                                        [-257.259, 1125.73, 35.4414],
+                                        [-255.298, 1126.12, 35.4414],
+                                        [-255.142, 1125.33, 35.4414] ] )#upper left
+
+
+        if year == 2023:
+            pinholes[2]['pinholeKind'] =1
+            pinholes[2]['pinholeCentre'] = None
+            pinholes[2]['pinholeRadius'] = None
+            pinholes[2]['points'] = np.array([[-192.961, 1137.7, -10.5008],
+                                            [-193.117, 1138.49, -10.5008],
+                                            [-195.079, 1138.1, -10.5007],
+                                            [-194.922, 1137.31, -10.5007]] )#lower left, looking from plasma to FILD head
+
+            pinholes[3]['pinholeKind'] =1
+            pinholes[3]['pinholeCentre'] = None
+            pinholes[3]['pinholeRadius'] = None
+            pinholes[3]['points'] = np.array([[-257.104, 1124.94, -10.4998],
+                                            [-257.26, 1125.73, -10.4998],
+                                            [-255.299, 1126.12, -10.4998],
+                                            [-255.143, 1125.33, -10.4998] ] )#lower right          
+
+    ###Magnetic Field
+    new_b_field = True  #Generate new b_field file for FILDSIM. This is slow so this flag lets you use the old
+    if new_b_field and run_code:
+        xyzPin = np.mean(pinholes[idx_slit]['points']*0.001, axis = 0)   #get magnetic field for specific slit
+        Rpin = np.sqrt(xyzPin[0]**2 + xyzPin[1])
+        zPin = xyzPin[2]
+        
+        Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time)
+        modB = np.sqrt(Br**2 + Bz**2 + Bt**2) 
+    ###
+    # Marker inputs
+    ###
+    #Number of markers per pitch-gyroradius pair
+    n_markers = int(1e4)
+    # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
+    n1 = 0.0
+    r1 = 0.0
+    #Grids
+
+    energy_arrays = np.arange(3000, 60000, 3000)
+    #Gyroradii grid in [cm]
+    g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
+
+    #Alternatively use cm grid
+    g_r = np.arange(0.5, 5, 0.2)
+
+    gyro_arrays = [list(np.around(g_r, decimals = 5)), #For each indivudual slit, ul->lr 
+                   list(np.around(g_r, decimals = 5)),
+                   list(np.around(g_r, decimals = 5)),
+                   list(np.around(g_r, decimals = 5))]
+    #pitch angle grid in [degrees]
+    p = np.arange(0.00, 1.04, 0.04)
+    pitch_arrays = [ list(np.around(np.rad2deg(np.arccos(p)), decimals = 5)),
+                    list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5)),
+                    list(np.around(np.rad2deg(np.arccos(p)), decimals = 5)),
+                    list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5))
+                    ]
+
+    #alternatively use degree grid
+    p = np.arange(0.00, 90, 4)
+    pitch_arrays = [ list(p),
+                    list(180-p),
+                    list(p),
+                    list(180-p)
+                    ]
+
+
+    #Range of gyrophase to use. Smaller range can be used, but for now allow all gyrophases
+    gyrophase_range = [ [9.8,12.2] ,  #UR   Alternatively use full range: np.array([np.deg2rad(0),np.deg2rad(360)])
+                        [7.2,8.6],  #UL
+                        [10.9,11.5], #LL
+                        [7.8, 8.3]  #LR
+                        ]        
 
     # -----------------------------------------------------------------------------
     # --- Run SINPA FILDSIM
@@ -382,70 +442,32 @@ if __name__ == '__main__':
                 },
             }
         
-        # prepare magnetic field
-        field = ss.simcom.Fields()
-        if use_single_B:    
-            field.createFromSingleB(B = np.array([Br, Bz, Bt]), Rmin = 0.0,
-                            Rmax = 2,
-                            zmin = -1, zmax = 1,
-                            nR = 100, nz = 100)
-            #To do FILD is at +-97 deg, plot b-field at correct phi position
-            #field.plot('bphi', phiSlice = 0 ,plot_vessel = False)
 
-            plt.show()
-        elif use_ascot_B:
-            f = open(ascot_bfield_File, 'rb')
-            ascot_bfield = pickle.load(f)
-            f.close()
-            #Field geometry saved in "boozer" structure
-            f = open(ascot_boozer_File, 'rb')
-            ascot_boozer = pickle.load(f)
-            f.close()
-            
-            field.Bfield['R'] = np.asfortranarray(np.linspace(ascot_boozer['rmin'][0], 
-                                    ascot_boozer['rmax'][0], 
-                                    ascot_boozer['nr'][0]), dtype=np.float64 )
-            field.Bfield['z'] = np.asfortranarray(np.linspace(ascot_boozer['zmin'][0], 
-                                    ascot_boozer['zmax'][0], 
-                                    ascot_boozer['nz'][0]), dtype=np.float64 )
-            
-            
-            field.Bfield['nR'] = np.asfortranarray(len(field.Bfield['R']), dtype=np.int32)
-            field.Bfield['nZ'] = np.asfortranarray(len(field.Bfield['z']), dtype=np.int32)
-            field.Bfield['Rmin'] = np.asfortranarray(ascot_boozer['rmin'][0], dtype=np.float64)
-            field.Bfield['Rmax'] = np.asfortranarray(ascot_boozer['rmax'][0], dtype=np.float64)
-            field.Bfield['Zmin'] = np.asfortranarray(ascot_boozer['zmin'][0], dtype=np.float64)
-            field.Bfield['Zmax'] = np.asfortranarray(ascot_boozer['zmax'][0], dtype=np.float64)            
-            #Ascot stellarator fields only store data for a single period
-            #bfield [idx_R, idx_phi, idx_Z], thus rrepeat along axis = 1
-
-            nfp = int(ascot_bfield['toroidalPeriods'])
-            #br = np.concatenate([ascot_bfield['br'], (ascot_bfield['br'][:,0,:])[:,None,:]], axis=1)
-            br = np.tile(ascot_bfield['br'],[1,nfp,1])
-            bphi = np.tile(ascot_bfield['bphi'],[1,nfp,1])
-            bz = np.tile(ascot_bfield['bz'],[1,nfp,1])
-            
-            field.Bfield['fr'] = np.asfortranarray(br, dtype=np.float64)
-            field.Bfield['fz'] = np.asfortranarray(bz, dtype=np.float64)
-            field.Bfield['ft'] = np.asfortranarray(bphi, dtype=np.float64)
-            
-            field.Bfield['nPhi'] = np.asfortranarray(np.shape(br)[1], dtype=np.int32 )
-            field.Bfield['Phimin'] = np.asfortranarray(0., dtype=np.float64)
-
-            field.Bfield['Phimax'] = np.asfortranarray(2.*np.pi*(1-1/(np.shape(br)[1])), dtype=np.float64)#Alex
-            field.bdims = 3
-            
-            #To do FILD is at +-97 deg, plot b-field at correct phi position
-            field.plot('br', phiSlice = 0 ,plot_vessel = False)
-            plt.show()
 
         # write geometry files
-        for i in range(4):
+        for i in range(2):
             if run_slit[i]:                   
+                # prepare magnetic field
+                ###
+                # Magnetic field input
+                ###
+
+                field = ss.simcom.Fields()
+                field.createFromSingleB(B = np.array([Br, Bz, Bt]), 
+                                Rmin = Rpin - 0.25,
+                                Rmax = Rpin + 0.25,
+                                zmin = zPin -0.25, zmax = zPin + 0.25,
+                                nR = 10, nz = 10)
+                plt.show()
+
                 write_stl_geometry_files(root_dir = geom_dir,
                                         run_name = run_names[i],
                                         collimator_stl_files = collimator_stl_files,
                                         scintillator_stl_files = scintillator_stl_files,
+                                        #itriang_scint = itriang_scint,
+                                        ps = ps,
+                                        u1_scint= u1_scint,
+                                        scint_norm= scint_norm,
                                         pinhole = pinholes[i])                                    
                     
                 if not Test:
@@ -521,14 +543,14 @@ if __name__ == '__main__':
                   {'zorder':3,'color':'r'},
                   {'zorder':3,'color':'b'}]
 
-    plot_orbits = False
-    orbit_kind=(0,) # 2 colliding w. scint., 0 colliding w. coll., 9 missing all, 3 scint. markers traced backwards
+    plot_orbits = True
+    orbit_kind=(2,) # 2 colliding w. scint., 0 colliding w. coll., 9 missing all, 3 scint. markers traced backwards
     plot_self_shadowing_collimator_strike_points = False
     # Save data to txt files for ParaView inspection
     save_strike_points_txt = False
     save_strikemap_txt = False
     save_orb_txt = False  # Save orbit data to .txt file
-    seperated = True      # If this flag is true, make separate txt file for each orbit, otherwise one file is written
+    seperated = False      # If this flag is true, make separate txt file for each orbit, otherwise one file is written
     save_self_shadowing_collimator_strike_points = False #Flag to see where self shadowing happens
     save_self_shadowing_collimator_strike_points_txt = False
     # plot some metrics
@@ -548,7 +570,7 @@ if __name__ == '__main__':
         Smap = [[],[],[],[]]
         p0 = [75, 115]
         
-        for i in range(4):
+        for i in range(2):
             if read_slit[i] :# or mixnmatch:
                 runDir = os.path.join(paths.SINPA, 'runs', runid[i])
                 inputsDir = os.path.join(runDir, 'inputs/')
@@ -839,7 +861,7 @@ if __name__ == '__main__':
                             fig4.colorbar(im2, ax=ax4, label='Counts')
                             fig4.tight_layout()
                 if plot_resolutions:
-                    Smap[i].calculate_resolutions(min_statistics = 10)
+                    Smap[i].calculate_resolutions(min_statistics = 1000)
                     Smap[i].plot_resolutions()
                 if plot_gyro_res:
                     Smap[i].plot_resolution_fits(var='Gyroradius',
@@ -874,7 +896,7 @@ if __name__ == '__main__':
             Geometry.plot2Dfilled(ax=ax, view = 'Scint', element_to_plot = [2],
                                     plot_pinhole = False)
                 
-            for i in range(4):
+            for i in range(2):
                 if read_slit[i]:# or mixnmatch:
                     if plot_strike_points:
                         #IPython.embed()
@@ -892,6 +914,8 @@ if __name__ == '__main__':
                         #orb[i].plot2D(ax=ax,line_params={'color': 'r'}, kind=(2,),factor=100.0)
                         #orb[i].plot2D(ax=ax,line_params={'color': 'b'}, kind=(0,),factor=100.0)
                         #orb[i].plot2D(ax=ax,line_params={'color': 'k'}, kind=(9,),factor=100.0)
+                        if save_orb_txt:
+                            orb[i].save_orbits_to_txt( kind=orbit_kind, units = 'mm', seperated = seperated)
                 else:
                     orb.append([])
                         
@@ -902,7 +926,7 @@ if __name__ == '__main__':
                 ax3D = plt.gca()
                 
                 
-                for i in range(4):
+                for i in range(2):
                     if read_slit[i]:# or mixnmatch:
                         
                         if plot_strike_points:

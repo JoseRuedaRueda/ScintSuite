@@ -313,7 +313,12 @@ class FILD_logbook:
                 wiki_data.append(row_data)
                 
             # Identify the row where the shot is stored
-            for i in range(1,np.shape(wiki_data,)[0]):     
+            for i in range(1,np.shape(wiki_data,)[0]):    
+                try: 
+                    test = int(wiki_data[i][0])
+                except:
+                    continue
+
                 if shot == int(wiki_data[i][0]):
                     row = i
                    

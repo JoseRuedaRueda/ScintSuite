@@ -4,7 +4,7 @@ import os
 
 #from pyEquilibrium.equilibrium import equilibrium
 
-def get_mag_field(shot: int, Rin, time: float, **kwargs):
+def get_mag_field(shot: int, Rin: float, zin: float, time: float, **kwargs):
     """
     Get TCV magnetic field
     Anton Jansen van Vuuren - anton.jansenvanvuuren@epfl.ch
@@ -24,8 +24,8 @@ def get_mag_field(shot: int, Rin, time: float, **kwargs):
     :return bt: toroidal magnetic field (nt, nrz_in), [T]
     :return bp: poloidal magnetic field (nt, nrz_in), [T]
     """
-    Z = 0.0500 # vertical FILD position [m]
-    R = 1.1376 + Rin # radial FILD position [m]
+    Z = zin#0.0500 # vertical FILD position [m]
+    R = Rin#1.1376 + Rin # radial FILD position [m]
     # Create a temporary file named B.txt to store the local B [Br,Bphi,Bz] at
     # the FILD position (R, Z)
     a=f"matlab -nodisplay -r \"addpath('/home/poley/FILD/Jesus');" \
