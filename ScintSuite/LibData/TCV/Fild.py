@@ -55,6 +55,10 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
    shot_str = str(shot)
    name = shot_str + extension
    file = os.path.join(base_dir, name)
+
+   if diag_ID == 2:  ##
+       file = base_dir + name
+
    return file
 
 

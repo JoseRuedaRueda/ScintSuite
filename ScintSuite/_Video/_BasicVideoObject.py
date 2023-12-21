@@ -177,35 +177,55 @@ class BVO:
                         self.exp_dat['frames'].transpose('px', 'py', 't')
                     self.type_of_file = '.mp4'
                 elif file.endswith('.mat'):
-                    dummy = mat.read_file(file)#, **self.properties)
-
-                    if '/b/secs' in dummy.keys():
+                    ##TCV saves videos as MATLAB files
+                    ##Check if the video is from the XIMEA or APD
+                    if not 'APD' in file:
+                        dummy = mat.read_file(file)#, **self.properties)
                         t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
                         self.timebase = t0 + dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
+
+                        frames = dummy.pop('/dat') #frames are stored in "/dat"
+                        frames = frames[:,:,::-1]  #flip the image in the y direction.
+                        #self.properties.update(dummy)
+                        self.exp_dat = xr.Dataset()
+                        nt, nx, ny = frames.shape
+
+                        # Matplotlib imshow considers the first index to be the rox index. So we relable to axis to fit this convention
+                        py = np.arange(nx)
+                        px = np.arange(ny)
+                        self.exp_dat['frames'] = \
+                            xr.DataArray(np.transpose(frames, axes = [2, 1, 0]), dims=('px', 'py', 't'),
+                                        coords={'t': self.timebase.squeeze(),
+                                                'px': px,
+                                                'py': py})
+                        self.exp_dat['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))
+                        self.type_of_file = '.mat'     
+                        self.settings = {'RealBPP': 10} 
+
                     else:
-                        self.timebase = np.linspace(0, dummy['/b/meas_length'][0][0], dummy['/b/n_data'][0][0])
+                        data = ssdat.get_APD(file)
+                        self.timebase = data['time']
 
+                        self.exp_dat = xr.Dataset()
+                        #The APD has 8 by 16 pixels, however the fibre bundle viewing the scintillator is 13 by 10.
+                        nt, nx, ny = len(self.timebase), 13, 10   #The scintillator 
+                        apd_data = np.array(data['data'])
+                        #It's more intuative to work in the scintilator matrix, therefore we add two dummy channels
+                        apd_data = np.append(apd_data.flatten(), np.zeros( nt*2 )*np.nan )
+                        apd_data = np.reshape(apd_data, (nx, ny, nt) )
 
-                    if not np.sum(self.timebase):
-                        self.timebase = np.arange(len(self.timebase))
-
-                    frames = dummy.pop('/dat') #frames are stored in "/dat"
-                    frames = frames[:,:,::-1]  #flip the image in the y direction.
-                    #self.properties.update(dummy)
-                    self.exp_dat = xr.Dataset()
-                    nt, nx, ny = frames.shape
-
-                    # Matplotlib imshow considers the first index to be the rox index. So we relable to axis to fit this convention
-                    py = np.arange(nx)
-                    px = np.arange(ny)
-                    self.exp_dat['frames'] = \
-                        xr.DataArray(np.transpose(frames, axes = [2, 1, 0]), dims=('px', 'py', 't'),
-                                     coords={'t': self.timebase.squeeze(),
-                                             'px': px,
-                                             'py': py})
-                    self.exp_dat['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))
-                    self.type_of_file = '.mat'     
-                    self.settings = {'RealBPP': 10}             
+                        # Matplotlib imshow considers the first index to be the rox index. So we relable to axis to fit this convention
+                        px = np.arange(nx)
+                        py = np.arange(ny)
+                        self.exp_dat['frames'] = \
+                            xr.DataArray(apd_data, dims=('px', 'py', 't'),
+                                        coords={'t': self.timebase.squeeze(),
+                                                'px': px,
+                                                'py': py})
+                        self.exp_dat['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))
+                        self.type_of_file = '.mat'     
+                        self.settings = {'RealBPP': 10} 
+            
                 else:
                     raise Exception('Not recognised file extension')
             else:

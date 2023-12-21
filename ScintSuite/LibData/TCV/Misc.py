@@ -119,9 +119,47 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
     time = np.linspace(0, dummy['/b/meas_length'][0][0], dummy['/b/n_data'][0][0])
 
     data = dummy.pop('/dat') 
-    data = -data[:, ch].T
+    data = -data[:, ch].T  ##APD data is negative so multiply with -1
 
     return {'time': time, 'data': data, 'channels': ch}
+
+
+def get_APD(file: str):
+    """
+    Get the signal for the fast channels (APD)
+
+    Anton Jansen van Vuuren: anton.jansenvanvuuren@epfl.ch
+
+    :param  shot: shot file to be opened
+    """
+
+    # Open the shot file
+
+    dummy = mat.read_file(file)
+    time = np.linspace(0, dummy['/b/meas_length'][0][0], dummy['/b/n_data'][0][0])
+
+    data = dummy.pop('/dat') 
+    data = -data[:, :].T  ##APD data is negative so multiply with -1
+
+
+    ##APD channels are not organized in MAT file. We have to use a mapping matrix to reorganise
+    mapping_matrix = [
+        [91, 20, 17,18, 56, 55, 127, 53, 59, 116, 113, 114, 24, 23, 95, 21],
+        [19, 92, 89, 90, 128, 126, 54, 125, 115, 60, 57, 58, 96, 94, 22, 93],
+        [14, 69, 13, 15, 41, 42, 43, 100, 110, 37, 109, 111, 9, 10, 11, 68],
+        [70, 16, 72, 71, 97, 98, 99, 44, 38, 112, 40, 39, 65, 66, 67, 12],
+        [76, 3, 2, 1, 103, 104, 48, 102, 108, 35, 34, 33, 7, 8, 80, 6],
+        [4, 75, 74, 73, 47, 45, 101, 46, 36, 107, 106, 105, 79, 77, 5, 78],
+        [29, 86, 30, 32, 122, 121, 124, 51, 61, 118, 62, 64, 26, 25, 28, 83],
+        [85, 31, 87, 88, 50, 49, 52, 123, 117, 63, 119, 120, 82, 81, 84, 27]
+        ]
+
+    mapping_matrix = np.array(mapping_matrix)
+
+    data_mapped =data[mapping_matrix.flatten() - 1, :]
+
+
+    return {'time': time, 'data': data_mapped, 'channels': np.arange(128)}
 
 
 # -----------------------------------------------------------------------------
