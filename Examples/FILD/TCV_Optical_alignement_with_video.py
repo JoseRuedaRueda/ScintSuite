@@ -24,7 +24,7 @@ shot = 75555
 time = 0.407
 vmax = 1200
 
-Scint_file = '/home/jansen/ScintSuite/Data/Plates/FILD/TCV/TCV2022.txt'   # ####
+Scint_file = '/home/jansen/NoTivoli/ScintSuite/Data/Plates/FILD/TCV/TCV2022.txt'   # ####
 format = 'fildsim'  # Code for which the geometry file is written
 # File with the calibration image (png)
 calib_image = '/tmp/poley/' + \

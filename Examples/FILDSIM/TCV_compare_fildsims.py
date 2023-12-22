@@ -12,7 +12,7 @@ import matplotlib.pylab as plt
 import ScintSuite as ss
 from ScintSuite._Machine import machine
 from ScintSuite._Paths import Path
-paths = Path(machine)  ##Implement later
+paths = Path(machine)
 
 import pickle
 
@@ -41,6 +41,7 @@ def write_stl_geometry_files(root_dir
                               , run_name = ''
                               , collimator_stl_files = {}
                               , scintillator_stl_files = {}
+                              , itriang_scint = 0
                               , pinhole = []
                               ):
     '''
@@ -104,7 +105,7 @@ def write_stl_geometry_files(root_dir
         y1y2y3 = mesh_obj.y  
         z1z2z3 = mesh_obj.z  
     
-        itriang = 508 # choose some triangle of the Scintilator plate to calculate normal vector
+        itriang = itriang_scint # choose some triangle of the Scintilator plate to calculate normal vector
         p1 = np.array((x1x2x3[itriang, 0],
                        y1y2y3[itriang, 0],
                        z1z2z3[itriang, 0]) ) * 0.001 #convert mm to m
@@ -261,27 +262,33 @@ if __name__ == '__main__':
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(3e4)
+    n_markers = int(2e4)
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
     #Grids
     #Gyroradii grid in [cm]
 
-    energy_arrays = np.array([3000, 7000, 11000, 15000, 19000, 23000, 25000, 29000, 33000, 37000, 41000, 45000, 49000, 53000, 57000, 61000])
-    #energy_arrays = np.array([5000, 8000, 11000, 14000, 17000, 20000, 23000, 26000, 29000, 32000, 38000, 45000])
+    #energy_arrays = np.array([5000, 7000, 9000, 11000, 13000, 15000, 17000, 19000, 21000, 23000, 25000, 27000, 29000, 31000,  33000, 35000, 37000, 39000, 41000, 43000, 45000, 47000, 49000, 51000, 53000, 55000])
+    energy_arrays = np.arange(5000, 55000, 500)
     g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
 
 
     gyro_arrays = [list(np.around(g_r, decimals = 2)), #For each indivudual slit, ur->ll [2.0, 4.0],#
                    list(np.around(g_r, decimals = 2))]
+                   list(np.around(g_r, decimals = 2))]
     #pitch angle grid in [degrees]
-    p = np.array([0.1, 0.14, 0.18, 0.22, 0.26, 0.30, 0.34, 0.38, 0.42, 0.46, 0.5, 0.54, 0.58, 0.62, 0.66, 0.7, 0.74, 0.78, 0.82, 0.86, 0.9, 0.94, 0.98])
-    #p = np.array([0.32,0.4, 0.4800, 0.5600, 0.6400, 0.7200, 0.8000, 0.88])
+    #p = np.array([0.1100, 0.1300, 0.1500, 0.1700, 0.1900, 0.2100, 0.2300, 0.2500, 0.2700, 0.2900, 0.3100, 0.3300, 0.3500, 0.3700, 0.3900, 0.4100, 0.4300, 0.4500, 0.4700, 0.4900, 0.5100, 0.5300, 0.5500, 0.5700, 0.5900,  0.6100, 0.6300, 0.6500, 0.6700, 0.6900, 0.7100, 0.7300, 0.7500, 0.7700, 0.7900, 0.8100, 0.8300, 0.8500, 0.8700, 0.8900, 0.9100, 0.9300, 0.9500, 0.9700])
+    p = np.arange(0.2, 0.8, 0.005)
 
     pitch_arrays = [ list(np.around(np.rad2deg(np.arccos(p)), decimals = 2)),
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 2))
                     ]
+
+    pitch_arrays = [ list(np.arange(35, 80, 1)),
+                    list(np.arange(100, 145, 1))
+                    ]
+
     #Range of gyrophase to use. Smaller range can be used, but for now allow all gyrophases
     
     gyrophase_range = [ [10.9, 11.4],  #[9.8,12.2] ,  #UR
@@ -296,52 +303,66 @@ if __name__ == '__main__':
     beta = 0.0  #Besides we use TCV coordinates, so for ow this is not needed
     #STL files
     geom_dir = os.path.join(paths.SINPA,'Geometry/')
-    collimator_stl_files = {#'collimator_1mm': geom_dir+'TCV_FILD/2022/Collimator1_FILD2022TCVCordinates_MP0mm.stl',
-                            'collimator_08mm': geom_dir+'TCV_FILD/2022/Collimator08_FILD2022TCVCordinates_MP0mm.stl',  #alternative collimator
-                            'heatshield': geom_dir+'TCV_FILD/2022/HeatShield_FILD2022TCVCordinates_MP0mm.stl'
-                            }
-    scintillator_stl_files = {'scintillator':  geom_dir+'TCV_FILD/2022/Scintillator_FILD2022TCVCordinates_MP0mm.stl'}
+    
+    if use_reduced_stl_models:
+        collimator_stl_files = {'heatshield': geom_dir+'TCV_FILD/2022/reduced/HeatShield_reduced.stl'
+                                }
+        scintillator_stl_files = {'scintillator':  geom_dir+'TCV_FILD/2022/reduced/Scintillator_FILD2022TCVCordinates_MP0mm_reduced.stl'}
+        itriang_scint = 56
+        if use_1mm_pinhole:
+            collimator_stl_files['collimator'] = geom_dir+'TCV_FILD/2022/reduced/Collimator1_FILD2022TCVCordinates_MP0mm_reduced.stl'
+        else:
+            collimator_stl_files['collimator'] = geom_dir+'TCV_FILD/2022/reduced/Collimator08_FILD2022TCVCordinates_MP0mm_reduced.stl'
+    else:
+        collimator_stl_files = {'heatshield': geom_dir+'TCV_FILD/2022/HeatShield_FILD2022TCVCordinates_MP0mm.stl'
+                                }
+        scintillator_stl_files = {'scintillator':  geom_dir+'TCV_FILD/2022/Scintillator_FILD2022TCVCordinates_MP0mm.stl'}
+        itriang_scint = 508
+        if use_1mm_pinhole:
+            collimator_stl_files['collimator'] = geom_dir+'TCV_FILD/2022/Collimator1_FILD2022TCVCordinates_MP0mm.stl'
+        else:
+            collimator_stl_files['collimator'] = geom_dir+'TCV_FILD/2022/Collimator08_FILD2022TCVCordinates_MP0mm.stl'
+
+    
     #Pinhole coordinates in [mm]
     pinholes = [{}, {}]
+    if use_1mm_pinhole:
+        ### 1.0mm collimator
+        pinholes[0]['pinholeKind'] =1
+        pinholes[0]['pinholeCentre'] = None
+        pinholes[0]['pinholeRadius'] = None
+        pinholes[0]['points'] = np.array([[-192.96, 1137.7, 35.4414],  #Important, the vector p1 to p2 should be one dimension, and 
+                                        [-193.155, 1138.68, 35.4414],  # the vector p2 to p3 the other dimension of the slit
+                                        [-195.117, 1138.29, 35.4414],
+                                        [-194.921, 1137.31, 35.4414]] ) #upper right, looking from plasma to FILD head
+
+        pinholes[1]['pinholeKind'] =1
+        pinholes[1]['pinholeCentre'] = None
+        pinholes[1]['pinholeRadius'] = None
+        pinholes[1]['points'] = np.array([[-257.103, 1124.94, 35.4414],
+                                        [-257.298, 1125.92, 35.4414],
+                                        [-255.337, 1126.31, 35.4414],
+                                        [-255.142, 1125.33, 35.4414] ] )#upper left
+
+    else:    
+        ### 0.8mm collimator
+
+        pinholes[0]['pinholeKind'] =1
+        pinholes[0]['pinholeCentre'] = None
+        pinholes[0]['pinholeRadius'] = None
+        pinholes[0]['points'] = np.array([[-192.96, 1137.7, 35.4414],  #Important, the vector p1 to p2 should be one dimension, and 
+                                        [-193.155, 1138.68, 35.4414],  # the vector p2 to p3 the other dimension of the slit
+                                        [-195.117, 1138.29, 35.4414],
+                                        [-194.921, 1137.31, 35.4414]] ) #upper right, looking from plasma to FILD head
+
+        pinholes[1]['pinholeKind'] =1
+        pinholes[1]['pinholeCentre'] = None
+        pinholes[1]['pinholeRadius'] = None
+        pinholes[1]['points'] = np.array([[-257.103, 1124.94, 35.4414],
+                                        [-257.259, 1125.73, 35.4414],
+                                        [-255.298, 1126.12, 35.4414],
+                                        [-255.142, 1125.33, 35.4414] ] )#upper left
     
-    '''
-    ### 1.0mm collimator
-    pinholes[0]['pinholeKind'] =1
-    pinholes[0]['pinholeCentre'] = None
-    pinholes[0]['pinholeRadius'] = None
-    pinholes[0]['points'] = np.array([[-192.96, 1137.7, 35.4414],  #Important, the vector p1 to p2 should be one dimension, and 
-                                      [-193.155, 1138.68, 35.4414], # the vector p2 to p3 the other dimension of the slit
-                                      [-195.117, 1138.29, 35.4414],
-                                      [-194.921, 1137.31, 35.4414]] ) #upper right, looking from plasma to FILD head
-
-    pinholes[1]['pinholeKind'] =1
-    pinholes[1]['pinholeCentre'] = None
-    pinholes[1]['pinholeRadius'] = None
-    pinholes[1]['points'] = np.array([[-257.103, 1124.94, 35.4414],
-                                      [-257.298, 1125.92, 35.4414],
-                                      [-255.337, 1126.31, 35.4414],
-                                      [-255.142, 1125.33, 35.4414] ] )#upper left
-
-    '''
-    ### 0.8mm collimator
-
-    pinholes[0]['pinholeKind'] =1
-    pinholes[0]['pinholeCentre'] = None
-    pinholes[0]['pinholeRadius'] = None
-    pinholes[0]['points'] = np.array([[-192.96, 1137.7, 35.4414],  #Important, the vector p1 to p2 should be one dimension, and 
-                                      [-193.155, 1138.68, 35.4414], # the vector p2 to p3 the other dimension of the slit
-                                      [-195.117, 1138.29, 35.4414],
-                                      [-194.921, 1137.31, 35.4414]] ) #upper right, looking from plasma to FILD head
-
-    pinholes[1]['pinholeKind'] =1
-    pinholes[1]['pinholeCentre'] = None
-    pinholes[1]['pinholeRadius'] = None
-    pinholes[1]['points'] = np.array([[-257.103, 1124.94, 35.4414],
-                                      [-257.259, 1125.73, 35.4414],
-                                      [-255.298, 1126.12, 35.4414],
-                                      [-255.142, 1125.33, 35.4414] ] )#upper left
-
- 
     # -----------------------------------------------------------------------------
     # --- Run SINPA FILDSIM
     # -----------------------------------------------------------------------------
@@ -448,6 +469,7 @@ if __name__ == '__main__':
                                         run_name = run_names[i],
                                         collimator_stl_files = collimator_stl_files,
                                         scintillator_stl_files = scintillator_stl_files,
+                                        itriang_scint = itriang_scint,
                                         pinhole = pinholes[i])                                    
                     
                 if not Test:

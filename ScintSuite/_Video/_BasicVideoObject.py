@@ -191,57 +191,25 @@ class BVO:
                     #import IPython
                     #IPython.embed()
                     frames = dummy.pop('/dat') #frames are stored in "/dat"
-                    frames = frames[:,:,::-1]
+                    frames = frames[:,:,::-1]  #flip the image in the y direction.
                     #self.properties.update(dummy)
                     self.exp_dat = xr.Dataset()
                     nt, nx, ny = frames.shape
-                    px = np.arange(nx)
-                    py = np.arange(ny)
+
+                    # Matplotlib imshow considers the first index to be the rox index. So we relable to axis to fit this convention
+                    py = np.arange(nx)
+                    px = np.arange(ny)
 
                     #import IPython
                     #IPython.embed()
-                    self.exp_dat['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))
+                    
                     self.exp_dat['frames'] = \
-                        xr.DataArray(frames, dims=('t', 'px', 'py'),
-                                    coords={'t': self.timebase.squeeze(),
-                                            'px': px,
-                                            'py': py})
-                    
-                    '''
-                    if method == 'scipy':
-                        
-                        t0 = dummy['b']['secs'][0][0][0][1] - dummy['b']['secs'][0][0][0][0] + (dummy['b']['usecs'][0][0][0][1] - dummy['b']['usecs'][0][0][0][0])*1e-6
-                        self.timebase = t0 + dummy['b']['secs'][0][0][0] - dummy['b']['secs'][0][0][0][0] + (dummy['b']['usecs'][0][0][0] - dummy['b']['usecs'][0][0][0][0])*1e-6                                          
-                        frames = dummy.pop('dat') #frames are stored in "/dat"                    
-                        frames = frames[:,:,::-1]
-                        #self.properties.update(dummy)
-                        self.exp_dat = xr.Dataset()
-                        ny, nx, nt = frames.shape
-                        px = np.arange(nx)
-                        py = np.arange(ny)
-                        self.exp_dat['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))                    
-                        self.exp_dat['frames'] = \
-                        xr.DataArray(frames, dims=('py', 'px', 't'),
-                                     coords={'py': py,
+                        xr.DataArray(np.transpose(frames, axes = [2, 1, 0]), dims=('px', 'py', 't'),
+                                     coords={'t': self.timebase.squeeze(),
                                              'px': px,
-                                             't': self.timebase.squeeze()})
-                    '''
+                                             'py': py})
                     
-                   
-
-                    #import IPython
-                    #IPython.embed()
-                
-                                       
-                    if ny>nx:
-                        #For some reason the calibration videos are transposed
-                        self.exp_dat['frames'] = \
-                            self.exp_dat['frames'].transpose('px', 'py', 't')
-                    else:
-                        self.exp_dat['frames'] = \
-                            self.exp_dat['frames'].transpose('py', 'px', 't')
- 
-                                        
+                    self.exp_dat['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))
                    
                     self.type_of_file = '.mat'     
 

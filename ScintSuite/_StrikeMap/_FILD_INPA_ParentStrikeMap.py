@@ -137,6 +137,18 @@ class FILDINPA_Smap(GeneralStrikeMap):
             'z': Z,
         }
 
+    def convert_to_normalized_pitch(self):
+        """
+        Convert the pitch angles to normalised pitch values
+
+        Anton Jansen van Vuuren: anton.jansenvanvuuren@epfl.ch
+
+        """
+
+        p0 = np.cos(np.deg2rad(self._data['pitch'].data))
+        self._data['p0'] = BasicVariable(name='p0', units='', data=p0)
+
+
     def load_strike_points(self, file=None, verbose: bool = True,
                            calculate_pixel_coordinates: bool = False,
                            remap_in_pixel_space: bool = False):
