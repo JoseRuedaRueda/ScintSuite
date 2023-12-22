@@ -12,20 +12,21 @@ import ScintSuite as ss
 import ScintSuite._Mapping as ssmap
 from ScintSuite._Mapping._Calibration import CalParams
 import matplotlib.pyplot as plt
+import numpy as np
 from time import time
 # -----------------------------------------------------------------------------
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 75620
+shot = 79300
 diag_ID = 1  # 6 for rFILD
-t1 = 0     # Initial time to be loaded, [s]
-t2 = 0.002     # Final time to be loaded [s]
+t1 = 1.160    # Initial time to be loaded, [s]
+t2 = 1.170     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
 # - Noise subtraction settings:
-subtract_noise = False   # Flag to apply noise subtraction
+subtract_noise = True   # Flag to apply noise subtraction
 tn1 = 0.20     # Initial time to average the frames for noise subtraction [s]
 tn2 = 0.23     # Final time to average the frames for noise subtraction [s]
 flag_copy = False  # If true, a copy of the frames will be done while
@@ -43,27 +44,32 @@ options_filter = {
 #     'sigma': 1        # sigma of the gaussian for the convolution (in pixels)
 # }
 
-smap = ssmap.StrikeMap(0, '/home/poley/NoTivoli/SINPA/runs/Benchmark_75620_ur/results/Benchmark_75620_ur.map')
+#smap = ssmap.StrikeMap(0, '/home/poley/NoTivoli/SINPA/runs/Benchmark_75620_ur/results/Benchmark_75620_ur.map')
+smap = ssmap.StrikeMap(0, '/home/poley/NoTivoli/SINPA/runs/79300_ur/results/79300_ur.map')
 #smap = ssmap.StrikeMap(0, '/home/jansen/SINPA/runs/77971@0.4_ur/results/77971@0.4_ur.map')
 cal = CalParams()
-cal.xscale = 18317
-cal.yscale = 18317
-cal.xshift = 100
-cal.yshift = 775.6
-cal.deg = 0
-cal.camera = 'CCD'
+cal.xscale = 18244
+cal.yscale = 18244
+cal.xshift = 352
+cal.yshift = 770.4
+cal.deg = 0              
+cal.camera = 'CCD'     
 smap.calculate_pixel_coordinates(cal)
-smap.calculate_energy(1.1462052172)
-smap.setRemapVariables(('pitch', 'e0'), verbose=False)
+Br, Bt, Bz = 0.0141, -1.1328, 0.1532 #(Br, Bphi, Bz) #75620@1.020s
+modB = 1.1400978489392379
+smap.calculate_energy(modB)
+smap.convert_to_normalized_pitch()
+smap.setRemapVariables(('p0', 'e0'), verbose=False)
+
 # - Remapping options:
 save_remap = False  # If true, the remap will be saved in a netCDF file
 par = {
     'ymin': 5.0,      # Minimum gyroradius [in cm]
-    'ymax': 45.0,     # Maximum gyroradius [in cm]
-    'dy': 1,        # Interval of the gyroradius [in cm]
-    'xmin': 100,     # Minimum pitch angle [in degrees]
-    'xmax': 150,     # Maximum pitch angle [in degrees]
-    'dx': 0.4,    # Pitch angle interval
+    'ymax': 55.0,     # Maximum gyroradius [in cm]
+    'dy': 3,        # Interval of the gyroradius [in cm]
+    'xmin': -1.1,     # Minimum pitch angle [in degrees]
+    'xmax': 0,     # Maximum pitch angle [in degrees]
+    'dx': 0.01,    # Pitch angle interval
     # method for the interpolation
     'method': 2,  # 2 Spline, 1 Linear
     'decimals': 1,
@@ -79,7 +85,7 @@ plot_profiles_in_time = False   # Plot the time evolution of pitch and r
 # -----------------------------------------------------------------------------
 # - open the video file:
 #filename='/home/poley/NoTivoli/ScintSuite/11111.mat'
-filename='/tmp/poley/75620.mat'
+filename='/tmp/poley/79300_b.mat'
 vid = ss.vid.FILDVideo(file=filename)
 
 # -----------------------------------------------------------------------------
@@ -94,7 +100,7 @@ if apply_filter:
 # --- Section 4: Remap
 # -----------------------------------------------------------------------------
 # - Remap frames:
-vid.read_frame([1005,1006])
+vid.read_frame(t1=t1,t2=t2)
 vid.remap_loaded_frames(par)
 
 # - Plot:

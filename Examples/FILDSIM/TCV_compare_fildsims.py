@@ -120,7 +120,7 @@ def write_stl_geometry_files(root_dir
         
       
         ps = p2 #Arbitrarily choose the first point as the reference point
-        u1_scint = p2 - p1
+        u1_scint = p3 - p2
         u1_scint /= np.linalg.norm(u1_scint) #Only needed to align the scintilattor
         
         rot = ss.sinpa.geometry.calculate_rotation_matrix(scint_norm, u1 = -u1_scint
@@ -210,13 +210,14 @@ if __name__ == '__main__':
     plot_plate_geometry = True
     plot_3D = False
 
-    shot = 75620
-    time = 1.015
-
+    shot = 79185
+    time = 0.61
+    use_reduced_stl_models = True
+    use_1mm_pinhole = True
     run_code = True  # Set flag to run FILDSIM
     run_slit = [False, True] # Run particles starting at slits set to true, starting with ul, ur, ll,lr
     read_slit = [False, True] # Read results from diffrent slits
-    string_mod = 'Benchmark_75620'#'%i@%.3f' %(shot, time)  #Choose unique run identifier, like shot number and time
+    string_mod = '79185_2'#'%i@%.3f' %(shot, time)  #Choose unique run identifier, like shot number and time
     run_names = [string_mod+'_ul', string_mod + '_ur']
     read_results = not run_code # Flag to read output after run
     ###
@@ -248,9 +249,11 @@ if __name__ == '__main__':
     use_ascot_B = False
     use_single_B = True
     if use_single_B and run_code:
-        Rin = -17 *0.001
+        Rin = -1 *0.001
         Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rin, time)
         modB = np.sqrt(Br**2 + Bz**2 + Bt**2) 
+ 
+    #Br, Bt, Bz = -0.0059, -1.1217, 0.1020
  
     print(modB)  
     ascot_bfield_File ='Fields/std_bfield.pickle' 
@@ -262,37 +265,32 @@ if __name__ == '__main__':
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(2e4)
+    n_markers = int(30e3)
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
     #Grids
     #Gyroradii grid in [cm]
 
-    #energy_arrays = np.array([5000, 7000, 9000, 11000, 13000, 15000, 17000, 19000, 21000, 23000, 25000, 27000, 29000, 31000,  33000, 35000, 37000, 39000, 41000, 43000, 45000, 47000, 49000, 51000, 53000, 55000])
-    energy_arrays = np.arange(5000, 55000, 500)
+    #energy_arrays = np.array([ 3000,  7000, 11000, 15000, 19000, 23000, 25000, 29000, 33000, 37000, 41000, 45000, 49000, 53000, 57000, 61000])
+    energy_arrays = np.arange(5000, 60000, 2000)
     g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
 
 
     gyro_arrays = [list(np.around(g_r, decimals = 2)), #For each indivudual slit, ur->ll [2.0, 4.0],#
                    list(np.around(g_r, decimals = 2))]
-                   list(np.around(g_r, decimals = 2))]
     #pitch angle grid in [degrees]
     #p = np.array([0.1100, 0.1300, 0.1500, 0.1700, 0.1900, 0.2100, 0.2300, 0.2500, 0.2700, 0.2900, 0.3100, 0.3300, 0.3500, 0.3700, 0.3900, 0.4100, 0.4300, 0.4500, 0.4700, 0.4900, 0.5100, 0.5300, 0.5500, 0.5700, 0.5900,  0.6100, 0.6300, 0.6500, 0.6700, 0.6900, 0.7100, 0.7300, 0.7500, 0.7700, 0.7900, 0.8100, 0.8300, 0.8500, 0.8700, 0.8900, 0.9100, 0.9300, 0.9500, 0.9700])
-    p = np.arange(0.2, 0.8, 0.005)
+    p = np.arange(0.3, 1.01, 0.01)
 
     pitch_arrays = [ list(np.around(np.rad2deg(np.arccos(p)), decimals = 2)),
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 2))
                     ]
 
-    pitch_arrays = [ list(np.arange(35, 80, 1)),
-                    list(np.arange(100, 145, 1))
-                    ]
-
     #Range of gyrophase to use. Smaller range can be used, but for now allow all gyrophases
     
-    gyrophase_range = [ [10.9, 11.4],  #[9.8,12.2] ,  #UR
-                        [7.2,8.6]  #UL
+    gyrophase_range = [ [3.14,9.42],     #[10.9, 11.4],  #[9.8,12.2] ,[10.9, 11.4]  #UL
+                        [7.9,8.3]  #UR
     ]
 
     #gyrophase_range = np.array([np.deg2rad(0),np.deg2rad(360)])
@@ -303,25 +301,26 @@ if __name__ == '__main__':
     beta = 0.0  #Besides we use TCV coordinates, so for ow this is not needed
     #STL files
     geom_dir = os.path.join(paths.SINPA,'Geometry/')
-    
+    geom_dir_ = '/NoTivoli/jansen/SINPA/Geometry/TCV_FILD/2023/reduced/'
     if use_reduced_stl_models:
-        collimator_stl_files = {'heatshield': geom_dir+'TCV_FILD/2022/reduced/HeatShield_reduced.stl'
+        collimator_stl_files = {'heatshield': geom_dir_+'HeatShield_reduced.stl'
                                 }
-        scintillator_stl_files = {'scintillator':  geom_dir+'TCV_FILD/2022/reduced/Scintillator_FILD2022TCVCordinates_MP0mm_reduced.stl'}
-        itriang_scint = 56
+        #scintillator_stl_files = {'scintillator': geom_dir_+'TCV_FILD/2022/reduced/Scintillator_FILD2022TCVCordinates_MP0mm_reduced.stl'}
+        scintillator_stl_files = {'scintillator':  geom_dir_+'ScintillatorNEW_TCVCordinates_MP0mm_reduced.stl'}
+        itriang_scint = 39 #56
         if use_1mm_pinhole:
-            collimator_stl_files['collimator'] = geom_dir+'TCV_FILD/2022/reduced/Collimator1_FILD2022TCVCordinates_MP0mm_reduced.stl'
+            collimator_stl_files['collimator'] = geom_dir_+'CollimatorUP_1mm_TCVCordinates_MP0mm_reduced.stl'
         else:
-            collimator_stl_files['collimator'] = geom_dir+'TCV_FILD/2022/reduced/Collimator08_FILD2022TCVCordinates_MP0mm_reduced.stl'
+            collimator_stl_files['collimator'] = '/NoTivoli/poley/test_old_fildsim_collimator.stl'
     else:
-        collimator_stl_files = {'heatshield': geom_dir+'TCV_FILD/2022/HeatShield_FILD2022TCVCordinates_MP0mm.stl'
+        collimator_stl_files = {'heatshield': geom_dir_+'TCV_FILD/2022/HeatShield_FILD2022TCVCordinates_MP0mm.stl'
                                 }
-        scintillator_stl_files = {'scintillator':  geom_dir+'TCV_FILD/2022/Scintillator_FILD2022TCVCordinates_MP0mm.stl'}
+        scintillator_stl_files = {'scintillator':  geom_dir_+'TCV_FILD/2022/Scintillator_FILD2022TCVCordinates_MP0mm.stl'}
         itriang_scint = 508
         if use_1mm_pinhole:
-            collimator_stl_files['collimator'] = geom_dir+'TCV_FILD/2022/Collimator1_FILD2022TCVCordinates_MP0mm.stl'
+            collimator_stl_files['collimator'] = geom_dir_+'TCV_FILD/2022/Collimator1_FILD2022TCVCordinates_MP0mm.stl'
         else:
-            collimator_stl_files['collimator'] = geom_dir+'TCV_FILD/2022/Collimator08_FILD2022TCVCordinates_MP0mm.stl'
+            collimator_stl_files['collimator'] = geom_dir_+'TCV_FILD/2022/Collimator08_FILD2022TCVCordinates_MP0mm.stl'
 
     
     #Pinhole coordinates in [mm]

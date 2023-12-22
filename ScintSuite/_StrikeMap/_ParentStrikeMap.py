@@ -273,7 +273,7 @@ class GeneralStrikeMap(XYtoPixel):
             tras = 0.
         # --- Save the map
         with open(filename, 'w') as f:
-            for xm, ym, zm in zip(self.x, self.y, self.z):
+            for xm, ym, zm in zip(self._coord_real['x3'], self._coord_real['x1'], self._coord_real['x2']):
                 point_rotated = rot.T @ (np.array([xm, ym, zm])) + tras
                 f.write('%f %f %f \n' % (point_rotated[0] * factor,
                                          point_rotated[1] * factor,

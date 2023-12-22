@@ -20,22 +20,24 @@ from matplotlib.widgets import Slider
 ## ----------------------------------------------------------------------------
 # --- Settings
 # -----------------------------------------------------------------------------
-shot = 75555
-time = 0.407
-vmax = 1200
+shot = 'Ximea_13_11_2023'
+time = 0.002
+vmax = 140
 
-Scint_file = '/home/jansen/NoTivoli/ScintSuite/Data/Plates/FILD/TCV/TCV2022.txt'   # ####
+Scint_file = '/NoTivoli/jansen/ScintSuite/Data/Plates/FILD/TCV/TCV2023.txt'   # ####
 format = 'fildsim'  # Code for which the geometry file is written
 # File with the calibration image (png)
-calib_image = '/tmp/poley/' + \
-    '%i.mat'  %shot         # ####
+#calib_image = '/videodata/pcfild002/data/fild002/' + \
+#    '%i.mat'  %shot         # ####
+calib_image = '/videodata/pcfild002/data/fild002/Ximea_13_11_2023.mat'
 
 # modify section 3 if you have a custom format for the calibration image
 # Staring points for the calibration
-xshift = -11.5
-yshift = 134.6
-xscale = 5718
+xshift = 115
+yshift = 826.7
+xscale = 18317
 deg = 0
+
 # x-scale to y scale
 XtoY = 1.0
 
@@ -54,7 +56,7 @@ degmin = -180
 # --- Load video
 # -----------------------------------------------------------------------------
 #vid = ss.vid.FILDVideo(shot = shot)
-vid = ss.vid.FILDVideo(file='/tmp/poley/75555.mat')
+vid = ss.vid.FILDVideo(file=calib_image)#file='/tmp/poley/75555.mat')
 #vid.read_frame(t1=time-0.3, t2=time+0.3)
 ## -----------------------------------------------------------------------------
 # --- Scintillator load and first alignement
