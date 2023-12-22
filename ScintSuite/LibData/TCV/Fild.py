@@ -55,6 +55,10 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
    shot_str = str(shot)
    name = shot_str + extension
    file = os.path.join(base_dir, name)
+
+   if diag_ID == 2:  ##
+       file = base_dir + name
+
    return file
 
 
@@ -313,7 +317,12 @@ class FILD_logbook:
                 wiki_data.append(row_data)
                 
             # Identify the row where the shot is stored
-            for i in range(1,np.shape(wiki_data,)[0]):     
+            for i in range(1,np.shape(wiki_data,)[0]):    
+                try: 
+                    test = int(wiki_data[i][0])
+                except:
+                    continue
+
                 if shot == int(wiki_data[i][0]):
                     row = i
                    

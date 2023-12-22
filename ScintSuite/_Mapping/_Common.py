@@ -325,6 +325,11 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         # Get the phase variables at each pixel
         x = smap._grid_interp[namex].flatten()
         y = smap._grid_interp[namey].flatten()
+
+        idx_isnotnan = ~np.isnan(x)  #added by AJVV
+        x = x[idx_isnotnan]
+        y = y[idx_isnotnan]
+
         dummy = np.column_stack((x, y))
         # --- 2: Remap
         xcenter = 0.5 * (x_edges[1:] + x_edges[:-1])
@@ -336,6 +341,9 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
             z = frame.copy().astype(float)
             z[~mask] = 0
             z = z.flatten()
+
+        z = z[idx_isnotnan]
+
         H = griddata(dummy, z, (XX.flatten(), YY.flatten()),
                      method='linear', fill_value=0).reshape(XX.shape)
         # Normalise H to counts per unit of each axis
@@ -365,7 +373,6 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         H /= delta_x * delta_y
 
     return H
-
 
 @deprecated('Deprecated! Please use integrate_remap from the video object')
 def gyr_profile(remap_frame, pitch_centers, min_pitch: float,

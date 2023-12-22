@@ -20,4 +20,8 @@ fild1 = {'adqfreq': 1000, 't_trig': 0.,
          'extension': lambda shot: '.mat', 'label': 'FILD', 'camera': 'CCD',
          'path': '/videodata/pcfild002/data/fild002/',}
 
-FILD = (fild1,)
+fild2 = {'adqfreq': 1000000, 't_trig': 0.,
+         'extension': lambda shot: '.mat', 'label': 'FILD', 'camera': 'APD',
+         'path': '/videodata/pcfild003/data/APD',}
+
+FILD = (fild1, fild2,)

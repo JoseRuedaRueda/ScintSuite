@@ -15,27 +15,27 @@ SINPA coordinates and the calibration
 import ScintSuite as ss
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
-
+import numpy as np
 
 ## ----------------------------------------------------------------------------
 # --- Settings
 # -----------------------------------------------------------------------------
-shot = 'Ximea_13_11_2023'
-time = 0.002
-vmax = 140
+#shot = 79300
 
-Scint_file = '/NoTivoli/jansen/ScintSuite/Data/Plates/FILD/TCV/TCV2023.txt'   # ####
+time = 0.9640
+vmax = 1024
+
+Scint_file = '/home/jansen/NoTivoli/ScintSuite/Data/Plates/FILD/TCV/TCV2023.txt'   # ####
 format = 'fildsim'  # Code for which the geometry file is written
 # File with the calibration image (png)
-#calib_image = '/videodata/pcfild002/data/fild002/' + \
+calib_image = '/videodata/pcfild002/data/fild002/' + '79300.mat'#\
 #    '%i.mat'  %shot         # ####
-calib_image = '/videodata/pcfild002/data/fild002/Ximea_13_11_2023.mat'
 
 # modify section 3 if you have a custom format for the calibration image
 # Staring points for the calibration
-xshift = 115
-yshift = 826.7
-xscale = 18317
+xshift = 354
+yshift = 770
+xscale = 18190
 deg = 0
 
 # x-scale to y scale
@@ -56,7 +56,9 @@ degmin = -180
 # --- Load video
 # -----------------------------------------------------------------------------
 #vid = ss.vid.FILDVideo(shot = shot)
-vid = ss.vid.FILDVideo(file=calib_image)#file='/tmp/poley/75555.mat')
+vid = ss.vid.FILDVideo(file=calib_image)
+#vid.exp_dat['frames'][:,:,0] = np.mean(vid.exp_dat['frames'], 2)
+
 #vid.read_frame(t1=time-0.3, t2=time+0.3)
 ## -----------------------------------------------------------------------------
 # --- Scintillator load and first alignement
