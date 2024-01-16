@@ -178,8 +178,8 @@ class BVO:
                     self.type_of_file = '.mp4'
                 elif file.endswith('.mat'):
                     ##TCV saves videos as MATLAB files
-                    ##Check if the video is from the XIMEA or APD
-                    if not 'APD' in file:
+                    ##Check if the video is from the XIMEA (stored in pcfild002) or APD (stored in pcfild003)
+                    if 'pcfild002' in file:
                         dummy = mat.read_file(file)#, **self.properties)
                         t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
                         self.timebase = t0 + dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
@@ -207,15 +207,14 @@ class BVO:
                         self.timebase = data['time']
 
                         self.exp_dat = xr.Dataset()
-                        #The APD has 8 by 16 pixels, however the fibre bundle viewing the scintillator is 13 by 10.
+                        #The APD has 8 by 16 pixels, however the fibre bundle viewing the scintillator is 10 by 13.
                         nt, nx, ny = len(self.timebase), 10, 13   #The scintillator 
                         apd_data = np.array(data['data'])
-                        #It's more intuative to work in the scintilator matrix, therefore we add two dummy channels
+                        #It's more intuative to work in the scintilator matrix, therefore we add two dummy channels since we need to go from 128 to 130
                         apd_data = np.append(apd_data.flatten(), np.zeros( nt*2 ) )
                         #apd_data = np.reshape(apd_data, (nt) )
                         apd_data = np.reshape(apd_data, (nx, ny, nt) )
 
-                        # Matplotlib imshow considers the first index to be the rox index. So we relable to axis to fit this convention
                         px = np.arange(nx)
                         py = np.arange(ny)
                         self.exp_dat['frames'] = \
