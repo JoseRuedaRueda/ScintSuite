@@ -267,9 +267,13 @@ class FILDINPA_Smap(GeneralStrikeMap):
             iix = self.strike_points.header['info'][namex]['i']
             iiy = self.strike_points.header['info'][namey]['i']
         # Get the names of the variables to fit
+        #JPS : Add the new models' names; raisedcosine and wignerse
         names = {
             'Gauss': ['amplitude', 'center', 'sigma'],
-            'sGauss': ['amplitude', 'center', 'sigma', 'gamma']
+            'sGauss': ['amplitude', 'center', 'sigma', 'gamma'],
+            'wignerse': ['amplitude', 'center', 'sigma'],
+            'raisedCosine': ['amplitude', 'center', 'sigma', 'gamma']
+            
         }
         xnames = names[diag_options['x_method']]
         ynames = names[diag_options['y_method']]
@@ -930,7 +934,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
             for i in range(index_gyr.size):
                 index_gyr[i] = \
                     np.argmin(np.abs(self.MC_variables[1].data - gyroradius[i]))
-            logger.debug('Found gyroradius: %.2f' % self.MC_variables[1].data)
+            logger.debug('Found gyroradius: %.2f' % self.MC_variables[1].data[index_gyr]) ###JP: bug here, it was self.MC_variables[1].data
         else:
             # test if it is a number or an array of them
             if gyr_index is not None:
@@ -939,7 +943,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 else:
                     index_gyr = np.array([gyr_index])
             else:
-                index_gyr = np.arange(self.MC_variables[1].data.size, dtype=np.int)
+                index_gyr = np.arange(self.MC_variables[1].data.size, dtype=int)
 
         if pitch is not None:
             # test if it is a number or an array of them
@@ -961,7 +965,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 else:
                     index_pitch = np.array([pitch_index])
             else:
-                index_pitch = np.arange(self.MC_variables[0].data.size, dtype=np.int)
+                index_pitch = np.arange(self.MC_variables[0].data.size, dtype=int)
         # --- Get the maximum value for the normalization
 
         # --- Plot the desired data
@@ -979,7 +983,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                                          x.max() + 0.1 * deltax)
                     name = 'rl: ' + str(round(self.MC_variables[1].data[ir], 1))\
                         + ' $\\lambda$: ' + \
-                        str(round(self.MC_variables[1].data[ip], 1))
+                        str(round(self.MC_variables[0].data[ip], 1)) ###JP: bug here; it was self.MC_variables[1].data[ip]
                     normalization = \
                         self._resolutions['norm_' + var.lower()][ip, ir]
                     y = self._resolutions['fits_' + var.lower()][ip, ir].eval(

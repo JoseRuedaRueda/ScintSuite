@@ -28,7 +28,7 @@ vmax = 1024
 Scint_file = '/home/jansen/NoTivoli/ScintSuite/Data/Plates/FILD/TCV/TCV2023.txt'   # ####
 format = 'fildsim'  # Code for which the geometry file is written
 # File with the calibration image (png)
-calib_image = '/videodata/pcfild002/data/fild002/' + '79300.mat'#\
+calib_image = '/videodata/pcfild002/data/fild002/' + 'XIMEA_5_01_2024.mat'#\
 #    '%i.mat'  %shot         # ####
 
 # modify section 3 if you have a custom format for the calibration image

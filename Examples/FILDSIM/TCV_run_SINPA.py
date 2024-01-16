@@ -178,20 +178,20 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------
     plt.close('all')
 
-    Test = True  # if true don't do run, just check the input geometry
+    Test = False  # if true don't do run, just check the input geometry
     # test geometry
     plot_plate_geometry = True
     plot_3D = False
 
-    shot = 79300
-    Rinsertion = -16.8 #[mm] #negative means insertedl
+    shot = 75620
+    Rinsertion = -17 #[mm] #negative means inserted
     if shot <=77469:
         year = 2022
     else:
         year = 2023
 
-    time = 1.27
-    use_reduced_stl_models = True
+    time = 1.005
+    use_reduced_stl_models = False
     use_1mm_pinhole = True
 
 
@@ -359,42 +359,43 @@ if __name__ == '__main__':
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(1e4)
+    n_markers = int(3e4)
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
     #Grids
 
-    energy_arrays = np.arange(3000, 60000, 3000)
+    energy_arrays = np.arange(4000, 65000, 5000)
     #Gyroradii grid in [cm]
     g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
 
     #Alternatively use cm grid
-    g_r = np.arange(0.5, 5, 0.2)
+    #g_r = np.arange(0.5, 5, 0.2)
 
     gyro_arrays = [list(np.around(g_r, decimals = 5)), #For each indivudual slit, ul->lr 
                    list(np.around(g_r, decimals = 5)),
                    list(np.around(g_r, decimals = 5)),
                    list(np.around(g_r, decimals = 5))]
     #pitch angle grid in [degrees]
-    p = np.arange(0.00, 1.04, 0.04)
-    pitch_arrays = [ list(np.around(np.rad2deg(np.arccos(p)), decimals = 5)),
+    #JP: Added rounded on p, because otherwise not correct the arccos (too many zeros gives NaN)
+    p = np.around(np.arange(0.1, 1.05, 0.05), decimals = 5)
+    pitch_arrays = [ list(np.around(np.rad2deg(np.arccos(p)), decimals = 5)), 
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5)),
                     list(np.around(np.rad2deg(np.arccos(p)), decimals = 5)),
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5))
                     ]
 
     #alternatively use degree grid
-    p = np.arange(0.00, 90, 4)
-    pitch_arrays = [ list(p),
-                    list(180-p),
-                    list(p),
-                    list(180-p)
-                    ]
+    #p = np.arange(0.00, 90, 4)
+    #pitch_arrays = [ list(p),
+    #                list(180-p),
+    #                list(p),
+    #                list(180-p)
+    #                ]
 
 
     #Range of gyrophase to use. Smaller range can be used, but for now allow all gyrophases
-    gyrophase_range = [ [9.8,12.2] ,  #UR   Alternatively use full range: np.array([np.deg2rad(0),np.deg2rad(360)])
+    gyrophase_range = [np.array([np.deg2rad(0),np.deg2rad(360)]) ,  #UR   Alternatively use full range: np.array([np.deg2rad(0),np.deg2rad(360)])
                         [7.2,8.6],  #UL
                         [10.9,11.5], #LL
                         [7.8, 8.3]  #LR
