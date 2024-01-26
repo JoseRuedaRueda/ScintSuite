@@ -183,15 +183,15 @@ if __name__ == '__main__':
     plot_plate_geometry = True
     plot_3D = False
 
-    shot = 75620
+    shot = 79185
     Rinsertion = -17 #[mm] #negative means inserted
     if shot <=77469:
         year = 2022
     else:
         year = 2023
 
-    time = 1.005
-    use_reduced_stl_models = False
+    time = 1.33
+    use_reduced_stl_models = True
     use_1mm_pinhole = True
 
 
@@ -206,7 +206,7 @@ if __name__ == '__main__':
     ###
     #Input settings
     ###
-    self_shadowing = False  #Flag to remove markers that would have been shadowed, leave this on
+    self_shadowing = True  #Flag to remove markers that would have been shadowed, leave this on
     backtrace = False  #Do backtracing
     ###
     #Output data to save
@@ -238,9 +238,9 @@ if __name__ == '__main__':
     collimator_string = ['DOWN', 'UP','']
 
     collimator_stl_files = {'heatshield': geom_dir+'TCV_FILD/%s/%s/HeatShield_%s%s.stl'%(year_string, 
-                                                                                            reduced_string[int(use_reduced_stl_models)], 
+                                                                                            '', 
                                                                                             year_string, 
-                                                                                            reduced_string[int(use_reduced_stl_models)])
+                                                                                            '')
                             }
     scintillator_stl_files = {'scintillator':geom_dir+'TCV_FILD/%s/%s/Scintillator_%s%s.stl'%(year_string, 
                                                                                               reduced_string[int(use_reduced_stl_models)], 
@@ -355,17 +355,19 @@ if __name__ == '__main__':
         
         Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time)
         modB = np.sqrt(Br**2 + Bz**2 + Bt**2) 
+    
+    
     ###
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(3e4)
+    n_markers = int(35e3)
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
     #Grids
 
-    energy_arrays = np.arange(4000, 65000, 5000)
+    energy_arrays = np.arange(3000, 85000, 4000)
     #Gyroradii grid in [cm]
     g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
 
@@ -378,7 +380,7 @@ if __name__ == '__main__':
                    list(np.around(g_r, decimals = 5))]
     #pitch angle grid in [degrees]
     #JP: Added rounded on p, because otherwise not correct the arccos (too many zeros gives NaN)
-    p = np.around(np.arange(0.1, 1.05, 0.05), decimals = 5)
+    p = np.around(np.arange(0., 1.04, 0.04), decimals = 5)
     pitch_arrays = [ list(np.around(np.rad2deg(np.arccos(p)), decimals = 5)), 
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5)),
                     list(np.around(np.rad2deg(np.arccos(p)), decimals = 5)),
@@ -395,18 +397,17 @@ if __name__ == '__main__':
 
 
     #Range of gyrophase to use. Smaller range can be used, but for now allow all gyrophases
-    gyrophase_range = [np.array([np.deg2rad(0),np.deg2rad(360)]) ,  #UR   Alternatively use full range: np.array([np.deg2rad(0),np.deg2rad(360)])
+    gyrophase_range = [[7.75, 8.45] ,  #UR   Alternatively use full range: np.array([np.deg2rad(0),np.deg2rad(360)])
                         [7.2,8.6],  #UL
-                        [10.9,11.5], #LL
-                        [7.8, 8.3]  #LR
+                        [7.9,8.4], #LL
+                        [11, 11.5]  #LR
                         ]        
 
     # -----------------------------------------------------------------------------
     # --- Run SINPA FILDSIM
     # -----------------------------------------------------------------------------
-                    
+               
     if run_code:
-
         # prepare namelist
         nml_options = {
             'config':  {  # parameters
@@ -425,7 +426,7 @@ if __name__ == '__main__':
                 'saveOrbitLongMode': False,
                 'runfolder': '',
                 'verbose': True,
-                'IpBt': -1,        # Sign of toroidal current vs field (for pitch), need to check
+                'IpBt': 1,        # Sign of toroidal current vs field (for pitch), need to check
                 'flag_efield_on': False,  # Add or not electric field
                 'save_collimator_strike_points': False,  # Save collimator points
                 'backtrace': backtrace,  # Flag to backtrace the orbits
@@ -446,7 +447,7 @@ if __name__ == '__main__':
 
 
         # write geometry files
-        for i in range(2):
+        for i in range(4):
             if run_slit[i]:                   
                 # prepare magnetic field
                 ###

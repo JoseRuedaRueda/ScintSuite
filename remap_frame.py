@@ -45,7 +45,7 @@ options_filter = {
 # }
 
 #smap = ssmap.StrikeMap(0, '/home/poley/NoTivoli/SINPA/runs/Benchmark_75620_ur/results/Benchmark_75620_ur.map')
-smap = ssmap.StrikeMap(0, '/home/poley/NoTivoli/SINPA/runs/79185@1.270_ur/results/79185@1.270_ur.map')
+smap = ssmap.StrikeMap(0, '/home/poley/NoTivoli/SINPA/runs/79185@1.400_ur/results/79185@1.400_ur.map')
 #smap = ssmap.StrikeMap(0, '/home/jansen/SINPA/runs/77971@0.4_ur/results/77971@0.4_ur.map')
 cal = CalParams() 
 cal.xscale = 18190 
