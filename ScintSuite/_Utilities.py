@@ -129,33 +129,33 @@ def neutron_filter(M: np.ndarray, nsigma: int = 3)->np.ndarray:
 
     return Mo
 
-@njit(nogil=True, parallel=True)
-def neutronAndDeadFilter(M: float, nsigma: float = 3.0, dead: bool = True):
-    """
-    Still too low, need something faster
-    :param M:
-    :param nsigma_neutrons:
-    :param n_sigma_dead:
-    :return:
-    """
-    nx, ny, nt = M.shape
-    new_matrix = np.zeros((nx, ny, nt))
-    for it in prange(nt):
-        frame = M[:, :, it].copy()
-        for ix in range(nsigma, nx-nsigma):
-            for iy in range(nsigma, ny - nsigma):
-                mean = frame[(ix-nsigma):(ix+nsigma),
-                             (iy-nsigma):(iy+nsigma)].mean()
-                std = frame[(ix-nsigma):(ix+nsigma),
-                            (iy-nsigma):(iy+nsigma)].std()
-                if frame[ix, iy] > mean + nsigma * std:
-                    new_matrix[ix, iy, it] = mean
-                elif frame[ix, iy] < mean - nsigma * std and dead:
-                    new_matrix[ix, iy, it] = mean
-                else:
-                    new_matrix[ix, iy, it] = M[ix, iy, it]
-        print(it)
-    return new_matrix
+# @njit(nogil=True, parallel=True)
+# def neutronAndDeadFilter(M: float, nsigma: float = 3.0, dead: bool = True):
+#     """
+#     Still too low, need something faster
+#     :param M:
+#     :param nsigma_neutrons:
+#     :param n_sigma_dead:
+#     :return:
+#     """
+#     nx, ny, nt = M.shape
+#     new_matrix = np.zeros((nx, ny, nt))
+#     for it in prange(nt):
+#         frame = M[:, :, it].copy()
+#         for ix in range(nsigma, nx-nsigma):
+#             for iy in range(nsigma, ny - nsigma):
+#                 mean = frame[(ix-nsigma):(ix+nsigma),
+#                              (iy-nsigma):(iy+nsigma)].mean()
+#                 std = frame[(ix-nsigma):(ix+nsigma),
+#                             (iy-nsigma):(iy+nsigma)].std()
+#                 if frame[ix, iy] > mean + nsigma * std:
+#                     new_matrix[ix, iy, it] = mean
+#                 elif frame[ix, iy] < mean - nsigma * std and dead:
+#                     new_matrix[ix, iy, it] = mean
+#                 else:
+#                     new_matrix[ix, iy, it] = M[ix, iy, it]
+#         print(it)
+#     return new_matrix
 
 
 # -----------------------------------------------------------------------------

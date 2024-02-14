@@ -89,6 +89,10 @@ def plotSettings(plot_mode='software', usetex=False):
     mpl.rcParams['legend.fontsize'] = nml[mode]['legend_font_size']
     mpl.rcParams['axes.titlesize'] = nml[mode]['title_font_size']
     mpl.rcParams['axes.labelsize'] = nml[mode]['axis_font_size']
+    try:
+        mpl.rcParams['font.size'] = nml[mode]['inside_text_font_size']
+    except KeyError:
+        mpl.rcParams['font.size'] = nml[mode]['axis_font_size'] - 2 # 2 points less than the axis label
 
     mpl.rcParams['lines.linewidth'] = nml[mode]['line_width']
     mpl.rcParams['lines.markersize'] = nml[mode]['marker_size']

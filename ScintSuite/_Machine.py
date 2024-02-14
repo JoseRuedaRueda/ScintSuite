@@ -2,22 +2,37 @@
 import os
 import logging
 logger = logging.getLogger('ScintSuite.Machine')
-#
-# try:
-#     from pyEquilibrium.equilibrium import equilibrium
-#     machine = 'MU'
-# except
-if os.path.isdir('/common/uda-scratch'):
+
+# ------------------------------------------------------------------------------
+# %% Check the machine
+# ------------------------------------------------------------------------------
+AUG = False
+MU = False
+# ---- Check if we are in AUG
+try:
+    import aug_sfutils
+    AUG = True
+    machine = 'AUG'
+except ModuleNotFoundError:
+    pass
+# ---- Check if we are in MU
+if os.path.isdir('/common/uda-scratch') or os.path.isdir('/home/muadmin/package'):
+    MU = True
     machine = 'MU'
-elif os.path.isdir('/home/muadmin/package'):
-    machine = 'MU'
-elif os.path.isdir('/afs/ipp/aug/ads-diags/common/python/lib'):
-    try:
-        import aug_sfutils
-        machine = 'AUG'
-    except ModuleNotFoundError:
-        machine = 'Generic'
 else:
+    try:
+        import pyEquilibrium
+        MU = True
+        machine = 'MU'
+    except ModuleNotFoundError:
+        pass
+# ---- Check that we only have one possitive
+if AUG and MU:
+    text = 'Both AUG and MU are True, this is not possible'
+    logger.error('%s' % text)
+    raise ValueError(text)
+
+elif not (AUG or MU):
     machine = 'Generic'
     text = 'Not recognised tokamak enviroment, no database available'
     logger.warning('23: %s' % text)

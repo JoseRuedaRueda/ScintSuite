@@ -17,7 +17,7 @@ last revision:
 """
 import os
 import numpy as np
-import ScintSuite.as ss
+import ScintSuite as ss
 paths = ss.paths
 # -----------------------------------------------------------------------------
 # --- Settings block
