@@ -443,7 +443,7 @@ class NBI:
         # make the vector with the desired length
         v *= delta / normv
         # estimate the number of steps
-        nstep = np.int(normv / delta) + 10
+        nstep = int(normv / delta) + 10
         # 'walk' along the NBI
         point = np.array([self.coords['x0'], self.coords['y0'],
                           self.coords['z0']])
