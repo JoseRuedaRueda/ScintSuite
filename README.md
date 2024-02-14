@@ -53,7 +53,7 @@ git clone https://gitlab.mpcdf.mpg.de/ruejo/scintsuite ScintSuite
 cd ScintSuite
 git checkout <branch>
 python first_run_pip.py
-pip install .
+pip install -e .
 ```
 This will install all requirement via pip. It is needed that your machine support pip installation of python packages
 ### Getting started

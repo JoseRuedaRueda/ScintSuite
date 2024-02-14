@@ -25,7 +25,7 @@ logger = logging.getLogger('ScintSuite.Optics')
 paths = Path(machine)
 try:
     from wand.image import Image
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     text = 'Wand image not found, you cannnot apply distortion to figures'
     logger.warning('10: %s' % text)
 try:
