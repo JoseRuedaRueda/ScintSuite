@@ -1,3 +1,6 @@
+- Bug solved in substract noise, last frame was not taken into account (bug introduced in 1.2.1)
+- Plot mask option added to the GUI_frames
+
 # 1.3.5 Update netCDF library for MU
 - The netCDF library has been updated to read new standard MU format
 

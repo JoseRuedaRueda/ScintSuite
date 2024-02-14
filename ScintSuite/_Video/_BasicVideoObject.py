@@ -506,7 +506,7 @@ class BVO:
 
             logger.info('Using frames from the video')
             logger.info('%i frames will be used to average noise', it2 - it1 + 1)
-            frame = self.exp_dat['frames'].isel(t=slice(it1, it2)).mean(dim='t')
+            frame = self.exp_dat['frames'].isel(t=slice(it1, it2+1)).mean(dim='t')
             #frame = np.mean(self.exp_dat['frames'].values[:, :, it1:(it2 + 1)],
             #                dtype=original_dtype, axis=2)
 

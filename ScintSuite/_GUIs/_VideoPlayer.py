@@ -212,9 +212,6 @@ class ApplicationShowVid:
         if self.checkVar2.get():
             self.scintillator.plot_pix(ax=self.canvas.figure.axes[0])
             # Plot the mask:
-        if self.checkVar3.get():
-            ax=self.canvas.figure.axes[0]
-            ax.imshow(self.mask, origin='lower', alpha=0.2, cmap='spring')
         self.canvas.draw()
 
     def set_scale(self):
@@ -247,10 +244,18 @@ class ApplicationShowVid:
     def mask_Button_change(self):
         """Decide to plot or not the mask. Careful. Press once, move to next
         frame for it to do something and then deactivate so it doesn't add layers."""
+        
+        # If it was true and we push the button, the smap should be deleted:
+        if self.checkVar3.get():
+            ssplt.remove_last_image(self.canvas.figure.axes[0])
         # If we activate it, print instructions
         # Update the value
         self.checkVar3.set(not self.checkVar3.get())
         print('Draw mask :', self.checkVar3.get())
+        if self.checkVar3.get():
+            ax=self.canvas.figure.axes[0]
+            self.mask_plot = ax.imshow(self.mask, origin='lower', alpha=0.2, cmap='spring')
+
         if self.checkVar3.get(): 
             print('The mask has been activated. Now, move to the next frame and deactivate \
                     it again so it does not add layers.')
