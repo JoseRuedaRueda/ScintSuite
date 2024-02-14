@@ -942,7 +942,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 else:
                     index_gyr = np.array([gyr_index])
             else:
-                index_gyr = np.arange(self.MC_variables[1].data.size, dtype=np.int)
+                index_gyr = np.arange(self.MC_variables[1].data.size, dtype=int)
 
         if pitch is not None:
             # test if it is a number or an array of them
@@ -964,7 +964,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 else:
                     index_pitch = np.array([pitch_index])
             else:
-                index_pitch = np.arange(self.MC_variables[0].data.size, dtype=np.int)
+                index_pitch = np.arange(self.MC_variables[0].data.size, dtype=int)
         # --- Get the maximum value for the normalization
 
         # --- Plot the desired data
