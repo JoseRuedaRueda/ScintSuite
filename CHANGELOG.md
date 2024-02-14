@@ -1,3 +1,6 @@
+# 1.3.7 Fix numpy dependencies
+- Removed calls to np.int
+
 # 1.3.6 Updated fild export
 - Updated pip requirements
 - Updated export fild, for the case of single smap used in remap
