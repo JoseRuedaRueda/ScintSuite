@@ -153,7 +153,7 @@ def magneticPhaseCorrection(coilnumber: int, coilgrp: str, freq: float = None,
 
 
 def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
-                  timeWindow: Optional[list] = None):
+                  timeWindow: Optional[list] = None, sfh: Optional[str] = None):
     """
     Retrieve from the shot file the magnetic data information.
 
@@ -175,7 +175,10 @@ def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
     exp = 'AUGD'  # Only the AUGD data retrieve is supported with the dd.
 
     try:
-        sf = SF.SFREAD(diag, shotnumber, experiment=exp,  edition=0)
+        if sfh is None:
+            sf = SF.SFREAD(diag, shotnumber, experiment=exp,  edition=0)
+        else:
+            sf = SF.SFREAD(sfh=sfh)
     except:
         raise errors.DatabaseError(
             'Shotfile not existent for ' + diag + ' #' + str(shotnumber))

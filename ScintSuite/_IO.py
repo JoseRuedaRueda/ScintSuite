@@ -143,7 +143,7 @@ def ask_to_open_dir(path: str = None) -> str:
 # -----------------------------------------------------------------------------
 # --- General reading
 # -----------------------------------------------------------------------------
-def read_variable_ncdf(file:str , varNames, human=True, verbose=True)->list:
+def read_variable_ncdf(file: str, varNames, human=True, verbose=True) -> list:
     """
     Read a variable from a  netCDF file
 
@@ -183,7 +183,7 @@ def read_variable_ncdf(file:str , varNames, human=True, verbose=True)->list:
     return out
 
 
-def print_netCDF_content(file: str, long_name=False)->None:
+def print_netCDF_content(file: str, long_name=False) -> None:
     """
     Print the list of variables in a netcdf file
 
@@ -206,7 +206,7 @@ def print_netCDF_content(file: str, long_name=False)->None:
 # -----------------------------------------------------------------------------
 # --- ROIs
 # -----------------------------------------------------------------------------
-def save_mask(mask, filename=None, nframe=None, shot=None, frame=None)->str:
+def save_mask(mask, filename=None, nframe=None, shot=None, frame=None) -> str:
     """
     Save the mask used in timetraces and remap calculations
 
@@ -274,7 +274,7 @@ def save_mask(mask, filename=None, nframe=None, shot=None, frame=None)->str:
     return filename
 
 
-def load_mask(filename: str)->dict:
+def load_mask(filename: str) -> dict:
     """
     Load a binary mask to use in timetraces, remaps or VRT images
 
@@ -319,7 +319,7 @@ def read_timetrace(file: str = None) -> None:
 # -----------------------------------------------------------------------------
 # --- Calibration
 # -----------------------------------------------------------------------------
-def read_calibration(file: str = None, verbose: bool = False)->CalParams:
+def read_calibration(file: str = None, verbose: bool = False) -> CalParams:
     """
     Read the used calibration from a remap netCDF file
 
@@ -400,7 +400,7 @@ def load_object_pickle(file):
 # -----------------------------------------------------------------------------
 # --- Camera properties
 # -----------------------------------------------------------------------------
-def read_camera_properties(file: str)->dict:
+def read_camera_properties(file: str) -> dict:
     """
     Read namelist with the camera properties
 
@@ -534,7 +534,7 @@ def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
 # -----------------------------------------------------------------------------
 # --- Remaped videos
 # -----------------------------------------------------------------------------
-def load_remap(filename, diag='FILD')->Union[FILDVideo, INPAVideo]:
+def load_remap(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
     """
     Load a tar remap file into a video object
 
@@ -563,8 +563,12 @@ def load_remap(filename, diag='FILD')->Union[FILDVideo, INPAVideo]:
     else:
         raise errors.NotValidInput('Not suported diagnostic')
     vid.remap_dat = xr.load_dataset(os.path.join(dummyFolder, 'remap.nc'))
-    vid.Bangles = xr.load_dataset(os.path.join(dummyFolder, 'Bfield.nc'))
-    vid.BField = xr.load_dataset(os.path.join(dummyFolder, 'BfieldAngles.nc'))
+    try:
+        vid.Bangles = xr.load_dataset(os.path.join(dummyFolder, 'Bfield.nc'))
+        vid.BField = xr.load_dataset(os.path.join(dummyFolder, 'BfieldAngles.nc'))
+    except FileNotFoundError:
+        logger.warning('Bfield not found, not loaded')
+        # This happens if the remap was done with a single smap
     vid.CameraCalibration = \
         read_calibration(os.path.join(dummyFolder, 'CameraCalibration.nc'))
     v = ver.readVersion(os.path.join(dummyFolder, 'version.txt'))
@@ -583,18 +587,26 @@ def load_remap(filename, diag='FILD')->Union[FILDVideo, INPAVideo]:
         vid.diag = diag.upper()
         vid.geometryID = f.readline().split(':')[-1].split('\n')[0].strip()
         vid.settings = {}
-        vid.settings['RealBPP'] = int(f.readline().split(':')[-1])
+        # sometimes, the data is save like [8] instead of 8, so let's use a try
+        numberline = f.readline()  
+        try:
+            vid.settings['RealBPP'] = int(numberline.split(':')[-1])
+        except ValueError:
+            vid.settings['RealBPP'] = numberline.split(':')[-1].split('[')[1]
     fid = open(position)
     vid.position = json.load(fid)
     fid.close()
     fid = open(orientation)
     vid.orientation = \
-        {k:np.array(v) for k,v in json.load(fid).items()}
+        {k: np.array(v) for k, v in json.load(fid).items()}
     fid.close()
-    logger.info('Remap generated with version %i.%i.%i'%(v[0], v[1], v[2]))
+    logger.info('Remap generated with version %i.%i.%i' % (v[0], v[1], v[2]))
     if diag.lower() == 'inpa':
-        vid._getNBIpower()
-        vid._getNe()
+        try:
+            vid._getNBIpower()
+            vid._getNe()
+        except TypeError:
+            pass
     return vid
 
 

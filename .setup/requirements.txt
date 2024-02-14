@@ -1,6 +1,7 @@
 aug_sfutils>=0.7.8
 cycler>=0.11.0
 f90nml>=1.4.3
+ffmpeg>=1.4
 ffmpeg_python>=0.2.0
 git-python
 lmfit>=1.1.0

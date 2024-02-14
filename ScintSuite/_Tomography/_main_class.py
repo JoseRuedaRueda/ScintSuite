@@ -730,14 +730,20 @@ class Tomography():
         Eprof = data.sum('x')
         Rprof = data.sum('y')
         # Interpolate the true solution in the grid
-        trueSolInterp = true_solution.interp(x=data.x, y=data.y)
-        # get the profiles
-        EprofTrue = trueSolInterp.sum('x')
-        RprofTrue = trueSolInterp.sum('y')
+        if true_solution is not None:
+            trueSolInterp = true_solution.interp(x=data.x, y=data.y)
+            # get the profiles
+            EprofTrue = trueSolInterp.sum('x')
+            RprofTrue = trueSolInterp.sum('y')
+            weHaveTrue = True
+        else:
+            weHaveTrue = False
+
         Total = np.sqrt(self.inversion[inversion].F**2).sum(dim=('x','y'))
         fig, ax = plt.subplots(2,2)
-        ax[0,0].plot(EprofTrue.y, EprofTrue, '--k', label='True',)
-        ax[1,0].plot(RprofTrue.x, RprofTrue, '--k', label='True',)
+        if weHaveTrue:
+            ax[0,0].plot(EprofTrue.y, EprofTrue, '--k', label='True',)
+            ax[1,0].plot(RprofTrue.x, RprofTrue, '--k', label='True',)
         ax[0, 1].plot(self.inversion[inversion].MSE,
                       Total)
         # ax[1, 1].plot(self.inversion[inversion].alpha,

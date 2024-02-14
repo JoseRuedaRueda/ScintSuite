@@ -115,4 +115,4 @@ class ScintillatorEfficiency:
         """
         kwargs2 = {'fill_value': 'extrapolate'}
         kwargs2.update(kwargs)
-        return self.data.interp(E=E, kwargs=kwargs2).values
+        return self.data.interp(E=E, kwargs=kwargs2)
