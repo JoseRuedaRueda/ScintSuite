@@ -40,6 +40,7 @@ Data/BEP/spectra/*
 Data/MyData/*
 Data/Magnetics/*
 Data/RemapStrikeMaps/*
+Data/APD/*
 MyRoutines/*
 Results/*
 doc/*

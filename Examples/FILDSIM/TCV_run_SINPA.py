@@ -350,7 +350,7 @@ if __name__ == '__main__':
     new_b_field = True  #Generate new b_field file for FILDSIM. This is slow so this flag lets you use the old
     if new_b_field and run_code:
         xyzPin = np.mean(pinholes[idx_slit]['points']*0.001, axis = 0)   #get magnetic field for specific slit
-        Rpin = np.sqrt(xyzPin[0]**2 + xyzPin[1])
+        Rpin = np.sqrt(xyzPin[0]**2 + xyzPin[1]**2)
         zPin = xyzPin[2]
         
         Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time)

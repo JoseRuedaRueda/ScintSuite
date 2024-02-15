@@ -179,7 +179,7 @@ class BVO:
                 elif file.endswith('.mat'):
                     ##TCV saves videos as MATLAB files
                     ##Check if the video is from the XIMEA (stored in pcfild002) or APD (stored in pcfild003)
-                    if 'pcfild002' in file:
+                    if ('pcfild002' in file) or ('pcfild004' in file):
                         dummy = mat.read_file(file)#, **self.properties)
                         t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
                         self.timebase = t0 + dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
