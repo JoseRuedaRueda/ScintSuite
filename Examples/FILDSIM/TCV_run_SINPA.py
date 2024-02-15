@@ -179,10 +179,13 @@ if __name__ == '__main__':
     plt.close('all')
 
     Test = False  # if true don't do run, just check the input geometry
+    Test = False  # if true don't do run, just check the input geometry
     # test geometry
     plot_plate_geometry = True
     plot_3D = False
 
+    shot = 79301
+    Rinsertion = -16.8 #[mm] #negative means insertedl
     shot = 79185
     Rinsertion = -17 #[mm] #negative means inserted
     if shot <=77469:
@@ -192,16 +195,16 @@ if __name__ == '__main__':
 
     time = 1.33
     use_reduced_stl_models = True
-    use_1mm_pinhole = True
+    use_1mm_pinhole = False
 
 
     run_code = True  # Set flag to run FILDSIM
-    run_slit = [False, True, False, False]  # Run particles starting at slits set to true, starting with ul, ur, ll, lr
-    read_slit = [False, True, False, False] # Read results from diffrent slits
-    slits = ['ul', 'ur', 'll', 'lr']
+    run_slit = [False, False, False, True]  # Run particles starting at slits set to true, starting with ul, ur, lr, ll
+    read_slit = [False, False, False, True] # Read results from diffrent slits
+    slits = ['ul', 'ur', 'lr', 'll']
     idx_slit = np.where(run_slit)[0][0]
     run_name = '%i@%.3f' %(shot, time) #Choose unique run identifier, like shot number and time
-    run_names = [run_name +'_ul', run_name +'_ur', run_name +'_ll', run_name +'_lr']
+    run_names = [run_name +'_ul', run_name +'_ur', run_name +'_lr', run_name +'_ll']
     read_results = not run_code # Flag to read output after run
     ###
     #Input settings
@@ -257,9 +260,9 @@ if __name__ == '__main__':
 
     if year == 2022:
         #choose points on scintillator for reference coordinate system
-        p1 = np.array([-195.63, 1130.03, 29.4993]) * 0.001 #convert mm to m
-        p2 = np.array([-209.592, 1127.26, 29.4993]) * 0.001 
-        p3 = np.array([-210.13, 1127.15, -4.66387]) * 0.001
+        p1 = np.array([-195.225, 1130.11, 29.8262]) * 0.001 #convert mm to m
+        p2 = np.array([-210.381, 1127.1, 29.826]) * 0.001 
+        p3 = np.array([-202.901, 1128.59, -14.5706]) * 0.001
 
         scint_norm = get_normal_vector(p1, p2, p3)        
         ps = p1 
@@ -267,9 +270,9 @@ if __name__ == '__main__':
         u1_scint /= np.linalg.norm(u1_scint)
 
     if year == 2023:
-        p1 = np.array([-195.225, 1130.11, 29.8262]) * 0.001 
-        p2 = np.array([-210.381, 1127.1, 29.8262] ) * 0.001
-        p3 = np.array([-202.901, 1128.59, -14.5706]) * 0.001
+        p1 = np.array([-195.63, 1130.03, 29.4993]) * 0.001 
+        p2 = np.array([-209.592, 1127.26, 29.4995] ) * 0.001
+        p3 = np.array([-210.13, 1127.15, -4.66387]) * 0.001
 
         scint_norm = get_normal_vector(p1, p2, p3)        
         ps = p2 
@@ -318,7 +321,7 @@ if __name__ == '__main__':
         pinholes[0]['points'] = np.array([[-192.96, 1137.7, 35.4414],  #Important, the vector p1 to p2 should be one dimension, and 
                                         [-193.155, 1138.68, 35.4414],  # the vector p2 to p3 the other dimension of the slit
                                         [-195.117, 1138.29, 35.4414],
-                                        [-194.921, 1137.31, 35.4414]] ) #upper right, looking from plasma to FILD head
+                                        [-194.921, 1137.31, 35.4414]] ) #upper left, looking from camera to FILD head
 
         pinholes[1]['pinholeKind'] =1
         pinholes[1]['pinholeCentre'] = None
@@ -326,22 +329,22 @@ if __name__ == '__main__':
         pinholes[1]['points'] = np.array([[-257.103, 1124.94, 35.4414],
                                         [-257.259, 1125.73, 35.4414],
                                         [-255.298, 1126.12, 35.4414],
-                                        [-255.142, 1125.33, 35.4414] ] )#upper left
+                                        [-255.142, 1125.33, 35.4414] ] )#upper right
 
 
         if year == 2023:
-            pinholes[2]['pinholeKind'] =1
-            pinholes[2]['pinholeCentre'] = None
-            pinholes[2]['pinholeRadius'] = None
-            pinholes[2]['points'] = np.array([[-192.961, 1137.7, -10.5008],
+            pinholes[3]['pinholeKind'] =1
+            pinholes[3]['pinholeCentre'] = None
+            pinholes[3]['pinholeRadius'] = None
+            pinholes[3]['points'] = np.array([[-192.961, 1137.7, -10.5008],
                                             [-193.117, 1138.49, -10.5008],
                                             [-195.079, 1138.1, -10.5007],
                                             [-194.922, 1137.31, -10.5007]] )#lower left, looking from plasma to FILD head
 
-            pinholes[3]['pinholeKind'] =1
-            pinholes[3]['pinholeCentre'] = None
-            pinholes[3]['pinholeRadius'] = None
-            pinholes[3]['points'] = np.array([[-257.104, 1124.94, -10.4998],
+            pinholes[2]['pinholeKind'] =1
+            pinholes[2]['pinholeCentre'] = None
+            pinholes[2]['pinholeRadius'] = None
+            pinholes[2]['points'] = np.array([[-257.104, 1124.94, -10.4998],
                                             [-257.26, 1125.73, -10.4998],
                                             [-255.299, 1126.12, -10.4998],
                                             [-255.143, 1125.33, -10.4998] ] )#lower right          
@@ -357,19 +360,19 @@ if __name__ == '__main__':
         modB = np.sqrt(Br**2 + Bz**2 + Bt**2) 
     
     
-    ###
-    # Marker inputs
-    ###
-    #Number of markers per pitch-gyroradius pair
-    n_markers = int(35e3)
-    # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
-    n1 = 0.0
-    r1 = 0.0
-    #Grids
+        ###
+        # Marker inputs
+        ###
+        #Number of markers per pitch-gyroradius pair
+        n_markers = int(35e3)
+        # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
+        n1 = 0.0
+        r1 = 0.0
+        #Grids
 
-    energy_arrays = np.arange(3000, 85000, 4000)
-    #Gyroradii grid in [cm]
-    g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
+        energy_arrays = np.arange(3000, 85000, 4000)
+        #Gyroradii grid in [cm]
+        g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
 
     #Alternatively use cm grid
     #g_r = np.arange(0.5, 5, 0.2)
@@ -447,6 +450,7 @@ if __name__ == '__main__':
 
 
         # write geometry files
+        for i in range(4):
         for i in range(4):
             if run_slit[i]:                   
                 # prepare magnetic field
@@ -545,7 +549,7 @@ if __name__ == '__main__':
                   {'zorder':3,'color':'r'},
                   {'zorder':3,'color':'b'}]
 
-    plot_orbits = True
+    plot_orbits = False
     orbit_kind=(2,) # 2 colliding w. scint., 0 colliding w. coll., 9 missing all, 3 scint. markers traced backwards
     plot_self_shadowing_collimator_strike_points = False
     # Save data to txt files for ParaView inspection
@@ -572,7 +576,7 @@ if __name__ == '__main__':
         Smap = [[],[],[],[]]
         p0 = [75, 115]
         
-        for i in range(2):
+        for i in range(4):
             if read_slit[i] :# or mixnmatch:
                 runDir = os.path.join(paths.SINPA, 'runs', runid[i])
                 inputsDir = os.path.join(runDir, 'inputs/')
@@ -898,7 +902,7 @@ if __name__ == '__main__':
             Geometry.plot2Dfilled(ax=ax, view = 'Scint', element_to_plot = [2],
                                     plot_pinhole = False)
                 
-            for i in range(2):
+            for i in range(4):
                 if read_slit[i]:# or mixnmatch:
                     if plot_strike_points:
                         #IPython.embed()
@@ -928,7 +932,7 @@ if __name__ == '__main__':
                 ax3D = plt.gca()
                 
                 
-                for i in range(2):
+                for i in range(4):
                     if read_slit[i]:# or mixnmatch:
                         
                         if plot_strike_points:

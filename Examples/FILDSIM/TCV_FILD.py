@@ -205,16 +205,16 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------
     plt.close('all')
 
-    Test = False  # if true don't do run, just check the input geometry
+    Test = True  # if true don't do run, just check the input geometry
     # test geometry
     plot_plate_geometry = True
     plot_3D = False
 
-    run_code = False  # Set flag to run FILDSIM
+    run_code = True  # Set flag to run FILDSIM
     run_slit = [False, True, False, False] # Run particles starting at slits set to true, starting with ul, ur, ll,lr
     read_slit = [False, True, False, False] # Read results from diffrent slits
-    string_mod = '75620@1.020' #Choose unique run identifier, like shot number and time
-    run_names = [string_mod+'_ul', string_mod + '_ur_r3',string_mod+'_ll', string_mod + '_lr']
+    string_mod = '79301@0.65' #Choose unique run identifier, like shot number and time
+    run_names = [string_mod+'_ul', string_mod + '_ur',string_mod+'_ll', string_mod + '_lr']
     read_results = not run_code # Flag to read output after run
     ###
     #Input settings
@@ -335,8 +335,8 @@ if __name__ == '__main__':
 
 
     if use_single_B and run_code:
-        shot = 79300
-        time = 1.19
+        shot = 79301
+        time = 0.65
         Rin = -17 *0.001
         Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rin, time)
 
