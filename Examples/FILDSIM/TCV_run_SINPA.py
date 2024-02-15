@@ -179,28 +179,25 @@ if __name__ == '__main__':
     plt.close('all')
 
     Test = False  # if true don't do run, just check the input geometry
-    Test = False  # if true don't do run, just check the input geometry
     # test geometry
     plot_plate_geometry = True
-    plot_3D = False
+    plot_3D = True
 
-    shot = 79301
-    Rinsertion = -16.8 #[mm] #negative means insertedl
-    shot = 79185
-    Rinsertion = -17 #[mm] #negative means inserted
+    shot = 79581
+    Rinsertion = -17.0 #[mm] #negative means inserted
     if shot <=77469:
         year = 2022
     else:
         year = 2023
 
-    time = 1.33
+    time = 1.0
     use_reduced_stl_models = True
-    use_1mm_pinhole = False
+    use_1mm_pinhole = True
 
 
     run_code = True  # Set flag to run FILDSIM
-    run_slit = [False, False, False, True]  # Run particles starting at slits set to true, starting with ul, ur, lr, ll
-    read_slit = [False, False, False, True] # Read results from diffrent slits
+    run_slit = [False, True, False, False]  # Run particles starting at slits set to true, starting with ul, ur, lr, ll
+    read_slit = [False, True, False, False] # Read results from diffrent slits
     slits = ['ul', 'ur', 'lr', 'll']
     idx_slit = np.where(run_slit)[0][0]
     run_name = '%i@%.3f' %(shot, time) #Choose unique run identifier, like shot number and time
@@ -209,7 +206,7 @@ if __name__ == '__main__':
     ###
     #Input settings
     ###
-    self_shadowing = True  #Flag to remove markers that would have been shadowed, leave this on
+    self_shadowing = False  #Flag to remove markers that would have been shadowed, leave this on
     backtrace = False  #Do backtracing
     ###
     #Output data to save
@@ -241,9 +238,9 @@ if __name__ == '__main__':
     collimator_string = ['DOWN', 'UP','']
 
     collimator_stl_files = {'heatshield': geom_dir+'TCV_FILD/%s/%s/HeatShield_%s%s.stl'%(year_string, 
-                                                                                            '', 
-                                                                                            year_string, 
-                                                                                            '')
+                                                                                        reduced_string[int(use_reduced_stl_models)], 
+                                                                                         year_string, 
+                                                                                         reduced_string[int(use_reduced_stl_models)])
                             }
     scintillator_stl_files = {'scintillator':geom_dir+'TCV_FILD/%s/%s/Scintillator_%s%s.stl'%(year_string, 
                                                                                               reduced_string[int(use_reduced_stl_models)], 
@@ -256,7 +253,8 @@ if __name__ == '__main__':
                                                                                             slitSize_string[int(use_1mm_pinhole)]+'mm', 
                                                                                             year_string, 
                                                                                             reduced_string[int(use_reduced_stl_models)])
-
+                            
+    
 
     if year == 2022:
         #choose points on scintillator for reference coordinate system
@@ -353,7 +351,7 @@ if __name__ == '__main__':
     new_b_field = True  #Generate new b_field file for FILDSIM. This is slow so this flag lets you use the old
     if new_b_field and run_code:
         xyzPin = np.mean(pinholes[idx_slit]['points']*0.001, axis = 0)   #get magnetic field for specific slit
-        Rpin = np.sqrt(xyzPin[0]**2 + xyzPin[1])
+        Rpin = np.sqrt(xyzPin[0]**2 + xyzPin[1]**2)
         zPin = xyzPin[2]
         
         Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time)
@@ -364,13 +362,13 @@ if __name__ == '__main__':
         # Marker inputs
         ###
         #Number of markers per pitch-gyroradius pair
-        n_markers = int(35e3)
+        n_markers = int(12e4)
         # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
         n1 = 0.0
         r1 = 0.0
         #Grids
 
-        energy_arrays = np.arange(3000, 85000, 4000)
+        energy_arrays = np.arange(3000, 65000, 5000)
         #Gyroradii grid in [cm]
         g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
 
@@ -383,11 +381,11 @@ if __name__ == '__main__':
                    list(np.around(g_r, decimals = 5))]
     #pitch angle grid in [degrees]
     #JP: Added rounded on p, because otherwise not correct the arccos (too many zeros gives NaN)
-    p = np.around(np.arange(0., 1.04, 0.04), decimals = 5)
-    pitch_arrays = [ list(np.around(np.rad2deg(np.arccos(p)), decimals = 5)), 
+    p = np.around(np.arange(0.01, 1.01, 0.1), decimals = 5)
+    pitch_arrays = [list(np.around(np.rad2deg(np.arccos(p)), decimals = 5)), 
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5)),
-                    list(np.around(np.rad2deg(np.arccos(p)), decimals = 5)),
-                    list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5))
+                    list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5)),
+                    list(np.around(np.rad2deg(np.arccos(p)), decimals = 5))
                     ]
 
     #alternatively use degree grid
@@ -400,10 +398,10 @@ if __name__ == '__main__':
 
 
     #Range of gyrophase to use. Smaller range can be used, but for now allow all gyrophases
-    gyrophase_range = [[7.75, 8.45] ,  #UR   Alternatively use full range: np.array([np.deg2rad(0),np.deg2rad(360)])
-                        [7.2,8.6],  #UL
-                        [7.9,8.4], #LL
-                        [11, 11.5]  #LR
+    gyrophase_range = [[np.deg2rad(250),np.deg2rad(320)],  #UL  [np.deg2rad(185),np.deg2rad(359)]
+                        [np.deg2rad(22),np.deg2rad(182)],  #UR [np.deg2rad(22),np.deg2rad(182)]
+                        [np.deg2rad(200),np.deg2rad(350)], #LR [np.deg2rad(185),np.deg2rad(359)]
+                        [np.deg2rad(1),np.deg2rad(189)]  #LL [np.deg2rad(1),np.deg2rad(189)]
                         ]        
 
     # -----------------------------------------------------------------------------
@@ -429,7 +427,7 @@ if __name__ == '__main__':
                 'saveOrbitLongMode': False,
                 'runfolder': '',
                 'verbose': True,
-                'IpBt': 1,        # Sign of toroidal current vs field (for pitch), need to check
+                'IpBt': -1,        # Sign of toroidal current vs field (for pitch), need to check
                 'flag_efield_on': False,  # Add or not electric field
                 'save_collimator_strike_points': False,  # Save collimator points
                 'backtrace': backtrace,  # Flag to backtrace the orbits
@@ -450,7 +448,6 @@ if __name__ == '__main__':
 
 
         # write geometry files
-        for i in range(4):
         for i in range(4):
             if run_slit[i]:                   
                 # prepare magnetic field
@@ -550,7 +547,7 @@ if __name__ == '__main__':
                   {'zorder':3,'color':'b'}]
 
     plot_orbits = False
-    orbit_kind=(2,) # 2 colliding w. scint., 0 colliding w. coll., 9 missing all, 3 scint. markers traced backwards
+    orbit_kind=(9,) # 2 colliding w. scint., 0 colliding w. coll., 9 missing all, 3 scint. markers traced backwards
     plot_self_shadowing_collimator_strike_points = False
     # Save data to txt files for ParaView inspection
     save_strike_points_txt = False
@@ -904,8 +901,9 @@ if __name__ == '__main__':
                 
             for i in range(4):
                 if read_slit[i]:# or mixnmatch:
+                    print('HOLAAA!')
                     if plot_strike_points:
-                        #IPython.embed()
+                        #IPython.embed()rundid=
                         Smap[i].strike_points.scatter(ax=ax, per=0.2
                                                         , xscale=100.0, yscale=100.0
                                                         ,mar_params = mar_params[i]
@@ -922,6 +920,7 @@ if __name__ == '__main__':
                         #orb[i].plot2D(ax=ax,line_params={'color': 'k'}, kind=(9,),factor=100.0)
                         if save_orb_txt:
                             orb[i].save_orbits_to_txt( kind=orbit_kind, units = 'mm', seperated = seperated)
+                            print('I arrived here!!!!')
                 else:
                     orb.append([])
                         

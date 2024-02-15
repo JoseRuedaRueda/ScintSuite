@@ -139,10 +139,10 @@ import numpy as np
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 75620
+shot = 79581
 diag_ID = 1  # 6 for rFILD
-t1 = 1.015     # Initial time to be loaded, [s]
-t2 = 1.017     # Final time to be loaded [s]
+t1 = 1.000     # Initial time to be loaded, [s]
+t2 = 1.010     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 # - Noise subtraction settings:
@@ -162,7 +162,7 @@ options_filter = {
 # options_filter = {
 #     'sigma': 1        # sigma of the gaussian for the convolution (in pixels)
 # }
-smap = ssmap.StrikeMap(0, '/home/jansen/NoTivoli/SINPA/runs/75620@1.020_ur_r3/results/75620@1.020_ur_r3.map')
+smap = ssmap.StrikeMap(0, '/home/poley/NoTivoli/SINPA/runs/79581@1.000_ur/results/79581@1.000_ur.map')
 cal = CalParams()
 cal.xscale = 18165
 cal.yscale = 18165
@@ -182,8 +182,8 @@ smap.setRemapVariables(('p0', 'e0'), verbose=False)
 # - Remapping options:
 save_remap = False  # If true, the remap will be saved in a netCDF file
 par = {
-    'ymin': 5.0,      # Minimum gyroradius [in cm]
-    'ymax': 50.0,     # Maximum gyroradius [in cm]
+    'ymin': 3.0,      # Minimum gyroradius [in cm]
+    'ymax': 80.0,     # Maximum gyroradius [in cm]
     'dy': 0.5,        # Interval of the gyroradius [in cm]
     'xmin': -1,     # Minimum pitch angle [in degrees]
     'xmax': 0,     # Maximum pitch angle [in degrees]
