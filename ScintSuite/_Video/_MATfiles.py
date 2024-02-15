@@ -1,8 +1,6 @@
 """
 Routines to reading TCV style matlab files with video data from FILD cameras
-
 Written by Anton Jansen van Vuuren: anton.jansenvanvuuren@epfl.ch
-
 """
 
 import scipy.io as scio
@@ -13,8 +11,6 @@ import xarray as xr
 def read_file(filename: str):
     '''
     Function to .mat files of the XIMEA camera
-    
-
     :param  filename: full path pointing to the .mat file
     '''
     #filename = '/videodata/pcfild002/data/fild002/74718.mat'
@@ -25,7 +21,7 @@ def read_file(filename: str):
         # node is a dataset
             #print(f'Dataset: {fullname}; adding to dictionary')
             ds_dict[fullname] = np.array(node[()])
-            #print('ds_dict size', len(ds_dict)) 
+            #print('ds_dict size', len(ds_dict))
         #else:
         #
         # node is a group

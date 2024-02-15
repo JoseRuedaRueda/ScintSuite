@@ -23,12 +23,12 @@ import numpy as np
 #shot = 79300
 
 time = 0.9640
-vmax = 1024
+vmax = 200
 
 Scint_file = '/home/jansen/NoTivoli/ScintSuite/Data/Plates/FILD/TCV/TCV2023.txt'   # ####
 format = 'fildsim'  # Code for which the geometry file is written
 # File with the calibration image (png)
-calib_image = '/videodata/pcfild002/data/fild002/' + '79300.mat'#\
+calib_image = '/videodata/pcfild004/data/fild002/' + '09_02_2024_calib.mat'#\
 #    '%i.mat'  %shot         # ####
 
 # modify section 3 if you have a custom format for the calibration image
@@ -37,6 +37,7 @@ xshift = 354
 yshift = 770
 xscale = 18190
 deg = 0
+
 # x-scale to y scale
 XtoY = 1.0
 

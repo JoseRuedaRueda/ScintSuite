@@ -8,9 +8,13 @@ Introduced in version 0.6.0
 import logging
 import datetime
 import numpy as np
+import math
 from ScintSuite.decorators import deprecated
 from ScintSuite._Mapping._Calibration import CalParams
 from scipy.interpolate import griddata
+from lmfit import Parameters
+from lmfit import Model
+from scipy import special
 logger = logging.getLogger('ScintSuite.MappingCommon')
 try:
     import lmfit
@@ -232,6 +236,48 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
                'center': result.params['center'].value,
                'sigma': result.params['sigma'].value,
                'gamma': result.params['gamma'].value}
+        
+    ##JPS: Add new models to fit 
+    elif model == 'raisedCosine': #reaised cosine model for the energy
+        def raised_cosine(x,amplitude,center,sigma,gamma,R):   
+            return (amplitude*(1/(2*sigma))*( 1 + np.cos( R * np.deg2rad((x-center)/sigma * np.pi )) )*(1 + special.erf( (x - center)/np.sqrt(2) * gamma)))     
+        model = Model(raised_cosine)
+        #create initial guess for the parameters 
+        initial_center = edges[np.where(hist==np.max(hist))][0] 
+        initial_sigma = (initial_center-edges[0])
+        initial_amplitude = 4 
+        initial_gamma = 4
+        pars = Parameters()
+        pars.add('amplitude', value=initial_amplitude, min=1.5, max=np.inf)
+        pars.add('center', value=initial_center, min=initial_center-initial_center/2, max=initial_center+initial_center/2)
+        pars.add('sigma', value=initial_sigma, min=0, max=2*np.max(edges))
+        pars.add('gamma', value=initial_gamma, min=initial_sigma/2, max=np.inf)
+        pars.add('R', value=4, min=0.4, max=np.inf)        
+        result = model.fit(hist, pars, x=cent)
+        
+        #result = result.best_fit
+        par = {'amplitude': result.params['amplitude'].value,
+               'center': result.params['center'].value,
+               'sigma': result.params['sigma'].value,
+               'gamma': result.params['gamma'].value}
+    elif model == 'wignerse': #wigner semicircle model for the pitch
+        def wignerse(x,amplitude,center,sigma):   
+            return (amplitude*np.real((2/(np.pi * (2*sigma)**2)) * np.sqrt(((2*sigma)**2 - (x-center)**2).astype(complex))))
+        
+        model = Model(wignerse)
+        #create initial guess for the parameters 
+        initial_center = edges[np.where(hist==np.max(hist))][0] 
+        initial_sigma = (initial_center-edges[0])
+        initial_amplitude = 4
+        pars = Parameters()
+        pars.add('amplitude', value=initial_amplitude, min=0.01, max=15)
+        pars.add('center', value=initial_center, min=initial_center-initial_center/2, max=initial_center+initial_center/2)
+        pars.add('sigma', value=initial_sigma, min=initial_sigma/2, max=2*np.max(edges))
+        
+        result = model.fit(hist, pars, x=cent)
+        par = {'amplitude': result.params['amplitude'].value,
+               'center': result.params['center'].value,
+               'sigma': result.params['sigma'].value}
     # --- Get the uncertainty
     if uncertainties:
         uncertainty = lmfit.conf_interval(result, result,

@@ -274,6 +274,7 @@ class FILDVideo(FIV):
             if self.Bangles['phi'].size != nt:
                 self._getBangles()
         self.remap_dat = ssmap.remapAllLoadedFrames(self, **options)
+
         # Calculate the integral of the remap
         ouput = self.integrate_remap(xmin=self.remap_dat['x'].values[0],
                                      xmax=self.remap_dat['x'].values[-1],

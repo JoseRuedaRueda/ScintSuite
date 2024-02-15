@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
 import ScintSuite.errors as errors
 import ScintSuite._Plotting as ssplt
+import ScintSuite.LibData as ssdat
+import ScintSuite.LibData.TCV.Equilibrium as TCV_equilibrium
 from tqdm import tqdm
 from ScintSuite._Paths import Path
 from ScintSuite.decorators import deprecated
@@ -203,7 +205,10 @@ class FILDINPA_Smap(GeneralStrikeMap):
                                          confidence_level: float = 0.9544997,
                                          bin_per_sigma: int = 4,
                                          variables: tuple = None,
-                                         verbose: bool = False):
+                                         verbose: bool = False,
+                                         shot: int = 0,                              
+                                         time: float = 1.0,
+                                         Rinsertion: float = -16.5):
         """
         Calculate the resolution associated with each point of the map.
 
@@ -267,9 +272,13 @@ class FILDINPA_Smap(GeneralStrikeMap):
             iix = self.strike_points.header['info'][namex]['i']
             iiy = self.strike_points.header['info'][namey]['i']
         # Get the names of the variables to fit
+        #JPS : Add the new models' names; raisedcosine and wignerse
         names = {
             'Gauss': ['amplitude', 'center', 'sigma'],
-            'sGauss': ['amplitude', 'center', 'sigma', 'gamma']
+            'sGauss': ['amplitude', 'center', 'sigma', 'gamma'],
+            'wignerse': ['amplitude', 'center', 'sigma'],
+            'raisedCosine': ['amplitude', 'center', 'sigma', 'gamma']
+            
         }
         xnames = names[diag_options['x_method']]
         ynames = names[diag_options['y_method']]
@@ -296,6 +305,13 @@ class FILDINPA_Smap(GeneralStrikeMap):
         self._resolutions['model_' + variables[0]] = diag_options['x_method']
         self._resolutions['model_' + variables[1]] = diag_options['y_method']
         # --- Core: Calculation of the resolution
+        #JPS: get B field if needed for the energy
+        if diag_options['y_var'] == 'energy':
+            xyzPin = np.array([-192.96, 1137.7, 35.4414])*0.001   #get magnetic field for specific slit
+            Rpin = np.sqrt(xyzPin[0]**2 + xyzPin[1]**2)
+            zPin = xyzPin[2]
+            Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, (time)/2 )
+            modB = np.sqrt(Br**2 + Bz**2 + Bt**2)
         if verbose:
             logger.info('Calculating resolutions ...')
         for ix in tqdm(range(nx)):
@@ -307,6 +323,15 @@ class FILDINPA_Smap(GeneralStrikeMap):
                     continue
                 # -- Prepare the basic bin edges
                 # Prepare the bin edges according to the desired width
+                #JPS: add the normalized pitch variable
+                if diag_options['x_var'] == 'normalized_pitch':
+                    p0 = np.cos(np.deg2rad(data[:, iix]))
+                    data[:, iix] = p0
+                
+                #JPS: add the energy variable
+                if diag_options['y_var'] == 'energy':
+                    e0 = get_energy(data[:, iiy], B=modB)     
+                    data[:, iiy] = e0/1e3 
                 if adaptative:
                     sigmax = np.std(data[:, iix])
                     dx = sigmax / float(bin_per_sigma)
@@ -338,7 +363,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                     self._resolutions['unc_' + variables[0]][key][ix, iy] = \
                         unc[key]
 
-                # -- fit the y variable
+                # -- fit the y variable                  
                 params, self._resolutions['fits_' + variables[1]][ix, iy], \
                     self._resolutions['norm_' + variables[1]][ix, iy], unc = \
                     _fit_to_model_(
@@ -930,7 +955,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
             for i in range(index_gyr.size):
                 index_gyr[i] = \
                     np.argmin(np.abs(self.MC_variables[1].data - gyroradius[i]))
-            logger.debug('Found gyroradius: %.2f' % self.MC_variables[1].data)
+            logger.debug('Found gyroradius: %.2f' % self.MC_variables[1].data[index_gyr]) ###JP: bug here, it was self.MC_variables[1].data
         else:
             # test if it is a number or an array of them
             if gyr_index is not None:
@@ -939,7 +964,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 else:
                     index_gyr = np.array([gyr_index])
             else:
-                index_gyr = np.arange(self.MC_variables[1].data.size, dtype=np.int)
+                index_gyr = np.arange(self.MC_variables[1].data.size, dtype=int)
 
         if pitch is not None:
             # test if it is a number or an array of them
@@ -961,7 +986,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 else:
                     index_pitch = np.array([pitch_index])
             else:
-                index_pitch = np.arange(self.MC_variables[0].data.size, dtype=np.int)
+                index_pitch = np.arange(self.MC_variables[0].data.size, dtype=int)
         # --- Get the maximum value for the normalization
 
         # --- Plot the desired data
@@ -979,11 +1004,19 @@ class FILDINPA_Smap(GeneralStrikeMap):
                                          x.max() + 0.1 * deltax)
                     name = 'rl: ' + str(round(self.MC_variables[1].data[ir], 1))\
                         + ' $\\lambda$: ' + \
-                        str(round(self.MC_variables[1].data[ip], 1))
+                        str(round(self.MC_variables[0].data[ip], 1)) ###JP: bug here; it was self.MC_variables[1].data[ip]
                     normalization = \
                         self._resolutions['norm_' + var.lower()][ip, ir]
                     y = self._resolutions['fits_' + var.lower()][ip, ir].eval(
                         x=x_fine) * normalization
+                    #JPS: correct raised cosine multiple bumps
+                    if ax_options['y_method'] == 'raised_cosine':
+                        idx = np.where(y == np.max(y))[0][0]
+                        for i in range(idx,len(y)-1):
+                            i += 1
+                            if y[i] > y[i-1]:
+                               y[i:-1] = 0
+                               y[-1] = 0
                     if kind_of_plot.lower() == 'normal':
                         # plot the data as scatter plot
                         scatter = ax.scatter(
@@ -1032,7 +1065,11 @@ class FILDINPA_Smap(GeneralStrikeMap):
     @deprecated('Some input will change name in the final version')
     def plot_collimator_factor(self, ax_param: dict = {}, cMap=None,
                                nlev: int = 20, ax_lim: dict = {},
-                               cmap_lim: float = 0):
+                               cmap_lim: float = 0,
+                               shot: int = 0,                              
+                               time: float = 1.0,
+                               Rinsertion: float = -16.5):
+                                   
         """
         Plot the collimator factor.
 
@@ -1048,6 +1085,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
         :param  ax_lim: Manually set the x and y axes, currently only works for making it bigger, not smaller
                        Should be given as ax_lim = {'xlim' : [x1,x2], 'ylim' : [y1,y2]}
         :param  cmap_lim: Manually set the upper limit for the color map
+        :param     A: Ion mass, in uma. Only used if we want to use energy to remap
+        :param     Z: Ion charge, in e units. Only used if we want to use energy
         """
         # --- Initialise the settings:
         if cMap is None:
@@ -1056,7 +1095,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
             cmap = cMap
         ax_options = {
             'xlabel': '$\\lambda [\\degree]$',
-            'ylabel': '$r_l [cm]$'
+            'ylabel': '$r_l [cm]$',
+            'xvar':  'normalized_pitch',
+            'yvar': 'energy'
         }
         ax_options.update(ax_param)
 
@@ -1066,28 +1107,43 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
         coll_matrix = np.transpose(self('collimator_factor_matrix'))
         # In case you want to manually set the axis limits to something bigger
-        xAxisPlot = self.MC_variables[0].data
-        yAxisPlot = self.MC_variables[1].data
+        # JPS: choose the variable for the plotting
+        if 'normalized_pitch' in ax_options['xvar']:
+            p0 = np.cos(np.deg2rad(self.MC_variables[0].data))
+            xAxisPlot = p0          
+        else:     
+            xAxisPlot = self.MC_variables[0].data
+        if 'energy' in ax_options['yvar']:
+            xyzPin = np.array([-192.96, 1137.7, 35.4414])*0.001   #get magnetic field for specific slit
+            Rpin = np.sqrt(xyzPin[0]**2 + xyzPin[1]**2)
+            zPin = xyzPin[2]
+            Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, (time)/2 )
+            modB = np.sqrt(Br**2 + Bz**2 + Bt**2)
+            e0 = get_energy(self.MC_variables[1].data, B=modB)
+            yAxisPlot = e0/1e3 #keV           
+        else:
+            yAxisPlot = self.MC_variables[1].data
+            
         if ax_lim:
-            if ax_lim["xlim"][0] < np.min(self.MC_variables[0].data):
+            if ax_lim["xlim"][0] < np.min(xAxisPlot):
                 n,m = coll_matrix.shape
                 coll_matrix_new = np.zeros((n,m+1))
                 coll_matrix_new[:,1:] = coll_matrix
                 coll_matrix = coll_matrix_new
                 xAxisPlot = np.insert(xAxisPlot,0,ax_lim["xlim"][0])
-            if ax_lim["xlim"][1] > np.max(self.MC_variables[0].data):
+            if ax_lim["xlim"][1] > np.max(xAxisPlot):
                 n,m = coll_matrix.shape
                 coll_matrix_new = np.zeros((n,m+1))
                 coll_matrix_new[:,:-1] = coll_matrix
                 coll_matrix = coll_matrix_new
                 xAxisPlot = np.append(xAxisPlot,ax_lim["xlim"][1])
-            if ax_lim["ylim"][0] < np.min(self.MC_variables[1].data):
+            if ax_lim["ylim"][0] < np.min(yAxisPlot):
                 n,m = coll_matrix.shape
                 coll_matrix_new = np.zeros((n+1,m))
                 coll_matrix_new[1:,:] = coll_matrix
                 coll_matrix = coll_matrix_new
                 yAxisPlot = np.insert(yAxisPlot,0,ax_lim["ylim"][0])
-            if ax_lim["ylim"][1] > np.max(self.MC_variables[1].data):
+            if ax_lim["ylim"][1] > np.max(yAxisPlot):
                 n,m = coll_matrix.shape
                 coll_matrix_new = np.zeros((n+1,m))
                 coll_matrix_new[:-1,:] = coll_matrix
@@ -1143,3 +1199,4 @@ class FILDINPA_Smap(GeneralStrikeMap):
                                                          interpolation=interpolation)
         ax = ssplt.axis_beauty(ax, ax_params,)
         return ax
+    
