@@ -211,6 +211,7 @@ class Fsmap(FILDINPA_Smap):
                                       verbose: bool = True,
                                       normFactor: float = 1.0,
                                       energyFit=None,
+                                      efficiency=None,
                                       B: float = 1.8,
                                       Z: float = 1.0,
                                       A: float = 2.01410,) -> None:
@@ -249,11 +250,14 @@ class Fsmap(FILDINPA_Smap):
             raise errors.NotValidInput('Need to calculate T matrix first')
         # --- Check the strike grid
         diffgyroradius = np.diff(self.strike_points.header['gyroradius'])
-        #if np.std(diffgyroradius)/diffgyroradius[0] > 0.01:
-        #   raise Exception('The strikes are not equally spaced in gyroradius')
+        if np.std(diffgyroradius)/diffgyroradius[0] > 0.01:
+            raise Exception('The strikes are not equally spaced in gyroradius')
         diffpitch = np.diff(self.strike_points.header['XI'])
         if np.std(diffpitch)/diffpitch[0] > 0.01:
             raise Exception('The strikes are not equally spaced in pitch')
+        # --- Check the efficiency
+        if efficiency is not None and energyFit is not None:
+            raise Exception('You cannot use both efficiency and energyFit')
         # --- Load/put in place the strikes
         if self.strike_points is None:
             if isinstance(strikes, (str,)):
@@ -313,7 +317,18 @@ class Fsmap(FILDINPA_Smap):
                         continue
                 except AttributeError:
                     continue
-                w = np.ones(nStrikes)
+                # Get the collimator factor
+                col_factor = \
+                    self._interpolators_instrument_function['collimator_factor'](xCen[jxpinhole], yCen[jypinhole]) / 100.0
+                if col_factor <= 0.0:
+                    continue
+                
+                if efficiency is not None:
+                    energy = get_energy(yCen[jypinhole], B, A, Z) / 1000.0
+                    eff = efficiency(energy).values
+                else:
+                    eff = 1.0
+                w = eff * col_factor * np.ones(nStrikes)/nStrikes
 
                 # --- Get the ideal camera frame
                 H, xpixel, ypixel = np.histogram2d(
@@ -329,7 +344,9 @@ class Fsmap(FILDINPA_Smap):
                 # --- Place in position the camera frame
                 P2F[:, :, jxpinhole, jypinhole] = H.copy()
         # --- Prepare the weight matrix
-        vol = xvol * yvol
+        #vol = xvol * yvol. Was a bug to introduce this factor. The FI
+        # distribution is already normalised to this volume
+        vol = 1.0
         WF = np.tensordot(Tmatrix, P2F, axes=2) / normFactor / vol
         # save it
         self.instrument_function =\

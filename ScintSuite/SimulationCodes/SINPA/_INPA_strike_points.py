@@ -97,7 +97,8 @@ class INPAStrikes(Strikes):
                                             time=self.header['time'],
                                             **Boptions)
                     bx = br*np.cos(phi) - bt*np.sin(phi)
-                    by = - br*np.cos(phi) + bt*np.cos(phi)
+                    raise Exception('check this')
+                    by = br*np.sin(phi) + bt*np.cos(phi)
                     b = np.sqrt(bx**2 + by**2 + bz**2).squeeze()
                     v = np.sqrt(self.data[ia, ig][:, ivx]**2
                                 + self.data[ia, ig][:, ivy]**2

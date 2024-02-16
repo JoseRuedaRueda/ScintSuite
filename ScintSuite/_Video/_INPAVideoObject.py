@@ -609,7 +609,8 @@ class INPAVideo(FIV):
                                 time=t,
                                 **self.BFieldOptions)
         bx = np.array(br*np.cos(phipoints) - bt*np.sin(phipoints)).squeeze()
-        by = np.array(- br*np.cos(phipoints) + bt*np.cos(phipoints)).squeeze()
+        raise Exception('Check the sign of the magnetic field')
+        by = np.array(br*np.sin(phipoints) + bt*np.cos(phipoints)).squeeze()
         bz = np.array(bz).squeeze()
         b = np.sqrt(bx**2 + by**2 + bz**2).squeeze()
         # ---- Calculate the pitch
