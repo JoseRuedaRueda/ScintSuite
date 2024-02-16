@@ -24,7 +24,7 @@ paths = ss.paths
 # -----------------------------------------------------------------------------
 runid = 'Example_test'
 geomID = 'FILD1'
-nml_options = {   # Se the PDF documentation for a complete desription of these
+nml_options = {   # See the PDF documentation for a complete desription of these
     'config':  {  # parameters
         'runid': runid,
         'geomfolder': os.path.join(paths.SINPA, 'Geometry', geomID),
