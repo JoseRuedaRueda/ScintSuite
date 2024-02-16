@@ -111,7 +111,13 @@ class GeneralStrikeMap(XYtoPixel):
         :param  variables_to_remap: tuple contianing the name of the 2 selected
             variables
         """
-        self._to_remap = [self._data[name] for name in variables_to_remap]
+        try:
+            self._to_remap = [self._data[name] for name in variables_to_remap]
+        except KeyError:
+            text = 'The variables to remap are not present in the strike map\n'+\
+                'Available variables are: %s' % self._data.keys()
+        
+            raise errors.NotValidInput(text)
         self._remap_var_names = variables_to_remap
         if verbose:
             logger.warning('Please call interp_grid to update the interpolators')

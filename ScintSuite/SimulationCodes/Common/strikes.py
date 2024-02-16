@@ -15,6 +15,7 @@ import xarray as xr
 import ScintSuite.errors as errors
 import ScintSuite._Plotting as ssplt
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 from ScintSuite.version_suite import exportVersion
 from copy import deepcopy
 from typing import Union, List, Tuple, Dict, Any, Optional
@@ -44,7 +45,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
     Jose Rueda: jrrueda@us.es
 
     :param  filename: filename of the file
-    :param  verbose: flag to print information on the file
+    :param  verbose: Not used anymore (kept for retrocompatibility)
 
     Note: in order to load the proper header (with information on which
     variables are stored in the file), the code will guess which kind of file
@@ -133,6 +134,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             if plate.lower() in scints:
                 ycolum = header['info']['x1']['i']
                 zcolum = header['info']['x2']['i']
+            logger.info('Reading strike points:')
             for ig in range(header['ngyr']):
                 for ia in range(header['nXI']):
                     header['counters'][ia, ig] = \
@@ -246,13 +248,12 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
         except FileNotFoundError:
             header['geomID'] = None
             logger.warning('Not found SINPA namelist')
-        if verbose:
-            print('File %s'%filename)
-            print('Total number of strike points: ',
-                  np.sum(header['counters']))
-            print('SINPA version: ', header['versionID1'], '.',
-                  header['versionID2'])
-            print('Average number of strike points per centroid: ',
+        logger.info('File %s'%filename)
+        logger.info('Total number of strike points: %i'%
+                    np.sum(header['counters']))
+        logger.info('SINPA version: %i,%i'%(header['versionID1'],
+                                            header['versionID2']))
+        logger.info('Average number of strike points per centroid: %i'%
                   int(header['counters'].mean()))
         return header, data
 
