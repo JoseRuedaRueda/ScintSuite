@@ -413,7 +413,7 @@ class FILDVideo(FIV):
 
             alpha = self.orientation['alpha']
             beta = self.orientation['beta']
-            print('Remap not done, calculating angles')
+            logger.warning('Remap not done, calculating angles')
 
             if t is not None:
                 br, bz, bt, bp =\

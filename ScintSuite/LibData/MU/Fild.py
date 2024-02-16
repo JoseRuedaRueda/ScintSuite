@@ -6,6 +6,7 @@ Jose Rueda: jrrueda@us.es and others
 
 import os
 import f90nml
+import logging
 import numpy as np
 import pandas as pd
 from urllib.error import HTTPError
@@ -14,7 +15,7 @@ from ScintSuite._Machine import machine
 from ScintSuite._Mapping._Calibration import CalParams, readCameraCalibrationDatabase
 import ScintSuite.LibData.MU.DiagParam as params
 paths = Path(machine)
-
+logger = logging.getLogger('ScintSuite.MU.FILD')
 
 # --- Default files:
 _cameraDatabase = os.path.join(paths.ScintSuite, 'Data', 'Calibrations',
@@ -238,14 +239,14 @@ class FILD_logbook:
         default = self._getPositionDefault(geomID)
         # First check that we have loaded the position logbook
         if not self.flagPositionDatabase:
-            print('Position database not loaded, returning default values')
+            logger.warning('Position database not loaded, returning default values')
             return default
         # Get the shot index in the database
         if shot in self.positionDatabase['shot'].values:
             i, = np.where(self.positionDatabase['shot'].values == shot)[0]
             flag = True
         else:
-            print('Shot not found in logbook, returning the default values')
+            logger.warning('Shot not found in logbook, returning the default values')
             return default
         # --- Get the postion
         position = {        # Initialise the position
@@ -285,14 +286,14 @@ class FILD_logbook:
         default = self._getOrientationDefault(geomID)
         # First check that we have loaded the position logbook
         if not self.flagPositionDatabase:
-            print('Logbook not loaded, returning default values')
+            logger.warning('Logbook not loaded, returning default values')
             return default
         # Get the shot index in the database
         if shot in self.positionDatabase['shot'].values:
             i, = np.where(self.positionDatabase['shot'].values == shot)[0]
             flag = True
         else:
-            print('Shot not found in logbook, returning the default values')
+            logger.warning('Shot not found in logbook, returning the default values')
             return default
         # --- Get the angle
         dummy = self.positionDatabase['FILD'+str(FILDid)]
@@ -328,14 +329,14 @@ class FILD_logbook:
         default = params.FILD[diag_ID-1]['adqfreq'](shot)
         # First check that we have loaded the position logbook
         if not self.flagPositionDatabase:
-            print('Logbook not loaded, returning default values')
+            logger.warning('Logbook not loaded, returning default values')
             return default
         # Get the shot index in the database
         if shot in self.positionDatabase['shot'].values:
             i, = np.where(self.positionDatabase['shot'].values == shot)[0]
             flag = True
         else:
-            print('Shot not found in logbook, returning the default values')
+            logger.warning('Shot not found in logbook, returning the default values')
             return default
         # --- Get the postion
         dummy = self.positionDatabase['FILD'+str(diag_ID)]
@@ -360,21 +361,21 @@ class FILD_logbook:
         default = params.FILD[diag_ID-1]['t_trig'](shot)
         # First check that we have loaded the position logbook
         if not self.flagPositionDatabase:
-            print('Logbook not loaded, returning default values')
+            logger.warning('Logbook not loaded, returning default values')
             return default
         # Get the shot index in the database
         if shot in self.positionDatabase['shot'].values:
             i, = np.where(self.positionDatabase['shot'].values == shot)[0]
             flag = True
         else:
-            print('Shot not found in logbook, returning the default values')
+            logger.warning('Shot not found in logbook, returning the default values')
             return default
         # --- Get the postion
         dummy = self.positionDatabase['FILD'+str(diag_ID)]
         if 'CCDqe trigger time [s]' in dummy.keys():  # Look for tTrig
             tTrig = dummy['CCDqe trigger time [s]'].values[i]
         else:  # Take the default approx value
-            print('Trigger time not in the logbook, returning default')
+            logger.warning('Trigger time not in the logbook, returning default')
             tTrig = default
         return tTrig
 

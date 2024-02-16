@@ -32,12 +32,33 @@ For MAST-U users:
 #### Complete list:
 In a clean-typical python installation with anaconda, taking care only of the packages and versions listed above should be enough and the suite will run smoothly, but python package dependence can sometimes a mess. As an indication, in the folder `Data/TestedEnv` you can find the result of the command `pip list` in a python environment where the suite was tested and working fine. So if you find a series of problems with packages versions, try to create your virtual environment and reproduce the installed package list detailed there. The files are labeled with the Suite version for which they were tested and 'Optx', meaning 'Option x', as different user can have different list of packages which could work.
 
-### Cloning the suite and installing (dev Mode. Install method 1)
-In order to clone the suite just open a terminal in your home directory and type:
+### Cloning the suite and installing
+
+The code can be installed via pip, just change `<branch>` for the name of the branch you want to install and <ParentFolderForSuite>
+
+For AUG users: <ParentFolderForSuite> = `/shares/departments/AUG/users/$USER`
 ```bash
- git clone https://gitlab.mpcdf.mpg.de/ruejo/scintsuite.git ScintSuite
+cd <ParentFolderForSuite>
+git clone https://gitlab.mpcdf.mpg.de/ruejo/scintsuite ScintSuite
+cd ScintSuite
+git checkout <branch>
+python first_run_pip.py
+pip install -e .
 ```
-To install all non-standard (not machine dependent) packages, you can give a try the script: `first_run.py`. It will work in personal computers and *standard installations* although things can go wrong if your system has some particular rights limitations and you are not allowed to change them using =pip install=. In these cases, you should use a virtual environment:
+This will install all requirement via pip. It is needed that your machine support pip installation of python packages
+
+> IMPORTANT: If you install the suite outside your home dir, you should create an ennviromental variable pointing towards the suite folder. Add to your bash (or similar file) the following:
+```bash
+export ScintSuitePath=<ParentFolderForSuite>/ScintSuite
+```
+for AUG people, if they followed the recomended route for the code:
+```bash
+export ScintSuitePath=/shares/departments/AUG/users/$USER/ScintSuite
+```
+
+
+#### Advanced installation
+Things can go wrong if your system has some particular rights limitations and you are not allowed to change them using `pip install`. In these cases, you should use a virtual environment:
 
 1. Install virtualenv: `pip install virtualenv`
 2. Create your virtual environment (let us call it SSvirtualenv): `virtualenv -p python3 --system-site-packages SSvirtualenv` [Note: for MU users, this has to be done as `python -m virtualenv ...`]
@@ -55,17 +76,6 @@ For MU, you will probably also need:
 
 Once the python modules are created, you need to create the folder `MyData` inside the Data folder, and copy in it the .txt files which are located in `Data/MyDataTemplates`. These are the configuration files of the Suite, they are needed to import the sutie and can be modified (the ones in MYData folder) to change the behaviour of the plotting, warning, paths... If you installed the sutie with the script: `first_run.py` this step was done already, so you can ignore it
 
-### Cloning and installed the suite (vainilla user. Install method 2)
-The code can be installed via pip, just change `<branch>` for the name of the branch you want to install 
-```bash
-cd 
-git clone https://gitlab.mpcdf.mpg.de/ruejo/scintsuite ScintSuite
-cd ScintSuite
-git checkout <branch>
-python first_run_pip.py
-pip install -e .
-```
-This will install all requirement via pip. It is needed that your machine support pip installation of python packages
 ### Getting started
 **Importing the suite**
 

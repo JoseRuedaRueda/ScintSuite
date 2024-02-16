@@ -183,7 +183,7 @@ def read_variable_ncdf(file: str, varNames, human=True, verbose=True) -> list:
     return out
 
 
-def print_netCDF_content(file: str, long_name=False) -> None:
+def print_netCDF_content(file: str, long_name=False, search_string: str = None) -> None:
     """
     Print the list of variables in a netcdf file
 
@@ -195,11 +195,17 @@ def print_netCDF_content(file: str, long_name=False) -> None:
     if long_name:
         print('%20s' % ('Var name'),  '|  Description  | Dimensions')
         for key in sorted(varfile.keys()):
+            if search_string is not None:
+                if not search_string in key:
+                    continue
             print('%20s' % (key), varfile[key].long_name,
                   varfile[key].dimensions)
     else:
         print('%20s' % ('Var name'),  '| Dimensions')
         for key in sorted(varfile.keys()):
+            if search_string is not None:
+                if not search_string in key:
+                    continue
             print('%20s' % (key), varfile[key].dimensions)
 
 

@@ -28,7 +28,7 @@ def dark_plus_readout(frame, dark_centroid, sigma_readout):
     rand = np.random.default_rng()
     gauss = rand.standard_normal
     noise = dark_centroid + sigma_readout * gauss(frame.shape)
-    return noise.astype(np.int)
+    return noise.astype(int)
 
 
 def photon(frame, multiplier: float = 1.0):
@@ -48,7 +48,7 @@ def photon(frame, multiplier: float = 1.0):
     noise = multiplier * np.sqrt(frame) * gauss(frame.shape)
     flags = noise < 0
     noise[flags] = 0
-    return noise.astype(np.int)
+    return noise.astype(int)
 
 
 def broken_pixels(frame, percent):
@@ -69,7 +69,7 @@ def broken_pixels(frame, percent):
     dummy = frame.copy()
     if np.sum(flags) > 0:
         dummy[flags] = 0
-    return dummy.astype(np.int)
+    return dummy.astype(int)
 
 
 def camera_neutrons(frame, percent=0.001, camera_bits=12, vmin=0.7,
@@ -91,4 +91,4 @@ def camera_neutrons(frame, percent=0.001, camera_bits=12, vmin=0.7,
         dummy2 = (2**camera_bits - 1)\
             * rand.uniform(low=vmin, high=vmax, size=frame.shape)[flags]
         dummy[flags] = dummy2.flatten()
-    return dummy.astype(np.int)
+    return dummy.astype(int)
