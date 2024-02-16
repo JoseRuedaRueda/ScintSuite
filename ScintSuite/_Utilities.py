@@ -24,7 +24,7 @@ except ImportError:
     logger.warning('12: Old version of shapely, but things should work')
 try:
     from numba import njit, prange
-except ModuleNotFoundError:
+except (ModuleNotFoundError, SystemError):
     from ScintSuite.decorators import false_njit as njit
     prange = range
     logger.warning('10: Neutron filters will be slow (NUMBA missing')

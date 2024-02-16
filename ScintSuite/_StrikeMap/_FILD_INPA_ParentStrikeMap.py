@@ -139,7 +139,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
     def load_strike_points(self, file=None, verbose: bool = True,
                            calculate_pixel_coordinates: bool = False,
-                           remap_in_pixel_space: bool = False):
+                           remap_in_pixel_space: bool = False,
+                           remap: bool = True):
         """
         Load the strike points used to calculate the map.
 
@@ -157,6 +158,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
             loading the points. If this flag is true, the remap will be done
             using the pixel coordinates instead of the strike in the
             scintillator.
+        :param  remap: Flag to remap the strike points just after loading them
+            introduced in version 1.3.7, before it was always done
         """
         # See if the strike points where already there
         if self.strike_points is not None:
@@ -181,7 +184,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 self.CameraCalibration)
         # If the code was SINPA, perform the remap, as it is not done in
         # fortran:
-        if self._header['code'].lower() == 'sinpa':
+        if self._header['code'].lower() == 'sinpa' and remap:
+            logger.info('Remapping the strike points')
             self.remap_strike_points(remap_in_pixel_space=remap_in_pixel_space)
 
     def calculate_phase_space_resolution(self, diag_params: dict = {},
@@ -942,7 +946,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 else:
                     index_gyr = np.array([gyr_index])
             else:
-                index_gyr = np.arange(self.MC_variables[1].data.size, dtype=np.int)
+                index_gyr = np.arange(self.MC_variables[1].data.size, dtype=int)
 
         if pitch is not None:
             # test if it is a number or an array of them
@@ -964,7 +968,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 else:
                     index_pitch = np.array([pitch_index])
             else:
-                index_pitch = np.arange(self.MC_variables[0].data.size, dtype=np.int)
+                index_pitch = np.arange(self.MC_variables[0].data.size, dtype=int)
         # --- Get the maximum value for the normalization
 
         # --- Plot the desired data

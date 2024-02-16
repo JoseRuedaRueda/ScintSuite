@@ -134,7 +134,7 @@ class FIV(BVO):
         else:
             time = self.exp_dat['t'].values
         # Calculate the magnetic field
-        print('Calculating magnetic field (this might take a while): ')
+        logger.info('Calculating magnetic field (this might take a while): ')
         if 'R_scintillator' in self.position.keys():  # INPA case
             key1 = 'R_scintillator'
             key2 = 'z_scintillator'
