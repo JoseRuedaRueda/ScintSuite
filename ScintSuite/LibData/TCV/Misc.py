@@ -139,7 +139,7 @@ def get_APD(file: str):
     time = np.linspace(0, dummy['/b/meas_length'][0][0], dummy['/b/n_data'][0][0])
 
     data = dummy.pop('/dat') 
-    data = -data[:, :].T  ##APD data is negative so multiply with -1
+    data = 2**14-data[:, :].T  ##APD data is negative so multiply with -1
 
 
     ##APD channels are not organized in MAT file. We have to use a mapping matrix to reorganise
@@ -155,6 +155,13 @@ def get_APD(file: str):
         ]
 
     mapping_matrix = np.array(mapping_matrix)
+    #mapping_matrix = np.reshape(np.arange(1, 129), (8,16))
+
+    #mapping_matrix_rot = np.array([[mapping_matrix[j][i] for j in range(len(mapping_matrix))] for i in range(len(mapping_matrix[0])-1,-1,-1)])
+    #mapping_matrix_rot = np.flip(mapping_matrix_rot, axis=1)
+    #mapping_matrix_rot_padded  = np.zeros(130, dtype='int32')
+    #mapping_matrix_rot_padded[:128] = mapping_matrix_rot.flatten()
+    #mapping_matrix_rot_reshape = np.reshape(mapping_matrix_rot_padded, (13,10))
 
     data_mapped =data[mapping_matrix.flatten() - 1, :]
 

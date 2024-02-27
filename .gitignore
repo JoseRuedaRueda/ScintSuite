@@ -40,7 +40,7 @@ Data/BEP/spectra/*
 Data/MyData/*
 Data/Magnetics/*
 Data/RemapStrikeMaps/*
-Data/APD/*
+Data/Calibrations/FILD/TCV/APD/*
 MyRoutines/*
 Results/*
 doc/*
