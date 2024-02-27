@@ -386,11 +386,65 @@ def get_tor_rotation(shotnumber: int, time: float = None, **kwargs):
     """
 
     #TODO
+
 # -----------------------------------------------------------------------------
 # Zeff
 # -----------------------------------------------------------------------------
-    
-def get_Zeff(shot: int):
+def get_Zeff(shot: int, **kwargs):
+    """
+    Wrap the different diagnostics to read Z effective.
+
+    It supports CONF and PROFFIT (or it will eventually ;) ).
+
+    Anton Jansen van Vuuren - anton.jansenvanvuuren
+
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+    :param  diag (**kwarg): diagnostic from which 'Ti' will extracted.
+
+    :param  xArrayOutput: flag to return the output as dictionary of xarray
+    :return output: a dictionary containing the Z effective
+
+
+    Use example:
+        >>> import Lib as ss
+        >>> z_eff = ss.dat.get_Zeff(41091)
+    """
+
+    default_options = {
+        'diag': 'CONF'
+    }
+    default_options.update(kwargs)
+
+    if default_options['diag'] not in ('CONF', 'CXRS'):
+        raise Exception('Diagnostic non supported!')
+
+    if default_options['diag'] == 'CONF':
+        return get_Zeff_conf(shot=shot)
+    elif default_options['diag'] == 'CXRS':
+        pass
+        #TODO
+        #return get_zeff_cxrs(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
+
+def get_Zeff_conf(shot: int):
     """
     Get the Zeff effective
     """
+
+    # --- Reading from the database
+    try:
+        Zeff_conf_data = conf.ti(shot,  trial_indx=1)
+        Zeff = Zeff_conf_data.data
+        rho = Zeff_conf_data.rho.data
+        Zeff_unc = Zeff * np.nan
+        timebase = Zeff_conf_data.t.data
+    except:
+        raise Exception('Cannot read Z effective from the conf nodes for shot: #%05d'%shot)
+
+    z = xr.Dataset()
+    
+    z['data'] = xr.DataArray(Zeff.T, dims=('t', 'rho'), 
+                            coords={'t':timebase, 'rho':rho})
+    z['uncertainty'] = xr.DataArray(Zeff_unc.T, dims=('t', 'rho'), 
+                            coords={'t':timebase, 'rho':rho})
+    return z
