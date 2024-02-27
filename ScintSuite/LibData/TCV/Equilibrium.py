@@ -24,7 +24,9 @@ except:
         "reading geqdsk files will not work."
     )
 
-
+# -----------------------------------------------------------------------------
+# --- eqiulibrium data
+# -----------------------------------------------------------------------------
 
 def get_mag_field_old(shot: int, Rin: float, zin: float, time: float, **kwargs):
     """
@@ -71,7 +73,6 @@ def get_mag_field_old(shot: int, Rin: float, zin: float, time: float, **kwargs):
     # Delete B.txt file from current directory
     os.remove('B.txt')
     return br, bz, bt, bp
-
 
 def get_mag_field(shot: int, Rin: float, zin: float, time: float, 
                    **kwargs):

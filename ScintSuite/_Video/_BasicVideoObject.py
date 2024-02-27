@@ -177,54 +177,16 @@ class BVO:
                         self.exp_dat['frames'].transpose('px', 'py', 't')
                     self.type_of_file = '.mp4'
                 elif file.endswith('.mat'):
-                    ##TCV saves videos as MATLAB files
-                    ##Check if the video is from the XIMEA (stored in pcfild002) or APD (stored in pcfild003)
-                    if ('pcfild002' in file) or ('pcfild004' in file):
-                        dummy = mat.read_file(file)#, **self.properties)
-                        t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
-                        self.timebase = t0 + dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
-
-                        frames = dummy.pop('/dat') #frames are stored in "/dat"
-                        frames = frames[:,:,::-1]  #flip the image in the y direction.
-                        #self.properties.update(dummy)
-                        self.exp_dat = xr.Dataset()
-                        nt, nx, ny = frames.shape
-
-                        # Matplotlib imshow considers the first index to be the rox index. So we relable to axis to fit this convention
-                        py = np.arange(nx)
-                        px = np.arange(ny)
-                        self.exp_dat['frames'] = \
-                            xr.DataArray(np.transpose(frames, axes = [2, 1, 0]), dims=('px', 'py', 't'),
-                                        coords={'t': self.timebase.squeeze(),
-                                                'px': px,
-                                                'py': py})
-                        self.exp_dat['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))
-                        self.type_of_file = '.mat'     
-                        self.settings = {'RealBPP': 10} 
-
-                    else:
-                        data = ssdat.get_APD(file)
-                        self.timebase = data['time']
-
-                        self.exp_dat = xr.Dataset()
-                        #The APD has 8 by 16 pixels, however the fibre bundle viewing the scintillator is 10 by 13.
-                        nt, nx, ny = len(self.timebase), 10, 13   #The scintillator 
-                        apd_data = np.array(data['data'])
-                        #It's more intuative to work in the scintilator matrix, therefore we add two dummy channels since we need to go from 128 to 130
-                        apd_data = np.append(apd_data.flatten(), np.zeros( nt*2 ) )
-                        #apd_data = np.reshape(apd_data, (nt) )
-                        apd_data = np.reshape(apd_data, (nx, ny, nt) )
-
-                        px = np.arange(nx)
-                        py = np.arange(ny)
-                        self.exp_dat['frames'] = \
-                            xr.DataArray(apd_data, dims=('px', 'py', 't'),
-                                        coords={'t': self.timebase.squeeze(),
-                                                'px': px,
-                                                'py': py})
-                        self.exp_dat['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))
-                        self.type_of_file = '.mat'     
-                        self.settings = {'RealBPP': 10} 
+                    '''
+                    Matlab .mat files with video data are not a standard format, 
+                    Therefore use machine specific implementation to import data
+                    e.g. see TCV implementation
+                    '''
+                    mat_data = ssdat.read_MAT_video_data(file)
+                    self.timebase = mat_data['t'].data
+                    self.exp_dat['frames'] = mat_data['frames']
+                    self.type_of_file = '.mat'     
+                    self.settings = {'RealBPP': mat_data['RealBPP'].data}                     
             
                 else:
                     raise Exception('Not recognised file extension')
