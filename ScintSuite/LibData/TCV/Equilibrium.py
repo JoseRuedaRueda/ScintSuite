@@ -27,7 +27,6 @@ except:
 # -----------------------------------------------------------------------------
 # --- eqiulibrium data
 # -----------------------------------------------------------------------------
-
 def get_mag_field_old(shot: int, Rin: float, zin: float, time: float, **kwargs):
     """
     Get TCV magnetic field

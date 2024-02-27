@@ -74,7 +74,7 @@ def write_stl_geometry_files(root_dir
         f.close()
         ss._CAD.write_file_for_fortran_numpymesh(collimator_stl_files[coll],
                                               collimator_filename, 
-                                              convert_mm_2_m = True)      
+                                              convert_mm_2_m = True )      
 
 
     rot = np.identity(3)
@@ -95,7 +95,7 @@ def write_stl_geometry_files(root_dir
         # Append triangle data from stl file
         ss._CAD.write_file_for_fortran_numpymesh(scintillator_stl_files[scint], 
                                          scint_filename, 
-                                         convert_mm_2_m = True) 
+                                         convert_mm_2_m = True )    
 
         rot = ss.sinpa.geometry.calculate_rotation_matrix(scint_norm, u1 = u1_scint
                                                           ,verbose=False)[0]
@@ -181,10 +181,11 @@ if __name__ == '__main__':
     Test = False  # if true don't do run, just check the input geometry
     # test geometry
     plot_plate_geometry = True
-    plot_3D = True
+    plot_3D = False
 
-    shot = 79581
+    shot = 75620
     Rinsertion = -17.0 #[mm] #negative means inserted
+
     if shot <=77469:
         year = 2022
     else:
@@ -194,21 +195,22 @@ if __name__ == '__main__':
     use_reduced_stl_models = True
     use_1mm_pinhole = True
 
-
     run_code = True  # Set flag to run FILDSIM
     run_slit = [False, True, False, False]  # Run particles starting at slits set to true, starting with ul, ur, lr, ll
     read_slit = [False, True, False, False] # Read results from diffrent slits
     slits = ['ul', 'ur', 'lr', 'll']
     idx_slit = np.where(run_slit)[0][0]
     run_name = '%i@%.3f' %(shot, time) #Choose unique run identifier, like shot number and time
-    run_names = [run_name +'_ul', run_name +'_ur', run_name +'_lr', run_name +'_ll']
+    run_names = [run_name +'_ul', run_name +'_ur_2d_liuqe', run_name +'_lr', run_name +'_ll']
     read_results = not run_code # Flag to read output after run
+
     ###
     #Input settings
     ###
     self_shadowing = False  #Flag to remove markers that would have been shadowed, leave this on
     backtrace = False  #Do backtracing
     ###
+
     #Output data to save
     ###
     #Flags
@@ -254,8 +256,6 @@ if __name__ == '__main__':
                                                                                             year_string, 
                                                                                             reduced_string[int(use_reduced_stl_models)])
                             
-    
-
     if year == 2022:
         #choose points on scintillator for reference coordinate system
         p1 = np.array([-195.225, 1130.11, 29.8262]) * 0.001 #convert mm to m
@@ -277,7 +277,6 @@ if __name__ == '__main__':
         u1_scint = p2 - p1
         u1_scint /= np.linalg.norm(u1_scint)     
                
-
     #Pinhole coordinates in [mm]
     pinholes = [{}, {}, {}, {}]
     if use_1mm_pinhole:
@@ -348,37 +347,55 @@ if __name__ == '__main__':
                                             [-255.143, 1125.33, -10.4998] ] )#lower right          
 
     ###Magnetic Field
-    new_b_field = True  #Generate new b_field file for FILDSIM. This is slow so this flag lets you use the old
-    if new_b_field and run_code:
-        xyzPin = np.mean(pinholes[idx_slit]['points']*0.001, axis = 0)   #get magnetic field for specific slit
+    use_1D_Bfield = False  #Use the magnetic field at the slit
+    use_2D_Bfield = not use_1D_Bfield
+    if use_1D_Bfield:
+        xyzPin = np.mean(pinholes[idx_slit]['points'], axis = 0)   #get magnetic field for specific slit
+        xyzPin *=0.001 #convert to [m]
         Rpin = np.sqrt(xyzPin[0]**2 + xyzPin[1]**2)
         zPin = xyzPin[2]
         
-        Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time)
+        Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time)#, use_gdat = True)
         modB = np.sqrt(Br**2 + Bz**2 + Bt**2) 
-    
-    
-        ###
-        # Marker inputs
-        ###
-        #Number of markers per pitch-gyroradius pair
-        n_markers = int(12e4)
-        # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
-        n1 = 0.0
-        r1 = 0.0
-        #Grids
 
-        energy_arrays = np.arange(3000, 65000, 5000)
-        #Gyroradii grid in [cm]
-        g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
+    elif  use_2D_Bfield:
+
+        rmin = 0.614  #[m]
+        rmax = 1.147
+        nr = 129#28
+        zmin = -0.76
+        zmax = 0.76
+        nz = 129#65
+
+        r_grid = np.linspace(rmin, rmax, nr, dtype=np.float32)
+        z_grid = np.linspace(zmin, zmax, nz, dtype=np.float32)
+        r_mesh, z_mesh = np.meshgrid(r_grid, z_grid, indexing = 'ij')
+
+        Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, r_mesh, z_mesh, time, use_gdat = False)
+        modB = np.array([1.12817047]) #np.mean( np.sqrt(Br**2 + Bz**2 + Bt**2) ) #this has to be manual :(
+
+
+    ###
+    # Marker inputs
+    ###
+    #Number of markers per pitch-gyroradius pair
+    n_markers = int(1e5)
+    # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
+    n1 = 0.0
+    r1 = 0.0
+    #Grids
+
+    energy_arrays = np.arange(3000, 65000, 5000)
+    #Gyroradii grid in [cm]
+    g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
 
     #Alternatively use cm grid
     #g_r = np.arange(0.5, 5, 0.2)
 
     gyro_arrays = [list(np.around(g_r, decimals = 5)), #For each indivudual slit, ul->lr 
-                   list(np.around(g_r, decimals = 5)),
-                   list(np.around(g_r, decimals = 5)),
-                   list(np.around(g_r, decimals = 5))]
+                list(np.around(g_r, decimals = 5)),
+                list(np.around(g_r, decimals = 5)),
+                list(np.around(g_r, decimals = 5))]
     #pitch angle grid in [degrees]
     #JP: Added rounded on p, because otherwise not correct the arccos (too many zeros gives NaN)
     p = np.around(np.arange(0.01, 1.01, 0.1), decimals = 5)
@@ -395,7 +412,6 @@ if __name__ == '__main__':
     #                list(p),
     #                list(180-p)
     #                ]
-
 
     #Range of gyrophase to use. Smaller range can be used, but for now allow all gyrophases
     gyrophase_range = [[np.deg2rad(250),np.deg2rad(320)],  #UL  [np.deg2rad(185),np.deg2rad(359)]
@@ -445,8 +461,6 @@ if __name__ == '__main__':
                 },
             }
         
-
-
         # write geometry files
         for i in range(4):
             if run_slit[i]:                   
@@ -454,20 +468,47 @@ if __name__ == '__main__':
                 ###
                 # Magnetic field input
                 ###
-
                 field = ss.simcom.Fields()
-                field.createFromSingleB(B = np.array([Br, Bz, Bt]), 
-                                Rmin = Rpin - 0.25,
-                                Rmax = Rpin + 0.25,
-                                zmin = zPin -0.25, zmax = zPin + 0.25,
-                                nR = 10, nz = 10)
-                plt.show()
+                if use_1D_Bfield:
+                    field.createFromSingleB(B = np.array([Br, Bz, Bt]), 
+                                    Rmin = Rpin - 0.25,
+                                    Rmax = Rpin + 0.25,
+                                    zmin = zPin -0.25, zmax = zPin + 0.25,
+                                    nR = 10, nz = 10)
+
+                elif use_2D_Bfield:
+                    Br = Br.astype(dtype=np.float64)
+                    Bphi = Bt.astype(dtype=np.float64)
+                    Bz = Bz.astype(dtype=np.float64)
+
+                    field.Bfield['R'] = np.float64(r_grid - Rinsertion*0.001)
+                    field.Bfield['z'] = np.float64(z_grid)   
+                    field.Bfield['Rmin'] = np.float64(np.min(field.Bfield['R']))
+                    field.Bfield['Rmax'] = np.float64(np.max(field.Bfield['R']))
+                    field.Bfield['zmin'] = np.float64(np.min(field.Bfield['z']))
+                    field.Bfield['zmax'] = np.float64(np.max(field.Bfield['z']))
+                    field.Bfield['nR'] = np.int32(len(field.Bfield['R']))
+                    field.Bfield['nz'] = np.int32(len(field.Bfield['z']))
+                    #field.Bfield['nPhi'] = np.int32(1)
+                    #field.Bfield['Phimin'] = np.float64(0.)
+                    #field.Bfield['Phimax'] = np.float64(2*np.pi)
+
+                    field.Bfield['fr'] = np.asfortranarray(Br)
+                    field.Bfield['fz'] = np.asfortranarray(Bz)
+                    field.Bfield['ft'] = np.asfortranarray(Bphi)
+       
+                    #field.Bfield['nTime'] = np.int32(0)
+                    #field.Bfield['Timemin'] = np.float64(0.)
+                    #field.Bfield['Timemax'] = np.float64(0.)
+                    
+                    field.bdims = 2
+                    field.plot('br', phiSlice = 0 ,plot_vessel = False)
+                    plt.show()
 
                 write_stl_geometry_files(root_dir = geom_dir,
                                         run_name = run_names[i],
                                         collimator_stl_files = collimator_stl_files,
                                         scintillator_stl_files = scintillator_stl_files,
-                                        #itriang_scint = itriang_scint,
                                         ps = ps,
                                         u1_scint= u1_scint,
                                         scint_norm= scint_norm,
@@ -495,12 +536,12 @@ if __name__ == '__main__':
                                                         - gyrophase_range[i][0])
             
                     #Make field
-                    if new_b_field:
-                        fieldFileName = os.path.join(inputsDir, 'field.bin')
-                        print('Writing new B-field file!!!!!')
-                        fid = open(fieldFileName, 'wb')
-                        field.tofile(fid)
-                        fid.close()
+
+                    fieldFileName = os.path.join(inputsDir, 'field.bin')
+                    print('Writing new B-field file!!!!!')
+                    fid = open(fieldFileName, 'wb')
+                    field.tofile(fid)
+                    fid.close()
 
                     # Create namelist
                     ss.sinpa.execution.write_namelist(nml_options)
