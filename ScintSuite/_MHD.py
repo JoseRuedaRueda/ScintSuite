@@ -304,7 +304,7 @@ class MHDmode():
         self._ti = self._ti.interp(t=self._ne['t'], rho=self._ne['rho'],
                                    method="cubic")
 
-        self._q = self._q.interp(t=self._ne['t'], rho=self._ne['rho'],
+        self._q = self._q.interp(t=self._ne['t'], rho=self._ne['rho'],        
                                  method="cubic")
         self._R0 = self._R0.interp(t=self._ne['t'], method="cubic")
         self._ahor = self._ahor.interp(t=self._ne['t'], method="cubic")

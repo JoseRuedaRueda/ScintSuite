@@ -183,7 +183,7 @@ if __name__ == '__main__':
     plot_plate_geometry = True
     plot_3D = False
 
-    shot = 75620
+    shot = 79581
     Rinsertion = -17.0 #[mm] #negative means inserted
 
     if shot <=77469:
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     else:
         year = 2023
 
-    time = 1.0
+    time = 0.95
     use_reduced_stl_models = True
     use_1mm_pinhole = True
 
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     slits = ['ul', 'ur', 'lr', 'll']
     idx_slit = np.where(run_slit)[0][0]
     run_name = '%i@%.3f' %(shot, time) #Choose unique run identifier, like shot number and time
-    run_names = [run_name +'_ul', run_name +'_ur_2d_liuqe', run_name +'_lr', run_name +'_ll']
+    run_names = [run_name +'_ul', run_name +'_ur', run_name +'_lr', run_name +'_ll']
     read_results = not run_code # Flag to read output after run
 
     ###
@@ -347,7 +347,7 @@ if __name__ == '__main__':
                                             [-255.143, 1125.33, -10.4998] ] )#lower right          
 
     ###Magnetic Field
-    use_1D_Bfield = False  #Use the magnetic field at the slit
+    use_1D_Bfield = True  #Use the magnetic field at the slit
     use_2D_Bfield = not use_1D_Bfield
     if use_1D_Bfield:
         xyzPin = np.mean(pinholes[idx_slit]['points'], axis = 0)   #get magnetic field for specific slit
@@ -357,9 +357,7 @@ if __name__ == '__main__':
         
         Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time)#, use_gdat = True)
         modB = np.sqrt(Br**2 + Bz**2 + Bt**2) 
-
     elif  use_2D_Bfield:
-
         rmin = 0.614  #[m]
         rmax = 1.147
         nr = 129#28
@@ -379,7 +377,7 @@ if __name__ == '__main__':
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(1e5)
+    n_markers = int(1e3)
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0

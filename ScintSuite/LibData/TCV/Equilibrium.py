@@ -268,7 +268,8 @@ def get_q_profile(shotnumber: int = None, time: float = None,
 
 def get_q_profile_LIUQE(shot: int, 
                   liuqe: int = 1, time: float = None, 
-                  xArrayOutput: bool = True):
+                  xArrayOutput: bool = True,
+                  **kwargs):
     """
     Reads LIUQE calculated q-profile from MDS.
 
@@ -284,6 +285,10 @@ def get_q_profile_LIUQE(shot: int,
     q_profile [nt, nrho]
     rho [nt, nrho]
     """
+    default_options = {
+        'q_absolute': False
+    }
+    default_options.update(kwargs)
 
     eq = eqtools.TCVLIUQEMATTree(shot)
     eq.getTimeBase()
@@ -292,6 +297,10 @@ def get_q_profile_LIUQE(shot: int,
     rho = eq._rhopsi
     eq.getQProfile()
     qpsi = eq._qpsi
+
+    if default_options['q_absolute']:
+        qpsi = np.abs(qpsi.T)
+
 
     if time is not None:
         time = np.atleast_1d(time)
@@ -318,8 +327,8 @@ def get_q_profile_LIUQE(shot: int,
     else:
         output = xr.Dataset()
 
-        output['data'] = xr.DataArray(qpsi, dims=('t', 'rho'),
-                                      coords={'rho':( ('t', 'rho'), rho),
+        output['data'] = xr.DataArray(qpsi.T, dims=('rho', 't'),
+                                      coords={'rho': rho[0, :],
                                       't': timebasis})
         output['data'].attrs['long_name'] = 'q'
         output['rho'].attrs['long_name'] = '$\\rho_p$'
@@ -423,6 +432,7 @@ def get_shot_basics(shotnumber: int,
     out = {
         'time': np.atleast_1d(timebasis[t0:t1]),
         'bt0': bt0[t0:t1],
+        'bttime': np.atleast_1d(timebasis[t0:t1]), # this extra time base is because of the AUG implemetation spilling over into _MHD
         'Rmag': Rmag[t0:t1],
         'ahor': ahor[t0:t1] ,
         'k': kappa[t0:t1]

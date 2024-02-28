@@ -25,7 +25,6 @@ import logging
 logger = logging.getLogger('ScintSuite.Data')
 pa = Path()
 
-
 # -----------------------------------------------------------------------------
 # --- Electron density and temperature profiles.
 # -----------------------------------------------------------------------------
@@ -89,7 +88,7 @@ def get_ne_conf(shotnumber: int, time: float = None,
     # --- Reading from the database
     try:
         ne_conf_data = conf.ne(shotnumber,  trial_indx=1)
-        ne = ne_conf_data.data.T
+        ne = ne_conf_data.data.T 
         ne_unc = np.zeros(np.shape(ne)) * np.nan
         rho = ne_conf_data.rho.data
         timebase = ne_conf_data.t.data
@@ -259,7 +258,6 @@ def get_Te_conf(shotnumber: int, time: float = None,
 
     return output
 
-
 # -----------------------------------------------------------------------------
 # --- Ion temperature
 # -----------------------------------------------------------------------------
@@ -365,8 +363,7 @@ def get_Ti_conf(shot: int, time: float = None,  xArrayOutput: bool = False):
 # -----------------------------------------------------------------------------
 # --- Toroidal rotation velocity
 # -----------------------------------------------------------------------------
-
-def get_tor_rotation(shotnumber: int, time: float = None, **kwargs):
+def get_tor_rotation_idi(shotnumber: int, time: float = None, **kwargs):
     """
     Retrieves from the database the toroidal velocity (vtor).
     To get the linear velocity (i.e., vtor) multiply by the major radius.
@@ -387,6 +384,8 @@ def get_tor_rotation(shotnumber: int, time: float = None, **kwargs):
 
     #TODO
 
+    return None
+
 # -----------------------------------------------------------------------------
 # Zeff
 # -----------------------------------------------------------------------------
@@ -395,7 +394,7 @@ def get_Zeff(shot: int, **kwargs):
     Wrap the different diagnostics to read Z effective.
 
     It supports CONF and PROFFIT (or it will eventually ;) ).
-
+    CONF Zeff data is constant over rho profile
     Anton Jansen van Vuuren - anton.jansenvanvuuren
 
     :param  shot: Shot number
@@ -433,18 +432,21 @@ def get_Zeff_conf(shot: int):
 
     # --- Reading from the database
     try:
-        Zeff_conf_data = conf.ti(shot,  trial_indx=1)
+        Zeff_conf_data = conf.zeff(shot,  trial_indx=1)
         Zeff = Zeff_conf_data.data
-        rho = Zeff_conf_data.rho.data
+        Zeff = np.expand_dims(Zeff, axis = 1)
+        nrho = 41
+        Zeff = np.repeat(Zeff , nrho, axis = 1)
+
         Zeff_unc = Zeff * np.nan
         timebase = Zeff_conf_data.t.data
     except:
         raise Exception('Cannot read Z effective from the conf nodes for shot: #%05d'%shot)
 
     z = xr.Dataset()
-    
-    z['data'] = xr.DataArray(Zeff.T, dims=('t', 'rho'), 
+    rho = np.arange(nrho)/ (nrho-1)  # conf Zeff is not not resolved in
+    z['data'] = xr.DataArray(Zeff, dims=('t', 'rho'), 
                             coords={'t':timebase, 'rho':rho})
-    z['uncertainty'] = xr.DataArray(Zeff_unc.T, dims=('t', 'rho'), 
+    z['uncertainty'] = xr.DataArray(Zeff_unc, dims=('t', 'rho'), 
                             coords={'t':timebase, 'rho':rho})
     return z
