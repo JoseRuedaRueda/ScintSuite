@@ -240,6 +240,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
         :param  variables: Variables where to calculate the resolutions. By
             default, the ones selected for the remapping will be used
         :param  verbose: Flag to print some information
+        :param  shot: Shot number for calculating the B fiel if energy is needed, @TODO: make this cleaner
+        :param  time: time for calculating the B fiel if energy is needed, @TODO: make this cleaner
+        :param  Rinsertion: FILD insertion the B fiel if energy is needed, @TODO: make this cleaner
         """
         if self.strike_points is None:
             logger.info('Trying to load the strike points')
@@ -249,7 +252,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
             'dx': 1.0,
             'dy': 0.1,
             'x_method': 'Gauss',
-            'y_method': 'sGauss'
+            'y_method': 'sGauss',
+            'x_var': 'pitch_angle',
+            'y_var': 'gyroradius'
         }
         diag_options.update(diag_params)
         # Select the variables
@@ -332,6 +337,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 if diag_options['y_var'] == 'energy':
                     e0 = get_energy(data[:, iiy], B=modB)     
                     data[:, iiy] = e0/1e3 
+                    
                 if adaptative:
                     sigmax = np.std(data[:, iix])
                     dx = sigmax / float(bin_per_sigma)
@@ -749,11 +755,12 @@ class FILDINPA_Smap(GeneralStrikeMap):
     # --------------------------------------------------------------------------
     def plot_phase_space_resolution(self, ax_params: dict = {},
                                     cmap=None,
-                                    nlev: int = 50,
+                                    nlev: int = 100,
                                     index_x: list = None,
                                     index_y: list = None,
                                     ax_lim: dict = {},
-                                    cmap_lim: dict = {}):
+                                    cmap_lim: dict = {},
+                                    modB: float = 1.2):
         """
         Plot the phase space resolutions.
 
@@ -770,13 +777,18 @@ class FILDINPA_Smap(GeneralStrikeMap):
                        Should be given as ax_lim = {'xlim' : [x1,x2], 'ylim' : [y1,y2]}
         :param  cmap_lim: Manually set the upper limit for the color map
                          Should be given as cmap_lim = {'gyroradius' : ___, 'pitch' : ___}
+        :param  modB: modulus of the B-filed to calculate the energy for the y-axis, @TODO: make this cleaner
         """
         # Initialise the plotting settings
         ax_options = {
             'xlabel': self.MC_variables[0].plot_label,
             'ylabel': self.MC_variables[1].plot_label,
+            'x_var': 'normalized_pitch',
+            'y_var': 'energy'
         }
+     
         ax_options.update(ax_params)
+        
         if cmap is None:
             cmap = ssplt.Gamma_II()
         # --- Plot the resolution
@@ -785,8 +797,21 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
             for var, subplot in zip(self._resolutions['variables'], ax):
                 key = var.name
-                xAxisPlot = self.MC_variables[0].data
-                yAxisPlot = self.MC_variables[1].data
+                #JPS: add the normalized pitch variable
+                if ax_options['x_var'] == 'normalized_pitch':
+                    p0 = np.cos(np.deg2rad(self.MC_variables[0].data))
+                    xAxisPlot = p0
+                else:
+                    xAxisPlot = self.MC_variables[0].data
+                
+                #JPS: add the energy variable
+                if ax_options['y_var'] == 'energy':
+                    e0 = get_energy(self.MC_variables[1].data, B=modB)     
+                    yAxisPlot = e0/1e3
+                else:
+                    yAxisPlot = self.MC_variables[1].data
+                
+                
                 res_matrix = self._resolutions[key]['sigma'].T
                 if ax_lim:
                     if ax_lim["xlim"][0] < np.min(self.MC_variables[0].data):
@@ -823,12 +848,18 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 cont = subplot.contourf(
                     xAxisPlot, yAxisPlot,
                     res_matrix,
-                    levels=nlev_new, cmap=cmap
+                    levels=nlev, cmap=cmap
                 )
                 subplot = ssplt.axis_beauty(subplot, ax_options)
                 # Now place the color var in the proper position
                 divider = make_axes_locatable(subplot)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
+                if (key == 'pitch') & (ax_options['x_var'] == 'normalized_pitch'):
+                    key = '\lambda'
+                    var.units = '-'
+                if (key == 'gyroradius') & (ax_options['y_var'] == 'energy'):
+                    key = 'Energy'
+                    var.units = 'keV'
                 plt.colorbar(cont,
                              label='$\\sigma_{%s} [%s]$' % (key, var.units),
                              cax=cax)
@@ -997,26 +1028,44 @@ class FILDINPA_Smap(GeneralStrikeMap):
             for ip in index_pitch:
                 # The lmfit model has included a plot function, but is slightly
                 # not optimal so we will plot it 'manually'
-                if self._resolutions['fits_' + var.lower()][ip, ir] is not None:
+                if self._resolutions['fits_' + var.lower()][ip, ir] is not None:                    
                     x = self._resolutions['fits_' + var.lower()][ip, ir].userkws['x']
                     deltax = x.max() - x.min()
                     x_fine = np.linspace(x.min() - 0.1 * deltax,
                                          x.max() + 0.1 * deltax)
                     name = 'rl: ' + str(round(self.MC_variables[1].data[ir], 1))\
                         + ' $\\lambda$: ' + \
-                        str(round(self.MC_variables[0].data[ip], 1)) ###JP: bug here; it was self.MC_variables[1].data[ip]
+                        str(round(self.MC_variables[0].data[ip], 1)) #JPS: bug here; it was self.MC_variables[1].data[ip]
                     normalization = \
                         self._resolutions['norm_' + var.lower()][ip, ir]
                     y = self._resolutions['fits_' + var.lower()][ip, ir].eval(
                         x=x_fine) * normalization
-                    #JPS: correct raised cosine multiple bumps
+                #JPS: correct raised cosine multiple bumps if needed
                     if ax_options['y_method'] == 'raised_cosine':
-                        idx = np.where(y == np.max(y))[0][0]
-                        for i in range(idx,len(y)-1):
-                            i += 1
-                            if y[i] > y[i-1]:
-                               y[i:-1] = 0
-                               y[-1] = 0
+                        #This finds if there are unnesary second bumps when evaluating the model and surpress them
+                        z_idx = []
+                        id_max = []
+                        z_real = []
+                        idx = []
+                        ids = []
+                        z_idx = np.where(y < 0.05*np.max(y))         
+                        for i in range(1,len(y)):
+                            if y[i]-y[i-1] <0:
+                                ids.append(i-1) 
+                                                               
+                        if len(ids) != 0:
+                            id_max = ids[0]
+                        z_idx = np.asarray(z_idx)
+                        if (len(z_idx) != 0) & (len(ids)!= 0):           
+                            z_real = z_idx[np.where(z_idx>np.asarray(id_max))]
+                            if len(z_real) != 0:
+                                
+                                idx = range(z_real[0],len(y))
+                                mask = np.ones(len(y), dtype=bool)
+                                mask[[idx]] = False
+                                y = y[mask]
+                                x_fine = x_fine[mask]
+                                                                                     
                     if kind_of_plot.lower() == 'normal':
                         # plot the data as scatter plot
                         scatter = ax.scatter(
@@ -1027,6 +1076,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                         ax.plot(x_fine, y,
                                 color=scatter.get_facecolor()[0, :3],
                                 label=name)
+                        
                     elif kind_of_plot.lower() == 'bar':
                         bar = ax.bar(
                             x,

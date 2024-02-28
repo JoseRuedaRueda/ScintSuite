@@ -377,13 +377,13 @@ if __name__ == '__main__':
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(1e3)
+    n_markers = int(15e4)
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
     #Grids
 
-    energy_arrays = np.arange(3000, 65000, 5000)
+    energy_arrays = np.arange(3000, 65000, 15000)
     #Gyroradii grid in [cm]
     g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
 
@@ -396,7 +396,7 @@ if __name__ == '__main__':
                 list(np.around(g_r, decimals = 5))]
     #pitch angle grid in [degrees]
     #JP: Added rounded on p, because otherwise not correct the arccos (too many zeros gives NaN)
-    p = np.around(np.arange(0.01, 1.01, 0.1), decimals = 5)
+    p = np.around(np.arange(0.01, 0.97, 0.3), decimals = 5)
     pitch_arrays = [list(np.around(np.rad2deg(np.arccos(p)), decimals = 5)), 
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5)),
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5)),
