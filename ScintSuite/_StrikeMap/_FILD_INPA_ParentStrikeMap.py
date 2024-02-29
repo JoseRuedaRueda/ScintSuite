@@ -1048,7 +1048,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                         z_real = []
                         idx = []
                         ids = []
-                        z_idx = np.where(y < 0.05*np.max(y))         
+                        z_idx = np.where(y < 0.002*np.max(y))         
                         for i in range(1,len(y)):
                             if y[i]-y[i-1] <0:
                                 ids.append(i-1) 
