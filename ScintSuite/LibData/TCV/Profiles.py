@@ -7,16 +7,24 @@ MDSplus needed as well as the tcvpy package to call these functions
 Anton Jansen van Vuuren - anton.jansenvanvuuren@epfl.ch
 """
 import sys
-sys.path.append('/home/jansen/NoTivoli/ascot-tcv/')
-import tcvpy.results.conf as conf
-import numpy as np
+
+try:
+    sys.path.append('/home/jansen/NoTivoli/ascot-tcv/')
+    import tcvpy.results.conf as conf
+    import tcvpy.tcv as tcv
+except:
+    pass
+
+try:
+    import eqtools
+except:
+    pass
 
 
 import numpy as np
 import xarray as xr
 
 import ScintSuite.errors as errors
-from typing import Optional
 from ScintSuite._Paths import Path
 from scipy.interpolate import interp1d, interp2d, UnivariateSpline
 
@@ -363,28 +371,123 @@ def get_Ti_conf(shot: int, time: float = None,  xArrayOutput: bool = False):
 # -----------------------------------------------------------------------------
 # --- Toroidal rotation velocity
 # -----------------------------------------------------------------------------
-def get_tor_rotation_idi(shotnumber: int, time: float = None, **kwargs):
+def get_tor_rotation(shotnumber: int, time: float = None, diag: str = 'CXRS'
+                     ,**kwargs):
     """
-    Retrieves from the database the toroidal velocity (vtor).
-    To get the linear velocity (i.e., vtor) multiply by the major radius.
-
-
+    Retrieves from the database the toroidal velocity velocity (v_tor).
+    Wrapper to call diagnistic spefic functions
 
     :param  shotnumber: shotnumber to read.
     :param  time: time window to get the data. If None, all the available times
     are read.
-    :param  diag: the diagnostic can only be 'IDI' or 'CXRS'. In the first, the
-    profiles are obtained directly from the IDI reconstruction. For the option
-    CXRS the diagnostics 'CEZ'/'CMZ' are used.
-    :param  exp: experiment under which the shotfile is stored.
-    :param  edition: edition of the shotfile to read
-    :param  cxrs_options: extra parameters to send to the fitting procedure
-    that reads all the rotation velocities.
+
     """
 
-    #TODO
+    if diag == 'CXRS':
+        return get_tor_rotation_cxrs_fit(shotnumber, time, **kwargs)
 
-    return None
+def get_tor_rotation_cxrs_fit(shotnumber: int, time: float = None, 
+                              rad_per_s = True,
+                              **kwargs):
+    """
+    Retrieves from the fitted toroidal velocity (v_tor) from CXRS data in [km/s].
+    See: https://spcwiki.epfl.ch/wiki/CXRS
+    
+    Anton Jansen van Vuuren - anton.jansenvanvuuren@epfl.ch
+
+    To get the angular velocity (i.e., omega_tor) devide by the major radius.
+    Use keyword rad_per_s = True to convert from radial to angular velocity.
+
+    :param  shotnumber: shotnumber to read.
+    :param  time: time window to get the data. If None, all the available times
+    are read.
+
+    """
+    default_options = {
+        'xArrayOutput': True
+    }
+    default_options.update(kwargs)
+
+    try:
+        MDS_tdi_command = r'\RESULTS::CXRS.PROFFIT:VI_TOR'
+        MDS_Connection = tcv.shot(shotnum = shotnumber)  
+        vtor = MDS_Connection.tdi(MDS_tdi_command).values
+        vtor_unc = vtor * np.nan
+        rho = MDS_Connection.tdi('dim_of(%s, 0)'%MDS_tdi_command).values    # dimension is (rho [101], t [42])
+        rho = rho[:, 0]
+        timebase = MDS_Connection.tdi('dim_of(%s, 1)'%MDS_tdi_command).values
+        
+        MDS_Connection.close()
+
+    except  ValueError:
+        print('\033[91m %s MDS data not available for %i \033[0m'%('toroidal rotation', shotnumber))
+
+    rotation = vtor
+    rotation_unc = vtor_unc
+
+    rotation_units = 'km/s'
+    rotation_label = '$vtor$'
+    rotation_unc_label = '$\\sigma vtor$'
+
+    if rad_per_s:
+        #convert the v_tor rotation form km/s to rad/s
+        eq = eqtools.TCVLIUQEMATTree(shotnumber)
+        eq.getTimeBase()
+
+        #rho_tmp_flat = rho.T.flatten()
+        #timebase_tmp_flat = np.repeat(np.expand_dims(timebase, axis = 1), rho.shape[0], axis = 1).flatten()
+
+        #Rmid = eq.rho2rho('sqrtpsinorm', 'Rmid', rho_tmp_flat, timebase_tmp_flat, each_t = False)
+        Rmid = eq.rho2rho('sqrtpsinorm', 'Rmid', rho, timebase).T
+
+        #v_omega = vtor.T.flatten()/ (Rmid / 1000 )
+        #v_omega = np.reshape(v_omega, vtor.T.shape).T
+
+        v_omega = vtor/ (Rmid / 1000 )
+
+        rotation = v_omega
+        rotation_unc = v_omega * np.nan
+        rotation_units = 'rad/s'
+        rotation_label = '$\\omega$'
+        rotation_unc_label = '$\\sigma\\omega$'
+
+    # --- If a time window is provided, we cut out the data.
+    if time is not None:
+        t0, t1 = timebase.searchsorted(time)
+        data = data[t0:t1, :]
+        unc = unc[t0:t1, :]
+        timebase = timebase[t0:t1]
+
+    # --- Saving to a dictionary and output:
+    if not default_options['xArrayOutput']:
+        output = {
+            'data': rotation,
+            'uncertainty': rotation_unc,
+            'time': timebase,
+            'rhop': rho,
+            'units': rotation_units,
+            'label': rotation_label
+        }
+    else:
+        output = xr.Dataset()
+        time = np.atleast_1d(timebase)
+        output['data'] = xr.DataArray(
+                rotation, dims=('rho', 't'),
+                coords={'rho': rho,
+                        't': timebase})
+        output['uncertainty'] = xr.DataArray(rotation_unc, dims=('rho', 't'))
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output['data'].attrs['long_name'] = rotation_label
+        output['data'].attrs['units'] = rotation_units
+
+        output['uncertainty'].attrs['long_name'] = rotation_unc_label
+        output['uncertainty'].attrs['units'] = rotation_units
+        output.attrs['diag'] = 'FITPROF_CXRS'
+        output.attrs['shot'] = shotnumber
+
+    return output
 
 # -----------------------------------------------------------------------------
 # Zeff

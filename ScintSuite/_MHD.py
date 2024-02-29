@@ -291,7 +291,7 @@ class MHDmode():
             coords={'t': self._basic['bttime']})
         # ---- Plasma rotation
         try:
-            self._rotation = ssdat.get_tor_rotation_idi(shot, xArrayOutput=True)
+            self._rotation = ssdat.get_tor_rotation(shot, xArrayOutput=True)
         except errors.DatabaseError:
             self.rotation = None
             logger.warning('Not found toroidal rotation, no doppler shift')

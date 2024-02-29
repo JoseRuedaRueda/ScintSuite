@@ -183,7 +183,7 @@ if __name__ == '__main__':
     plot_plate_geometry = True
     plot_3D = False
 
-    shot = 79581
+    shot = 79177
     Rinsertion = -17.0 #[mm] #negative means inserted
 
     if shot <=77469:
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     else:
         year = 2023
 
-    time = 0.95
+    time = 1.0
     use_reduced_stl_models = True
     use_1mm_pinhole = True
 
@@ -377,7 +377,7 @@ if __name__ == '__main__':
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(1e3)
+    n_markers = int(1e4)
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
