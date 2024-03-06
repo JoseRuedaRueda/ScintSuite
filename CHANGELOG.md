@@ -1,3 +1,6 @@
+# 1.3.7 Solved (again) np.int stuff
+- removed np.int and np.float calls
+
 # 1.3.6 Updated fild export
 - Updated pip requirements
 - Updated export fild, for the case of single smap used in remap
