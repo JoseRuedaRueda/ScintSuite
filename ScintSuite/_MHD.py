@@ -292,8 +292,8 @@ class MHDmode():
         # ---- Plasma rotation
         try:
             self._rotation = ssdat.get_tor_rotation(shot, xArrayOutput=True)
-        except errors.DatabaseError:
-            self.rotation = None
+        except:
+            self._rotation = None
             logger.warning('Not found toroidal rotation, no doppler shift')
         # --- Now interpolate everything in the time/rho basis of ne
         # self._ni = self._ni.interp(t=self._ne['t'], rho=self._ne['rho'],
@@ -304,13 +304,18 @@ class MHDmode():
         self._ti = self._ti.interp(t=self._ne['t'], rho=self._ne['rho'],
                                    method="cubic")
 
+        #AJVV sometimes there are nans when trying to interpolate q profile 
+        #on ne timebase. So first try a linear interpolation, then check again
+        #for any nans
         if not np.isnan(self._q.interp(t=self._ne['t'], rho=self._ne['rho'],        
                                     method="cubic")).any().data:
             self._q = self._q.interp(t=self._ne['t'], rho=self._ne['rho'],        
                                     method="cubic")
         else:
             self._q = self._q.interp(t=self._ne['t'], rho=self._ne['rho'],        
-                                    method="linear")            
+                                    method="linear")        
+        if np.isnan(self._q.data).any().data:
+            self._q = self._q.dropna(dim='rho')
             
         self._R0 = self._R0.interp(t=self._ne['t'], method="cubic")
         self._ahor = self._ahor.interp(t=self._ne['t'], method="cubic")
