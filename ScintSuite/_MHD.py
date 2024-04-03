@@ -430,6 +430,8 @@ class MHDmode():
                 len(rho)
             except TypeError:
                 rho = np.array([rho])
+                logger.warning('rho not correct!')
+                
             # --- Plot the line
             for r in rho:
                 if r < self.freq[var]['rho'][0] or r < self.freq[var]['rho'][1]:
@@ -468,6 +470,7 @@ class MHDmode():
                 if r < self.freq[var]['rho'][0] or r < self.freq[var]['rho'][1]:
                     text = 'Requested point outise the rho interval, skipping'
                     logger.warning('XX: %s', text)
+                    logger.warning('Skipped!!!')
                 dataToPlot[jt] = (self.freq[var].sel(rho=r, t=t, method='nearest')+\
                     correction.sel(rho=r, t=t, method='nearest')).values
                 print(r,dataToPlot[jt])

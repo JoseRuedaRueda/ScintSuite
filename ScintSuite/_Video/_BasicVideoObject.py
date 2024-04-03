@@ -1238,6 +1238,6 @@ class BVO:
         fps = int(1/dt)
 
         # Saving
-        logger.debug(f'Saving to file {fn}')
+        logger.debug('Saving to file {fn}')
         mp4.write_file(fn=fn, video=data, bit_size=bits_size,
                        encoding=encoding, fps=fps)

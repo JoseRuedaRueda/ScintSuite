@@ -152,6 +152,7 @@ class Fsmap(FILDINPA_Smap):
                     eff = efficiency(dummy).values
                 elif names[k] == 'gyroradius':
                     energy = get_energy(dummy, B, A, Z) / 1000.0
+                    import pdb; pdb.set_trace();
                     eff = efficiency(energy).values
             logger.info('Considering scintillator efficiency in W')
         else:
