@@ -14,10 +14,8 @@ from ScintSuite._Machine import machine
 from ScintSuite._Paths import Path
 paths = Path(machine)
 
-import pickle
-
 from matplotlib import cm
-from stl import mesh 
+
 
 import ScintSuite.LibData.TCV.Equilibrium as TCV_equilibrium
 
@@ -487,9 +485,6 @@ if __name__ == '__main__':
                     field.Bfield['zmax'] = np.float64(np.max(field.Bfield['z']))
                     field.Bfield['nR'] = np.int32(len(field.Bfield['R']))
                     field.Bfield['nz'] = np.int32(len(field.Bfield['z']))
-                    #field.Bfield['nPhi'] = np.int32(1)
-                    #field.Bfield['Phimin'] = np.float64(0.)
-                    #field.Bfield['Phimax'] = np.float64(2*np.pi)
 
                     field.Bfield['fr'] = np.asfortranarray(Br)
                     field.Bfield['fz'] = np.asfortranarray(Bz)

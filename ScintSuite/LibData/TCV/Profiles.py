@@ -388,6 +388,7 @@ def get_tor_rotation(shotnumber: int, time: float = None, diag: str = 'CXRS'
 
 def get_tor_rotation_cxrs_fit(shotnumber: int, time: float = None, 
                               rad_per_s = True,
+                              nans_to_zero = True,
                               **kwargs):
     """
     Retrieves from the fitted toroidal velocity (v_tor) from CXRS data in [km/s].
@@ -411,16 +412,22 @@ def get_tor_rotation_cxrs_fit(shotnumber: int, time: float = None,
     try:
         MDS_tdi_command = r'\RESULTS::CXRS.PROFFIT:VI_TOR'
         MDS_Connection = tcv.shot(shotnum = shotnumber)  
-        vtor = MDS_Connection.tdi(MDS_tdi_command).values
+        vtor = MDS_Connection.tdi(MDS_tdi_command)
+        vtor = vtor.values
         vtor_unc = vtor * np.nan
         rho = MDS_Connection.tdi('dim_of(%s, 0)'%MDS_tdi_command).values    # dimension is (rho [101], t [42])
         rho = rho[:, 0]
         timebase = MDS_Connection.tdi('dim_of(%s, 1)'%MDS_tdi_command).values
-        
         MDS_Connection.close()
 
-    except  ValueError:
+    except:
+        
         print('\033[91m %s MDS data not available for %i \033[0m'%('toroidal rotation', shotnumber))
+        return None
+
+    if nans_to_zero:
+        idx_nans = np.argwhere(np.isnan(vtor))
+        vtor[idx_nans[:, 0], idx_nans[:, 1]] = 0
 
     rotation = vtor
     rotation_unc = vtor_unc
@@ -434,16 +441,13 @@ def get_tor_rotation_cxrs_fit(shotnumber: int, time: float = None,
         eq = eqtools.TCVLIUQEMATTree(shotnumber)
         eq.getTimeBase()
 
-        #rho_tmp_flat = rho.T.flatten()
-        #timebase_tmp_flat = np.repeat(np.expand_dims(timebase, axis = 1), rho.shape[0], axis = 1).flatten()
-
-        #Rmid = eq.rho2rho('sqrtpsinorm', 'Rmid', rho_tmp_flat, timebase_tmp_flat, each_t = False)
         Rmid = eq.rho2rho('sqrtpsinorm', 'Rmid', rho, timebase).T
 
-        #v_omega = vtor.T.flatten()/ (Rmid / 1000 )
-        #v_omega = np.reshape(v_omega, vtor.T.shape).T
-
         v_omega = vtor/ (Rmid / 1000 )
+
+        if nans_to_zero:
+            idx_nans = np.argwhere(np.isnan(v_omega))
+            v_omega[idx_nans[:, 0], idx_nans[:, 1]] = 0
 
         rotation = v_omega
         rotation_unc = v_omega * np.nan
