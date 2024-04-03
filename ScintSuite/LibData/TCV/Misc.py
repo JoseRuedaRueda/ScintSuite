@@ -42,13 +42,12 @@ def read_MAT_video_data(file: str):
     '''
     mat_out = xr.Dataset()
     if ('pcfild002' in file) or ('pcfild004' in file):
-        dummy = mat.read_file(file)#, **self.properties)
+        dummy = mat.read_file(file)
         t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
         timebase = t0 + dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
 
         frames = dummy.pop('/dat') #frames are stored in "/dat"
         frames = frames[:,:,::-1]  #flip the image in the y direction.
-        #self.properties.update(dummy)
         
         nt, nx, ny = frames.shape
 
@@ -63,13 +62,14 @@ def read_MAT_video_data(file: str):
         mat_out['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))
         mat_out['RealBPP'] = 10
 
+        del dummy
+        del frames
     else:
         '''
         load APD data
         '''
         data = get_APD(file)
         timebase = data['time']
-
 
         #The APD has 8 by 16 pixels, however the fibre bundle viewing the scintillator is 10 by 13.
         nt, nx, ny = len(timebase), 10, 13   #The scintillator 
@@ -88,6 +88,9 @@ def read_MAT_video_data(file: str):
                                 'py': py})
         mat_out['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))
         mat_out['RealBPP'] = 10
+
+        del data
+        del apd_data
 
     return mat_out
 

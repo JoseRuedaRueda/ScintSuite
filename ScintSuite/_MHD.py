@@ -291,7 +291,7 @@ class MHDmode():
             coords={'t': self._basic['bttime']})
         # ---- Plasma rotation
         try:
-            self._rotation = ssdat.get_tor_rotation_idi(shot, xArrayOutput=True)
+            self._rotation = ssdat.get_tor_rotation(shot, xArrayOutput=True)
         except errors.DatabaseError:
             self.rotation = None
             logger.warning('Not found toroidal rotation, no doppler shift')
@@ -304,8 +304,14 @@ class MHDmode():
         self._ti = self._ti.interp(t=self._ne['t'], rho=self._ne['rho'],
                                    method="cubic")
 
-        self._q = self._q.interp(t=self._ne['t'], rho=self._ne['rho'],        
-                                 method="cubic")
+        if not np.isnan(self._q.interp(t=self._ne['t'], rho=self._ne['rho'],        
+                                    method="cubic")).any().data:
+            self._q = self._q.interp(t=self._ne['t'], rho=self._ne['rho'],        
+                                    method="cubic")
+        else:
+            self._q = self._q.interp(t=self._ne['t'], rho=self._ne['rho'],        
+                                    method="linear")            
+            
         self._R0 = self._R0.interp(t=self._ne['t'], method="cubic")
         self._ahor = self._ahor.interp(t=self._ne['t'], method="cubic")
         self._B0 = self._B0.interp(t=self._ne['t'], method="cubic")
@@ -445,7 +451,7 @@ class MHDmode():
                 dataToPlot = data[flags].copy()
                 # Now smooth if needed
                 if smooth > 0:
-                    dataToPlot = dataToPlot.rolling(t=smooth).mean()
+                    dataToPlot = dataToPlot.rolling(t=smooth, center=True).mean()
                 if n is not None:
                     if self._rotation is None:
                         raise Exception('You want Doppler shift but there is no f')
