@@ -8,6 +8,7 @@ Introduced in version 0.6.0
 import logging
 import datetime
 import numpy as np
+import ScintSuite._models as models
 import math
 from ScintSuite.decorators import deprecated
 from ScintSuite._Mapping._Calibration import CalParams
@@ -224,39 +225,20 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
     if model == 'Gauss':
         model = lmfit.models.GaussianModel()
         params = model.guess(hist, x=cent)
-        result = model.fit(hist, params, x=cent)
-        par = {'amplitude': result.params['amplitude'].value,
-               'center': result.params['center'].value,
-               'sigma': result.params['sigma'].value}
     elif model == 'sGauss':
         model = lmfit.models.SkewedGaussianModel()
         params = model.guess(hist, x=cent)
-        result = model.fit(hist, params, x=cent)
-        par = {'amplitude': result.params['amplitude'].value,
-               'center': result.params['center'].value,
-               'sigma': result.params['sigma'].value,
-               'gamma': result.params['gamma'].value}
-        
-    ##JPS: Add new models to fit 
     elif model == 'raisedCosine': #reaised cosine model for the energy
-        #Create the new raised cosine custom model in lmfit
-        def raised_cosine(x,amplitude,center,sigma,gamma,R):   
-            return (amplitude*(1/(2*sigma))*( 1 + np.cos( R * np.deg2rad((x-center)/sigma * np.pi )) )*(1 + special.erf( (x - center)/np.sqrt(2) * gamma)))     
-        model = Model(raised_cosine)
+        model = models.RaisedCosine()
+        # estimate the parameters to reasonable numbers
+        params = model.make_params()
+        params['sigma'].set(value=hist.std(), min=0.0)
+        params['amplitude'].set(value=hist.max()/2.0/params['sigma'].value,
+                                min=0.0)
+        params['center'].set(value=cent[np.argmax(hist)], min=cent.min(), 
+                             max=cent.max())
+        params['gamma'].set(value=0.1, min=0.0)
         
-        #Create initial guess for the parameters by fiting with the built-in SkewdGaussianModel 
-        M = lmfit.models.SkewedGaussianModel()
-        par_test = M.guess(hist, x=cent)
-        result_test = M.fit(hist, par_test,x=cent)
-        par_test=result_test.params
-        
-        #Add those parameters to the new custom model
-        pars = Parameters()
-        pars.add('amplitude', value=par_test['amplitude'].value*0.85, min=(par_test['amplitude'].value)*0.35, max=(par_test['amplitude'].value)*0.95)
-        pars.add('center', value=par_test['center'].value, min=(par_test['center'].value), max=(par_test['center'].value)*1.1)
-        pars.add('sigma', value=par_test['sigma'].value, min=(par_test['sigma'].value)*0.95, max=(par_test['sigma'].value)*1.05)
-        pars.add('gamma', value=par_test['gamma'].value*0.75, min=(par_test['gamma'].value)*0.3, max=(par_test['gamma'].value)*0.9)
-        pars.add('R', value=15, min=0.2, max=50)   
         
         #Do the fit    
         result = model.fit(hist, pars, x=cent, method ='lbfgsb')
@@ -309,7 +291,7 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
                 'center': result.params['center'].value,
                 'sigma': result.params['sigma'].value,
                 'gamma': result.params['gamma'].value}
-            
+        
     elif model == 'wignerse': #wigner semicircle model for the pitch
         #Create the new raised cosine custom model in lmfit
         def wignerse(x,amplitude,center,sigma):   
@@ -328,6 +310,22 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
         par = {'amplitude': result.params['amplitude'].value,
                'center': result.params['center'].value,
                'sigma': result.params['sigma'].value}
+            # Extract the parameters
+
+    # Fit 
+    result = model.fit(hist, params, x=cent)
+    par = {}
+
+    for key in result.param_names:
+        par[key] = result.params[key].value
+
+        par = {'amplitude': result.params['amplitude'].value,
+               'center': result.params['center'].value,
+               'sigma': result.params['sigma'].value}
+        par = {'amplitude': result.params['amplitude'].value,
+               'center': result.params['center'].value,
+               'sigma': result.params['sigma'].value,
+               'gamma': result.params['gamma'].value}    
     # --- Get the uncertainty
     if uncertainties:
         uncertainty = lmfit.conf_interval(result, result,

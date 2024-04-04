@@ -25,6 +25,8 @@ class ApplicationShowVid:
         :param  remap_dat: the dictionary of remapped data
         :param  GeomID: Geometry id of the detector (to load smaps if needed)
         :param  calibration: Calibration parameters
+        :param  scintillator: Scintillator object
+        :param  apd_fibres: APD (or PMT fibers) positions
         """
         # --- List of supported colormaps
         self.cmaps = {
@@ -267,8 +269,6 @@ class ApplicationShowVid:
             path_dir = io.ask_to_open_dir()
             ch = 1
             self.apd_data = []
-            #import IPython
-            #IPython.embed()
             while os.path.isfile(path_dir + '/ch_'+str(ch)+'.txt'):
                 self.apd_data.append(np.genfromtxt(path_dir + '/ch_'+str(ch)+'.txt'))
                 ch+=1

@@ -13,7 +13,6 @@ def read_file(filename: str):
     Function to .mat files of the XIMEA camera
     :param  filename: full path pointing to the .mat file
     '''
-    #filename = '/videodata/pcfild002/data/fild002/74718.mat'
 
     def get_ds_dictionaries(name, node): ###Method for reading older .mat files into a structure
         fullname = node.name

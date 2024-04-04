@@ -126,7 +126,6 @@ class FILDVideo(FIV):
             if shot is None:
                 shot = _aux.guess_shot(file, ssdat.shot_number_length)
             # Initialise the logbook
-            logbookOptions = {}
             self.logbookOptions = logbookOptions
             FILDlogbook = ssdat.FILD_logbook(**logbookOptions)  # Logbook
             try:
@@ -166,7 +165,7 @@ class FILDVideo(FIV):
             else:
                 self.position = None
                 self.orientation = None
-                self.geometryID = 'None'
+                self.geometryID = None
                 self.CameraCalibration = None
                 self.CameraData = None
                 self.operatorComment = None
@@ -189,7 +188,7 @@ class FILDVideo(FIV):
                 for plate in [platename, platename2]:
                     if os.path.isfile(plate):
                         self.scintillator = ssmap.Scintillator(file=plate)
-                        self.scintillator.code = 'fildsim'
+                        # self.scintillator.code = 'fildsim'
                         self.scintillator.calculate_pixel_coordinates(
                                 self.CameraCalibration)
                         self.ROIscintillator = self.scintillator.get_roi()

@@ -330,10 +330,7 @@ class BVO:
                                limitation=limitation, limit=limit,
                                verbose=verbose)
         elif self.type_of_file == '.mat':
-            if not hasattr(self, 'exp_orig_dat'):
-                self.exp_orig_dat = self.exp_dat.copy()  
-
-            M = np.array(self.exp_orig_dat['frames'][ :, :, frames_number])
+            M = np.array(self.exp_dat['frames'][ :, :, frames_number])
         else:
             raise Exception('Not initialised / not implemented file type?')
         # --- End here if we just want the frame
@@ -343,10 +340,7 @@ class BVO:
         # --- Clean video if needed
         if 't' in self.exp_dat and internal:
             self.exp_dat = xr.Dataset()
-
-        #import IPython
-        #IPython.embed()    
-
+ 
         # --- Save the stuff in the structure
         # Get the spatial axes
         nx, ny, nt = M.shape

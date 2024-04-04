@@ -208,7 +208,7 @@ class GeneralStrikeMap(XYtoPixel):
                 dummy2 = \
                     scipy_interp.griddata(
                         dummy, self._data[coso].data,
-                        (grid_x, grid_y), method=met, fill_value=np.nan #1000.0  #AJVV
+                        (grid_x, grid_y), method=met, fill_value=1000.0
                     )
                 self._grid_interp[coso] = dummy2.copy().T
                 # Now define the interpolators for latter use
@@ -216,7 +216,7 @@ class GeneralStrikeMap(XYtoPixel):
                                 self._coord_pix['y']))
                 self._grid_interp['interpolators'][coso] = \
                     interpolator(grid, self._data[coso].data,
-                                 fill_value=np.nan #1000.0  #AJVV
+                                 fill_value=1000.0
                                  )
             except KeyError:  # the ihibp does not have coll factor
                 logger.warning('16: %s not found!!! skiping' % coso)
@@ -274,7 +274,6 @@ class GeneralStrikeMap(XYtoPixel):
             tras = 0.
         # --- Save the map
         with open(filename, 'w') as f:
-            #Note by AJVV not sure why x3 corrosponds to x ?
             for xm, ym, zm in zip(self._coord_real['x3'], self._coord_real['x1'], self._coord_real['x2']):
                 point_rotated = rot.T @ (np.array([xm, ym, zm])) + tras
                 f.write('%f %f %f \n' % (point_rotated[0] * factor,
