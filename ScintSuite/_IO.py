@@ -570,8 +570,8 @@ def load_remap(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
         raise errors.NotValidInput('Not suported diagnostic')
     vid.remap_dat = xr.load_dataset(os.path.join(dummyFolder, 'remap.nc'))
     try:
-        vid.Bangles = xr.load_dataset(os.path.join(dummyFolder, 'Bfield.nc'))
-        vid.BField = xr.load_dataset(os.path.join(dummyFolder, 'BfieldAngles.nc'))
+        vid.BField = xr.load_dataset(os.path.join(dummyFolder, 'Bfield.nc'))
+        vid.Bangles = xr.load_dataset(os.path.join(dummyFolder, 'BfieldAngles.nc'))
     except FileNotFoundError:
         logger.warning('Bfield not found, not loaded')
         # This happens if the remap was done with a single smap
