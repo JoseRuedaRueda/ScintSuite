@@ -67,9 +67,7 @@ def get_ne(shotnumber: int, time: float = None,
     if diag == 'CONF':
         return get_ne_conf(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
     elif diag == 'PROFFIT':
-        pass
-        #TODO
-        #return get_ne_proffit(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
+        return get_ne_proffit(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
     elif diag == 'THOMSON':
         pass
         #TODO
@@ -148,6 +146,86 @@ def get_ne_conf(shotnumber: int, time: float = None,
         output.attrs['shot'] = shotnumber
     return output
 
+def get_ne_proffit(shotnumber: int, time: float = None, 
+           xArrayOutput: bool = False):
+    """
+    Read the electron density profile from the TCV MODS conf node.
+    see https://spcwiki.epfl.ch/wiki/Chie_TCV_nodes#Full_CONF_mds_nodes_list
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+
+    :param  xArrayOutput: flag to return the output as dictionary of xarray
+
+    :return output: a dictionary containing the electron density evaluated
+        in the input times and the corresponding rhopol base.
+
+
+    Use example:
+        >>> import ScintSuite.LibData as ssdat
+        >>> ne = ssdat.get_ne(41091, 3.55, xArrayOutput=True)
+    """
+    # --- Reading from the database
+    try:
+        MDS_Connection = tcv.shot(shotnum = shotnumber)
+        MDS_tdi_command = r'\tcv_shot::top.results.proffit.local_time:neft'
+        ne_proffit_data = MDS_Connection.tdi(MDS_tdi_command).values 
+
+        ne_proffit_rho  = MDS_Connection.tdi('dim_of(%s, 0)'%MDS_tdi_command).values 
+        ne_proffit_time  = MDS_Connection.tdi('dim_of(%s, 1)'%MDS_tdi_command).values 
+
+        ne = ne_proffit_data
+        ne_unc = np.zeros(np.shape(ne)) * np.nan
+        rho = ne_proffit_rho
+        timebase = ne_proffit_time
+    except:
+        raise Exception('Cannot read the density from the IDA #%05d'%shotnumber)
+
+    # We will return the data in the same spatial basis as provided by IDA.
+    if time is None:
+        time = timebase
+        tmp_ne = ne
+        tmp_unc = np.zeros(np.shape(ne)) * np.nan  #conf node doesn't inlcude uncertainty
+    else:
+        tmp_ne = interp1d(timebase, ne, kind='linear', axis=0,
+                          bounds_error=False, fill_value=np.nan,
+                          assume_sorted=True)(time).T
+        tmp_unc = interp1d(timebase, ne_unc,
+                           kind='linear', axis=0,
+                           bounds_error=False,
+                           fill_value=np.nan,
+                           assume_sorted=True)(time).T
+
+    if not xArrayOutput:
+        output = {
+            'rho': rho,
+            'time': time,
+            'uncertainty': tmp_unc,
+            'data': tmp_ne
+        }
+    else:
+        tmp_ne = np.atleast_2d(tmp_ne)
+        tmp_unc = np.atleast_2d(tmp_unc)
+        time = np.atleast_1d(time)
+
+        output = xr.Dataset()
+        output['data'] = xr.DataArray(
+            tmp_ne.T/1.0e19, dims=('rho', 't'),
+            coords={'rho': rho, 't': time})
+        output['data'].attrs['long_name'] = '$n_e$'
+        output['data'].attrs['units'] = '$10^{19} m^3$'
+        output['uncertainty'] = xr.DataArray(tmp_unc.T/1.0e19, dims=('rho',
+                                                                     't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta n_e$'
+        output['uncertainty'].attrs['units'] = '$10^{19} m^3$'
+
+        output['rho'].attrs['long_name'] = ne_proffit_data.dim_labels[0] #'$\\rho_{TCV}$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'proffit'
+        output.attrs['shot'] = shotnumber
+    return output
+
+
 def get_Te(shotnumber: int, time: float = None,
            diag: str = 'CONF',
            xArrayOutput: bool = False):
@@ -179,9 +257,7 @@ def get_Te(shotnumber: int, time: float = None,
     if diag == 'CONF':
         return get_Te_conf(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
     elif diag == 'PROFFIT':
-        pass
-        #TODO
-        #return get_Te_proffit(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
+        return get_Te_proffit(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
     elif diag == 'THOMSON':
         pass
         #TODO
@@ -265,6 +341,458 @@ def get_Te_conf(shotnumber: int, time: float = None,
         output.attrs['shot'] = shotnumber
 
     return output
+
+def get_Te_proffit(shotnumber: int, time: float = None, 
+           xArrayOutput: bool = False):
+    """
+    Read the electron density profile from the TCV MODS conf node.
+    see https://spcwiki.epfl.ch/wiki/Chie_TCV_nodes#Full_CONF_mds_nodes_list
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+
+    :param  xArrayOutput: flag to return the output as dictionary of xarray
+
+    :return output: a dictionary containing the electron density evaluated
+        in the input times and the corresponding rhopol base.
+
+
+    Use example:
+        >>> import ScintSuite.LibData as ssdat
+        >>> ne = ssdat.get_ne(41091, 3.55, xArrayOutput=True)
+    """
+    # --- Reading from the database
+    try:
+        MDS_Connection = tcv.shot(shotnum = shotnumber)
+        MDS_tdi_command = r'\tcv_shot::top.results.proffit.avg_time:teft'
+        Te_proffit_data = MDS_Connection.tdi(MDS_tdi_command).values 
+
+        Te_proffit_rho  = MDS_Connection.tdi('dim_of(%s, 0)'%MDS_tdi_command).values 
+        Te_proffit_time  = MDS_Connection.tdi('dim_of(%s, 1)'%MDS_tdi_command).values 
+
+        Te = Te_proffit_data
+        Te_unc = np.zeros(np.shape(Te)) * np.nan
+        rho = Te_proffit_rho
+        timebase = Te_proffit_time
+    except:
+        raise Exception('Cannot read the density from the IDA #%05d'%shotnumber)
+
+    # We will return the data in the same spatial basis as provided by IDA.
+    if time is None:
+        time = timebase
+        tmp_ne = Te
+        tmp_unc = np.zeros(np.shape(Te)) * np.nan  #conf node doesn't inlcude uncertainty
+    else:
+        tmp_ne = interp1d(timebase, Te, kind='linear', axis=0,
+                          bounds_error=False, fill_value=np.nan,
+                          assume_sorted=True)(time).T
+        tmp_unc = interp1d(timebase, Te_unc,
+                           kind='linear', axis=0,
+                           bounds_error=False,
+                           fill_value=np.nan,
+                           assume_sorted=True)(time).T
+
+    if not xArrayOutput:
+        output = {
+            'rho': rho,
+            'time': time,
+            'uncertainty': tmp_unc,
+            'data': tmp_Te
+        }
+    else:
+        tmp_Te = np.atleast_2d(tmp_Te)
+        tmp_unc = np.atleast_2d(tmp_unc)
+        time = np.atleast_1d(time)
+
+        output = xr.Dataset()
+        output['data'] = xr.DataArray(
+            tmp_Te.T, dims=('rho', 't'),
+            coords={'rho': rho, 't': time})
+        output['data'].attrs['long_name'] = '$T_e$'
+        output['data'].attrs['units'] = '$eV$'
+        output['uncertainty'] = xr.DataArray(tmp_unc.T, dims=('rho',
+                                                                     't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta T_e$'
+        output['uncertainty'].attrs['units'] = '$eV$'
+
+        output['rho'].attrs['long_name'] = Te_proffit_data.dim_labels[0] #'$\\rho_{TCV}$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'proffit'
+        output.attrs['shot'] = shotnumber
+    return output
+
+def get_Pe(shotnumber: int, time: float = None,
+           diag: str = 'CONF',
+           xArrayOutput: bool = False):
+    """
+    Wrap the different diagnostics to read the electron pressure profile.
+
+    It supports CONF and PROFFIT and Thomson profiles.
+
+    Anton Jansen van Vuuren - anton.jansenvanvuuren
+
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+
+    :param  diag: diagnostic from which 'ne' will extracted.
+
+    :param  xArrayOutput: flag to return the output as dictionary of xarray
+
+    :return output: a dictionary containing the electron density evaluated
+        in the input times and the corresponding rhopol base.
+
+
+    Use example:
+        >>> import Lib as ss
+        >>> ne = ss.dat.get_ne(41091, 3.55, xArrayOutput=True)
+    """
+    if diag not in ('CONF', 'PROFFIT', 'THOMSON'):
+        raise Exception('Diagnostic non supported!')
+
+    if diag == 'CONF':
+        pass
+        #TODO
+        #return get_Pe_conf(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
+    elif diag == 'PROFFIT':
+        return get_Pe_proffit(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
+    elif diag == 'THOMSON':
+        pass
+        #TODO
+        #return get_ne_thomson(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)    
+
+def get_Pe_proffit(shotnumber: int, time: float = None, 
+           xArrayOutput: bool = False):
+    """
+    Read the electron pressure profile from the TCV MODS conf node.
+    see https://spcwiki.epfl.ch/wiki/Chie_TCV_nodes#Full_CONF_mds_nodes_list
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+
+    :param  xArrayOutput: flag to return the output as dictionary of xarray
+
+    :return output: a dictionary containing the electron density evaluated
+        in the input times and the corresponding rhopol base.
+
+
+    Use example:
+        >>> import Lib as ss
+        >>> ne = ss.dat.get_Te(41091, 3.55, xArrayOutput=True)
+    """
+    # --- Reading from the database
+    try:
+        MDS_Connection = tcv.shot(shotnum = shotnumber)
+        MDS_tdi_command = r'\tcv_shot::top.results.proffit.avg_time:peft'
+        Pe_proffit_data = MDS_Connection.tdi(MDS_tdi_command).values 
+
+        Pe_proffit_rho  = MDS_Connection.tdi('dim_of(%s, 0)'%MDS_tdi_command).values 
+        Pe_proffit_time  = MDS_Connection.tdi('dim_of(%s, 1)'%MDS_tdi_command).values 
+
+        Pe = Pe_proffit_data
+        Pe_unc = np.zeros(np.shape(Pe)) * np.nan
+        rho = Pe_proffit_rho
+        timebase = Pe_proffit_time
+    except:
+        raise Exception('Cannot read the electron temperature from the conf nodes for shot: #%05d'%shotnumber)
+
+    # We will return the data in the same spatial basis as provided by IDA.
+    if time is None:
+        time = timebase
+        tmp_Pe = Pe
+        tmp_unc = Pe_unc
+        #tmp_dPe = gradPe
+    else:
+        tmp_te = interp1d(timebase, Pe, kind='linear', axis=0,
+                          bounds_error=False, fill_value=np.nan,
+                          assume_sorted=True)(time).T
+        tmp_unc = interp1d(timebase, Pe_unc,
+                           kind='linear', axis=0,
+                           bounds_error=False, fill_value=np.nan,
+                           assume_sorted=True)(time).T
+        #tmp_dTe = interp1d(timebase, gradPe,
+        #                   kind='linear', axis=0,
+        #                   bounds_error=False, fill_value=np.nan,
+        #                   assume_sorted=True)(time).T
+    if not xArrayOutput:
+        output = {
+            'rho': rho,
+            'time': time,
+            'data': tmp_Pe,
+            'uncertainty': tmp_unc}#,
+            #'gradient': tmp_dPe}
+    else:
+        output = xr.Dataset()
+        tmp_Pe = np.atleast_2d(tmp_Pe)
+        time = np.atleast_1d(time)
+        output['data'] = xr.DataArray(
+            tmp_Pe.T, dims=('rho', 't'),
+            coords={'rho': rho, 't': time})
+        output['data'].attrs['long_name'] = '$P_e$'
+        output['data'].attrs['units'] = 'J/m^3'
+        tmp_unc = np.atleast_2d(tmp_unc)
+        output['uncertainty'] = xr.DataArray(tmp_unc.T, dims=('rho', 't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta P_e$'
+        output['uncertainty'].attrs['units'] = '$J/m^3$'
+        #tmp_dPe = np.atleast_2d(tmp_dPe)
+        #output['gradient'] = xr.DataArray(tmp_dPe.T, dims=('rho', 't'))
+        # output['gradient'].attrs['long_name'] = '$\\Nabla P_e$'
+        # output['gradient'].attrs['units'] = '$J/m^3$'
+
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'proffit'
+        output.attrs['shot'] = shotnumber
+
+    return output
+
+def get_R_Lne(shotnumber: int, time: float = None,
+           diag: str = 'CONF',
+           xArrayOutput: bool = False):
+    """
+    Wrap the different diagnostics to read the 
+    normalized density gradient lenght R0*grad(ne)/ne, 
+    where grad ne=dne/drho*grad(rho)
+
+    It supports CONF and PROFFIT and Thomson profiles.
+
+    Anton Jansen van Vuuren - anton.jansenvanvuuren
+
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+
+    :param  diag: diagnostic from which 'ne' will extracted.
+
+    :param  xArrayOutput: flag to return the output as dictionary of xarray
+
+    :return output: a dictionary containing the electron density evaluated
+        in the input times and the corresponding rhopol base.
+
+
+    Use example:
+        >>> import Lib as ss
+        >>> ne = ss.dat.get_ne(41091, 3.55, xArrayOutput=True)
+    """
+    if diag not in ('CONF', 'PROFFIT', 'THOMSON'):
+        raise Exception('Diagnostic non supported!')
+
+    if diag == 'CONF':
+        pass
+        #TODO
+        #return get_R_Lne_conf(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
+    elif diag == 'PROFFIT':
+        return get_R_Lne_proffit(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
+    elif diag == 'THOMSON':
+        pass
+        #TODO
+        #return get_ne_thomson(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)    
+
+def get_R_Lne_proffit(shotnumber: int, time: float = None, 
+           xArrayOutput: bool = False):
+    """
+    Read the normalized density gradient lenght R0*grad(ne)/ne, 
+    where grad ne=dne/drho*grad(rho)
+    from proffit nodes
+    see https://spcwiki.epfl.ch/wiki/Proffit_nodes
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+
+    :param  xArrayOutput: flag to return the output as dictionary of xarray
+
+    :return output: a dictionary containing the electron density evaluated
+        in the input times and the corresponding rhopol base.
+
+
+    Use example:
+        >>> import Lib as ss
+        >>> ne = ss.dat.get_Te(41091, 3.55, xArrayOutput=True)
+    """
+    # --- Reading from the database
+    try:
+        MDS_Connection = tcv.shot(shotnum = shotnumber)
+        MDS_tdi_command = r'\tcv_shot::top.results.proffit.avg_time:r_lne'
+        R_Lne_proffit_data = MDS_Connection.tdi(MDS_tdi_command).values 
+
+        R_Lne_proffit_rho  = MDS_Connection.tdi('dim_of(%s, 0)'%MDS_tdi_command).values 
+        R_Lne_proffit_time  = MDS_Connection.tdi('dim_of(%s, 1)'%MDS_tdi_command).values 
+
+        R_Lne = R_Lne_proffit_data
+        R_Lne_unc = np.zeros(np.shape(R_Lne)) * np.nan
+        rho = R_Lne_proffit_rho
+        timebase = R_Lne_proffit_time
+    except:
+        raise Exception('Cannot read the electron temperature from the conf nodes for shot: #%05d'%shotnumber)
+
+    # We will return the data in the same spatial basis as provided by IDA.
+    if time is None:
+        time = timebase
+        tmp_Pe = R_Lne
+        tmp_unc = R_Lne_unc
+        #tmp_dPe = gradPe
+    else:
+        tmp_R_Lne = interp1d(timebase, R_Lne, kind='linear', axis=0,
+                          bounds_error=False, fill_value=np.nan,
+                          assume_sorted=True)(time).T
+        tmp_unc = interp1d(timebase, R_Lne_unc,
+                           kind='linear', axis=0,
+                           bounds_error=False, fill_value=np.nan,
+                           assume_sorted=True)(time).T
+
+    if not xArrayOutput:
+        output = {
+            'rho': rho,
+            'time': time,
+            'data': tmp_R_Lne,
+            'uncertainty': tmp_unc}
+        
+    else:
+        output = xr.Dataset()
+        tmp_R_Lne = np.atleast_2d(tmp_R_Lne)
+        time = np.atleast_1d(time)
+        output['data'] = xr.DataArray(
+            tmp_R_Lne.T, dims=('rho', 't'),
+            coords={'rho': rho, 't': time})
+        output['data'].attrs['long_name'] = '$R_{Lne}$'
+        output['data'].attrs['units'] = 'R_{Lne}'
+        tmp_unc = np.atleast_2d(tmp_unc)
+        output['uncertainty'] = xr.DataArray(tmp_unc.T, dims=('rho', 't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta R_{Lne}$'
+        output['uncertainty'].attrs['units'] = '$R_{Lne}$'
+
+
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'proffit'
+        output.attrs['shot'] = shotnumber
+
+    return output
+
+def get_R_Lte(shotnumber: int, time: float = None,
+           diag: str = 'CONF',
+           xArrayOutput: bool = False):
+    """
+    Wrap the different diagnostics to read the 
+    normalized density gradient lenght R0*grad(ne)/ne, 
+    where grad ne=dne/drho*grad(rho)
+
+    It supports CONF and PROFFIT and Thomson profiles.
+
+    Anton Jansen van Vuuren - anton.jansenvanvuuren
+
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+
+    :param  diag: diagnostic from which 'ne' will extracted.
+
+    :param  xArrayOutput: flag to return the output as dictionary of xarray
+
+    :return output: a dictionary containing the electron density evaluated
+        in the input times and the corresponding rhopol base.
+
+
+    Use example:
+        >>> import Lib as ss
+        >>> ne = ss.dat.get_ne(41091, 3.55, xArrayOutput=True)
+    """
+    if diag not in ('CONF', 'PROFFIT', 'THOMSON'):
+        raise Exception('Diagnostic non supported!')
+
+    if diag == 'CONF':
+        pass
+        #TODO
+        #return get_R_Lte_conf(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
+    elif diag == 'PROFFIT':
+        return get_R_Lte_proffit(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
+    elif diag == 'THOMSON':
+        pass
+        #TODO
+        #return get_ne_thomson(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)    
+
+def get_R_Lte_proffit(shotnumber: int, time: float = None, 
+           xArrayOutput: bool = False):
+    """
+    Read the normalized temperature gradient lenght R0*grad(ne)/ne, 
+    where grad te=dte/drho*grad(rho)
+    from proffit nodes
+    see https://spcwiki.epfl.ch/wiki/Proffit_nodes
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+
+    :param  xArrayOutput: flag to return the output as dictionary of xarray
+
+    :return output: a dictionary containing the electron density evaluated
+        in the input times and the corresponding rhopol base.
+
+
+    Use example:
+        >>> import Lib as ss
+        >>> ne = ss.dat.get_Te(41091, 3.55, xArrayOutput=True)
+    """
+    # --- Reading from the database
+    try:
+        MDS_Connection = tcv.shot(shotnum = shotnumber)
+        MDS_tdi_command = r'\tcv_shot::top.results.proffit.avg_time:r_lte'
+        R_Lte_proffit_data = MDS_Connection.tdi(MDS_tdi_command).values 
+
+        R_Lte_proffit_rho  = MDS_Connection.tdi('dim_of(%s, 0)'%MDS_tdi_command).values 
+        R_Lte_proffit_time  = MDS_Connection.tdi('dim_of(%s, 1)'%MDS_tdi_command).values 
+
+        R_Lte = R_Lte_proffit_data
+        R_Lte_unc = np.zeros(np.shape(R_Lte)) * np.nan
+        rho = R_Lte_proffit_rho
+        timebase = R_Lte_proffit_time
+    except:
+        raise Exception('Cannot read the electron temperature from the conf nodes for shot: #%05d'%shotnumber)
+
+    # We will return the data in the same spatial basis as provided by IDA.
+    if time is None:
+        time = timebase
+        tmp_R_Lte = R_Lte
+        tmp_unc = R_Lte_unc
+        #tmp_dPe = gradPe
+    else:
+        tmp_R_Lte = interp1d(timebase, R_Lte, kind='linear', axis=0,
+                          bounds_error=False, fill_value=np.nan,
+                          assume_sorted=True)(time).T
+        tmp_unc = interp1d(timebase, R_Lte_unc,
+                           kind='linear', axis=0,
+                           bounds_error=False, fill_value=np.nan,
+                           assume_sorted=True)(time).T
+
+    if not xArrayOutput:
+        output = {
+            'rho': rho,
+            'time': time,
+            'data': tmp_R_Lte,
+            'uncertainty': tmp_unc}
+        
+    else:
+        output = xr.Dataset()
+        tmp_R_Lte = np.atleast_2d(tmp_R_Lte)
+        time = np.atleast_1d(time)
+        output['data'] = xr.DataArray(
+            tmp_R_Lte.T, dims=('rho', 't'),
+            coords={'rho': rho, 't': time})
+        output['data'].attrs['long_name'] = '$R_{Lte}$'
+        output['data'].attrs['units'] = 'R_{Lte}'
+        tmp_unc = np.atleast_2d(tmp_unc)
+        output['uncertainty'] = xr.DataArray(tmp_unc.T, dims=('rho', 't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta R_{Lte}$'
+        output['uncertainty'].attrs['units'] = '$R_{Lte}$'
+
+
+        output['rho'].attrs['long_name'] = '$\\rho_p$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'proffit'
+        output.attrs['shot'] = shotnumber
+
+    return output
+
+
+
+
+
 
 # -----------------------------------------------------------------------------
 # --- Ion temperature
