@@ -266,7 +266,6 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
         diff_skg = np.sum(abs(hist-result_test.eval())) #diff between the SKG fit and the hist
         diff_rc_0 = np.sum(abs(hist-result.eval())) #diff between the RC fit and the hist
         diff_rc = [diff_rc_0] #Store the diff of the RC
-        rel_diff = abs(abs(np.asarray(result_test.eval()))-abs(np.asarray(result.eval())))
         dumm=0 #Counter for iterations
         #Now we give iterate to improve the R and the gamma parameters by iterating the fitting with 
         #new parameters boundaries. These values are very sensitive since lmfit custom models are not robust
@@ -276,14 +275,14 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
             pars.add('center', value=result.params['center'].value, min=(result.params['center'].value)*0.98, max=(result.params['center'].value)*1.02)
             pars.add('sigma', value=result.params['sigma'].value*0.95, min=result.params['sigma'].value*0.85, max=result.params['sigma'].value*1.1)
             pars.add('gamma', value=result.params['gamma'].value*0.9, min=result.params['gamma'].value*0.5, max=result.params['gamma'].value*1.15)
-            result = model.fit(hist, pars, x=cent, method ='lbfgsb',weight = rel_diff)
+            result = model.fit(hist, pars, x=cent, method ='lbfgsb')
             
             pars.add('R', value=15, min=0.2, max=50)   
             pars.add('amplitude', value=result.params['amplitude'].value, min=result.params['amplitude'].value*0.95, max=result.params['amplitude'].value*1.05)    
             pars.add('center', value=result.params['center'].value, min=result.params['center'].value, max=(result.params['center'].value)*1.05)
             pars.add('sigma', value=result.params['sigma'].value, min=result.params['sigma'].value*0.95, max=result.params['sigma'].value*1.05)
             pars.add('gamma', value=result.params['gamma'].value, min=result.params['gamma'].value*0.95, max=result.params['gamma'].value*1.05)
-            result = model.fit(hist, pars, x=cent, method ='lbfgsb',weight = rel_diff)
+            result = model.fit(hist, pars, x=cent, method ='lbfgsb')
             diff_rc.append(np.sum(abs(hist-result.eval())))
             dumm+=1
             if diff_rc[dumm]>diff_rc[dumm-1]:               
@@ -291,9 +290,9 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
                     pars.add('amplitude', value=par_test['amplitude'].value*0.65, min=(par_test['amplitude'].value)*0.2, max=(par_test['amplitude'].value)*0.9)
                     pars.add('center', value=par_test['center'].value, min=(par_test['center'].value)*0.9, max=(par_test['center'].value)*1.15)
                     pars.add('sigma', value=par_test['sigma'].value, min=(par_test['sigma'].value)*0.95, max=(par_test['sigma'].value)*1.05)
-                    pars.add('gamma', value=par_test['gamma'].value*0.05, min=(par_test['gamma'].value)*0.03, max=(par_test['gamma'].value)*0.15)
+                    pars.add('gamma', value=par_test['gamma'].value*0.05, min=(par_test['gamma'].value)*0.03, max=(par_test['gamma'].value)*0.1)
                     pars.add('R', value=15, min=0.2, max=50)   
-                    result = model.fit(hist, pars, x=cent, method ='lbfgsb', weight = rel_diff)
+                    result = model.fit(hist, pars, x=cent, method ='lbfgsb')
                     dumm+=1
                     diff_rc.append(np.sum(abs(hist-result.eval())))
                     

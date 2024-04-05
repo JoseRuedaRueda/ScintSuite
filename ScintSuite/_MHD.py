@@ -8,10 +8,11 @@ import numpy as np
 import xarray as xr
 import ScintSuite.errors as errors
 import matplotlib.pyplot as plt
-import ScintSuite.LibData as ssdat
+import ScintSuite.LibData as ssdat 
 import scipy.constants as cnt
 from typing import Optional
 from tqdm import tqdm
+from ScintSuite._Machine import machine 
 # --- Initilise the objects
 logger = logging.getLogger('ScintSuite.MHD')
 
@@ -262,7 +263,7 @@ class MHDmode():
         self._te = ssdat.get_Te(shotnumber=shot, xArrayOutput=True)
         if loadTi:
             try:
-                self._ti = ssdat.get_Ti(shot=shot, diag='IDI',
+                self._ti = ssdat.get_Ti(shot=shot,
                                         xArrayOutput=True)
             except:
                 logger.warning('XX: Not func Ti, using Te=Ti')
@@ -315,16 +316,26 @@ class MHDmode():
             self._q = self._q.interp(t=self._ne['t'], rho=self._ne['rho'],        
                                     method="linear")        
         if np.isnan(self._q.data).any().data:
-            self._q = self._q.dropna(dim='rho')
+            self._q = self._q.fillna(0) #self._q.dropna(dim='rho')
             
         self._R0 = self._R0.interp(t=self._ne['t'], method="cubic")
         self._ahor = self._ahor.interp(t=self._ne['t'], method="cubic")
         self._B0 = self._B0.interp(t=self._ne['t'], method="cubic")
         self._kappa = self._kappa.interp(t=self._ne['t'], method="cubic")
+        #JPS: same as with the interpolation of the q-profile
         if self._rotation is not None:
-            self._rotation = self._rotation.interp(t=self._ne['t'],
+            if not np.isnan(self._rotation.interp(t=self._ne['t'],
                                                    rho=self._ne['rho'],
                                                    method="cubic",
+                                                   kwargs={'fill_value': 0.0})).any().data:
+                self._rotation = self._rotation.interp(t=self._ne['t'],
+                                                   rho=self._ne['rho'],
+                                                   method="cubic",
+                                                   kwargs={'fill_value': 0.0})
+            else:
+                self._rotation = self._rotation.interp(t=self._ne['t'],
+                                                   rho=self._ne['rho'],
+                                                   method="linear",
                                                    kwargs={'fill_value': 0.0})
 
         # --- Precalculate some stuff:
@@ -344,7 +355,73 @@ class MHDmode():
         self._calcGAMfreq()
         self._calcTAEfreq()
         self._calcEAEfreq()
+        self._calcMTMfreq()
+        self._calcKBMfreq()
+        self._calcBAEfreq()
+        
+    def _calcMTMfreq(self) -> None:
+        """
+        Evaluate the MTM frequency.
 
+        Following expresion (1) of W.W. Heidbrink Nucl. Fusion 61 (2021)
+        """
+        n = 2
+        ne = self._ne['data']*1.0e19
+        te = self._te['data']*cnt.eV
+        Lne = (1/ne)*np.abs(ne.differentiate('rho')) 
+        Lte = (1/te)*np.abs(te.differentiate('rho'))
+        cs = np.sqrt(self._zeff['data']*te/self._mi)
+        omega_i = np.abs(self._B0*cnt.e/self._mi)
+        self.freq['MTM'] = 0.95*((1 / self._ahor['data']**2) * (n*self._q['data'])  
+            / np.sqrt(ne['rho']) * cs**2 / omega_i['data']  
+            * (Lne + Lte)) / (2*cnt.pi)
+        
+        self.freq['MTM'].attrs['long_name'] = '$f_{MTM}$'
+        self.freq['MTM'].attrs['units'] = 'Hz'
+        
+    def _calcKBMfreq(self) -> None:
+        """
+        Evaluate the MTM frequency.
+
+        Following expresion (1) of W.W. Heidbrink Nucl. Fusion 61 (2021)
+        """
+        n = 2
+        ni = self._ni['data']*1.0e19
+        ti = self._ti['data']*cnt.eV
+        Lni = (1/ni)*np.abs(ni.differentiate('rho')) 
+        Lti = (1/(ti))*np.abs(ti.differentiate('rho'))
+        cs = np.sqrt(self._zeff['data']*ti/self._mi)
+        omega_i = np.abs(self._zeff['data']*self._B0*cnt.e/self._mi)
+        self.freq['KBM'] = 0.5*((1 / self._ahor['data']**2) * (n*self._q['data'])  
+            / np.sqrt(ni['rho']) * cs**2 / omega_i['data']  
+            * (Lni + Lti)) / (2*cnt.pi)
+        
+        
+        
+        self.freq['KBM'].attrs['long_name'] = '$f_{KBM}$'
+        self.freq['KBM'].attrs['units'] = 'Hz'
+        
+    def _calcBAEfreq(self) -> None:
+        """
+        Evaluate the MTM frequency.
+
+        Following expresion (1) of W.W. Heidbrink Nucl. Fusion 61 (2021)
+        """
+        
+        te = self._te['data']*cnt.eV
+        ti = self._ti['data']*cnt.eV
+        
+        vthermal_i = np.sqrt(ti / self._mi)
+                
+        self.freq['BAE'] = (vthermal_i / self._R0['data']
+                    * np.sqrt(7/4 + te / ti)
+                    ) / (2*cnt.pi)
+        
+        
+        
+        self.freq['BAE'].attrs['long_name'] = '$f_{KBM}$'
+        self.freq['BAE'].attrs['units'] = 'Hz'
+        
     def _calcGAMfreq(self) -> None:
         """
         Evaluate the GAM frequency.
@@ -441,6 +518,8 @@ class MHDmode():
                 len(rho)
             except TypeError:
                 rho = np.array([rho])
+                logger.warning('rho not correct!')
+                
             # --- Plot the line
             for r in rho:
                 if r < self.freq[var]['rho'][0] or r < self.freq[var]['rho'][1]:
@@ -479,6 +558,7 @@ class MHDmode():
                 if r < self.freq[var]['rho'][0] or r < self.freq[var]['rho'][1]:
                     text = 'Requested point outise the rho interval, skipping'
                     logger.warning('XX: %s', text)
+                    logger.warning('Skipped!!!')
                 dataToPlot[jt] = (self.freq[var].sel(rho=r, t=t, method='nearest')+\
                     correction.sel(rho=r, t=t, method='nearest')).values
                 print(r,dataToPlot[jt])
