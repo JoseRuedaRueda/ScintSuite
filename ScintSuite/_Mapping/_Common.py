@@ -232,66 +232,20 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
         model = models.RaisedCosine()
         # estimate the parameters to reasonable numbers
         params = model.make_params()
-        params['sigma'].set(value=hist.std(), min=0.0)
-        params['amplitude'].set(value=hist.max()/2.0/params['sigma'].value,
+        std_data = np.std(data)
+        params['sigma'].set(value=std_data, min=0.0, max=1.5*std_data)
+        params['amplitude'].set(value=hist.max()/2.0/std_data,
                                 min=0.0)
         params['center'].set(value=cent[np.argmax(hist)], min=cent.min(), 
-                             max=cent.max())
-        params['gamma'].set(value=0.1, min=0.0)
-        
-        
-        #Do the fit    
-        result = model.fit(hist, pars, x=cent, method ='lbfgsb')
-        #Find discrepancy between SKG and RC models in the left to the maximum of the fitting,
-        #this is because it is difficult for the RC to fit that part properly due to the gamma parameter
-        #center = np.where(hist==np.max(hist))[0][0] #center value of the histogram
-        diff_skg = np.sum(abs(hist-result_test.eval())) #diff between the SKG fit and the hist
-        diff_rc_0 = np.sum(abs(hist-result.eval())) #diff between the RC fit and the hist
-        diff_rc = [diff_rc_0] #Store the diff of the RC
-        rel_diff = abs(abs(np.asarray(result_test.eval()))-abs(np.asarray(result.eval())))
-        dumm=0 #Counter for iterations
-        #Now we give iterate to improve the R and the gamma parameters by iterating the fitting with 
-        #new parameters boundaries. These values are very sensitive since lmfit custom models are not robust
-        while (result.params['R'].max - result.params['R'].value) < 10 or (diff_rc[dumm]/diff_skg)>1.2:
-            pars.add('R', value=15, min=0.2, max=25)   
-            pars.add('amplitude', value=result.params['amplitude'].value, min=result.params['amplitude'].value*0.75, max=result.params['amplitude'].value*1.8)
-            pars.add('center', value=result.params['center'].value, min=(result.params['center'].value)*0.98, max=(result.params['center'].value)*1.02)
-            pars.add('sigma', value=result.params['sigma'].value*0.95, min=result.params['sigma'].value*0.85, max=result.params['sigma'].value*1.1)
-            pars.add('gamma', value=result.params['gamma'].value*0.9, min=result.params['gamma'].value*0.5, max=result.params['gamma'].value*1.15)
-            result = model.fit(hist, pars, x=cent, method ='lbfgsb',weight = rel_diff)
-            
-            pars.add('R', value=15, min=0.2, max=50)   
-            pars.add('amplitude', value=result.params['amplitude'].value, min=result.params['amplitude'].value*0.95, max=result.params['amplitude'].value*1.05)    
-            pars.add('center', value=result.params['center'].value, min=result.params['center'].value, max=(result.params['center'].value)*1.05)
-            pars.add('sigma', value=result.params['sigma'].value, min=result.params['sigma'].value*0.95, max=result.params['sigma'].value*1.05)
-            pars.add('gamma', value=result.params['gamma'].value, min=result.params['gamma'].value*0.95, max=result.params['gamma'].value*1.05)
-            result = model.fit(hist, pars, x=cent, method ='lbfgsb',weight = rel_diff)
-            diff_rc.append(np.sum(abs(hist-result.eval())))
-            dumm+=1
-            if diff_rc[dumm]>diff_rc[dumm-1]:               
-                if (diff_rc[dumm]/diff_skg)>1.2: 
-                    pars.add('amplitude', value=par_test['amplitude'].value*0.65, min=(par_test['amplitude'].value)*0.2, max=(par_test['amplitude'].value)*0.9)
-                    pars.add('center', value=par_test['center'].value, min=(par_test['center'].value)*0.9, max=(par_test['center'].value)*1.15)
-                    pars.add('sigma', value=par_test['sigma'].value, min=(par_test['sigma'].value)*0.95, max=(par_test['sigma'].value)*1.05)
-                    pars.add('gamma', value=par_test['gamma'].value*0.05, min=(par_test['gamma'].value)*0.03, max=(par_test['gamma'].value)*0.15)
-                    pars.add('R', value=15, min=0.2, max=50)   
-                    result = model.fit(hist, pars, x=cent, method ='lbfgsb', weight = rel_diff)
-                    dumm+=1
-                    diff_rc.append(np.sum(abs(hist-result.eval())))
-                    
-                    if diff_rc[dumm]>diff_rc[dumm-2]: #If the iteration get the fit worse we just break the loop                  
-                        print('DID NOT HELP')
-                        break
-            #Max. numbers of iteration set to 50, since when it converges it does it below 20 (empirically observed)                            
-            if dumm >= 50:               
-                print('Max number of iterations reached')
-                break
-        #Store the result 
-        par = {'amplitude': result.params['amplitude'].value,
-                'center': result.params['center'].value,
-                'sigma': result.params['sigma'].value,
-                'gamma': result.params['gamma'].value}
-        
+                             max=cent[np.argmax(hist)]*1.05)
+        # The gamma is tricky, we can set it to a reasonable value based in the 
+        # gaussian
+        SG = lmfit.models.SkewedGaussianModel()
+        paramsSG = SG.guess(hist, x=cent)
+        result = SG.fit(hist, paramsSG, x=cent)
+        # print(result.params)
+        params['gamma'].set(value=std_data/3, min=0.0,
+                            max=std_data)
     elif model == 'wignerse': #wigner semicircle model for the pitch
         #Create the new raised cosine custom model in lmfit
         def wignerse(x,amplitude,center,sigma):   
@@ -312,20 +266,13 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
                'sigma': result.params['sigma'].value}
             # Extract the parameters
 
-    # Fit 
+    # Fit
     result = model.fit(hist, params, x=cent)
     par = {}
 
-    for key in result.param_names:
+    for key in model.param_names:
         par[key] = result.params[key].value
-
-        par = {'amplitude': result.params['amplitude'].value,
-               'center': result.params['center'].value,
-               'sigma': result.params['sigma'].value}
-        par = {'amplitude': result.params['amplitude'].value,
-               'center': result.params['center'].value,
-               'sigma': result.params['sigma'].value,
-               'gamma': result.params['gamma'].value}    
+  
     # --- Get the uncertainty
     if uncertainties:
         uncertainty = lmfit.conf_interval(result, result,

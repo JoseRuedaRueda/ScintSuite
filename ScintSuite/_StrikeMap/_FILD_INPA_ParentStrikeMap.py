@@ -913,6 +913,10 @@ class FILDINPA_Smap(GeneralStrikeMap):
             'pitch': {
                 'xlabel': 'Pitch [$\\degree$]',
                 'ylabel': 'Counts [a.u.]'
+            },
+            'e0': {
+                'xlabel': 'Energy [keV]',
+                'ylabel': 'Counts [a.u.]'
             }
         }
         ax_options = {
@@ -1037,6 +1041,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
             ax.legend()
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
+        plt.show()
 
     @deprecated('Some input will change name in the final version')
     def plot_collimator_factor(self, ax_param: dict = {}, cMap=None,

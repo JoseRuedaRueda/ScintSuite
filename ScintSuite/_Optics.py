@@ -23,11 +23,11 @@ from scipy.ndimage import gaussian_filter
 logger = logging.getLogger('ScintSuite.Optics')
 
 paths = Path(machine)
-try:
-    from wand.image import Image
-except ModuleNotFoundError:
-    text = 'Wand image not found, you cannnot apply distortion to figures'
-    logger.warning('10: %s' % text)
+# try:
+#     from wand.image import Image
+# except ModuleNotFoundError:
+#     text = 'Wand image not found, you cannnot apply distortion to figures'
+#     logger.warning('10: %s' % text)
 try:
     import lmfit
 except ModuleNotFoundError:

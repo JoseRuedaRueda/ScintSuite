@@ -23,3 +23,4 @@ else:
     machine = 'Generic'
     text = 'Not recognised tokamak enviroment, no database available'
     logger.warning('23: %s' % text)
+machine = 'AUG'

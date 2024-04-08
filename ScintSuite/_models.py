@@ -25,10 +25,11 @@ def _raised_cosine(x,amplitude,center,sigma,gamma):
     
     """
     # Only defined inside a sigma interval
-    if np.abs(x-center)>sigma:
-        return 0.0
     cosine_part = (1.0+np.cos((x-center)/sigma*math.pi))/2.0/sigma
-    error_part = 1.0 + special.erf((x-center)/math.sqrt(2.0)*gamma)
+    cosine_part[np.abs(x-center)>sigma] = 0.0
+    error_part = 1.0 + special.erf((x-center)/sigma/math.sqrt(2.0)*gamma)
+    # print((x-center)/sigma/math.sqrt(2.0)*gamma)
+    # print(error_part)
     return amplitude*cosine_part*error_part
 
 # ------------------------------------------------------------------------------
