@@ -299,11 +299,33 @@ class MHDmode():
         # --- Now interpolate everything in the time/rho basis of ne
         # self._ni = self._ni.interp(t=self._ne['t'], rho=self._ne['rho'],
         #                            method="cubic")
-        self._te = self._te.interp(t=self._ne['t'], rho=self._ne['rho'],
-                                   method="cubic")
 
-        self._ti = self._ti.interp(t=self._ne['t'], rho=self._ne['rho'],
-                                   method="cubic")
+        #AJVV sometimes there are nans when trying to interpolate 
+        if not np.isnan(self._te.interp(t=self._ne['t'], rho=self._ne['rho'],        
+                                    method="cubic")).any().data:
+            self._te = self._te.interp(t=self._ne['t'], rho=self._ne['rho'],        
+                                    method="cubic")
+        else:
+            self._te = self._te.interp(t=self._ne['t'], rho=self._ne['rho'],        
+                                    method="linear")        
+        if np.isnan(self._te.data).any().data:
+            self._te = self._te.fillna(0) 
+        #self._te = self._te.interp(t=self._ne['t'], rho=self._ne['rho'],
+        #                           method="cubic")
+
+        #AJVV sometimes there are nans when trying to interpolate 
+        if not np.isnan(self._ti.interp(t=self._ne['t'], rho=self._ne['rho'],        
+                                    method="cubic")).any().data:
+            self._ti = self._ti.interp(t=self._ne['t'], rho=self._ne['rho'],        
+                                    method="cubic")
+        else:
+            self._ti = self._ti.interp(t=self._ne['t'], rho=self._ne['rho'],        
+                                    method="linear")        
+        if np.isnan(self._ti.data).any().data:
+            self._ti = self._ti.fillna(0) 
+            
+        #self._ti = self._ti.interp(t=self._ne['t'], rho=self._ne['rho'],
+        #                           method="cubic")
 
         #AJVV sometimes there are nans when trying to interpolate the q profile 
         #on ne timebase. So first try a linear interpolation, then check again
