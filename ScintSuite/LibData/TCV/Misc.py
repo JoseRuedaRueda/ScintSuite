@@ -229,13 +229,11 @@ def get_APD(file: str):
 # -----------------------------------------------------------------------------
 # --- ELMs
 # -----------------------------------------------------------------------------
-def get_ELM_timebase(shot: int, time: float = None, edition: int = 0,
-                     exp: str = 'AUGD'):
+def get_ELM_timebase(shot: int, time: float = None, **kwargs):
     """
     Give the ELM onset and duration times
-
-    Jose Rueda Rueda - jrrueda@us.es
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Use DEFUSE matlab package from Alessandro Pau
+    Anton Jansen van Vuuren 
 
     :param  shot: shot number
     :returns tELM: Dictionary with:
@@ -244,15 +242,31 @@ def get_ELM_timebase(shot: int, time: float = None, edition: int = 0,
         -# n: The number of ELMs
     """
     # --- Open the AUG shotfile
-    sfo = sf.SFREAD(shot, 'ELM', edition=edition, experiment=exp)
+    '''
+    First run the ELM detection matlab script of Alessandro
+    cd NoTivoli/jansen
+    matlab
 
-    if not sfo.status:
+    shot = XXX
+    setup_DEFUSE_paths
+    setup_DEFUSE_paths;
+    [table_tcv,SXR]=get_sig_data_TCV({shot});
+
+    save('/NoTivoli/jansen/SF/ELM/XXX.mat', 'ELM')
+    '''
+    file = '/NoTivoli/jansen/SF/ELM/%i.mat'%shot
+
+    try:
+        ELM = mat.read_file(file)
+        ELM['ELM'][0][0][0]
+    except:
         raise Exception('Cannot access shotfile %s:#%05d:ELM' % (exp, shot))
+        
     tELM = {
-        't_onset':  sfo('tELM'),
-        'dt': sfo('dt_ELM'),
-        'energy': sfo('ELMENER'),
-        'f_ELM': sfo('f_ELM')
+        't_onset':  ELM['ELM'][0][0][0][0],
+        'dt': np.diff(ELM['ELM'][0][0][0][0][1:]),
+        #'energy': sfo('ELMENER'),
+        'f_ELM': 1/np.diff(ELM['ELM'][0][0][0][0][1:])
     }
 
     if time is not None:
