@@ -19,6 +19,9 @@ import ScintSuite.errors as errors
 import ScintSuite._Video._MATfiles as mat
 try:
     import MDSplus as mds
+    import sys
+    sys.path.append('/home/jansen/NoTivoli/ascot-tcv/tcvpy/')
+    import tcv
 except:
     pass   
 from ScintSuite._Paths import Path
@@ -98,14 +101,13 @@ def read_MAT_video_data(file: str):
 # --- GENERIC SIGNAL RETRIEVING.
 # -----------------------------------------------------------------------------
 def get_signal_generic(shot: int,
-                       dataPath: str, 
-                       diag: str = 'None', signame: str = 'None', exp: str = 'TCV',
+                       signame: str = 'None', 
                        edition: int = 0,
-
                        tBegin: float = None,
-                       tEnd: float = None):
+                       tEnd: float = None,
+                       **kwargs):
     """
-    Function that generically retrieves a signal from the database in AUG.
+    Function that generically retrieves a signal from the database in TCV.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
     Anton Jansen van Vuuren - anton.jansenvanvuuren@epfl.ch
@@ -122,18 +124,26 @@ def get_signal_generic(shot: int,
 
     # Reading the second diagnostic data.
 
-    dataPath = '\ATLAS::dt132_ltcc_001:channel_008'
+    #MDS_tdi_command = r'pd_calibrated(1)'
+    #tree = mds.Tree('tcv_shot', shot)
+    #data = tree.getNode(dataPath).data()
+    #time = tree.getNode(dataPath).dim_of().data()
 
-    tree = mds.Tree('tcv_shot', shot)
+    if signame == None:
+        MDS_tdi_command = r'pd_calibrated(1)'
+    else:
+        MDS_tdi_command = signame
 
+    MDS_Connection = tcv.shot(shotnum = shot)
+    data = MDS_Connection.tdi(MDS_tdi_command).values
+    time = MDS_Connection.tdi('dim_of(%s)'%MDS_tdi_command).values
+    MDS_Connection.close()
     #if not sfo.status:
     #    raise errors.DatabaseError('The signal data cannot be read for #%05d:%s:%s(%d)'
     #                    % (shot, diag, signame, edition))
-
-    data = tree.getNode(dataPath).data()
+    
     if data is None:
-        raise errors.DatabaseError('Cannot find signal %s' % dataPath)
-    time = tree.getNode(dataPath).dim_of().data()
+        raise errors.DatabaseError('Cannot find signal %s' % signame)
 
     if tBegin is None:
         t0 = 0
@@ -262,11 +272,12 @@ def get_ELM_timebase(shot: int, time: float = None, **kwargs):
     except:
         raise Exception('Cannot access shotfile %s:#%05d:ELM' % (exp, shot))
         
+    t_onset =  ELM['ELM'][0][0][0][0]
     tELM = {
-        't_onset':  ELM['ELM'][0][0][0][0],
-        'dt': np.diff(ELM['ELM'][0][0][0][0][1:]),
-        #'energy': sfo('ELMENER'),
-        'f_ELM': 1/np.diff(ELM['ELM'][0][0][0][0][1:])
+        't_onset': t_onset,
+        'dt': np.diff(t_onset[1:]),
+        'energy': np.zeros(len(t_onset)),
+        'f_ELM': 1/np.diff(t_onset[1:])
     }
 
     if time is not None:
