@@ -33,11 +33,12 @@ import logging
 logger = logging.getLogger('ScintSuite.Data')
 pa = Path()
 
+import ScintSuite._Video._MATfiles as mat
 # -----------------------------------------------------------------------------
 # --- Electron density and temperature profiles.
 # -----------------------------------------------------------------------------
 def get_ne(shotnumber: int, time: float = None,
-           diag: str = 'CONF',
+           diag: str = 'MAT',
            xArrayOutput: bool = False):
     """
     Wrap the different diagnostics to read the electron density profile.
@@ -61,7 +62,7 @@ def get_ne(shotnumber: int, time: float = None,
         >>> import Lib as ss
         >>> ne = ss.dat.get_ne(41091, 3.55, xArrayOutput=True)
     """
-    if diag not in ('CONF', 'PROFFIT', 'THOMSON'):
+    if diag not in ('CONF', 'PROFFIT', 'THOMSON', 'MAT'):
         raise Exception('Diagnostic non supported!')
 
     if diag == 'CONF':
@@ -72,6 +73,9 @@ def get_ne(shotnumber: int, time: float = None,
         pass
         #TODO
         #return get_ne_thomson(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)    
+    elif diag == 'MAT':
+        return get_ne_MAT(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
+    
 
 def get_ne_conf(shotnumber: int, time: float = None, 
            xArrayOutput: bool = False):
@@ -224,6 +228,82 @@ def get_ne_proffit(shotnumber: int, time: float = None,
         output.attrs['diag'] = 'proffit'
         output.attrs['shot'] = shotnumber
     return output
+
+def get_ne_MAT(shotnumber: int, time: float = None, 
+           xArrayOutput: bool = False):
+    """
+    Read the electron density profile from MAT file.
+    
+    :param  shot: Shot number
+    :param  time: Time point to read the profile.
+
+    :param  xArrayOutput: flag to return the output as dictionary of xarray
+
+    :return output: a dictionary containing the electron density evaluated
+        in the input times and the corresponding rhopol base.
+
+
+    Use example:
+        >>> import ScintSuite.LibData as ssdat
+        >>> ne = ssdat.get_ne(41091, 3.55, xArrayOutput=True)
+    """
+    # --- Reading from the database
+    try:
+        file = '/NoTivoli/jansen/SF/NE/%i.mat'%shotnumber
+        ne_mat = mat.read_file(file)['output'][0,0]
+    except:
+        raise Exception('Cannot read the density from the IDA #%05d'%shotnumber)
+
+    ne = ne_mat[0]#['ne_profile']
+    rho = ne_mat[2][:, 0]#['rho_pol_norm']
+    timebase = ne_mat[5][0,:]#['time']
+    ne_unc = ne*0
+
+    # We will return the data in the same spatial basis as provided by IDA.
+    if time is None:
+        time = timebase
+        tmp_ne = ne
+        tmp_unc = np.zeros(np.shape(ne)) * np.nan  #conf node doesn't inlcude uncertainty
+    else:
+        tmp_ne = interp1d(timebase, ne, kind='linear', axis=0,
+                          bounds_error=False, fill_value=np.nan,
+                          assume_sorted=True)(time).T
+        tmp_unc = interp1d(timebase, ne_unc,
+                           kind='linear', axis=0,
+                           bounds_error=False,
+                           fill_value=np.nan,
+                           assume_sorted=True)(time).T
+
+    if not xArrayOutput:
+        output = {
+            'rho': rho,
+            'time': time,
+            'uncertainty': tmp_unc,
+            'data': tmp_ne
+        }
+    else:
+        tmp_ne = np.atleast_2d(tmp_ne)
+        tmp_unc = np.atleast_2d(tmp_unc)
+        time = np.atleast_1d(time)
+
+        output = xr.Dataset()
+        output['data'] = xr.DataArray(
+            tmp_ne/1.0e19, dims=('rho', 't'),
+            coords={'rho': rho, 't': time})
+        output['data'].attrs['long_name'] = '$n_e$'
+        output['data'].attrs['units'] = '$10^{19} m^3$'
+        output['uncertainty'] = xr.DataArray(tmp_unc/1.0e19, dims=('rho',
+                                                                     't'))
+        output['uncertainty'].attrs['long_name'] = '$\\Delta n_e$'
+        output['uncertainty'].attrs['units'] = '$10^{19} m^3$'
+
+        output['rho'].attrs['long_name'] = '$\\rho_{TCV}$'
+        output['t'].attrs['long_name'] = 'Time'
+        output['t'].attrs['units'] = 's'
+        output.attrs['diag'] = 'MAT'
+        output.attrs['shot'] = shotnumber
+    return output
+
 
 
 def get_Te(shotnumber: int, time: float = None,
