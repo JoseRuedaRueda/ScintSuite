@@ -27,15 +27,15 @@ def read_file(filename: str):
         # node is a group
         #    print(f'Group: {fullname}; skipping')  
 
-    #try:
-    with h5py.File(filename,'r') as h5f:
-        ds_dict = {}  
-        #print ('**Walking Datasets to get dictionaries**\n')
-        h5f.visititems(get_ds_dictionaries)
-        print('\nDONE')
-        #print('ds_dict size', len(ds_dict))
-    #except:
-    #    ds_dict = scio.loadmat(filename)
+    try:
+        with h5py.File(filename,'r') as h5f:
+            ds_dict = {}  
+            #print ('**Walking Datasets to get dictionaries**\n')
+            h5f.visititems(get_ds_dictionaries)
+            print('\nDONE')
+            #print('ds_dict size', len(ds_dict))
+    except:
+        ds_dict = scio.loadmat(filename)
 
     return ds_dict
 
