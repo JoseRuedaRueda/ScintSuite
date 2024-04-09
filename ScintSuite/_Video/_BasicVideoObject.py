@@ -206,7 +206,7 @@ class BVO:
                     raise Exception(file + ' not found')
                 ## path to the file
                 self.path = file
-                # Do a quick run for the folder looking of .tiff or .png files
+                # Do a quick run on the folder looking of .tiff or .png files
                 f = []
                 for (dirpath, dirnames, filenames) in os.walk(self.path):
                     f.extend(filenames)
