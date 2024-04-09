@@ -305,7 +305,7 @@ class MHDmode():
         self._ti = self._ti.interp(t=self._ne['t'], rho=self._ne['rho'],
                                    method="cubic")
 
-        #AJVV sometimes there are nans when trying to interpolate q profile 
+        #AJVV sometimes there are nans when trying to interpolate the q profile 
         #on ne timebase. So first try a linear interpolation, then check again
         #for any nans
         if not np.isnan(self._q.interp(t=self._ne['t'], rho=self._ne['rho'],        
