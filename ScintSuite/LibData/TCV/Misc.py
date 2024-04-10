@@ -254,6 +254,7 @@ def get_ELM_timebase(shot: int, time: float = None, **kwargs):
     # --- Open the AUG shotfile
     '''
     First run the ELM detection matlab script of Alessandro
+    (https://gitlab.epfl.ch/spc/defuse/-/tree/feature/DEFUSE?ref_type=heads)
     cd NoTivoli/jansen
     matlab
 
@@ -268,16 +269,18 @@ def get_ELM_timebase(shot: int, time: float = None, **kwargs):
 
     try:
         ELM = mat.read_file(file)
-        ELM['ELM'][0][0][0]
+        #ELM['ELM'][0][0][0]
     except:
         raise Exception('Cannot access shotfile %s:#%05d:ELM' % (exp, shot))
         
     t_onset =  ELM['ELM'][0][0][0][0]
+    t_peak =  ELM['ELM'][0][0][1][0]
+    t_end =  ELM['ELM'][0][0][2][0]
     tELM = {
         't_onset': t_onset,
-        'dt': np.diff(t_onset[1:]),
+        'dt': np.diff(t_onset),
         'energy': np.zeros(len(t_onset)),
-        'f_ELM': 1/np.diff(t_onset[1:])
+        'f_ELM': 1/np.diff(t_onset)
     }
 
     if time is not None:
