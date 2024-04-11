@@ -330,10 +330,11 @@ class BVO:
                                limitation=limitation, limit=limit,
                                verbose=verbose)
         elif self.type_of_file == '.mat':
-            if not hasattr(self, 'exp_orig_dat'):
-                self.exp_orig_dat = self.exp_dat.copy()  
+            #if not hasattr(self, 'exp_orig_dat'):
+            #    self.exp_orig_dat = self.exp_dat.copy()  
 
-            M = np.array(self.exp_orig_dat['frames'][ :, :, frames_number])
+            #M = np.array(self.exp_orig_dat['frames'][ :, :, frames_number])
+            M = np.array(self.exp_dat['frames'][ :, :, frames_number])
         else:
             raise Exception('Not initialised / not implemented file type?')
         # --- End here if we just want the frame

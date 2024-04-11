@@ -44,7 +44,7 @@ def read_MAT_video_data(file: str):
     Important: Need to be on LAC9 to acces videodata directory
     '''
     mat_out = xr.Dataset()
-    if ('pcfild002' in file) or ('pcfild004' in file):
+    if ('pcfild002' in file) or ('pcfild004' in file) or ('XIMEA' in file):
         dummy = mat.read_file(file)
         t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
         timebase = t0 + dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
@@ -258,11 +258,11 @@ def get_ELM_timebase(shot: int, time: float = None, **kwargs):
     cd NoTivoli/jansen
     matlab
 
-    shot = XXX
-    setup_DEFUSE_paths
-    setup_DEFUSE_paths;
-    [table_tcv,SXR]=get_sig_data_TCV({shot});
+    shot = 79300
 
+    setup_DEFUSE_paths;
+    [table_tcv,SXR]=get_sig_data_TCV(shot);
+    [ELM, table_out] = DEFUSE_ELM_detection(struct2table(table_tcv));
     save('/NoTivoli/jansen/SF/ELM/XXX.mat', 'ELM')
     '''
     file = '/NoTivoli/jansen/SF/ELM/%i.mat'%shot
