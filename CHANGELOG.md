@@ -1,3 +1,7 @@
+# 1.3.8 WF improvements
+- Official release of FILD numerical WF
+- Included a cutoff in the weight function calculation to avoid correlations in tomography (can be activated or not with an optional variable)
+
 # 1.3.7 Solved (again) np.int stuff
 - removed np.int and np.float calls
 
