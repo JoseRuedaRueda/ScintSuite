@@ -8,7 +8,7 @@ Introduced in version 0.6.0
 import logging
 import datetime
 import numpy as np
-import ScintSuite._models as models
+import ScintSuite._CustomFitModels as models
 import math
 from ScintSuite.decorators import deprecated
 from ScintSuite._Mapping._Calibration import CalParams
@@ -222,49 +222,37 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
         normalization = 1.0
     cent = 0.5 * (edges[1:] + edges[:-1])
     # --- Make the fit
-    if model == 'Gauss':
+    if model.lower() == 'gauss' or model.lower() == 'gaussian':
         model = lmfit.models.GaussianModel()
         params = model.guess(hist, x=cent)
-    elif model == 'sGauss':
+    elif model.lower() == 'sgauss' or model.lower() == 'skewedgaussian':
         model = lmfit.models.SkewedGaussianModel()
         params = model.guess(hist, x=cent)
-    elif model == 'raisedCosine': #reaised cosine model for the energy
+    elif model.lower() == 'raisedcosine': #reaised cosine model for the energy
         model = models.RaisedCosine()
-        # estimate the parameters to reasonable numbers
+        # estimate the parameters using a quick fit to the skewed Gaussian
         params = model.make_params()
-        std_data = np.std(data)
-        params['sigma'].set(value=std_data, min=0.0, max=1.5*std_data)
-        params['amplitude'].set(value=hist.max()/2.0/std_data,
-                                min=0.0)
-        params['center'].set(value=cent[np.argmax(hist)], min=cent.min(), 
-                             max=cent[np.argmax(hist)]*1.05)
-        # The gamma is tricky, we can set it to a reasonable value based in the 
-        # gaussian
         SG = lmfit.models.SkewedGaussianModel()
         paramsSG = SG.guess(hist, x=cent)
         result = SG.fit(hist, paramsSG, x=cent)
-        # print(result.params)
-        params['gamma'].set(value=std_data/3, min=0.0,
-                            max=std_data)
-    elif model == 'wignerse': #wigner semicircle model for the pitch
-        #Create the new raised cosine custom model in lmfit
-        def wignerse(x,amplitude,center,sigma):   
-            return (amplitude*np.real((2/(np.pi * (2*sigma)**2)) * np.sqrt(((2*sigma)**2 - (x-center)**2).astype(complex))))
-        
-        model = Model(wignerse)
-        #Create initial guess for the parameters by guessing with the Gaussian model 
-  
-        M = lmfit.models.GaussianModel()
-        pars = M.guess(hist, x=cent)     
-        
-        #Do the fitting
-        result = model.fit(hist, pars, x=cent)
-        
-        #Store the result 
-        par = {'amplitude': result.params['amplitude'].value,
-               'center': result.params['center'].value,
-               'sigma': result.params['sigma'].value}
-            # Extract the parameters
+        params['sigma'] = result.params['sigma']
+        params['amplitude'] = result.params['amplitude']
+        params['center'] = result.params['center']
+        params['beta'].set(value=result.params['gamma']/result.params['sigma'], min=0.0,)
+    elif model.lower() == 'wignersemicircle': #wigner semicircle model
+        model = models.WignerSemicircle()
+        # estimate the parameters using a quick fit to a Gaussian
+        Gauss = lmfit.models.GaussianModel()
+        paramsGauss = Gauss.guess(hist, x=cent)
+        result = Gauss.fit(hist, paramsGauss, x=cent)
+        params = model.make_params()
+        params['amplitude'] = result.params['amplitude']
+        params['center'] = result.params['center']
+        params['sigma'] = result.params['sigma']        
+    else:
+        mods = ['Gauss', 'sGauss', 'raisedCosine', 'WignerSemicircle']
+        logger.error('Only models: ' + ', '.join(mods) + ' are implemented')
+        raise ValueError('Model not implemented')
 
     # Fit
     result = model.fit(hist, params, x=cent)

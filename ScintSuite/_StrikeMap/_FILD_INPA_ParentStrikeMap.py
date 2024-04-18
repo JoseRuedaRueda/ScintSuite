@@ -19,6 +19,7 @@ from ScintSuite.decorators import deprecated
 from ScintSuite._basicVariable import BasicVariable
 from ScintSuite._Mapping._Common import _fit_to_model_
 from ScintSuite.SimulationCodes.Common.strikes import Strikes
+from ScintSuite._CustomFitModels import parseModelNames
 from ScintSuite._StrikeMap._ParentStrikeMap import GeneralStrikeMap
 from ScintSuite.SimulationCodes.FILDSIM.execution import get_energy
 from ScintSuite.SimulationCodes.SINPA._execution import guess_strike_map_name
@@ -268,15 +269,11 @@ class FILDINPA_Smap(GeneralStrikeMap):
             iix = self.strike_points.header['info'][namex]['i']
             iiy = self.strike_points.header['info'][namey]['i']
         # Get the names of the variables to fit
-        names = {
-            'Gauss': ['amplitude', 'center', 'sigma'],
-            'sGauss': ['amplitude', 'center', 'sigma', 'gamma'],
-            'wignerse': ['amplitude', 'center', 'sigma'],
-            'raisedCosine': ['amplitude', 'center', 'sigma', 'gamma']
-            
-        }
-        xnames = names[diag_options['x_method']]
-        ynames = names[diag_options['y_method']]
+        xModel = parseModelNames(diag_options['x_method'])
+        yModel = parseModelNames(diag_options['y_method'])
+        # Get the names of the paremeters from keys to list
+        xnames = list(xModel.make_params().keys())
+        ynames = list(yModel.make_params().keys())
 
         # allocate the variables
         self._resolutions = {
