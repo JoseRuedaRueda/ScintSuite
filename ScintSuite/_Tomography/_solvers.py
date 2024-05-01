@@ -97,8 +97,10 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**kargs):
         timeEnd = np.zeros(len(maxiter))
 
         # Initialize matrix to return
-        xk_output = np.zeros((x0.shape[0], len(maxiter)))
-
+        m, n = W.shape
+        xk_output = np.zeros((n, len(maxiter)))
+        
+        lbound = np.zeros(m)
         # Residual of initial guess
         rk = y - W @ x0
 
@@ -107,6 +109,9 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**kargs):
         maxK = maxiter.max() # Maximum iterations from all the ksteps to return
         xk = x0 # Use initial vector.
         
+        stop_loop = stopping_criterion(k, rk, maxK, tol)
+
+        normWi = np.zeros(m)
         if issparse(W):
             normWi = spla.norm(W, axis=1)**2
         else:
@@ -114,24 +119,35 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**kargs):
 
         # Set row order
         I = [i for i in range(len(normWi)) if normWi[i] > 0]
-        I = np.random.permutation(I)
-
         # Apply damping
         normWi += damp * np.max(normWi)
 
+        # Configuration for random kaczmarz
+        cumul = np.cumsum(normWi/np.sum(normWi))
+        if np.linalg.norm(cumul-np.arange(1, m+1)/m, np.inf) < 0.05:
+            fast = True
+        else:
+            fast = False
+
         # Starting loop
-        stop_loop = False
         num_exec = 0 # number of times that an element of maxiter is reached
 
         while not stop_loop:
-            k += 1            
+            k += 1  
+            np.random.seed(0)
+            I_torun = np.random.permutation(I)          
 
             # The Kaczmarz sweep
-            for ri in I:
+            for i in I_torun:
+                if fast:
+                    ri = i
+                else:
+                    ri = np.sum(cumul<np.random.uniform(0, 1, 1)) 
+
                 wi = W[ri,:]
                 update = (relaxParam*(y[ri]- wi @ xk)/normWi[ri])*wi
                 xk += update
-                xk[xk<0]=0
+                xk = np.maximum(xk, lbound)
 
             # Save the output and end time
             if k in maxiter:
@@ -142,7 +158,6 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**kargs):
 
             rk = y - W @ xk
             stop_loop = stopping_criterion(k, rk, maxK, tol)
-        
 
         # Calculated performance metrics
         MSE = np.zeros(len(maxiter))
@@ -188,8 +203,11 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**karg
         k = 0   # Iteration counter.
         maxK = maxiter.max() # Maximum iterations from all the ksteps to return
         xk = x0 # Use initial vector.
-        n,m = W.shape
+        m,n = W.shape
 
+        stop_loop = stopping_criterion(k, rk, maxK, tol)
+
+        normWj = np.zeros(n)
         # Calculate norm of each column
         if issparse(W):
             normWj = spla.norm(W, axis=0)**2
@@ -207,11 +225,11 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**karg
         Nflag = np.zeros(n)
 
         # Starting loop
-        stop_loop = False
         num_exec = 0 # number of times that an element of maxiter is reached
         Numflag = np.round(maxK/4)
         kbegin = 10
         THR = 1e-4
+        lbound = 0
 
         while not stop_loop:
             k += 1
@@ -221,34 +239,33 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**karg
 
                 if F[j] == 1:
                     wj = W[:,j]
-                    update = relaxParam*(np.transpose(wj) @ rk/normWj[j])
-                    xk[j] += update
-                    xk[xk<0]=0
-                    rk = rk - update * wj
+                    delta = np.transpose(wj) @ rk/normWj[j]
+                    od = relaxParam*delta
+                    xkj = xk[j]
+                    if od < lbound - xkj:
+                        od = lbound - xkj
+                    xk[j] = xkj + od
 
-                    if k >= kbegin and np.abs(update) < THR*mm:
+                    if k > kbegin and np.abs(od) < THR*mm:
                         F[j] = 0
-                        Nflag[j] = 1
-
+                        Nflag[j] = 1    
+                    rk = rk - od*wj
                 else:
-                    if Nflag[j]< randint(1,Numflag):
+                    np.random.seed(0)
+                    value = randint(1,Numflag)
+                    if Nflag[j]< value:
                         Nflag[j] += 1
                     else:
                         F[j] = 1
-                
-            
-            # xk[xk<0]=0
 
-            
+            stop_loop = stopping_criterion(k, rk, maxK, tol)
         
-        # Save the output and end time
+            # Save the output and end time
             if k in maxiter:
                 xk_output[:,num_exec] = xk
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
                 
-
-            stop_loop = stopping_criterion(k, rk, maxK, tol)
         
 
         # Calculated performance metrics
@@ -266,7 +283,7 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**karg
 
         return xk_output, MSE, res, r2, duration
 
-def cimmino_solve(W, y, x0, maxiter, damp, tol: float, 
+def cimmino_solve(W, y,  maxiter, x0, damp, tol: float, 
                   relaxParam: float = 1.0,**kargs):
         """
         Perform kaczmarz algorithm.
@@ -287,7 +304,9 @@ def cimmino_solve(W, y, x0, maxiter, damp, tol: float,
         timeEnd = np.zeros(len(maxiter))
 
         # Initialize matrix to return
-        xk_output = np.zeros((x0.shape[0], len(maxiter)))
+        m, n = W.shape
+        xk_output = np.zeros((n, len(maxiter)))
+        lbound = np.zeros(n)
 
         # Transpose of the matrix
         W_transp = np.transpose(W)
@@ -300,14 +319,16 @@ def cimmino_solve(W, y, x0, maxiter, damp, tol: float,
         maxK = maxiter.max() # Maximum iterations from all the ksteps to return
         xk = x0 # Use initial vector.
         
+        stop_loop = stopping_criterion(k, rk, maxK, tol)
+
         # Calculate norm of each column
+        normWi = np.zeros(m)
         if issparse(W):
             normWi = spla.norm(W, axis=1)**2
         else:
             normWi = np.linalg.norm(W, axis=1)**2
 
         # Apply damping
-        m = W.shape[0]
         normWi = normWi * m + damp * np.max(normWi)
 
         # Obtain the inverse of the elements of normXj
@@ -315,12 +336,13 @@ def cimmino_solve(W, y, x0, maxiter, damp, tol: float,
 
         # Create a diagonal matrix with the inverse norms on the diagonal
         M = np.diag(inverse_normWi)
+        I = (M == np.inf)
+        M[I] = 0
 
         # Create the identity matrix n x n
-        D = np.eye(W.shape[1])
+        D = np.eye(n)
 
         # Starting loop
-        stop_loop = False
         num_exec = 0 # number of times that an element of maxiter is reached
 
         while not stop_loop:
@@ -330,7 +352,7 @@ def cimmino_solve(W, y, x0, maxiter, damp, tol: float,
             WTMrk = W_transp @ Mrk
             update = relaxParam*(D @ WTMrk)
             xk += update
-            xk[xk<0]=0
+            xk = np.maximum(xk, lbound)
         
             # Save the output and end time
             if k in maxiter:
