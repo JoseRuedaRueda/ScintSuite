@@ -283,7 +283,7 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**karg
 
         return xk_output, MSE, res, r2, duration
 
-def cimmino_solve(W, y,  maxiter, x0, damp, tol: float, 
+def cimmino_solve(W, y,  x0, maxiter, damp, tol: float, 
                   relaxParam: float = 1.0,**kargs):
         """
         Perform kaczmarz algorithm.
