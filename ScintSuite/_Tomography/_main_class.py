@@ -181,7 +181,7 @@ class Tomography():
         self.inversion['nnlsq']['r2'] = xr.DataArray(r2)
         self.inversion['nnlsq']['residual'].attrs['long_name'] = '$r^2$'
 
-    def kaczmarz_solve(self, x0, iterations, damp = None, tol = None, 
+    def kaczmarz_solve(self, x0, iterations, window, damp = None, tol = None, 
                        relaxParam = 1, **kargs) -> None:
         """
         Perform kaczmarz algorithm
@@ -203,7 +203,11 @@ class Tomography():
         x_hat, MSE, res, r2, time = \
                 solvers.kaczmarz_solve(self.W2D, self.s1D, x0, maxiter = numIter,
                                        damp = damp, tol = tol, 
-                                       relaxParam = relaxParam, **kargs)
+                                       relaxParam = relaxParam,
+                                        x_coord = self.W['xs'], 
+                                        y_coord = self.W['ys'],
+                                        window = window, 
+                                        **kargs)
         # --- reshape the coefficients
         logger.info('Reshaping prediction')
         x_hat_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_execution))
@@ -232,7 +236,7 @@ class Tomography():
         self.inversion['kaczmarz']['time'] = xr.DataArray(time, dims='alpha')
         self.inversion['kaczmarz']['time'].attrs['long_name'] = '$t (s)$'
 
-    def coordinate_descent_solve(self, x0, iterations, damp = None, tol = None, 
+    def coordinate_descent_solve(self, x0, iterations, window, damp = None, tol = None, 
                        relaxParam = 1, **kargs) -> None:
         """
         Perform coordinate descent algorithm
@@ -257,6 +261,9 @@ class Tomography():
                                                   maxiter = numIter,
                                                   damp = damp, tol = tol, 
                                                   relaxParam = relaxParam, 
+                                                  x_coord = self.W['xs'], 
+                                                  y_coord = self.W['ys'],
+                                                  window = window,
                                                   **kargs)
         # --- reshape the coefficients
         logger.info('Reshaping prediction')
@@ -287,7 +294,7 @@ class Tomography():
         self.inversion['descent']['time'].attrs['long_name'] = '$t (s)$'
 
 
-    def cimmino_solve(self, x0, iterations, damp = None, tol = None, 
+    def cimmino_solve(self, x0, iterations, window, damp = None, tol = None, 
                        relaxParam = 1, **kargs) -> None:
         """
         Perform cimmino algorithm
@@ -312,6 +319,9 @@ class Tomography():
                                                   maxiter = numIter,
                                                   damp = damp, tol = tol, 
                                                   relaxParam = relaxParam, 
+                                                  x_coord = self.W['xs'], 
+                                                  y_coord = self.W['ys'],
+                                                  window = window,
                                                   **kargs)
         # --- reshape the coefficients
         logger.info('Reshaping prediction')

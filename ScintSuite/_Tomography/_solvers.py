@@ -3,6 +3,7 @@ Solvers for tomography reconstructions.
 """
 import logging
 import numpy as np
+import xarray as xr
 logger = logging.getLogger('ScintSuite.Tomography.Solvers')
 try:
     from sklearnex import patch_sklearn
@@ -15,6 +16,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
 from scipy.optimize import nnls     # Non negative least squares
 from ScintSuite._Tomography._meritFunctions import residual
+import ScintSuite._Tomography._martix_collapse as matrix
 from sklearn.linear_model import ElasticNet  # ElaticNet
 from scipy.sparse import diags
 from scipy.sparse.linalg import inv
@@ -78,16 +80,26 @@ def nnlsq(X, y, **kargs):
     res = residual(y_pred, y)
     return beta, MSE, res, r2
 
-def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**kargs):
+def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam,
+                             x_coord, y_coord, window, **kargs):
         """
         Perform kaczmarz algorithm.
 
         Marina Jimenez Comez: mjimenez37@us.es
 
-        :param  W: Design matrix
+        :param  X: Design matrix
         :param  y: signal
-        :param  maxiter: number of iterations where the output is saved
-        :param  *kargs: arguments for the kaczmarz algorithm
+        :param  maxiter: maximum number of iterations to perform
+        :param  damp: damping factor
+        :param  tol: tolerance
+        :param  relaxParam: relaxation parameter
+        :param  x_coord: x coordinates (PITCH)
+        :param  y_coord: y coordinates (GYROSCALAR)
+        :param  window: Region of interest. All values outside the 
+                        window are set to zero. The window is defined as
+                        [x_min, x_max, y_min, y_max]. X and Y are the  
+                        pitch and gyroscalar coordinates, respectively.
+        :param  *kargs: arguments for the coordinate descent algorithm
 
         :return MSE: Mean squared error
         :return r2: R2 score
@@ -149,9 +161,34 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**kargs):
                 xk += update
                 xk = np.maximum(xk, lbound)
 
+            # Truncate the output so that we just keep values inside 
+            # the signal region
             # Save the output and end time
+
+            x_size = len(x_coord)
+            y_size = len(y_coord)
+            xk_shaped = np.zeros((x_size, y_size))
+            x_min = window[0]
+            x_max = window[1]
+            y_min = window[2]
+            y_max = window[3]
+
             if k in maxiter:
-                xk_output[:,num_exec] = xk
+                xk_shaped = \
+                matrix.restore_array2D(xk, x_size, y_size)
+
+                xk_data = xr.DataArray(
+                xk_shaped, dims=('xs', 'ys'),
+                coords={'xs': x_coord, 'ys': y_coord})
+
+                conditionGyro = (xk_data .coords['ys'] >= y_min) & \
+                                (xk_data .coords['ys'] <= y_max) 
+                conditionPitch = (xk_data .coords['xs'] >= x_min) & \
+                                (xk_data .coords['xs'] <= x_max)
+                xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+                
+
+                xk_output[:,num_exec] = matrix.collapse_array2D(xk_data.values)
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
                 
@@ -174,7 +211,8 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**kargs):
 
         return xk_output, MSE, res, r2, duration
 
-def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**kargs):
+def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam,
+                             x_coord, y_coord, window, **kargs):
         """
         Perform coordinate descent algorithm.
 
@@ -183,6 +221,15 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**karg
         :param  X: Design matrix
         :param  y: signal
         :param  maxiter: maximum number of iterations to perform
+        :param  damp: damping factor
+        :param  tol: tolerance
+        :param  relaxParam: relaxation parameter
+        :param  x_coord: x coordinates (PITCH)
+        :param  y_coord: y coordinates (GYROSCALAR)
+        :param  window: Region of interest. All values outside the 
+                        window are set to zero. The window is defined as
+                        [x_min, x_max, y_min, y_max]. X and Y are the  
+                        pitch and gyroscalar coordinates, respectively.
         :param  *kargs: arguments for the coordinate descent algorithm
 
         :return MSE: Mean squared error
@@ -260,9 +307,34 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**karg
 
             stop_loop = stopping_criterion(k, rk, maxK, tol)
         
+            # Truncate the output so that we just keep values inside 
+            # the signal region
             # Save the output and end time
+
+            x_size = len(x_coord)
+            y_size = len(y_coord)
+            xk_shaped = np.zeros((x_size, y_size))
+            x_min = window[0]
+            x_max = window[1]
+            y_min = window[2]
+            y_max = window[3]
+
             if k in maxiter:
-                xk_output[:,num_exec] = xk
+                xk_shaped = \
+                matrix.restore_array2D(xk, x_size, y_size)
+
+                xk_data = xr.DataArray(
+                xk_shaped, dims=('xs', 'ys'),
+                coords={'xs': x_coord, 'ys': y_coord})
+
+                conditionGyro = (xk_data .coords['ys'] >= y_min) & \
+                                (xk_data .coords['ys'] <= y_max) 
+                conditionPitch = (xk_data .coords['xs'] >= x_min) & \
+                                (xk_data .coords['xs'] <= x_max)
+                xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+                
+
+                xk_output[:,num_exec] = matrix.collapse_array2D(xk_data.values)
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
                 
@@ -283,17 +355,26 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam = 1,**karg
 
         return xk_output, MSE, res, r2, duration
 
-def cimmino_solve(W, y,  x0, maxiter, damp, tol: float, 
-                  relaxParam: float = 1.0,**kargs):
+def cimmino_solve(W, y, x0, maxiter, damp, tol, relaxParam,
+                             x_coord, y_coord, window, **kargs):
         """
         Perform kaczmarz algorithm.
 
         Marina Jimenez Comez: mjimenez37@us.es
 
-        :param  W: Design matrix
+        ::param  X: Design matrix
         :param  y: signal
         :param  maxiter: maximum number of iterations to perform
-        :param  *kargs: arguments for the kaczmarz algorithm
+        :param  damp: damping factor
+        :param  tol: tolerance
+        :param  relaxParam: relaxation parameter
+        :param  x_coord: x coordinates (PITCH)
+        :param  y_coord: y coordinates (GYROSCALAR)
+        :param  window: Region of interest. All values outside the 
+                        window are set to zero. The window is defined as
+                        [x_min, x_max, y_min, y_max]. X and Y are the  
+                        pitch and gyroscalar coordinates, respectively.
+        :param  *kargs: arguments for the coordinate descent algorithm
 
         :return MSE: Mean squared error
         :return r2: R2 score
@@ -354,9 +435,34 @@ def cimmino_solve(W, y,  x0, maxiter, damp, tol: float,
             xk += update
             xk = np.maximum(xk, lbound)
         
+            # Truncate the output so that we just keep values inside 
+            # the signal region
             # Save the output and end time
+
+            x_size = len(x_coord)
+            y_size = len(y_coord)
+            xk_shaped = np.zeros((x_size, y_size))
+            x_min = window[0]
+            x_max = window[1]
+            y_min = window[2]
+            y_max = window[3]
+
             if k in maxiter:
-                xk_output[:,num_exec] = xk
+                xk_shaped = \
+                matrix.restore_array2D(xk, x_size, y_size)
+
+                xk_data = xr.DataArray(
+                xk_shaped, dims=('xs', 'ys'),
+                coords={'xs': x_coord, 'ys': y_coord})
+
+                conditionGyro = (xk_data .coords['ys'] >= y_min) & \
+                                (xk_data .coords['ys'] <= y_max) 
+                conditionPitch = (xk_data .coords['xs'] >= x_min) & \
+                                (xk_data .coords['xs'] <= x_max)
+                xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+                
+
+                xk_output[:,num_exec] = matrix.collapse_array2D(xk_data.values)
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
                 
