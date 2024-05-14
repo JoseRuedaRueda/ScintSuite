@@ -165,30 +165,34 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam,
             # the signal region
             # Save the output and end time
 
-            x_size = len(x_coord)
-            y_size = len(y_coord)
-            xk_shaped = np.zeros((x_size, y_size))
-            x_min = window[0]
-            x_max = window[1]
-            y_min = window[2]
-            y_max = window[3]
 
-            if k in maxiter:
-                xk_shaped = \
-                matrix.restore_array2D(xk, x_size, y_size)
+            if k in maxiter:              
+                if window is not None:
+                     x_size = len(x_coord)
+                     y_size = len(y_coord)
+                     xk_shaped = np.zeros((x_size, y_size))
+                     x_min = window[0]
+                     x_max = window[1]
+                     y_min = window[2]
+                     y_max = window[3]
 
-                xk_data = xr.DataArray(
-                xk_shaped, dims=('xs', 'ys'),
-                coords={'xs': x_coord, 'ys': y_coord})
-
-                conditionGyro = (xk_data .coords['ys'] >= y_min) & \
+                     xk_shaped = \
+                        matrix.restore_array2D(xk, x_size, y_size)
+                     xk_data = xr.DataArray(
+                     xk_shaped, dims=('xs', 'ys'),
+                     coords={'xs': x_coord, 'ys': y_coord})
+                     conditionGyro = (xk_data .coords['ys'] >= y_min) & \
                                 (xk_data .coords['ys'] <= y_max) 
-                conditionPitch = (xk_data .coords['xs'] >= x_min) & \
+                     conditionPitch = (xk_data .coords['xs'] >= x_min) & \
                                 (xk_data .coords['xs'] <= x_max)
-                xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
                 
+                     xk_output[:,num_exec] = matrix.collapse_array2D(xk_data.values)
+                else:
+                    xk_output[:,num_exec] = xk
 
-                xk_output[:,num_exec] = matrix.collapse_array2D(xk_data.values)
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
                 
@@ -311,30 +315,33 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam,
             # the signal region
             # Save the output and end time
 
-            x_size = len(x_coord)
-            y_size = len(y_coord)
-            xk_shaped = np.zeros((x_size, y_size))
-            x_min = window[0]
-            x_max = window[1]
-            y_min = window[2]
-            y_max = window[3]
+            if k in maxiter:              
+                if window is not None:
+                     x_size = len(x_coord)
+                     y_size = len(y_coord)
+                     xk_shaped = np.zeros((x_size, y_size))
+                     x_min = window[0]
+                     x_max = window[1]
+                     y_min = window[2]
+                     y_max = window[3]
 
-            if k in maxiter:
-                xk_shaped = \
-                matrix.restore_array2D(xk, x_size, y_size)
-
-                xk_data = xr.DataArray(
-                xk_shaped, dims=('xs', 'ys'),
-                coords={'xs': x_coord, 'ys': y_coord})
-
-                conditionGyro = (xk_data .coords['ys'] >= y_min) & \
+                     xk_shaped = \
+                        matrix.restore_array2D(xk, x_size, y_size)
+                     xk_data = xr.DataArray(
+                     xk_shaped, dims=('xs', 'ys'),
+                     coords={'xs': x_coord, 'ys': y_coord})
+                     conditionGyro = (xk_data .coords['ys'] >= y_min) & \
                                 (xk_data .coords['ys'] <= y_max) 
-                conditionPitch = (xk_data .coords['xs'] >= x_min) & \
+                     conditionPitch = (xk_data .coords['xs'] >= x_min) & \
                                 (xk_data .coords['xs'] <= x_max)
-                xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
                 
+                     xk_output[:,num_exec] = matrix.collapse_array2D(xk_data.values)
+                else:
+                    xk_output[:,num_exec] = xk
 
-                xk_output[:,num_exec] = matrix.collapse_array2D(xk_data.values)
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
                 
@@ -439,30 +446,33 @@ def cimmino_solve(W, y, x0, maxiter, damp, tol, relaxParam,
             # the signal region
             # Save the output and end time
 
-            x_size = len(x_coord)
-            y_size = len(y_coord)
-            xk_shaped = np.zeros((x_size, y_size))
-            x_min = window[0]
-            x_max = window[1]
-            y_min = window[2]
-            y_max = window[3]
+            if k in maxiter:              
+                if window is not None:
+                     x_size = len(x_coord)
+                     y_size = len(y_coord)
+                     xk_shaped = np.zeros((x_size, y_size))
+                     x_min = window[0]
+                     x_max = window[1]
+                     y_min = window[2]
+                     y_max = window[3]
 
-            if k in maxiter:
-                xk_shaped = \
-                matrix.restore_array2D(xk, x_size, y_size)
-
-                xk_data = xr.DataArray(
-                xk_shaped, dims=('xs', 'ys'),
-                coords={'xs': x_coord, 'ys': y_coord})
-
-                conditionGyro = (xk_data .coords['ys'] >= y_min) & \
+                     xk_shaped = \
+                        matrix.restore_array2D(xk, x_size, y_size)
+                     xk_data = xr.DataArray(
+                     xk_shaped, dims=('xs', 'ys'),
+                     coords={'xs': x_coord, 'ys': y_coord})
+                     conditionGyro = (xk_data .coords['ys'] >= y_min) & \
                                 (xk_data .coords['ys'] <= y_max) 
-                conditionPitch = (xk_data .coords['xs'] >= x_min) & \
+                     conditionPitch = (xk_data .coords['xs'] >= x_min) & \
                                 (xk_data .coords['xs'] <= x_max)
-                xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
                 
+                     xk_output[:,num_exec] = matrix.collapse_array2D(xk_data.values)
+                else:
+                    xk_output[:,num_exec] = xk
 
-                xk_output[:,num_exec] = matrix.collapse_array2D(xk_data.values)
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
                 

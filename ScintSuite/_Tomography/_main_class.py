@@ -181,7 +181,8 @@ class Tomography():
         self.inversion['nnlsq']['r2'] = xr.DataArray(r2)
         self.inversion['nnlsq']['residual'].attrs['long_name'] = '$r^2$'
 
-    def kaczmarz_solve(self, x0, iterations, window, damp = None, tol = None, 
+    def kaczmarz_solve(self, x0, iterations, window = None, 
+                       damp = None, tol = None, 
                        relaxParam = 1, **kargs) -> None:
         """
         Perform kaczmarz algorithm
@@ -236,8 +237,9 @@ class Tomography():
         self.inversion['kaczmarz']['time'] = xr.DataArray(time, dims='alpha')
         self.inversion['kaczmarz']['time'].attrs['long_name'] = '$t (s)$'
 
-    def coordinate_descent_solve(self, x0, iterations, window, damp = None, tol = None, 
-                       relaxParam = 1, **kargs) -> None:
+    def coordinate_descent_solve(self, x0, iterations, window = None,
+                                  damp = None, tol = None, 
+                                  relaxParam = 1, **kargs) -> None:
         """
         Perform coordinate descent algorithm
 
@@ -294,7 +296,8 @@ class Tomography():
         self.inversion['descent']['time'].attrs['long_name'] = '$t (s)$'
 
 
-    def cimmino_solve(self, x0, iterations, window, damp = None, tol = None, 
+    def cimmino_solve(self, x0, iterations, window = None,
+                       damp = None, tol = None, 
                        relaxParam = 1, **kargs) -> None:
         """
         Perform cimmino algorithm
