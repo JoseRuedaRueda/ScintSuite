@@ -141,7 +141,10 @@ except ModuleNotFoundError:
     pass
 
 # Reconstructions
-from ScintSuite._Tomography._main_class import Tomography as tomography
+try:
+    from ScintSuite._Tomography._main_class import Tomography as tomography
+except:
+    pass
 
 # Handle Video files
 import ScintSuite._Video as vid

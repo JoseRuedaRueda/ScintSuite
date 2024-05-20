@@ -380,9 +380,10 @@ class FILDVideo(FIV):
             # have the proper length (ie they were calculated for the exp_dat
             # not the average)
             if self.BField['BR'].size != nt:
-                print('Need to recalculate the magnetic field')
+                logger.warning('Need to recalculate the magnetic field. Doing it now')
                 self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles['phi'].size != nt:
+                logger.warning('Need to recalculate the angles. Doing it now')
                 self._getBangles()
         self.remap_dat = ssmap.remapAllLoadedFrames(self, **options)
         # Calculate the integral of the remap
@@ -413,7 +414,7 @@ class FILDVideo(FIV):
 
             alpha = self.orientation['alpha']
             beta = self.orientation['beta']
-            print('Remap not done, calculating angles')
+            logger.warning('Remap not done, calculating angles')
 
             if t is not None:
                 br, bz, bt, bp =\

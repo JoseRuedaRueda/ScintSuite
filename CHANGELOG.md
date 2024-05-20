@@ -1,3 +1,14 @@
+# 1.3.8 WF improvements
+- Official release of FILD numerical WF
+- Included a cutoff in the weight function calculation to avoid correlations in tomography (can be activated or not with an optional variable)
+
+# 1.3.7 Solved (again) np.int stuff
+- removed np.int and np.float calls
+
+# 1.3.6 Updated fild export
+- Updated pip requirements
+- Updated export fild, for the case of single smap used in remap
+
 # 1.3.5 Shares path, Update netCDF library for MU
 - Updated basic pathjs of AUG FILD and INPa to the shares
 - The netCDF library has been updated to read new standard MU format

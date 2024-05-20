@@ -628,6 +628,9 @@ class Tomography():
             # get the profiles
             EprofTrue = trueSolInterp.sum('x')
             RprofTrue = trueSolInterp.sum('y')
+        else:
+            EprofTrue = None
+            RprofTrue = None
         Total = np.sqrt((data**2).sum(dim=('x','y')))
         fig, ax = plt.subplots(2,2)
         if true_solution is not None:

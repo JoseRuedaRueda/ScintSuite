@@ -403,7 +403,7 @@ class FILD_logbook:
             i, = np.where(self.positionDatabase['shot'].values == shot)[0]
             flag = True
         else:
-            print('Shot not found in logbook, returning the default values')
+            logger.warning('Shot not found in logbook, returning the default values')
             return default
         # --- Get the postion
         position = {        # Initialise the position
