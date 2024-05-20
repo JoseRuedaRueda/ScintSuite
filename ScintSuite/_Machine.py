@@ -11,8 +11,14 @@ MU = False
 # ---- Check if we are in AUG
 try:
     import aug_sfutils
-    AUG = True
-    machine = 'AUG'
+
+    # Checking if we have actual access to the libraries in
+    # ASDEX, i.e., to the shared.
+    if not os.path.isdir(aug_sfutils.config.sfLib):
+        AUG = False
+    else:
+        AUG = True
+        machine = 'AUG'
 except ModuleNotFoundError:
     pass
 # ---- Check if we are in MU
