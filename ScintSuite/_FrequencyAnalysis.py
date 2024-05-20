@@ -4,6 +4,7 @@ Routines to analyse a time signal in the frequency domain
 Include band signal and other filtres aimed to reduce the noise
 """
 import numpy as np
+import sys
 import heapq
 import scipy.signal as signal
 import matplotlib.pyplot as plt
@@ -16,13 +17,22 @@ from scipy.fftpack import next_fast_len
 from scipy.interpolate import interp2d
 from collections import defaultdict
 from ScintSuite._Plotting import p1D_shaded_error as plot_error_band
-try:
-    import pyfftw
-    pyfftw.interfaces.cache.enable()
-    pyfftw.interfaces.cache.set_keepalive_time(30)
-except ModuleNotFoundError:
-    print('Only partial support for fft')
-    print('Install pyfftw for full support')
+import logging
+
+logger = logging.getLogger('ScintSuite.FrequencyAnalysis')
+
+if (sys.version_info[0] == 3) and (sys.version_info[1] < 12):
+    try:
+        import pyfftw
+        pyfftw.interfaces.cache.enable()
+        pyfftw.interfaces.cache.set_keepalive_time(30)
+    except ModuleNotFoundError:
+        print('Only partial support for fft')
+        print('Install pyfftw for full support')
+
+else:
+    logger.warning('FFTW library is still not availabe for Python 3.12+. '+\
+                   'Track issue #6 in Github: https://github.com/JoseRuedaRueda/ScintSuite/issues/6')
 
 # -----------------------------------------------------------------------------
 # --- Band filters
