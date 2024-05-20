@@ -1,3 +1,11 @@
+# 1.3.9 Adaptation of the strikemap to iHIBP
+
+- Moved the function `_calculate_mapping_interpolators` from the `FILDINPA_Smap` to the generic `GeneralStrikeMap`.
+- Removed dependence on iHIBP in `GeneralStrikeMap`. This is handled externally.
+- Minor bug: added a flag test in `GeneralStrikeMap.plot_pix` to avoid exceptions on plotting a non-existing point of the grid.
+- Minor: added generic path of fonts in Linux to the list in _Path library.
+- Minor: in settings.py, while importing the fonts, the `try`-`except` block has been moved within the loop to avoid early termination and failing imports of the rest of the fonts.
+
 # 1.3.8 WF improvements
 - Official release of FILD numerical WF
 - Included a cutoff in the weight function calculation to avoid correlations in tomography (can be activated or not with an optional variable)
