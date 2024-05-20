@@ -88,9 +88,6 @@ class GeneralStrikeMap(XYtoPixel):
                 variables_to_remap = ('R0', 'gyroradius')
             elif self._header['diagnostic'] == 'FILD':
                 variables_to_remap = ('pitch', 'gyroradius')
-            elif self._header['diagnostic'] == 'iHIBP':
-                variables_to_remap = ('x1', 'x2')
-                # ToDo. Set here the to proper iHIBP variables
         self.setRemapVariables(variables_to_remap, verbose=False)
         self._grid_interp = None  # allocate the atribute for latter
         self._map_interpolators = None
@@ -232,6 +229,81 @@ class GeneralStrikeMap(XYtoPixel):
             self._calculate_transformation_matrix(
                 MC_number, variables_to_interpolate, grid_options,
                 frame_shape, limitation)
+    
+    def _calculate_mapping_interpolators(self,
+                                         kernel: str = 'thin_plate_spline',
+                                         degree=2,
+                                         variables: tuple = None):
+        """
+        Calculate interpolators scintillator position -> phase space.
+
+        If there is pixel data, it also calculate the interpolators of the
+        pixel space
+
+        Jose Rueda: jrrueda@us.es
+
+        :param  kernel: kernel for the interpolator
+        :param  degree: degree for the added polynomial
+        :param  variables: variables to prepare the interpolators
+
+        See RBFInterpolator of Scipy for full documentation
+        """
+        # --- Select the colums to be used
+        # temporal solution to save the coordinates in the array
+        coords = np.zeros((self._data['x1'].size, 2))
+        coords[:, 0] = self._coord_real['x1'].copy()
+        coords[:, 1] = self._coord_real['x2'].copy()
+
+        # Allocate the space
+        if variables is None:
+            variables = (self._to_remap[0].name,
+                         self._to_remap[1].name)
+
+        if self._map_interpolators is None:
+            self._map_interpolators = dict.fromkeys(variables)
+        else:
+            newDict = dict.fromkeys(variables)
+            self._map_interpolators.update(newDict)
+
+        for key in variables:
+            # Sometimes necessary to avoid errors on Cobra, reason is unknown
+            try:
+                self._map_interpolators[key] = \
+                    scipy_interp.RBFInterpolator(coords,
+                                                 self._data[key].data,
+                                                 kernel=kernel, degree=degree)
+            except RuntimeError:
+                self._map_interpolators[key] = \
+                    scipy_interp.RBFInterpolator(coords,
+                                                 self._data[key].data,
+                                                 kernel=kernel, degree=degree)
+        # --- If there is pixel informations, do the same for the pixel space
+        try:
+            # @ToDo: See why this modify R0 and e0 interpolators
+            # coords[:, 0] = self._coord_pix['x'].copy()
+            # coords[:, 1] = self._coord_pix['y'].copy()
+            # var2 = [a + '_pix' for a in variables]
+            # newDict2 = dict.fromkeys(var2)
+            # print(newDict2)
+            # self._map_interpolators.update(newDict2)
+            # for key in variables:
+            #     self._map_interpolators[key+'_pix'] = \
+            #         scipy_interp.RBFInterpolator(coords,
+            #                                      self._data[key].data,
+            #                                      kernel=kernel, degree=degree)
+            coords2 = np.zeros((self._data['x1'].size, 2))
+            coords2[:, 0] = self._coord_pix['x'].copy()
+            coords2[:, 1] = self._coord_pix['y'].copy()
+            var2 = [a + '_pix' for a in variables]
+            newDict2 = dict.fromkeys(var2)
+            self._map_interpolators.update(newDict2)
+            for key in variables:
+                self._map_interpolators[key+'_pix'] = \
+                    scipy_interp.RBFInterpolator(coords2,
+                                                 self._data[key].data,
+                                                 kernel=kernel, degree=degree)
+        except (KeyError, AttributeError):
+            pass
 
     def export_spatial_coordinates(self, Geom=None, units: str = 'mm',
                                    file_name_save: str = None,
@@ -486,13 +558,14 @@ class GeneralStrikeMap(XYtoPixel):
                 for i in range(1, n[j]):
                     # Add the labels
                     if (i % 2 == 0) and calculated_delta:
-                        ax.text(self._coord_real['x1'][flags[j][i]][0]*factor - 0.5 * delta,
-                                self._coord_real['x2'][flags[j][i]][0]*factor,
-                                '%.2f' % (
-                                    float(self._MC_variables[j].data[i])),
-                                horizontalalignment='right',
-                                verticalalignment='center',
-                                color=line_options['color'])
+                        if np.any(flags[j][i]):
+                            ax.text(self._coord_pix['x'][flags[j][i]][0] - 0.5 * delta,
+                                    self._coord_pix['y'][flags[j][i]][0],
+                                    '%.2f' % (
+                                        float(self._MC_variables[j].data[i])),
+                                    horizontalalignment='right',
+                                    verticalalignment='center',
+                                    color=line_options['color'])
                     # Add the general label
                     if i == int(n[j]/2):
                         if j == 0:
