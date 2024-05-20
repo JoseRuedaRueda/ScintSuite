@@ -39,7 +39,8 @@ class Path:
                 '/usr/share/fonts/truetype',
                 '/usr/share/fonts/truetype/ms-corefonts',
                 '/usr/share/texmf/fonts/opentype/public/lm',
-                '/usr/share/texmf/fonts/opentype/public/lm-math'
+                '/usr/share/texmf/fonts/opentype/public/lm-math',
+                os.path.join(home_dir_user, '.local', 'share', 'fonts')
             ]
         else:  # Generic case, assume you have linux :-)
             self.fonts = [
