@@ -6,7 +6,8 @@ import numpy as np
 import matplotlib.collections as mcoll
 import matplotlib.path as mpath
 
-__all__ = ['p1D_shaded_error', 'remove_lines', 'overplot_trace', 'multiline']
+__all__ = ['p1D_shaded_error', 'remove_lines', 
+           'overplot_trace', 'multiline', 'colorline']
 
 
 def p1D_shaded_error(ax, x, y, u_up, color='k', alpha=0.1, u_down=None,
