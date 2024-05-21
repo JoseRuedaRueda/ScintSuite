@@ -1000,6 +1000,94 @@ class Tomography():
 
 
         return ax, [lineE, lineR], sliders
+    
+    def plot_MSE_error(self, inverters = ['descent', 'kaczmarz', 
+                                                'cimmino'], ax=None,
+                    line_params: dict = {}) -> plt.Axes:
+            """
+            Plot the MSE
+    
+            Marina Jimenez Comez: mjimenez37@us.es
+
+            :param inversion: name of the inversions to plot.
+            :param ax: axes to plot the data.
+
+            :return ax: axes where the data has been plotted
+            """
+            # ---- Initialise the settings
+            fig, ax = plt.subplots()
+            true_norm = (self.s**2).sum(dim=('x','y')) # It's squared
+            for inv in inverters:
+                MSE = self.inversion[inv].MSE
+                error = MSE/ true_norm
+                ax.plot(self.inversion[inv].alpha, error, '-o', label=inv)
+
+            ax.set_title('Normalized MSE vs iterations')
+            ax.set_xlabel('k')
+            ax.set_ylabel('Error')
+            ax.legend(inverters)
+
+            return ax
+    
+    def plot_synthetic_error(self, x_syntheticXR, 
+                             inverters = ['descent', 'kaczmarz', 'cimmino'], 
+                             ax=None,
+                    line_params: dict = {}) -> plt.Axes:
+            """
+            Plot the error with respect to the synthetic data
+    
+            Marina Jimenez Comez: mjimenez37@us.es
+
+            :param x_syntheticXR: synthetic data at the pinhole plane
+            :param inversion: names of the inversions to plot.
+            :param ax: axes to plot the data.
+
+            :return ax: axes where the data has been plotted
+            """
+            # ---- Initialise the settings
+            fig, ax = plt.subplots()
+            for inv in inverters:
+                x_hat = self.inversion[inv].F.copy()
+                MSE = np.sqrt(((x_hat-x_syntheticXR)**2).sum(dim=('x','y')))
+                true_norm = np.sqrt((x_syntheticXR**2).sum(dim=('x','y')))
+                error = MSE/ true_norm
+                ax.plot(self.inversion[inv].alpha, error, '-o', label=inv)
+
+            ax.set_title('Error vs iterations')
+            ax.set_xscale('log')
+            ax.set_xlabel('k')
+            ax.set_ylabel('Error')
+            ax.legend(inverters)
+
+            return ax
+    
+    def plot_computational_time(self, inverters = ['descent', 'kaczmarz',
+                                                'cimmino'], ax=None,
+                    line_params: dict = {}) -> plt.Axes:
+            """
+            Plot the computational time
+    
+            Marina Jimenez Comez: mjimenez37@us.es
+
+            :param inversion: name of the inversion to plot.
+            :param ax: axes to plot the data.
+
+            :return ax: axes where the data has been plotted
+            """
+            # ---- Initialise the settings
+            fig, ax = plt.subplots()
+            for inv in inverters:
+                time = self.inversion[inv].time
+                ax.plot(self.inversion[inv].alpha, time, '-o', label=inv)
+
+            ax.set_title('Computational time vs iterations')
+            ax.set_xlabel('k')
+            ax.set_ylabel('Time (s)')
+            ax.legend(inverters)
+
+            return ax
+
+
     # ------------------------------------------------------------------------
     # %% Export block
     # ------------------------------------------------------------------------
