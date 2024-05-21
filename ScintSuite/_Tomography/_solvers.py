@@ -87,8 +87,9 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam,
 
         Marina Jimenez Comez: mjimenez37@us.es
 
-        :param  X: Design matrix
+        :param  W: Design matrix
         :param  y: signal
+        :param x0: initial guess
         :param  maxiter: maximum number of iterations to perform
         :param  damp: damping factor
         :param  tol: tolerance
@@ -222,8 +223,9 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam,
 
         Marina Jimenez Comez: mjimenez37@us.es
 
-        :param  X: Design matrix
+        :param  W: Design matrix
         :param  y: signal
+        :param x0: initial guess
         :param  maxiter: maximum number of iterations to perform
         :param  damp: damping factor
         :param  tol: tolerance
@@ -369,8 +371,9 @@ def cimmino_solve(W, y, x0, maxiter, damp, tol, relaxParam,
 
         Marina Jimenez Comez: mjimenez37@us.es
 
-        ::param  X: Design matrix
+        ::param  W: Design matrix
         :param  y: signal
+        :param x0: initial guess
         :param  maxiter: maximum number of iterations to perform
         :param  damp: damping factor
         :param  tol: tolerance
