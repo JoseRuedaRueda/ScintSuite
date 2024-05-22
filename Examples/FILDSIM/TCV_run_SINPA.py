@@ -375,13 +375,13 @@ if __name__ == '__main__':
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(15e4)
+    n_markers = int(5e3)
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
     #Grids
 
-    energy_arrays = np.arange(3000, 85000, 3000)
+    energy_arrays = np.arange(3000, 25000, 3000)
     #Gyroradii grid in [cm]
     g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
     #g_r = np.asarray([0.88,1.08, 1.2567])
@@ -394,7 +394,7 @@ if __name__ == '__main__':
                 list(np.around(g_r, decimals = 5))]
     #pitch angle grid in [degrees]
     #JP: Added rounded on p, because otherwise not correct the arccos (too many zeros gives NaN)
-    p = np.around(np.arange(0.0, 1, 0.02), decimals = 5)
+    p = np.around(np.arange(0.2, 0.9, 0.04), decimals = 5)
     pitch_arrays = [list(np.around(np.rad2deg(np.arccos(p)), decimals = 5)), 
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5)),
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5)),
@@ -442,7 +442,7 @@ if __name__ == '__main__':
                 'IpBt': -1,        # Sign of toroidal current vs field (for pitch), need to check
                 'flag_efield_on': False,  # Add or not electric field
                 'save_collimator_strike_points': False,  # Save collimator points
-                'save_scintillator_strike_points': False,
+                'save_scintillator_strike_points': True,
                 'backtrace': backtrace,  # Flag to backtrace the orbits
                 'save_self_shadowing_collimator_strike_points': 
                     save_self_shadowing_collimator_strike_points,
