@@ -1160,11 +1160,11 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
         coll_matrix = np.transpose(self('collimator_factor_matrix'))
         # In case you want to manually set the axis limits to something bigger
-        if 'xvar' == 'pitch':     
+        if ax_options['xvar'] == 'pitch':     
             xAxisPlot = self.MC_variables[0].data
         else:
             xAxisPlot = self._p0_var.data            
-        if 'yvar' == 'gyroradius':     
+        if ax_options['yvar'] == 'gyroradius':     
             yAxisPlot = self.MC_variables[1].data
         else:
             yAxisPlot = self._e0_var.data    
