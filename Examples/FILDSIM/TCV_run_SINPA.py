@@ -190,7 +190,7 @@ if __name__ == '__main__':
         year = 2023
 
     time = 1.55
-    use_reduced_stl_models = True
+    use_reduced_stl_models = False
     use_1mm_pinhole = True
 
     run_code = True  # Set flag to run FILDSIM
@@ -205,7 +205,7 @@ if __name__ == '__main__':
     ###
     #Input settings
     ###
-    self_shadowing = False  #Flag to remove markers that would have been shadowed, leave this on
+    self_shadowing = True  #Flag to remove markers that would have been shadowed, leave this on
     backtrace = False  #Do backtracing
     ###
 
@@ -410,7 +410,7 @@ if __name__ == '__main__':
     #                ]
 
     #Range of gyrophase to use. Smaller range can be used, but for now allow all gyrophases
-    gyrophase_range = [[np.deg2rad(195),np.deg2rad(335)],  #UL  [np.deg2rad(185),np.deg2rad(359)]
+    gyrophase_range = [[np.deg2rad(185),np.deg2rad(359)],  #UL  [np.deg2rad(185),np.deg2rad(359)]
                         [np.deg2rad(80),np.deg2rad(160)],  #UR [np.deg2rad(22),np.deg2rad(182)]
                         [np.deg2rad(200),np.deg2rad(350)], #LR [np.deg2rad(185),np.deg2rad(359)]
                         [np.deg2rad(1),np.deg2rad(189)]  #LL [np.deg2rad(1),np.deg2rad(189)]
