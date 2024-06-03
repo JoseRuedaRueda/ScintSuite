@@ -207,7 +207,7 @@ def stft(tvec, x, nfft, resolution=1000, window='gauss', fmin=-np.infty,
 
     fft_forward = pyfftw.FFTW(sig, out, direction='FFTW_FORWARD',
                               flags=['FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'],
-                              axes=(-1,))#, threads=cpu_count()//2)
+                              axes=(-1,), threads=cpu_count()//2)
 
     fft_step = max(1, n//resolution)
     dtype = np.complex64 if complex_spectrum else np.single

@@ -181,21 +181,21 @@ if __name__ == '__main__':
     plot_plate_geometry = True
     plot_3D = False
 
-    shot = 79300
-    Rinsertion = -17.0 #[mm] #negative means inserted
+    shot = 79302
+    Rinsertion = -17.2 #[mm] #negative means inserted
 
     if shot <=77469:
         year = 2022
     else:
         year = 2023
 
-    time = 0.95
+    time = 1.2
     use_reduced_stl_models = True
-    use_1mm_pinhole = True
+    use_1mm_pinhole = False
 
     run_code = True  # Set flag to run FILDSIM
-    run_slit = [False, True, False, False]  # Run particles starting at slits set to true, starting with ul, ur, lr, ll
-    read_slit = [False, True, False, False] # Read results from diffrent slits
+    run_slit = [False, False, True, False]  # Run particles starting at slits set to true, starting with ul, ur, lr, ll
+    read_slit = [False, False, True, False] # Read results from diffrent slits
     slits = ['ul', 'ur', 'lr', 'll']
     idx_slit = np.where(run_slit)[0][0]
     run_name = '%i@%.3f' %(shot, time) #Choose unique run identifier, like shot number and time
@@ -353,8 +353,11 @@ if __name__ == '__main__':
         Rpin = np.sqrt(xyzPin[0]**2 + xyzPin[1]**2)
         zPin = xyzPin[2]
         
-        Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time)#, use_gdat = True)
-        import pdb; pdb.set_trace()
+        #Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time)#, use_gdat = True)
+        #print('LIUQE: ',Br, Bz, Bt, bp, np.sqrt(Br**2 + Bz**2 + Bt**2) )
+        Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time, use_gdat = True)
+        print('gdat: ',Br, Bz, Bt, bp, np.sqrt(Br**2 + Bz**2 + Bt**2)  )
+
         modB = np.sqrt(Br**2 + Bz**2 + Bt**2) 
     elif  use_2D_Bfield:
         rmin = 0.614  #[m]
@@ -368,7 +371,8 @@ if __name__ == '__main__':
         z_grid = np.linspace(zmin, zmax, nz, dtype=np.float32)
         r_mesh, z_mesh = np.meshgrid(r_grid, z_grid, indexing = 'ij')
 
-        Br, Bz, Bt =
+        Br, Bz, Bt = TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time)#, use_gdat = True)
+        
         modB = np.array([1.12817047]) #np.mean( np.sqrt(Br**2 + Bz**2 + Bt**2) ) #this has to be manual :(
 
 
@@ -376,13 +380,13 @@ if __name__ == '__main__':
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(1e3)
+    n_markers = int(1e4)
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
     #Grids
 
-    energy_arrays = np.arange(3000, 65000, 3000)
+    energy_arrays = np.arange(3000, 65000, 20000)
     #Gyroradii grid in [cm]
     g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
     #g_r = np.asarray([0.88,1.08, 1.2567])
@@ -395,7 +399,7 @@ if __name__ == '__main__':
                 list(np.around(g_r, decimals = 5))]
     #pitch angle grid in [degrees]
     #JP: Added rounded on p, because otherwise not correct the arccos (too many zeros gives NaN)
-    p = np.around(np.arange(0.0, 1, 0.01), decimals = 5)
+    p = np.around(np.arange(0.0, 1, 0.2), decimals = 5)
     pitch_arrays = [list(np.around(np.rad2deg(np.arccos(p)), decimals = 5)), 
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5)),
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5)),
@@ -538,7 +542,7 @@ if __name__ == '__main__':
                     fid.close()
 
                     # Create namelist
-                    ss.sinpa.execution.write_namelist(nml_options)
+                    ss.sinpa.execution.write_namelist(nml_options )
                 
                     # Missing a step: create B field!!
                     # Check the files
@@ -581,13 +585,13 @@ if __name__ == '__main__':
                   {'zorder':3,'color':'r'},
                   {'zorder':3,'color':'b'}]
 
-    plot_orbits = False
-    orbit_kind=(9,) # 2 colliding w. scint., 0 colliding w. coll., 9 missing all, 3 scint. markers traced backwards
+    plot_orbits = True
+    orbit_kind=(2,) # 2 colliding w. scint., 0 colliding w. coll., 9 missing all, 3 scint. markers traced backwards
     plot_self_shadowing_collimator_strike_points = False
     # Save data to txt files for ParaView inspection
     save_strike_points_txt = False
     save_strikemap_txt = False
-    save_orb_txt = False  # Save orbit data to .txt file
+    save_orb_txt = True  # Save orbit data to .txt file
     seperated = False      # If this flag is true, make separate txt file for each orbit, otherwise one file is written
     save_self_shadowing_collimator_strike_points = False #Flag to see where self shadowing happens
     save_self_shadowing_collimator_strike_points_txt = False
@@ -926,16 +930,16 @@ if __name__ == '__main__':
             ax.set_title('Camera view (YZ plane)')
             
             # If you want to mix and match, it assumes they have the same scintillator
-            if read_slit[0]:
-                Geometry = ss.simcom.Geometry(GeomID=runid[0])
-            else:
-                Geometry = ss.simcom.Geometry(GeomID=runid[1])
-                
-            Geometry.plot2Dfilled(ax=ax, view = 'Scint', element_to_plot = [2],
-                                    plot_pinhole = False)
                 
             for i in range(4):
                 if read_slit[i]:# or mixnmatch:
+
+                    Geometry = ss.simcom.Geometry(GeomID=runid[i])
+
+                        
+                    Geometry.plot2Dfilled(ax=ax, view = 'Scint', element_to_plot = [2],
+                                            plot_pinhole = False)
+
                     print('HOLAAA!')
                     if plot_strike_points:
                         #IPython.embed()rundid=
