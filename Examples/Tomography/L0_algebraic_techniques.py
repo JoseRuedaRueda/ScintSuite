@@ -72,7 +72,7 @@ else:
     remap = xr.load_dataset(remapFile)
     frame_original =remap.frames.sel(t=ttomo, method='nearest')
     frame = frame_original.squeeze().interp(x=WF.xs, y=WF.ys)
-    tomo = ss.tomography(WF,frame, normalise=False)
+    tomo = ss.tomography(WF,frame)
 
 
 
