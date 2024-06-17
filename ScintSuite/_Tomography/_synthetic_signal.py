@@ -97,7 +97,7 @@ def create_synthetic_signal(WF, mu_gyro, mu_pitch, power, sigma_gyro,
     noise2 = background_level * max_value * np.random.randn(len(y_synthetic1D))
     combined_noise = np.maximum(noise1, noise2)
     y_synthetic1D = y_synthetic1D + combined_noise
-    y_synthetic1D = y_synthetic1D / y_synthetic1D.max()
+
 
     # Final synthetic frame
     nx = x_synthetic.shape[0]
@@ -109,5 +109,74 @@ def create_synthetic_signal(WF, mu_gyro, mu_pitch, power, sigma_gyro,
                                       coords=dict(
                                         x = (['x'], pitch_grid),
                                         y = (['y'], gyro_grid)))
+    
+    return x_syntheticXR, frame_synthetic
+
+def create_synthetic_delta(WF, mu_gyro, mu_pitch, noise_level, background_level,
+                           seed=0):
+    """
+
+    Generate a synthetic signal in the pinhole for testing purposes with delta
+    functions and a synthetic frame assosiated.
+
+    Parameters
+    ----------
+    WF : xarray.DataArray
+        Weight function.
+    mu_gyro : list
+        Mean value of the gyro angle.
+    mu_pitch : list
+        Mean value of the pitch angle.
+    noise_level : float
+        Noise level.
+    background_level : float
+        Background level.
+    seed : int, optional
+        Seed for the random number generator. The default is 0.
+        
+    Returns
+    -------
+    frame_synthetic : xarray.DataArray
+        Synthetic frame.
+    """
+    # Generate grid
+    gyro_grid = WF.y.values
+    pitch_grid = WF.x.values
+    X, Y = np.meshgrid(WF.y, WF.x) # gyroradius for x and pitch for y
+    grid = np.dstack((X, Y))
+
+    # Generate synthetic signal
+    x_synthetic = np.zeros_like(X)
+
+    # Final synthetic signal
+    x_syntheticXR = xr.DataArray(data=x_synthetic,
+                                    dims=['x', 'y'],
+                                    coords=dict(
+                                        x = (['x'], pitch_grid),
+                                        y = (['y'], gyro_grid))
+                                    )
+    x_syntheticXR.loc[dict(x=mu_pitch, y=mu_gyro)] = 1
+    
+    WF_2D = matrix.collapse_array4D(WF.values)
+    x_synthetic1D = matrix.collapse_array2D(x_synthetic)
+    y_synthetic1D = WF_2D @ x_synthetic1D
+
+    # Add noise
+    noise1 = noise_level * y_synthetic1D * np.random.randn(len(y_synthetic1D))
+    max_value = y_synthetic1D.max()
+    noise2 = background_level * max_value * np.random.randn(len(y_synthetic1D))
+    combined_noise = np.maximum(noise1, noise2)
+    y_synthetic1D = y_synthetic1D + combined_noise
+
+    # Final synthetic frame
+    nx = x_synthetic.shape[0]
+    ny = x_synthetic.shape[1]
+    y_synthetic = matrix.restore_array2D(y_synthetic1D, nx, ny)
+
+    frame_synthetic = xr.DataArray(data=y_synthetic,
+                                        dims=['x', 'y'],
+                                        coords=dict(
+                                            x = (['x'], pitch_grid),
+                                            y = (['y'], gyro_grid)))
     
     return x_syntheticXR, frame_synthetic
