@@ -324,10 +324,13 @@ def calculate_resolution(WF, mu_gyro, mu_pitch, inverters, iters,
         # Tomography
     tomo = ss.tomography(WF, y)
     x0 = np.zeros(tomo.s1D.shape)
-    if 'descent' in inverters:
-             # Coordinate Descent
+    if inverters == 'descent':
         tomo.coordinate_descent_solve(x0, iters,  damp = 0.1, 
                                   relaxParam = 1)
+    elif inverters == 'kaczmarz':
+        tomo.kaczmarz_solve(x0, iters,  damp = 0.1, relaxParam = 1)
+    elif inverters == 'cimmino':
+        tomo.cimmino_solve(x0, iters,  damp = 0.1, relaxParam = 1)
         
     # Calculate resolution of the point
     xHat = tomo.inversion['descent'].F.isel(alpha = 0).copy()
@@ -389,8 +392,6 @@ def calculate_resolution_map(WF, inverters, window, maxiter, map_type='pitch'):
                                                   map_type=map_type)
                     k += 1 
                 resolution_mapXR.loc[dict(x=mu_pitch[0], y=mu_gyro[0])] = resolution
-                print('resolution: ', resolution)
-                print('mu_pitch: ', mu_pitch, ' mu_gyro: ', mu_gyro)
                 
 
                 
@@ -412,8 +413,6 @@ def calculate_resolution_map(WF, inverters, window, maxiter, map_type='pitch'):
                                                   map_type=map_type)
                     k += 1
                 resolution_mapXR.loc[dict(x=mu_pitch[0], y=mu_gyro[0])] = resolution
-                print('resolution: ', resolution)
-                print('mu_pitch: ', mu_pitch, ' mu_gyro: ', mu_gyro)
 
 
     

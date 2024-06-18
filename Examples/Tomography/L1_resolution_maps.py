@@ -21,7 +21,7 @@ map_type = 'gyro'
 maxiter = 10
 # Setting algorithm to be used. Pick just one algebraic algorithm:
 # 'descent', 'kaczmarz' or 'cimmino'
-inverters = ['descent']
+inverters = 'descent'
 # Window
 window = [50, 55, 4, 4.5]
 # -----------------------------------------------------------------------------
