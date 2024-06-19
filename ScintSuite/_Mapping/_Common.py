@@ -445,6 +445,459 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         delta_x = xcenter[1] - xcenter[0]
         delta_y = ycenter[1] - ycenter[0]
         H /= delta_x * delta_y
+
+    elif method.lower() == 'interpolated': # grid data interpolation
+        logger.warning('This method does not conserve the signal integral. Avoid it')
+        namex = smap._to_remap[0].name
+        namey = smap._to_remap[1].name
+        # --- 1: Information of the calibration
+        # Get the phase variables at each pixel
+
+
+        def f(xs):
+
+            ### xs of shape (n_points, 2)
+
+            fx = smap._grid_interp['interpolators'][namex]
+            fy = smap._grid_interp['interpolators'][namey]
+
+            ys = np.column_stack((
+                                    fx(xs[:, 0], xs[:, 1]),
+                                    fy(xs[:, 0], xs[:, 1])
+                                 ))
+
+            return ys  ### ys of shape (n_points, 2)
+        
+        pix_grid_x, pix_grid_y = np.mgrid[0:frame.shape[1], 0:frame.shape[0]]
+
+        xs = np.column_stack((pix_grid_x.flatten(), pix_grid_y.flatten()))
+        ys = f(xs)
+
+
+        #import IPython
+        #IPython.embed()
+
+        idx_isnotnan = ~np.isnan(ys)
+        xs = xs[idx_isnotnan[:, 0], :]
+        ys = ys[idx_isnotnan[:, 0], :]
+
+        
+        
+        xcenter = 0.5 * (x_edges[1:] + x_edges[:-1])
+        ycenter = 0.5 * (y_edges[1:] + y_edges[:-1])
+        XX, YY = np.meshgrid(xcenter, ycenter, indexing='ij')
+
+        if mask is None:
+            z = frame.T.flatten().astype(float)
+        else:
+            z = frame.copy().astype(float)
+            z[~mask] = 0
+            z = z.T.flatten()
+
+        z = z[idx_isnotnan[:, 0]]
+        H = griddata(ys, z, (XX.flatten(), YY.flatten()),
+                     method='linear', fill_value=0).reshape(XX.shape)
+
+
+        #import IPython
+        #IPython.embed()
+
+
+    elif method.lower() == 'forward_warping_simple_': # should produce smoother histogram
+        namex = smap._to_remap[0].name
+        namey = smap._to_remap[1].name
+        x = smap._grid_interp[namex].flatten()
+        y = smap._grid_interp[namey].flatten()
+        idx_isnotnan = ~np.isnan(x)
+        x = x[idx_isnotnan]
+        y = y[idx_isnotnan]
+        z = frame.copy().astype(float)
+        z = z.flatten()
+        z = z[idx_isnotnan]
+
+        xcenter = 0.5 * (x_edges[1:] + x_edges[:-1])
+        ycenter = 0.5 * (y_edges[1:] + y_edges[:-1])
+        delta_x = xcenter[1] - xcenter[0]
+        delta_y = ycenter[1] - ycenter[0]
+
+        H = np.zeros((len(xcenter), len(ycenter)))
+
+        for ip in np.arange(x.shape[0]):
+            x_ip = x[ip]
+            y_ip = y[ip]
+
+            x_index = np.searchsorted( xcenter, x_ip, side = 'right')
+            y_index = np.searchsorted( ycenter, y_ip, side = 'right')
+            
+            if (x_index == 0) or (x_index == len(xcenter)) or (y_index == 0) or (y_index == len(ycenter)):
+                continue ##we're ignoring edge values as the map is expected to cover the full range of interest
+            
+            # Determine the vertices of the grid cell
+            x0, y0 = xcenter[x_index-1], ycenter[y_index-1]
+            x1, y1 = xcenter[x_index], ycenter[y_index]
+            
+            # Calculate the distances from the point to the sides of the cell
+            dx0 = x_ip - x0
+            dx1 = x1 - x_ip
+            dy0 = y_ip - y0
+            dy1 = y1 - y_ip
+            
+            # Calculate the area of the rectangles formed by these distances
+            area_total = delta_x * delta_y
+            w_bottom_left = (dx1 * dy1) / area_total
+            w_bottom_right = (dx0 * dy1) / area_total
+            w_top_left = (dx1 * dy0) / area_total
+            w_top_right = (dx0 * dy0) / area_total
+
+            frame_pix_count = z[ip]
+            H[x_index-1, y_index-1] +=  frame_pix_count * w_bottom_left
+            H[x_index , y_index-1] += frame_pix_count * w_bottom_right
+            H[x_index , y_index ] += frame_pix_count * w_top_right
+            H[x_index-1, y_index ] += frame_pix_count * w_top_left
+
+        H /= delta_x * delta_y
+
+    elif method.lower() == 'forward_warping_simple': # should produce smoother histogram
+        namex = smap._to_remap[0].name
+        namey = smap._to_remap[1].name
+        x = smap._grid_interp[namex].flatten()
+        y = smap._grid_interp[namey].flatten()
+        idx_isnotnan = ~np.isnan(x)
+        x = x[idx_isnotnan]
+        y = y[idx_isnotnan]
+        z = frame.copy().astype(float)
+        z = z.flatten()
+        z = z[idx_isnotnan]
+
+        xcenter = 0.5 * (x_edges[1:] + x_edges[:-1])
+        ycenter = 0.5 * (y_edges[1:] + y_edges[:-1])
+        delta_x = xcenter[1] - xcenter[0]
+        delta_y = ycenter[1] - ycenter[0]
+
+        H = np.zeros((len(xcenter), len(ycenter)))
+
+        #for ip in np.arange(x.shape[0]):
+        x_ip = x
+        y_ip = y
+
+        x_index = np.searchsorted( xcenter, x_ip, side = 'right')
+        y_index = np.searchsorted( ycenter, y_ip, side = 'right')
+        
+        idx_x_left_edge = np.where(x_index==0)[0]
+        idx_x_right_edge = np.where(x_index==len(xcenter))[0]
+        x_index[idx_x_left_edge]=1
+        x_index[idx_x_right_edge]=len(xcenter)-1
+
+        idx_y_left_edge = np.where(y_index==0)[0]
+        idx_y_right_edge = np.where(y_index==len(ycenter))[0]
+        y_index[idx_y_left_edge]=1
+        y_index[idx_y_right_edge]=len(ycenter)-1
+
+        z[idx_x_left_edge] = 0
+        z[idx_x_right_edge] = 0
+        z[idx_y_left_edge] = 0
+        z[idx_y_right_edge] = 0
+
+
+        # Determine the vertices of the grid cell
+        x0, y0 = xcenter[x_index-1], ycenter[y_index-1]
+        x1, y1 = xcenter[x_index], ycenter[y_index]
+            
+            # Calculate the distances from the point to the sides of the cell
+        dx0 = x_ip - x0
+        dx1 = x1 - x_ip
+        dy0 = y_ip - y0
+        dy1 = y1 - y_ip
+            
+            # Calculate the area of the rectangles formed by these distances
+        area_total = delta_x * delta_y
+        w_bottom_left = (dx1 * dy1) / area_total
+        w_bottom_right = (dx0 * dy1) / area_total
+        w_top_left = (dx1 * dy0) / area_total
+        w_top_right = (dx0 * dy0) / area_total
+
+        for ip in np.arange(x.shape[0]):
+            H[x_index[ip]-1, y_index[ip]-1] +=  z[ip] * w_bottom_left[ip]
+            H[x_index[ip] , y_index[ip]-1] += z[ip] * w_bottom_right[ip]
+            H[x_index[ip] , y_index[ip] ] += z[ip] * w_top_right[ip]
+            H[x_index[ip]-1, y_index[ip] ] += z[ip] * w_top_left[ip]
+
+        H /= delta_x * delta_y
+
+
+    elif method.lower() == 'forward_warping_advanced': # should produce smoother histogram
+        # --- 1: Information of the calibration
+        # Get the phase variables at each pixel
+        namex = smap._to_remap[0].name
+        namey = smap._to_remap[1].name
+        def f(xs):
+
+            ### xs of shape (n_points, 2)
+
+            fx = smap._grid_interp['interpolators'][namex]
+            fy = smap._grid_interp['interpolators'][namey]
+
+            ys = np.column_stack((
+                                    fx(xs[:, 0], xs[:, 1]),
+                                    fy(xs[:, 0], xs[:, 1])
+                                 ))
+
+            return ys  ### ys of shape (n_points, 2)
+
+        def f_inverse(ys):
+            import scipy.interpolate as scipy_interp
+            interpolator = scipy_interp.LinearNDInterpolator
+            
+            inverse_grid = list(zip(smap._data[namex].data,
+                            smap._data[namey].data))
+            
+            _grid_interp_x = interpolator(inverse_grid, smap._coord_pix['x'],
+                                 fill_value=np.nan #1000.0  #AJVV
+                                 )
+
+            _grid_interp_y = interpolator(inverse_grid, smap._coord_pix['y'],
+                                 fill_value=np.nan #1000.0  #AJVV
+                                 )
+
+            xs = np.column_stack((
+                                    _grid_interp_x(ys[:, 0], ys[:, 1]),
+                                    _grid_interp_y(ys[:, 0], ys[:, 1])
+                                 ))
+            
+            return xs
+
+        pix_grid_x, pix_grid_y = np.mgrid[0:frame.shape[1], 0:frame.shape[0]]
+        xs = np.column_stack((pix_grid_x.flatten(), pix_grid_y.flatten()))
+        ys = f(xs)
+
+        idx_isnotnan = ~np.isnan(ys)
+        xs = xs[idx_isnotnan[:, 0], :]
+        ys = ys[idx_isnotnan[:, 0], :]
+
+        xcenter = 0.5 * (x_edges[1:] + x_edges[:-1])
+        ycenter = 0.5 * (y_edges[1:] + y_edges[:-1])
+        XX, YY = np.meshgrid(xcenter, ycenter, indexing='ij')
+
+
+        ys_ = np.column_stack((XX.flatten(), YY.flatten()))
+        xs_ = f_inverse(ys_) ## go from phase space 
+        idx_isnotnan = ~np.isnan(xs_)
+
+        xs_ = xs_[idx_isnotnan[:, 0], :]
+        ys_ = ys_[idx_isnotnan[:, 0], :]
+
+        H = np.zeros(XX.shape)
+        delta_x = x_edges[1] - x_edges[0]
+        delta_y = y_edges[1] - y_edges[0]
+        #import IPython
+        #IPython.embed()
+        ys = np.concatenate((ys, ys_))
+        xs = np.concatenate((xs, xs_))
+        xs = np.floor(xs).astype('int32')
+        
+
+        dtype = np.dtype((np.void, xs.dtype.itemsize * xs.shape[1]))
+        structured_arr = np.ascontiguousarray(xs).view(dtype)
+
+        # Use numpy.unique to find unique rows and their counts
+        unique, counts = np.unique(structured_arr, return_counts=True)
+
+        # Convert unique rows back to original shape
+        unique = unique.view(xs.dtype).reshape(-1, xs.shape[1])
+
+        # Combine unique rows with their counts
+        result = np.column_stack((unique, counts))
+
+        frame_weight_corrected = np.zeros(np.shape(frame))
+        frame_weight_corrected[result[:, 1], result[:, 0]] = frame[result[:, 1], result[:, 0]] /result[:, 2]
+
+
+        for ip in np.arange(ys.shape[0]):
+            x_ip = ys[ip, 0]
+            y_ip = ys[ip, 1]
+
+            x_index = np.searchsorted( xcenter, x_ip, side = 'right')
+            y_index = np.searchsorted( ycenter, y_ip, side = 'right')
+            
+            if (x_index == 0) or (x_index == len(xcenter)) or (y_index == 0) or (y_index == len(ycenter)):
+                continue
+            # Determine the vertices of the grid cell
+            x0, y0 = xcenter[x_index-1], ycenter[y_index-1]
+            x1, y1 = xcenter[x_index], ycenter[y_index]
+            
+            # Calculate the distances from the point to the sides of the cell
+            dx0 = x_ip - x0
+            dx1 = x1 - x_ip
+            dy0 = y_ip - y0
+            dy1 = y1 - y_ip
+            
+            # Calculate the area of the rectangles formed by these distances
+            area_total = delta_x * delta_y
+            w_bottom_left = (dx1 * dy1) / area_total
+            w_bottom_right = (dx0 * dy1) / area_total
+            w_top_left = (dx1 * dy0) / area_total
+            w_top_right = (dx0 * dy0) / area_total
+
+
+            frame_pix_count = frame_weight_corrected[xs[ip, 1], xs[ip, 0]] 
+
+            H[x_index-1, y_index-1] +=  frame_pix_count * w_bottom_left
+            H[x_index , y_index-1] += frame_pix_count * w_bottom_right
+            H[x_index , y_index ] += frame_pix_count * w_top_right
+            H[x_index-1, y_index ] += frame_pix_count * w_top_left
+
+        H /= delta_x * delta_y
+
+
+
+    elif method.lower() == 'forward_warping_advanced_': # should produce smoother histogram
+        # --- 1: Information of the calibration
+        # Get the phase variables at each pixel
+        namex = smap._to_remap[0].name
+        namey = smap._to_remap[1].name
+        def f(xs):
+
+            ### xs of shape (n_points, 2)
+
+            fx = smap._grid_interp['interpolators'][namex]
+            fy = smap._grid_interp['interpolators'][namey]
+
+            ys = np.column_stack((
+                                    fx(xs[:, 0], xs[:, 1]),
+                                    fy(xs[:, 0], xs[:, 1])
+                                 ))
+
+            return ys  ### ys of shape (n_points, 2)
+
+        def f_inverse(ys):
+            import scipy.interpolate as scipy_interp
+            interpolator = scipy_interp.LinearNDInterpolator
+            
+            inverse_grid = list(zip(smap._data[namex].data,
+                            smap._data[namey].data))
+            
+            _grid_interp_x = interpolator(inverse_grid, smap._coord_pix['x'],
+                                 fill_value=np.nan #1000.0  #AJVV
+                                 )
+
+            _grid_interp_y = interpolator(inverse_grid, smap._coord_pix['y'],
+                                 fill_value=np.nan #1000.0  #AJVV
+                                 )
+
+            xs = np.column_stack((
+                                    _grid_interp_x(ys[:, 0], ys[:, 1]),
+                                    _grid_interp_y(ys[:, 0], ys[:, 1])
+                                 ))
+            
+            return xs
+
+        pix_grid_x, pix_grid_y = np.mgrid[0:frame.shape[1], 0:frame.shape[0]]
+        xs = np.column_stack((pix_grid_x.flatten(), pix_grid_y.flatten()))
+        ys = f(xs)
+
+        idx_isnotnan = ~np.isnan(ys)
+        xs = xs[idx_isnotnan[:, 0], :]
+        ys = ys[idx_isnotnan[:, 0], :]
+
+        xcenter = 0.5 * (x_edges[1:] + x_edges[:-1])
+        ycenter = 0.5 * (y_edges[1:] + y_edges[:-1])
+        XX, YY = np.meshgrid(xcenter, ycenter, indexing='ij')
+
+
+        ys_ = np.column_stack((XX.flatten(), YY.flatten()))
+        xs_ = f_inverse(ys_) ## go from phase space 
+        idx_isnotnan = ~np.isnan(xs_)
+
+        xs_ = xs_[idx_isnotnan[:, 0], :]
+        ys_ = ys_[idx_isnotnan[:, 0], :]
+        #import IPython
+        #IPython.embed()
+        z = frame.copy().astype(float)
+        z = z.flatten()
+        #z = z[idx_isnotnan[:, 0]]
+
+
+
+
+
+        H = np.zeros(XX.shape)
+        delta_x = x_edges[1] - x_edges[0]
+        delta_y = y_edges[1] - y_edges[0]
+        #import IPython
+        #IPython.embed()
+        ys = np.concatenate((ys, ys_))
+        xs = np.concatenate((xs, xs_))
+        xs = np.floor(xs).astype('int32')
+        
+
+        dtype = np.dtype((np.void, xs.dtype.itemsize * xs.shape[1]))
+        structured_arr = np.ascontiguousarray(xs).view(dtype)
+
+        # Use numpy.unique to find unique rows and their counts
+        unique, counts = np.unique(structured_arr, return_counts=True)
+
+        # Convert unique rows back to original shape
+        unique = unique.view(xs.dtype).reshape(-1, xs.shape[1])
+
+        # Combine unique rows with their counts
+        result = np.column_stack((unique, counts))
+
+        frame_weight_corrected = np.zeros(np.shape(frame))
+        frame_weight_corrected[result[:, 1], result[:, 0]] = frame[result[:, 1], result[:, 0]] /result[:, 2]
+
+
+        #for ip in np.arange(x.shape[0]):
+        x_ip = ys[:, 0]
+        y_ip = ys[:, 1]
+
+        x_index = np.searchsorted( xcenter, x_ip, side = 'right')
+        y_index = np.searchsorted( ycenter, y_ip, side = 'right')
+        
+        idx_x_left_edge = np.where(x_index==0)[0]
+        idx_x_right_edge = np.where(x_index==len(xcenter))[0]
+        x_index[idx_x_left_edge]=1
+        x_index[idx_x_right_edge]=len(xcenter)-1
+
+        idx_y_left_edge = np.where(y_index==0)[0]
+        idx_y_right_edge = np.where(y_index==len(ycenter))[0]
+        y_index[idx_y_left_edge]=1
+        y_index[idx_y_right_edge]=len(ycenter)-1
+
+
+
+
+        z[idx_x_left_edge] = 0
+        z[idx_x_right_edge] = 0
+        z[idx_y_left_edge] = 0
+        z[idx_y_right_edge] = 0
+
+
+        # Determine the vertices of the grid cell
+        x0, y0 = xcenter[x_index-1], ycenter[y_index-1]
+        x1, y1 = xcenter[x_index], ycenter[y_index]
+            
+            # Calculate the distances from the point to the sides of the cell
+        dx0 = x_ip - x0
+        dx1 = x1 - x_ip
+        dy0 = y_ip - y0
+        dy1 = y1 - y_ip
+            
+            # Calculate the area of the rectangles formed by these distances
+        area_total = delta_x * delta_y
+        w_bottom_left = (dx1 * dy1) / area_total
+        w_bottom_right = (dx0 * dy1) / area_total
+        w_top_left = (dx1 * dy0) / area_total
+        w_top_right = (dx0 * dy0) / area_total
+
+        for ip in np.arange(ys.shape[0]):
+            H[x_index[ip]-1, y_index[ip]-1] +=  frame_weight_corrected[xs[ip, 1], xs[ip, 0]]  * w_bottom_left[ip]
+            H[x_index[ip] , y_index[ip]-1] += frame_weight_corrected[xs[ip, 1], xs[ip, 0]]  * w_bottom_right[ip]
+            H[x_index[ip] , y_index[ip] ] += frame_weight_corrected[xs[ip, 1], xs[ip, 0]]  * w_top_right[ip]
+            H[x_index[ip]-1, y_index[ip] ] += frame_weight_corrected[xs[ip, 1], xs[ip, 0]]  * w_top_left[ip]
+
+        H /= delta_x * delta_y
+
+
     else:  # similar to old IDL implementation, faster but noisy
         namex = smap._to_remap[0].name
         namey = smap._to_remap[1].name
@@ -467,6 +920,8 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         delta_y = yedges[1] - yedges[0]
         H /= delta_x * delta_y
 
+    #import IPython
+    #IPython.embed()
     return H
 
 @deprecated('Deprecated! Please use integrate_remap from the video object')
