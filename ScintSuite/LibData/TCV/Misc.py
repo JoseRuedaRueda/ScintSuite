@@ -200,7 +200,8 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
     return {'time': time, 'data': data, 'channels': ch}
 
 
-def get_APD(file: str):
+def get_APD(file: str,
+            calibrate = True):
     """
     Get the signal for the fast channels (APD)
 
@@ -233,11 +234,30 @@ def get_APD(file: str):
     mapping_matrix = np.array(mapping_matrix)
     data_mapped =data[mapping_matrix.flatten() - 1, :]
 
-    ###Testing calibration
-    calibration_file =  '/home/NoTivoli/jansen/ScintSuite/Data/Calibrations/FILD/TCV/APD_absolute/calibration_3_06_2024_350V.npy'
-    Calib_coefficient_test = np.load(calibration_file)
-    data_mapped *= Calib_coefficient_test.flatten()[:128, None]
-    ####
+    if calibrate:
+        ###Testing calibration
+        calibration_file =  '/home/NoTivoli/jansen/ScintSuite/Data/Calibrations/FILD/TCV/APD_absolute/calibration_3_06_2024_350V.npy'
+        Calib_coefficient_test = np.load(calibration_file)
+
+        ###First get dark frames
+        it1 = np.argmin(np.abs(time - 0.002))
+        it2 = np.argmin(np.abs(time - 0.02))
+        average_dark = np.mean(data_mapped[:, it1:it2], axis=1)
+        data_mapped -= np.expand_dims(average_dark, axis=1)
+
+        ##set everything to zero below that max noise level
+        #data_mapped[data_mapped<np.max(data_mapped[:, it1:it2])] = 0
+
+        data_mapped *= Calib_coefficient_test.flatten()[:128, None]*10
+        ####
+
+        data_mapped = np.abs(data_mapped)
+        ## Subtract minimum of dark frames
+        #import IPython
+        #IPython.embed()
+        #data_mapped -= np.min(data_mapped[:, it1:it2])
+
+
 
     return {'time': time, 'data': data_mapped, 'channels': np.arange(128)}
 
