@@ -29,36 +29,6 @@ def binarize_xarray(xarray, threshold):
     '''
     return (xarray > threshold).astype(int)
 
-def run_length_encoding(xarray):
-    '''
-    Run length encoding of an xarray DataArray.
-
-    Parameters
-    ----------
-    xarray : xarray.DataArray
-        The xarray DataArray to encode.
-
-    Returns
-    -------
-    values : np.array
-        The values of the run length encoding.
-    counts : np.array
-        The counts of the run length encoding.
-    '''
-    ar = xarray.values
-
-    n, m = ar.shape
-    values = []
-    counts = []
-    for i in range(n):
-        values_i, counts_i = rle.encode(ar[i])
-        values.append(values_i)
-        counts.append(counts_i)
-
-    # [(k, sum(1 for i in g)) for k,g in groupby(ar)]
-    
-
-    return values, counts
 
 def calculate_centroid(labeled, ncomponents, xHat):
     '''
@@ -231,57 +201,6 @@ def calculate_resolution_point(xHat, original_distance, map_type='pitch'):
         
 
     return resolution
-
-def generate_mu_grid(gyro_grid, pitch_grid, grid, map_type = 'pitch'):
-    '''
-    Generate the grid for the resolution map.
-
-    Marina Jimenez Comez:
-
-    Parameters
-    ----------
-    WF : xarray.DataArray
-        Wave function.
-    map_type : str
-        Type of resolution map to calculate. Options are 'pitch' and 'gyro'.
-
-    Returns
-    -------
-    mu : list
-    '''
-
-
-    if map_type == 'gyro':
-        shifted_grid = np.roll(grid, -1, axis=1)[:, :-1,:]
-        shifted_gyro = shifted_grid[:,:,0]
-        principle_gyro = gyro_grid[:, :-1]
-        principle_pitch = pitch_grid[:, :-1]
-        principal_grid = np.dstack((principle_gyro, 
-                                    principle_pitch)).reshape(-1, 2)
-        shifted_full_grid = np.dstack((shifted_gyro, 
-                                       principle_pitch)).reshape(-1, 2)
-        mu = []
-        for i in range(len(principal_grid)):
-            mu_gyro_i = [principal_grid[i], shifted_full_grid[i]]
-            mu.append(mu_gyro_i)
-
-        
-    else:
-        shifted_grid = np.roll(grid, -1, axis=0)[:-1, :]
-        shifted_pitch = shifted_grid[:,:,1]
-        principle_gyro = gyro_grid[:-1]
-        principle_pitch = pitch_grid[:-1]
-        principal_grid = np.dstack((principle_gyro, 
-                                    principle_pitch)).reshape(-1, 2)
-        shifted_full_grid = np.dstack((principle_gyro, 
-                                       shifted_pitch)).reshape(-1, 2)
-        mu = []
-        for i in range(len(principal_grid)):
-            mu_pitch_i = [principal_grid[i], shifted_full_grid[i]]
-            mu.append(mu_pitch_i)
-
-    return mu
-
 
 
 def calculate_resolution(WF, mu_gyro, mu_pitch, inverters, iters, 
