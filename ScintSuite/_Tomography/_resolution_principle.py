@@ -7,11 +7,9 @@ import ScintSuite as ss
 import numpy as np
 import tkinter as tk
 import xarray as xr
-import  rle # newly imported !!
-from scipy.signal import argrelextrema
 from scipy.ndimage import label
 import ScintSuite._Tomography._synthetic_signal as synthetic_signal
-# from itertools import groupby
+
 
 def binarize_xarray(xarray, threshold):
     '''
@@ -208,9 +206,6 @@ def calculate_resolution_point(xHat, original_distance, map_type='pitch'):
     # Transform the xHat to a binary image
     thresh = xHat.max() * 0.1
     xHat_binary = binarize_xarray(xHat, threshold=thresh)
-
-    # Run length encoding
-    values, counts = run_length_encoding(xHat_binary)
 
     # Connected components: 8-connectivity
     structure = np.ones((3, 3), dtype=int)
