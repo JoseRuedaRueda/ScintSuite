@@ -299,7 +299,7 @@ def get_q_profile_LIUQE(shot: int,
     qpsi = eq._qpsi
 
     if default_options['q_absolute']:
-        qpsi = np.abs(qpsi.T)
+        qpsi = np.abs(qpsi)
 
 
     if time is not None:

@@ -538,7 +538,7 @@ if __name__ == '__main__':
                     fid.close()
 
                     # Create namelist
-                    ss.sinpa.execution.write_namelist(nml_options)
+                    ss.sinpa.execution.write_namelist(nml_options )
                 
                     # Missing a step: create B field!!
                     # Check the files
@@ -581,13 +581,13 @@ if __name__ == '__main__':
                   {'zorder':3,'color':'r'},
                   {'zorder':3,'color':'b'}]
 
-    plot_orbits = False
-    orbit_kind=(9,) # 2 colliding w. scint., 0 colliding w. coll., 9 missing all, 3 scint. markers traced backwards
+    plot_orbits = True
+    orbit_kind=(2,) # 2 colliding w. scint., 0 colliding w. coll., 9 missing all, 3 scint. markers traced backwards
     plot_self_shadowing_collimator_strike_points = False
     # Save data to txt files for ParaView inspection
     save_strike_points_txt = False
     save_strikemap_txt = False
-    save_orb_txt = False  # Save orbit data to .txt file
+    save_orb_txt = True  # Save orbit data to .txt file
     seperated = False      # If this flag is true, make separate txt file for each orbit, otherwise one file is written
     save_self_shadowing_collimator_strike_points = False #Flag to see where self shadowing happens
     save_self_shadowing_collimator_strike_points_txt = False
@@ -926,16 +926,16 @@ if __name__ == '__main__':
             ax.set_title('Camera view (YZ plane)')
             
             # If you want to mix and match, it assumes they have the same scintillator
-            if read_slit[0]:
-                Geometry = ss.simcom.Geometry(GeomID=runid[0])
-            else:
-                Geometry = ss.simcom.Geometry(GeomID=runid[1])
-                
-            Geometry.plot2Dfilled(ax=ax, view = 'Scint', element_to_plot = [2],
-                                    plot_pinhole = False)
                 
             for i in range(4):
                 if read_slit[i]:# or mixnmatch:
+
+                    Geometry = ss.simcom.Geometry(GeomID=runid[i])
+
+                        
+                    Geometry.plot2Dfilled(ax=ax, view = 'Scint', element_to_plot = [2],
+                                            plot_pinhole = False)
+
                     print('HOLAAA!')
                     if plot_strike_points:
                         #IPython.embed()rundid=

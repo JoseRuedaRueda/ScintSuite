@@ -1121,7 +1121,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
     @deprecated('Some input will change name in the final version')
     def plot_collimator_factor(self, ax_param: dict = {}, cMap=None,
                                nlev: int = 20, ax_lim: dict = {},
-                               cmap_lim: float = 0):
+                               cmap_lim: float = 0,
+                               xvar: str = 'pitch',
+                               yvar: str = 'gyroradius'):
                                    
         """
         Plot the collimator factor.
@@ -1149,8 +1151,6 @@ class FILDINPA_Smap(GeneralStrikeMap):
         ax_options = {
             'xlabel': '$\\lambda [\\degree]$',
             'ylabel': '$r_l [cm]$',
-            'xvar': 'pitch',
-            'yvar': 'gyroradius'
         }
         ax_options.update(ax_param)
 
@@ -1160,11 +1160,11 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
         coll_matrix = np.transpose(self('collimator_factor_matrix'))
         # In case you want to manually set the axis limits to something bigger
-        if ax_options['xvar'] == 'pitch':     
+        if 'xvar' == 'pitch':     
             xAxisPlot = self.MC_variables[0].data
         else:
             xAxisPlot = self._p0_var.data            
-        if ax_options['yvar'] == 'gyroradius':     
+        if 'yvar' == 'gyroradius':     
             yAxisPlot = self.MC_variables[1].data
         else:
             yAxisPlot = self._e0_var.data    

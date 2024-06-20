@@ -438,7 +438,6 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
             z = z.flatten()
 
         z = z[idx_isnotnan]
-
         H = griddata(dummy, z, (XX.flatten(), YY.flatten()),
                      method='linear', fill_value=0).reshape(XX.shape)
         # Normalise H to counts per unit of each axis

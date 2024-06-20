@@ -232,6 +232,12 @@ def get_APD(file: str):
     mapping_matrix = np.array(mapping_matrix)
     data_mapped =data[mapping_matrix.flatten() - 1, :]
 
+    ###Testing calibration
+    calibration_file =  '/home/NoTivoli/jansen/ScintSuite/Data/Calibrations/FILD/TCV/APD_absolute/calibration_3_06_2024_350V.npy'
+    Calib_coefficient_test = np.load(calibration_file)
+    data_mapped *= Calib_coefficient_test.flatten()[:128, None]
+    ####
+
     return {'time': time, 'data': data_mapped, 'channels': np.arange(128)}
 
 

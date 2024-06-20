@@ -271,7 +271,8 @@ class MHDmode():
         else:
             self._ti = self._te.copy()
         # --- q-profile:
-        self._q = ssdat.get_q_profile(shot, xArrayOutput=True)
+        kwarg = {'q_absolute':True}
+        self._q = ssdat.get_q_profile(shot, xArrayOutput=True, **kwarg)
         # --- Other data:
         self._basic = ssdat.get_shot_basics(shot)
         self._R0 = xr.Dataset()
@@ -330,16 +331,20 @@ class MHDmode():
         #AJVV sometimes there are nans when trying to interpolate the q profile 
         #on ne timebase. So first try a linear interpolation, then check again
         #for any nans
-        if not np.isnan(self._q.interp(t=self._ne['t'], rho=self._ne['rho'],        
+        if not np.isfinite(self._q.interp(t=self._ne['t'], rho=self._ne['rho'],        
                                     method="cubic")).any().data:
             self._q = self._q.interp(t=self._ne['t'], rho=self._ne['rho'],        
                                     method="cubic")
         else:
             self._q = self._q.interp(t=self._ne['t'], rho=self._ne['rho'],        
-                                    method="linear")        
-        if np.isnan(self._q.data).any().data:
-            self._q = self._q.fillna(0) #self._q.dropna(dim='rho')
-            
+                                    method="linear")    
+
+        
+        if  np.isnan(self._q.data).any().data:
+            self._q = self._q.fillna(10.0)
+        if  not np.isfinite(self._q.data).any().data:
+            self._q = self._q.where(not self._q.apply(np.isfinite)).fillna(10.0)
+
         self._R0 = self._R0.interp(t=self._ne['t'], method="cubic")
         self._ahor = self._ahor.interp(t=self._ne['t'], method="cubic")
         self._B0 = self._B0.interp(t=self._ne['t'], method="cubic")
@@ -365,7 +370,11 @@ class MHDmode():
             factor = -1.0
         else:
             factor = 1.0
+
+
         self._va0 = factor*self._B0 / np.sqrt(cnt.mu_0 * mi * self._ni*1.0e19)
+        self._va0 = np.abs(self._B0) / np.sqrt(cnt.mu_0 * mi * self._ni*1.0e19)
+
 
         # --- Alocate space for the frequencies
         self.freq = xr.Dataset()

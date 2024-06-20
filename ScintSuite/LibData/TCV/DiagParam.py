@@ -18,7 +18,7 @@ IB_sign = Bt_sign * It_sign
 #modified by J. Poley, 7/11/2023
 fild1 = {'adqfreq': 1000, 't_trig': 0.,
          'extension': lambda shot: '.mat', 'label': 'FILD', 'camera': 'CCD',
-         'path': '/videodata/pcfild002/data/fild002/',}
+         'path': '/videodata/pcfild004/data/fild002/',}
 
 fild2 = {'adqfreq': 1000000, 't_trig': 0.,
          'extension': lambda shot: '.mat', 'label': 'FILD', 'camera': 'APD',

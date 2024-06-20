@@ -38,7 +38,7 @@ import ScintSuite._Video._MATfiles as mat
 # --- Electron density and temperature profiles.
 # -----------------------------------------------------------------------------
 def get_ne(shotnumber: int, time: float = None,
-           diag: str = 'MAT',
+           diag: str = 'CONF',
            xArrayOutput: bool = False):
     """
     Wrap the different diagnostics to read the electron density profile.
