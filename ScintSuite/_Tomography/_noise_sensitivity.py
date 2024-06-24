@@ -64,7 +64,7 @@ def noise_sensitivity(WF, inverter, window, iters, noise_levels,
                 
                 mu_gyro = r_selected[i]
                 mu_pitch = p_selected[j]
-                noise_sensitivityXR[j,i] = n.max()
+                noise_sensitivityXR[j,i] = noise_levels.max()
 
                 for n in noise_levels:
                     # Generate the synthetic signal
