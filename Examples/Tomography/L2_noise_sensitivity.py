@@ -30,7 +30,7 @@ WF = xr.load_dataarray(WFfile)
 # -----------------------------------------------------------------------------
 # --- Section 2: Calculate the fidelity map
 # -----------------------------------------------------------------------------
-fidelity_map = noise.fidelity_map(WF, inverter, window, maxiter, noise_levels)
+fidelity_map = noise.fidelity_map(WF, inverter, window, maxiter, noise_levels[-1])
 
 fig, ax = plt.subplots()
 fidelity_map.plot(ax = ax)
