@@ -132,7 +132,10 @@ class FILDINPA_Smap(GeneralStrikeMap):
         :param  Z: charge, in e units
         """
         dummy = get_energy(self('gyroradius'), B=B, A=A, Z=Z) / 1000.0
+        dummy1 = get_energy(self.MC_variables[1].data, B=B, A=A, Z=Z) / 1000.0
         self._data['e0'] = BasicVariable(name='e0', units='keV', data=dummy)
+        # JPS: add the MC variables of energyfor collimnator and resolution plots 
+        self._e0_var = BasicVariable(name='e0', units='keV', data=dummy1)
         self._optionsForEnergy = {
             'B': B,
             'A': A,
@@ -148,7 +151,10 @@ class FILDINPA_Smap(GeneralStrikeMap):
         """
 
         p0 = np.cos(np.deg2rad(self._data['pitch'].data))
+        dummy = np.cos(np.deg2rad(self.MC_variables[0].data))
         self._data['p0'] = BasicVariable(name='p0', units='', data=p0)
+        # JPS: add the MC variables of energyfor collimnator and resolution plots 
+        self._p0_var = BasicVariable(name='p0', units='', data=dummy)
 
 
     def load_strike_points(self, file=None, verbose: bool = True,
@@ -1116,9 +1122,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
     def plot_collimator_factor(self, ax_param: dict = {}, cMap=None,
                                nlev: int = 20, ax_lim: dict = {},
                                cmap_lim: float = 0,
-                               shot: int = 0,                              
-                               time: float = 1.0,
-                               Rinsertion: float = -16.5):
+                               xvar: str = 'pitch',
+                               yvar: str = 'gyroradius'):
                                    
         """
         Plot the collimator factor.
@@ -1146,8 +1151,6 @@ class FILDINPA_Smap(GeneralStrikeMap):
         ax_options = {
             'xlabel': '$\\lambda [\\degree]$',
             'ylabel': '$r_l [cm]$',
-            'xvar':  'normalized_pitch',
-            'yvar': 'energy'
         }
         ax_options.update(ax_param)
 
@@ -1157,23 +1160,14 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
         coll_matrix = np.transpose(self('collimator_factor_matrix'))
         # In case you want to manually set the axis limits to something bigger
-        # JPS: choose the variable for the plotting
-        if 'normalized_pitch' in ax_options['xvar']:
-            p0 = np.cos(np.deg2rad(self.MC_variables[0].data))
-            xAxisPlot = p0          
-        else:     
+        if 'xvar' == 'pitch':     
             xAxisPlot = self.MC_variables[0].data
-        if 'energy' in ax_options['yvar']:
-            xyzPin = np.array([-192.96, 1137.7, 35.4414])*0.001   #get magnetic field for specific slit
-            Rpin = np.sqrt(xyzPin[0]**2 + xyzPin[1]**2)
-            zPin = xyzPin[2]
-            Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, (time)/2 )
-            modB = np.sqrt(Br**2 + Bz**2 + Bt**2)
-            e0 = get_energy(self.MC_variables[1].data, B=modB)
-            yAxisPlot = e0/1e3 #keV           
         else:
+            xAxisPlot = self._p0_var.data            
+        if 'yvar' == 'gyroradius':     
             yAxisPlot = self.MC_variables[1].data
-            
+        else:
+            yAxisPlot = self._e0_var.data    
         if ax_lim:
             if ax_lim["xlim"][0] < np.min(xAxisPlot):
                 n,m = coll_matrix.shape

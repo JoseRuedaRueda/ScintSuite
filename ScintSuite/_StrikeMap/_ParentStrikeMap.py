@@ -592,7 +592,7 @@ class GeneralStrikeMap(XYtoPixel):
                     np.histogram2d(X_markers, Y_markers,
                                    bins=[xedges, yedges])
                 transform[:, :, i, j] = H.copy()
-        # Normalise the transformation matrix
+        # Normalise the transformation matrix 
         transform /= MC_number
         transform /= (grid_options['dx'] * grid_options['dy'])
         # Save it in place

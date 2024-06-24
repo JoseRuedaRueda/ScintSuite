@@ -91,7 +91,6 @@ def read_MAT_video_data(file: str):
                                 'py': py})
         mat_out['nframes'] = xr.DataArray(np.arange(nt), dims=('t'))
         mat_out['RealBPP'] = 10
-
         del data
         del apd_data
 

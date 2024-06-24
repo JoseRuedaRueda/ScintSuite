@@ -181,8 +181,8 @@ if __name__ == '__main__':
     plot_plate_geometry = True
     plot_3D = False
 
-    shot = 80760
-    Rinsertion = -17.2 #[mm] #negative means inserted
+    shot = 79303
+    Rinsertion = -16.8 #[mm] #negative means inserted
 
     if shot <=77469:
         year = 2022
@@ -205,7 +205,7 @@ if __name__ == '__main__':
     ###
     #Input settings
     ###
-    self_shadowing = False  #Flag to remove markers that would have been shadowed, leave this on
+    self_shadowing = True  #Flag to remove markers that would have been shadowed, leave this on
     backtrace = False  #Do backtracing
     ###
 
@@ -353,11 +353,7 @@ if __name__ == '__main__':
         Rpin = np.sqrt(xyzPin[0]**2 + xyzPin[1]**2)
         zPin = xyzPin[2]
         
-        #Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time)#, use_gdat = True)
-        #print('LIUQE: ',Br, Bz, Bt, bp, np.sqrt(Br**2 + Bz**2 + Bt**2) )
-        Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time, use_gdat = True)
-        print('gdat: ',Br, Bz, Bt, bp, np.sqrt(Br**2 + Bz**2 + Bt**2)  )
-
+        Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time)#, use_gdat = True)
         modB = np.sqrt(Br**2 + Bz**2 + Bt**2) 
     elif  use_2D_Bfield:
         rmin = 0.614  #[m]
@@ -371,8 +367,7 @@ if __name__ == '__main__':
         z_grid = np.linspace(zmin, zmax, nz, dtype=np.float32)
         r_mesh, z_mesh = np.meshgrid(r_grid, z_grid, indexing = 'ij')
 
-        Br, Bz, Bt = TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time)#, use_gdat = True)
-        
+        #Br, Bz, Bt =
         modB = np.array([1.12817047]) #np.mean( np.sqrt(Br**2 + Bz**2 + Bt**2) ) #this has to be manual :(
 
 
@@ -425,7 +420,7 @@ if __name__ == '__main__':
 
     #Range of gyrophase to use. Smaller range can be used, but for now allow all gyrophases
     gyrophase_range = [[np.deg2rad(185),np.deg2rad(359)],  #UL  [np.deg2rad(185),np.deg2rad(359)]
-                        [np.deg2rad(70),np.deg2rad(160)],  #UR [np.deg2rad(22),np.deg2rad(182)]
+                        [np.deg2rad(80),np.deg2rad(160)],  #UR [np.deg2rad(22),np.deg2rad(182)]
                         [np.deg2rad(200),np.deg2rad(350)], #LR [np.deg2rad(185),np.deg2rad(359)]
                         [np.deg2rad(1),np.deg2rad(189)]  #LL [np.deg2rad(1),np.deg2rad(189)]
                         ]        
@@ -456,6 +451,7 @@ if __name__ == '__main__':
                 'IpBt': -1,        # Sign of toroidal current vs field (for pitch), need to check
                 'flag_efield_on': False,  # Add or not electric field
                 'save_collimator_strike_points': False,  # Save collimator points
+                'save_scintillator_strike_points': True,
                 'backtrace': backtrace,  # Flag to backtrace the orbits
                 'save_self_shadowing_collimator_strike_points': 
                     save_self_shadowing_collimator_strike_points,

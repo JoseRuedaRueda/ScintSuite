@@ -434,8 +434,8 @@ class FILDVideo(FIV):
             cont = ax1.imshow(dummy, cmap=cmap,
                               vmin=min_y_profile_cbar, 
                               vmax=max_y_profile_cbar,
-                              extent=[self.remap_dat['tframes'][0],
-                                      self.remap_dat['tframes'][-1],
+                              extent=[self.remap_dat['t'][0],
+                                      self.remap_dat['t'][-1],
                                       self.remap_dat['y'][0],
                                       self.remap_dat['y'][-1]],
                               aspect='auto', origin='lower',
@@ -459,8 +459,7 @@ class FILDVideo(FIV):
                      color='w', verticalalignment='bottom',
                      transform=ax1.transAxes)
             ax_params['xlabel'] = 'Time [s]'
-            ax_params['ylabel'] = self.remap_dat['ylabel'] + ' [' +\
-                self.remap_dat['y'].untis + ']'
+            ax_params['ylabel'] = 'hola'
             ax1 = ssplt.axis_beauty(ax1, ax_params)
             plt.tight_layout()
             # --- Pitch profiles in time (integral over y)
@@ -471,8 +470,8 @@ class FILDVideo(FIV):
             cont = ax2.imshow(dummy, cmap=cmap,
                               vmin=min_x_profile_cbar, 
                               vmax=max_x_profile_cbar,
-                              extent=[self.remap_dat['tframes'][0],
-                                      self.remap_dat['tframes'][-1],
+                              extent=[self.remap_dat['t'][0],
+                                      self.remap_dat['t'][-1],
                                       self.remap_dat['x'][0],
                                       self.remap_dat['x'][-1]],
                               aspect='auto', origin='lower',
@@ -497,8 +496,7 @@ class FILDVideo(FIV):
                      color='w', verticalalignment='bottom',
                      transform=ax2.transAxes)
             ax_params['xlabel'] = 'Time [s]'
-            ax_params['ylabel'] = self.remap_dat['xlabel'] + ' [' +\
-                self.remap_dat['x'].units + ']'
+            ax_params['ylabel'] = 'hola'
             ax2 = ssplt.axis_beauty(ax2, ax_params)
             plt.tight_layout()
         else:  # The line plots:

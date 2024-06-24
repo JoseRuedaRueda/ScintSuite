@@ -196,10 +196,12 @@ class FILD_logbook:
         if shot <= 77469:
             Logbook_table = wiki_table[3] #year 2022
             year = 2022
-        else:
+        if (shot <= 79307) & (shot >= 77932):
             Logbook_table = wiki_table[4] #year 2023
             year = 2023
-                          
+        if shot >= 79310: 
+            Logbook_table = wiki_table[5] #year 2024
+            year = 2024                       
         if Logbook_table:
             rows = Logbook_table.find_all('tr')
             wiki_data = [] 
@@ -221,7 +223,7 @@ class FILD_logbook:
             geometry = 'col' + str(collimator_width) + 'mm_slit' + str(slit) + \
                         '_' + str(year)
         
-        return geometry
+        return geometry, wiki_data
 
     def getCameraCalibration(self, shot: int, diag_ID: int = 1):
         """
