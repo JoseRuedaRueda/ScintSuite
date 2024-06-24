@@ -181,7 +181,7 @@ if __name__ == '__main__':
     plot_plate_geometry = True
     plot_3D = False
 
-    shot = 79302
+    shot = 80760
     Rinsertion = -17.2 #[mm] #negative means inserted
 
     if shot <=77469:
@@ -189,17 +189,17 @@ if __name__ == '__main__':
     else:
         year = 2023
 
-    time = 1.2
+    time = 0.78
     use_reduced_stl_models = True
-    use_1mm_pinhole = False
+    use_1mm_pinhole = True
 
     run_code = True  # Set flag to run FILDSIM
-    run_slit = [False, False, True, False]  # Run particles starting at slits set to true, starting with ul, ur, lr, ll
+    run_slit = [False, True, False, False]  # Run particles starting at slits set to true, starting with ul, ur, lr, ll
     read_slit = [False, False, True, False] # Read results from diffrent slits
     slits = ['ul', 'ur', 'lr', 'll']
     idx_slit = np.where(run_slit)[0][0]
     run_name = '%i@%.3f' %(shot, time) #Choose unique run identifier, like shot number and time
-    run_names = [run_name +'_ul', run_name +'_ur', run_name +'_lr', run_name +'_ll']
+    run_names = [run_name +'_ul', run_name +'_ur_25kev', run_name +'_lr', run_name +'_ll']
     read_results = not run_code # Flag to read output after run
 
     ###
@@ -380,13 +380,15 @@ if __name__ == '__main__':
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(1e4)
+    n_markers = int(1e6)
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
     #Grids
 
-    energy_arrays = np.arange(3000, 65000, 20000)
+    #energy_arrays = np.arange(3000, 84000, 10000)
+    energy_arrays = np.logspace(3, 5, num=15)
+    energy_arrays = np.array([10e3, 20e3, 30e3])
     #Gyroradii grid in [cm]
     g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
     #g_r = np.asarray([0.88,1.08, 1.2567])
@@ -399,7 +401,7 @@ if __name__ == '__main__':
                 list(np.around(g_r, decimals = 5))]
     #pitch angle grid in [degrees]
     #JP: Added rounded on p, because otherwise not correct the arccos (too many zeros gives NaN)
-    p = np.around(np.arange(0.0, 1, 0.2), decimals = 5)
+    p = np.around(np.arange(-1, 1, 0.1), decimals = 5)
     pitch_arrays = [list(np.around(np.rad2deg(np.arccos(p)), decimals = 5)), 
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5)),
                     list(np.around(np.rad2deg(np.arccos(-p)), decimals = 5)),
@@ -407,12 +409,19 @@ if __name__ == '__main__':
                     ]
 
     #alternatively use degree grid
-    #p = np.arange(0.00, 90, 4)
-    #pitch_arrays = [ list(p),
-    #                list(180-p),
-    #                list(p),
-    #                list(180-p)
-    #                ]
+    p = np.linspace(0.00, 90, 20)
+
+    p = np.array([30, 45, 60])
+
+    pitch_arrays = [ list(p),
+                    list(180-p),
+                    list(p),
+                    list(180-p)
+                    ]
+
+
+
+
 
     #Range of gyrophase to use. Smaller range can be used, but for now allow all gyrophases
     gyrophase_range = [[np.deg2rad(185),np.deg2rad(359)],  #UL  [np.deg2rad(185),np.deg2rad(359)]
