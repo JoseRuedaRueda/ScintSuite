@@ -412,6 +412,7 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
             # Perform the tensor product as before
             H = np.tensordot(smap._grid_interp['transformation_matrix'][name],
                              dummy_frame, 2)
+
     elif method.lower() == 'griddata': # grid data interpolation
         logger.warning('This method does not conserve the signal integral. Avoid it')
         namex = smap._to_remap[0].name
@@ -446,10 +447,22 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         H /= delta_x * delta_y
 
     elif method.lower() == 'forward_warping_simple': # should produce smoother histogram
+        '''
+        #Use the grid iterpolators to translate each pixel to a phase-space value.
+        #Spread the counts of a given pixel proportionally to the four closest phase space coordinates.
+
+        #Note current implemetnation ignores points mapped to the edge of the phase-space grid
+        #The assumption is the strike map usually fully covers the signal of interest
+        #and this was easier to implement.
+
+        TODO: vectorize final step of population the phase-space image array "H".
+        '''
+        #phase space coordinates
         namex = smap._to_remap[0].name
         namey = smap._to_remap[1].name
         x = smap._grid_interp[namex].flatten()
         y = smap._grid_interp[namey].flatten()
+        #Remove nans (since interpolation fill value was set to nan, this could be different in other branches)
         idx_isnotnan = ~np.isnan(x)
         x = x[idx_isnotnan]
         y = y[idx_isnotnan]
@@ -462,15 +475,18 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         delta_x = xcenter[1] - xcenter[0]
         delta_y = ycenter[1] - ycenter[0]
 
+        #Build phase space image, similar to histogram method
         H = np.zeros((len(xcenter), len(ycenter)))
 
-        #for ip in np.arange(x.shape[0]):
+        #for ip in np.arange(x.shape[0]):  ##Left here from the original implementation (since vectorized)
         x_ip = x
         y_ip = y
 
+        #Find where each pixel values' phase space values would fit in the defined phase space grid.
         x_index = np.searchsorted( xcenter, x_ip, side = 'right')
         y_index = np.searchsorted( ycenter, y_ip, side = 'right')
-        
+
+        ###Now remove edge cases
         idx_x_left_edge = np.where(x_index==0)[0]
         idx_x_right_edge = np.where(x_index==len(xcenter))[0]
         x_index[idx_x_left_edge]=1
@@ -485,25 +501,29 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         z[idx_x_right_edge] = 0
         z[idx_y_left_edge] = 0
         z[idx_y_right_edge] = 0
+        ### ed of edge case removal
 
-
+        ## Calculate the distance for a remaped value to the cloest grid points
         # Determine the vertices of the grid cell
         x0, y0 = xcenter[x_index-1], ycenter[y_index-1]
         x1, y1 = xcenter[x_index], ycenter[y_index]
             
-            # Calculate the distances from the point to the sides of the cell
+        # Calculate the distances from the point to the sides of the cell
         dx0 = x_ip - x0
         dx1 = x1 - x_ip
         dy0 = y_ip - y0
         dy1 = y1 - y_ip
             
-            # Calculate the area of the rectangles formed by these distances
+        # Calculate the area of the rectangles formed by these distances
+        # This is done in order to proportionally spread the counts 
         area_total = delta_x * delta_y
         w_bottom_left = (dx1 * dy1) / area_total
         w_bottom_right = (dx0 * dy1) / area_total
         w_top_left = (dx1 * dy0) / area_total
         w_top_right = (dx0 * dy0) / area_total
 
+        # Iterate over all remaped values and populate the phase space grid
+        # This could propably be vectorised to be faster.
         for ip in np.arange(x.shape[0]):
             H[x_index[ip]-1, y_index[ip]-1] +=  z[ip] * w_bottom_left[ip]
             H[x_index[ip] , y_index[ip]-1] += z[ip] * w_bottom_right[ip]
@@ -513,10 +533,22 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         H /= delta_x * delta_y
 
     elif method.lower() == 'forward_warping_advanced': # should produce smoother histogram
-        # --- 1: Information of the calibration
-        # Get the phase variables at each pixel
+        '''
+        ##This method mixes forward and backwards mapping.
+        The idea is to sample forward (as in the "simple" implmentation) , but then to also sample backwards.
+        Meaning sample for each phase-space grid coordinate a point in the pixel space.
+        The advantage, theoretically, is that each phase-space grid point will necessarily be assigned a value from pixel space.
+
+        In practice however I found that he simple implemetation is sufficient, but I leave this implemenation
+        in case there are cases where it works better. I leave this to the user.
+
+        This implemetnation does not correctly treat edge cases. 
+        '''
+        # Get the phase variables names
         namex = smap._to_remap[0].name
         namey = smap._to_remap[1].name
+
+        #Define the forward mapping function. Based on the smap interpolators
         def f(xs):
 
             ### xs of shape (n_points, 2)
@@ -531,6 +563,7 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
 
             return ys  ### ys of shape (n_points, 2)
 
+        #Now also define the backward mapping function. Essentially the inverse function of "f".
         def f_inverse(ys):
             import scipy.interpolate as scipy_interp
             interpolator = scipy_interp.LinearNDInterpolator
@@ -553,42 +586,60 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
             
             return xs
 
+        #Map all pixel values ("xs") forward to phase space coordinates "ys"
         pix_grid_x, pix_grid_y = np.mgrid[0:frame.shape[1], 0:frame.shape[0]]
         xs = np.column_stack((pix_grid_x.flatten(), pix_grid_y.flatten()))
         ys = f(xs)
 
+        #Remove nans (since the interpolator fill value is nan)
         idx_isnotnan = ~np.isnan(ys)
         xs = xs[idx_isnotnan[:, 0], :]
         ys = ys[idx_isnotnan[:, 0], :]
 
+        #Define the phase space grid. This is based on user inputs for grid cell sizes.
         xcenter = 0.5 * (x_edges[1:] + x_edges[:-1])
         ycenter = 0.5 * (y_edges[1:] + y_edges[:-1])
         XX, YY = np.meshgrid(xcenter, ycenter, indexing='ij')
 
-
+        # "ys_" is all phase space grid points to be mapped backwards to pixel space. 
+        # in other words sample the phase-space grid ("ys_") in pixel space
         ys_ = np.column_stack((XX.flatten(), YY.flatten()))
-        xs_ = f_inverse(ys_) ## go from phase space 
+        xs_ = f_inverse(ys_) ## "x_s" is the backwards mapped phase space points
         idx_isnotnan = ~np.isnan(xs_)
-
+        #remove nans
         xs_ = xs_[idx_isnotnan[:, 0], :]
         ys_ = ys_[idx_isnotnan[:, 0], :]
-        #import IPython
-        #IPython.embed()
+        
+        '''
+        This section might be needed to deal with edge cases.
         z = frame.copy().astype(float)
         z = z.flatten()
-        #z = z[idx_isnotnan[:, 0]]
+        z = z[idx_isnotnan[:, 0]]
+        '''
 
+        ## "H" will be the mapped phase-space image (from the pixel image)
         H = np.zeros(XX.shape)
         delta_x = x_edges[1] - x_edges[0]
         delta_y = y_edges[1] - y_edges[0]
-        #import IPython
-        #IPython.embed()
-        '''
+
+        #Combine the forward and backward samples
         ys = np.concatenate((ys, ys_))
         xs = np.concatenate((xs, xs_))
         xs = np.floor(xs).astype('int32')
         
-        
+        '''
+        A very important difference from plain forward mapping is that since we sample the pixel space twice,
+        once going forwad where each pixel is sampled once,
+        and again going backwards, where the a given pixel could be sampled multiple times.
+        Hence when we build the phase space image, to maintain the pixel image weight, we need to consider
+        how many times a pixel is sampled.
+
+        Todo: deal with edge mapped values.
+              Vectorize final step of building 2D grid space "image"
+        '''
+        ###
+        ###Determine how many times a pixel is sampled
+        ###
         dtype = np.dtype((np.void, xs.dtype.itemsize * xs.shape[1]))
         structured_arr = np.ascontiguousarray(xs).view(dtype)
 
@@ -600,20 +651,23 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
 
         # Combine unique rows with their counts
         result = np.column_stack((unique, counts))
+        ##the first columns of result are the uniqe pixel pairs, 
+        # and the third column give the number of time that pair is samples
 
+        ##Hence create a weighted frame adjusted by the number of times a pixel is sampled
         frame_weight_corrected = np.zeros(np.shape(frame))
         frame_weight_corrected[result[:, 1], result[:, 0]] = frame[result[:, 1], result[:, 0]] /result[:, 2]
-        '''
-        frame_weight_corrected = frame
-        
+        ### end of determing times a pixel is sampled
 
-        #for ip in np.arange(x.shape[0]):
+
+        ##Now start with building the phase space image
+        #for ip in np.arange(x.shape[0]): ##(from old implimentation)
         x_ip = ys[:, 0]
         y_ip = ys[:, 1]
 
         x_index = np.searchsorted( xcenter, x_ip, side = 'right')
         y_index = np.searchsorted( ycenter, y_ip, side = 'right')
-        
+
         idx_x_left_edge = np.where(x_index==0)[0]
         idx_x_right_edge = np.where(x_index==len(xcenter))[0]
         x_index[idx_x_left_edge]=1
@@ -625,23 +679,24 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         y_index[idx_y_right_edge]=len(ycenter)-1
 
         '''
+        This implenetation needs to be adapted to correctly deal with edge sample cases
         z[idx_x_left_edge] = 0
         z[idx_x_right_edge] = 0
         z[idx_y_left_edge] = 0
         z[idx_y_right_edge] = 0
         '''
-
+        ## Calculate the distance for a remaped value to the cloest grid points
         # Determine the vertices of the grid cell
         x0, y0 = xcenter[x_index-1], ycenter[y_index-1]
         x1, y1 = xcenter[x_index], ycenter[y_index]
             
-            # Calculate the distances from the point to the sides of the cell
+        # Calculate the distances from the point to the sides of the cell
         dx0 = x_ip - x0
         dx1 = x1 - x_ip
         dy0 = y_ip - y0
         dy1 = y1 - y_ip
             
-            # Calculate the area of the rectangles formed by these distances
+        # Calculate the area of the rectangles formed by these distances
         area_total = delta_x * delta_y
         w_bottom_left = (dx1 * dy1) / area_total
         w_bottom_right = (dx0 * dy1) / area_total
@@ -655,7 +710,6 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
             H[x_index[ip]-1, y_index[ip] ] += frame_weight_corrected[xs[ip, 1], xs[ip, 0]]  * w_top_left[ip]
 
         H /= delta_x * delta_y
-
 
     else:  # similar to old IDL implementation, faster but noisy
         namex = smap._to_remap[0].name
