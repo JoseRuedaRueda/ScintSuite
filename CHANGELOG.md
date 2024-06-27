@@ -3,7 +3,6 @@
 - Change in phase space
 - Scintillator and camera frames
 
-
 # 1.3.8 WF improvements
 - Official release of FILD numerical WF
 - Included a cutoff in the weight function calculation to avoid correlations in tomography (can be activated or not with an optional variable)

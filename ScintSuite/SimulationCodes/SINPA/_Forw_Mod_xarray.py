@@ -16,17 +16,18 @@ import math
 from scipy.spatial import ConvexHull
 from scipy.ndimage import gaussian_filter
 import copy
+from matplotlib.colors import LinearSegmentedColormap
+
 from ScintSuite.SimulationCodes.FILDSIM.execution import get_energy
 from ScintSuite.SimulationCodes.FILDSIM.execution import get_gyroradius
-from ScintSuite.SimulationCodes.FILDSIM import synthetic_signal_remap
-
+import ScintSuite.SimulationCodes.FILDSIM.forwardModelling as ssfM
 
 # -----------------------------------------------------------------------------
 # --- Inputs distributions
 # -----------------------------------------------------------------------------
 
 def read_ASCOT_dist(filename, pinhole_area = None, B=4, A=None, Z=None, 
-                    version=5.5):
+                    version='5.5'):
     """
     Read a distribution coming from ASCOT, old (4)
     Read a distribution coming from ASCOT, with pitch in [VII/V] units (5.5)
@@ -208,6 +209,7 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, plot=False,
     :return ssPH: synthetic signal at the pinhole (PH)
     :return ssSC: synthetic signal at the scintillator (SC)
     """
+    plt.ion()
 
     x_val = WF.coords['x'].values
     y_val = WF.coords['y'].values
@@ -322,6 +324,7 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, plot=False,
 
     :return xarray with the signals in the pe space.
     """
+    plt.ion()
 
     # Synthetic signal input
     ssPH_pr = synthetic_signal['PH']
@@ -410,15 +413,15 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, plot=False,
 Workflow:
     0. Obtain the distribution and define the inputs 
     1. Run original_synthsug_xy to map the signal in the scintillator space
-    2. Insert the different noises
-    3. Take into account the  optic system and the camera
+    2. Insert the different noises, optic system and the camera
+       - Option to do it separately or at the same time
 
-    - You can plot any step from 1 to 3
+    - You can plot at any step given the frame and even plot the noises
 """
 
 def original_synthsig_xy(pinhole_distribution: dict, efficiency, 
                      smap, scintillator,
-                     cam_params, optic_params,
+                     cam_params = {}, optic_params = {},
                      smapplt = None, 
                      gyrophases = np.pi,
                      smoother = None,
@@ -439,7 +442,7 @@ def original_synthsig_xy(pinhole_distribution: dict, efficiency,
     :param  cam_params: parameters of the camera
     :param  optic_params:  parameters of the optics
     :param  gyrophases: range of gyrophases considered entering the pinhole
-            (to scale the collimator factor). pi is the default
+            (to scale the collimator factor). pi (half sr) is the default
     :param  smoother: adds a gaussian filter to the signal with that sigma
     :param  scint_synthetic_signal_params: grid to remap the frame
 
@@ -450,38 +453,24 @@ def original_synthsig_xy(pinhole_distribution: dict, efficiency,
             'signal_frame': signal in the scintillator space
             'scint_area': region covered by the scintillator
     """
-    # --- Check inputs and initialise the settings
-    # check/load strike map
+    # Check inputs and initialise the settings
+    # Check/load strike map
     if isinstance(smap, str):  # if it is string, load the file.
-        print('Reading strike map: ', smap)
+        # print('Reading strike map: ', smap)
         smap = ssmapplting.StrikeMap(file=smap)
         smap.load_strike_points(spoints)
     if smap._resolutions is None:
         smap.calculate_phase_space_resolution(diag_params=diag_parameters)
     dsmap=copy.deepcopy(smap)
-    # check/load the scintillator
+    # Check/load the scintillator
     if isinstance(scintillator, str):  # if it is string, load the file.
-        print('Reading scintillator: ', scintillator)
+        # print('Reading scintillator: ', scintillator)
         scintillator = ssmapplting.Scintillator(scintillator)
     dscintillator=copy.deepcopy(scintillator)
-    # check that the optics parameters included all necesary elements
-    if 'beta' not in optic_params:
-        print('Optic magnification not set, calculating proxy')
-        xsize = cam_params['px_x_size'] * cam_params['nx']
-        ysize = cam_params['px_y_size'] * cam_params['ny']
-        chip_min_length = np.minimum(xsize, ysize)
 
-        xscint_size = scintillator._coord_real['x1'].max() \
-            - scintillator._coord_real['x1'].min()
-        yscint_size = scintillator._coord_real['x2'].max() \
-            - scintillator._coord_real['x2'].min()
-        scintillator_max_length = np.maximum(xscint_size, yscint_size)
-
-        beta = chip_min_length / scintillator_max_length
-        print('Optics magnification, beta: ', beta)
-    # Camera parameters:
-    if isinstance(cam_params, str):
-        cam_params = ssio.read_camera_properties(cam_params)
+    # SYNTHETIC SIGNAL
+    # -----------------------------------------------------------------------
+    print('Computing synthetic signal...')
     # Grid for the synthetic signal at the scintillator
     scint_signal_options = {
         'rmin': 1,
@@ -492,33 +481,43 @@ def original_synthsig_xy(pinhole_distribution: dict, efficiency,
         'dp': 1,
     }
     scint_signal_options.update(scint_synthetic_signal_params)
-
-    # --- Calculate the synthetic signal at the scintillator
-    print(scint_signal_options)
-    scint_signal = synthetic_signal_remap(pinhole_distribution, smap,
+    # Calculate the synthetic signal at the scintillator
+    scint_signal = ssfM.synthetic_signal_remap(pinhole_distribution, smap,
                                           efficiency=efficiency,
                                           **scint_signal_options)
     
-    # find the center of the camera frame 
+    # LOCATE AND CENTER THE SCINTILLATOR AND SMAP
+    # -----------------------------------------------------------------------
+    print('Locating the smap and scintillator...')
+    # Find the center of the camera frame 
     px_center = int(cam_params['ny'] / 2)
     py_center = int(cam_params['nx'] / 2)
-
-    # center the scintillator at the coordinate origin
+    if 'beta' in optic_params:
+        beta = optic_params['beta']
+    else:
+        xsize = cam_params['px_x_size'] * cam_params['nx']
+        ysize = cam_params['px_y_size'] * cam_params['ny']
+        chip_min_length = np.minimum(xsize, ysize)
+        xscint_size = scintillator._coord_real['x1'].max() \
+            - scintillator._coord_real['x1'].min()
+        yscint_size = scintillator._coord_real['x2'].max() \
+            - scintillator._coord_real['x2'].min()
+        scintillator_max_length = np.maximum(xscint_size, yscint_size)
+        beta = chip_min_length / scintillator_max_length
+        print('Optics magnification, beta: ', beta)
+    # Center the scintillator at the coordinate origin
     y_scint_center = 0.5 * (scintillator._coord_real['x2'].max()
                             + scintillator._coord_real['x2'].min())
     x_scint_center = 0.5 * (scintillator._coord_real['x1'].max()
                             + scintillator._coord_real['x1'].min())
     dscintillator._coord_real['x2'] -= y_scint_center
-    dscintillator._coord_real['x1']-= x_scint_center
-    # center of the scintillator in pixel space
+    dscintillator._coord_real['x1'] -= x_scint_center
+    # Center of the scintillator in pixel space
     px_0 = px_center + px_shift
     py_0 = py_center + py_shift
     # Scale to relate scintillator to camera
-    xscale = optic_params['beta'] / cam_params['px_x_size']
-    print('Xscale: ', xscale)
-    yscale = optic_params['beta'] / cam_params['px_y_size']
-    print('Yscale: ', yscale)
-    
+    xscale = beta / cam_params['px_x_size']
+    yscale = beta / cam_params['px_y_size']
     # Calculate the pixel position of the scintillator vertices
     transformation_params = ssmapplting.CalParams()
     transformation_params.xscale = xscale
@@ -526,35 +525,29 @@ def original_synthsig_xy(pinhole_distribution: dict, efficiency,
     transformation_params.xshift = px_0
     transformation_params.yshift = py_0
     dscintillator.calculate_pixel_coordinates(transformation_params)
-
-    # shift the strike map by the same quantity:
+    # Shift the strike map by the same quantity:
     dsmap._data['x2'].data -= y_scint_center
     dsmap._data['x1'].data -= x_scint_center
     # Align the strike map:
     dsmap.calculate_pixel_coordinates(transformation_params)
     dsmap.interp_grid((cam_params['nx'], cam_params['ny']),
                      MC_number=0)
-    
     # If there is an specific smap to plot, pass that smap as the plot argument
     # for strikemap. If not, the one used for the synthetic signal. We work
     # with a dumy smap, again
-    if smapplt == None:
-        dsmapplt = copy.deepcopy(dsmap)
-        dsmapplt._data['x2'].data -= y_scint_center
-        dsmapplt._data['x1'].data -= x_scint_center
-        dsmapplt.calculate_pixel_coordinates(transformation_params)
-        dsmapplt.interp_grid((cam_params['nx'], cam_params['ny']),
-                        MC_number=0)        
-    else:
+    if smapplt != None:
         dsmapplt = copy.deepcopy(smapplt)
-        dsmapplt._data['x2'].data -= y_scint_center
-        dsmapplt._data['x1'].data -= x_scint_center
-        dsmapplt.calculate_pixel_coordinates(transformation_params)
-        dsmapplt.interp_grid((cam_params['nx'], cam_params['ny']),
-                        MC_number=0)
-        
-    # --- Map scintillator and grid to frame
-    print("starting the mapping")
+    else:
+        dsmapplt = copy.deepcopy(dsmap)
+    dsmapplt._data['x2'].data -= y_scint_center
+    dsmapplt._data['x1'].data -= x_scint_center
+    dsmapplt.calculate_pixel_coordinates(transformation_params)
+    dsmapplt.interp_grid((cam_params['nx'], cam_params['ny']),
+                    MC_number=0)
+
+    # MAP SCINTILLATOR AND GRID TO FRAME
+    # -----------------------------------------------------------------------
+    print("Mapping the signal in the scintillator space...")
     n_gyr = scint_signal['gyroradius'].size
     n_pitch = scint_signal['pitch'].size
     synthetic_frame = np.zeros(dsmap._grid_interp['gyroradius'].shape)
@@ -578,23 +571,26 @@ def original_synthsig_xy(pinhole_distribution: dict, efficiency,
                 synthetic_frame[flags] = scint_signal['signal'][ip, ir] / n \
                     * scint_signal['dgyr'] * scint_signal['dp']
 
-    # --- Build the original frame in the pixel space, and smooth it if wanted
+    # CORRECTIONS
+    # -----------------------------------------------------------------------
+    print('Apllying corrections if needed...')
+    # Build the original frame in the pixel space, and smooth it if wanted
     if smoother != None:
-        dummy = synthetic_frame.copy()
+        dummy = copy.deepcopy(synthetic_frame)
         synthetic_frame = gaussian_filter(dummy,sigma=smoother)
-
-    # This is the correction related to the collimater factor. Gyrophases 
-    # gyrophases corresponds to the range of gyrophases we consider enter the
-    # pinhole.
+    # Gyrophases corresponds to the range of gyrophases we consider that enter 
+    # the pinhole.
     synthetic_frame *= 2*np.pi/gyrophases    
 
-
+    # BUILD THE OUTPUT
+    # -----------------------------------------------------------------------
+    print('Building the xarray signal and scintillator...')
+    # Transform to xarray
     signal_frame = xr.DataArray(synthetic_frame, dims=('x', 'y'),
             coords={'x':np.linspace(0,cam_params['nx'],cam_params['nx']),
                     'y':np.linspace(0,cam_params['ny'],cam_params['ny'])})
-    
-    # --- Build the scintillator perimeter and find the area in the pixel space
-    dummy = signal_frame.copy()*0
+    # Build the scintillator perimeter and find the area in the pixel space
+    dummy = copy.deepcopy(signal_frame)*0
     xdum = dscintillator._coord_pix['x']
     ydum = dscintillator._coord_pix['y'] 
     allPts = np.column_stack((xdum,ydum))
@@ -610,9 +606,9 @@ def original_synthsig_xy(pinhole_distribution: dict, efficiency,
             # Check if the (i, j) coordinates are inside the scintillator
             if scint_path.contains_point((j, i)):
                 dummy[i, j] = 1 # 1 if it's inside the scintillator
-    scint_area = dummy.copy()
+    scint_area = copy.deepcopy(dummy)
     
-    # --- Define the output
+    # Define the output
     output = {
         'smap': dsmap,
         'smapplt': dsmapplt,
@@ -623,12 +619,10 @@ def original_synthsig_xy(pinhole_distribution: dict, efficiency,
 
     return output
 
-def add_noise_to_frame(frame,
-                     noise_params: dict = {}):
+
+def add_noise_to_frame(frame, noise_params: dict = {}, cam_params: dict = {}):
     """
-    Right now only includes the neutron noise only.
-    Feel free to update with more noises. 
-    Oh, and random briken pixels
+    Feel free to update with more noises.
     
     Alex Reyner: alereyvinn@alum.us.es
 
@@ -649,22 +643,23 @@ def add_noise_to_frame(frame,
 
     # Create a copy of the signal frame where we will add the different nosies,
     # and the area covered by the scintillator
-    noise_frame = out['signal_frame'].copy()
-    scint_area = out['scint_area'].copy()
-    dummy = out['signal_frame'].copy()*0 # for the total noise
+    noise_frame = copy.deepcopy(frame['signal_frame'])
+    scint_area = copy.deepcopy(frame['scint_area'])
 
     # Initialise the noise dictionary. All the noises are not implemented yet.
     # This needs to be done.
-    noise = {
-        'camera_neutrons': None,
-        'broken': None,
-        'photon': None,
-        'ions': None,
-        'betas': None,
-        'neutrons': None,
-        'gamma': None,
-        'camera_gamma': None
+    noise_opt = {
+        'neutrons': {},
+        'camera_neutrons': {
+            'percent': 1,
+            'vmin': 0,
+            'vmax': 1,
+            'bits': cam_params['range']
+        },
+        'broken': {}
     }
+    noise_opt.update(noise_params)
+    out['noises']={}
 
     # Neutron and gamma noise (constant) (just in the scintillator area)
     """
@@ -672,40 +667,27 @@ def add_noise_to_frame(frame,
     reaching it and producing charged particles that will give signal. Total
     noise must be given
     """
-    if noise_params['neutrons'] > 0:
+    if noise_opt['neutrons'] > 0:
         print('Including neutron and gamma noise')
-        dummy = scint_area.copy()
         num_pix = scint_area.sum().item() # how many pixel we the scint cover?
         # multiply by 4pi since we will consider the isotropic emision forward
         # in this model. The noise should be given per sr unit.
-        dummy *= noise_params['neutrons']*4*np.pi/num_pix
+        dummy = copy.deepcopy(scint_area) 
+        dummy *= noise_opt['neutrons']*4*np.pi/num_pix
         noise_frame += dummy
-        noise['neutrons'] = dummy
-
-    # Broken pixels
-    """
-    Simulate broken pixels
-    This will randomly cancel the signal in a number of pixels given by percent
-    """
-    if noise_params['broken'] > 0:
-        print('Some pixel are broken')
-        rand = np.random.default_rng()
-        uniform = rand.uniform(size = noise_frame.shape)
-        # eliminate the pixels
-        noise_frame = noise_frame.where(uniform > noise_params['broken'], 0)
-        noise['broken'] = uniform
+        out['noises']['neutrons'] = dummy
 
     # Put the noise frame where we had the original frame,
     # and add the nosies to the dictionary
     out['signal_frame'] = noise_frame
-    out['noises'] = noise
 
     return out
 
-def add_optics_and_camera(frame, exp_time: float,
+
+def add_optics_and_camera(frame, exp_time: float, eliminate_saturation = False,
                           cam_params: dict={},
                           optic_params: dict={},
-                          eliminate_saturation = False):
+                          noise_params: dict={}):
     """
     Gets the frame at the scintillator and transforms it to camera frame. 
     Adds the electronic noise also.
@@ -732,7 +714,7 @@ def add_optics_and_camera(frame, exp_time: float,
     out = copy.deepcopy(frame)
 
     # Create a copy of the signal frame to operate   
-    final_frame = out['signal_frame'].copy()
+    final_frame = copy.deepcopy(out['signal_frame'])
 
     # Compute the maximum counts for the camera
     max_count = 2 ** cam_params['range'] - 1
@@ -748,12 +730,61 @@ def add_optics_and_camera(frame, exp_time: float,
     # Electrons to counts in the camera sensor,
     final_frame /= cam_params['ad_gain']
     # Consider the exposure time
-    final_frame *= exp_time    
+    final_frame *= exp_time
 
+    # Do the same for the noises added before the optics
+    for i in out['noises']:
+        out['noises'][i] *= 1 / 4 / np.pi
+        out['noises'][i] *= optic_params['T'] * optic_params['Omega']
+        out['noises'][i] *= cam_params['qe']
+        out['noises'][i] /= cam_params['ad_gain']
+        out['noises'][i] *= exp_time          
+
+    noise_opt = {
+        'neutrons': 0,
+        'camera_neutrons': 0,
+        'broken': 0
+    }
+    noise_opt.update(noise_params)        
+
+    # Neutron impact noise
+    """
+    Add noise due to neutron impact on the sensor
+    """
+    if noise_opt['camera_neutrons'] > 0:
+        print('Including neutrons hitting the sensor')    
+        rand = np.random.default_rng()
+        hit = rand.uniform(size = final_frame.shape)
+        intensity = rand.uniform(size=final_frame.shape)
+        # noise frame, select only the pixels with the noise
+        dummy = copy.deepcopy(final_frame)*0
+        dummy += (2**cam_params['range'] - 1)
+        dummy *= intensity 
+        dummy = dummy.where(hit <= noise_opt['camera_neutrons'], 0)
+        # eliminate those same frames from the noise frame and add noise
+        final_frame = final_frame\
+            .where(hit > noise_opt['camera_neutrons'], 0)
+        final_frame += dummy
+        out['noises']['camera_neutrons'] = dummy
+
+    # Broken pixels
+    """
+    Simulate broken pixels
+    """
+    if noise_opt['broken'] > 0:
+        print('Some pixel are broken')
+        rand = np.random.default_rng()
+        broken = rand.uniform(size = final_frame.shape)
+        # eliminate the pixels
+        dummy = copy.deepcopy(final_frame)*0 + broken
+        dummy = dummy.where(broken > noise_opt['broken'], 0) #the broken
+        dummy = dummy.where(broken <= noise_opt['broken'], 1) #the okay
+        final_frame = final_frame.where(broken > noise_opt['broken'], 0)
+        out['noises']['broken'] = dummy
 
     # Add the camera noise if both needed parameters are included
     """
-    Notice: dark current and readout noise are effects always present, it is
+    Notice: dark current and readout noise are effects always present. It is
     imposible to measure them independently, so they will be modelled as a
     single gaussian noise with centroid 'dark_centroid' and sigma
     'sigma_readout'. Both parameters to be measured for the used camera
@@ -766,11 +797,10 @@ def add_optics_and_camera(frame, exp_time: float,
         gauss = rand.standard_normal
         dummy = cam_params['dark_noise'] + \
             cam_params['readout_noise'] * gauss(final_frame.shape)
-        readout_noise = frame['signal_frame'].copy()*0 + dummy
-        out['noises']['readout_noise'] = readout_noise
+        readout_noise = copy.deepcopy(final_frame)*0 + dummy
+        readout_noise = readout_noise.where(readout_noise > 0 ,0) # needed
         final_frame += readout_noise
-        final_frame = final_frame.where(final_frame > 0 ,0) # needed
-        
+        out['noises']['readout_noise'] = readout_noise
 
     # Cap the counts to the maximum counts
     if eliminate_saturation == True:
@@ -785,10 +815,170 @@ def add_optics_and_camera(frame, exp_time: float,
 
     return out
 
+
+def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
+                          cam_params: dict={},
+                          optic_params: dict={},
+                          noise_params: dict={}):
+    """
+    Gets the frame at the scintillator and transforms it to camera frame. 
+    Feel free to update with more nbeoises.
+    
+    Alex Reyner: alereyvinn@alum.us.es
+
+    :param  frame dictionary containing:
+            'smap': smap used calibrated to the signal
+            'smapplt': smap extra to plot nice figures calibrated to the signal
+            'scintillator': scintillator calibrated to the signal
+            'signal_frame': signal in the scintillator space
+            'scint_area': region covered by the scintillator
+    :param  optic_params:  parameters of the optics
+    :param  cam_params: parameters of the camera
+    :param  noise_params: types of noise
+    :param  eliminate_saturation: if we want to get rid of saturated pixels.
+            But we don't need to, this will be done with the plot vmax.    
+
+    :return input with the noises added to signal_frame
+            also the noise contribution of everything itself
+    """
+
+    # Copy the input dictionary in the output
+    out = copy.deepcopy(frame)
+    # Create a copy of the signal frame where we will operate,
+    # and the area covered by the scintillator
+    final_frame = copy.deepcopy(frame['signal_frame'])
+    scint_area = copy.deepcopy(frame['scint_area'])
+    # Initialise the noise dictionary. All the noises are not implemented yet.
+    # This needs to be done.
+    noise_opt = {
+        'neutrons': {},
+        'camera_neutrons': {
+            'percent': 0,
+            'vmin': 0,
+            'vmax': 1,
+            'bits': cam_params['range']
+        },
+        'broken': {}
+    }
+    noise_opt.update(noise_params)
+    out['noises']={}
+
+    # NOISES IN THE SCINTILLATOR
+    # -----------------------------------------------------------------------
+    # Neutron and gamma noise (constant) (just in the scintillator area)
+    """
+    Homogenous noise through the scintillator due to neutrons and gamma 
+    reaching it and producing charged particles that will give signal. Total
+    noise must be given
+    """
+    if noise_opt['neutrons'] > 0:
+        print('Neutron and gamma noise')
+        num_pix = scint_area.sum().item() # how many pixel we the scint cover?
+        # multiply by 4pi since we will consider the isotropic emision forward
+        # in this model. The noise should be given per sr unit.
+        dummy = copy.deepcopy(scint_area) 
+        dummy *= noise_opt['neutrons']*4*np.pi/num_pix
+        final_frame += dummy
+        out['noises']['neutrons'] = dummy
+
+    # OPTICS
+    # -----------------------------------------------------------------------
+    # Compute the maximum counts for the camera
+    max_count = 2 ** cam_params['range'] - 1
+    # Now apply all factors
+    # Divide by 4\pi, ie, assume isotropic emission of the scintillator
+    final_frame *= 1 / 4 / np.pi
+    # Consider the solid angle covered by the optics and the transmission of
+    # the beam line through the lenses and mirrors:
+    final_frame *= optic_params['T'] * optic_params['Omega']
+    # Photon to electrons in the camera sensor (QE)
+    final_frame *= cam_params['qe']
+    # Electrons to counts in the camera sensor,
+    final_frame /= cam_params['ad_gain']
+    # Consider the exposure time
+    final_frame *= exp_time
+    
+    # Do the same for the noises added before the optics
+    for i in out['noises']:
+        out['noises'][i] *= 1 / 4 / np.pi
+        out['noises'][i] *= optic_params['T'] * optic_params['Omega']
+        out['noises'][i] *= cam_params['qe']
+        out['noises'][i] /= cam_params['ad_gain']
+        out['noises'][i] *= exp_time    
+
+    # NOISES IN THE CAMERA  
+    # -----------------------------------------------------------------------
+    # Neutron impact noise
+    """
+    Add noise due to neutron impact on the sensor
+    """
+    if noise_opt['camera_neutrons'] > 0:
+        print('Neutrons hitting the sensor')    
+        rand = np.random.default_rng()
+        hit = rand.uniform(size = final_frame.shape)
+        intensity = rand.uniform(size=final_frame.shape)
+        # noise frame, select only the pixels with the noise
+        dummy = copy.deepcopy(final_frame)*0
+        dummy += (2**cam_params['range'] - 1)
+        dummy *= intensity 
+        dummy = dummy.where(hit <= noise_opt['camera_neutrons'], 0)
+        # eliminate those same frames from the noise frame and add noise
+        final_frame = final_frame\
+            .where(hit > noise_opt['camera_neutrons'], 0)
+        final_frame += dummy
+        out['noises']['camera_neutrons'] = dummy
+
+    # Broken pixels
+    """
+    Simulate broken pixels
+    """
+    if noise_opt['broken'] > 0:
+        print('Some pixel are broken')
+        rand = np.random.default_rng()
+        broken = rand.uniform(size = final_frame.shape)
+        # eliminate the pixels
+        dummy = copy.deepcopy(final_frame)*0 + broken
+        dummy = dummy.where(broken > noise_opt['broken'], 0) #the broken
+        dummy = dummy.where(broken <= noise_opt['broken'], 1) #the okay
+        final_frame = final_frame.where(broken > noise_opt['broken'], 0)
+        out['noises']['broken'] = dummy
+
+    # Add the camera noise if both needed parameters are included
+    """
+    Notice: dark current and readout noise are effects always present. It is
+    imposible to measure them independently, so they will be modelled as a
+    single gaussian noise with centroid 'dark_centroid' and sigma
+    'sigma_readout'. Both parameters to be measured for the used camera
+    """
+    flag = ('dark_noise' in cam_params) and \
+        ('readout_noise' in cam_params)
+    if flag:
+        print('Dark and reading noise')
+        rand = np.random.default_rng()
+        gauss = rand.standard_normal
+        dummy = cam_params['dark_noise'] + \
+            cam_params['readout_noise'] * gauss(final_frame.shape)
+        readout_noise = copy.deepcopy(final_frame)*0 + dummy
+        readout_noise = readout_noise.where(readout_noise > 0 ,0) # needed
+        final_frame += readout_noise
+        out['noises']['readout_noise'] = readout_noise
+
+    # ADJUST THE CAMERA FRAME AND OUTPUT  
+    # -----------------------------------------------------------------------
+    # Cap the counts to the maximum counts
+    if eliminate_saturation == True:
+        final_frame = final_frame.where(final_frame < max_count, max_count) 
+    # Transform the counts to integers    
+    final_frame = final_frame.astype(int)
+    # Change the previous frame for the camera frame
+    out['signal_frame'] = final_frame
+
+    return out
+
+
 def plot_the_frame(frame, plot_smap = True, plot_scint = True,
                    cam_params: dict={},
-                   maxval = True,
-                   figtitle = None):
+                   maxval = True, figtitle = None):
     """
     Plot one frame, the scintillator and the strikemap. 
     
@@ -806,7 +996,7 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True,
 
     :return fig, ax:
     """
-
+    plt.ion()
     frame_to_plot = frame['signal_frame']
     smapplt = frame['smapplt']
     scint_perim = frame['scintillator']
@@ -818,15 +1008,10 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True,
         max_count = frame_to_plot.max().item()*0.5
 
     # Initialize the plot
-    fig, ax = plt.subplots(figsize=(6,4))
-
+    fig, ax = plt.subplots(
+                figsize=(cam_params['ny']/100,cam_params['nx']/100))
     frame_to_plot.plot.imshow(ax=ax, cmap=ss.plt.Gamma_II(),
                     vmin=0, vmax=max_count)
-    
-    # You could use this if you are not using xarray, for example
-    # img = ax.imshow(frame_to_plot, cmap=ss.plt.Gamma_II(), origin='lower',
-    #                 vmin=0, vmax=max_count)
-    # plt.colorbar(img, fraction=0.05, pad=0.02)
 
     if plot_smap == True:
         smapplt.plot_pix(ax, labels=False, marker_params={'marker':None},
@@ -838,7 +1023,52 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True,
     if figtitle != None:
         plt.title(figtitle, fontsize=10)
         
-    fig.show()
-    fig.tight_layout()   
+    ax.set_xlim((0,cam_params['ny']))
+    ax.set_ylim((0,cam_params['nx']))   
+    fig.tight_layout()
+    plt.show()
 
     return fig, ax
+
+
+def plot_noise_contributions(frame, cam_params: dict={}, reescalate = 1):
+    """
+    Plot all the noise contributions
+    
+    Alex Reyner: alereyvinn@alum.us.es
+
+    :param  frame dictionary containing:
+            'smap': smap used calibrated to the signal
+            'smapplt': smap extra to plot nice figures calibrated to the signal
+            'scintillator': scintillator calibrated to the signal
+            'signal_frame': signal in the scintillator space
+            'scint_area': region covered by the scintillator
+            'noises': all the different noises as matrices
+    :param  maxval: want to limit the colorbar to camera range?
+    :param  figtitle: plot a title with the optics parameters, for example
+
+    :return fig, ax:
+    """
+    plt.ion()
+    max_count = (2 ** cam_params['range'] - 1) * reescalate
+
+    for i in frame['noises']:
+        if i != 'broken':
+            frame_to_plot = frame['noises'][i]
+            fig, ax = plt.subplots(
+                figsize=(cam_params['ny']/100,cam_params['nx']/100))
+            frame_to_plot.plot.imshow(ax=ax, cmap=ss.plt.Gamma_II(),
+                            vmin=0, vmax=max_count)
+        if i == 'broken':
+            bw_cmap =  LinearSegmentedColormap.from_list(
+                'mycmap', ['black', 'white'], N=2)
+            frame_to_plot = frame['noises'][i]
+            fig, ax = plt.subplots(
+                figsize=(cam_params['ny']/100,cam_params['nx']/100))
+            frame_to_plot.plot.pcolormesh(ax=ax, cmap=bw_cmap,
+                            vmin=0, vmax=1)
+        plt.title(i, fontsize=10)    
+        fig.tight_layout()              
+    plt.show()
+ 
+    return
