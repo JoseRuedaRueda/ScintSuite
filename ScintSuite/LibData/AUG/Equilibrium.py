@@ -37,6 +37,8 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     :return bz: z magnetic field (nt, nrz_in), [T]
     :return bt: toroidal magnetic field (nt, nrz_in), [T]
     :return bp: poloidal magnetic field (nt, nrz_in), [T]
+    
+    @TODO: Include the sign of Bpol
     """
     # If the equilibrium object is not an input, let create it
     # created = False

@@ -96,7 +96,7 @@ if len(Suite_logger.handlers) == 0:
     hnd = logging.StreamHandler()
     hnd.setFormatter(_CustomFormatter())
     Suite_logger.addHandler(hnd)
-Suite_logger.setLevel(logging.INFO)
+Suite_logger.setLevel(logging.DEBUG)
 Suite_logger.addFilter(_NoParsingFilter())
 Suite_logger.propagate = False
 

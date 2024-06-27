@@ -148,28 +148,33 @@ class FILDVideo(FIV):
             ## Diagnostic ID (FILD manipulator number)
             self.diag_ID = diag_ID
             if shot is not None:
-                self.position = FILDlogbook.getPosition(shot, diag_ID)
+                try:  # if the insertion is in the video file
+                    self.position = FILDlogbook.getPosition(shot, diag_ID, 
+                                                            insertion=self.header['insertion'])
+                except KeyError:
+                    self.position = FILDlogbook.getPosition(shot, diag_ID)
                 self.orientation = \
                     FILDlogbook.getOrientation(shot, diag_ID)
                 self.geometryID = FILDlogbook.getGeomID(shot, diag_ID)
                 self.CameraCalibration = \
                     FILDlogbook.getCameraCalibration(shot, diag_ID)
                 # self.cameraGeneralParameters = \
-                    # FILDlogbook.getCameraGeneralParameters(shot, diag_ID)
-                try:
-                    self.operatorComment =\
-                        FILDlogbook.getComment(self.shot)
-                    if len(self.operatorComment) == 0:
-                        self.operatorComment = ['']
-                    self.overheating = \
-                        FILDlogbook.getOverheating(self.shot, diag_ID)
-                except AttributeError:
-                    self.operatorComment = None
-                    self.overheating = None
-                try:  # Try to get the camera data
-                    self.getCameraData(cameraDataFile)
-                except FileNotFoundError:
-                    self.CameraData = None
+                #    FILDlogbook.getCameraGeneralParameters(shot, diag_ID)
+                # try:
+                #     self.operatorComment =\
+                #         FILDlogbook.getComment(self.shot)
+                #     if len(self.operatorComment) == 0:
+                #         self.operatorComment = ['']
+                #     self.overheating = \
+                #         FILDlogbook.getOverheating(self.shot, diag_ID)
+                # except AttributeError:
+                #     self.operatorComment = None
+                #     self.overheating = None
+                # try:  # Try to get the camera data
+                #     self.getCameraData(cameraDataFile)
+                # except FileNotFoundError:
+                #     self.CameraData = None
+                pass
             else:
                 self.position = None
                 self.orientation = None
@@ -198,17 +203,17 @@ class FILDVideo(FIV):
                         self.scintillator = ssmap.Scintillator(file=plate)
                         self.scintillator.calculate_pixel_coordinates(
                                 self.CameraCalibration)
-                        self.ROIscintillator = self.scintillator.get_roi()
+                        # self.ROIscintillator = self.scintillator.get_roi()
             else:
                 self.scintillator = None
                 self.ROIscintillator = None
 
-            if verbose:
-                if self.operatorComment is not None:
-                    print('--- FILD Operator comment:')
-                    print(self.operatorComment[0])
-                if self.overheating is not None:
-                    print('--- Overheating level: %i' % self.overheating)
+            # if verbose:
+            #     if self.operatorComment is not None:
+            #         print('--- FILD Operator comment:')
+            #         print(self.operatorComment[0])
+            #     if self.overheating is not None:
+            #         print('--- Overheating level: %i' % self.overheating)
         else:
             FIV.__init__(self, empty=empty)
 
@@ -258,8 +263,12 @@ class FILDVideo(FIV):
             name = ' '      # To save the name of the strike map
 
             # -- See if the strike map exist in the folder
-            smap_folder = os.path.join(paths.ScintSuite, 'Data', 'RemapStrikeMaps',
-                                       'FILD', self.geometryID)
+            if paths.StrikeMapDatabase is None:
+                smap_folder = os.path.join(paths.ScintSuite, 'Data', 'RemapStrikeMaps',
+                                        'FILD', self.geometryID)
+            else:
+                # @TODO< change this 0
+                smap_folder = os.path.join(paths.StrikeMapDatabase, self.geometryID)
             logger.info('Looking for strikemaps in: %s', smap_folder)
             # -- Check which code generated the library
             namelistFile = os.path.join(smap_folder, 'parameters.cfg')

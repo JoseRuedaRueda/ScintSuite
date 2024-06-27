@@ -1,3 +1,8 @@
+# 1.3.7 D3D implementation
+- geometry.plot routines now accept element_to_plot integer, no need of array
+## Video library:
+- BVO has now an attribute path with the name of the path loaded inside
+
 # 1.3.6 Updated fild export
 - Updated pip requirements
 - Updated export fild, for the case of single smap used in remap

@@ -1,0 +1,6 @@
+#Text file containing information about the calibration parameters
+#for the strike-map alignment using FILD_overlay_pix.pro or FILD_overlay_image.pro (either calibrating via pixels or using image)
+#FORMAT IS:
+#ID CAMERA     PULSE1  PULSE2  XSHIFT  YSHIFT XSCALE    YSCALE      DEG       CAL_TYPE FILD_ID
+
+1    PANDA     000000  999999  219.2   199.5  8625.3   -8625.3     -174.3     PIX   1

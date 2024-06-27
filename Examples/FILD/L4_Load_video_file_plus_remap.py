@@ -8,7 +8,7 @@ jose Rueda: jrrueda@us.es
 
 Note; Written for version 0.3.0. Checked for version 1.0.0
 """
-import ScintSuite.as ss
+import ScintSuite as ss
 import matplotlib.pyplot as plt
 from time import time
 # -----------------------------------------------------------------------------
@@ -44,15 +44,16 @@ options_filter = {
 # - Remapping options:
 save_remap = False  # If true, the remap will be saved in a netCDF file
 par = {
-    'ymin': 1.2,      # Minimum gyroradius [in cm]
-    'ymax': 16.5,     # Maximum gyroradius [in cm]
-    'dy': 0.1,        # Interval of the gyroradius [in cm]
+    'ymin': 15.0,      # Minimum gyroradius [in cm]
+    'ymax': 85.0,     # Maximum gyroradius [in cm]
+    'dy': 2,        # Interval of the gyroradius [in cm]
     'xmin': 20.0,     # Minimum pitch angle [in degrees]
     'xmax': 90.0,     # Maximum pitch angle [in degrees]
-    'dx': 1.0,    # Pitch angle interval
+    'dx': 4.0,    # Pitch angle interval
     # method for the interpolation
     'method': 2,  # 2 Spline, 1 Linear
-    'decimals': 1}  # Precision for the strike map (1 is more than enough)
+    'decimals': 1,
+    'variables_to_remap': ('pitch', 'energy')}  # Precision for the strike map (1 is more than enough)
 # Note, if the smap_folder variable is not present, the program will look for
 # the strike maps in the path given by ss.paths.StrikeMaps
 # - Plotting options:

@@ -47,7 +47,8 @@ par = {
     # methods for the interpolation
     'method': 2,    # 2 Spline, 1 Linear (smap interpolation)
     'decimals': 0,  # Precision for the strike map (1 is more than enough)
-    'remap_method': 'centers',  # Remap algorithm
+    'remap_method': 'centers',  # Remap algorithm,
+    'variables_to_remap': ('R0', 'e0')
     }
 MC_number = 0  # number of MC markers per pixel
 # - Plotting options:

@@ -28,10 +28,10 @@ except ModuleNotFoundError:
     from ScintSuite.decorators import false_njit as njit
     prange = range
     logger.warning('10: Neutron filters will be slow (NUMBA missing')
-
+from scipy import constants
 
 # -----------------------------------------------------------------------------
-# --- Pitch methods:
+# %% Pitch methods:
 # -----------------------------------------------------------------------------
 def pitch2pitch(P0: float, def_in: int = 0, def_out: int = 2)->np.ndarray:
     """
@@ -105,7 +105,7 @@ def pitch_at_other_place(R0, P0, R)->np.ndarray:
 
 
 # -----------------------------------------------------------------------------
-# --- Matrix filters
+# %% Matrix filters
 # -----------------------------------------------------------------------------
 def neutron_filter(M: np.ndarray, nsigma: int = 3)->np.ndarray:
     """
@@ -159,7 +159,7 @@ def neutron_filter(M: np.ndarray, nsigma: int = 3)->np.ndarray:
 
 
 # -----------------------------------------------------------------------------
-# --- Trapped passing boundary
+# %% Trapped passing boundary
 # -----------------------------------------------------------------------------
 def TP_boundary(shot, z0, t, Rmin=1.5, Rmax=2.1, 
                 zmin=-0.9, zmax=0.9)->xr.DataArray:
@@ -201,7 +201,7 @@ def TP_boundary(shot, z0, t, Rmin=1.5, Rmax=2.1,
 
 
 # -----------------------------------------------------------------------------
-# --- Searching algorithms
+# %% Searching algorithms
 # -----------------------------------------------------------------------------
 def find_nearest_sorted(array, value):
     """
@@ -220,7 +220,7 @@ def find_nearest_sorted(array, value):
 
 
 # -----------------------------------------------------------------------------
-# --- Intersections
+# %% Intersections
 # -----------------------------------------------------------------------------
 def find_2D_intersection(x1, y1, x2, y2):
     """
@@ -259,7 +259,7 @@ def find_2D_intersection(x1, y1, x2, y2):
 
 
 # -----------------------------------------------------------------------------
-# --- ELM filtering
+# %% ELM filtering
 # -----------------------------------------------------------------------------
 def ELM_filter(s, s_timebase, tELM, offset=0.):
     """
@@ -283,7 +283,7 @@ def ELM_filter(s, s_timebase, tELM, offset=0.):
 
 
 # -----------------------------------------------------------------------------
-# --- Matrix manipulation
+# %% Matrix manipulation
 # -----------------------------------------------------------------------------
 def distmat(a: np.ndarray, index: tuple)->np.ndarray:
     """
@@ -298,3 +298,16 @@ def distmat(a: np.ndarray, index: tuple)->np.ndarray:
     """
     i, j = np.indices(a.shape)
     return np.sqrt((i-index[0])**2 + (j-index[1])**2)
+
+# -----------------------------------------------------------------------------
+# %% v2E and E2v
+# -----------------------------------------------------------------------------
+def E2v(E, A: float = 2.014):
+    """
+    Return the modulus of the velocity of a particle, given its energy and mass
+
+    :param E: Energy of the particle in keV
+    :param A: mass of the marticle in atomic mass unit
+    """
+    return np.sqrt(2.0*(1000.0 * E *constants.e)/(A*constants.atomic_mass))
+    

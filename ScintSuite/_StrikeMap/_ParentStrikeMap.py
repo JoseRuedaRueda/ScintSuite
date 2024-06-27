@@ -412,7 +412,7 @@ class GeneralStrikeMap(XYtoPixel):
                                     color=line_options['color'],
                                     rotation=rotation_for_y_label)
 
-        plt.draw()
+        #plt.draw()
         return ax
 
     def plot_real(self, ax=None, marker_params: dict = {},

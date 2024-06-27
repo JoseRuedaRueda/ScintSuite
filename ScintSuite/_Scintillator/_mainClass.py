@@ -259,7 +259,7 @@ class Scintillator(XYtoPixel):
                                              ydum[3*i+2], ydum[3*i + 1],
                                              ydum[3*i], ydum[3*i + 2]])))
         ax.plot(x, y, **plt_options)
-        plt.draw()
+        # plt.draw()
         return ax
 
     def plot_real(self, ax=None, line_params: dict = {}, units: str='m'):
@@ -271,7 +271,7 @@ class Scintillator(XYtoPixel):
         :return ax: the axes where the scintilator was drawn
         """
         plt_options = {
-            'color': 'w',
+            'color': 'k',
             'marker': '',
         }
         plt_options.update(line_params)
