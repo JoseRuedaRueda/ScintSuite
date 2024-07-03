@@ -419,26 +419,24 @@ Workflow:
     - You can plot at any step given the frame and even plot the noises
 """
 
-def original_synthsig_xy(pinhole_distribution: dict, efficiency, 
-                     smap, scintillator,
+def original_synthsig_xy(distro, smap, scint,
                      cam_params = {}, optic_params = {},
                      smapplt = None, 
                      gyrophases = np.pi,
                      smoother = None,
-                     scint_synthetic_signal_params: dict = {},
-                     spoints: str = None, px_shift: int = 0, py_shift: int = 0,
-                     diag_parameters: dict = {}):
+                     scint_params: dict = {},
+                     px_shift: int = 0, py_shift: int = 0):
     """
     Maps a signal in the scintillator. 
     Based on the origianl function by Jose Rueda
 
     Alex Reyner: alereyvinn@alum.us.es
 
-    :param  pinhole_distribution: distribution in the pinhole
+    :param  distro: distribution in the pinhole
     :param  efficiency: efficiency of the scintillator for that particle
     :param  smap: smap to map the signal in the xyspace
     :param  smapplt: extra smap to do nice plots
-    :param  scintillator: scintillator shape we want in the plots
+    :param  scint: scintillator shape we want in the plots
     :param  cam_params: parameters of the camera
     :param  optic_params:  parameters of the optics
     :param  gyrophases: range of gyrophases considered entering the pinhole
@@ -453,26 +451,11 @@ def original_synthsig_xy(pinhole_distribution: dict, efficiency,
             'signal_frame': signal in the scintillator space
             'scint_area': region covered by the scintillator
     """
-    # Check inputs and initialise the settings
-    # Check/load strike map
-    if isinstance(smap, str):  # if it is string, load the file.
-        # print('Reading strike map: ', smap)
-        smap = ssmapplting.StrikeMap(file=smap)
-        smap.load_strike_points(spoints)
-    if smap._resolutions is None:
-        smap.calculate_phase_space_resolution(diag_params=diag_parameters)
-    dsmap=copy.deepcopy(smap)
-    # Check/load the scintillator
-    if isinstance(scintillator, str):  # if it is string, load the file.
-        # print('Reading scintillator: ', scintillator)
-        scintillator = ssmapplting.Scintillator(scintillator)
-    dscintillator=copy.deepcopy(scintillator)
-
-    # SYNTHETIC SIGNAL
-    # -----------------------------------------------------------------------
-    print('Computing synthetic signal...')
-    # Grid for the synthetic signal at the scintillator
-    scint_signal_options = {
+    # Check inputs and initialise the things
+    dsmap = copy.deepcopy(smap)
+    dscint = copy.deepcopy(scint)
+    efficiency = scint.efficiency
+    scint_options = {
         'rmin': 1,
         'rmax': 10.0,
         'dr': 0.1,
@@ -480,11 +463,15 @@ def original_synthsig_xy(pinhole_distribution: dict, efficiency,
         'pmax': 90.0,
         'dp': 1,
     }
-    scint_signal_options.update(scint_synthetic_signal_params)
+    scint_options.update(scint_params)    
+
+    # SYNTHETIC SIGNAL
+    # -----------------------------------------------------------------------
+    print('Computing synthetic signal...')
     # Calculate the synthetic signal at the scintillator
-    scint_signal = ssfM.synthetic_signal_remap(pinhole_distribution, smap,
+    scint_signal = ssfM.synthetic_signal_remap(distro, smap,
                                           efficiency=efficiency,
-                                          **scint_signal_options)
+                                          **scint_options)
     
     # LOCATE AND CENTER THE SCINTILLATOR AND SMAP
     # -----------------------------------------------------------------------
@@ -498,20 +485,20 @@ def original_synthsig_xy(pinhole_distribution: dict, efficiency,
         xsize = cam_params['px_x_size'] * cam_params['nx']
         ysize = cam_params['px_y_size'] * cam_params['ny']
         chip_min_length = np.minimum(xsize, ysize)
-        xscint_size = scintillator._coord_real['x1'].max() \
-            - scintillator._coord_real['x1'].min()
-        yscint_size = scintillator._coord_real['x2'].max() \
-            - scintillator._coord_real['x2'].min()
+        xscint_size = scint._coord_real['x1'].max() \
+            - scint._coord_real['x1'].min()
+        yscint_size = scint._coord_real['x2'].max() \
+            - scint._coord_real['x2'].min()
         scintillator_max_length = np.maximum(xscint_size, yscint_size)
         beta = chip_min_length / scintillator_max_length
         print('Optics magnification, beta: ', beta)
     # Center the scintillator at the coordinate origin
-    y_scint_center = 0.5 * (scintillator._coord_real['x2'].max()
-                            + scintillator._coord_real['x2'].min())
-    x_scint_center = 0.5 * (scintillator._coord_real['x1'].max()
-                            + scintillator._coord_real['x1'].min())
-    dscintillator._coord_real['x2'] -= y_scint_center
-    dscintillator._coord_real['x1'] -= x_scint_center
+    y_scint_center = 0.5 * (scint._coord_real['x2'].max()
+                            + scint._coord_real['x2'].min())
+    x_scint_center = 0.5 * (scint._coord_real['x1'].max()
+                            + scint._coord_real['x1'].min())
+    dscint._coord_real['x2'] -= y_scint_center
+    dscint._coord_real['x1'] -= x_scint_center
     # Center of the scintillator in pixel space
     px_0 = px_center + px_shift
     py_0 = py_center + py_shift
@@ -524,7 +511,7 @@ def original_synthsig_xy(pinhole_distribution: dict, efficiency,
     transformation_params.yscale = yscale
     transformation_params.xshift = px_0
     transformation_params.yshift = py_0
-    dscintillator.calculate_pixel_coordinates(transformation_params)
+    dscint.calculate_pixel_coordinates(transformation_params)
     # Shift the strike map by the same quantity:
     dsmap._data['x2'].data -= y_scint_center
     dsmap._data['x1'].data -= x_scint_center
@@ -584,15 +571,16 @@ def original_synthsig_xy(pinhole_distribution: dict, efficiency,
 
     # BUILD THE OUTPUT
     # -----------------------------------------------------------------------
-    print('Building the xarray signal and scintillator...')
     # Transform to xarray
+    print('Building the signal xarray...')
     signal_frame = xr.DataArray(synthetic_frame, dims=('x', 'y'),
             coords={'x':np.linspace(0,cam_params['nx'],cam_params['nx']),
                     'y':np.linspace(0,cam_params['ny'],cam_params['ny'])})
     # Build the scintillator perimeter and find the area in the pixel space
+    print('Building the scintillator xarray...')
     dummy = copy.deepcopy(signal_frame)*0
-    xdum = dscintillator._coord_pix['x']
-    ydum = dscintillator._coord_pix['y'] 
+    xdum = dscint._coord_pix['x']
+    ydum = dscint._coord_pix['y'] 
     allPts = np.column_stack((xdum,ydum))
     hullPts = ConvexHull(allPts)
     scint_x = np.concatenate((allPts[hullPts.vertices,0],\
@@ -978,7 +966,7 @@ def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
 
 def plot_the_frame(frame, plot_smap = True, plot_scint = True,
                    cam_params: dict={},
-                   maxval = True, figtitle = None):
+                   maxval = True, figtitle = None, smap_val = None):
     """
     Plot one frame, the scintillator and the strikemap. 
     
@@ -1009,9 +997,10 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True,
 
     # Initialize the plot
     fig, ax = plt.subplots(
-                figsize=(cam_params['ny']/100,cam_params['nx']/100))
+                figsize=(cam_params['ny']/cam_params['nx']*4+1,4))
     frame_to_plot.plot.imshow(ax=ax, cmap=ss.plt.Gamma_II(),
-                    vmin=0, vmax=max_count)
+                    vmin=0, vmax=max_count,
+                    cbar_kwargs={"label": 'Pixel counts','spacing': 'proportional'})
 
     if plot_smap == True:
         smapplt.plot_pix(ax, labels=False, marker_params={'marker':None},
@@ -1019,12 +1008,17 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True,
 
     if plot_scint == True:
         ax.plot(scint_perim[:,0],scint_perim[:,1], color ='w', linewidth=3)
-         
-    if figtitle != None:
-        plt.title(figtitle, fontsize=10)
-        
     ax.set_xlim((0,cam_params['ny']))
-    ax.set_ylim((0,cam_params['nx']))   
+    ax.set_ylim((0,cam_params['nx']))
+    plt.xticks(fontsize=9)   
+    plt.yticks(fontsize=9)
+    ax_param = {'fontsize': 10, \
+                    'xlabel': 'y pix.', 'ylabel': 'x pix.'}
+    ax = ss.plt.axis_beauty(ax, ax_param)
+
+    if figtitle != None:
+        fig.suptitle(figtitle, fontsize=11)
+        
     fig.tight_layout()
     plt.show()
 
@@ -1056,19 +1050,30 @@ def plot_noise_contributions(frame, cam_params: dict={}, reescalate = 1):
         if i != 'broken':
             frame_to_plot = frame['noises'][i]
             fig, ax = plt.subplots(
-                figsize=(cam_params['ny']/100,cam_params['nx']/100))
+                figsize=(cam_params['ny']/cam_params['nx']*4+1,4))
             frame_to_plot.plot.imshow(ax=ax, cmap=ss.plt.Gamma_II(),
-                            vmin=0, vmax=max_count)
+                    vmin=0, vmax=max_count,
+                    cbar_kwargs={"label": 'Pixel counts','spacing': 'proportional'})
         if i == 'broken':
             bw_cmap =  LinearSegmentedColormap.from_list(
                 'mycmap', ['black', 'white'], N=2)
             frame_to_plot = frame['noises'][i]
             fig, ax = plt.subplots(
-                figsize=(cam_params['ny']/100,cam_params['nx']/100))
+                figsize=(cam_params['ny']/cam_params['nx']*4+1,4))
             frame_to_plot.plot.pcolormesh(ax=ax, cmap=bw_cmap,
-                            vmin=0, vmax=1)
-        plt.title(i, fontsize=10)    
-        fig.tight_layout()              
+                    vmin=0, vmax=1,
+                    cbar_kwargs={"label": '','spacing': 'proportional'})
+        
+        ax.set_xlim((0,cam_params['ny']))
+        ax.set_ylim((0,cam_params['nx']))
+        plt.xticks(fontsize=9)   
+        plt.yticks(fontsize=9)
+        ax_param = {'fontsize': 10, \
+                        'xlabel': 'y pix.', 'ylabel': 'x pix.'}
+        ax = ss.plt.axis_beauty(ax, ax_param)
+        fig.suptitle(i, fontsize=11)    
+        fig.tight_layout()      
+
     plt.show()
  
     return
