@@ -205,8 +205,8 @@ class Tomography():
                 solvers.kaczmarz_solve(self.W2D, self.s1D, x0, maxiter = numIter,
                                        damp = damp, tol = tol, 
                                        relaxParam = relaxParam,
-                                        x_coord = self.W['xs'], 
-                                        y_coord = self.W['ys'],
+                                        x_coord = self.W['x'], 
+                                        y_coord = self.W['y'],
                                         window = window, 
                                         **kargs)
         # --- reshape the coefficients
@@ -263,8 +263,8 @@ class Tomography():
                                                   maxiter = numIter,
                                                   damp = damp, tol = tol, 
                                                   relaxParam = relaxParam, 
-                                                  x_coord = self.W['xs'], 
-                                                  y_coord = self.W['ys'],
+                                                  x_coord = self.W['x'], 
+                                                  y_coord = self.W['y'],
                                                   window = window,
                                                   **kargs)
         # --- reshape the coefficients
@@ -322,8 +322,8 @@ class Tomography():
                                                   maxiter = numIter,
                                                   damp = damp, tol = tol, 
                                                   relaxParam = relaxParam, 
-                                                  x_coord = self.W['xs'], 
-                                                  y_coord = self.W['ys'],
+                                                  x_coord = self.W['x'], 
+                                                  y_coord = self.W['y'],
                                                   window = window,
                                                   **kargs)
         # --- reshape the coefficients
@@ -1016,7 +1016,7 @@ class Tomography():
             """
             # ---- Initialise the settings
             fig, ax = plt.subplots()
-            true_norm = (self.s**2).sum(dim=('x','y')) # It's squared
+            true_norm = (self.s**2).sum(dim=('xs','ys')) # It's squared
             for inv in inverters:
                 MSE = self.inversion[inv].MSE
                 error = MSE/ true_norm

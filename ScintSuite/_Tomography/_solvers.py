@@ -455,12 +455,12 @@ def apply_window(xk, x_coord, y_coord, window):
 
     xk_shaped = matrix.restore_array2D(xk, x_size, y_size)
     xk_data = xr.DataArray(
-    xk_shaped, dims=('xs', 'ys'),
-    coords={'xs': x_coord, 'ys': y_coord})
-    conditionGyro = (xk_data .coords['ys'] >= y_min) & \
-                (xk_data .coords['ys'] <= y_max) 
-    conditionPitch = (xk_data .coords['xs'] >= x_min) & \
-                (xk_data .coords['xs'] <= x_max)
+    xk_shaped, dims=('x', 'y'),
+    coords={'x': x_coord, 'y': y_coord})
+    conditionGyro = (xk_data .coords['y'] >= y_min) & \
+                    (xk_data .coords['y'] <= y_max) 
+    conditionPitch = (xk_data .coords['x'] >= x_min) & \
+                    (xk_data .coords['x'] <= x_max)
     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)

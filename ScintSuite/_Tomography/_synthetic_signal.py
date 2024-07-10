@@ -61,8 +61,10 @@ def create_synthetic_signal(WF, mu_gyro, mu_pitch, power, sigma_gyro,
 
     """
     # Generate grid
-    gyro_grid = WF.y.values
-    pitch_grid = WF.x.values
+    gyro_gridP = WF.y.values
+    pitch_gridP = WF.x.values
+    gyro_gridS = WF.ys.values
+    pitch_gridS = WF.xs.values
     X, Y = np.meshgrid(WF.y, WF.x) # gyroradius for x and pitch for y
     grid = np.dstack((X, Y))
 
@@ -83,8 +85,8 @@ def create_synthetic_signal(WF, mu_gyro, mu_pitch, power, sigma_gyro,
     x_syntheticXR = xr.DataArray(data=x_synthetic,
                                     dims=['x', 'y'],
                                     coords=dict(
-                                        x = (['x'], pitch_grid),
-                                        y = (['y'], gyro_grid))
+                                        x = (['x'], pitch_gridP),
+                                        y = (['y'], gyro_gridP))
                                     )
     
     WF_2D = matrix.collapse_array4D(WF.values)
@@ -100,15 +102,15 @@ def create_synthetic_signal(WF, mu_gyro, mu_pitch, power, sigma_gyro,
 
 
     # Final synthetic frame
-    nx = x_synthetic.shape[0]
-    ny = x_synthetic.shape[1]
-    y_synthetic = matrix.restore_array2D(y_synthetic1D, nx, ny)
+    mx = WF.shape[0]
+    my = WF.shape[1]
+    y_synthetic = matrix.restore_array2D(y_synthetic1D, mx, my)
 
     frame_synthetic = xr.DataArray(data=y_synthetic,
-                                      dims=['x', 'y'],
+                                      dims=['xs', 'ys'],
                                       coords=dict(
-                                        x = (['x'], pitch_grid),
-                                        y = (['y'], gyro_grid)))
+                                        xs = (['xs'], pitch_gridS),
+                                        ys = (['ys'], gyro_gridS)))
     
     return x_syntheticXR, frame_synthetic
 
