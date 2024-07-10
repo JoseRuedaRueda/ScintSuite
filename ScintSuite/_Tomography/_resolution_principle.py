@@ -234,6 +234,10 @@ def calculate_resolution(WF, mu_gyro, mu_pitch, inverter, iters,
                                                     noise_level = 0.1,
                                                     background_level = 0.01,
                                                     seed=0)
+    
+    if y.max() == 0:
+        return 0
+    
         # Tomography
     tomo = ss.tomography(WF, y)
     x0 = np.zeros(tomo.s1D.shape)
