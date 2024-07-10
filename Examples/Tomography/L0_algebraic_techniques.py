@@ -66,7 +66,7 @@ if frame_type == 'synthetic':
                                                 sigma_pitch, noise_level,
                                                 background_level,
                                                 seed=seed)
-    tomo = ss.tomography(WF,frame_synthetic, normalise=False)
+    tomo = ss.tomography(WF,frame_synthetic)
 
 else:
     remap = xr.load_dataset(remapFile)
@@ -80,19 +80,22 @@ else:
 # --- Section 2: Perform the tomography
 # -----------------------------------------------------------------------------
 
-x0 = np.zeros(tomo.s1D.shape)
+# Pinhole size
+n = WF.shape[2]*WF.shape[3]
+
+x0 = np.zeros(n)
 if 'cimmino' in inverters: 
     tomo.cimmino_solve(x0, iters, window = window, 
                        damp = damp, relaxParam = relaxParam)
 
 
-x0 = np.zeros(tomo.s1D.shape)
+x0 = np.zeros(n)
 if 'descent' in inverters:
     tomo.coordinate_descent_solve(x0, iters, window = window, damp = damp, 
                                   relaxParam = relaxParam)
 
 
-x0 = np.zeros(tomo.s1D.shape)
+x0 = np.zeros(n)
 if 'kaczmarz' in inverters:
     tomo.kaczmarz_solve(x0, iters, window = window, 
                         damp = damp, relaxParam = relaxParam)
@@ -115,7 +118,7 @@ plt.savefig(os.path.join(outputPath,'error.png'))
 # --- Section 4: Plot results
 # -----------------------------------------------------------------------------
 
-best_alpha_kacmarz = len(iters)-1
+best_alpha_kaczmarz = len(iters)-1
 best_alpha_descent = len(iters)-1
 best_alpha_cimmino = len(iters)-1
 
@@ -134,12 +137,12 @@ axs[1].set_xlabel('Gyroradius')
 axs[1].set_ylabel('pitch')
 
 # Plot inversion kacmarz
-tomo.inversion['descent'].F.isel(alpha = best_alpha_kacmarz).plot(ax = axs[2], 
+tomo.inversion['descent'].F.isel(alpha = best_alpha_descent).plot(ax = axs[2], 
                                                                   cmap=cmap)
 axs[2].set_title('Descent algorithm')
 
 # Plot inversion
-tomo.inversion['kaczmarz'].F.isel(alpha = best_alpha_descent).plot(ax = axs[3],
+tomo.inversion['kaczmarz'].F.isel(alpha = best_alpha_kaczmarz).plot(ax = axs[3],
                                                                    cmap=cmap)
 axs[3].set_title('Kaczmarz algorithm')
 

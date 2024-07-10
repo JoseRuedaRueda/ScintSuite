@@ -168,29 +168,9 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam,
 
 
             if k in maxiter:              
-                if window is not None:
-                     x_size = len(x_coord)
-                     y_size = len(y_coord)
-                     xk_shaped = np.zeros((x_size, y_size))
-                     x_min = window[0]
-                     x_max = window[1]
-                     y_min = window[2]
-                     y_max = window[3]
-
-                     xk_shaped = \
-                        matrix.restore_array2D(xk, x_size, y_size)
-                     xk_data = xr.DataArray(
-                     xk_shaped, dims=('xs', 'ys'),
-                     coords={'xs': x_coord, 'ys': y_coord})
-                     conditionGyro = (xk_data .coords['ys'] >= y_min) & \
-                                (xk_data .coords['ys'] <= y_max) 
-                     conditionPitch = (xk_data .coords['xs'] >= x_min) & \
-                                (xk_data .coords['xs'] <= x_max)
-                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
-                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
-                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
-                
-                     xk_output[:,num_exec] = matrix.collapse_array2D(xk_data.values)
+                if window is not None:                     
+                    xk_new = apply_window(xk, x_coord, y_coord, window)
+                    xk_output[:,num_exec] = matrix.collapse_array2D(xk_new.values)
                 else:
                     xk_output[:,num_exec] = xk
 
@@ -310,39 +290,24 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam,
                         Nflag[j] += 1
                     else:
                         F[j] = 1
+            # if window is not None:
+            #     xk_new = apply_window(xk, x_coord, y_coord, window)
+            #     xk = matrix.collapse_array2D(xk_new.values)
 
             stop_loop = stopping_criterion(k, rk, maxK, tol)
-        
+            
             # Truncate the output so that we just keep values inside 
             # the signal region
             # Save the output and end time
 
             if k in maxiter:              
-                if window is not None:
-                     x_size = len(x_coord)
-                     y_size = len(y_coord)
-                     xk_shaped = np.zeros((x_size, y_size))
-                     x_min = window[0]
-                     x_max = window[1]
-                     y_min = window[2]
-                     y_max = window[3]
-
-                     xk_shaped = \
-                        matrix.restore_array2D(xk, x_size, y_size)
-                     xk_data = xr.DataArray(
-                     xk_shaped, dims=('xs', 'ys'),
-                     coords={'xs': x_coord, 'ys': y_coord})
-                     conditionGyro = (xk_data .coords['ys'] >= y_min) & \
-                                (xk_data .coords['ys'] <= y_max) 
-                     conditionPitch = (xk_data .coords['xs'] >= x_min) & \
-                                (xk_data .coords['xs'] <= x_max)
-                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
-                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
-                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
-                
-                     xk_output[:,num_exec] = matrix.collapse_array2D(xk_data.values)
+                if window is not None:                     
+                    xk_new = apply_window(xk, x_coord, y_coord, window)
+                    xk_output[:,num_exec] = matrix.collapse_array2D(xk_new.values)
                 else:
                     xk_output[:,num_exec] = xk
+                # xk_output[:,num_exec] = xk
+                
 
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
@@ -450,32 +415,11 @@ def cimmino_solve(W, y, x0, maxiter, damp, tol, relaxParam,
             # Save the output and end time
 
             if k in maxiter:              
-                if window is not None:
-                     x_size = len(x_coord)
-                     y_size = len(y_coord)
-                     xk_shaped = np.zeros((x_size, y_size))
-                     x_min = window[0]
-                     x_max = window[1]
-                     y_min = window[2]
-                     y_max = window[3]
-
-                     xk_shaped = \
-                        matrix.restore_array2D(xk, x_size, y_size)
-                     xk_data = xr.DataArray(
-                     xk_shaped, dims=('xs', 'ys'),
-                     coords={'xs': x_coord, 'ys': y_coord})
-                     conditionGyro = (xk_data .coords['ys'] >= y_min) & \
-                                (xk_data .coords['ys'] <= y_max) 
-                     conditionPitch = (xk_data .coords['xs'] >= x_min) & \
-                                (xk_data .coords['xs'] <= x_max)
-                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
-                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
-                     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
-                
-                     xk_output[:,num_exec] = matrix.collapse_array2D(xk_data.values)
+                if window is not None:                     
+                    xk_new = apply_window(xk, x_coord, y_coord, window)
+                    xk_output[:,num_exec] = matrix.collapse_array2D(xk_new.values)
                 else:
                     xk_output[:,num_exec] = xk
-
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
                 
@@ -499,6 +443,28 @@ def cimmino_solve(W, y, x0, maxiter, damp, tol, relaxParam,
 
         return xk_output, MSE, res, r2, duration
 
+def apply_window(xk, x_coord, y_coord, window):
+
+    x_size = len(x_coord)
+    y_size = len(y_coord)
+    xk_shaped = np.zeros((x_size, y_size))
+    x_min = window[0]
+    x_max = window[1]
+    y_min = window[2]
+    y_max = window[3]
+
+    xk_shaped = matrix.restore_array2D(xk, x_size, y_size)
+    xk_data = xr.DataArray(
+    xk_shaped, dims=('xs', 'ys'),
+    coords={'xs': x_coord, 'ys': y_coord})
+    conditionGyro = (xk_data .coords['ys'] >= y_min) & \
+                (xk_data .coords['ys'] <= y_max) 
+    conditionPitch = (xk_data .coords['xs'] >= x_min) & \
+                (xk_data .coords['xs'] <= x_max)
+    xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+    xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+    xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+    return xk_data
 
 def stopping_criterion(k, rk, maxiter, tol):
         """Check if the iteration should terminate.
