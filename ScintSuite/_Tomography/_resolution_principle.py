@@ -154,6 +154,46 @@ def check_separation(peaks, xHat, map_type='pitch'):
     
     return False
 
+def get_peaks_connected_components(xHat, peak_amplitude=0.15):
+
+    '''
+    Get the peaks of the tomography solution xHat. The method is based on 
+    detecting the connected components of the binary image of the tomography.
+
+    Marina Jimenez Comez:
+
+    Parameters
+    ----------
+    xHat : xarray.DataArray
+        Tomography solution.
+    peak_amplitude : float
+        Peak amplitude threshold.
+
+    Returns
+    -------
+    peaks : np.array
+        Peaks of the tomography solution.
+
+    '''
+
+    # Transform the xHat to a binary image
+    thresh = xHat.max() * 0.1
+    xHat_binary = binarize_xarray(xHat, threshold=thresh)
+
+    # Connected components: 8-connectivity
+    structure = np.ones((3, 3), dtype=int)
+    labeled, ncomponents = label(xHat_binary, structure)
+
+    # Calculate centroids and max intensity of the components
+    centroids, max_intensity = calculate_centroid(labeled, ncomponents, xHat)
+
+    # Take centroids with maximum intensity above a threshold
+    peaks = threshold_centroids(centroids, max_intensity, 
+                                                   threshold=peak_amplitude)
+
+    return peaks
+
+
 
 def calculate_resolution_point(xHat, original_distance, map_type='pitch'):
     '''
@@ -172,20 +212,8 @@ def calculate_resolution_point(xHat, original_distance, map_type='pitch'):
         Type of resolution map to calculate. Options are 'pitch' and 'gyro'.
 
     '''
-    # Transform the xHat to a binary image
-    thresh = xHat.max() * 0.1
-    xHat_binary = binarize_xarray(xHat, threshold=thresh)
-
-    # Connected components: 8-connectivity
-    structure = np.ones((3, 3), dtype=int)
-    labeled, ncomponents = label(xHat_binary, structure)
-
-    # Calculate centroids and max intensity of the components
-    centroids, max_intensity = calculate_centroid(labeled, ncomponents, xHat)
-
-    # Take centroids with maximum intensity above a threshold
-    peaks = threshold_centroids(centroids, max_intensity, 
-                                                   threshold=0.15)
+    # Get peaks
+    peaks = get_peaks_connected_components(xHat, peak_amplitude=0.15)
 
     # Check separation between peaks
     separated = check_separation(peaks, xHat, map_type=map_type)
@@ -336,7 +364,7 @@ def calculate_resolution_map(WF, inverter, window, maxiter, map_type='pitch'):
     return resolution_mapXR
 
                 
-def get_peaks(xHat,alpha=20,size=10):
+def get_peaks_sigma(xHat,alpha=20,size=10):
     '''
     Get the peaks of the tomography solution xHat.
 
