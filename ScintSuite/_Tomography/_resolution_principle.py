@@ -363,6 +363,48 @@ def calculate_resolution_map(WF, inverter, window, maxiter, map_type='pitch'):
     
     return resolution_mapXR
 
+def resolution_principle(xHat, pitch_map, gyro_map):
+    '''
+    Check the resolution principle for the tomography solution xHat.
+
+    Marina Jimenez Comez:
+
+    Parameters
+    ----------
+        xHat: xarray.DataArray
+            Wave function.
+        pitch_map : xarray.DataArray
+            Pitch resolution map.
+        gyro_map : xarray.DataArray
+            Gyroscalar resolution map.
+
+    '''
+
+    # Get peaks
+    peaks = get_peaks_connected_components(xHat, peak_amplitude=0.15)
+
+    # Calculate the separation in pitch
+    separationPitch = np.abs(np.diff(peaks[:,0], axis=0))
+    
+    # Calculate the separation in gyro
+    separationGyro = np.abs(np.diff(peaks[:,1], axis=0))
+
+    # First peak detected
+    first_peak = peaks[0]
+
+    # Condition 1: Check pitch resolution
+    pitch_res = pitch_map.sel(x = first_peak[0], y = first_peak[1]).values
+    condition1 = pitch_res >= separationPitch
+
+    # Condition 2: Check gyro resolution
+    gyro_res = gyro_map.sel(x = first_peak[0], y = first_peak[1]).values
+    condition2 = gyro_res >= separationGyro
+
+    if condition1 and condition2:
+        return True
+    else:
+        return False
+
                 
 def get_peaks_sigma(xHat,alpha=20,size=10):
     '''
