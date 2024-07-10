@@ -5,7 +5,6 @@ import copy
 import os
 import ScintSuite as ss
 import numpy as np
-import tkinter as tk
 import xarray as xr
 from scipy.ndimage import label
 import ScintSuite._Tomography._synthetic_signal as synthetic_signal
@@ -203,7 +202,7 @@ def calculate_resolution_point(xHat, original_distance, map_type='pitch'):
     return resolution
 
 
-def calculate_resolution(WF, mu_gyro, mu_pitch, inverters, iters, 
+def calculate_resolution(WF, mu_gyro, mu_pitch, inverter, iters, 
                          original_distance, map_type='pitch'):
     '''
     Calculate the resolution of a point from the tomography solution xHat.
@@ -219,8 +218,8 @@ def calculate_resolution(WF, mu_gyro, mu_pitch, inverters, iters,
         Gyro values.
     mu_pitch : list
         Pitch values.
-    inverters : list
-        List of inverters to use: kackzmarz, descent, cimmino.
+    inverter : str
+        Inverter to use: kackzmarz, descent, cimmino.
     iters : int
         Number of iterations.
     original_distance : float
@@ -238,16 +237,16 @@ def calculate_resolution(WF, mu_gyro, mu_pitch, inverters, iters,
         # Tomography
     tomo = ss.tomography(WF, y)
     x0 = np.zeros(tomo.s1D.shape)
-    if inverters == 'descent':
+    if inverter == 'descent':
         tomo.coordinate_descent_solve(x0, iters,  damp = 0.1, 
                                   relaxParam = 1)
-    elif inverters == 'kaczmarz':
+    elif inverter == 'kaczmarz':
         tomo.kaczmarz_solve(x0, iters,  damp = 0.1, relaxParam = 1)
-    elif inverters == 'cimmino':
+    elif inverter == 'cimmino':
         tomo.cimmino_solve(x0, iters,  damp = 0.1, relaxParam = 1)
         
     # Calculate resolution of the point
-    xHat = tomo.inversion['descent'].F.isel(alpha = 0).copy()
+    xHat = tomo.inversion[inverter].F.isel(alpha = 0).copy()
     resolution = calculate_resolution_point(xHat, original_distance, 
                                                 map_type=map_type)
     return resolution
@@ -255,7 +254,7 @@ def calculate_resolution(WF, mu_gyro, mu_pitch, inverters, iters,
 
 
 
-def calculate_resolution_map(WF, inverters, window, maxiter, map_type='pitch'):
+def calculate_resolution_map(WF, inverter, window, maxiter, map_type='pitch'):
     '''
     Calculate the resolution map from the tomography solution xHat.
 
@@ -265,8 +264,8 @@ def calculate_resolution_map(WF, inverters, window, maxiter, map_type='pitch'):
     ----------
      W: xarray.DataArray
         Wave function.
-    inverters : list
-        List of inverters to use: kackzmarz, descent, cimmino.
+    inverter : str
+        Inverter to use: kackzmarz, descent, cimmino.
     window : list
         Window for the coordinate descent algorithm and for resolution_map.
     maxiter : int
@@ -301,7 +300,7 @@ def calculate_resolution_map(WF, inverters, window, maxiter, map_type='pitch'):
                     mu_pitch = [pitch, pitch]
                     original_distance = r_liminf[gyro_i+k] - r_selected[gyro_i]
                     resolution = calculate_resolution(WF, mu_gyro, mu_pitch, 
-                                                  inverters, maxiter, 
+                                                  inverter, maxiter, 
                                                   original_distance, 
                                                   map_type=map_type)
                     k += 1 
@@ -322,7 +321,7 @@ def calculate_resolution_map(WF, inverters, window, maxiter, map_type='pitch'):
                     mu_pitch = [p_selected[pitch_i], p_liminf[pitch_i+k]]
                     original_distance = p_liminf[pitch_i+k] - p_selected[pitch_i]
                     resolution = calculate_resolution(WF, mu_gyro, mu_pitch, 
-                                                  inverters, maxiter, 
+                                                  inverter, maxiter, 
                                                   original_distance, 
                                                   map_type=map_type)
                     k += 1

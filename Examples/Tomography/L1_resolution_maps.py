@@ -10,7 +10,7 @@ import xarray as xr
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - Paths:
-WFfile = '~/ScintSuite/MyRoutines/W_39573_2.000.nc'
+WFfile = '~/Old_ScintSuite/W_39573_2.000.nc'
 # - Paths for outputs:
 outputPath = 'MyRoutines/tomography/results/W_47132_0.280'
 
@@ -21,9 +21,9 @@ map_type = 'gyro'
 maxiter = 10
 # Setting algorithm to be used. Pick just one algebraic algorithm:
 # 'descent', 'kaczmarz' or 'cimmino'
-inverters = 'descent'
+inverter = 'descent'
 # Window
-window = [50, 55, 4, 4.5]
+window = [55, 55, 6.8, 6.8]
 # -----------------------------------------------------------------------------
 # --- Section 1: Prepare the weight function and frame
 # -----------------------------------------------------------------------------
@@ -32,15 +32,14 @@ WF = xr.load_dataarray(WFfile)
 # -----------------------------------------------------------------------------
 # --- Section 2: Perform the tomography
 # -----------------------------------------------------------------------------
-resolution = resP.calculate_resolution_map(WF, inverters, window,
+resolution = resP.calculate_resolution_map(WF, inverter, window,
                                             maxiter, map_type)
 
 fig, ax = plt.subplots()
 resolution.plot(ax = ax)
 ax.set_xlabel('Gyroscalar')
-ax.set_ylabel('GyroScalar')
-ax.set_title('Gyro resolution map')
-
+ax.set_ylabel('Pitch')
+ax.set_title(map_type + ' resolution map')
 plt.savefig(os.path.join(outputPath,'resolution_map_gyro.png')) 
 
 
