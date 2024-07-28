@@ -10,20 +10,22 @@ import xarray as xr
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - Paths:
-WFfile = '~/Old_ScintSuite/W_39573_2.000.nc'
+WFfile = '~/ScintSuite/MyRoutines/W_39573_2.000.nc'
 # - Paths for outputs:
-outputPath = 'MyRoutines/tomography/results/W_47132_0.280'
+outputPath = '/home/marjimcom/ScintSuite/MyRoutines/tomography/results/W_39573_2.000/'
 
 # - Resolution maps parameters
 # Type of map to calculate: 'pitch' or 'gyro'.
-map_type = 'gyro'
+map_type = 'pitch'
 # Setting the number of maximum iterations
-maxiter = 10
+maxiter = 100
 # Setting algorithm to be used. Pick just one algebraic algorithm:
 # 'descent', 'kaczmarz' or 'cimmino'
 inverter = 'descent'
 # Window
-window = [55, 55, 6.8, 6.8]
+window = [40, 80, 3, 8]
+# Setting plotting parameters
+cmap = ss.plt.Gamma_II()
 # -----------------------------------------------------------------------------
 # --- Section 1: Prepare the weight function and frame
 # -----------------------------------------------------------------------------
@@ -35,12 +37,16 @@ WF = xr.load_dataarray(WFfile)
 resolution = resP.calculate_resolution_map(WF, inverter, window,
                                             maxiter, map_type)
 
+savePath = outputPath +'resolution_map_'+ map_type + '_' + str(maxiter) 
+
+resolution.to_netcdf(os.path.join(savePath + '.nc'))
+
 fig, ax = plt.subplots()
-resolution.plot(ax = ax)
+resolution.plot(ax = ax, cmap=cmap)
 ax.set_xlabel('Gyroscalar')
 ax.set_ylabel('Pitch')
 ax.set_title(map_type + ' resolution map')
-plt.savefig(os.path.join(outputPath,'resolution_map_gyro.png')) 
+plt.savefig(os.path.join(savePath +'.png')) 
 
 
 
