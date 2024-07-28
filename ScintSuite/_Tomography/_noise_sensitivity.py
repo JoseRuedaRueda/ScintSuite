@@ -14,13 +14,8 @@ import ScintSuite._Tomography._synthetic_signal as synthetic_signal
 def noise_sensitivity(WF, inverter, window, iters, noise_levels, 
                       max_noise = 0.15):
         '''
-        This function calculates the fidelity map of the tomography algorithm.
-        For each noise level, the function generates a synthetic signal, adds
-        noise to it and performs the tomography with the algebraic algorithm 
-        selected and the number of iterations selected. The function returns 
-        the fidelity map asociated. Each element of the fidelity map is the
-        Signal to Noise Ratio (SNR) of the reconstruction of a delta placed in 
-        that pixel.
+        This function calculates the noise sensitivity of the tomography 
+        algorithm.
 
         Marina Jimenez
 
@@ -64,7 +59,7 @@ def noise_sensitivity(WF, inverter, window, iters, noise_levels,
                 
                 mu_gyro = r_selected[i]
                 mu_pitch = p_selected[j]
-                noise_sensitivityXR[j,i] = np.max(noise_levels)
+                noise_sensitivityXR[j,i] = np.min(noise_levels)
 
                 for n in noise_levels:
                     # Generate the synthetic signal
@@ -93,7 +88,7 @@ def noise_sensitivity(WF, inverter, window, iters, noise_levels,
                     xHat = tomo.inversion[inverter].F.isel(alpha = 0).copy()
                     MSE = np.sqrt(((xHat-x)**2).sum(dim=('x','y')))
                     true_norm = np.sqrt((x**2).sum(dim=('x','y')))
-                    error = 1 - MSE/true_norm
+                    error = MSE/true_norm
                     if error <= max_noise:
                         noise_sensitivityXR[j,i] = n
 
@@ -111,8 +106,7 @@ def fidelity_map(WF, inverter, window, iters, noise):
         noise to it and performs the tomography with the algebraic algorithm 
         selected and the number of iterations selected. The function returns 
         the fidelity map asociated. Each element of the fidelity map is the
-        Signal to Noise Ratio (SNR) of the reconstruction of a delta placed in 
-        that pixel.
+        error of the reconstruction of a delta placed in that pixel.
 
         Marina Jimenez
 
@@ -181,8 +175,8 @@ def fidelity_map(WF, inverter, window, iters, noise):
                 xHat = tomo.inversion[inverter].F.isel(alpha = 0).copy()
                 MSE = np.sqrt(((xHat-x)**2).sum(dim=('x','y')))
                 true_norm = np.sqrt((x**2).sum(dim=('x','y')))
-                SNR = 20*np.log10(true_norm/MSE)
-                fidelity_mapXR[j,i] = SNR
+                error = MSE/true_norm
+                fidelity_mapXR[j,i] = error
                     
 
         return fidelity_mapXR
