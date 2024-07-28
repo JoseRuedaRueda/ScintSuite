@@ -224,7 +224,7 @@ def calculate_resolution_point(xHat, original_distance, map_type='pitch'):
         distance = np.linalg.norm(np.diff(peaks, axis=0))
 
         if distance >= original_distance:
-            resolution = distance
+            resolution = 1/distance
         
 
     return resolution
