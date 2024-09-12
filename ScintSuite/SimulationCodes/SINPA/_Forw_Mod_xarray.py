@@ -21,6 +21,8 @@ from matplotlib.colors import LinearSegmentedColormap
 from ScintSuite.SimulationCodes.FILDSIM.execution import get_energy
 from ScintSuite.SimulationCodes.FILDSIM.execution import get_gyroradius
 import ScintSuite.SimulationCodes.FILDSIM.forwardModelling as ssfM
+from skimage import measure
+from matplotlib.patches import Circle
 
 # -----------------------------------------------------------------------------
 # --- Inputs distributions
@@ -453,6 +455,10 @@ def original_synthsig_xy(distro, smap, scint,
     """
     # Check inputs and initialise the things
     dsmap = copy.deepcopy(smap)
+    if smapplt != None:
+        dsmapplt = copy.deepcopy(smapplt)
+    else:
+        dsmapplt = copy.deepcopy(dsmap)
     dscint = copy.deepcopy(scint)
     efficiency = scint.efficiency
     scint_options = {
@@ -469,7 +475,7 @@ def original_synthsig_xy(distro, smap, scint,
     # -----------------------------------------------------------------------
     print('Computing synthetic signal...')
     # Calculate the synthetic signal at the scintillator
-    scint_signal = ssfM.synthetic_signal_remap(distro, smap,
+    scint_signal = ssfM.synthetic_signal_remap(distro, dsmap,
                                           efficiency=efficiency,
                                           **scint_options)
     
@@ -477,8 +483,8 @@ def original_synthsig_xy(distro, smap, scint,
     # -----------------------------------------------------------------------
     print('Locating the smap and scintillator...')
     # Find the center of the camera frame 
-    px_center = int(cam_params['ny'] / 2)
-    py_center = int(cam_params['nx'] / 2)
+    px_center = int(cam_params['nx'] / 2)
+    py_center = int(cam_params['ny'] / 2)
     if 'beta' in optic_params:
         beta = optic_params['beta']
     else:
@@ -517,21 +523,17 @@ def original_synthsig_xy(distro, smap, scint,
     dsmap._data['x1'].data -= x_scint_center
     # Align the strike map:
     dsmap.calculate_pixel_coordinates(transformation_params)
-    dsmap.interp_grid((cam_params['nx'], cam_params['ny']),
+    dsmap.interp_grid((cam_params['ny'], cam_params['nx']),
                      MC_number=0)
     # If there is an specific smap to plot, pass that smap as the plot argument
     # for strikemap. If not, the one used for the synthetic signal. We work
     # with a dumy smap, again
-    if smapplt != None:
-        dsmapplt = copy.deepcopy(smapplt)
-    else:
-        dsmapplt = copy.deepcopy(dsmap)
     dsmapplt._data['x2'].data -= y_scint_center
     dsmapplt._data['x1'].data -= x_scint_center
     dsmapplt.calculate_pixel_coordinates(transformation_params)
-    dsmapplt.interp_grid((cam_params['nx'], cam_params['ny']),
-                    MC_number=0)
-
+    dsmapplt.interp_grid((cam_params['ny'], cam_params['nx']),
+                         MC_number=0)
+    
     # MAP SCINTILLATOR AND GRID TO FRAME
     # -----------------------------------------------------------------------
     print("Mapping the signal in the scintillator space...")
@@ -557,7 +559,7 @@ def original_synthsig_xy(distro, smap, scint,
             if n > 0:
                 synthetic_frame[flags] = scint_signal['signal'][ip, ir] / n \
                     * scint_signal['dgyr'] * scint_signal['dp']
-
+                
     # CORRECTIONS
     # -----------------------------------------------------------------------
     print('Apllying corrections if needed...')
@@ -573,9 +575,10 @@ def original_synthsig_xy(distro, smap, scint,
     # -----------------------------------------------------------------------
     # Transform to xarray
     print('Building the signal xarray...')
-    signal_frame = xr.DataArray(synthetic_frame, dims=('x', 'y'),
-            coords={'x':np.linspace(0,cam_params['nx'],cam_params['nx']),
-                    'y':np.linspace(0,cam_params['ny'],cam_params['ny'])})
+    signal_frame = xr.DataArray(synthetic_frame, dims=('y', 'x'),
+            coords={'y':np.linspace(1,cam_params['ny'],cam_params['ny']),
+                    'x':np.linspace(1,cam_params['nx'],cam_params['nx'])})
+    signal_frame = signal_frame.where(signal_frame>=0,0)
     # Build the scintillator perimeter and find the area in the pixel space
     print('Building the scintillator xarray...')
     dummy = copy.deepcopy(signal_frame)*0
@@ -589,8 +592,8 @@ def original_synthsig_xy(distro, smap, scint,
                               np.array([allPts[hullPts.vertices,1][0]])))
     scint_perim = np.column_stack((scint_x, scint_y))
     scint_path = Path(scint_perim)
-    for i in range(cam_params['nx']):
-        for j in range(cam_params['ny']):
+    for i in range(cam_params['ny']):
+        for j in range(cam_params['nx']):
             # Check if the (i, j) coordinates are inside the scintillator
             if scint_path.contains_point((j, i)):
                 dummy[i, j] = 1 # 1 if it's inside the scintillator
@@ -755,6 +758,8 @@ def add_optics_and_camera(frame, exp_time: float, eliminate_saturation = False,
         final_frame += dummy
         out['noises']['camera_neutrons'] = dummy
 
+    # NOISES IN THE CAMERA
+
     # Broken pixels
     """
     Simulate broken pixels
@@ -807,7 +812,8 @@ def add_optics_and_camera(frame, exp_time: float, eliminate_saturation = False,
 def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
                           cam_params: dict={},
                           optic_params: dict={},
-                          noise_params: dict={}):
+                          noise_params: dict={},
+                          transmission = None):
     """
     Gets the frame at the scintillator and transforms it to camera frame. 
     Feel free to update with more nbeoises.
@@ -824,7 +830,11 @@ def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
     :param  cam_params: parameters of the camera
     :param  noise_params: types of noise
     :param  eliminate_saturation: if we want to get rid of saturated pixels.
-            But we don't need to, this will be done with the plot vmax.    
+            But we don't need to, this will be done with the plot vmax. 
+    :param  transmission: This adds the FoV and the transmission of the optics
+            (the difference between regions assuming center equal to 1. The NA
+            is a different thing). Needs to be a matrix with r of FoV in x and 
+            theta in y.
 
     :return input with the noises added to signal_frame
             also the noise contribution of everything itself
@@ -836,6 +846,7 @@ def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
     # and the area covered by the scintillator
     final_frame = copy.deepcopy(frame['signal_frame'])
     scint_area = copy.deepcopy(frame['scint_area'])
+    transmission = copy.deepcopy(transmission)
     # Initialise the noise dictionary. All the noises are not implemented yet.
     # This needs to be done.
     noise_opt = {
@@ -893,6 +904,60 @@ def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
         out['noises'][i] *= cam_params['qe']
         out['noises'][i] /= cam_params['ad_gain']
         out['noises'][i] *= exp_time    
+
+    # And add the lambertian (FoV and radiometry)
+    try:
+        # Hardcoded for the moment. This should be the % in x and y distance of
+        # the scintillator where the center of the FoV is
+        xsc_percent = 0.4398
+        ysc_percent = 0.5425
+        xsc_min = frame['scintillator'][:,0].min()
+        xsc_max = frame['scintillator'][:,0].max()
+        ysc_min = frame['scintillator'][:,1].min()
+        ysc_max = frame['scintillator'][:,1].max()
+        x_FoV = (xsc_max - xsc_min) * xsc_percent + xsc_min
+        y_FoV = (ysc_max - ysc_min) * ysc_percent + ysc_min
+        opt_center = [x_FoV,y_FoV]
+
+        # Reescale the matrix 
+        transmission.coords['r'] = transmission.coords['r'] * optic_params['beta']\
+            / (cam_params['px_x_size']*1000)
+        
+        # Add FoV to the output 
+        out['FoV_vect'] = [x_FoV,y_FoV,transmission.coords['r'].values.max()]
+        print('FoV (x,y,r): ',out['FoV_vect'])
+        xpix = np.linspace(1,cam_params['nx'],cam_params['nx'])
+        ypix = np.linspace(1,cam_params['ny'],cam_params['ny'])
+        r = xr.DataArray((np.sqrt((xpix-x_FoV)**2+(ypix[:, np.newaxis]-y_FoV)**2)),
+                                    dims=['y', 'x'],
+                                    coords={'y':ypix, 'x':xpix})
+        t = xr.DataArray(np.arctan2((ypix[:, np.newaxis]-opt_center[1]),(xpix-opt_center[0])),
+                                    dims=['y', 'x'],
+                                    coords={'y':ypix, 'x':xpix})
+        
+        # Here we interpolate
+        FoV = transmission.interp(r=r,t=t)
+
+        # plot the filter please
+        fig, ax = plt.subplots(figsize=(7,4))
+        ax.set_aspect(1)
+        FoV.plot.imshow(ax=ax, center=1,
+                cbar_kwargs={"label": 'Relative Illumination','spacing': 'proportional'})
+        fig.suptitle('Optic FoV and radiometry', fontsize=11)
+        ax.set_xlim((0,cam_params['nx']))
+        ax.set_ylim((0,cam_params['ny']))
+        plt.xticks(fontsize=9)   
+        plt.yticks(fontsize=9)
+        ax_param = {'fontsize': 10, \
+                        'xlabel': 'x pix.', 'ylabel': 'y pix.'}
+        ax = ss.plt.axis_beauty(ax, ax_param)
+
+        # Now the nan are not usefull anymore, we want 0 for the filter
+        FoV = FoV.where(FoV >= 0, 0)
+        final_frame *= FoV
+
+    except:
+        print('No FoV')
 
     # NOISES IN THE CAMERA  
     # -----------------------------------------------------------------------
@@ -964,7 +1029,7 @@ def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
     return out
 
 
-def plot_the_frame(frame, plot_smap = True, plot_scint = True,
+def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
                    cam_params: dict={},
                    maxval = True, figtitle = None, smap_val = None):
     """
@@ -996,8 +1061,9 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True,
         max_count = frame_to_plot.max().item()*0.5
 
     # Initialize the plot
-    fig, ax = plt.subplots(
-                figsize=(cam_params['ny']/cam_params['nx']*4+1,4))
+    fig, ax = plt.subplots(figsize=(7,4))
+    ax.set_aspect(1)      
+    
     frame_to_plot.plot.imshow(ax=ax, cmap=ss.plt.Gamma_II(),
                     vmin=0, vmax=max_count,
                     cbar_kwargs={"label": 'Pixel counts','spacing': 'proportional'})
@@ -1008,18 +1074,29 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True,
 
     if plot_scint == True:
         ax.plot(scint_perim[:,0],scint_perim[:,1], color ='w', linewidth=3)
-    ax.set_xlim((0,cam_params['ny']))
-    ax.set_ylim((0,cam_params['nx']))
+
+    if plot_FoV == True:
+        try:
+            ax.scatter(frame['FoV_vect'][0], frame['FoV_vect'][1],
+                    marker='+',s=100,c='lime')
+            FoV = Circle((frame['FoV_vect'][0], frame['FoV_vect'][1]), 
+                         radius=frame['FoV_vect'][2], 
+                         color='lime', fill=False, linewidth=2)
+            ax.add_patch(FoV)
+        except:
+            print('No FoV')
+
+    ax.set_xlim((0,cam_params['nx']))
+    ax.set_ylim((0,cam_params['ny']))
     plt.xticks(fontsize=9)   
     plt.yticks(fontsize=9)
     ax_param = {'fontsize': 10, \
-                    'xlabel': 'y pix.', 'ylabel': 'x pix.'}
+                    'xlabel': 'x pix.', 'ylabel': 'y pix.'}
     ax = ss.plt.axis_beauty(ax, ax_param)
 
     if figtitle != None:
         fig.suptitle(figtitle, fontsize=11)
         
-    fig.tight_layout()
     plt.show()
 
     return fig, ax
@@ -1049,8 +1126,8 @@ def plot_noise_contributions(frame, cam_params: dict={}, reescalate = 1):
     for i in frame['noises']:
         if i != 'broken':
             frame_to_plot = frame['noises'][i]
-            fig, ax = plt.subplots(
-                figsize=(cam_params['ny']/cam_params['nx']*4+1,4))
+            fig, ax = plt.subplots(figsize=(7,4))
+            ax.set_aspect(1)   
             frame_to_plot.plot.imshow(ax=ax, cmap=ss.plt.Gamma_II(),
                     vmin=0, vmax=max_count,
                     cbar_kwargs={"label": 'Pixel counts','spacing': 'proportional'})
@@ -1058,21 +1135,20 @@ def plot_noise_contributions(frame, cam_params: dict={}, reescalate = 1):
             bw_cmap =  LinearSegmentedColormap.from_list(
                 'mycmap', ['black', 'white'], N=2)
             frame_to_plot = frame['noises'][i]
-            fig, ax = plt.subplots(
-                figsize=(cam_params['ny']/cam_params['nx']*4+1,4))
+            fig, ax = plt.subplots(figsize=(7,4))
+            ax.set_aspect(1)   
             frame_to_plot.plot.pcolormesh(ax=ax, cmap=bw_cmap,
                     vmin=0, vmax=1,
                     cbar_kwargs={"label": '','spacing': 'proportional'})
         
-        ax.set_xlim((0,cam_params['ny']))
-        ax.set_ylim((0,cam_params['nx']))
+        ax.set_xlim((0,cam_params['nx']))
+        ax.set_ylim((0,cam_params['ny']))
         plt.xticks(fontsize=9)   
         plt.yticks(fontsize=9)
         ax_param = {'fontsize': 10, \
-                        'xlabel': 'y pix.', 'ylabel': 'x pix.'}
+                        'xlabel': 'x pix.', 'ylabel': 'y pix.'}
         ax = ss.plt.axis_beauty(ax, ax_param)
         fig.suptitle(i, fontsize=11)    
-        fig.tight_layout()      
 
     plt.show()
  
