@@ -1,7 +1,22 @@
 # 1.3.7 D3D implementation
+## General
+- Minor potential bug fixes and documentation implementation
+## Simulation codes
 - geometry.plot routines now accept element_to_plot integer, no need of array
+## Fast channel
+- Fast channel library rewritten. New spectograms using new scipy core
+- New baseline correction
+- New plotting
 ## Video library:
-- BVO has now an attribute path with the name of the path loaded inside
+- Default limit size for loading video files increased from 2 to 3 Gb
+- New library to read D3D videos
+## Mapping library
+- Homomorphic calibrations implemented
+## Tomography library
+- Added methods to collapse/restore 5D arrays into 2D (Orbits weights)
+- Added methods to collapse/restore 3D arrays into 1D (Orbits F)
+- Added a non-negative projective tikhonov inversor
+
 
 # 1.3.6 Updated fild export
 - Updated pip requirements

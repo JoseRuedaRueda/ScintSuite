@@ -1,4 +1,5 @@
 """Calibration and database objects."""
+import os
 import logging
 import numpy as np
 import xarray as xr
@@ -26,48 +27,51 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 0,
         verbose is no longer used
 
     :return database: Pandas dataframe with the database
+
+    :raise errors.NotValidInput: if filename does not point to a file or a folder
     """
-    data = {'CalID': [], 'camera': [], 'shot1': [], 'shot2': [],
-            'xshift': [], 'yshift': [], 'xscale': [], 'yscale': [],
-            'deg': [], 'cal_type': [], 'diag_ID': [], 'c1': [],
-            'xcenter': [], 'ycenter': []}
-
-    # Read the file
-    try:
-        database = pd.read_csv(filename, skiprows=n_header, delim_whitespace=True)
-    except pd.errors.ParserError:
-        database = {}
-    # There are several ways of calling the colums, as some users have a
-    # different format. This is a way to make it compatible with all of them
-    acepted = {
-        'CalID': ['CalID', 'ID', 'cal_ID', 'calID',
-                  '#CalID','#id', '#ID', '#Cal_ID', '#CAL_ID'],
-        'camera': ['camera', 'cam', 'cam_1', 'cam_1_1', 'CAMERA'],
-        'shot1': ['shot1', 'shot', 'shot_1', 'shot1_1', 'PULSE_1', 'SHOT1', 'PULSE1'],
-        'shot2': ['shot2', 'shot_2', 'shot1_2', 'PULSE_2', 'SHOT2', 'PULSE2'],
-        'xshift': ['xshift', 'x_shift', 'x_shift_1', 'Xsh', 'XS', 'XSHIFT'],
-        'yshift': ['yshift', 'y_shift', 'y_shift_1', 'Ysh', 'YS', 'YSHIFT'], 
-        'xscale': ['xscale', 'x_scale', 'x_scale_1', 'Xsc', 'XSCALE', 'X_SCALE'], 
-        'yscale': ['yscale', 'y_scale', 'y_scale_1', 'Ysc', 'YSCALE', 'Y_SCALE'],
-        'deg': ['DEG', 'Deg'],
-        'cal_type': ['CAL', 'CALTYPE', 'CAL_TYPE'],
-        'diag_ID': ['diag_ID', 'diagID', 'diag', 'diag_1', 'diag_1_1', 
-                    'FILD_ID', 'fild_ID'], 
-        'c1': ['c1', 'c1_1', 'c1_2'],
-        'xcenter': ['xcenter', 'x_center', 'x_center_1', 'Xc'], 
-        'ycenter': ['ycenter', 'y_center', 'y_center_1', 'Yc'],
-        'nxpix': ['nxpix', 'nxpix_1', 'nxpix_1_1'],
-        'nypix': ['nypix', 'nypix_1', 'nypix_1_1'],
-        'type': ['type'],
-        }
-    for k in database.keys():
-        for k2 in acepted.keys():
-            if k in acepted[k2]:
-                database[k2] = database.pop(k)
-    if 'CalID' not in database.keys() and 'camera' not in database.keys():
-        n_header += 1
-        database = readCameraCalibrationDatabase(filename, n_header=n_header)
-
+    if os.path.isfile(filename):
+        # ASDEX like calibration files, a txt with things
+        # Read the file
+        try:
+            database = pd.read_csv(filename, skiprows=n_header, sep = '\s+')
+        except pd.errors.ParserError:
+            database = {}
+        # There are several ways of calling the colums, as some users have a
+        # different format. This is a way to make it compatible with all of them
+        acepted = {
+            'CalID': ['CalID', 'ID', 'cal_ID', 'calID',
+                    '#CalID','#id', '#ID', '#Cal_ID', '#CAL_ID'],
+            'camera': ['camera', 'cam', 'cam_1', 'cam_1_1', 'CAMERA'],
+            'shot1': ['shot1', 'shot', 'shot_1', 'shot1_1', 'PULSE_1', 'SHOT1', 'PULSE1'],
+            'shot2': ['shot2', 'shot_2', 'shot1_2', 'PULSE_2', 'SHOT2', 'PULSE2'],
+            'xshift': ['xshift', 'x_shift', 'x_shift_1', 'Xsh', 'XS', 'XSHIFT'],
+            'yshift': ['yshift', 'y_shift', 'y_shift_1', 'Ysh', 'YS', 'YSHIFT'], 
+            'xscale': ['xscale', 'x_scale', 'x_scale_1', 'Xsc', 'XSCALE', 'X_SCALE'], 
+            'yscale': ['yscale', 'y_scale', 'y_scale_1', 'Ysc', 'YSCALE', 'Y_SCALE'],
+            'deg': ['DEG', 'Deg'],
+            'cal_type': ['CAL', 'CALTYPE', 'CAL_TYPE'],
+            'diag_ID': ['diag_ID', 'diagID', 'diag', 'diag_1', 'diag_1_1', 
+                        'FILD_ID', 'fild_ID'], 
+            'c1': ['c1', 'c1_1', 'c1_2'],
+            'xcenter': ['xcenter', 'x_center', 'x_center_1', 'Xc'], 
+            'ycenter': ['ycenter', 'y_center', 'y_center_1', 'Yc'],
+            'nxpix': ['nxpix', 'nxpix_1', 'nxpix_1_1'],
+            'nypix': ['nypix', 'nypix_1', 'nypix_1_1'],
+            'type': ['type'],
+            }
+        for k in database.keys():
+            for k2 in acepted.keys():
+                if k in acepted[k2]:
+                    database[k2] = database.pop(k)
+        if 'CalID' not in database.keys() and 'camera' not in database.keys():
+            n_header += 1
+            database = readCameraCalibrationDatabase(filename, n_header=n_header)
+    elif os.path.isdir(filename):
+        # Homomorfic database, one file per shot range
+        database = filename
+    else:
+        raise errors.NotValidInput('The filename does not point to folders or files')
     return database
 
 
@@ -344,6 +348,8 @@ class CalParams:
         self.nypix = 0
         ## used calibration method
         self.type = ''
+        ## homomorphism matrix (for homomorphic calibration)
+        self.H = None
 
     def print(self):
         """
@@ -393,6 +399,8 @@ class CalParams:
         with netcdf.netcdf_file(filename, 'w') as f:
             # Create the dimensions for the variables:
             f.createDimension('number', 1)  # For numbers
+            f.createDimension('i', 3)  # For matrices
+            f.createDimension('j', 3)  # For matrices
             # Save the calibration
             xscale = f.createVariable('xscale', 'float64', ('number', ))
             xscale[:] = self.xscale
@@ -450,4 +458,8 @@ class CalParams:
             type = f.createVariable('type', 'S1', ('number', ))
             type[:] = self.type
             type.long_name = 'type of the used calibration'
+
+            H = f.createVariable('H', 'float64', ('i', 'j'))
+            H[:] = self.H
+            H.long_name = 'Homomorphism matrix'
             

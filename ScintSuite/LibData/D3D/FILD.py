@@ -50,8 +50,6 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
 
     Jose Rueda Rueda: 
 
-    Note AUG criteria of organising files is assumed: .../38/38760/...
-
     :param  shot: shot number
     :param  diag_ID: FILD manipulator number
 

@@ -92,6 +92,18 @@ class EFIT:
         self['ZMID'] = (self['Z'][0]+
                         self['Z'][-1])/2.0          # Center of Z grid (zero)
 
+        # Get the rhopol and q profile
+        ntimes, nrho = self['FPOL'].shape
+        psi_arr = np.zeros((ntimes, nrho))
+        rho = np.zeros((ntimes, nrho))
+
+        for i in range(ntimes):
+            psi_arr[i, :] = np.linspace(self['SSIMAG'][i], self['SSIBRY'][i], nrho)
+            rho[i, :] = np.sqrt(np.abs(psi_arr[i, :]-self['SSIMAG'][i])/np.abs(self['SSIBRY'][i]-self['SSIMAG'][i]))
+        self['RHOPOL'] = rho.mean(axis=0) # By construction, rhopol is the same for all times
+        # self['RHOPOL'] = rho
+        self['Q'] = c.get('\QPSI').data()
+        self['q'] = None
         c.closeTree(efit, shot)
         logger.debug('nr: %i'%self['nR'])
         logger.debug('nz: %i'%self['nR'])
@@ -156,6 +168,16 @@ class EFIT:
 
         return
     
+    def calculate_q_interpolator(self):
+        """
+        Calculate the q interpolator
+        """
+        q = RegularGridInterpolator((self['GTIME'], self['RHOPOL']), self['Q'],
+                                    method='cubic', fill_value=0.0, 
+                                    bounds_error=False,)
+        self['q'] = q
+        return
+    
     def Bfield(self, time, r, z):
         """
         Calculate the B field at a given time and position
@@ -182,4 +204,17 @@ class EFIT:
         bt = np.asarray(rc(time)*bc(time)/r)
         return br, bz, bt
 
+    def q(self, time, rhopol):
+        """
+        Calculate the q profile at a given time and rhopol
+
+        :param time: time to calculate the q profile
+        :param rhopol: rhopol to calculate the q profile
+
+        :return: q profile at the given time and rhopol
+        """
+        if self['q'] is None:
+            self.calculate_q_interpolator()
+        
+        return self['q']((time, rhopol))
 

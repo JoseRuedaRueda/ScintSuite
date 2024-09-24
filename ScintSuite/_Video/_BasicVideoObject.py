@@ -211,7 +211,7 @@ class BVO:
             else:
                 print('Looking in the folder: ', file)
                 if not os.path.isdir(file):
-                    raise Exception(file + ' not found')
+                    raise FileNotFoundError(file + ' not found')
                 ## path to the file
                 self.path = file
                 # Do a quick run for the folder looking of .tiff or .png files
@@ -285,7 +285,7 @@ class BVO:
     # --- Manage Frames
     # --------------------------------------------------------------------------
     def read_frame(self, frames_number=None, limitation: bool = True,
-                   limit: int = 2048, internal: bool = True, t1: float = None,
+                   limit: int = 3072, internal: bool = True, t1: float = None,
                    t2: float = None, threshold_saturation: float = 0.95,
                    verbose: bool = True):
         """

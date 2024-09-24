@@ -189,6 +189,13 @@ def _readSmapSINPA(filename: str):
             )
         #
         header['shape'] = (header['nalpha'], header['ngyroradius'])
+        # Check that the points are in radius order
+        ascendent = all(header['unique_R0'][i] <= header['unique_R0'][i+1] for i in range(len(header['unique_R0']) - 1))
+        descendent = all(header['unique_R0'][i] >= header['unique_R0'][i+1] for i in range(len(header['unique_R0']) - 1))
+        if not (ascendent or descendent):
+            logger.warning('The radius in the Smap are not in order. Funny things can happen during plotting')
+            
+
     elif header['diagnostic'] == 'FILD':  # for FILD just the pitch
         header['unique_pitch'] = np.unique(data['pitch'].data)
         header['npitch'] = header['unique_pitch'].size

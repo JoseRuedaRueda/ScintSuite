@@ -307,7 +307,7 @@ def E2v(E, A: float = 2.014):
     Return the modulus of the velocity of a particle, given its energy and mass
 
     :param E: Energy of the particle in keV
-    :param A: mass of the marticle in atomic mass unit
+    :param A: mass of the marticle in atomic mass units
     """
     return np.sqrt(2.0*(1000.0 * E *constants.e)/(A*constants.atomic_mass))
     

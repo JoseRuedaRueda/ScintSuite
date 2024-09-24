@@ -147,3 +147,11 @@ def gkern(l=int(4.5*6)+1, sig=4.5):
     gauss = np.exp(-0.5 * np.square(ax) / np.square(sig))
     kernel = np.outer(gauss, gauss)
     return kernel / np.sum(kernel)
+
+def smooth(y, box_pts,mode='same'):
+    """
+    Smooth signals, just convoluting it with a box
+    """
+    box = np.ones(box_pts)/box_pts
+    y_smooth = np.convolve(y, box, mode=mode)
+    return y_smooth

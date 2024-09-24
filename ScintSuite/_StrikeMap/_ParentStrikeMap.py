@@ -633,6 +633,9 @@ class GeneralStrikeMap(XYtoPixel):
     def variables(self):
         return self._header['variables']['name']
 
+    def keys(self):
+        return self._data.keys()
+
     def __call__(self, name):
         return self._data[name].data
 

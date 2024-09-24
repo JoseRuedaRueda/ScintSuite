@@ -170,11 +170,11 @@ class FILDVideo(FIV):
                 # except AttributeError:
                 #     self.operatorComment = None
                 #     self.overheating = None
-                # try:  # Try to get the camera data
-                #     self.getCameraData(cameraDataFile)
-                # except FileNotFoundError:
-                #     self.CameraData = None
-                pass
+                #try:  # Try to get the camera data
+                #    self.getCameraData(cameraDataFile)
+                #except FileNotFoundError:
+                #    self.CameraData = None
+                #    pass
             else:
                 self.position = None
                 self.orientation = None

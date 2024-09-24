@@ -85,6 +85,16 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             header['FILDSIMmode'] = \
                 np.fromfile(fid, 'int32', 1)[0].astype(bool)
             header['ncolumns'] = np.fromfile(fid, 'int32', 1)[0]
+            # print some debug information
+            logger.debug('RunID: %s'%header['runID'])
+            logger.debug('ngyr: %i'%header['ngyr'])
+            printlog = [str(g) for g in header['gyroradius']]
+            logger.debug('gyroradius: %s'% ', '.join(printlog))
+            logger.debug('nXI: %s'%header['nXI'])
+            printlog = [str(g) for g in header['XI']]
+            logger.debug('XI: %s'% ', '.join(printlog))
+            logger.debug('FILDSIMmose: %s'%header['FILDSIMmode'])
+            logger.debug('Number of stored columns: %i'%header['ncolumns'])
             if header['versionID1'] >= 4 and plate.lower()!='collimator':
                 header['kindOfFile'] = np.fromfile(fid, 'int32', 1)[0]
             header['counters'] = \
@@ -1972,7 +1982,7 @@ class Strikes:
                                            zs * factor))
         return file_name_save
 
-    
+
     def exportHistograms(self, folder: str = 'Remaps', 
                           overwrite: bool = False) -> str:
         """
@@ -2003,6 +2013,20 @@ class Strikes:
             exportVersion(filename)
         return folder
 
+    def exportVariables(self, file: str, vars: list,
+                        overwrite: Optional[bool] = False):
+        """
+        Export a set of variable to an netCDF object
+        """
+        dummy = xr.Dataset()
+        for var in vars:
+            dummy[var] = self(var)
+        if not os.path.isfile(file) or overwrite:
+            logger.info('Saving into file: %s'%file)
+            dummy.to_netcdf(file)
+        else:
+            logger.warning('File exist, doing nothing')
+        return
     # -------------------------------------------------------------------------
     # --- remap
     # -------------------------------------------------------------------------
