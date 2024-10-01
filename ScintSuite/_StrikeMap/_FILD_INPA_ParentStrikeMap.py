@@ -14,6 +14,7 @@ import ScintSuite.errors as errors
 import ScintSuite._Plotting as ssplt
 from tqdm import tqdm
 from ScintSuite._Paths import Path
+from ScintSuite._SideFunctions import createGrid
 from ScintSuite.decorators import deprecated
 from ScintSuite._basicVariable import BasicVariable
 from ScintSuite._Mapping._Common import _fit_to_model_
@@ -726,6 +727,68 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 # Update the header
                 strikes.header['info'].update(extra_column)
 
+    def  calculate_phaseSpace_to_pixelMatrix(self, gridPhaseSpace, gridPixel,
+                                             limitation: float = 10.0,
+                                             MC_number=300):
+        """
+        Calculate the transformation like matrix to go from the remap to the camera frame
+        
+        
+        """
+        # First calcualte the interpolators from phase space to pixel
+        # Select the variable to interpolate
+        xvar = self._data[gridPhaseSpace['xname']].data
+        print(xvar.mean())
+        yvar = self._data[gridPhaseSpace['yname']].data
+        print(yvar.mean())
+        gridPhaseSpace.pop('xname')
+        gridPhaseSpace.pop('yname')
+        
+        # Get the pixel position
+        xpix = self._coord_pix['x']
+        ypix = self._coord_pix['y']
+        
+        # Construct the phase space grid
+        nx, ny, xedges, yedges = createGrid(**gridPhaseSpace)
+        nxpix, nypix, xedgespix, yedgespix = createGrid(**gridPixel)
+        
+        # Construct the interpolators
+        interpolatorX = scipy_interp.LinearNDInterpolator(
+            np.column_stack((xvar.flatten(), yvar.flatten())),
+            xpix.flatten()
+        )
+        interpolatorY = scipy_interp.LinearNDInterpolator(
+            np.column_stack((xvar.flatten(), yvar.flatten())),
+            ypix.flatten()
+        )      # 
+        memory_size = nx * ny * nxpix * nypix \
+            * 8 / 1024 / 1024 / 1024
+        if memory_size > limitation:
+            text = 'The requiring matrix will consume %2.1f Gb, this is above'\
+                % memory_size\
+                + 'the threshold. Increase it if you really want to proceed'
+            raise errors.NotValidInput(text)
+        transform = np.zeros((nxpix, nypix, nx, ny), dtype='float64')
+        # Allocate the random number generator
+        rand = np.random.default_rng()
+        generator = rand.uniform
+        # Loop over the grid
+        for i in tqdm(range(nx)):
+            for j in range(ny):
+                # Create a set of MC markers
+                x_markers = generator(xedges[i], xedges[i+1], MC_number)
+                y_markers = generator(yedges[j], yedges[j+1], MC_number)
+                # Calculate the pixel position
+                xpix_markers= interpolatorX(x_markers, y_markers)
+                ypix_markers= interpolatorY(x_markers, y_markers)
+                # Histogram the pixel space
+                H, _, _ = np.histogram2d(xpix_markers, ypix_markers,
+                                         bins=[xedgespix, yedgespix])
+                # Save it in place
+                transform[:, :, i, j] = H.copy()
+        # Normalise the matrix
+        transform /= MC_number
+        return transform
     # --------------------------------------------------------------------------
     # --- Plotting Block
     # --------------------------------------------------------------------------

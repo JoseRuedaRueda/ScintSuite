@@ -134,7 +134,7 @@ class INPAVideo(FIV):
                 self.geometryID = INPAlogbook.getGeomID(shot, diag_ID)
                 self.CameraCalibration = \
                     INPAlogbook.getCameraCalibration(shot, diag_ID)
-                self.operatorComment = INPAlogbook.getComment(shot)
+#                self.operatorComment = INPAlogbook.getComment(shot)
             else:
                 self.position = None
                 self.orientation = None
