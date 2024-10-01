@@ -23,7 +23,7 @@ num_of_gyrotrons = 8  # Number of gyrotrons available in AUG.
 # -----------------------------------------------------------------------------
 #                           FILD PARAMETERS
 # -----------------------------------------------------------------------------
-_fild1 = {'path': '/p/IPP/AUG/rawfiles/FIT/',  # Path for the video files
+_fild1 = {'path': '/shares/experiments/aug-rawfiles/FIT/',  # Path for the video files
           'camera': 'PHANTOM',  # Type of used camera
           'extension': lambda shot:\
           '_v710.cin' if shot < 41202 else '_ID9404.cin',  # Extension of the video
@@ -55,7 +55,7 @@ _fild4 = {'path': '/shares/experiments/aug-rawfiles/FIL/FILD4/',
                                                'R_parking': 2.0824,
                                                'Z_parking': -0.437}}
 
-_fild5 = {'path': '/shares/experiments/aug-rawfiles/FILD5/',
+_fild5 = {'path': '/shares/experiments/aug-rawfiles/FIL/FILD5/',
           'extension': lambda shot: '', 'label': 'FILD5', 'diag': 'FHE',
           'channel': 'Chan-',
           'nch': 64, 'camera': 'CCD'}
