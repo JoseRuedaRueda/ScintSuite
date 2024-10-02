@@ -429,3 +429,48 @@ class Fsmap(FILDINPA_Smap):
         self.instrument_function.attrs['A'] = A
 
         return
+    
+
+    def build_parameters_xarray(self):
+        """
+        Put all the fitting parameters into an xarray to easy the parameter
+        analysis, plotting, and representation
+
+        Alex Reyner Viñolas: alereyvinn@alum.us.es
+
+
+        """
+        # --- Check the StrikeMap
+        if self.strike_points is None:
+            logger.info('Strikes not loaded, loading')
+            self.load_strike_points()
+        if self._resolutions is None:
+            self.calculate_phase_space_resolution()
+
+        # --- Get the names / models of the variables
+        names = [self._resolutions['variables'][k].name for k in range(2)]
+        models = [self._resolutions['model_' + dum] for dum in names]
+        logger.info('Calculating FILD parameters matrix')
+        logger.debug('Applied models: ' + models[0] + ' ' +  models[1])
+
+        # Prepare the parameters we will interpolate:
+        parameters_to_consider = {
+            'Gauss': ['sigma', 'center'],
+            'sGauss': ['sigma', 'gamma', 'center']
+        }
+
+        #  --- Define the x and y coordinates
+        xcoords = self.MC_variables[0].data
+        ycoords = self.MC_variables[1].data
+
+        # --- Build the dataset
+        self.fit_xarray = xr.Dataset(coords={'x':xcoords,'y':ycoords})
+        for i in range(2):
+            name = names[i]
+            model = models[i]
+            for j in parameters_to_consider[model]:
+                dummy = self._resolutions[name][j]
+                self.fit_xarray[name+'_'+j] = (['x','y'],dummy)
+
+        self.fit_xarray['coll_factor'] = (['x','y'],
+                                          self('collimator_factor_matrix'))

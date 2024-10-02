@@ -32,9 +32,9 @@ from matplotlib.patches import Circle
 def read_ASCOT_dist(filename, pinhole_area = None, B=4, A=None, Z=None, 
                     version='5.5'):
     """
-    Read a distribution coming from ASCOT, old (4)
     Read a distribution coming from ASCOT, with pitch in [VII/V] units (5.5)
     Custom read for matlab antique files (matlab)
+    Manual file for delta tipe ion flux
 
     Alex Reyner: alereyvinn@alum.us.es
 
@@ -178,7 +178,11 @@ def read_ASCOT_dist(filename, pinhole_area = None, B=4, A=None, Z=None,
 def obtain_WF(smap, scintillator, efficiency_flag = False, B=4, A=2, Z=2,
               pin_params: dict = {},
               scint_params: dict = {}):
+    '''
+    Just a wrap of things to make it easier
 
+    Alex Reyner: alereyvinn@alum.us.es
+    '''
     # Load the strike points
     smap.load_strike_points()
     # --- Grid for the weight function
@@ -219,14 +223,15 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, plot=False,
                         smooth = False,
                         xmin = None, xmax = None, ymin = None, ymax = None):
     """
-    Generates synthetic signal in both pinhole and scintillator in pr space.
+    Generates synthetic signal in both pinhole and scintillator in pr space
+    using the WF. It's quite fast.
 
     Alex Reyner: alereyvinn@alum.us.es
 
     :param  distro: pinhole distribution, created by one of the routines of 
         this library.
-    :param  WF: weight function xarray generate inthis suite. Please be sure
-        that corresponds to the case you wnat to study.
+    :param  WF: weight function xarray generated in this suite. Please be sure
+        that corresponds to the case you want to study.
     :param  gyrophases: used to renormalize the collimator factor. Range of 
         gyrophases that we consider. Default pi -> range of gyrophases that go 
         inside the pinhole
@@ -236,16 +241,15 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, plot=False,
     :return ssPH: synthetic signal at the pinhole (PH)
     :return ssSC: synthetic signal at the scintillator (SC)
     """
-
     print(' ----- COMPUTING REMAPED SYNTHETIC SIGNAL USING WF -----')
-
+    # Get data values
     x_val = WF.coords['x'].values
     y_val = WF.coords['y'].values
     ssPH = (WF.isel(xs=1, ys=1, drop=True))*0
     xs_val = WF.coords['xs'].values
     ys_val = WF.coords['ys'].values    
     ssSC = (WF.isel(x=1, y=1, drop=True))*0
-
+    # Define quantities
     synthetic_signal={}
     ions_pinhole = 0
     ions_pinhole_lost = 0
@@ -260,14 +264,13 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, plot=False,
         ions_pinhole += weight              
         ions_pinhole_lost += weight
         # Check if the ion is within our phase space
+        p_step = np.abs(x_val[1]-x_val[0])
+        r_step = np.abs(y_val[1]-y_val[0])
         if y_val.min() <= gyro <= y_val.max():
             if x_val.min() <= pitch <= x_val.max():
                 # Find the nearest p-r coordinates in the pinhole
                 p = ssPH.sel(x=pitch, y=gyro, method = 'nearest').x.item()
                 r = ssPH.sel(x=pitch, y=gyro, method = 'nearest').y.item()
-                # Find the steps
-                p_step = (x_val.max()-x_val.min())/(len(x_val)-1)
-                r_step = (y_val.max()-y_val.min())/(len(y_val)-1)
                 # Fill the matrices for pinhole (PH) and scintillator (SC)
                 ssPH.loc[p,r] += weight/p_step/r_step
                 ssSC += (WF.sel(x=p, y=r, drop=True))\
@@ -353,16 +356,13 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, plot=False,
     :return xarray with the signals in the pe space.
     """
     print(' ----- GOING FROM p-r TO p-e SPACE ----- ')
-
     # Synthetic signal input
     ssPH_pr = synthetic_signal['PH']
     ssSC_pr = synthetic_signal['SC']
-
     # Replicate the xarray.
     # Necessary to multiply by one, to "break" the relation between matrices.
-    ssPH_pe = ssPH_pr*1
-    ssSC_pe = ssSC_pr*1
-
+    ssPH_pe = copy.deepcopy(ssPH_pr)
+    ssSC_pe = copy.deepcopy(ssSC_pr)
     # Get the coordinates of the gyroradius and transform them to energy.
     gyroradius = ssPH_pe.coords['y'].values
     energy = get_energy(gyroradius,B=B,A=A,Z=Z)
@@ -375,7 +375,6 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, plot=False,
     # spaced.        
     e_interp=np.linspace(energy.min(),energy.max(),len(energy))
     ssPH_pe = ssPH_pe.interp(y=e_interp, method='cubic')
-
     # Repeat for the scintillator image
     gyroradius = ssSC_pe.coords['ys'].values
     energy = get_energy(gyroradius,B=B,A=A,Z=Z)
@@ -384,13 +383,12 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, plot=False,
         ssSC_pe[:,j] = ssSC_pe[:,j] *gyroradius[j]/(2*energy[j])   
     e_interp=np.linspace(energy.min(),energy.max(),len(energy))
     ssSC_pe = ssSC_pe.interp(ys=e_interp, method='cubic')
-
+    # We don't want <0 values
     ssPH_pe = ssPH_pe.where(ssPH_pe >=0.0, 0)
     ssSC_pe = ssSC_pe.where(ssSC_pe >=0.0, 0)
-
+    # Just a little adjustment
     integral_s = ssSC_pr.integrate('xs').integrate('ys').item()
     integral_s_e = ssSC_pe.integrate('xs').integrate('ys').item()
-
     out = {}
     out['PH'] = ssPH_pe
     out['SC'] = ssSC_pe/integral_s_e*integral_s
@@ -443,9 +441,10 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, plot=False,
 """
 Workflow:
     0. Obtain the distribution and define the inputs 
-    1. Run original_synthsug_xy to map the signal in the scintillator space
+    1. Run original_synthsig_xy to map the signal in the scintillator space
     2. Insert the different noises, optic system and the camera
-       - Option to do it separately or at the same time
+       - Option to do it separately or at the same time (recomended)
+            with noise_optics_camera
 
     - You can plot at any step given the frame and even plot the noises
 """
