@@ -58,15 +58,15 @@ def guessINPAfilename(shot: int, diag_ID: int = 1):
     :return f: the name of the file/folder
     """
     whichinpa = 'inpa%i'%diag_ID
-    name = str(shot)+'_'+whichinpa+'.h5'
-    folder = os.path.join(homeSuite, 'tmpINPAVideos')
+    name = str(shot)+'_'+whichinpa+'.h5'    
+    folder = os.path.join('/local-scratch', os.getenv('USER'), 'tmpINPAVideos')
+    if not os.path.isdir(folder):
+        os.makedirs(folder)
     fileName = os.path.join(folder, name)
     if not os.path.isfile(fileName):
         getfiles(shot,whichinpa,output_dir=folder,
                   specific_file=name,
                   force_flag=False)
-        #os.system('python /fusion/usc/src/s3-pure/s3get_pure.py -s '+str(shot)+
-        #            ' -d '+' '+ whichinpa +' '+' -f ' +name+' -o ' + folder)
     return fileName
 
 

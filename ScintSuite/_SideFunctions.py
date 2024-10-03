@@ -148,6 +148,7 @@ def gkern(l=int(4.5*6)+1, sig=4.5):
     kernel = np.outer(gauss, gauss)
     return kernel / np.sum(kernel)
 
+
 def smooth(y, box_pts,mode='same'):
     """
     Smooth signals, just convoluting it with a box

@@ -4,6 +4,7 @@ Routines to analyse a time signal in the frequency domain
 Include band signal and other filtres aimed to reduce the noise
 """
 import numpy as np
+import xarray as xr
 import heapq
 import logging
 import scipy.signal as signal
@@ -1226,7 +1227,7 @@ def coherence(time1, data1, data2, nfft=2048, overlap=1024, smoothfq=1.0):
     sampling = np.floor(1/((np.max(time1)-np.min(time1))/np.shape(time1)))
     logger.info('Sampling rate is: %i Hz'%sampling)
     nsmooth = int(1e3*smoothfq/sampling*nfft)
-    logger.info('Amoothing at: %i'%nsmooth)
+    logger.info('Smoothing at: %i'%nsmooth)
     # Check if the overlap is correct
     if overlap/float(nfft) == 0:
        ngp = np.floor(len(data1)/float(nfft)).astype('int')
@@ -1259,7 +1260,7 @@ def coherence(time1, data1, data2, nfft=2048, overlap=1024, smoothfq=1.0):
     pxy = np.zeros((ngp,nfft),dtype=complex)
     for i in range(ngp):
         f, pxy_tmp = signal.csd(d1[i,:], d2[i,:],
-                fs=sampling,nperseg=nfft,noverlap=overlap,detrend='linear',window='hann',
+                fs=sampling,nperseg=nfft,noverlap=overlap,detrend=False,window='hann',
                 return_onesided=False,scaling='density')
         if smoothfq >0:
         #    logger.debug('Size prior smoothing: %i'%pxy_tmp.size)
@@ -1270,7 +1271,7 @@ def coherence(time1, data1, data2, nfft=2048, overlap=1024, smoothfq=1.0):
     pxx = np.zeros((ngp,nfft),dtype=complex)
     for i in range(ngp):
         f, pxx_tmp = signal.csd(d1[i,:], d1[i,:],
-                fs=sampling,nperseg=nfft,noverlap=overlap,detrend='linear',window='hann',
+                fs=sampling,nperseg=nfft,noverlap=overlap,detrend=False,window='hann',
                 return_onesided=False,scaling='density')
         if smoothfq >0:
            pxx[i,:] = smooth(pxx_tmp,nsmooth)
@@ -1280,7 +1281,7 @@ def coherence(time1, data1, data2, nfft=2048, overlap=1024, smoothfq=1.0):
     pyy = np.zeros((ngp,nfft),dtype=complex)
     for i in range(ngp):
         f, pyy_tmp = signal.csd(d2[i,:], d2[i,:],
-                fs=sampling,nperseg=nfft,noverlap=overlap,detrend='linear',window='hann',
+                fs=sampling,nperseg=nfft,noverlap=overlap,detrend=False,window='hann',
                 return_onesided=False,scaling='density')
         if smoothfq >0:
            pyy[i,:]= smooth(pyy_tmp,nsmooth)
@@ -1292,15 +1293,22 @@ def coherence(time1, data1, data2, nfft=2048, overlap=1024, smoothfq=1.0):
     conf = np.zeros((c_ngp,nfft))
     theta = np.zeros((c_ngp,nfft))
     t_coh = np.zeros(c_ngp)
-    fq = f/f.max()*(sampling/2.)/1e3
-
+    fq = f/f.max()*(sampling/2.)
+    df = sampling/nfft
+    # The factor /(np.sum(np.hanning(nfft))/nfft) (which is bassically a 2)
+    # is included to correct the change of amplitude produced by the hanning
+    # window. @ToDo: check if the 2 correct the amplitude of energy, I never
+    # remember.
+    # In any case, at the end of the day, one alwasys compare ratio, so, if the
+    # 2 elements compared use the same number of nfft, the factor is irrelevant.
+    realmag1 = np.sqrt(np.abs(pxx))/(np.sum(np.hanning(nfft))/nfft)
+    realmag2 = np.sqrt(np.abs(pyy))/(np.sum(np.hanning(nfft))/nfft)
     if smoothfq==0:
-       return time,fq,pxy,pxx,pyy,t_coh,coh,theta
-
+        confd = 0.0
+        pass
+        #return time,fq,pxy,pxx,pyy,t_coh,coh,theta
     else:
        for i in range(c_ngp):
-#           i1 = int(i*(n_ensemble+1)/2.)
-#           i2 = i1+n_ensemble
            coh[i,:] \
                = np.abs(pxy[i,:])/np.sqrt(np.abs(pxx[i,:])*np.abs(pyy[i,:]))
    
@@ -1309,5 +1317,25 @@ def coherence(time1, data1, data2, nfft=2048, overlap=1024, smoothfq=1.0):
        t_coh = time
        logger.info('0.95 confidence level: %f'%confd)
    
-       return time,fq,pxy,pxx,pyy,t_coh,coh,theta,sampling
-
+    # Move to a dataset
+    out = xr.Dataset()
+    out['pxx'] = xr.DataArray(pxx,dims=['t', 'f',],
+                                coords = {'f':fq,'t':time})
+    out['pyy'] = xr.DataArray(pyy,dims=['t', 'f',],)
+    out['pxy'] = xr.DataArray(pxy,dims=['t', 'f',],)
+    out['coherence'] = xr.DataArray(coh,dims=['t', 'f',],)
+    out['phase'] = xr.DataArray(theta,dims=['t', 'f',],)
+    out['realmag1'] = xr.DataArray(realmag1,dims=['t', 'f',],)
+    out['realmag2'] = xr.DataArray(realmag2,dims=['t', 'f',],)
+    out.attrs['sampling'] = sampling
+    out.attrs['confidence_threshold'] = confd
+    out.attrs['smoothfq'] = smoothfq
+    out.attrs['nfft'] = nfft
+    out.attrs['overlap'] = overlap
+    out['realmag1'].attrs['description'] = 'Real power spectral density of signal 1'
+    out['realmag2'].attrs['description'] = 'Real power spectral density of signal 2'
+    out['f'].attrs['units'] = 'Hz'
+    out['f'].attrs['long_name'] = 'Frequency'
+    out['t'].attrs['units'] = 's'
+    out['t'].attrs['long_name'] = 'Time'
+    return out.sortby('f')

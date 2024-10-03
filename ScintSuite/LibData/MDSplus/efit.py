@@ -82,6 +82,8 @@ class EFIT:
         self['RZERO'] = c.get('\RZERO').data()      # R at center of LCFS
         self['FPOL'] = c.get('\FPOL').data()        # Poloidal current func
                                                         # F = R * Bt?
+        self['AMINOR'] = c.get('\AMINOR').data()    # Minor radius
+        self['KAPPA'] = c.get('\KAPPA').data()      # Elongation
         self['LIM'] = c.get('\LIM').data()          # R,Z of limiter
         self['RMAXIS'] = c.get('\RMAXIS').data()    # R-coord of mag axis
         self['ZMAXIS'] = c.get('\ZMAXIS').data()    # Z-coord of mag axis
@@ -108,8 +110,7 @@ class EFIT:
         logger.debug('nr: %i'%self['nR'])
         logger.debug('nz: %i'%self['nR'])
         logger.debug('psi shape: (%i, %i, %i)'%self['PSIRZ'].shape)
-
-        
+       
     def closest_time(self, time):
         """
         Sets data retrieval to give output for the time closest to given.

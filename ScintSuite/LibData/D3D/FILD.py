@@ -57,11 +57,10 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
     """
     h5_path = '{}_F{}.h5'
     Fn = ['','L','M']  
-    folder = os.path.join(homeSuite, 'tmpFILDVideos')
+    folder = os.path.join('/local-scratch', os.getenv('USER'), 'tmpFILDVideos')
     if not os.path.isdir(folder):
         os.makedirs(folder)
-    fileName = os.path.join(homeSuite, 
-                            'tmpFILDVideos',
+    fileName = os.path.join(folder,
                             h5_path.format(shot,Fn[diag_ID]))
     if not os.path.isfile(fileName):
         getfiles(shot,'fild',output_dir=folder,
@@ -207,17 +206,17 @@ class FILD_logbook:
             (self.CameraCalibrationDatabase['diag_ID'] == diag_ID)
         # --- Be sure that there is only one entrance
         n_true = sum(flags)
-
+        cal = CalParams()
+        
         if n_true == 0:
-            raise errors.NotFoundCameraCalibration(
-                'No entry find in the database, revise database')
+            logger.warning('No entry find in the database, revise database')
+
         elif n_true > 1:
             print('Several entries fulfill the condition')
             print('Possible entries:')
             print(self.data['CalID'][flags])
             raise errors.FoundSeveralCameraCalibration()
         else:
-            cal = CalParams()
             row = self.CameraCalibrationDatabase[flags]
             cal.xscale = row.xscale.values[0]
             cal.yscale = row.yscale.values[0]
