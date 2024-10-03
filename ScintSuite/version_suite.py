@@ -6,8 +6,8 @@ import numpy as np
 from ScintSuite._Machine import machine
 from ScintSuite._Paths import Path
 
-version = '1.3.6'
-codename = 'PIPas con sal'
+version = '1.3.8'
+codename = 'Pestiño'
 
 logger = logging.getLogger('ScintSuite.Version')
 

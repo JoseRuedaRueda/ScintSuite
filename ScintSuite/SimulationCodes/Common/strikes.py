@@ -84,7 +84,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             header['XI'] = np.fromfile(fid, 'float64', header['nXI'])
             header['FILDSIMmode'] = \
                 np.fromfile(fid, 'int32', 1)[0].astype(bool)
-            header['ncolumns'] = np.fromfile(fid, 'int32', 1)[0]
+            header['ncolumns'] = np.fromfile(fid, 'int32', 1)[0
             # print some debug information
             logger.debug('RunID: %s'%header['runID'])
             logger.debug('ngyr: %i'%header['ngyr'])
@@ -118,6 +118,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             else:
                 key_to_look = 'sinpa_INPA'
             while not found_header:
+
                 if header['versionID1'] < 4:
                     try:
                         header['info'] = deepcopy(
