@@ -7,6 +7,7 @@ Introduced in version 6.0.0
 """
 import os
 import f90nml
+import logging
 import numpy as np
 # import math Lib/SimulationCodes/Common
 import ScintSuite.SimulationCodes.SINPA._reading as reading
@@ -16,7 +17,7 @@ from ScintSuite._Machine import machine
 from ScintSuite._Paths import Path
 import ScintSuite.errors as errors
 paths = Path(machine)
-
+logger = logging.getLogger('ScintSuite.SINPA')
 
 def guess_strike_map_name(phi: float, theta: float, geomID: str = 'AUG02',
                           decimals: int = 1):
@@ -298,6 +299,10 @@ def write_namelist(nml, p=None, overwrite=True):
                     noMecabeFlag = nml['config'][keys_config[ik]] != \
                         len(nml['inputParams'][keys_input[ik2]])
                     if noMecabeFlag:
+                        logger.error('Size of XI is %i while nxi is %i'%(
+                            len(nml['inputParams'][keys_input[ik2]]),
+                            nml['config'][keys_config[ik]]
+                        ))
                         raise errors.WrongNamelist('Revise n of xi')
         elif k == 'runid':
             if len(nml['config'][keys_config[ik]]) > 50:
@@ -346,7 +351,7 @@ def check_files(runID: str):
     return go
 
 
-def executeRun(runID: str, queue: bool = False, cluster: str = 'MPCDF',
+def executeRun(runID: str = None, queue: bool = False, cluster: str = 'MPCDF',
                namelistFile: str = None):
     """
     Execute a SINPA simulation

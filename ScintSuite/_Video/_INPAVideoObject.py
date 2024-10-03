@@ -12,6 +12,7 @@ Introduced in version 0.8.0
 import os
 import math
 import logging
+import f90nml
 import numpy as np
 import xarray as xr
 import tkinter as tk
@@ -111,7 +112,7 @@ class INPAVideo(FIV):
                  diag_ID: int = 1, empty: bool = False,
                  logbookOptions: dict = {}, Boptions: dict = {},
                  verbose: bool = True, loadPlasmaData: bool = True,
-                 YOLO: bool = True):
+                 YOLO: bool = True, cameraDataFile: str = None):
         """Initialise the class."""
         if not empty:
             # Guess the filename:
@@ -164,10 +165,14 @@ class INPAVideo(FIV):
             if loadPlasmaData and self.shot is not None:
                 self._getNe()
                 self._getNBIpower()
+            # Load special camera data if needed:
+            if cameraDataFile is not None:
+                self.CameraData = f90nml.read(cameraDataFile)['camera']
             if verbose:
                 if self.operatorComment is not None:
                     print('--- INPA Operator comment:')
                     print(self.operatorComment[0][0])
+            
         else:
             FIV.__init__(self, empty=empty)
 
@@ -233,6 +238,19 @@ class INPAVideo(FIV):
             -# sprofx: signal integrated over the y range given by options
             -# sprofy: signal integrated over the x range given by options
         """
+        default_options = {                         
+                           'ymin': 10.0,
+                           'ymax': 100.0, 
+                           'dy': 2.0,
+                           'xmin': 1.4, 
+                           'xmax': 2.5,
+                           'dx': 0.02,
+                           'method': 1,
+                           'decimals': 0,
+                           'remap_method':  'centers',
+                           'variables_to_remap': ('R0', 'e0'),
+        }
+        options.update(default_options)
         # Destroy the previous dataset, if there was some
         if self.remap_dat is not None:
             self.remap_dat = None

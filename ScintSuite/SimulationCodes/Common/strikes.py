@@ -72,7 +72,8 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             'versionID1': np.fromfile(fid, 'int32', 1)[0],
             'versionID2': np.fromfile(fid, 'int32', 1)[0],
         }
-        logger.info('SINPA version: %i,%i'%(header['versionID1'],
+        logger.info('File %s'%filename)
+        logger.info('SINPA version: %i.%i'%(header['versionID1'],
                                             header['versionID2']))
         if header['versionID1'] <= 4:
             # Keys of what we have in the file:
@@ -83,8 +84,18 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             header['XI'] = np.fromfile(fid, 'float64', header['nXI'])
             header['FILDSIMmode'] = \
                 np.fromfile(fid, 'int32', 1)[0].astype(bool)
-            header['ncolumns'] = np.fromfile(fid, 'int32', 1)[0]
-            if header['versionID1'] >= 4 and plate.lower() != 'collimator': 
+            header['ncolumns'] = np.fromfile(fid, 'int32', 1)[0
+            # print some debug information
+            logger.debug('RunID: %s'%header['runID'])
+            logger.debug('ngyr: %i'%header['ngyr'])
+            printlog = [str(g) for g in header['gyroradius']]
+            logger.debug('gyroradius: %s'% ', '.join(printlog))
+            logger.debug('nXI: %s'%header['nXI'])
+            printlog = [str(g) for g in header['XI']]
+            logger.debug('XI: %s'% ', '.join(printlog))
+            logger.debug('FILDSIMmose: %s'%header['FILDSIMmode'])
+            logger.debug('Number of stored columns: %i'%header['ncolumns'])
+            if header['versionID1'] >= 4 and plate.lower()!='collimator':
                 header['kindOfFile'] = np.fromfile(fid, 'int32', 1)[0]
             header['counters'] = \
                 np.zeros((header['nXI'], header['ngyr']), int)
@@ -120,17 +131,20 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
                     if id_version < 0:
                         raise Exception('Not undestood SINPA version')
                 else:
-                    try:
-                        if plate.lower() != 'collimator':
+                    if plate.lower() != 'collimator':
+                        try:
                             header['info'] = deepcopy(
                                 order[key_to_look][id_version][plate.lower()][header['kindOfFile']])
                             found_header = True
-                        else:
+                        except KeyError:
+                            id_version -= 1
+                    else:
+                        try:
                             header['info'] = deepcopy(
                                 order[key_to_look][id_version][plate.lower()])
                             found_header = True
-                    except KeyError:
-                        id_version -= 1
+                        except KeyError:
+                            id_version -= 1
                     # if the id_version is already -1, just stop, something
                     # went wrong
                     if id_version < 0:
@@ -193,7 +207,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
                 header['ScintillatorYieldParameters'] = \
                     np.fromfile(fid, 'float64', 2)
         # Calculate the radial position if it is a INPA simulation
-        if not header['FILDSIMmode']:
+        if not header['FILDSIMmode'] and plate.lower() != 'collimator':
             iix = header['info']['x0']['i']
             iiy = header['info']['y0']['i']
             for ig in range(header['ngyr']):
@@ -256,11 +270,8 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
         except FileNotFoundError:
             header['geomID'] = None
             logger.warning('Not found SINPA namelist')
-        logger.info('File %s'%filename)
         logger.info('Total number of strike points: %i'%
                     np.sum(header['counters']))
-        logger.info('SINPA version: %i,%i'%(header['versionID1'],
-                                            header['versionID2']))
         logger.info('Average number of strike points per centroid: %i'%
                   int(header['counters'].mean()))
         return header, data
@@ -1972,7 +1983,7 @@ class Strikes:
                                            zs * factor))
         return file_name_save
 
-    
+
     def exportHistograms(self, folder: str = 'Remaps', 
                           overwrite: bool = False) -> str:
         """
@@ -1994,7 +2005,7 @@ class Strikes:
             if os.path.isfile(filename) and not overwrite:
                 logger.warning('File %s already exists! Not saving' % filename)
                 continue
-            histogram.to_netCDF(filename, format='NETCDF4')
+            histogram.to_netcdf(filename, format='NETCDF4')
         # --- Export the version of the suite
         filename = os.path.join(folder, 'version.txt')
         if os.path.isfile(filename) and not overwrite:
@@ -2003,6 +2014,20 @@ class Strikes:
             exportVersion(filename)
         return folder
 
+    def exportVariables(self, file: str, vars: list,
+                        overwrite: Optional[bool] = False):
+        """
+        Export a set of variable to an netCDF object
+        """
+        dummy = xr.Dataset()
+        for var in vars:
+            dummy[var] = self(var)
+        if not os.path.isfile(file) or overwrite:
+            logger.info('Saving into file: %s'%file)
+            dummy.to_netcdf(file)
+        else:
+            logger.warning('File exist, doing nothing')
+        return
     # -------------------------------------------------------------------------
     # --- remap
     # -------------------------------------------------------------------------

@@ -1,0 +1,62 @@
+! Namelist containing the default information from a geometry
+
+
+
+! Geom name: D3D01
+! Description: First D3D FILD geometry installation
+&D3D01
+  R = 2.180
+  z = 0.328
+  phi = 21.8
+
+  R_parking = 0.0
+  z_parking = 0.0
+  phi_parking = 21.8
+
+  alpha = 22.33
+  beta = -51.0
+  gamma = 0.0
+
+  max_insertion = 0.0
+  min_insertion = 0.0
+/
+
+! Geom name: D3D02
+! Description: Default FILD1 collimator
+
+&D3D02
+  R = 2.180
+  z = 0.328
+  phi = 21.8
+
+  R_parking = 0.0
+  z_parking = 0.0
+  phi_parking = 21.8
+
+  alpha = 22.33
+  beta = 0.0
+  gamma = 0.0
+
+  max_insertion = 0.0
+  min_insertion = 0.0
+/
+
+! Geom name: D3D03
+! Description: Default FILD2 collimator
+
+&D3D03
+  R = 2.18
+  z = 0.3
+  phi = 57.25
+
+  R_parking = 0.0
+  z_parking = 0.0
+  phi_parking = 0.0
+
+  alpha = 0.0
+  beta = 0.0
+  gamma = 0.0
+
+  min_insertion = 0.0
+  max_insertion = 0.0.
+/

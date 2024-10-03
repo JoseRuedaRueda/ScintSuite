@@ -6,7 +6,7 @@ import matplotlib.backends.backend_tkagg as tkagg
 import matplotlib.pyplot as plt
 import ScintSuite._Plotting as ssplt
 import ScintSuite.SimulationCodes.SINPA as sssinpa
-import ScintSuite._Mapping as ssmap
+import ScintSuite._StrikeMap as ssmap
 from matplotlib.figure import Figure
 from tkinter import ttk
 
@@ -182,7 +182,8 @@ class ApplicationShowVid:
             smap_folder = self.remap_dat['frames'].attrs['smap_folder']
             full_name_smap = os.path.join(smap_folder, name__smap)
             # Load the map:
-            smap = ssmap.StrikeMap(0, full_name_smap)
+            # @ToDO: Add here the INPA map if needed
+            smap = ssmap.Fsmap(full_name_smap)
             # Calculate pixel coordinates
             smap.calculate_pixel_coordinates(self.CameraCalibration)
             # Plot the map

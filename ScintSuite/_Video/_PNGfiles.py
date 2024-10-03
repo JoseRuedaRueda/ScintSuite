@@ -232,5 +232,5 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
                 current_frame = current_frame + 1
                 if counter == video_object.header['ImageCount']:
                     break
-        print('Number of loaded frames: ', counter)
+        logger.info('Number of loaded frames: ', counter)
     return M

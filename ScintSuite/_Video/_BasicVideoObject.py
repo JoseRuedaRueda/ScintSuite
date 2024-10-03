@@ -26,12 +26,14 @@ import ScintSuite._Video._PNGfiles as png
 import ScintSuite._Video._PCOfiles as pco
 import ScintSuite._Video._MP4files as mp4
 import ScintSuite._Video._TIFfiles as tif
+import ScintSuite._Video._h5D3D as h5d3d
 import ScintSuite._Video._NetCDF4files as ncdf
 import ScintSuite._Utilities as ssutilities
 import ScintSuite._Video._AuxFunctions as aux
 from tqdm import tqdm                      # For waitbars
 from scipy import ndimage                  # To filter the images
 from ScintSuite._Paths import Path
+from ScintSuite._Machine import machine
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import Slider, Button, RadioButtons
 
@@ -178,6 +180,12 @@ class BVO:
                                              't': self.timebase.squeeze()})
                     self.exp_dat['frames'] = self.exp_dat['frames']
                     self.type_of_file = '.nc'
+                
+                elif file.endswith('.h5') and machine == 'D3D':
+                    self.header, self.imageheader, self.settings, self.timebase\
+                         = h5d3d.read_data(file)
+                    self.type_of_file = '.h5d3d'
+                
                 elif file.endswith('.mp4'):
                     if not 'properties' in self.__dict__:
                         self.properties = {}
@@ -203,7 +211,7 @@ class BVO:
             else:
                 print('Looking in the folder: ', file)
                 if not os.path.isdir(file):
-                    raise Exception(file + ' not found')
+                    raise FileNotFoundError(file + ' not found')
                 ## path to the file
                 self.path = file
                 # Do a quick run for the folder looking of .tiff or .png files
@@ -277,7 +285,7 @@ class BVO:
     # --- Manage Frames
     # --------------------------------------------------------------------------
     def read_frame(self, frames_number=None, limitation: bool = True,
-                   limit: int = 2048, internal: bool = True, t1: float = None,
+                   limit: int = 3072, internal: bool = True, t1: float = None,
                    t2: float = None, threshold_saturation: float = 0.95,
                    verbose: bool = True):
         """
@@ -350,6 +358,9 @@ class BVO:
             M = ncdf.read_frame(self, frames_number,
                                limitation=limitation, limit=limit,
                                verbose=verbose)
+        elif self.type_of_file == '.h5d3d':
+            M = h5d3d.read_frame(self, frames_number,
+                                 limitation=limitation, limit=limit)
         else:
             raise Exception('Not initialised / not implemented file type?')
         # --- End here if we just want the frame
