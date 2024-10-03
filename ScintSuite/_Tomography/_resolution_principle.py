@@ -103,8 +103,8 @@ def threshold_centroids(centroids, max_intensity, threshold):
     max_intensity = max_intensity[order]
 
     # Take the first 2 centroids
-    peaks = centroids[:2]
-    # intensity = max_intensity[:2]
+    peaks = centroids[-2:]
+    # intensity = max_intensity[-2:]
     
     return peaks
 
@@ -223,7 +223,7 @@ def calculate_resolution_point(xHat, original_distance, map_type='pitch'):
         # Calculate distance between peaks
         distance = np.linalg.norm(np.diff(peaks, axis=0))
 
-        if distance >= original_distance:
+        if round(distance,1) >= round(original_distance,1):
             resolution = 1/distance
         
 
@@ -278,7 +278,8 @@ def calculate_resolution(WF, mu_gyro, mu_pitch, inverter, iters,
         tomo.cimmino_solve(x0, iters,  damp = 0.1, relaxParam = 1)
         
     # Calculate resolution of the point
-    xHat = tomo.inversion[inverter].F.isel(alpha = 0).copy()
+    xHat_max = tomo.inversion[inverter].F.isel(alpha = 0).max()
+    xHat = tomo.inversion[inverter].F.isel(alpha = 0)/xHat_max.copy()
     resolution = calculate_resolution_point(xHat, original_distance, 
                                                 map_type=map_type)
     return resolution
