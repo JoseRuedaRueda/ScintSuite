@@ -237,9 +237,12 @@ class Tomography():
         self.inversion['kaczmarz']['time'] = xr.DataArray(time, dims='alpha')
         self.inversion['kaczmarz']['time'].attrs['long_name'] = '$t (s)$'
 
-    def coordinate_descent_solve(self, x0, iterations, window = None,
+    def coordinate_descent_solve(self, x0, iterations = None, window = None,
+                                 pitch_map = None, gyro_map = None,
+                                 resolution = True, peak_amp = 0.15,
                                   damp = None, tol = None, 
-                                  relaxParam = 1, **kargs) -> None:
+                                  relaxParam = 1, control_iters = 100,
+                                    **kargs) -> None:
         """
         Perform coordinate descent algorithm
 
@@ -251,18 +254,24 @@ class Tomography():
         """
 
         # --- Ensure we have an array or iterable:
-        if isinstance(iterations, (list, np.ndarray)):
-            numIter = iterations
-        else:
-            numIter = np.array([iterations])
-        n_execution = len(numIter)
+        n_execution = 1
+        if iterations is not None:
+            if not isinstance(iterations, (list, np.ndarray)):
+                iterations = np.array([iterations])
+            n_execution = len(iterations)
+
         # --- Perform the algorithm
         logger.info('Performing coordinate descent algorithm')
-        x_hat, MSE, res, r2, time = \
+        x_hat, MSE, res, r2, time, alphas = \
                 solvers.coordinate_descent_solve(self.W2D, self.s1D, x0,
-                                                  maxiter = numIter,
+                                                  maxiter = iterations,
+                                                  pitch_map = pitch_map,
+                                                  gyro_map = gyro_map,
+                                                  resolution = resolution,
+                                                  peak_amp = peak_amp,
                                                   damp = damp, tol = tol, 
                                                   relaxParam = relaxParam, 
+                                                  control_iters = control_iters,
                                                   x_coord = self.W['x'], 
                                                   y_coord = self.W['y'],
                                                   window = window,
@@ -278,7 +287,7 @@ class Tomography():
         self.inversion['descent'] = xr.Dataset()
         self.inversion['descent']['F'] = xr.DataArray(
                 x_hat_shaped, dims=('x', 'y','alpha'),
-                coords={'x': self.W['x'], 'y': self.W['y'], 'alpha': numIter}
+                coords={'x': self.W['x'], 'y': self.W['y'], 'alpha': alphas}
         )
         self.inversion['descent']['F'].attrs['long_name'] = 'FI distribution'
         self.inversion['descent']['alpha'].attrs['long_name'] = 'alpha'

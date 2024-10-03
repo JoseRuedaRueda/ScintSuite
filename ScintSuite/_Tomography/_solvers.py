@@ -17,6 +17,7 @@ from sklearn.metrics import r2_score
 from scipy.optimize import nnls     # Non negative least squares
 from ScintSuite._Tomography._meritFunctions import residual
 import ScintSuite._Tomography._martix_collapse as matrix
+import ScintSuite._Tomography._resolution_principle as resP
 from sklearn.linear_model import ElasticNet  # ElaticNet
 from scipy.sparse import diags
 from scipy.sparse.linalg import inv
@@ -196,8 +197,10 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam,
 
         return xk_output, MSE, res, r2, duration
 
-def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam,
-                             x_coord, y_coord, window, **kargs):
+def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
+                             resolution, peak_amp, damp, tol, relaxParam,
+                             x_coord, y_coord, window,
+                              control_iters = 100, **kargs):
         """
         Perform coordinate descent algorithm.
 
@@ -222,6 +225,19 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam,
         :return r2: R2 score
         """
 
+        if resolution:
+            
+            if pitch_map is None:
+                raise ValueError("pitch_map cannot be empty if resolution is True")
+            
+            if gyro_map is None:
+                raise ValueError("gyro_map cannot be empty if resolution is True")
+            
+            if maxiter is not None:
+                raise ValueError("maxiter cannot be defined if resolution is True")
+           
+            maxiter = np.array([control_iters])
+
         # Start time
         timeStart = time.time()
         timeEnd = np.zeros(len(maxiter))
@@ -238,7 +254,8 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam,
         xk = x0 # Use initial vector.
         m,n = W.shape
 
-        stop_loop = stopping_criterion(k, rk, maxK, tol)
+        # stop_loop = stopping_criterion(k, rk, maxK, tol)
+        stop_loop = False
 
         normWj = np.zeros(n)
         # Calculate norm of each column
@@ -258,7 +275,7 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam,
         Nflag = np.zeros(n)
 
         # Starting loop
-        num_exec = 0 # number of times that an element of maxiter is reached
+        num_exec = 0 # number of times that an element of maxiter is reached -1
         Numflag = np.round(maxK/4)
         kbegin = 10
         THR = 1e-4
@@ -266,7 +283,6 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam,
 
         while not stop_loop:
             k += 1
-            
             for j in J:
                 mm = np.max(np.abs(xk))
 
@@ -294,13 +310,21 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam,
             #     xk_new = apply_window(xk, x_coord, y_coord, window)
             #     xk = matrix.collapse_array2D(xk_new.values)
 
-            stop_loop = stopping_criterion(k, rk, maxK, tol)
-            
+            if resolution: 
+                resP_boolean = resP.resolution_principle(xk, x_coord, y_coord,
+                                                      pitch_map, gyro_map, 
+                                                      peak_amp)
+                if resP_boolean:
+                    maxiter = np.array([k])
+                    maxK = maxiter.max()
+
+            stop_loop = stopping_criterion(k, rk, maxK, tol)           
+
             # Truncate the output so that we just keep values inside 
             # the signal region
             # Save the output and end time
 
-            if k in maxiter:              
+            if k in maxiter:        
                 if window is not None:                     
                     xk_new = apply_window(xk, x_coord, y_coord, window)
                     xk_output[:,num_exec] = matrix.collapse_array2D(xk_new.values)
@@ -327,7 +351,7 @@ def coordinate_descent_solve(W, y, x0, maxiter, damp, tol, relaxParam,
             duration[i] = timeEnd[i] - timeStart
 
 
-        return xk_output, MSE, res, r2, duration
+        return xk_output, MSE, res, r2, duration, maxiter
 
 def cimmino_solve(W, y, x0, maxiter, damp, tol, relaxParam,
                              x_coord, y_coord, window, **kargs):
