@@ -75,7 +75,8 @@ class Fsmap(FILDINPA_Smap):
     def build_weight_matrix(self, grid_options_scint,
                             grid_options_pinhole,
                             efficiency=None,
-                            B=1.8, A=2.0, Z=1):
+                            B=1.8, A=2.0, Z=1, 
+                            cutoff=None):
         """
         Build FILD weight function
 
@@ -101,9 +102,11 @@ class Fsmap(FILDINPA_Smap):
         efficiency evaluation
         :param  Z: charge in elecrton charges, used to translate between radius and
         energy, for the efficiency evaluation
-        :param  only_gyroradius: flag to decide if the output will be the matrix
-        just relating giroradius in the pinhole and the scintillator, ie, pitch
-        integrated
+        :param  cutoff: cutoff value for the weight matrix. If None, no cutoff is
+        applied. If a value is given, all pixels in the scintillator grid with a
+        weight lower than cutoff*max(weight (for each pixel in the pinhole)) will
+        be set to zero. This kills fake correlations detected in tomographic 
+        reconstructions
 
         DISCLAIMER: Only fully tested when the gyroradius or the energy variable
         is the y variable of the strike map. Please consider to use this
@@ -189,6 +192,12 @@ class Fsmap(FILDINPA_Smap):
                             models_func[models[1]](YY.flatten(),
                                                    **y_parameters) \
                             * eff[kk]
+                    # The model extend over the whole plate, which can produce
+                    # some numerical errors. We will set to zero the pixels with 
+                    # less weight than the cutoff (relative to maximal weight)
+                    if cutoff is not None:
+                        mask = dummy / np.max(dummy) < cutoff
+                        dummy[mask] = 0.0
                     res_matrix[:, :, ll, kk] = np.reshape(dummy, XX.shape).T
                 else:
                     res_matrix[:, :, ll, kk] = 0.0

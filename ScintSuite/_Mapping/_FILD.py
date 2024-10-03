@@ -302,12 +302,14 @@ def remapAllLoadedFrames(video,
                     phi_used[iframe], theta_used[iframe], smap_folder,
                     geomID=video.geometryID, SINPA_options=code_options,
                     decimals=decimals, clean=True)
-        # Only reload the strike map if it is needed
+        # Only reload the strike map if it is needed. Two things can happen:
+        # -1 We need another strike map
         if name != name_old:
             smap = Fsmap(file=os.path.join(smap_folder, name))
             # -- Set the remap variables
             if wantEnergy:
-                smap.calculate_energy(video.BField['B'].values[iframe], A, Z)
+                #smap.calculate_energy(video.BField['B'].values[iframe], A, Z)
+                smap.calculate_energy(1.59, A, Z)
             smap.setRemapVariables(var_remap, verbose=False)
             # -- Calculate the pixel coordinates
             smap.calculate_pixel_coordinates(video.CameraCalibration)

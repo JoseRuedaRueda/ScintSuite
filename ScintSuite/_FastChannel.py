@@ -360,12 +360,19 @@ from ScintSuite._basicVariable import BasicSignalVariable
 
 class FastChannel(BasicSignalVariable):
     """
+    Class for the fast channel signals
     
+    This is just a wrapper for the fast channel signals.
     """
-    def __init__(self, diag, diag_ID, channels, shot, exp):
+    def __init__(self, diag, diag_ID, channels=None, shot: int = 199439, exp: str = 'd3d'):
         BasicSignalVariable.__init__(self)
         raw_data = \
-             ssdat.get_fast_channel(diag, diag_ID, channels, shot, exp=exp)
-        self._data['signal'] = xr.DataArray(np.array(raw_data['data']),
-            dims=('channel', 't'), coords={'channel': raw_data['channels'],
-                                           't': raw_data['time']})
+             ssdat.get_fast_channel(diag, diag_ID, channels=channels, 
+                                    shot=shot, exp=exp)
+        if type(raw_data) == xr.core.dataarray.DataArray:
+            # The get fast channel is the new routine, nothing to do here
+            self._data['signal'] = raw_data
+        else: # Old format from AUG
+            self._data['signal'] = xr.DataArray(np.array(raw_data['data']),
+                dims=('channel', 't'), coords={'channel': raw_data['channels'],
+                                            't': raw_data['time']})

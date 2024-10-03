@@ -392,7 +392,7 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     # Print if needed
     if verbose:
         for y in cin_settings:
-            print(y, ':', cin_settings[y])
+            logger.info(y, ':', cin_settings[y])
     #  uint16_t FrameRate16;     // Frame rate fps---UPDF replaced by FrameRate
     #  uint16_t PostTrigger16;   // ---UPDF replaced by PostTrigger
     #  uint16_t FrameDelay16;    // ---UPDF replaced by FrameDelayNs
