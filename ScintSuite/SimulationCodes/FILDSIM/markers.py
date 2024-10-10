@@ -67,7 +67,7 @@ class Strikes:
                              dtype=np.ndarray)
         self.header['counters'] = np.zeros((self.header['npitch'],
                                             self.header['ngyr']),
-                                           dtype=np.int)
+                                           dtype=int)
         self.header['scint_limits'] = {  # for later histogram making
             'xmin': 300.,
             'xmax': -300.,

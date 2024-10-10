@@ -5,6 +5,7 @@ Include band signal and other filtres aimed to reduce the noise
 """
 import numpy as np
 import xarray as xr
+import xarray as xr
 import heapq
 import logging
 import scipy.signal as signal
