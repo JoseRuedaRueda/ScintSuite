@@ -180,7 +180,7 @@ def create_synthetic_delta(WF, mu_gyro, mu_pitch, noise_level, background_level,
     frame_synthetic = xr.DataArray(data=y_synthetic,
                                         dims=['xs', 'ys'],
                                         coords=dict(
-                                            x = (['xs'], pitch_gridS),
-                                            y = (['ys'], gyro_gridS)))
+                                            xs = (['xs'], pitch_gridS),
+                                            ys = (['ys'], gyro_gridS)))
     
     return x_syntheticXR, frame_synthetic
