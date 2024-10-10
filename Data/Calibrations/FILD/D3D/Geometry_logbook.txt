@@ -1,6 +1,0 @@
-#Text file containing information about the collimator geometry installed in each manipulator
-# Started in 2021. Old shot geometries are an educated guess
-# CalID shot1 shot1 GeomID ManipulatorNumber
-0 000000 168751 D3D01 1
-1 168752 999999 D3D02 1
-2 000000 999999 D3D03 2
