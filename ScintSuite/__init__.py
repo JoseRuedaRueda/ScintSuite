@@ -169,6 +169,7 @@ import ScintSuite._Optics as optics
 import ScintSuite._Noise as noise
 import ScintSuite.version_suite as ver
 from ScintSuite.version_suite import version, codename
+from ScintSuite._pySpecView import pySpecView
 __version__ = version
 __codename__ = codename
 import ScintSuite._CAD as cad

@@ -4,6 +4,7 @@ Routines to analyse a time signal in the frequency domain
 Include band signal and other filtres aimed to reduce the noise
 """
 import numpy as np
+import xarray as xr
 import heapq
 import logging
 import scipy.signal as signal
@@ -1203,111 +1204,4 @@ def graph_shortest(v, path):
 
     return
 
-
-# ----------------------------------------------------------------------------
-# --- Other correlatios functions and abjects
-# ----------------------------------------------------------------------------
-def coherence(time1, data1, data2, nfft=2048, overlap=1024, smoothfq=1.0):
-    """
-    Calculate the coherence between two signals.
-    
-    Jose Rueda-Rueda: jruedaru@uci.edu
-    
-    Taken from the libraries of Mike van Zeeland and Xiaodi Du
-    
-    :param  time1: time vector of the signal 1
-    :param  data1: signal 1
-    :param  data2: signal 2, assumed to be in the timebase of signal 1
-    :param  nfft: number of points to use in the fft
-    :param  overlap: number of points to overlap in the fft
-    :param  smoothfq: frequency smoothing factor
-    """
-    # Get the sampling ratio of the signal
-    sampling = np.floor(1/((np.max(time1)-np.min(time1))/np.shape(time1)))
-    logger.info('Sampling rate is: %i Hz'%sampling)
-    nsmooth = int(1e3*smoothfq/sampling*nfft)
-    logger.info('Amoothing at: %i'%nsmooth)
-    # Check if the overlap is correct
-    if overlap/float(nfft) == 0:
-       ngp = np.floor(len(data1)/float(nfft)).astype('int')
-
-    elif overlap/float(nfft) == 0.25:
-       ngp = np.floor(len(data1)/float(overlap)).astype('int')-3
-
-    elif overlap/float(nfft) == 0.5:
-       ngp = np.floor(len(data1)/float(overlap)).astype('int')-1
-
-    else:
-       raise ValueError('Overlap is not correct, only accepted values are 0, 0.25, 0.5 restpect nfft')
-    # Get the vectors for the transformation
-    d1 = np.zeros((ngp,nfft))
-    d2 = np.zeros((ngp,nfft))
-    time = np.zeros(ngp)
-    if overlap != 0:
-       for i in range(ngp):
-           d1[i,:] = np.array(data1[i*overlap:i*overlap+nfft])
-           d2[i,:] = np.array(data2[i*overlap:i*overlap+nfft])
-           time[i] = np.mean(time1[i*overlap:i*overlap+nfft])
-    if overlap == 0:
-       for i in range(ngp):
-           d1[i,:] = np.array(data1[i*nfft:i*nfft+nfft])
-           d2[i,:] = np.array(data2[i*nfft:i*nfft+nfft])
-           time[i] = np.mean(time1[i*nfft:i*nfft+nfft])
-    # The overlap is already considered, so we do not need to do it again
-    overlap = 0
-    # Get the power spectral densities
-    pxy = np.zeros((ngp,nfft),dtype=complex)
-    for i in range(ngp):
-        f, pxy_tmp = signal.csd(d1[i,:], d2[i,:],
-                fs=sampling,nperseg=nfft,noverlap=overlap,detrend='linear',window='hann',
-                return_onesided=False,scaling='density')
-        if smoothfq >0:
-        #    logger.debug('Size prior smoothing: %i'%pxy_tmp.size)
-           pxy[i,:] = smooth(pxy_tmp,nsmooth)
-        else:
-           pxy[i,:] = pxy_tmp
-
-    pxx = np.zeros((ngp,nfft),dtype=complex)
-    for i in range(ngp):
-        f, pxx_tmp = signal.csd(d1[i,:], d1[i,:],
-                fs=sampling,nperseg=nfft,noverlap=overlap,detrend='linear',window='hann',
-                return_onesided=False,scaling='density')
-        if smoothfq >0:
-           pxx[i,:] = smooth(pxx_tmp,nsmooth)
-        else:
-           pxx[i,:] = pxx_tmp
-
-    pyy = np.zeros((ngp,nfft),dtype=complex)
-    for i in range(ngp):
-        f, pyy_tmp = signal.csd(d2[i,:], d2[i,:],
-                fs=sampling,nperseg=nfft,noverlap=overlap,detrend='linear',window='hann',
-                return_onesided=False,scaling='density')
-        if smoothfq >0:
-           pyy[i,:]= smooth(pyy_tmp,nsmooth)
-        else:
-           pyy[i,:] = pyy_tmp
-
-    c_ngp = ngp
-    coh = np.zeros((c_ngp,nfft))
-    conf = np.zeros((c_ngp,nfft))
-    theta = np.zeros((c_ngp,nfft))
-    t_coh = np.zeros(c_ngp)
-    fq = f/f.max()*(sampling/2.)/1e3
-
-    if smoothfq==0:
-       return time,fq,pxy,pxx,pyy,t_coh,coh,theta
-
-    else:
-       for i in range(c_ngp):
-#           i1 = int(i*(n_ensemble+1)/2.)
-#           i2 = i1+n_ensemble
-           coh[i,:] \
-               = np.abs(pxy[i,:])/np.sqrt(np.abs(pxx[i,:])*np.abs(pyy[i,:]))
-   
-           theta[i,:] = np.arctan2(np.imag(pxy[i,:]),np.real(pxy[i,:]))
-       confd = np.tanh(1.96/(2.*float(nsmooth)-2)**0.5)
-       t_coh = time
-       logger.info('0.95 confidence level: %f'%confd)
-   
-       return time,fq,pxy,pxx,pyy,t_coh,coh,theta,sampling
 

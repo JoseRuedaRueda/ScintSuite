@@ -140,7 +140,8 @@ class SAWc():
                     correction = \
                         self._rotation.data.sel(
                             t=slice(self.t[0], self.t[1])).copy()
-                correction /= 2.0*np.pi
+                if self._rotation.attrs['units'] == 'rad/s':
+                    correction /= 2.0*np.pi
                 correction *= self.ntor
                 output['fMinRotationCorrected'] = output['fMin'] + correction
                 output['fMaxRotationCorrected'] = output['fMax'] + correction
@@ -241,7 +242,7 @@ class MHDmode():
 
         
         # --- Densities
-        self._ne = ssdat.get_ne(shotnumber=shot, xArrayOutput=True)
+        self._ne = ssdat.get_ne(shot, xArrayOutput=True)
         # See if there is Zeff information
         if calcNi:
             try:
@@ -249,9 +250,12 @@ class MHDmode():
                 self._zeff = self._zeff.interp(t=self._ne['t'], rho=self._ne['rho'])
                 self._ni = self._ne.copy()
                 self._ni['data'] = self._ne['data'] * (1.0 - (self._zeff['data'] - 1.0)/(Zimp - 1.0))
-                self._ni['uncertainty'] = self._ni['data'] * (
-                    self._ne['uncertainty']/self._ne['data'] +
-                    1.0/(Zimp - 1.0)/(1.0 - (self._zeff['data'] - 1.0)/(Zimp - 1.0))*self._zeff['uncertainty'])
+                try: # Try to get the uncertainty
+                    self._ni['uncertainty'] = self._ni['data'] * (
+                        self._ne['uncertainty']/self._ne['data'] +
+                        1.0/(Zimp - 1.0)/(1.0 - (self._zeff['data'] - 1.0)/(Zimp - 1.0))*self._zeff['uncertainty'])
+                except KeyError:
+                    pass
             except errors.DatabaseError:
                 logger.warning('Using ni=ne, no Zeff found in database')
                 self._ni = self._ne.copy()
@@ -259,10 +263,10 @@ class MHDmode():
             self._ni = self._ne.copy()
 
         # --- Temperatures:
-        self._te = ssdat.get_Te(shotnumber=shot, xArrayOutput=True)
+        self._te = ssdat.get_Te(shot, xArrayOutput=True)
         if loadTi:
             try:
-                self._ti = ssdat.get_Ti(shot=shot, diag='IDI',
+                self._ti = ssdat.get_Ti(shot,
                                         xArrayOutput=True)
             except:
                 logger.warning('XX: Not func Ti, using Te=Ti')
@@ -270,7 +274,7 @@ class MHDmode():
         else:
             self._ti = self._te.copy()
         # --- q-profile:
-        self._q = ssdat.get_q_profile(shot, xArrayOutput=True)
+        self._q = ssdat.get_q_profile(shot, rho=self._ne.rho.values, xArrayOutput=True,)
         # --- Other data:
         self._basic = ssdat.get_shot_basics(shot)
         self._R0 = xr.Dataset()
@@ -291,29 +295,36 @@ class MHDmode():
             coords={'t': self._basic['bttime']})
         # ---- Plasma rotation
         try:
-            self._rotation = ssdat.get_tor_rotation_idi(shot, xArrayOutput=True)
+            self._rotation = ssdat.get_tor_rotation(shot, xArrayOutput=True)
         except errors.DatabaseError:
             self.rotation = None
             logger.warning('Not found toroidal rotation, no doppler shift')
         # --- Now interpolate everything in the time/rho basis of ne
         # self._ni = self._ni.interp(t=self._ne['t'], rho=self._ne['rho'],
-        #                            method="cubic")
+        #                            method="linear")
         self._te = self._te.interp(t=self._ne['t'], rho=self._ne['rho'],
-                                   method="cubic")
+                                   method="linear")
 
         self._ti = self._ti.interp(t=self._ne['t'], rho=self._ne['rho'],
-                                   method="cubic")
+                                   method="linear")
+        # Put the temperatures in ev
+        if self._te.attrs['units'] == 'keV':
+            self._te['data'] *= 1.0e3
+            self._te.attrs['units'] = 'eV'
+        if self._ti.attrs['units'] == 'keV':
+            self._ti['data'] *= 1.0e3
+            self._ti.attrs['units'] = 'eV'
 
         self._q = self._q.interp(t=self._ne['t'], rho=self._ne['rho'],
-                                 method="cubic")
-        self._R0 = self._R0.interp(t=self._ne['t'], method="cubic")
-        self._ahor = self._ahor.interp(t=self._ne['t'], method="cubic")
-        self._B0 = self._B0.interp(t=self._ne['t'], method="cubic")
-        self._kappa = self._kappa.interp(t=self._ne['t'], method="cubic")
+                                 method="linear")
+        self._R0 = self._R0.interp(t=self._ne['t'], method="linear")
+        self._ahor = self._ahor.interp(t=self._ne['t'], method="linear")
+        self._B0 = self._B0.interp(t=self._ne['t'], method="linear")
+        self._kappa = self._kappa.interp(t=self._ne['t'], method="linear")
         if self._rotation is not None:
             self._rotation = self._rotation.interp(t=self._ne['t'],
                                                    rho=self._ne['rho'],
-                                                   method="cubic",
+                                                   method="linear",
                                                    kwargs={'fill_value': 0.0})
 
         # --- Precalculate some stuff:
@@ -377,9 +388,9 @@ class MHDmode():
         Warning, it does not check that the q profile is actually sheared, just
         take the minimum value
         """
-        qmin = self._q.min(dim='rho')
-        self.freq['RSAE'] = (m - n * qmin['data']) *\
-            self._va0['data']/2.0/cnt.pi/qmin['data']/self._R0['data']
+        qmin = self._q.data.where(self._q.data>0, 1e6).min(dim='rho')
+        self.freq['RSAE'] = (m - n * qmin) *\
+            self._va0['data']/2.0/cnt.pi/qmin/self._R0['data']
 
     def getSAWcontinuum(self, ntor: int, t: Optional[list]=None,
                         mpol = np.arange(257),
@@ -450,7 +461,8 @@ class MHDmode():
                     else:
                         correction = self._rotation.data.sel(rho=r,
                                                             method='nearest').copy()
-                        correction /= 2*np.pi
+                        if self._rotation.attrs['units'] == 'rad/s':
+                            correction /= 2*np.pi
                         correction = correction[flags]
                         correction *= n
                 else:
@@ -460,7 +472,9 @@ class MHDmode():
                         **line_opitons)
         else:
             dataToPlot = np.zeros(self.freq[var].t.size)
-            correction = self._rotation.data/2.0/np.pi*n
+            correction = self._rotation.data*n
+            if self._rotation.attrs['units'] == 'rad/s':
+                correction /= 2*np.pi
             for jt, t in enumerate(self.freq[var].t):
                 r = rho.interp(t=t).values
                 if np.isnan(r):

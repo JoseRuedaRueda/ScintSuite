@@ -175,6 +175,57 @@ class BasicSignalVariable():
             else:
                 raise errors.NotImplementedError('To be done')
 
+    def detrend(self, signals: Optional[list] = None,
+                detrendSizeInterval: Optional[float] = 0.001):
+        """
+        Filter the time dependent variables
+
+        :param  signals: list of signal to be filtered. If none, all signals will
+            be filtered
+        :param  detrendSizeInterval: size of the interval to be used for the detrend
+
+        """
+        if signals is None:
+            signals = []
+            for k in self.keys():
+                if not k.startswith('fft') and not k.startswith('spec') and not k.startswith('baseline'):
+                    # Neglect fft or spectrum:
+                    signals.append(k)
+        
+        for k in signals:
+            dt = self[k]['t'][1] - self[k]['t'][0]
+            npoints = int(detrendSizeInterval/dt)
+            logger.info('Detrending %s with %i points' % (k, npoints))
+            if len(self[k].shape) == 1:  # Variable with just time axis
+                dummy = signal.detrend(self[k].values, type='linear', 
+                                       bp=np.arange(0, self[k].size, npoints))
+                self._data['detrend_' + k] = \
+                    xr.DataArray(self[k].values - dummy, dims='t')
+            elif len(self[k].shape) == 2:  # Variable with time + something
+                if self[k].dims[1] == 't':
+                    channeldim = 0
+                elif self[k].dims[0] == 't':
+                    channeldim = 1
+                else:
+                    logger.error('Time dimension not found')
+                    raise errors.CalculationError('Time dimension not found')
+                self._data['detrend_' + k] = self._data[k].copy()
+                for i in range(self[k].shape[channeldim]):
+                    if channeldim == 0:
+                        self._data['detrend_' + k].values[i, :] -=\
+                            signal.detrend(self[k].values[i, :], type='linear', 
+                                       bp=np.arange(0, self[k].size, npoints))
+                    else:
+                        self._data['detrend_' + k].values[:, i] -= \
+                            signal.detrend(self[k].values[:,i], type='linear', 
+                                       bp=np.arange(0, self[k].size, npoints))
+                        # xr.DataArray(
+                        # filters[method](self[k].values[i, :], **kargs),
+                        # dims='t')
+            else:
+                raise errors.NotImplementedError('To be done')
+
+
     # --------------------------------------------------------------------------
     # %% Frequency anasylis
     # --------------------------------------------------------------------------

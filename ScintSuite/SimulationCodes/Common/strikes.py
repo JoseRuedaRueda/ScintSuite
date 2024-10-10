@@ -2004,7 +2004,7 @@ class Strikes:
             if os.path.isfile(filename) and not overwrite:
                 logger.warning('File %s already exists! Not saving' % filename)
                 continue
-            histogram.to_netCDF(filename, format='NETCDF4')
+            histogram.to_netcdf(filename, format='NETCDF4')
         # --- Export the version of the suite
         filename = os.path.join(folder, 'version.txt')
         if os.path.isfile(filename) and not overwrite:

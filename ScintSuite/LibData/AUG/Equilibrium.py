@@ -287,7 +287,7 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
 # -----------------------------------------------------------------------------
 def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
                   ed: int = 0, time: float = None, sfo=None,
-                  xArrayOutput: bool = True):
+                  xArrayOutput: bool = True, **kwargs):
     """
     Reads from the database the q-profile as reconstrusted from an experiment.
 

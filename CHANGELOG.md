@@ -16,7 +16,8 @@
 - Added methods to collapse/restore 5D arrays into 2D (Orbits weights)
 - Added methods to collapse/restore 3D arrays into 1D (Orbits F)
 - Added a non-negative projective tikhonov inversor
-
+## Dat library
+- pySpecView extracted from AUG library and given an independent submodule
 
 # 1.3.6 Updated fild export
 - Updated pip requirements
