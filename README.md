@@ -3,7 +3,7 @@
 This code is created to analyze the signal from scintillator diagnostics. Native support for FILD, INPA. for iHIBP, you need the extra module of iHIBPsim. To include a different diagnostic, please contact Jose Rueda: jruedaru@uci.edu
 
 ## Citation of the code
-To cite the code please use the ScintSuite [![DOI](https://zenodo.org/badge/13886727.svg)](https://doi.org/10.5281/zenodo.13886727)
+To cite the code please use the ScintSuite [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13886726.svg)](https://doi.org/10.5281/zenodo.13886726)
 ## Installation and documentation
 ### Prerequisites
 - Python 3.7 or higher
