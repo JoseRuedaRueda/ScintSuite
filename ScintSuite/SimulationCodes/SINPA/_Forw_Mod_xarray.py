@@ -1,15 +1,25 @@
 """
-SINPA functions to compute synthetic signals
+Functions to compute synthetic signals. What can be done:
+    - read_ASCOT_dist: Read an ASCOT distribution with ion distribution that 
+        will be used as input
+    - obtain_WF: Obtain the weight function of the smap (scintillator efficency 
+        or not)
+    - synthetic_signal_pr: Compute remapped synthetic signal in pitch-gyroradius 
+        phase space
+    - pr_space_to_pe_space: transform the the signal phase space
+    - original_synthsig_xy: compute synthetic signal in real scintillator space
+    - noise_optics_camera: add noise and optic effects to the synthetic signal
+    - plot_the_frame: plot the signal at a given point
+    - plot_noise_contributions: plot the different noise contributions
+    - synthsig_xy_2coll: compute synthetic signal of two pinholes
+    - plot_the_frame_2coll: plot the signal
 
 Alex Reyner: alereyvinn@alum.us.es
 """
 
-import os
 import numpy as np
 import ScintSuite as ss
 import ScintSuite._Mapping as ssmapplting
-import ScintSuite._IO as ssio
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 import xarray as xr
@@ -22,7 +32,6 @@ from matplotlib.colors import LinearSegmentedColormap
 from ScintSuite.SimulationCodes.FILDSIM.execution import get_energy
 from ScintSuite.SimulationCodes.FILDSIM.execution import get_gyroradius
 import ScintSuite.SimulationCodes.FILDSIM.forwardModelling as ssfM
-from skimage import measure
 from matplotlib.patches import Circle
 
 # -----------------------------------------------------------------------------
@@ -238,8 +247,9 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, plot=False,
     :param  plot: flag to plot the synthetic signals, and the histograms in
         pitch and gyroradius.
 
-    :return ssPH: synthetic signal at the pinhole (PH)
-    :return ssSC: synthetic signal at the scintillator (SC)
+    :return out dictionary containing remapped signals:
+            PH: synthetic signal at the pinhole (PH)
+            SC: synthetic signal at the scintillator (SC)
     """
     print(' ----- COMPUTING REMAPED SYNTHETIC SIGNAL USING WF -----')
     # Get data values
@@ -353,7 +363,9 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, plot=False,
     :param  A: Mass, in amu, (to translate from r to Energy)
     :param  Z: Charge in e units (to translate from r to Energy)
 
-    :return xarray with the signals in the pe space.
+    :return out dictionary containing remapped signals in the energy space:
+            PH: synthetic signal at the pinhole (PH)
+            SC: synthetic signal at the scintillator (SC)
     """
     print(' ----- GOING FROM p-r TO p-e SPACE ----- ')
     # Synthetic signal input
@@ -618,7 +630,6 @@ def original_synthsig_xy(distro, smap, scint,
     print('- Building the scintillator perimeter and xarray...')
     
     scint_perim = scint_ConvexHull(dscint)
-
     scint_path = Path(scint_perim, closed=True)
     dummy = copy.deepcopy(signal_frame)*0
     for i in range(cam_params['ny']):
@@ -668,7 +679,7 @@ def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
             in x and theta (angle) in y. This matrix can't have any NaN value.
             Worry not about the number of data, it will be interpolated.
 
-    :return input with the noises added to signal_frame
+    :return out dictionaryinput with the different noises added to signal_frame
             also the noise contribution of everything itself
     """
     print(" ----- NOISE, OPTICS AND CAMERA ----- ")
@@ -702,7 +713,7 @@ def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
     """
     Homogenous noise through the scintillator due to neutrons and gamma 
     reaching it and producing charged particles that will give signal. Total
-    noise must be given
+    noise must be given.
     """
     if noise_opt['neutrons'] > 0:
         print('- Neutron and gamma noise')
@@ -1004,7 +1015,7 @@ def plot_noise_contributions(frame, cam_params: dict={}, maxval = False):
     return
 
 
-# These need to be worked on them a bit. Use the ones above. Those are the baseline.
+# These need to be worked on them a bit. Don't use it. Use the ones above.
 
 def new_synthsig_xy(distro, smap, scint, WF,
                      cam_params = {}, optic_params = {},

@@ -450,10 +450,10 @@ class Fsmap(FILDINPA_Smap):
         # --- Get the names / models of the variables
         names = [self._resolutions['variables'][k].name for k in range(2)]
         models = [self._resolutions['model_' + dum] for dum in names]
-        logger.info('Calculating FILD parameters matrix')
+        logger.info('Calculating FILD parameters matrix -> self.fit_xarray')
         logger.debug('Applied models: ' + models[0] + ' ' +  models[1])
 
-        # Prepare the parameters we will interpolate:
+        # Prepare the parameters that will be included in the xarray:
         parameters_to_consider = {
             'Gauss': ['sigma', 'center'],
             'sGauss': ['sigma', 'gamma', 'center']
@@ -471,6 +471,6 @@ class Fsmap(FILDINPA_Smap):
             for j in parameters_to_consider[model]:
                 dummy = self._resolutions[name][j]
                 self.fit_xarray[name+'_'+j] = (['x','y'],dummy)
-
+                
         self.fit_xarray['coll_factor'] = (['x','y'],
                                           self('collimator_factor_matrix'))

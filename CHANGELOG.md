@@ -1,7 +1,9 @@
 # 1.3.9 Implementation of xarray in forward modelling
 - Capable of creating synthetic siganls with WF xarray
-- Change in phase space
-- Scintillator and camera frames
+- Change in phase space remapped synthetic signals
+- Camera frames, with implemention of diferent kind of noises and filters
+- Capability to compute synthetic signals for double collimators
+- smap class fit parameters matrix wrap for easy optimization
 
 # 1.3.8 WF improvements
 - Official release of FILD numerical WF
