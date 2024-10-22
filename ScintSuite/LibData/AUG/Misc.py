@@ -91,7 +91,7 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
     # Check inputs:
     suported_diag = ['FILD', 'INPA']
     if diag not in suported_diag:
-        raise errors.NotValidInput('No understood diagnostic') 
+        raise errors.NotValidInput('No understood diagnostic')
 
     # Load diagnostic names:
     if diag.lower() == 'fild':
@@ -213,7 +213,7 @@ def get_ELM_timebase(shot: int, time: float = None, edition: int = 0,
 
 
 # -----------------------------------------------------------------------------
-# --- ICRH
+# --- ICRH and ECRH
 # -----------------------------------------------------------------------------
 def get_icrh(shot: int, coupled: bool = False):
     """
@@ -229,7 +229,7 @@ def get_icrh(shot: int, coupled: bool = False):
     """
     ICP = sf.SFREAD(shot, 'ICP')
     if coupled:
-        name = 'PICRNc'
+        name = 'PICRFc'
     else:
         name = 'PICRN'
     pICRH = ICP(name) / 1.0e6
@@ -239,6 +239,25 @@ def get_icrh(shot: int, coupled: bool = False):
     output.attrs['long_name'] = '$P_{ICRH}$'
     output.attrs['shot'] = shot
     output.attrs['diag'] = 'ICP'
+    output.attrs['signal'] = name
+    return output
+
+
+def get_ecrh(shot: int, coupled: bool = False):
+    """
+    :return: xArray containing the power
+    :rtype: TYPE
+
+    """
+    ECS = sf.SFREAD(shot, 'ECS')
+    name = 'PECRH'
+    pECRH = ECS(name) / 1.0e6
+    tECRH = ECS.gettimebase(name)
+    output = xr.DataArray(pECRH, dims='t', coords={'t': tECRH})
+    output.attrs['units'] = 'MW'
+    output.attrs['long_name'] = '$P_{ECRH}$'
+    output.attrs['shot'] = shot
+    output.attrs['diag'] = 'ECS'
     output.attrs['signal'] = name
     return output
 

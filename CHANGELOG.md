@@ -1,4 +1,4 @@
-# 1.3.9 Implementation of xarray in forward modelling
+# 1.3.10 Implementation of xarray in forward modelling
 - Capable of creating synthetic siganls with WF xarray
 - Change in phase space remapped synthetic signals
 - Camera frames, with implemention of diferent kind of noises and filters

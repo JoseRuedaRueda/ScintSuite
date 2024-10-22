@@ -228,9 +228,8 @@ def obtain_WF(smap, scintillator, efficiency_flag = False, B=4, A=2, Z=2,
     return WF
 
 
-def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, plot=False,
-                        smooth = False,
-                        xmin = None, xmax = None, ymin = None, ymax = None):
+def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, 
+                        plot=False, smooth = False):
     """
     Generates synthetic signal in both pinhole and scintillator in pr space
     using the WF. It's quite fast.
@@ -246,6 +245,7 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, plot=False,
         inside the pinhole
     :param  plot: flag to plot the synthetic signals, and the histograms in
         pitch and gyroradius.
+    :param  smooth: smooth the signal of the pinhole. Just for plotting.
 
     :return out dictionary containing remapped signals:
             PH: synthetic signal at the pinhole (PH)
@@ -292,31 +292,30 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, plot=False,
     synthetic_signal['PH'] = ssPH
     synthetic_signal['SC'] = ssSC
 
-    # Smooth the pinhole signal to match scintillator
-    if smooth == True :   
-        dummy = ssPH.interp(y=ys_val, x=xs_val, method='nearest')
-        ssPH = dummy.where(dummy >=0.0, 0)
 
     print("ions/s considered for the synth. sig. = "+str(f"{ions_pinhole:e}"))
     print("ions/s analysed = "+str(f"{ions_pinhole_found:e}"))    
     print("ions/s lost = "+str(f"{ions_pinhole_lost:e}"))
 
-    # Plotting block
+    # Default plot to control results
     if plot == True:
+    # Smooth the pinhole signal to match scintillator
+        if smooth == True :   
+            dummy = ssPH.interp(y=ys_val, x=xs_val, method='nearest')
+            ssPH = dummy.where(dummy >=0.0, 0)
+
         fig, ax = plt.subplots(2,2, figsize=(8, 6),
                                     facecolor='w', edgecolor='k') 
         cmap = ss.plt.Gamma_II()
         # Plot of the synthetic signals, pinhole and scintillator
         ax_param = {'fontsize': 10, \
                     'xlabel': 'Pitch [º]', 'ylabel': '$r_l [cm]$'}         
-        ssPH.transpose().plot.imshow(ax=ax[0,0], xlim=[xmin,xmax], 
-                                     ylim=[ymin,ymax], cmap=cmap,
+        ssPH.transpose().plot.imshow(ax=ax[0,0],cmap=cmap,
                                      vmax=0.5*ssPH.max().item(),
                                      cbar_kwargs={"label": 'ions/(s cm deg)'})
         ax[0,0] = ss.plt.axis_beauty(ax[0,0], ax_param)
         ax[0,0].set_title("Pinhole")    
-        ssSC.transpose().plot.imshow(ax=ax[0,1], xlim=[xmin,xmax], 
-                                     ylim=[ymin,ymax], cmap=cmap,
+        ssSC.transpose().plot.imshow(ax=ax[0,1], cmap=cmap,
                                      vmax=0.5*ssSC.max().item(),
                                      cbar_kwargs={"label": 'ions/(s cm deg)'})
         ax[0,1] = ss.plt.axis_beauty(ax[0,1], ax_param)
@@ -345,8 +344,8 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, plot=False,
     return synthetic_signal
 
 
-def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, plot=False,
-                        xmin = None, xmax = None, ymin = None, ymax = None):
+def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, 
+                         plot=False, smooth = False):
     """
     Transfors the pitch-gyroradius space to pitch-energy.
 
@@ -406,19 +405,23 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, plot=False,
     out['SC'] = ssSC_pe/integral_s_e*integral_s
 
     if plot == True:
+    # Smooth the pinhole signal to match scintillator
+        if smooth == True:
+            ys_val = ssSC_pe.coords['ys'].values
+            xs_val = ssSC_pe.coords['xs'].values
+            dummy = ssPH_pe.interp(y=ys_val, x=xs_val, method='nearest')
+            ssPH_pe = dummy.where(dummy >=0.0, 0)        
         fig, ax = plt.subplots(2,2, figsize=(8, 6),
                                     facecolor='w', edgecolor='k') 
         cmap = ss.plt.Gamma_II()
         # Plot of the synthetic signals, pinhole and scintillator
         ax_param = {'fontsize': 10, \
             'xlabel': 'Pitch [º]', 'ylabel': 'Energy [eV]'}         
-        ssPH_pe.transpose().plot.imshow(ax=ax[0,0], xlim=[xmin,xmax], 
-                                     ylim=[ymin,ymax], cmap=cmap,
+        ssPH_pe.transpose().plot.imshow(ax=ax[0,0], cmap=cmap,
                                      cbar_kwargs={"label": 'ions/(s cm deg)'})
         ax[0,0] = ss.plt.axis_beauty(ax[0,0], ax_param)
         ax[0,0].set_title("Pinhole")    
-        ssSC_pe.transpose().plot.imshow(ax=ax[0,1], xlim=[xmin,xmax], 
-                                     ylim=[ymin,ymax], cmap=cmap,
+        ssSC_pe.transpose().plot.imshow(ax=ax[0,1], cmap=cmap,
                                      cbar_kwargs={"label": 'ions/(s cm deg)'})
         ax[0,1] = ss.plt.axis_beauty(ax[0,1], ax_param)
         ax[0,1].set_title("Scintillator")

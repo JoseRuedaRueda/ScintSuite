@@ -433,12 +433,9 @@ class Fsmap(FILDINPA_Smap):
 
     def build_parameters_xarray(self):
         """
-        Put all the fitting parameters into an xarray to easy the parameter
-        analysis, plotting, and representation
+        Put all the fitting parameters into an xarray
 
         Alex Reyner Viñolas: alereyvinn@alum.us.es
-
-
         """
         # --- Check the StrikeMap
         if self.strike_points is None:
@@ -450,7 +447,8 @@ class Fsmap(FILDINPA_Smap):
         # --- Get the names / models of the variables
         names = [self._resolutions['variables'][k].name for k in range(2)]
         models = [self._resolutions['model_' + dum] for dum in names]
-        logger.info('Calculating FILD parameters matrix -> self.fit_xarray')
+        logger.info("Calculating FILD fit parameters matrix -> \
+                    self._resolutions['fit_xarrays']")
         logger.debug('Applied models: ' + models[0] + ' ' +  models[1])
 
         # Prepare the parameters that will be included in the xarray:
@@ -464,13 +462,13 @@ class Fsmap(FILDINPA_Smap):
         ycoords = self.MC_variables[1].data
 
         # --- Build the dataset
-        self.fit_xarray = xr.Dataset(coords={'x':xcoords,'y':ycoords})
+        self._resolutions['fit_xarrays'] = xr.Dataset(coords={'x':xcoords,'y':ycoords})
         for i in range(2):
             name = names[i]
             model = models[i]
             for j in parameters_to_consider[model]:
                 dummy = self._resolutions[name][j]
-                self.fit_xarray[name+'_'+j] = (['x','y'],dummy)
+                self._resolutions['fit_xarrays'][name+'_'+j] = (['x','y'],dummy)
                 
-        self.fit_xarray['coll_factor'] = (['x','y'],
+        self._resolutions['fit_xarrays']['coll_factor'] = (['x','y'],
                                           self('collimator_factor_matrix'))

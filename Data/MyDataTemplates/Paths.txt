@@ -7,5 +7,5 @@
 ! users
 
 &paths
-  SINPA='/shares/departments/AUG/users/alrevi/SINPA'
+  kiwi=''
 /
