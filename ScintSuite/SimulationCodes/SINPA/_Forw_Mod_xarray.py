@@ -229,7 +229,7 @@ def obtain_WF(smap, scintillator, efficiency_flag = False, B=4, A=2, Z=2,
 
 
 def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, 
-                        plot=False, smooth = False):
+                        plot=False):
     """
     Generates synthetic signal in both pinhole and scintillator in pr space
     using the WF. It's quite fast.
@@ -299,11 +299,6 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
 
     # Default plot to control results
     if plot == True:
-    # Smooth the pinhole signal to match scintillator
-        if smooth == True :   
-            dummy = ssPH.interp(y=ys_val, x=xs_val, method='nearest')
-            ssPH = dummy.where(dummy >=0.0, 0)
-
         fig, ax = plt.subplots(2,2, figsize=(8, 6),
                                     facecolor='w', edgecolor='k') 
         cmap = ss.plt.Gamma_II()
@@ -345,7 +340,7 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
 
 
 def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, 
-                         plot=False, smooth = False):
+                         plot=False):
     """
     Transfors the pitch-gyroradius space to pitch-energy.
 
@@ -404,13 +399,7 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2,
     out['PH'] = ssPH_pe
     out['SC'] = ssSC_pe/integral_s_e*integral_s
 
-    if plot == True:
-    # Smooth the pinhole signal to match scintillator
-        if smooth == True:
-            ys_val = ssSC_pe.coords['ys'].values
-            xs_val = ssSC_pe.coords['xs'].values
-            dummy = ssPH_pe.interp(y=ys_val, x=xs_val, method='nearest')
-            ssPH_pe = dummy.where(dummy >=0.0, 0)        
+    if plot == True:    
         fig, ax = plt.subplots(2,2, figsize=(8, 6),
                                     facecolor='w', edgecolor='k') 
         cmap = ss.plt.Gamma_II()
