@@ -214,7 +214,7 @@ class BVO:
                     raise FileNotFoundError(file + ' not found')
                 ## path to the file
                 self.path = file
-                # Do a quick run on the folder looking of .tiff or .png files
+                # Do a quick run for the folder looking of .tiff or .png files
                 f = []
                 for (dirpath, dirnames, filenames) in os.walk(self.path):
                     f.extend(filenames)
@@ -517,7 +517,7 @@ class BVO:
 
             logger.info('Using frames from the video')
             logger.info('%i frames will be used to average noise', it2 - it1 + 1)
-            frame = self.exp_dat['frames'].isel(t=slice(it1, it2+1)).mean(dim='t')
+            frame = self.exp_dat['frames'].isel(t=slice(it1, it2)).mean(dim='t')
             #frame = np.mean(self.exp_dat['frames'].values[:, :, it1:(it2 + 1)],
             #                dtype=original_dtype, axis=2)
 
@@ -932,20 +932,9 @@ class BVO:
             extra_options['extent'] = extent
 
         if rotate_frame:
-            if self.geometryID == 'MU01':
-                try:
-                    imgR = ndimage.rotate(dummy, -self.CameraCalibration.deg, reshape=False)
-                except ValueError:
-                    imgR = ndimage.rotate(dummy, -self.CameraCalibration.deg[0], reshape=False)
-            else:
-                angle = input('Please provide a rotation angle (in degrees): ')
-                imgR = ndimage.rotate(dummy, angle, reshape=False)
-            if self.CameraCalibration.yscale <= 0:
-                imgR =imgR[::-1,:]
-            if self.CameraCalibration.xscale <= 0:
-                imgR =imgR[:,::-1]
+            imgR = ndimage.rotate(dummy, -self.CameraCalibration.deg, reshape=False)
             img = ax.imshow(imgR, cmap=cmap,
-                        alpha=alpha,origin='lower', **extra_options)
+                        alpha=alpha, **extra_options)
         else:
             img = ax.imshow(dummy, origin='lower', cmap=cmap,
                         alpha=alpha, **extra_options)
@@ -989,13 +978,12 @@ class BVO:
         return ax
 
 
-    def GUI_frames(self, flagAverage: bool = False, mask=None):
+    def GUI_frames(self, flagAverage: bool = False):
         """
         Small GUI to explore camera frames
 
         :param  flagAverage: flag to decide if we need to use the averaged frames
             of the experimental ones in the GUI
-        :param  mask: to plot a small coloured mask on top of the image
         """
         text = 'Press TAB until the time slider is highlighted in red.'\
             + ' Once that happend, you can move the time with the arrows'\
@@ -1009,13 +997,13 @@ class BVO:
             ssGUI.ApplicationShowVid(root, self.avg_dat, self.remap_dat,
                                      self.geometryID,
                                      self.CameraCalibration,
-                                     shot=self.shot, mask=mask)
+                                     shot=self.shot)
         else:
             ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat,
                                      GeomID=self.geometryID,
                                      calibration=self.CameraCalibration,
                                      scintillator=self.scintillator,
-                                     shot=self.shot, mask=mask)
+                                     shot=self.shot)
         root.mainloop()
         root.destroy()
 

@@ -105,13 +105,6 @@ def plotSettings(plot_mode='software', usetex=False):
     mpl.rcParams['ytick.major.width'] = nml[mode]['Major_tick_width']
     mpl.rcParams['ytick.minor.size'] = nml[mode]['minor_tick_length']
     mpl.rcParams['ytick.minor.width'] = nml[mode]['minor_tick_width']
-    try:
-        mpl.rcParams['ytick.direction'] = nml[mode]['ytick_direction']
-        mpl.rcParams['xtick.direction'] = nml[mode]['xtick_direction']
-    except KeyError:
-        mpl.rcParams['ytick.direction'] = 'in'
-        mpl.rcParams['xtick.direction'] = 'in'
-
 
     # Print and return
     logger.info('Plotting options initialised')

@@ -63,23 +63,6 @@ def remove_lines(ax):
         ax.lines[-1].remove()
 
 
-def remove_last_image(ax):
-    """
-    Remove Strike Map from the plot
-
-    Jose Rueda: jrrueda@us.es
-
-    note: this is created to e used inside the GUI, although you can use it
-    if you like. It will remove all lines (python line plots) from your
-    axis
-
-    :param  ax: axis to 'clean'
-
-    :return : nothing, just 'clean the axis' from the StrikeMap
-    """
-    ax.images[-1].remove()
-
-
 def overplot_trace(ax, x, y, line_params={}, ymin=0., ymax=0.95):
     """
     Over plot a time traces over figure

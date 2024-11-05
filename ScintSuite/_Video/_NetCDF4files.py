@@ -1,5 +1,5 @@
 """
-Routines to read XIMEA (.nc) files.
+Routines to read pco (.b16) files.
 
 Written by Jose Rueda: jrrueda@us.es
 Adapted by Lina Velarde: lvelarde@us.es
@@ -196,6 +196,13 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
                       len(frames_number)),
                      dtype=video_object.imageheader['framesDtype'])
 
+        # for j in frames_number:
+        #     dummy = load_nc(video_object.file, j)
+        #     M[:, :, counter] = dummy
+        #     counter = counter + 1
+        # print('Number of loaded frames: ', counter)
+
+        # Would it be possible to do it like: ??
         dummy = load_nc(video_object.file, frames_number)
         M[:, :, :] = dummy
         print('Number of loaded frames: ', len(frames_number))
