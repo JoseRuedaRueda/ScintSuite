@@ -140,6 +140,17 @@ def remapAllLoadedFrames(video,
                 var_remap[i] = 'e0'
     else:
         wantEnergy = False
+    # -- Check the tipe of remap
+    if remap_method.lower() == 'centers':
+        MC_number = 0  # to turn off the transformation matrix calculation
+    # -- Prepare the frames
+    if not use_average:
+        data = video.exp_dat
+    else:
+        data = video.avg_dat
+    # -- Get frame shape:
+    nframes = data['frames'].shape[2]
+    frame_shape = data['frames'].shape[0:2]
     # -- Check inputs strike map
     print('.-. . -- .- .--. .--. .. -. --.')
     if map is None:
@@ -149,6 +160,19 @@ def remapAllLoadedFrames(video,
         smap = map
         logger.info('A StrikeMap was given, we will remap all frames with it')
         logger.warning('24: Assuming you properly prepared the smap')
+        # Check the grid
+        if smap._grid_interp is None:
+            smap.interp_grid(frame_shape, method=method,
+                            MC_number=MC_number,
+                            grid_params={'ymin': ymin, 'ymax': ymax,
+                                        'dy': dy,
+                                        'xmin': xmin, 'xmax': xmax,
+                                        'dx': dx},
+                            limitation=transformationMatrixLimit)
+        # @ Todo: add a exception for the case the smap have an interp grid, but
+        #no transformation matrix and the user wants a MC remap
+        # Also, another for the case where the available matrix is not the 
+        # correct one
 
     if smap_folder is None:
         smap_folder = os.path.join(paths.ScintSuite, 'Data', 'RemapStrikeMaps',
@@ -169,17 +193,7 @@ def remapAllLoadedFrames(video,
         [mask] = ssio.read_variable_ncdf(file, ['mask'], human=True)
         # tranform to bool
         mask = mask.data.astype(bool)
-    # -- Check the tipe of remap
-    if remap_method.lower() == 'centers':
-        MC_number = 0  # to turn off the transformation matrix calculation
-    # -- Prepare the frames
-    if not use_average:
-        data = video.exp_dat
-    else:
-        data = video.avg_dat
-    # -- Get frame shape:
-    nframes = data['frames'].shape[2]
-    frame_shape = data['frames'].shape[0:2]
+
     # -- Get the current time (to measure elapsed time)
     tic = time.time()
     # -- Prepare the grid
@@ -288,12 +302,14 @@ def remapAllLoadedFrames(video,
                     phi_used[iframe], theta_used[iframe], smap_folder,
                     geomID=video.geometryID, SINPA_options=code_options,
                     decimals=decimals, clean=True)
-        # Only reload the strike map if it is needed
+        # Only reload the strike map if it is needed. Two things can happen:
+        # -1 We need another strike map
         if name != name_old:
             smap = Fsmap(file=os.path.join(smap_folder, name))
             # -- Set the remap variables
             if wantEnergy:
-                smap.calculate_energy(video.BField['B'].values[iframe], A, Z)
+                #smap.calculate_energy(video.BField['B'].values[iframe], A, Z)
+                smap.calculate_energy(1.59, A, Z)
             smap.setRemapVariables(var_remap, verbose=False)
             # -- Calculate the pixel coordinates
             smap.calculate_pixel_coordinates(video.CameraCalibration)

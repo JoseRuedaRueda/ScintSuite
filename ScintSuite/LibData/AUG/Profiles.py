@@ -18,7 +18,7 @@ pa = Path()
 # -----------------------------------------------------------------------------
 def get_ne(shotnumber: int, time: float = None, exp: str = 'AUGD',
            diag: str = 'IDA', edition: int = 0, sf=None,
-           xArrayOutput: bool = False):
+           xArrayOutput: bool = False, **kwargs):
     """
     Wrap the different diagnostics to read the electron density profile.
 
@@ -818,7 +818,7 @@ def get_tor_rotation(shotnumber: int, time: float = None, diag: str = 'IDI',
     """
 
     if diag == 'IDI':
-        return get_tor_rotation_idi(shotnumber, time, exp, edition)
+        return get_tor_rotation_idi(shotnumber, time, exp, edition, **kwargs)
     elif diag == 'CXRS':
         return get_tor_rotation_cxrs(shotnumber, time, exp, edition, **kwargs)
     elif diag == 'PED':
@@ -883,7 +883,7 @@ def get_tor_rotation_idi(shotnumber: int, time: float = None,
         output['t'].attrs['units'] = 's'
         output['data'].attrs['long_name'] = '$\\omega$'
         output['data'].attrs['units'] = 'rad/s'
-
+        output.attrs['units'] = 'rad/s'
         output['uncertainty'].attrs['long_name'] = '$\\sigma\\omega$'
         output['uncertainty'].attrs['units'] = 'rad/s'
         output.attrs['diag'] = 'IDI'

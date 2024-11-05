@@ -435,12 +435,15 @@ class Ismap(FILDINPA_Smap):
                     if sumMatrix < 1.0e-8:
                         continue
                     matrix /= sumMatrix
-                    params = ssmodels.guessParamsBivariateNormalDistribution(
-                        XX.flatten(), YY.flatten(), matrix.flatten())
-                    result = model.fit(data=matrix.flatten(),
-                                       params=params, x=XX.flatten(),
-                                       y=YY.flatten())
-                    self.instrument_function_fit.values[ixs, iys, :, :, jk] = \
-                        result.eval(x=XX.flatten(), y=YY.flatten()).reshape(
-                            XX.shape) * sumMatrix
+                    try:
+                        params = ssmodels.guessParamsBivariateNormalDistribution(
+                            XX.flatten(), YY.flatten(), matrix.flatten())
+                        result = model.fit(data=matrix.flatten(),
+                                        params=params, x=XX.flatten(),
+                                        y=YY.flatten())
+                        self.instrument_function_fit.values[ixs, iys, :, :, jk] = \
+                            result.eval(x=XX.flatten(), y=YY.flatten()).reshape(
+                                XX.shape) * sumMatrix
+                    except:
+                        self.instrument_function_fit.values[ixs, iys, :, :, jk] =0.0
         return

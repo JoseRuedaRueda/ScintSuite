@@ -4,7 +4,10 @@ Routines to analyse a time signal in the frequency domain
 Include band signal and other filtres aimed to reduce the noise
 """
 import numpy as np
+import xarray as xr
+import xarray as xr
 import heapq
+import logging
 import scipy.signal as signal
 import matplotlib.pyplot as plt
 import matplotlib.cm as colorMap
@@ -16,6 +19,7 @@ from scipy.fftpack import next_fast_len
 from scipy.interpolate import interp2d
 from collections import defaultdict
 from ScintSuite._Plotting import p1D_shaded_error as plot_error_band
+from ScintSuite._SideFunctions import smooth
 try:
     import pyfftw
     pyfftw.interfaces.cache.enable()
@@ -23,7 +27,7 @@ try:
 except ModuleNotFoundError:
     print('Only partial support for fft')
     print('Install pyfftw for full support')
-
+logger = logging.getLogger('ScintSuite.Freq')
 # -----------------------------------------------------------------------------
 # --- Band filters
 # -----------------------------------------------------------------------------
@@ -1200,3 +1204,5 @@ def graph_shortest(v, path):
         graph_shortest(v.previous, path)
 
     return
+
+

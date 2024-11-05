@@ -100,6 +100,35 @@ def tikhonov0(X, y, alpha, weight=None, **kargs):
     return ridge.coef_, MSE, res, r2
 
 
+def nntikhonov0projective(X, y, alpha, weight=None, **kargs):
+    """
+    Perform a Ridge (0th Tikhonov) regression and project in the positive space
+
+    Jose Rueda: jruedaru@uci.edu
+    
+    Yes, this is just a fancy name for a common 0th Tikhonov regression with
+    sol[sol<0] = 0
+
+    :param  X: Design matrix
+    :param  y: signal
+    :param  alpha: hyperparameter
+    :param  weight: weight of the samples, for the regression
+    :param  *kargs: arguments for the Ridge regressor
+
+    :return ridge.coef_: best fit coefficients
+    :return MSE: Mean squared error
+    :return r2: R2 score
+    """
+    ridge = Ridge(alpha, **kargs)
+    ridge.fit(X, y, sample_weight=weight)
+    ridge.coef_[ridge.coef_ < 0] = 0.0
+    y_pred = ridge.predict(X)
+    MSE = mean_squared_error(y, y_pred)
+    r2 = r2_score(y, y_pred)
+    res = residual(y_pred, y)
+    return ridge.coef_, MSE, res, r2
+
+
 def nntikhonov0(X, y, alpha, **kargs):
     """
     Perform a non-negative Ridge inversion

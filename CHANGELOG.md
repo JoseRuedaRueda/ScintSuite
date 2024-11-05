@@ -1,9 +1,44 @@
+# 1.3.10 Minor fixes
 - Bug solved in substract noise, last frame was not taken into account (bug introduced in 1.2.1)
 - Plot mask option added to the GUI_frames
+- Included option to load both remap and video
+- Fixed the rotation of the frames when plotting for MU01
 
-# 1.3.5 Update netCDF library for MU
+# 1.3.9 D3D implementation
+## General
+- Minor potential bug fixes and documentation implementation
+## Simulation codes
+- geometry.plot routines now accept element_to_plot integer, no need of array
+## Fast channel
+- Fast channel library rewritten. New spectograms using new scipy core
+- New baseline correction
+- New plotting
+## Video library:
+- Default limit size for loading video files increased from 2 to 3 Gb
+- New library to read D3D videos
+## Mapping library
+- Homomorphic calibrations implemented
+## Tomography library
+- Added methods to collapse/restore 5D arrays into 2D (Orbits weights)
+- Added methods to collapse/restore 3D arrays into 1D (Orbits F)
+- Added a non-negative projective tikhonov inversor
+## Dat library
+- pySpecView extracted from AUG library and given an independent submodule
+
+# 1.3.8 WF improvements
+- Official release of FILD numerical WF
+- Included a cutoff in the weight function calculation to avoid correlations in tomography (can be activated or not with an optional variable)
+
+# 1.3.7 Solved (again) np.int stuff
+- removed np.int and np.float calls
+
+# 1.3.6 Updated fild export
+- Updated pip requirements
+- Updated export fild, for the case of single smap used in remap
+
+# 1.3.5 Shares path, Update netCDF library for MU
+- Updated basic paths of AUG FILD and INPa to the shares
 - The netCDF library has been updated to read new standard MU format
-
 
 # 1.3.4 Home flexibility
 - The code can now be intalled away from your home directory using the env variable ScintSuitePath
@@ -11,14 +46,12 @@
 - *Major Bug fix*: Tiff video read was broken
 - *Bug fixing*: np.float removed from vessel library
 
-
 # 1.3.3 BAngles calculation
 - BAngles can now be calculated without having to perform the remap
 - netCDF4 files can be read and analysed
 - The time instant can be calculated for the absolute or relative frame number
 - MU default position updated
 - Camera general parameters can now be read
-
 
 # 1.3.2 Minor polishing
 - `timeWindow` option of the get_ECE function can now be a tuple

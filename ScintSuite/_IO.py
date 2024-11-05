@@ -183,7 +183,7 @@ def read_variable_ncdf(file: str, varNames, human=True, verbose=True) -> list:
     return out
 
 
-def print_netCDF_content(file: str, long_name=False) -> None:
+def print_netCDF_content(file: str, long_name=False, search_string: str = None) -> None:
     """
     Print the list of variables in a netcdf file
 
@@ -195,11 +195,17 @@ def print_netCDF_content(file: str, long_name=False) -> None:
     if long_name:
         print('%20s' % ('Var name'),  '|  Description  | Dimensions')
         for key in sorted(varfile.keys()):
+            if search_string is not None:
+                if not search_string in key:
+                    continue
             print('%20s' % (key), varfile[key].long_name,
                   varfile[key].dimensions)
     else:
         print('%20s' % ('Var name'),  '| Dimensions')
         for key in sorted(varfile.keys()):
+            if search_string is not None:
+                if not search_string in key:
+                    continue
             print('%20s' % (key), varfile[key].dimensions)
 
 
@@ -563,8 +569,12 @@ def load_remap(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
     else:
         raise errors.NotValidInput('Not suported diagnostic')
     vid.remap_dat = xr.load_dataset(os.path.join(dummyFolder, 'remap.nc'))
-    vid.BField = xr.load_dataset(os.path.join(dummyFolder, 'Bfield.nc'))
-    vid.Bangles = xr.load_dataset(os.path.join(dummyFolder, 'BfieldAngles.nc'))
+    try:
+        vid.BField = xr.load_dataset(os.path.join(dummyFolder, 'Bfield.nc'))
+        vid.Bangles = xr.load_dataset(os.path.join(dummyFolder, 'BfieldAngles.nc'))
+    except FileNotFoundError:
+        logger.warning('Bfield not found, not loaded')
+        # This happens if the remap was done with a single smap
     vid.CameraCalibration = \
         read_calibration(os.path.join(dummyFolder, 'CameraCalibration.nc'))
     v = ver.readVersion(os.path.join(dummyFolder, 'version.txt'))
@@ -639,8 +649,11 @@ def load_remap_and_video(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
         raise errors.NotValidInput('Not suported diagnostic')
     # Load rest of data in the tar file
     vid.remap_dat = xr.load_dataset(os.path.join(dummyFolder, 'remap.nc'))
-    vid.BField = xr.load_dataset(os.path.join(dummyFolder, 'Bfield.nc'))
-    vid.Bangles = xr.load_dataset(os.path.join(dummyFolder, 'BfieldAngles.nc'))
+    try:
+        vid.BField = xr.load_dataset(os.path.join(dummyFolder, 'Bfield.nc'))
+        vid.Bangles = xr.load_dataset(os.path.join(dummyFolder, 'BfieldAngles.nc'))
+    except FileNotFoundError:
+        logger.warning('Bfield not found, not loaded')
     vid.CameraCalibration = \
         read_calibration(os.path.join(dummyFolder, 'CameraCalibration.nc'))
     v = ver.readVersion(os.path.join(dummyFolder, 'version.txt'))

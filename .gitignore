@@ -48,6 +48,7 @@ Data/BEP/spectra/*
 Data/MyData/*
 Data/Magnetics/*
 Data/RemapStrikeMaps/*
+Data/RemapDatabase/*
 MyRoutines/*
 Results/*
 doc/*
@@ -62,3 +63,4 @@ html/*
 .vscode/*
 build/*
 *.egg-info/
+*tmpFILDVideos

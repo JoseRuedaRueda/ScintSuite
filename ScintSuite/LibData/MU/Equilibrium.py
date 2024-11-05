@@ -24,6 +24,7 @@ def get_mag_field(shot: int, Rin, zin, time: float, **kwargs):
     :return bz: z magnetic field (nt, nrz_in), [T]
     :return bt: toroidal magnetic field (nt, nrz_in), [T]
     :return bp: poloidal magnetic field (nt, nrz_in), [T]
+    @TODO: Include the sign of Bpol
     """
     if isinstance(time, (list, np.ndarray)):
         pass

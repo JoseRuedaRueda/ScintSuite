@@ -14,6 +14,7 @@ import ScintSuite.errors as errors
 import ScintSuite._Plotting as ssplt
 from tqdm import tqdm
 from ScintSuite._Paths import Path
+from ScintSuite._SideFunctions import createGrid
 from ScintSuite.decorators import deprecated
 from ScintSuite._basicVariable import BasicVariable
 from ScintSuite._Mapping._Common import _fit_to_model_
@@ -139,7 +140,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
 
     def load_strike_points(self, file=None, verbose: bool = True,
                            calculate_pixel_coordinates: bool = False,
-                           remap_in_pixel_space: bool = False):
+                           remap_in_pixel_space: bool = False,
+                           remap: bool = True):
         """
         Load the strike points used to calculate the map.
 
@@ -157,6 +159,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
             loading the points. If this flag is true, the remap will be done
             using the pixel coordinates instead of the strike in the
             scintillator.
+        :param  remap: Flag to remap the strike points just after loading them
+            introduced in version 1.3.7, before it was always done
         """
         # See if the strike points where already there
         if self.strike_points is not None:
@@ -181,7 +185,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 self.CameraCalibration)
         # If the code was SINPA, perform the remap, as it is not done in
         # fortran:
-        if self._header['code'].lower() == 'sinpa':
+        if self._header['code'].lower() == 'sinpa' and remap:
+            logger.info('Remapping the strike points')
             self.remap_strike_points(remap_in_pixel_space=remap_in_pixel_space)
 
     def calculate_phase_space_resolution(self, diag_params: dict = {},
@@ -722,6 +727,68 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 # Update the header
                 strikes.header['info'].update(extra_column)
 
+    def  calculate_phaseSpace_to_pixelMatrix(self, gridPhaseSpace, gridPixel,
+                                             limitation: float = 10.0,
+                                             MC_number=300):
+        """
+        Calculate the transformation like matrix to go from the remap to the camera frame
+        
+        
+        """
+        # First calcualte the interpolators from phase space to pixel
+        # Select the variable to interpolate
+        xvar = self._data[gridPhaseSpace['xname']].data
+        print(xvar.mean())
+        yvar = self._data[gridPhaseSpace['yname']].data
+        print(yvar.mean())
+        gridPhaseSpace.pop('xname')
+        gridPhaseSpace.pop('yname')
+        
+        # Get the pixel position
+        xpix = self._coord_pix['x']
+        ypix = self._coord_pix['y']
+        
+        # Construct the phase space grid
+        nx, ny, xedges, yedges = createGrid(**gridPhaseSpace)
+        nxpix, nypix, xedgespix, yedgespix = createGrid(**gridPixel)
+        
+        # Construct the interpolators
+        interpolatorX = scipy_interp.LinearNDInterpolator(
+            np.column_stack((xvar.flatten(), yvar.flatten())),
+            xpix.flatten()
+        )
+        interpolatorY = scipy_interp.LinearNDInterpolator(
+            np.column_stack((xvar.flatten(), yvar.flatten())),
+            ypix.flatten()
+        )      # 
+        memory_size = nx * ny * nxpix * nypix \
+            * 8 / 1024 / 1024 / 1024
+        if memory_size > limitation:
+            text = 'The requiring matrix will consume %2.1f Gb, this is above'\
+                % memory_size\
+                + 'the threshold. Increase it if you really want to proceed'
+            raise errors.NotValidInput(text)
+        transform = np.zeros((nxpix, nypix, nx, ny), dtype='float64')
+        # Allocate the random number generator
+        rand = np.random.default_rng()
+        generator = rand.uniform
+        # Loop over the grid
+        for i in tqdm(range(nx)):
+            for j in range(ny):
+                # Create a set of MC markers
+                x_markers = generator(xedges[i], xedges[i+1], MC_number)
+                y_markers = generator(yedges[j], yedges[j+1], MC_number)
+                # Calculate the pixel position
+                xpix_markers= interpolatorX(x_markers, y_markers)
+                ypix_markers= interpolatorY(x_markers, y_markers)
+                # Histogram the pixel space
+                H, _, _ = np.histogram2d(xpix_markers, ypix_markers,
+                                         bins=[xedgespix, yedgespix])
+                # Save it in place
+                transform[:, :, i, j] = H.copy()
+        # Normalise the matrix
+        transform /= MC_number
+        return transform
     # --------------------------------------------------------------------------
     # --- Plotting Block
     # --------------------------------------------------------------------------
@@ -944,7 +1011,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 else:
                     index_gyr = np.array([gyr_index])
             else:
-                index_gyr = np.arange(self.MC_variables[1].data.size, dtype=np.int)
+                index_gyr = np.arange(self.MC_variables[1].data.size, dtype=int)
 
         if pitch is not None:
             # test if it is a number or an array of them
@@ -966,7 +1033,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 else:
                     index_pitch = np.array([pitch_index])
             else:
-                index_pitch = np.arange(self.MC_variables[0].data.size, dtype=np.int)
+                index_pitch = np.arange(self.MC_variables[0].data.size, dtype=int)
         # --- Get the maximum value for the normalization
 
         # --- Plot the desired data
