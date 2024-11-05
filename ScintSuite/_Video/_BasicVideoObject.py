@@ -921,9 +921,20 @@ class BVO:
             extra_options['extent'] = extent
 
         if rotate_frame:
-            imgR = ndimage.rotate(dummy, -self.CameraCalibration.deg, reshape=False)
+            if self.geometryID == 'MU01':
+                try:
+                    imgR = ndimage.rotate(dummy, -self.CameraCalibration.deg, reshape=False)
+                except ValueError:
+                    imgR = ndimage.rotate(dummy, -self.CameraCalibration.deg[0], reshape=False)
+            else:
+                angle = input('Please provide a rotation angle (in degrees): ')
+                imgR = ndimage.rotate(dummy, angle, reshape=False)
+            if self.CameraCalibration.yscale <= 0:
+                imgR =imgR[::-1,:]
+            if self.CameraCalibration.xscale <= 0:
+                imgR =imgR[:,::-1]
             img = ax.imshow(imgR, cmap=cmap,
-                        alpha=alpha, **extra_options)
+                        alpha=alpha,origin='lower', **extra_options)
         else:
             img = ax.imshow(dummy, origin='lower', cmap=cmap,
                         alpha=alpha, **extra_options)

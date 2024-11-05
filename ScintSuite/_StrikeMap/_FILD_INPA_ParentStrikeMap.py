@@ -875,7 +875,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                                          kind_of_plot: str = 'normal',
                                          include_legend: bool = False,
                                          XI_index=None,
-                                         normalize: bool = False):
+                                         grid: bool = False):
         """
         Plot the fits done to calculate the resolution
 
@@ -886,7 +886,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         :param  gyr_index: index, or arrays of indeces, of gyroradius to plot
         :param  pitch_index: index, or arrays of indeces, of pitches to plot,
             this is outdated code, please use XI_index instead
-        :param  gyroradius: gyroradius value of array of then to plot. If
+        :param  gyroradius: gyroradius value or array of them to plot. If
         present, gyr_index will be ignored
         :param  pitch: idem to gyroradius bu for the pitch
         :param  kind_of_plot: kind of plot to make:
@@ -897,7 +897,6 @@ class FILDINPA_Smap(GeneralStrikeMap):
             - just_fit: Just a line plot as the fit
         :param  include_legend: flag to include a legend
         :param  XI_index: equivalent to pitch_index, but with the new criteria
-        :param  normalize: normalize the output
         """
         # --- Initialise plotting options and axis:
         default_labels = {
@@ -910,9 +909,12 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 'ylabel': 'Counts [a.u.]'
             }
         }
-        ax_options = {
-            'grid': 'both',
-        }
+        if grid:
+            ax_options = {
+                'grid': 'both',
+            }
+        else:
+            ax_options = {}
         ax_options.update(default_labels[var.lower()])
         ax_options.update(ax_params)
         if ax is None:
@@ -925,7 +927,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         # --- Localise the values to plot
         if gyroradius is not None:
             # test if it is a number or an array of them
-            if isinstance(gyroradius, (list, np.ndarray)):
+            if isinstance(gyroradius, (np.ndarray)):
                 gyroradius = gyroradius
             else:
                 gyroradius = np.array([gyroradius])
@@ -933,7 +935,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
             for i in range(index_gyr.size):
                 index_gyr[i] = \
                     np.argmin(np.abs(self.MC_variables[1].data - gyroradius[i]))
-            logger.debug('Found gyroradius: %.2f' % self.MC_variables[1].data)
+            logger.debug('Found gyroradius: %.2f' % self.MC_variables[1].data[index_gyr])
         else:
             # test if it is a number or an array of them
             if gyr_index is not None:
@@ -980,9 +982,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
                     deltax = x.max() - x.min()
                     x_fine = np.linspace(x.min() - 0.1 * deltax,
                                          x.max() + 0.1 * deltax)
-                    name = 'rl: ' + str(round(self.MC_variables[1].data[ir], 1))\
+                    name = 'rL: ' + str(round(self.MC_variables[1].data[ir], 1))\
                         + ' $\\lambda$: ' + \
-                        str(round(self.MC_variables[1].data[ip], 1))
+                        str(round(self.MC_variables[0].data[ip], 1))
                     normalization = \
                         self._resolutions['norm_' + var.lower()][ip, ir]
                     y = self._resolutions['fits_' + var.lower()][ip, ir].eval(
