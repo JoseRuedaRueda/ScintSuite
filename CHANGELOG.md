@@ -1,3 +1,8 @@
+# 1.3.10 Minor fixes
+- Bug solved in substract noise, last frame was not taken into account (bug introduced in 1.2.1)
+- Plot mask option added to the GUI_frames
+- Included option to load both remap and video
+- Fixed the rotation of the frames when plotting for MU01
 
 # 1.3.9 D3D implementation
 ## General
@@ -27,13 +32,12 @@
 # 1.3.7 Solved (again) np.int stuff
 - removed np.int and np.float calls
 
-
 # 1.3.6 Updated fild export
 - Updated pip requirements
 - Updated export fild, for the case of single smap used in remap
 
 # 1.3.5 Shares path, Update netCDF library for MU
-- Updated basic pathjs of AUG FILD and INPa to the shares
+- Updated basic paths of AUG FILD and INPa to the shares
 - The netCDF library has been updated to read new standard MU format
 
 # 1.3.4 Home flexibility
