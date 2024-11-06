@@ -522,7 +522,7 @@ class BVO:
             #                dtype=original_dtype, axis=2)
 
         else:  # The frame is given by the user
-            logger.info('Using noise frame provider by the user')
+            logger.info('Using noise frame provided by the user')
             try:
                 nxf = frame.px.size
                 nyf = frame.py.size
