@@ -657,8 +657,20 @@ def load_remap_and_video(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
         raise errors.NotValidInput('Not suported diagnostic')
     # Load rest of data in the tar file
     vid.remap_dat = xr.load_dataset(os.path.join(dummyFolder, 'remap.nc'))
-    vid.BField = xr.load_dataset(os.path.join(dummyFolder, 'Bfield.nc'))
-    vid.Bangles = xr.load_dataset(os.path.join(dummyFolder, 'BfieldAngles.nc'))
+    try:
+        vid.BField = xr.load_dataset(os.path.join(dummyFolder, 'Bfield.nc'))
+        vid.Bangles = xr.load_dataset(os.path.join(dummyFolder, 'BfieldAngles.nc'))
+    except FileNotFoundError:
+        logger.warning('Bfield not found, not loaded')
+        # This happens if the remap was done with a single smap
+    try:
+        vid.strikemap = xr.load_dataset(os.path.join(dummyFolder, 'strikeMaps.nc'))
+    except FileNotFoundError:
+        vid.strikemap = xr.Dataset()
+        vid.strikemap['exist'] = vid.remap_dat['existing_smaps']
+        vid.strikemap['exist'].attrs['long_name'] = 'Existing strikemaps'
+        vid.strikemap.attrs['smap_folder'] = vid.remap_dat['frames'].attrs['smap_folder']
+        vid.strikemap.attrs['CodeUsed'] = vid.remap_dat['frames'].attrs['CodeUsed']
     vid.CameraCalibration = \
         read_calibration(os.path.join(dummyFolder, 'CameraCalibration.nc'))
     v = ver.readVersion(os.path.join(dummyFolder, 'version.txt'))
