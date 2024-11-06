@@ -17,14 +17,14 @@ last revision:
 """
 import os
 import numpy as np
-import ScintSuite.as ss
+import ScintSuite as ss
 paths = ss.paths
 # -----------------------------------------------------------------------------
 # --- Settings block
 # -----------------------------------------------------------------------------
 runid = 'Example_test'
 geomID = 'FILD1'
-nml_options = {   # Se the PDF documentation for a complete desription of these
+nml_options = {   # See the PDF documentation for a complete desription of these
     'config':  {  # parameters
         'runid': runid,
         'geomfolder': os.path.join(paths.SINPA, 'Geometry', geomID),

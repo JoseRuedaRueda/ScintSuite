@@ -37,6 +37,8 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     :return bz: z magnetic field (nt, nrz_in), [T]
     :return bt: toroidal magnetic field (nt, nrz_in), [T]
     :return bp: poloidal magnetic field (nt, nrz_in), [T]
+    
+    @TODO: Include the sign of Bpol
     """
     # If the equilibrium object is not an input, let create it
     # created = False
@@ -285,7 +287,7 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
 # -----------------------------------------------------------------------------
 def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
                   ed: int = 0, time: float = None, sfo=None,
-                  xArrayOutput: bool = True):
+                  xArrayOutput: bool = True, **kwargs):
     """
     Reads from the database the q-profile as reconstrusted from an experiment.
 

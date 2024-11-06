@@ -205,7 +205,7 @@ class pySpecView:
                                                  ticks=np.arange(N_min,
                                                                  N_max + 1),
                                                  spacing='uniform')
-                cax.set_xlabel('N')
+                cax.set_xlabel('#')
                 cax.xaxis.set_label_position('top')
         # ---- Set the axis labels
         ax.set_xlabel('Time [s]')

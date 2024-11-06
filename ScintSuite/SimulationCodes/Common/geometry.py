@@ -11,6 +11,7 @@ single routines independently.
 """
 
 import os
+import logging
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -21,7 +22,7 @@ from ScintSuite._Plotting import axis_beauty, axisEqual3D, clean3Daxis
 import ScintSuite._CAD as libcad
 import f90nml
 paths = Path(machine)
-
+logger = logging.getLogger('ScintSuite.SimCod')
 
 def read_element(file: str, code: str = 'SINPA') -> dict:
     """
@@ -400,8 +401,12 @@ class Geometry:
         self.elements = []
         # Read the files
         for f in files:
+            if code.lower() == 'sinpa' and not f.startswith('Elem'):
+                # Read only element plates
+                continue
             if f.startswith('Elem') or f.endswith('.pl') or f.endswith('.3d'):
                 filename = os.path.join(folder, f)
+                logger.debug('Reading: %s'%filename)
                 self.elements.append(read_element(filename, code=code))
         # Just set a variable to see from where it was comming
         self.code = code
@@ -447,7 +452,8 @@ class Geometry:
 
     def plot3Dlines(self, line_params: dict = {}, ax=None,
                     element_to_plot=[0, 1, 2], plot_pinhole: bool = True,
-                    referenceSystem='absolute', units: str = 'cm'):
+                    referenceSystem='absolute', units: str = 'cm', 
+                    plot_scint_reference_point: bool = False):
         """
         Plot the geometric elements.
 
@@ -463,7 +469,8 @@ class Geometry:
         :param  plot_pinhole: flag to plot a point on the pinhole or not
         :param  referenceSystem: if absolute, the absolute coordinates will be
             used, if 'scintillator', the scintillator coordinates will be used
-
+        :param plot_scint_reference_point: if true, the origing of the scint
+            system is plot
         Note: The use of this routine is not recomended if you use a fine mesh
         with several triangles
         """
@@ -486,7 +493,7 @@ class Geometry:
         else:
             created = False
         for ele in self.elements:
-            if ele['kind'] in element_to_plot:
+            if ele['kind'] in np.atleast_1d(element_to_plot):
                 # If the user did not provided a custom color, generate a color
                 # for each tipe of plate
                 if 'color' not in line_params:
@@ -499,6 +506,10 @@ class Geometry:
             ax.plot([self.ExtraGeometryParams['rpin'][0] * factor],
                     [self.ExtraGeometryParams['rpin'][1] * factor],
                     [self.ExtraGeometryParams['rpin'][2] * factor], 'og')
+        if plot_scint_reference_point:
+            ax.plot([self.ExtraGeometryParams['ps'][0] * factor],
+                    [self.ExtraGeometryParams['ps'][1] * factor],
+                    [self.ExtraGeometryParams['ps'][2] * factor], 'or')
         if created:
             axisEqual3D(ax)
             clean3Daxis(ax)
@@ -555,7 +566,7 @@ class Geometry:
         else:
             created = False
         for ele in self.elements:
-            if ele['kind'] in element_to_plot:
+            if ele['kind'] in np.atleast_1d(element_to_plot):
                 # If the user did not provided a custom color, generate a color
                 # for each tipe of plate
                 if 'color' not in line_params:
@@ -573,7 +584,8 @@ class Geometry:
 
     def plot3Dfilled(self, surface_params: dict = {}, ax=None,
                      element_to_plot=[0, 1, 2], plot_pinhole: bool = True,
-                     referenceSystem='absolute', units: str = 'cm'):
+                     referenceSystem='absolute', units: str = 'cm',
+                     plot_scint_reference_point: bool = True):
         """
         Plot the geometric elements.
 
@@ -636,7 +648,7 @@ class Geometry:
             created = False
 
         for ele in self.elements:
-            if ele['kind'] in element_to_plot:
+            if ele['kind'] in np.atleast_1d(element_to_plot):
                 # If the user did not provided a custom color, generate a color
                 # for each tipe of plate
                 if 'color' not in surface_params:
@@ -659,6 +671,10 @@ class Geometry:
             ax.plot([self.ExtraGeometryParams['rpin'][0] * factor],
                     [self.ExtraGeometryParams['rpin'][1] * factor],
                     [self.ExtraGeometryParams['rpin'][2] * factor], 'og')
+        if plot_scint_reference_point:
+            ax.plot([self.ExtraGeometryParams['ps'][0] * factor],
+                    [self.ExtraGeometryParams['ps'][1] * factor],
+                    [self.ExtraGeometryParams['ps'][2] * factor], 'or')
         # --- Set the scale:
         if created:
             dx = xmax - xmin
@@ -736,7 +752,7 @@ class Geometry:
         else:
             created = False
         for ele in self.elements:
-            if ele['kind'] in element_to_plot:
+            if ele['kind'] in np.atleast_1d(element_to_plot):
                 # If the user did not provided a custom color, generate a color
                 # for each tipe of plate
                 if 'color' not in surface_params:
@@ -774,6 +790,8 @@ class Geometry:
 
         Note: Only working for SINPA/iHIBPsim code
         """
+        if not os.path.isdir(path):
+            os.mkdir(path)
         if self.code.lower() == 'sinpa':
             for i in range(self.size):
                 name = os.path.join(path, 'Element' + str(i + 1) + '.txt')

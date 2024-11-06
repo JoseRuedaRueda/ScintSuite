@@ -3,12 +3,15 @@ FILD strike map
 
 Contains the Strike Map object fully adapted to FILD
 """
+import os
 import logging
 import numpy as np
 import xarray as xr
-from ScintSuite._SideFunctions import createGrid
+from scipy.signal import convolve
+from ScintSuite._SideFunctions import createGrid, gkern
 from ScintSuite._StrikeMap._FILD_INPA_ParentStrikeMap import FILDINPA_Smap
 from ScintSuite.SimulationCodes.FILDSIM.execution import get_energy
+import ScintSuite.errors as errors
 logger = logging.getLogger('ScintSuite.FILDsmap')
 try:
     import lmfit
@@ -72,7 +75,8 @@ class Fsmap(FILDINPA_Smap):
     def build_weight_matrix(self, grid_options_scint,
                             grid_options_pinhole,
                             efficiency=None,
-                            B=1.8, A=2.0, Z=1):
+                            B=1.8, A=2.0, Z=1, 
+                            cutoff=None):
         """
         Build FILD weight function
 
@@ -98,9 +102,11 @@ class Fsmap(FILDINPA_Smap):
         efficiency evaluation
         :param  Z: charge in elecrton charges, used to translate between radius and
         energy, for the efficiency evaluation
-        :param  only_gyroradius: flag to decide if the output will be the matrix
-        just relating giroradius in the pinhole and the scintillator, ie, pitch
-        integrated
+        :param  cutoff: cutoff value for the weight matrix. If None, no cutoff is
+        applied. If a value is given, all pixels in the scintillator grid with a
+        weight lower than cutoff*max(weight (for each pixel in the pinhole)) will
+        be set to zero. This kills fake correlations detected in tomographic 
+        reconstructions
 
         DISCLAIMER: Only fully tested when the gyroradius or the energy variable
         is the y variable of the strike map. Please consider to use this
@@ -186,6 +192,12 @@ class Fsmap(FILDINPA_Smap):
                             models_func[models[1]](YY.flatten(),
                                                    **y_parameters) \
                             * eff[kk]
+                    # The model extend over the whole plate, which can produce
+                    # some numerical errors. We will set to zero the pixels with 
+                    # less weight than the cutoff (relative to maximal weight)
+                    if cutoff is not None:
+                        mask = dummy / np.max(dummy) < cutoff
+                        dummy[mask] = 0.0
                     res_matrix[:, :, ll, kk] = np.reshape(dummy, XX.shape).T
                 else:
                     res_matrix[:, :, ll, kk] = 0.0
@@ -200,3 +212,220 @@ class Fsmap(FILDINPA_Smap):
         self.instrument_function['x'].attrs['long_name'] = names[0].capitalize()
         self.instrument_function['y'].attrs['long_name'] = names[1].capitalize()
         self.instrument_function['ys'].attrs['long_name'] = names[1].capitalize()
+
+
+    def build_numerical_weight_matrix(self, strikes=None,
+                                      variablesScint: tuple = ('pitch', 'gyroradius'),
+                                      sigmaOptics: float = 0.0,
+                                      verbose: bool = True,
+                                      normFactor: float = 1.0,
+                                      energyFit=None,
+                                      efficiency=None,
+                                      B: float = 1.8,
+                                      Z: float = 1.0,
+                                      A: float = 2.01410,) -> None:
+        """
+        Build the FILD numerical weight function.
+
+        For a complete documentation of how each submatrix is defined from the
+        physics point of view, please see full and detailed INPA notes
+
+        :param  strikes: FILDSIM strikes.Notice that it can also be just a 
+            string pointing towards the strike file
+        :param  variablesScint: tuple of variable to spawn the scintillator space
+        :param  variablesFI: tuple of variables to spawn the FI space
+        :param  weigt: name of the weight to be selected
+        :param  gridFI: grid for the variables in the FI phase space
+        :param  sigmaOptics: fine resolution sigma of the optical system
+        :param  verbose: flag to incldue information in the console
+        :param  normFactor: Overal factor to scale the weight matrix
+
+        Notes:
+        - Scintillator grid cannot be included as input because is taken from
+            the transformation matrix
+        - The normFactor is though to be used as the constant value of the
+            FBM set for the FIDASIM simulation, to eliminate this constant dummy
+            factor
+
+        TODO: Include fine resolution depending of the optical axis
+        """
+        # Block 0: Loading and settings ----------------------------------------
+        # --- Check inputs
+        if self.CameraCalibration is None:
+            raise errors.NotFoundCameraCalibration('I need the camera calib')
+        if self._grid_interp.keys() is None:
+            raise errors.NotValidInput('Need to calculate interpolators first')
+        if 'transformation_matrix' not in self._grid_interp.keys():
+            raise errors.NotValidInput('Need to calculate T matrix first')
+        # --- Check the strike grid
+        diffgyroradius = np.diff(self.strike_points.header['gyroradius'])
+        if np.std(diffgyroradius)/diffgyroradius[0] > 0.01:
+            raise Exception('The strikes are not equally spaced in gyroradius')
+        diffpitch = np.diff(self.strike_points.header['XI'])
+        if np.std(diffpitch)/diffpitch[0] > 0.01:
+            raise Exception('The strikes are not equally spaced in pitch')
+        # --- Check the efficiency
+        if efficiency is not None and energyFit is not None:
+            raise Exception('You cannot use both efficiency and energyFit')
+        # --- Load/put in place the strikes
+        if self.strike_points is None:
+            if isinstance(strikes, (str,)):
+                if os.path.isfile(strikes):
+                    self.strike_points = \
+                        Strikes(file=strikes, verbose=verbose, code='SINPA')
+                else:
+                    self.strike_points = \
+                        Strikes(runID=strikes, verbose=verbose, code='SINPA')
+            elif isinstance(strikes, Strikes):
+                self.strike_points = strikes
+        else:
+            logger.info('Using Smap strikes')
+        # --- Calculate camera position, if not done outside:
+        if 'xcam' not in self.strike_points.header['info'].keys():
+            self.strike_points.calculate_pixel_coordinates(
+                self.CameraCalibration)
+        else:
+            text = 'Strikes already contain pixel position!' +\
+                'Assuming you did it with the same calibration than the map'
+            logger.warning(text)
+        # --- Prepare the names
+        nameT = variablesScint[0] + '_' + variablesScint[1]
+        # --- Get the Tmatrix
+        Tmatrix = self._grid_interp['transformation_matrix'][nameT]
+        gridT = self._grid_interp['transformation_matrix'][nameT+'_grid']
+        camera_frame = Tmatrix.shape[2:4]
+        # --- Get the index of the different colums
+        jpx = self.strike_points.header['info']['ycam']['i']
+        jpy = self.strike_points.header['info']['xcam']['i']
+        jX = self.strike_points.header['info']['remap_pitch']['i']
+        jY = self.strike_points.header['info']['remap_gyroradius']['i']
+        # Block 1: Preparation phase -------------------------------------------
+        # --- Prepare the grids
+        # - Edges
+        pxEdges = np.arange(camera_frame[0]+1) - 0.5
+        pyEdges = np.arange(camera_frame[1]+1) - 0.5
+        # - Centers
+        pxCen = 0.5 * (pxEdges[:-1] + pxEdges[1:])
+        pyCen = 0.5 * (pxEdges[:-1] + pxEdges[1:])
+        # - Velocity space grid
+        xCen = self.strike_points.header['XI']  # Pinhole
+        yCen = self.strike_points.header['gyroradius']
+        # - Volume
+        xvol = xCen[1] - xCen[0]
+        yvol = yCen[1] - yCen[0]
+        # By definition, the space in pixel space is 1, so there is no need of
+        # calculate that volume.
+        P2F = np.zeros((Tmatrix.shape[2], Tmatrix.shape[3],
+                        xCen.size, yCen.size))
+        # --- Prepare the data
+        for jxpinhole in range(xCen.size):
+            for jypinhole in range(yCen.size):
+                try:
+                    nStrikes = self.strike_points.data[jxpinhole, jypinhole].shape[0]
+                    if nStrikes == 0:
+                        continue
+                except AttributeError:
+                    continue
+                # Get the collimator factor
+                col_factor = \
+                    self._interpolators_instrument_function['collimator_factor'](xCen[jxpinhole], yCen[jypinhole]) / 100.0
+                if col_factor <= 0.0:
+                    continue
+                
+                if efficiency is not None:
+                    energy = get_energy(yCen[jypinhole], B, A, Z) / 1000.0
+                    eff = efficiency(energy).values
+                else:
+                    eff = 1.0
+                w = eff * col_factor * np.ones(nStrikes)/nStrikes
+
+                # --- Get the ideal camera frame
+                H, xpixel, ypixel = np.histogram2d(
+                    self.strike_points.data[jxpinhole, jypinhole][:, jpx],
+                    self.strike_points.data[jxpinhole, jypinhole][:, jpy],
+                    bins=[pxEdges, pyEdges], weights=w)
+                # --- Defocus camera frame if needed
+                if sigmaOptics > 0.01:
+                    kernel = gkern(int(6.0*sigmaOptics)+1, sig=sigmaOptics)
+                    H = convolve(H, kernel, mode='same')
+                    # set to zero the negative celss due to numerical errors
+                    H[H < 0.0] = 0.0
+                # --- Place in position the camera frame
+                P2F[:, :, jxpinhole, jypinhole] = H.copy()
+        # --- Prepare the weight matrix
+        #vol = xvol * yvol. Was a bug to introduce this factor. The FI
+        # distribution is already normalised to this volume
+        vol = 1.0
+        WF = np.tensordot(Tmatrix, P2F, axes=2) / normFactor / vol
+        # save it
+        self.instrument_function =\
+            xr.DataArray(WF,
+                         dims=('xs', 'ys', 'x', 'y'),
+                         coords={'xs': gridT['x'],
+                                 'ys': gridT['y'], 'x': xCen, 'y': yCen})
+        self.instrument_function['xs'].attrs['long_name'] = \
+            variablesScint[0].capitalize()
+        self.instrument_function['x'].attrs['long_name'] = 'Pitch'
+        self.instrument_function['y'].attrs['long_name'] = 'Gyroradius'
+        self.instrument_function['ys'].attrs['long_name'] = \
+            variablesScint[1].capitalize()
+        # Now perform the energy scaling:
+        if energyFit is not None:
+            logger.info('Adding energy scaling')
+            if isinstance(energyFit, str):
+                # The user give us the energy fit file
+                fit = lmfit.model.load_modelresult(energyFit)
+            else:
+                # Assume we have a fit object
+                fit = energyFit
+            # So, now, we need to see which scintillator variable is energy
+            # or gyroradius
+            if ('energy' in variablesScint) or ('e0' in variablesScint):
+                dumNames = np.array(variablesScint)
+                i = np.where((dumNames == 'e0') | (dumNames == 'energy'))[0]
+                if i == 0:
+                    keyToEval = 'xs'
+                else:
+                    keyToEval = 'ys'
+                xToEval = self.instrument_function[keyToEval]
+                scaleFactor = fit.eval(x=xToEval.values)
+
+            elif 'gyroradius' in variablesScint:
+                dumNames = np.array(variablesScint)
+                i = np.where((dumNames == 'gyroradius'))[0]
+                if i == 0:
+                    keyToEval = 'xs'
+                else:
+                    keyToEval = 'ys'
+                # Now move to energy
+                xToEval = self.instrument_function[keyToEval]
+                energyToEval = get_energy(xToEval.values, B, A, Z)
+                scaleFactor = fit.eval(x=energyToEval)
+
+            scaleFactor = xr.DataArray(scaleFactor, dims=keyToEval,
+                                       coords={keyToEval: xToEval})
+            self.instrument_function = self.instrument_function * scaleFactor
+
+        # --- Add some units
+        # TODO: This is a bit hardcored, so would be better in another way
+        units = {
+            'r0': 'm',
+            'gyroradius': 'cm',
+            'gyroradius0': 'cm',
+            'energy': 'keV',
+            'pitch': ''
+            }
+        for k in self.instrument_function.coords.keys():
+            try:
+                self.instrument_function[k].attrs['units'] =\
+                    units[self.instrument_function[k].attrs['long_name'].lower()]
+            except KeyError:
+                pass
+        # --- Add other metadata:
+        self.instrument_function.attrs['sigmaOptics'] = sigmaOptics
+        self.instrument_function.attrs['normFactor'] = normFactor
+        self.instrument_function.attrs['B'] = B
+        self.instrument_function.attrs['Z'] = Z
+        self.instrument_function.attrs['A'] = A
+
+        return

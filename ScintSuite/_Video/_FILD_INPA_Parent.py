@@ -134,7 +134,7 @@ class FIV(BVO):
         else:
             time = self.exp_dat['t'].values
         # Calculate the magnetic field
-        print('Calculating magnetic field (this might take a while): ')
+        logger.info('Calculating magnetic field (this might take a while): ')
         if 'R_scintillator' in self.position.keys():  # INPA case
             key1 = 'R_scintillator'
             key2 = 'z_scintillator'
@@ -880,9 +880,15 @@ class FIV(BVO):
         os.makedirs(folder, exist_ok=True)
 
         # Create the individual netCDF files
-        self.export_strikemap(strikemaps)
-        self.export_Bangles(magFieldAngles)
-        self.export_Bfield(magField)
+        try:
+            self.export_Bangles(magFieldAngles)
+            self.export_Bfield(magField)
+            self.export_strikemap(strikemaps)
+            wroteFields = True
+        except AttributeError:
+            wroteFields = False
+            pass
+            # If the remap was done with a single smap, the angles are not calculated
         self.remap_dat.to_netcdf(remap)
         self.CameraCalibration.save2netCDF(calibration)
         if 'frame_noise' in self.exp_dat:
@@ -901,9 +907,10 @@ class FIV(BVO):
             json.dump(self.CameraData, open(cameraData))
         # Create the tar file
         tar = tarfile.open(name=tarFile, mode='w')
-        tar.add(magField, arcname='Bfield.nc')
-        tar.add(magFieldAngles, arcname='BfieldAngles.nc')
-        tar.add(strikemaps, arcname='strikeMaps.nc')
+        if wroteFields:
+            tar.add(magField, arcname='Bfield.nc')
+            tar.add(magFieldAngles, arcname='BfieldAngles.nc')
+            tar.add(strikemaps, arcname='strikeMaps.nc')
         tar.add(remap, arcname='remap.nc')
         tar.add(calibration, arcname='CameraCalibration.nc')
         tar.add(versionFile, arcname='version.txt')
