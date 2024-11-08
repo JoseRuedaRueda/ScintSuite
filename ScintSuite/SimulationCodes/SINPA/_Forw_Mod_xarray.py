@@ -311,7 +311,7 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
         ax[0,0] = ss.plt.axis_beauty(ax[0,0], ax_param)
         ax[0,0].set_title("Pinhole")    
         ssSC.transpose().plot.imshow(ax=ax[0,1], cmap=cmap,
-                                     vmax=0.5*ssSC.max().item(),
+                                     vmax=0.5*ssPH.max().item(),
                                      cbar_kwargs={"label": 'ions/(s cm deg)'})
         ax[0,1] = ss.plt.axis_beauty(ax[0,1], ax_param)
         ax[0,1].set_title("Scintillator")
@@ -512,7 +512,6 @@ def original_synthsig_xy(distro, smap, scint,
     scint_signal = ssfM.synthetic_signal_remap(distro, dsmap,
                                           efficiency=efficiency,
                                           **scint_options)
-    
     # LOCATE AND CENTER THE SCINTILLATOR AND SMAP
     # -----------------------------------------------------------------------
     print('- Locating the smap and scintillator...')

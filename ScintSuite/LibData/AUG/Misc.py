@@ -27,7 +27,7 @@ pa = Path()
 # -----------------------------------------------------------------------------
 # --- GENERIC SIGNAL RETRIEVING.
 # -----------------------------------------------------------------------------
-def get_signal_generic(shot: int, diag: str, signame: str, exp: str = 'augd',
+def get_signal_generic(shot: int, diag: str, signame: str, exp: str = 'AUGD',
                        edition: int = 0, tBegin: float = None,
                        tEnd: float = None):
     """
@@ -38,7 +38,7 @@ def get_signal_generic(shot: int, diag: str, signame: str, exp: str = 'augd',
     :param  shot: shotnumber of the shotfile to read.
     :param  diag: diagnostic name.
     :param  signame: signal name.
-    :param  exp: experiment where the shotfile is stored. Default to augd.
+    :param  exp: experiment where the shotfile is stored. Default to AUGD.
     :param  edition: edition of the shotfile to open. If 0, the last closed
     edition is opened.
     :param  tBegin: initial time point to read.
@@ -77,7 +77,7 @@ def get_signal_generic(shot: int, diag: str, signame: str, exp: str = 'augd',
 # --- SIGNAL OF FAST CHANNELS.
 # -----------------------------------------------------------------------------
 def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
-                     ed: int = 0, exp: str = 'augd'):
+                     ed: int = 0, exp: str = 'AUGD'):
     """
     Get the signal for the fast channels (PMT, APD)
 
@@ -102,7 +102,6 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
         diag_name = info['diag']
         signal_prefix = info['channel']
         nch = info['nch']
-
     elif diag.lower() == 'inpa':
         if diag_number != 1:
             print('You requested: ', diag_number)
@@ -111,6 +110,7 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
         diag_name = info['diag']
         signal_prefix = info['channel']
         nch = info['nch']
+
 
     # Look which channels we need to load:
     try:    # If we received a numpy array, all is fine
@@ -123,10 +123,7 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
             ch = channels
     except AttributeError:  # If not, we need to create it
         ch = np.array([channels]).flatten()
-        nch_to_load = channels
-        if channels == 'all':
-            nch_to_load = nch
-            ch = np.arange(nch)+1 #all channels
+        nch_to_load = ch.size
 
     # Open the shot file
     fast = sf.SFREAD(diag_name, shot, ed=ed, exp=exp)
@@ -150,7 +147,7 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
 # --- ELMs
 # -----------------------------------------------------------------------------
 def get_ELM_timebase(shot: int, time: float = None, edition: int = 0,
-                     exp: str = 'augd'):
+                     exp: str = 'AUGD'):
     """
     Give the ELM onset and duration times
 
@@ -213,7 +210,7 @@ def get_ELM_timebase(shot: int, time: float = None, edition: int = 0,
 
 
 # -----------------------------------------------------------------------------
-# --- ICRH and ECRH
+# --- ICRH
 # -----------------------------------------------------------------------------
 def get_icrh(shot: int, coupled: bool = False):
     """
@@ -229,7 +226,7 @@ def get_icrh(shot: int, coupled: bool = False):
     """
     ICP = sf.SFREAD(shot, 'ICP')
     if coupled:
-        name = 'PICRFc'
+        name = 'PICRNc'
     else:
         name = 'PICRN'
     pICRH = ICP(name) / 1.0e6
@@ -242,29 +239,10 @@ def get_icrh(shot: int, coupled: bool = False):
     output.attrs['signal'] = name
     return output
 
-
-def get_ecrh(shot: int, coupled: bool = False):
-    """
-    :return: xArray containing the power
-    :rtype: TYPE
-
-    """
-    ECS = sf.SFREAD(shot, 'ECS')
-    name = 'PECRH'
-    pECRH = ECS(name) / 1.0e6
-    tECRH = ECS.gettimebase(name)
-    output = xr.DataArray(pECRH, dims='t', coords={'t': tECRH})
-    output.attrs['units'] = 'MW'
-    output.attrs['long_name'] = '$P_{ECRH}$'
-    output.attrs['shot'] = shot
-    output.attrs['diag'] = 'ECS'
-    output.attrs['signal'] = name
-    return output
-
 # -----------------------------------------------------------------------------
 # --- OTHER USEFUL SIGNALS.
 # -----------------------------------------------------------------------------
-def get_neutron(shot: int, time: float = None, exp: str = 'augd', 
+def get_neutron(shot: int, time: float = None, exp: str = 'AUGD', 
                 xArrayOutput: bool = False):
     """"
     Reads the neutron rates for a given AUG shot in a given time interval.
