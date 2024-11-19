@@ -1,3 +1,11 @@
+
+# 1.3.11 Implementation of xarray in forward modelling
+- Capable of creating synthetic siganls with WF xarray
+- Change in phase space remapped synthetic signals
+- Camera frames, with implemention of diferent kind of noises and filters
+- Capability to compute synthetic signals for double collimators
+- smap class fit parameters matrix wrap for easy optimization
+
 # 1.3.10 Minor fixes
 - Bug solved in substract noise, last frame was not taken into account (bug introduced in 1.2.1)
 - Plot mask option added to the GUI_frames
