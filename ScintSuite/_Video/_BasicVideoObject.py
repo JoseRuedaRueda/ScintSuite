@@ -26,12 +26,14 @@ import ScintSuite._Video._PNGfiles as png
 import ScintSuite._Video._PCOfiles as pco
 import ScintSuite._Video._MP4files as mp4
 import ScintSuite._Video._TIFfiles as tif
+import ScintSuite._Video._h5D3D as h5d3d
 import ScintSuite._Video._NetCDF4files as ncdf
 import ScintSuite._Utilities as ssutilities
 import ScintSuite._Video._AuxFunctions as aux
 from tqdm import tqdm                      # For waitbars
 from scipy import ndimage                  # To filter the images
 from ScintSuite._Paths import Path
+from ScintSuite._Machine import machine
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import Slider, Button, RadioButtons
 
@@ -178,6 +180,12 @@ class BVO:
                                              't': self.timebase.squeeze()})
                     self.exp_dat['frames'] = self.exp_dat['frames']
                     self.type_of_file = '.nc'
+                
+                elif file.endswith('.h5') and machine == 'D3D':
+                    self.header, self.imageheader, self.settings, self.timebase\
+                         = h5d3d.read_data(file)
+                    self.type_of_file = '.h5d3d'
+                
                 elif file.endswith('.mp4'):
                     if not 'properties' in self.__dict__:
                         self.properties = {}
@@ -203,10 +211,10 @@ class BVO:
             else:
                 print('Looking in the folder: ', file)
                 if not os.path.isdir(file):
-                    raise Exception(file + ' not found')
+                    raise FileNotFoundError(file + ' not found')
                 ## path to the file
                 self.path = file
-                # Do a quick run for the folder looking of .tiff or .png files
+                # Do a quick run on the folder looking of .tiff or .png files
                 f = []
                 for (dirpath, dirnames, filenames) in os.walk(self.path):
                     f.extend(filenames)
@@ -277,7 +285,7 @@ class BVO:
     # --- Manage Frames
     # --------------------------------------------------------------------------
     def read_frame(self, frames_number=None, limitation: bool = True,
-                   limit: int = 2048, internal: bool = True, t1: float = None,
+                   limit: int = 3072, internal: bool = True, t1: float = None,
                    t2: float = None, threshold_saturation: float = 0.95,
                    verbose: bool = True):
         """
@@ -350,6 +358,9 @@ class BVO:
             M = ncdf.read_frame(self, frames_number,
                                limitation=limitation, limit=limit,
                                verbose=verbose)
+        elif self.type_of_file == '.h5d3d':
+            M = h5d3d.read_frame(self, frames_number,
+                                 limitation=limitation, limit=limit)
         else:
             raise Exception('Not initialised / not implemented file type?')
         # --- End here if we just want the frame
@@ -506,12 +517,12 @@ class BVO:
 
             logger.info('Using frames from the video')
             logger.info('%i frames will be used to average noise', it2 - it1 + 1)
-            frame = self.exp_dat['frames'].isel(t=slice(it1, it2)).mean(dim='t')
+            frame = self.exp_dat['frames'].isel(t=slice(it1, it2+1)).mean(dim='t')
             #frame = np.mean(self.exp_dat['frames'].values[:, :, it1:(it2 + 1)],
             #                dtype=original_dtype, axis=2)
 
         else:  # The frame is given by the user
-            logger.info('Using noise frame provider by the user')
+            logger.info('Using noise frame provided by the user')
             try:
                 nxf = frame.px.size
                 nyf = frame.py.size
@@ -921,9 +932,20 @@ class BVO:
             extra_options['extent'] = extent
 
         if rotate_frame:
-            imgR = ndimage.rotate(dummy, -self.CameraCalibration.deg, reshape=False)
+            if self.geometryID == 'MU01':
+                try:
+                    imgR = ndimage.rotate(dummy, -self.CameraCalibration.deg, reshape=False)
+                except ValueError:
+                    imgR = ndimage.rotate(dummy, -self.CameraCalibration.deg[0], reshape=False)
+            else:
+                angle = input('Please provide a rotation angle (in degrees): ')
+                imgR = ndimage.rotate(dummy, angle, reshape=False)
+            if self.CameraCalibration.yscale <= 0:
+                imgR =imgR[::-1,:]
+            if self.CameraCalibration.xscale <= 0:
+                imgR =imgR[:,::-1]
             img = ax.imshow(imgR, cmap=cmap,
-                        alpha=alpha, **extra_options)
+                        alpha=alpha,origin='lower', **extra_options)
         else:
             img = ax.imshow(dummy, origin='lower', cmap=cmap,
                         alpha=alpha, **extra_options)
@@ -967,12 +989,13 @@ class BVO:
         return ax
 
 
-    def GUI_frames(self, flagAverage: bool = False):
+    def GUI_frames(self, flagAverage: bool = False, mask=None):
         """
         Small GUI to explore camera frames
 
         :param  flagAverage: flag to decide if we need to use the averaged frames
             of the experimental ones in the GUI
+        :param  mask: to plot a small coloured mask on top of the image
         """
         text = 'Press TAB until the time slider is highlighted in red.'\
             + ' Once that happend, you can move the time with the arrows'\
@@ -986,13 +1009,13 @@ class BVO:
             ssGUI.ApplicationShowVid(root, self.avg_dat, self.remap_dat,
                                      self.geometryID,
                                      self.CameraCalibration,
-                                     shot=self.shot)
+                                     shot=self.shot, mask=mask)
         else:
             ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat,
                                      GeomID=self.geometryID,
                                      calibration=self.CameraCalibration,
                                      scintillator=self.scintillator,
-                                     shot=self.shot)
+                                     shot=self.shot, mask=mask)
         root.mainloop()
         root.destroy()
 

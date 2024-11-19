@@ -124,3 +124,10 @@ class InconsistentData(Exception):
 
     pass
 
+
+class NotMachineSelected(Exception):
+    """
+    Raised when two sets of data with inconsistencies are used.
+    """
+
+    pass

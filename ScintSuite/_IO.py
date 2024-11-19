@@ -575,6 +575,14 @@ def load_remap(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
     except FileNotFoundError:
         logger.warning('Bfield not found, not loaded')
         # This happens if the remap was done with a single smap
+    try:
+        vid.strikemap = xr.load_dataset(os.path.join(dummyFolder, 'strikeMaps.nc'))
+    except FileNotFoundError:
+        vid.strikemap = xr.Dataset()
+        vid.strikemap['exist'] = vid.remap_dat['existing_smaps']
+        vid.strikemap['exist'].attrs['long_name'] = 'Existing strikemaps'
+        vid.strikemap.attrs['smap_folder'] = vid.remap_dat['frames'].attrs['smap_folder']
+        vid.strikemap.attrs['CodeUsed'] = vid.remap_dat['frames'].attrs['CodeUsed']
     vid.CameraCalibration = \
         read_calibration(os.path.join(dummyFolder, 'CameraCalibration.nc'))
     v = ver.readVersion(os.path.join(dummyFolder, 'version.txt'))
@@ -613,6 +621,89 @@ def load_remap(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
             vid._getNe()
         except TypeError:
             pass
+    return vid
+
+
+def load_remap_and_video(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
+    """
+    Load a video & its tar remap file into a video object
+    The noise subtraction will be performed using the NoiseFrame stored in the tar file
+
+    :param filename: path to the .tar file or the folder containing the files
+    """
+    if not os.path.isdir(filename):
+        if filename is None:
+            filename = ' '
+            filename = check_open_file(filename)
+        if filename == '' or filename == ():
+            raise Exception('You must select a file!!!')
+
+        # decompress the file
+        dummyFolder = os.path.join(paths.Results, 'tmp')
+        os.makedirs(dummyFolder, exist_ok=True)
+        # extract the file
+        tar = tarfile.open(filename)
+        tar.extractall(path=dummyFolder)
+        tar.close()
+    else:
+        dummyFolder = filename
+    # Read metadata to get shot number
+    with open(os.path.join(dummyFolder, 'metadata.txt'), 'r') as f:
+        shot = int(f.readline().split(':')[-1])
+        diag_ID = int(f.readline().split(':')[-1])
+    if diag.lower() == 'fild':
+        vid = FILDVideo(shot=shot, diag_ID=diag_ID) 
+    else:
+        raise errors.NotValidInput('Not suported diagnostic')
+    # Load rest of data in the tar file
+    vid.remap_dat = xr.load_dataset(os.path.join(dummyFolder, 'remap.nc'))
+    try:
+        vid.BField = xr.load_dataset(os.path.join(dummyFolder, 'Bfield.nc'))
+        vid.Bangles = xr.load_dataset(os.path.join(dummyFolder, 'BfieldAngles.nc'))
+    except FileNotFoundError:
+        logger.warning('Bfield not found, not loaded')
+        # This happens if the remap was done with a single smap
+    try:
+        vid.strikemap = xr.load_dataset(os.path.join(dummyFolder, 'strikeMaps.nc'))
+    except FileNotFoundError:
+        vid.strikemap = xr.Dataset()
+        vid.strikemap['exist'] = vid.remap_dat['existing_smaps']
+        vid.strikemap['exist'].attrs['long_name'] = 'Existing strikemaps'
+        vid.strikemap.attrs['smap_folder'] = vid.remap_dat['frames'].attrs['smap_folder']
+        vid.strikemap.attrs['CodeUsed'] = vid.remap_dat['frames'].attrs['CodeUsed']
+    vid.CameraCalibration = \
+        read_calibration(os.path.join(dummyFolder, 'CameraCalibration.nc'))
+    v = ver.readVersion(os.path.join(dummyFolder, 'version.txt'))
+    noise_frame = os.path.join(dummyFolder, 'noiseFrame.nc')
+    position = os.path.join(dummyFolder, 'position.json')
+    orientation = os.path.join(dummyFolder, 'orientation.json')
+    CameraData = os.path.join(dummyFolder, 'CameraData.json')
+    if os.path.isfile(CameraData):
+        vid.CameraData = json.load(open(CameraData))
+    with open(os.path.join(dummyFolder, 'metadata.txt'), 'r') as f:
+        vid.shot = int(f.readline().split(':')[-1])
+        vid.diag_ID = int(f.readline().split(':')[-1])
+        vid.diag = diag.upper()
+        vid.geometryID = f.readline().split(':')[-1].split('\n')[0].strip()
+    fid = open(position)
+    vid.position = json.load(fid)
+    fid.close()
+    fid = open(orientation)
+    vid.orientation = \
+        {k: np.array(v) for k, v in json.load(fid).items()}
+    fid.close()
+    logger.info('Remap generated with version %i.%i.%i' % (v[0], v[1], v[2]))
+    if diag.lower() == 'inpa':
+        try:
+            vid._getNBIpower()
+            vid._getNe()
+        except TypeError:
+            pass
+    vid.read_frame(t1=vid.remap_dat.t[0].values,t2=vid.remap_dat.t[-1].values)
+    if os.path.isfile(noise_frame):
+        # vid.exp_dat = xr.Dataset()
+        vid.exp_dat['frame_noise'] = xr.load_dataarray(noise_frame)
+    vid.subtract_noise(frame=vid.exp_dat['frame_noise'])
     return vid
 
 

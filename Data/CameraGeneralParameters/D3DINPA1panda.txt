@@ -1,0 +1,5 @@
+&camera
+camera_name='D3D INPA Panda',   ! Name of the camera
+exchangexy = .True.,             ! Exchange XY data,
+inverty = .True.,
+/
