@@ -1,5 +1,17 @@
 """
-Functions to compute synthetic signals. What can be done:
+Alex Reyner: alereyvinn@alum.us.es
+
+Workflow:
+    0. Obtain the distribution and define the inputs 
+    1. Run original_synthsig_xy to map the signal in the scintillator space
+    2. Insert the different noises, optic system and the camera
+       - Option to do it separately (not recomended) or at the same time (recomended)
+            with noise_optics_camera
+
+    - You can plot at any step given the frame and even plot each  noises
+    - You can also compute directly compute WF and remapped synthetic signals
+
+Functions. What can be done:
     - read_ASCOT_dist: Read an ASCOT distribution with ion distribution that 
         will be used as input
     - obtain_WF: Obtain the weight function of the smap (scintillator efficency 
@@ -13,26 +25,28 @@ Functions to compute synthetic signals. What can be done:
     - plot_noise_contributions: plot the different noise contributions
     - synthsig_xy_2coll: compute synthetic signal of two pinholes
     - plot_the_frame_2coll: plot the signal
-
-Alex Reyner: alereyvinn@alum.us.es
 """
 
-import numpy as np
 import ScintSuite as ss
 import ScintSuite._Mapping as ssmapplting
-import matplotlib.pyplot as plt
-from matplotlib.path import Path
-import xarray as xr
-import math
-import scipy.spatial as spsp
-import scipy.ndimage as spnd
-import copy
-from matplotlib.colors import LinearSegmentedColormap
-
 from ScintSuite.SimulationCodes.FILDSIM.execution import get_energy
 from ScintSuite.SimulationCodes.FILDSIM.execution import get_gyroradius
 import ScintSuite.SimulationCodes.FILDSIM.forwardModelling as ssfM
+import ScintSuite.SimulationCodes.Common.geometry as geometry
+
+import matplotlib.pyplot as plt
+from matplotlib.path import Path
+from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.patches import Circle
+
+import numpy as np
+import xarray as xr
+import scipy.ndimage as spnd
+import math
+import copy
+
+import logging
+logger = logging.getLogger('aug_sfutils')
 
 # -----------------------------------------------------------------------------
 # --- Inputs distributions
@@ -41,11 +55,14 @@ from matplotlib.patches import Circle
 def read_ASCOT_dist(filename, pinhole_area = None, B=4, A=None, Z=None, 
                     version='5.5'):
     """
-    Read a distribution coming from ASCOT, with pitch in [VII/V] units (5.5)
-    Custom read for matlab antique files (matlab)
-    Manual file for delta tipe ion flux
+    Read a distribution coming from ASCOT
 
     Alex Reyner: alereyvinn@alum.us.es
+
+    Each version has a different type of input:
+        - 5.5 with pitch in [VII/V] units
+        - Custom read for matlab antique files (matlab)
+        - Manual file for delta tipe ion flux
 
     :param  file: full path to the file
     :param  version: ASCOT output custom, default 5.5
@@ -231,8 +248,7 @@ def obtain_WF(smap, scintillator, efficiency_flag = False, B=4, A=2, Z=2,
 def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, 
                         plot=False):
     """
-    Generates synthetic signal in both pinhole and scintillator in pr space
-    using the WF. It's quite fast.
+    Synthetic signal for pinhole and scintillator in pitch-gyroradius space
 
     Alex Reyner: alereyvinn@alum.us.es
 
@@ -251,7 +267,7 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
             PH: synthetic signal at the pinhole (PH)
             SC: synthetic signal at the scintillator (SC)
     """
-    print(' ----- COMPUTING REMAPED SYNTHETIC SIGNAL USING WF -----')
+    logger.info(' ----- COMPUTING REMAPED SYNTHETIC SIGNAL USING WF -----')
     # Get data values
     x_val = WF.coords['x'].values
     y_val = WF.coords['y'].values
@@ -342,7 +358,7 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
 def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, 
                          plot=False):
     """
-    Transfors the pitch-gyroradius space to pitch-energy.
+    Transfors the pitch-gyroradius signal space to pitch-energy signal
 
     Alex Reyner: alereyvinn@alum.us.es
 
@@ -361,7 +377,7 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2,
             PH: synthetic signal at the pinhole (PH)
             SC: synthetic signal at the scintillator (SC)
     """
-    print(' ----- GOING FROM p-r TO p-e SPACE ----- ')
+    logger.info(' ----- GOING FROM p-r TO p-e SPACE ----- ')
     # Synthetic signal input
     ssPH_pr = synthetic_signal['PH']
     ssSC_pr = synthetic_signal['SC']
@@ -442,16 +458,6 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2,
 # -----------------------------------------------------------------------------
 # --- Synthetic signal in the scintillator space and camera frame
 # -----------------------------------------------------------------------------
-"""
-Workflow:
-    0. Obtain the distribution and define the inputs 
-    1. Run original_synthsig_xy to map the signal in the scintillator space
-    2. Insert the different noises, optic system and the camera
-       - Option to do it separately or at the same time (recomended)
-            with noise_optics_camera
-
-    - You can plot at any step given the frame and even plot the noises
-"""
 
 def original_synthsig_xy(distro, smap, scint,
                      cam_params = {}, optic_params = {},
@@ -461,10 +467,11 @@ def original_synthsig_xy(distro, smap, scint,
                      scint_params: dict = {},
                      px_shift: int = 0, py_shift: int = 0):
     """
-    Maps a signal in the scintillator. 
-    Based on the origianl function by Jose Rueda
+    Maps a signal in the scintillator
 
     Alex Reyner: alereyvinn@alum.us.es
+
+    Based on the origianl function by Jose Rueda    
 
     :param  distro: distribution in the pinhole
     :param  smap: smap to map the signal in the xyspace
@@ -474,7 +481,7 @@ def original_synthsig_xy(distro, smap, scint,
     :param  optic_params:  parameters of the optics
     :param  gyrophases: range of gyrophases considered entering the pinhole
             (to scale the collimator factor). pi (half sr) is the default.
-            Usually the collimator factor is defined over a 2pi range.
+            Usually the collimator factor is defined over a 2pi range
     :param  smoother: adds a gaussian filter to the signal with that sigma
     :param  scint_synthetic_signal_params: grid to remap the frame
 
@@ -485,7 +492,7 @@ def original_synthsig_xy(distro, smap, scint,
             'signal_frame': signal in the scintillator space
             'scint_area': region covered by the scintillator
     """
-    print(" ----- BUILDING THE ORIGINAL FRAME ----- ")
+    logger.info(" ----- BUILDING THE ORIGINAL FRAME ----- ")
 
     # Check inputs and initialise the things
     dsmap = copy.deepcopy(smap)
@@ -620,7 +627,7 @@ def original_synthsig_xy(distro, smap, scint,
     # Build the scintillator perimeter and find the area in the pixel space
     print('- Building the scintillator perimeter and xarray...')
     
-    scint_perim = scint_ConvexHull(dscint)
+    scint_perim = geometry.scint_ConvexHull(dscint)
     scint_path = Path(scint_perim, closed=True)
     dummy = copy.deepcopy(signal_frame)*0
     for i in range(cam_params['ny']):
@@ -648,10 +655,11 @@ def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
                           noise_params: dict={},
                           radiometry = None):
     """
-    Gets the frame at the scintillator and transforms it to camera frame. 
-    Feel free to update with more nbeoises.
+    Gets the frame at the scintillator and transforms it to camera frame 
     
     Alex Reyner: alereyvinn@alum.us.es
+
+    Feel free to update with more noises
 
     :param  frame dictionary containing:
             'smap': smap used calibrated to the signal
@@ -663,17 +671,17 @@ def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
     :param  cam_params: parameters of the camera
     :param  noise_params: types of noise
     :param  eliminate_saturation: if we want to get rid of saturated pixels.
-            But we don't need to, this will be done with the plot vmax. 
+            But we don't need to, this will be done with the plot vmax
     :param  radiometry: This adds the FoV and the transmission of the optics
             (the difference between regions assuming center equal to 1. The NA
             is a different thing). Needs to be a matrix with r (radius of FOV) 
             in x and theta (angle) in y. This matrix can't have any NaN value.
-            Worry not about the number of data, it will be interpolated.
+            Worry not about the number of data, it will be interpolated
 
     :return out dictionaryinput with the different noises added to signal_frame
             also the noise contribution of everything itself
     """
-    print(" ----- NOISE, OPTICS AND CAMERA ----- ")
+    logger.info(" ----- NOISE, OPTICS AND CAMERA ----- ")
 
     # Copy the input dictionary in the output
     out = copy.deepcopy(frame)
@@ -872,10 +880,9 @@ def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
 
 
 def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
-                   cam_params: dict={},
-                   maxval = True, figtitle = None):
+                   cam_params: dict={}, maxval = None, figtitle = None):
     """
-    Plot one frame, the scintillator and the strikemap. 
+    Plot one frame, the scintillator and the strikemap
     
     Alex Reyner: alereyvinn@alum.us.es
 
@@ -886,24 +893,24 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
             'signal_frame': signal in the scintillator space
             'scint_area': region covered by the scintillator
             'noises': all the different noises as matrices
-    :param  maxval: want to limit the colorbar to camera range?
+    :param  maxval: adjust the maximum of the colorbar to the signal
     :param  figtitle: plot a title with the optics parameters, for example
 
     :return fig, ax:
     """
-    print(" ----- SIGNAL PLOT ----- ")
+    logger.info(" ----- SIGNAL PLOT ----- ")
 
     frame_to_plot = frame['signal_frame']
     smapplt = frame['smapplt']
     scint_perim = frame['scintillator']
 
     # Establish vmax as: 1) max counts, 2) 50% of the signal
-    if maxval == True:
+    if maxval == None:
         max_count = 2 ** cam_params['range'] - 1
         print('- Maximum set to camera range')
     else:
-        max_count = frame_to_plot.max().item()
-        print('- Maximum set to 0.5 of the signal')
+        max_count = maxval*frame_to_plot.max().item()
+        print('- Maximum set to %4.2f max signal', (maxval))
 
     # Initialize the plot
     fig, ax = plt.subplots(figsize=(7,4))
@@ -965,7 +972,7 @@ def plot_noise_contributions(frame, cam_params: dict={}, maxval = False):
 
     :return fig, ax:
     """
-    print(" ----- NOISE CONTRIBUTIONS PLOT ----- ")
+    logger.info(" ----- NOISE CONTRIBUTIONS PLOT ----- ")
 
     for i in frame['noises']:
         frame_to_plot = frame['noises'][i]
@@ -1016,8 +1023,7 @@ def new_synthsig_xy(distro, smap, scint, WF,
                      SC_params : dict = {},
                      px_shift: int = 0, py_shift: int = 0):
     """
-    Maps a signal in the scintillator. 
-    Based on the origianl function by Jose Rueda
+    Maps a signal in the scintillator
 
     Alex Reyner: alereyvinn@alum.us.es
 
@@ -1161,7 +1167,7 @@ def new_synthsig_xy(distro, smap, scint, WF,
     xdum = dscint._coord_pix['x']
     ydum = dscint._coord_pix['y'] 
     allPts = np.column_stack((xdum,ydum))
-    hullPts = spsp.ConvexHull(allPts)
+    hullPts = geometry.scint_ConvexHull(allPts)
     scint_x = np.concatenate((allPts[hullPts.vertices,0],\
                               np.array([allPts[hullPts.vertices,0][0]])))
     scint_y = np.concatenate((allPts[hullPts.vertices,1],\
@@ -1398,8 +1404,7 @@ def synthsig_xy_2coll(distros, scint,
                      scint_params: dict = {},
                      px_shift: int = 0, py_shift: int = 0):
     """
-    Maps a signal in the scintillator. 
-    Based on the origianl function by Jose Rueda
+    Maps a signal in the scintillator
 
     Alex Reyner: alereyvinn@alum.us.es
 
@@ -1411,7 +1416,7 @@ def synthsig_xy_2coll(distros, scint,
     :param  optic_params:  parameters of the optics
     :param  gyrophases: range of gyrophases considered entering the pinhole
             (to scale the collimator factor). pi (half sr) is the default.
-            Usually the collimator factor is defined over a 2pi range.
+            Usually the collimator factor is defined over a 2pi range
     :param  smoother: adds a gaussian filter to the signal with that sigma
     :param  scint_synthetic_signal_params: grid to remap the frames
 
@@ -1579,7 +1584,7 @@ def synthsig_xy_2coll(distros, scint,
     # Define the scintillator perimeter and find the area in the pixel space
     print('- Building the scintillator perimeter and xarray...')
     
-    scint_perim = scint_ConvexHull(dscint)
+    scint_perim = geometry.scint_ConvexHull(dscint)
 
     scint_path = Path(scint_perim, closed=True)
     dummy = copy.deepcopy(signal_frame)*0
@@ -1599,10 +1604,9 @@ def synthsig_xy_2coll(distros, scint,
 
 
 def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
-                   cam_params: dict={},
-                   maxval = True, figtitle = None, smap_val = None):
+                   cam_params: dict={}, maxval = None, figtitle = None):
     """
-    Plot one frame, the scintillator and the strikemap. 
+    Plot one frame, the scintillator and the strikemap
     
     Alex Reyner: alereyvinn@alum.us.es
 
@@ -1613,24 +1617,24 @@ def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = 
             'signal_frame': signal in the scintillator space
             'scint_area': region covered by the scintillator
             'noises': all the different noises as matrices
-    :param  maxval: want to limit the colorbar to camera range?
+    :param  maxval: adjust the maximum of the colorbar to the signal
     :param  figtitle: plot a title with the optics parameters, for example
 
     :return fig, ax:
     """
-    print(" ----- 2 COLLIMATOR SIGNAL PLOT ----- ")
+    logger.info(" ----- 2 COLLIMATOR SIGNAL PLOT ----- ")
     
     frame_to_plot = frame['signal_frame']
     smapplt = frame['smapplt']
     scint_perim = frame['scintillator']
 
     # Establish vmax as: 1) max counts, 2) 50% of the signal
-    if maxval == True:
+    if maxval == None:
         max_count = 2 ** cam_params['range'] - 1
         print('- Maximum set to camera range')
     else:
-        max_count = frame_to_plot.max().item()*0.5
-        print('- Maximum set to 0.5 of the signal')
+        max_count = maxval*frame_to_plot.max().item()
+        print('- Maximum set to %4.2f max signal', (maxval))
 
     # Initialize the plot
     fig, ax = plt.subplots(figsize=(7,4))
@@ -1673,41 +1677,3 @@ def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = 
     plt.show()
 
     return fig, ax
-
-
-
-
-# -----------------------------------------------------------------------------
-# --- Auxiliary functions
-# -----------------------------------------------------------------------------
-
-def scint_ConvexHull(scint):
-
-    xdum = scint._coord_pix['x']
-    ydum = scint._coord_pix['y'] 
-    allPts = np.column_stack((xdum,ydum))
-    hullPts = spsp.ConvexHull(allPts)
-    scint_x = np.concatenate((allPts[hullPts.vertices,0],\
-                              np.array([allPts[hullPts.vertices,0][0]])))
-    scint_y = np.concatenate((allPts[hullPts.vertices,1],\
-                              np.array([allPts[hullPts.vertices,1][0]])))
-    scint_perim = np.column_stack((scint_x, scint_y))
-
-    return scint_perim
-
-# work on progress
-def scint_alpha(scint):
-    xdum = scint._coord_pix['x']
-    ydum = scint._coord_pix['y'] 
-    allPts = np.column_stack((xdum,ydum))
-    tri = spsp.Delaunay(allPts)
-    print(tri.simplices)
-    print(allPts[tri.simplices])
-    print(allPts[tri.simplices,0])
-    fig,ax = plt.subplots()
-    ax.plot(allPts[:,0],allPts[:,1], color ='r', linewidth=3)
-    ax.plot(allPts[tri.simplices,0],allPts[tri.simplices,1], color ='b', linewidth=3)
-
-    scint_perim = 1
-
-    return scint_perim

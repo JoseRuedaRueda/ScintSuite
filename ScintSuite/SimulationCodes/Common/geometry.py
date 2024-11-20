@@ -21,6 +21,7 @@ from ScintSuite._Paths import Path
 from ScintSuite._Plotting import axis_beauty, axisEqual3D, clean3Daxis
 import ScintSuite._CAD as libcad
 import f90nml
+import scipy.spatial as spsp
 paths = Path(machine)
 logger = logging.getLogger('ScintSuite.SimCod')
 
@@ -852,3 +853,60 @@ class Geometry:
                                                 + "_" + file_mod[ele['kind']])
 
 ##
+
+def scint_ConvexHull(scint):
+    """
+    Calculates a convex shape around the scintillator perimeter.
+
+    Alex Reyner Vinolas: alereyvinn@alum.us.es
+
+    This is very useful for the plots of synthetic signals, where we don't want
+    to manually give the scintillator edges or have lots of lines in the middle
+
+    :param  scint: scintillator object from the suite, with the geometry file
+
+    :return scint_perim: scintillator contour shape
+    """
+    xdum = scint._coord_pix['x']
+    ydum = scint._coord_pix['y'] 
+    allPts = np.column_stack((xdum,ydum))
+    hullPts = spsp.ConvexHull(allPts)
+    scint_x = np.concatenate((allPts[hullPts.vertices,0],\
+                              np.array([allPts[hullPts.vertices,0][0]])))
+    scint_y = np.concatenate((allPts[hullPts.vertices,1],\
+                              np.array([allPts[hullPts.vertices,1][0]])))
+    scint_perim = np.column_stack((scint_x, scint_y))
+
+    return scint_perim
+
+
+# work on progress, please don't use
+def scint_alpha(scint):
+    """
+    Calculates a more fitting shape around the scintillator
+
+    Alex Reyner Vinolas: alereyvinn@alum.us.es
+
+    The previous function was not perfect for non-convex scintillators.
+    Here we aim to make a function that is capable of extracting the correct
+    shape of the scintillator.
+
+    :param  scint: scintillator object from the suite, with the geometry file
+
+    :return scint_perim: scintillator contour shape
+    """
+    xdum = scint._coord_pix['x']
+    ydum = scint._coord_pix['y'] 
+    allPts = np.column_stack((xdum,ydum))
+    tri = spsp.Delaunay(allPts)
+    print(tri.simplices)
+    print(allPts[tri.simplices])
+    print(allPts[tri.simplices,0])
+    fig,ax = plt.subplots()
+    ax.plot(allPts[:,0],allPts[:,1], color ='r', linewidth=3)
+    ax.plot(allPts[tri.simplices,0],allPts[tri.simplices,1], color ='b', linewidth=3)
+
+    scint_perim = 1
+
+    return scint_perim
+
