@@ -26,6 +26,12 @@ from scipy.sparse import linalg as spla
 from scipy.sparse import issparse
 from random import randint
 import time
+try:
+    from numba import njit, prange
+except:
+    from ScintSuite.decorators import false_njit as njit
+    prange = range
+    logger.warning('Iterative algorithms will be pretty slow')
 
 # -----------------------------------------------------------------------------
 # --- SOLVERS AND REGRESSION ALGORITHMS
@@ -251,7 +257,7 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
         # Initialization before iterations.
         k = 0   # Iteration counter.
         maxK = maxiter.max() # Maximum iterations from all the ksteps to return
-        xk = x0 # Use initial vector.
+        xk = x0.copy() # Use initial vector.
         m,n = W.shape
 
         # stop_loop = stopping_criterion(k, rk, maxK, tol)
@@ -306,9 +312,8 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
                         Nflag[j] += 1
                     else:
                         F[j] = 1
-            # if window is not None:
-            #     xk_new = apply_window(xk, x_coord, y_coord, window)
-            #     xk = matrix.collapse_array2D(xk_new.values)
+            if window is not None:
+                xk = apply_window2(xk, x_coord.values, y_coord.values, window)
 
             if resolution: 
                 resP_boolean = resP.resolution_principle(xk, x_coord, y_coord,
@@ -325,12 +330,7 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
             # Save the output and end time
 
             if k in maxiter:        
-                if window is not None:                     
-                    xk_new = apply_window(xk, x_coord, y_coord, window)
-                    xk_output[:,num_exec] = matrix.collapse_array2D(xk_new.values)
-                else:
-                    xk_output[:,num_exec] = xk
-                # xk_output[:,num_exec] = xk
+                xk_output[:,num_exec] = xk
                 
 
                 timeEnd[num_exec] = time.time()
@@ -488,6 +488,31 @@ def apply_window(xk, x_coord, y_coord, window):
     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
     xk_data = xk_data.where(conditionGyro & conditionPitch, 0)
+    return xk_data
+
+@njit(nogil=True, parallel=True)
+def apply_window2(xk, x_coord, y_coord, window):
+    
+    x_size = len(x_coord)
+    y_size = len(y_coord)
+    xk_data = np.zeros(x_size*y_size)
+    x_min = window[0]
+    x_max = window[1]
+    y_min = window[2]
+    y_max = window[3]
+
+    idx = [i for i in range(len(x_coord)) if x_coord[i] >= x_min \
+           and x_coord[i] <= x_max]
+    idy = [i for i in range(len(y_coord)) if y_coord[i] >= y_min \
+           and y_coord[i] <= y_max]
+    id_selected = [ j + y_size*i for j in idy for i in idx ]        
+
+    # xk_data[id_selected] = xk[id_selected]
+    for i in range(xk_data.shape[0]):
+        if i in id_selected:
+            xk_data[i] = xk[i]
+        
+    
     return xk_data
 
 def stopping_criterion(k, rk, maxiter, tol):
