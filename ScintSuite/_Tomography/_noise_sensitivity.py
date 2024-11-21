@@ -161,7 +161,8 @@ def fidelity_map(WF, inverter, window, iters, noise):
 
                 # Perform the tomography
                 tomo = ss.tomography(WF, y)
-                x0 = np.zeros(tomo.s1D.shape)
+                n = WF.shape[2]*WF.shape[3]
+                x0 = np.zeros(n)
                 if inverter == 'descent':
                     tomo.coordinate_descent_solve(x0, iters,  damp = 0.1, 
                                                 relaxParam = 1)
@@ -172,7 +173,8 @@ def fidelity_map(WF, inverter, window, iters, noise):
                     tomo.cimmino_solve(x0, iters, damp = 0.1, 
                                            relaxParam = 1)
                     
-                xHat = tomo.inversion[inverter].F.isel(alpha = 0).copy()
+                norm = tomo.norms['s']/tomo.norms['W']
+                xHat = tomo.inversion[inverter].F.isel(alpha = 0).copy()              
                 MSE = np.sqrt(((xHat-x)**2).sum(dim=('x','y')))
                 true_norm = np.sqrt((x**2).sum(dim=('x','y')))
                 error = MSE/true_norm
