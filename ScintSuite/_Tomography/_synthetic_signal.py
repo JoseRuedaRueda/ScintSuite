@@ -89,23 +89,15 @@ def create_synthetic_signal(WF, mu_gyro, mu_pitch, power, sigma_gyro,
                                         y = (['y'], gyro_gridP))
                                     )
     
-    WF_2D = matrix.collapse_array4D(WF.values)
-    x_synthetic1D = matrix.collapse_array2D(x_synthetic)
-    y_synthetic1D = WF_2D @ x_synthetic1D
-
-    # Add noise
-    noise1 = noise_level * y_synthetic1D * np.random.randn(len(y_synthetic1D))
-    max_value = y_synthetic1D.max()
-    noise2 = background_level * max_value * np.random.randn(len(y_synthetic1D))
+    y_signal = np.tensordot(WF, x_syntheticXR)
+    row, col = y_signal.shape
+    gauss = np.random.randn(row, col)
+    noise1 = noise_level*y_signal * gauss
+    noise2 = gauss*background_level*y_signal.max()
     combined_noise = np.maximum(noise1, noise2)
-    y_synthetic1D = y_synthetic1D + combined_noise
+    y_synthetic = y_signal + combined_noise
 
 
-    # Final synthetic frame
-    mx = WF.shape[0]
-    my = WF.shape[1]
-    y_synthetic = matrix.restore_array2D(y_synthetic1D, mx, my)
-    # y_synthetic = np.tensordot(WF, x_syntheticXR)
     frame_synthetic = xr.DataArray(data=y_synthetic,
                                       dims=['xs', 'ys'],
                                       coords=dict(
@@ -161,21 +153,13 @@ def create_synthetic_delta(WF, mu_gyro, mu_pitch, noise_level, background_level,
                                     )
     x_syntheticXR.loc[dict(x=mu_pitch, y=mu_gyro)] = 1
     
-    WF_2D = matrix.collapse_array4D(WF.values)
-    x_synthetic1D = matrix.collapse_array2D(x_synthetic)
-    y_synthetic1D = WF_2D @ x_synthetic1D
-
-    # Add noise
-    noise1 = noise_level * y_synthetic1D * np.random.randn(len(y_synthetic1D))
-    max_value = y_synthetic1D.max()
-    noise2 = background_level * max_value * np.random.randn(len(y_synthetic1D))
+    y_signal = np.tensordot(WF, x_syntheticXR)
+    row, col = y_signal.shape
+    gauss = np.random.randn(row, col)
+    noise1 = noise_level*y_signal * gauss
+    noise2 = gauss*background_level*y_signal.max()
     combined_noise = np.maximum(noise1, noise2)
-    y_synthetic1D = y_synthetic1D + combined_noise
-
-    # Final synthetic frame
-    mx = WF.shape[0]
-    my = WF.shape[1]
-    y_synthetic = matrix.restore_array2D(y_synthetic1D, mx, my)
+    y_synthetic = y_signal + combined_noise
 
     frame_synthetic = xr.DataArray(data=y_synthetic,
                                         dims=['xs', 'ys'],
