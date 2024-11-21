@@ -239,7 +239,7 @@ class Tomography():
 
     def coordinate_descent_solve(self, x0, iterations = None, window = None,
                                  pitch_map = None, gyro_map = None,
-                                 resolution = True, peak_amp = 0.15,
+                                 resolution = False, peak_amp = 0.15,
                                   damp = None, tol = None, 
                                   relaxParam = 1, control_iters = 100,
                                     **kargs) -> None:
