@@ -174,7 +174,7 @@ def fidelity_map(WF, inverter, window, iters, noise):
                                            relaxParam = 1)
                     
                 norm = tomo.norms['s']/tomo.norms['W']
-                xHat = tomo.inversion[inverter].F.isel(alpha = 0).copy()              
+                xHat = tomo.inversion[inverter].F.isel(alpha = 0).copy()*norm              
                 MSE = np.sqrt(((xHat-x)**2).sum(dim=('x','y')))
                 true_norm = np.sqrt((x**2).sum(dim=('x','y')))
                 error = MSE/true_norm
