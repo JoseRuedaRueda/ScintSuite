@@ -251,7 +251,7 @@ class FILD_logbook:
                 logger.warning('Shot not found in logbook')
         # Read the data in the logbook
         dummy = self.positionDatabase['FILD'+str(FILDid)]
-        if RFILD: # if RFILD has been read from the video file
+        if RFILD is not None: # if RFILD has been read from the video file
             position['R'] = RFILD
             logger.info('Radial position read from the file')
         elif 'R [m]' in dummy.keys():  # Look for R
@@ -306,7 +306,7 @@ class FILD_logbook:
             else:
                 logger.warning('Shot not found in logbook')
         dummy = self.positionDatabase['FILD'+str(FILDid)]
-        if beta_angle: # if beta_angle has been read from the video file
+        if beta_angle is not None: # if beta_angle has been read from the video file
             orientation['beta'] = beta_angle
             logger.info('Beta angle read from the file')
         elif 'Beta [deg]' in dummy.keys():  # Look for beta angle in the logbook
