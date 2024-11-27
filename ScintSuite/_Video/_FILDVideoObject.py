@@ -151,16 +151,13 @@ class FILDVideo(FIV):
             self.diag_ID = diag_ID
             if shot is not None:
                 try:  # if the insertion is in the video file
-                    print('a')
                     self.position = FILDlogbook.getPosition(shot, diag_ID, 
                                                             insertion=self.header['insertion'])
                 except KeyError:
                     try: # if the radial position is in the video file
-                        print('b')
                         self.position = FILDlogbook.getPosition(shot, diag_ID, 
                                                             RFILD=self.header['R_FILD'])
                     except KeyError:
-                        print('c')
                         self.position = FILDlogbook.getPosition(shot, diag_ID)
                 try:
                     self.orientation = \
