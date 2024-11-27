@@ -1,3 +1,10 @@
+# 1.3.12 Update of MASTU nc files - position and orientation read from file + new timebase
+- Updated default position and orientation for MU FILD
+- The new format of the timebase can now be read
+- MU RFILD and orientation are now directly read from the ximea file, before looking at the logbook
+- MU FILD's adquisition frequency and trigger time (that were only used for the PCO camera) are now read from the DiagParams
+- Solved bug in _Mapping/_FILD.py, line 311: hardwritten magnetic field to calculate the energy
+
 
 # 1.3.11 Implementation of xarray in forward modelling
 - Capable of creating synthetic siganls with WF xarray
