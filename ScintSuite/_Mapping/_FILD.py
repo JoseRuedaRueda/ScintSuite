@@ -308,8 +308,7 @@ def remapAllLoadedFrames(video,
             smap = Fsmap(file=os.path.join(smap_folder, name))
             # -- Set the remap variables
             if wantEnergy:
-                #smap.calculate_energy(video.BField['B'].values[iframe], A, Z)
-                smap.calculate_energy(1.59, A, Z)
+                smap.calculate_energy(video.BField['B'].values[iframe], A, Z)
             smap.setRemapVariables(var_remap, verbose=False)
             # -- Calculate the pixel coordinates
             smap.calculate_pixel_coordinates(video.CameraCalibration)

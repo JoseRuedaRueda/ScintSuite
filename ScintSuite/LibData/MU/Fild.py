@@ -88,43 +88,37 @@ class FILD_logbook:
             url poiting to the internet logbook. It can be a path to a local
             excel)
         """
-        if verbose:
-            print('.-.. --- --. -... --- --- -.-')
         # Load the camera database
         self.CameraCalibrationDatabase = \
-            readCameraCalibrationDatabase(cameraFile, verbose=verbose,
-                                          n_header=0)
+            readCameraCalibrationDatabase(cameraFile, n_header=0)
         # Load the position database
         # The position database is not distributed with the ScintSuite, so it
         # can happend that it is not available. For that reason, just in case
         # we do a try
         try:
             self.positionDatabase = \
-                self._readPositionDatabase(positionFile, verbose=verbose)
+                self._readPositionDatabase(positionFile)
             self.flagPositionDatabase = True
         except (FileNotFoundError, HTTPError):
             self.flagPositionDatabase = False
             print('Not found position database, we will use the defaults')
         # Load the geometry database
         self.geometryDatabase = \
-            self._readGeometryDatabase(geometryFile, verbose=verbose)
-        print('..-. .. -. .- .-.. .-.. -.--')
+            self._readGeometryDatabase(geometryFile)
+        
 
-    def _readPositionDatabase(self, filename: str, verbose: bool = True):
+    def _readPositionDatabase(self, filename: str):
         """
         Read the excel containing the position database
 
         :param  filename: path or url pointing to the logbook
-        :param  verbose: flag to print some info
         """
-        if verbose:
-            print('Looking for the position database: ', filename)
+        logger.info('Looking for the position database:' + filename)
         dummy = pd.read_excel(filename, engine='openpyxl', header=[0, 1])
         dummy['shot'] = dummy.Shot.Number.values.astype(int)
         return dummy
 
-    def _readGeometryDatabase(self, filename: str, n_header: int = 3,
-                              verbose: bool = True):
+    def _readGeometryDatabase(self, filename: str, n_header: int = 3):
         """
         Read the Geometry database
 
@@ -142,8 +136,7 @@ class FILD_logbook:
                 'GeomID': [], 'diag_ID': []}
 
         # Read the file
-        if verbose:
-            print('Reading Geometry database from: ', filename)
+        logger.info('Reading Geometry database from: '+ filename)
         with open(filename) as f:
             for i in range(n_header):
                 dummy = f.readline()
@@ -225,7 +218,8 @@ class FILD_logbook:
             id = self.geometryDatabase[flags].GeomID.values[0]
         return id
 
-    def getPosition(self, shot: int, FILDid: int = 1):
+
+    def getPosition(self, shot: int, FILDid: int = 1, RFILD: float = None):
         """
         Get the position of the FILD detector.
 
@@ -233,119 +227,131 @@ class FILD_logbook:
 
         :param  shot: shot number to look in the database
         :param  FILDid: manipulator id
+        :param  RFILD: specific FILD radial position
         """
         # Get always the default as a reference:
         geomID = self.getGeomID(shot, FILDid)
         default = self._getPositionDefault(geomID)
-        # First check that we have loaded the position logbook
-        if not self.flagPositionDatabase:
-            logger.warning('Position database not loaded, returning default values')
-            return default
-        # Get the shot index in the database
-        if shot in self.positionDatabase['shot'].values:
-            i, = np.where(self.positionDatabase['shot'].values == shot)[0]
-            flag = True
-        else:
-            logger.warning('Shot not found in logbook, returning the default values')
-            return default
         # --- Get the postion
-        position = {        # Initialise the position
+        # Initialise the position
+        position = {        
             'R': 0.0,
             'z': 0.0,
             'phi': 0.0,
-        }
+        }        
+        # First check that we have loaded the position logbook
+        if not self.flagPositionDatabase:
+            logger.warning('Position database not loaded')
+        else:
+            # Get the shot index in the database
+            if shot in self.positionDatabase['shot'].values:
+                i, = np.where(self.positionDatabase['shot'].values == shot)[0]
+                flag = True # True when the shot is in the database
+            else:
+                logger.warning('Shot not found in logbook')
+        # Read the data in the logbook
         dummy = self.positionDatabase['FILD'+str(FILDid)]
-        if 'R [m]' in dummy.keys():  # Look for R
+        if RFILD is not None: # if RFILD has been read from the video file
+            position['R'] = RFILD
+            logger.info('Radial position read from the file')
+        elif 'R [m]' in dummy.keys():  # Look for R
             position['R'] = dummy['R [m]'].values[i]
+            logger.info('Radial position read from logbook')
         else:  # Take the default approx value
-            print('R not in the logbook, returning default')
+            logger.warning('R not in the logbook nor the file, returning default')
             position['R'] = default['R']
         if 'Z [m]' in dummy.keys() and flag:  # Look for Z
             position['z'] = dummy['Z [m]'].values[i]
+            logger.info('Vertical position (z) read from logbook')
         else:  # Take the default approx value
-            print('Z not in the logbook, returning default')
+            logger.info('Z not in the logbook, returning default')
             position['z'] = default['z']
         if 'Phi [deg]' in dummy.keys() and flag:  # Look for phi
             position['phi'] = dummy['Phi [deg]'].values[i]
+            logger.info('Toroidal position (phi) read from logbook')
         else:  # Take the default approx value
-            print('Phi not in the logbook, returning default')
+            logger.info('Phi not in the logbook, returning default')
             position['phi'] = default['phi']
         
         return position
 
-    def getOrientation(self, shot, FILDid):
+
+    def getOrientation(self, shot, FILDid, beta_angle: float = None):
         """
         Get the orientation
 
-        In MU the beta angle can change.
+        In MU the beta angle can change (FILD MU orientation).
 
         :param  shot: shot number to look in the database
         :param  FILDid: manipulator id
+        :param  beta_angle: beta angle read from the camera file
         """
         geomID = self.getGeomID(shot, FILDid)
         default = self._getOrientationDefault(geomID)
+        # --- Get the orientation
+        # Initialise the orientation
+        orientation = {        
+            'alpha': 0.0,
+            'beta': 0.0,
+            'gamma': 0.0,
+        }
         # First check that we have loaded the position logbook
         if not self.flagPositionDatabase:
-            logger.warning('Logbook not loaded, returning default values')
-            return default
-        # Get the shot index in the database
-        if shot in self.positionDatabase['shot'].values:
-            i, = np.where(self.positionDatabase['shot'].values == shot)[0]
-            flag = True
+            logger.warning('Position database not loaded')
         else:
-            logger.warning('Shot not found in logbook, returning the default values')
-            return default
-        # --- Get the angle
+            # Get the shot index in the database
+            if shot in self.positionDatabase['shot'].values:
+                i, = np.where(self.positionDatabase['shot'].values == shot)[0]
+                flag = True # True when the shot is in the database
+            else:
+                logger.warning('Shot not found in logbook')
         dummy = self.positionDatabase['FILD'+str(FILDid)]
-        if 'Gamma [deg]' in dummy.keys():  # Look for angle
-            # Provisional negative sign.
-            beta = - dummy['Gamma [deg]'].values[i]
-            # Todo: change sign here and in notebook
-            print('Provisional comments:')
-            print(
-                'Please make sure the beta angle in the notebook is contrary to convention')
-            print(
-                'Convention is: negative when anticlockwise, looked from outside the vessel')
+        if beta_angle is not None: # if beta_angle has been read from the video file
+            orientation['beta'] = beta_angle
+            logger.info('Beta angle read from the file')
+        elif 'Beta [deg]' in dummy.keys():  # Look for beta angle in the logbook
+            orientation['beta'] = - dummy['Beta [deg]'].values[i]
+            logger.info(
+                'Please make sure the beta angle in the logbook is still contrary to convention')
+            logger.info(
+                'Convention is: negative when counterclockwise, looked from outside the vessel')
+        else:  # Take the default value
+            logger.warning('Beta angle not in the logbook nor the file, returning default')
+            orientation['beta'] = default['beta']
+        if 'Alpha [deg]' in dummy.keys() and flag:  # Look for Z
+            orientation['alpha'] = dummy['Alpha [deg]'].values[i]
+            logger.info('alpha angle read from logbook')
         else:  # Take the default approx value
-            print('Beta angle not in the logbook, returning default')
-            return default
-        default['beta'] = beta
-        if default['beta'] == np.nan:
-            print('Beta is Nan. Be careful!!')
-        return default
+            logger.info('alpha angle not in the logbook, returning default')
+            orientation['alpha'] = default['alpha']
+        if 'Gamma [deg]' in dummy.keys() and flag:  # Look for phi
+            orientation['gamma'] = dummy['Gamma [deg]'].values[i]
+            logger.info('gamma angle read from logbook')
+        else:  # Take the default approx value
+            logger.info('gamma angle not in the logbook, returning default')
+            orientation['gamma'] = default['gamma']
+
+        return orientation
+
 
     def getAdqFreq(self, shot: int, diag_ID: int = 1):
         """
         Get the adquisition frequency from the database
-        Since XIMEA in use, this is deprecated, as the frames per second are stored in the video.
+        Since XIMEA in use, this is deprecated, as the frames 
+        per second are stored in the video. And it is also not
+        needed now. It was used to create the timebase in the old PCOpanda
 
         Jose Rueda - jrrueda@us.es
         Lina Velarde - lvelarde@us.es
 
-        :param  shot: shot number to look in the database
+        :param  shot: shot number to look in the DiagParams
         :param  FILDid: manipulator id
         """
-        # Get always the default as a reference:
-        default = params.FILD[diag_ID-1]['adqfreq'](shot)
-        # First check that we have loaded the position logbook
-        if not self.flagPositionDatabase:
-            logger.warning('Logbook not loaded, returning default values')
-            return default
-        # Get the shot index in the database
-        if shot in self.positionDatabase['shot'].values:
-            i, = np.where(self.positionDatabase['shot'].values == shot)[0]
-            flag = True
-        else:
-            logger.warning('Shot not found in logbook, returning the default values')
-            return default
-        # --- Get the postion
-        dummy = self.positionDatabase['FILD'+str(diag_ID)]
-        if 'CCDqe freq [Hz]' in dummy.keys():  # Look for adqfreq
-            adqfreq = dummy['CCDqe freq [Hz]'].values[i]
-        else:  # Take the default approx value
-            print('Adquisition frequency not in the logbook, returning default')
-            adqfreq = default
+        # Read from the DiagParams
+        adqfreq = params.FILD[diag_ID-1]['adqfreq'](shot)
+        
         return adqfreq
+
 
     def gettTrig(self, shot: int, diag_ID: int = 1):
         """
@@ -357,27 +363,11 @@ class FILD_logbook:
         :param  shot: shot number to look in the database
         :param  FILDid: manipulator id
         """
-        # Get always the default as a reference:
-        default = params.FILD[diag_ID-1]['t_trig'](shot)
-        # First check that we have loaded the position logbook
-        if not self.flagPositionDatabase:
-            logger.warning('Logbook not loaded, returning default values')
-            return default
-        # Get the shot index in the database
-        if shot in self.positionDatabase['shot'].values:
-            i, = np.where(self.positionDatabase['shot'].values == shot)[0]
-            flag = True
-        else:
-            logger.warning('Shot not found in logbook, returning the default values')
-            return default
-        # --- Get the postion
-        dummy = self.positionDatabase['FILD'+str(diag_ID)]
-        if 'CCDqe trigger time [s]' in dummy.keys():  # Look for tTrig
-            tTrig = dummy['CCDqe trigger time [s]'].values[i]
-        else:  # Take the default approx value
-            logger.warning('Trigger time not in the logbook, returning default')
-            tTrig = default
+        # Read from the DiagParams
+        tTrig = params.FILD[diag_ID-1]['t_trig'](shot)
+        
         return tTrig
+
 
     def getGeomShots(self, geomID, maxR: float = None):
         """

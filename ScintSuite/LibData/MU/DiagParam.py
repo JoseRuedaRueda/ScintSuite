@@ -24,8 +24,8 @@ def prefix(shot:int):
     else:
         pref = 'xfx'
     return pref
-fild1 = {'adqfreq': lambda shot: 23 if shot < firstShotXIMEA else 500,  
-    't_trig': lambda shot: -2.5 if shot < firstShotXIMEA else -1.0,
+fild1 = {'adqfreq': lambda shot: 23 if shot < firstShotXIMEA else 500,  # not really used
+    't_trig': lambda shot: -2.5 if shot < firstShotXIMEA else -1.0,  # not really used
     'extension': lambda shot: '' if shot < firstShotXIMEA else '.nc', # Extension of the video
     'prefix': prefix, # Prefix of the file name
     'label': 'FILD1', 
