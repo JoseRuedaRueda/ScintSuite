@@ -124,6 +124,9 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
     except AttributeError:  # If not, we need to create it
         ch = np.array([channels]).flatten()
         nch_to_load = ch.size
+        if channels == 'all':
+            nch_to_load = nch
+            ch = np.arange(nch)+1 #all channels
 
     # Open the shot file
     fast = sf.SFREAD(diag_name, shot, ed=ed, exp=exp)

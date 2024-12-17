@@ -431,11 +431,16 @@ class Fsmap(FILDINPA_Smap):
         return
     
 
-    def build_parameters_xarray(self):
+    def build_parameters_xarray(self, 
+                                self_complete = False, interpolate = False):
         """
         Put all the fitting parameters into an xarray
 
         Alex Reyner Viñolas: alereyvinn@alum.us.es
+
+        param  self_complete: fills the nan values of the matrices 
+        param  interpolate: interpolates the data for better resolution and 
+                uniformity between matrices
         """
         # --- Check the StrikeMap
         if self.strike_points is None:
@@ -472,3 +477,37 @@ class Fsmap(FILDINPA_Smap):
                 
         self._resolutions['fit_xarrays']['coll_factor'] = (['x','y'],
                                           self('collimator_factor_matrix'))
+        
+        if self_complete:
+            logger.info('Selfcompleting matrices')
+            # Interpolate and extrapolate NaN
+            for key in list(self._resolutions['fit_xarrays'].data_vars):
+                self._resolutions['fit_xarrays'][key] =\
+                    self._resolutions['fit_xarrays'][key]\
+                    .interpolate_na(dim='y', fill_value='extrapolate')
+            # Eliminate less than 0 values, excep for gamma
+            for key in list(self._resolutions['fit_xarrays'].data_vars):
+                if 'gamma' not in key:
+                    self._resolutions['fit_xarrays'][key] =\
+                        self._resolutions['fit_xarrays'][key]\
+                        .where(self._resolutions['fit_xarrays'][key]>=0.0, 0)
+                    
+        #Right now interpolates to 100x100. But I'll modify it.
+        if interpolate:
+            logger.info('Interpolating matrices')
+            xmin = self._resolutions['fit_xarrays'].coords['x'].min().item()
+            xmax = self._resolutions['fit_xarrays'].coords['x'].max().item()
+            ymin = self._resolutions['fit_xarrays'].coords['y'].min().item()
+            ymax = self._resolutions['fit_xarrays'].coords['y'].max().item()
+            new_x = np.linspace(xmin, xmax, 100)
+            new_y = np.linspace(ymin, ymax, 100)
+            # Interpolate new coordinates for more resolution
+            self._resolutions['fit_xarrays'] = \
+                self._resolutions['fit_xarrays']\
+                .interp(x=new_x, y=new_y, method = 'quadratic')
+            # Eliminate less than 0 values, excep for gamma
+            for key in list(self._resolutions['fit_xarrays'].data_vars):
+                if 'gamma' not in key:
+                    self._resolutions['fit_xarrays'][key] =\
+                        self._resolutions['fit_xarrays'][key]\
+                        .where(self._resolutions['fit_xarrays'][key]>=0.0, 0)
