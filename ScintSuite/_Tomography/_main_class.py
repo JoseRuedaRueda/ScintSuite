@@ -1055,8 +1055,12 @@ class Tomography():
             """
             # ---- Initialise the settings
             fig, ax = plt.subplots()
+            norm = 1
+            if self.norms['normalised'][0] ==1:
+                norm = self.norms['s']/self.norms['W']
+
             for inv in inverters:
-                x_hat = self.inversion[inv].F.copy()
+                x_hat = self.inversion[inv].F.copy()*norm
                 MSE = np.sqrt(((x_hat-x_syntheticXR)**2).sum(dim=('x','y')))
                 true_norm = np.sqrt((x_syntheticXR**2).sum(dim=('x','y')))
                 error = MSE/ true_norm
