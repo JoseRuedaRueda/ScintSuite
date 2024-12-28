@@ -127,7 +127,7 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam,
         # Initialization before iterations.
         k = 0   # Iteration counter.
         maxK = maxiter.max() # Maximum iterations from all the ksteps to return
-        xk = x0 # Use initial vector.
+        xk = x0.copy() # Use initial vector.
         
         stop_loop = stopping_criterion(k, rk, maxK, tol)
 
@@ -397,7 +397,7 @@ def cimmino_solve(W, y, x0, maxiter, damp, tol, relaxParam,
         # Initialization before iterations.
         k = 0   # Iteration counter.
         maxK = maxiter.max() # Maximum iterations from all the ksteps to return
-        xk = x0 # Use initial vector.
+        xk = x0.copy() # Use initial vector.
         
         stop_loop = stopping_criterion(k, rk, maxK, tol)
 
