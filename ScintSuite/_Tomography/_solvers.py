@@ -172,15 +172,12 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam,
             # Truncate the output so that we just keep values inside 
             # the signal region
             # Save the output and end time
+            if window is not None:
+                xk = apply_window2(xk, x_coord.values, y_coord.values, window)
 
 
-            if k in maxiter:              
-                if window is not None:                     
-                    xk_new = apply_window(xk, x_coord, y_coord, window)
-                    xk_output[:,num_exec] = matrix.collapse_array2D(xk_new.values)
-                else:
-                    xk_output[:,num_exec] = xk
-
+            if k in maxiter:
+                xk_output[:,num_exec] = xk
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
                 
@@ -437,13 +434,11 @@ def cimmino_solve(W, y, x0, maxiter, damp, tol, relaxParam,
             # Truncate the output so that we just keep values inside 
             # the signal region
             # Save the output and end time
+            if window is not None:
+                xk = apply_window2(xk, x_coord.values, y_coord.values, window)
 
-            if k in maxiter:              
-                if window is not None:                     
-                    xk_new = apply_window(xk, x_coord, y_coord, window)
-                    xk_output[:,num_exec] = matrix.collapse_array2D(xk_new.values)
-                else:
-                    xk_output[:,num_exec] = xk
+            if k in maxiter:
+                xk_output[:,num_exec] = xk
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
                 
