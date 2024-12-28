@@ -91,6 +91,7 @@ def create_synthetic_signal(WF, mu_gyro, mu_pitch, power, sigma_gyro,
     
     y_signal = np.tensordot(WF, x_syntheticXR)
     row, col = y_signal.shape
+    np.random.seed(seed)
     gauss = np.random.randn(row, col)
     noise1 = noise_level*y_signal * gauss
     noise2 = gauss*background_level*y_signal.max()
@@ -138,8 +139,7 @@ def create_synthetic_delta(WF, mu_gyro, mu_pitch, noise_level, background_level,
     pitch_grid = WF.x.values
     gyro_gridS = WF.ys.values
     pitch_gridS = WF.xs.values
-    X, Y = np.meshgrid(WF.y, WF.x) # gyroradius for x and pitch for y
-    grid = np.dstack((X, Y))
+    X, _ = np.meshgrid(WF.y, WF.x) # gyroradius for x and pitch for y
 
     # Generate synthetic signal
     x_synthetic = np.zeros_like(X)
@@ -155,6 +155,7 @@ def create_synthetic_delta(WF, mu_gyro, mu_pitch, noise_level, background_level,
     
     y_signal = np.tensordot(WF, x_syntheticXR)
     row, col = y_signal.shape
+    np.random.seed(seed)
     gauss = np.random.randn(row, col)
     noise1 = noise_level*y_signal * gauss
     noise2 = gauss*background_level*y_signal.max()
