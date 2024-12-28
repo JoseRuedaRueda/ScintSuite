@@ -423,10 +423,12 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2,
         ax_param = {'fontsize': 10, \
             'xlabel': 'Pitch [º]', 'ylabel': 'Energy [eV]'}         
         ssPH_pe.transpose().plot.imshow(ax=ax[0,0], cmap=cmap,
+                                     vmax=0.5*ssPH_pe.max().item(),
                                      cbar_kwargs={"label": 'ions/(s cm deg)'})
         ax[0,0] = ss.plt.axis_beauty(ax[0,0], ax_param)
         ax[0,0].set_title("Pinhole")    
         ssSC_pe.transpose().plot.imshow(ax=ax[0,1], cmap=cmap,
+                                     vmax=0.5*ssPH_pe.max().item(),
                                      cbar_kwargs={"label": 'ions/(s cm deg)'})
         ax[0,1] = ss.plt.axis_beauty(ax[0,1], ax_param)
         ax[0,1].set_title("Scintillator")
@@ -459,7 +461,7 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2,
 # --- Synthetic signal in the scintillator space and camera frame
 # -----------------------------------------------------------------------------
 
-def original_synthsig_xy(distro, smap, scint, collimator=None, alex=False,
+def original_synthsig_xy(distro, smap, scint, collimator=None,
                      cam_params = {}, optic_params = {},
                      smapplt = None, 
                      gyrophases = np.pi,
@@ -577,11 +579,11 @@ def original_synthsig_xy(distro, smap, scint, collimator=None, alex=False,
     dsmapplt.interp_grid((cam_params['ny'], cam_params['nx']),
                          MC_number=0)
     
-    # LOCATE AND CENTER THE COLLIMATOR (experimental)
+    # LOCATE THE COLLIMATOR (experimental)
     # Don't use yet. Right now we take advantage of the scintillator libraries
     # to plot the collimator.
     # -----------------------------------------------------------------------
-    if alex==True:
+    try:
         dcoll=copy.deepcopy(collimator)
         dcoll._coord_real['x2'] -= y_scint_center
         dcoll._coord_real['x1'] -= x_scint_center
@@ -593,7 +595,12 @@ def original_synthsig_xy(distro, smap, scint, collimator=None, alex=False,
         transformation_params.yshift = py_0
         dcoll.calculate_pixel_coordinates(transformation_params)
         # Build the scintillator perimeter and find the area in the pixel space
-        coll_perim = geometry.scint_ConvexHull(dcoll)    
+        coll_perim = geometry.scint_ConvexHull(dcoll)
+        coll_geom = True
+        logger.info('- Collimator located and ready to plot')
+    except:
+        coll_geom = False
+        logger.info('- No collimator geometry given')
 
     # MAP THE SIGNAL
     # -----------------------------------------------------------------------
@@ -665,7 +672,7 @@ def original_synthsig_xy(distro, smap, scint, collimator=None, alex=False,
         'scint_area': scint_area
     }
 
-    if coll_perim: #Flagg to add the collimator
+    if coll_geom == True: #Flagg to add the collimator
         output['collimator'] = coll_perim
 
     return output
