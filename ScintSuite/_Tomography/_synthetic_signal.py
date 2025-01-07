@@ -47,9 +47,9 @@ def create_synthetic_signal(WF, mu_gyro, mu_pitch, power, sigma_gyro,
     WF = xr.load_dataarray(WFfile)
     mu_gyro = [3.1, 4.3, 5.4] 
     power = [0.1, 0.2, 0.7] 
-    sigma_gyro = 0.01
+    sigma_gyro = [0.01, 0.01, 0.01]
     mu_pitch = [55, 55, 55]
-    sigma_pitch = 7
+    sigma_pitch = [7, 7, 7]
     noise_level = 0.1
     background_level = 0.1
     x, y = synthetic_signal.create_synthetic_signal(WF, mu_gyro, mu_pitch,
@@ -73,8 +73,8 @@ def create_synthetic_signal(WF, mu_gyro, mu_pitch, power, sigma_gyro,
 
     for i in range(len(mu_gyro)):
         distrib = multivariate_normal([mu_gyro[i], mu_pitch[i]],
-                                            [[sigma_gyro, 0],
-                                            [0, sigma_pitch]], seed=seed)
+                                            [[sigma_gyro[i]**2, 0],
+                                            [0, sigma_pitch[i]**2]], seed=seed)
         pdf = distrib.pdf(grid)
         x_synthetic += pdf/pdf.max()*power[i]
 
