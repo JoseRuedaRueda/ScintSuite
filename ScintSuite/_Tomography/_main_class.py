@@ -1012,7 +1012,7 @@ class Tomography():
     
     def plot_MSE_error(self, inverters = ['descent', 'kaczmarz', 
                                                 'cimmino'], ax=None,
-                    line_params: dict = {}) -> plt.Axes:
+                    plot_params: dict = {}) -> plt.Axes:
             """
             Plot the MSE
     
@@ -1024,16 +1024,22 @@ class Tomography():
             :return ax: axes where the data has been plotted
             """
             # ---- Initialise the settings
-            fig, ax = plt.subplots()
+            if ax is None:
+                fig, ax = plt.subplots()
+            if 'label_size' in plot_params.keys():
+                label_size = plot_params['label_size']
+            else:
+                label_size = 16
+
             true_norm = (self.s**2).sum(dim=('xs','ys')) # It's squared
             for inv in inverters:
                 MSE = self.inversion[inv].MSE
                 error = MSE/ true_norm
                 ax.plot(self.inversion[inv].alpha, error, '-o', label=inv)
 
-            ax.set_title('Normalized MSE vs iterations')
-            ax.set_xlabel('k')
-            ax.set_ylabel('Error')
+            ax.set_title('Normalized MSE vs iterations', fontsize=label_size)
+            ax.set_xlabel('k', fontsize=label_size)
+            ax.set_ylabel('Error', fontsize=label_size)
             ax.legend(inverters)
 
             return ax
@@ -1041,7 +1047,7 @@ class Tomography():
     def plot_synthetic_error(self, x_syntheticXR, 
                              inverters = ['descent', 'kaczmarz', 'cimmino'], 
                              ax=None,
-                    line_params: dict = {}) -> plt.Axes:
+                    plot_params: dict = {}) -> plt.Axes:
             """
             Plot the error with respect to the synthetic data
     
@@ -1054,7 +1060,13 @@ class Tomography():
             :return ax: axes where the data has been plotted
             """
             # ---- Initialise the settings
-            fig, ax = plt.subplots()
+            if ax is None:
+                fig, ax = plt.subplots()
+            if 'label_size' in plot_params.keys():
+                label_size = plot_params['label_size']
+            else:
+                label_size = 16
+            
             norm = 1
             if self.norms['normalised'][0] ==1:
                 norm = self.norms['s']/self.norms['W']
@@ -1066,17 +1078,17 @@ class Tomography():
                 error = MSE/ true_norm
                 ax.plot(self.inversion[inv].alpha, error, '-o', label=inv)
 
-            ax.set_title('Error vs iterations')
+            ax.set_title('Error vs iterations', fontsize=label_size)
             ax.set_xscale('log')
-            ax.set_xlabel('k')
-            ax.set_ylabel('Error')
+            ax.set_xlabel('k', fontsize=label_size)
+            ax.set_ylabel('Error', fontsize=label_size)
             ax.legend(inverters)
 
             return ax
     
     def plot_computational_time(self, inverters = ['descent', 'kaczmarz',
                                                 'cimmino'], ax=None,
-                    line_params: dict = {}) -> plt.Axes:
+                    plot_params: dict = {}) -> plt.Axes:
             """
             Plot the computational time
     
@@ -1088,14 +1100,20 @@ class Tomography():
             :return ax: axes where the data has been plotted
             """
             # ---- Initialise the settings
-            fig, ax = plt.subplots()
+            if ax is None:
+                fig, ax = plt.subplots()
+            if 'label_size' in plot_params.keys():
+                label_size = plot_params['label_size']
+            else:
+                label_size = 16
+
             for inv in inverters:
                 time = self.inversion[inv].time
                 ax.plot(self.inversion[inv].alpha, time, '-o', label=inv)
 
-            ax.set_title('Computational time vs iterations')
-            ax.set_xlabel('k')
-            ax.set_ylabel('Time (s)')
+            ax.set_title('Computational time vs iterations', fontsize=label_size)
+            ax.set_xlabel('k', fontsize=label_size)
+            ax.set_ylabel('Time [s]', fontsize=label_size,)
             ax.legend(inverters)
 
             return ax
