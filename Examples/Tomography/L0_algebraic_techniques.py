@@ -33,9 +33,9 @@ ttomo = 0.28    # Time to perform the tomography
 seed = 0
 mu_gyro = [3.1, 4.3, 5.4]
 power = [0.1, 0.2, 0.7]
-sigma_gyro = 0.01
+sigma_gyro = [0.01, 0.01, 0.01]
 mu_pitch = [55, 55, 55]
-sigma_pitch = 7
+sigma_pitch = [7, 7, 7]
 noise_level = 0.1
 background_level = 0.01
 window = [45, 65, 3, 9]
@@ -43,6 +43,7 @@ window = [45, 65, 3, 9]
 # - Tomography parameters
 # Setting the number of maximum iterations
 iters = np.array([1, 10, 30, 50, 100])
+
 # Setting algorithms to be used
 inverters = ['kaczmarz','descent','cimmino']
 
