@@ -154,15 +154,19 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam,
 
         while not stop_loop:
             k += 1  
-            np.random.seed(0)
-            I_torun = np.random.permutation(I)          
+            np.random.seed(k)
+            I_torun = np.random.permutation(I)  
+            np.random.seed(k)
+            rand_unif = np.random.uniform(0,1, len(I_torun))        
 
             # The Kaczmarz sweep
+            j = 0
             for i in I_torun:
                 if fast:
                     ri = i
                 else:
-                    ri = np.sum(cumul<np.random.uniform(0, 1, 1)) 
+                    ri = np.sum(cumul<rand_unif[j]) 
+                    j +=1
 
                 wi = W[ri,:]
                 update = (relaxParam*(y[ri]- wi @ xk)/normWi[ri])*wi
@@ -286,6 +290,13 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
 
         while not stop_loop:
             k += 1
+            if Numflag != 0:
+                np.random.seed(k)
+                value_rand = np.random.randint(1,Numflag, size = len(J))
+            else: 
+                np.random.seed(k)
+                value_rand = np.random.randint(Numflag, 1, size = len(J))
+            i = 0
             for j in J:
                 mm = np.max(np.abs(xk))
 
@@ -303,8 +314,8 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
                         Nflag[j] = 1    
                     rk = rk - od*wj
                 else:
-                    np.random.seed(0)
-                    value = randint(1,Numflag)
+                    value = value_rand[i]
+                    i +=1
                     if Nflag[j]< value:
                         Nflag[j] += 1
                     else:
