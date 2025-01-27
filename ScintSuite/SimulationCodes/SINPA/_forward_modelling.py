@@ -9,7 +9,7 @@ Workflow:
             with noise_optics_camera
 
     - You can plot at any step given the frame and even plot each  noises
-    - You can also compute directly compute WF and remapped synthetic signals
+    - You can also directly compute the WF and remapped synthetic signals
 
 Functions. What can be done:
     - read_ASCOT_dist: Read an ASCOT distribution with ion distribution that 
@@ -64,11 +64,13 @@ def read_ASCOT_dist(filename, pinhole_area = None, B=4, A=None, Z=None,
         - Custom read for matlab antique files (matlab)
         - Manual file for delta tipe ion flux
 
-    :param  file: full path to the file
+    :param  filename: full path to the file
     :param  version: ASCOT output custom, default 5.5
     :param  pinhole_area: relation between pinhole and head-95% area
+    :param  B: magnetic field
+    :param  A: A value of the ions (in case this does not come with the input)
+    :param  Z: Z value of the ions (in case this does not come with the input)
 
-    :return out: distribution ready to be used,
     :return out dictionary containing:
             'gyroradius': Array of gyroradius where the signal is evaluated
             'pitch': Array of pitches where the signal is evaluated
@@ -246,7 +248,7 @@ def obtain_WF(smap, scintillator, efficiency_flag = False, B=4, A=2, Z=2,
 
 
 def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, 
-                        plot=False):
+                        plot=False, cmap = ss.plt.Gamma_II()):
     """
     Synthetic signal for pinhole and scintillator in pitch-gyroradius space
 
@@ -261,7 +263,6 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
         inside the pinhole
     :param  plot: flag to plot the synthetic signals, and the histograms in
         pitch and gyroradius.
-    :param  smooth: smooth the signal of the pinhole. Just for plotting.
 
     :return out dictionary containing remapped signals:
             PH: synthetic signal at the pinhole (PH)
@@ -317,7 +318,6 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
     if plot == True:
         fig, ax = plt.subplots(2,2, figsize=(8, 6),
                                     facecolor='w', edgecolor='k') 
-        cmap = ss.plt.Gamma_II()
         # Plot of the synthetic signals, pinhole and scintillator
         ax_param = {'fontsize': 10, \
                     'xlabel': 'Pitch [º]', 'ylabel': '$r_l [cm]$'}         
@@ -356,9 +356,9 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
 
 
 def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, 
-                         plot=False):
+                         plot=False, cmap=ss.plt.Gamma_II()):
     """
-    Transfors the pitch-gyroradius signal space to pitch-energy signal
+    Transfors the pitch-gyroradius signal to pitch-energy signal
 
     Alex Reyner: alereyvinn@alum.us.es
 
@@ -417,8 +417,7 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2,
 
     if plot == True:    
         fig, ax = plt.subplots(2,2, figsize=(8, 6),
-                                    facecolor='w', edgecolor='k') 
-        cmap = ss.plt.Gamma_II()
+                                    facecolor='w', edgecolor='k')
         # Plot of the synthetic signals, pinhole and scintillator
         ax_param = {'fontsize': 10, \
             'xlabel': 'Pitch [º]', 'ylabel': 'Energy [eV]'}         
@@ -907,7 +906,8 @@ def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
 
 
 def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
-                   cam_params: dict={}, maxval = None, figtitle = None):
+                   cam_params: dict={}, maxval = None, cmap=ss.plt.Gamma_II(),
+                   figtitle = None):
     """
     Plot one frame, the scintillator and the strikemap
     
@@ -931,7 +931,7 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
     smapplt = frame['smapplt']
     scint_perim = frame['scintillator']
 
-    # Establish vmax as: 1) max counts, 2) 50% of the signal
+    # Establish vmax as: 1) max camera counts, 2) to maxval of the signal
     if maxval == None:
         max_count = 2 ** cam_params['range'] - 1
         logger.info('- Maximum set to camera range')
@@ -943,7 +943,7 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
     fig, ax = plt.subplots(figsize=(7,4))
     ax.set_aspect(1)      
     
-    frame_to_plot.plot.imshow(ax=ax, cmap=ss.plt.Gamma_II(),
+    frame_to_plot.plot.imshow(ax=ax, cmap=cmap,
                     vmin=0, vmax=max_count,
                     cbar_kwargs={"label": 'Pixel counts','spacing': 'proportional'})
 
@@ -1638,7 +1638,8 @@ def synthsig_xy_2coll(distros, scint,
 
 
 def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
-                   cam_params: dict={}, maxval = None, figtitle = None):
+                   cam_params: dict={}, maxval = None, cmap=ss.plt.Gamma_II(), 
+                   figtitle = None):
     """
     Plot one frame, the scintillator and the strikemap
     
@@ -1662,7 +1663,7 @@ def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = 
     smapplt = frame['smapplt']
     scint_perim = frame['scintillator']
 
-    # Establish vmax as: 1) max counts, 2) 50% of the signal
+    # Establish vmax as: 1) max camera counts, 2) to maxval of the signal
     if maxval == None:
         max_count = 2 ** cam_params['range'] - 1
         logger.info('- Maximum set to camera range')
@@ -1674,7 +1675,7 @@ def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = 
     fig, ax = plt.subplots(figsize=(7,4))
     ax.set_aspect(1)      
     
-    frame_to_plot.plot.imshow(ax=ax, cmap=ss.plt.Gamma_II(),
+    frame_to_plot.plot.imshow(ax=ax, cmap=cmap,
                     vmin=0, vmax=max_count,
                     cbar_kwargs={"label": 'Pixel counts','spacing': 'proportional'})
 

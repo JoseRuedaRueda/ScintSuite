@@ -264,7 +264,7 @@ def find_strike_map_INPA(phi: float, theta: float, strike_path: str,
     raise Exception(a)
 
 
-def write_namelist(nml, p=None, overwrite=True, messh_correction=True):
+def write_namelist(nml, p=None, overwrite=True, grid_correction=True):
     """
     Write fortran namelist
 
@@ -278,6 +278,8 @@ def write_namelist(nml, p=None, overwrite=True, messh_correction=True):
         will take it from the path of the namelist. Please do not use this input
         except you really know what are you doing and want to change something
     :param  overwrite: flag to overwrite the namelist (if exist)
+    :param  grid_correction: flag to automatically correct errors of the input
+        regarding the grid of the strike map
 
     :return file: The path to the written file
     """
@@ -288,8 +290,8 @@ def write_namelist(nml, p=None, overwrite=True, messh_correction=True):
     keys_config = [key for key in nml['config'].keys()]
 
     # --- Automatic filling of relevant parameters of the mesh
-    if messh_correction == True:
-        logger.info('Autocorrection the inputs')
+    if grid_correction == True:
+        logger.info('Autocorrecting the inputs')
         dummy=nml
         for ik, k in enumerate(keys_lower_input):
             if k == 'rl':

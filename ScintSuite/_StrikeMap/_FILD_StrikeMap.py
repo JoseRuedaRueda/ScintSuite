@@ -431,14 +431,14 @@ class Fsmap(FILDINPA_Smap):
         return
     
 
-    def build_parameters_xarray(self, complete = False, fit_to_WF = False):
+    def build_parameters_xarray(self):
         """
         Put all the fitting parameters into an xarray and WF
 
         Alex Reyner Viñolas: alereyvinn@alum.us.es
 
-        param  self_complete: fills the nan values of the matrices 
-        param  interpolate: interpolates the data for better resolution and 
+        param  complete: fills the nan values of the matrices 
+        param  fit_to_WF: interpolates the data for better resolution and 
                 uniformity between matrices
         """
         # --- Check the StrikeMap
@@ -475,50 +475,6 @@ class Fsmap(FILDINPA_Smap):
                 self._resolutions['fit_xarrays'][name+'_'+j] = (['x','y'],dummy)
         self._resolutions['fit_xarrays']['coll_factor'] = (['x','y'],
                                           self('collimator_factor_matrix'))
-        
-        # --- Complete/fill all the NaN values of the matrices
-        if complete:
-            logger.info('Selfcompleting matrices')
-            # Interpolate and extrapolate NaN
-            for key in list(self._resolutions['fit_xarrays'].data_vars):
-                self._resolutions['fit_xarrays'][key] =\
-                    self._resolutions['fit_xarrays'][key]\
-                        .interpolate_na(dim='x', fill_value='extrapolate')
-                self._resolutions['fit_xarrays'][key] =\
-                    self._resolutions['fit_xarrays'][key]\
-                        .interpolate_na(dim='y', fill_value='extrapolate')
-            # Eliminate less than 0 values, excep for gamma
-            for key in list(self._resolutions['fit_xarrays'].data_vars):
-                if 'gamma' not in key:
-                    self._resolutions['fit_xarrays'][key] =\
-                        self._resolutions['fit_xarrays'][key]\
-                        .where(self._resolutions['fit_xarrays'][key]>=0.0, 0)
-
-        # --- Make all the matrices to have the same coordinates as the WF
-        if fit_to_WF:
-            try:  
-                new_x = self.instrument_function['x'].values
-                new_y = self.instrument_function['y'].values
-                # Interpolate and extrapolate NaN
-                self._resolutions['fit_xarrays'] =\
-                    self._resolutions['fit_xarrays']\
-                    .interp(x = new_x, y = new_y, method = 'slinear')
-                for key in list(self._resolutions['fit_xarrays'].data_vars):
-                    self._resolutions['fit_xarrays'][key] =\
-                        self._resolutions['fit_xarrays'][key]\
-                            .interpolate_na(dim='y', fill_value='extrapolate')
-                    self._resolutions['fit_xarrays'][key] =\
-                        self._resolutions['fit_xarrays'][key]\
-                            .interpolate_na(dim='x', fill_value='extrapolate')
-                # Eliminate less than 0 values, excep for gamma
-                for key in list(self._resolutions['fit_xarrays'].data_vars):
-                    if 'gamma' not in key:
-                        self._resolutions['fit_xarrays'][key] =\
-                            self._resolutions['fit_xarrays'][key]\
-                            .where(self._resolutions['fit_xarrays'][key]>=0.0, 0)
-                logger.info('Interpolating matrices')
-            except:
-                logger.warning('Define the WF first')
 
         try:
             self._resolutions['fit_xarrays']['WF'] = self.instrument_function
