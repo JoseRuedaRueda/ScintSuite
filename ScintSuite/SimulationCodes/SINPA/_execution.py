@@ -291,7 +291,7 @@ def write_namelist(nml, p=None, overwrite=True, grid_correction=True):
 
     # --- Automatic filling of relevant parameters of the mesh
     if grid_correction == True:
-        logger.info('Autocorrecting the inputs')
+        logger.warning('11: Autocorrecting the inputs')
         dummy=nml
         for ik, k in enumerate(keys_lower_input):
             if k == 'rl':

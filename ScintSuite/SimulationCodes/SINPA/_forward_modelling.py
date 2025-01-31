@@ -248,7 +248,7 @@ def obtain_WF(smap, scintillator, efficiency_flag = False, B=4, A=2, Z=2,
 
 
 def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, 
-                        plot=False, cmap = ss.plt.Gamma_II()):
+                        plot=False,):
     """
     Synthetic signal for pinhole and scintillator in pitch-gyroradius space
 
@@ -316,6 +316,7 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
 
     # Default plot to control results
     if plot == True:
+        cmap = ss.plt.Gamma_II()
         fig, ax = plt.subplots(2,2, figsize=(8, 6),
                                     facecolor='w', edgecolor='k') 
         # Plot of the synthetic signals, pinhole and scintillator
@@ -356,7 +357,7 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
 
 
 def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, 
-                         plot=False, cmap=ss.plt.Gamma_II()):
+                         plot=False,):
     """
     Transfors the pitch-gyroradius signal to pitch-energy signal
 
@@ -415,7 +416,8 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2,
     out['PH'] = ssPH_pe
     out['SC'] = ssSC_pe/integral_s_e*integral_s
 
-    if plot == True:    
+    if plot == True:
+        cmap=ss.plt.Gamma_II()   
         fig, ax = plt.subplots(2,2, figsize=(8, 6),
                                     facecolor='w', edgecolor='k')
         # Plot of the synthetic signals, pinhole and scintillator
@@ -594,7 +596,7 @@ def original_synthsig_xy(distro, smap, scint, collimator=None,
         transformation_params.yshift = py_0
         dcoll.calculate_pixel_coordinates(transformation_params)
         # Build the scintillator perimeter and find the area in the pixel space
-        coll_perim = geometry.scint_ConvexHull(dcoll)
+        coll_perim = geometry.scint_ConvexHull(dcoll, coords='pix')
         coll_geom = True
         logger.info('- Collimator located and ready to plot')
     except:
@@ -652,7 +654,7 @@ def original_synthsig_xy(distro, smap, scint, collimator=None,
 
     # Build the scintillator perimeter and find the area in the pixel space
     logger.info('- Building the scintillator perimeter and xarray...')
-    scint_perim = geometry.scint_ConvexHull(dscint)
+    scint_perim = geometry.scint_ConvexHull(dscint, coords='pix')
     scint_path = Path(scint_perim, closed=True)
     dummy = copy.deepcopy(signal_frame)*0
     for i in range(cam_params['ny']):
@@ -906,7 +908,7 @@ def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
 
 
 def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
-                   cam_params: dict={}, maxval = None, cmap=ss.plt.Gamma_II(),
+                   cam_params: dict={}, maxval = None,
                    figtitle = None):
     """
     Plot one frame, the scintillator and the strikemap
@@ -940,6 +942,7 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
         logger.info('- Maximum set to %4.2f max signal', maxval)
 
     # Initialize the plot
+    cmap=ss.plt.Gamma_II()
     fig, ax = plt.subplots(figsize=(7,4))
     ax.set_aspect(1)      
     
@@ -1638,7 +1641,7 @@ def synthsig_xy_2coll(distros, scint,
 
 
 def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
-                   cam_params: dict={}, maxval = None, cmap=ss.plt.Gamma_II(), 
+                   cam_params: dict={}, maxval = None,
                    figtitle = None):
     """
     Plot one frame, the scintillator and the strikemap
@@ -1672,6 +1675,7 @@ def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = 
         logger.info('- Maximum set to %4.2f max signal', maxval)
 
     # Initialize the plot
+    cmap=ss.plt.Gamma_II()
     fig, ax = plt.subplots(figsize=(7,4))
     ax.set_aspect(1)      
     

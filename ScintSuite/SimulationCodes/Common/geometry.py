@@ -854,7 +854,7 @@ class Geometry:
 
 ##
 
-def scint_ConvexHull(scint):
+def scint_ConvexHull(scint, coords='real'):
     """
     Calculates a convex shape around the scintillator perimeter.
 
@@ -864,11 +864,16 @@ def scint_ConvexHull(scint):
     to manually give the scintillator edges or have lots of lines in the middle
 
     :param  scint: scintillator object from the suite, with the geometry file
+    :param  coords: what coordinates you want to plot: real or pix
 
     :return scint_perim: scintillator contour shape
     """
-    xdum = scint._coord_pix['x']
-    ydum = scint._coord_pix['y'] 
+    if coords == 'real':
+        xdum = scint._coord_real['x1']
+        ydum = scint._coord_real['x2'] 
+    elif coords == 'pix':
+        xdum = scint._coord_pix['x']
+        ydum = scint._coord_pix['y'] 
     allPts = np.column_stack((xdum,ydum))
     hullPts = spsp.ConvexHull(allPts)
     scint_x = np.concatenate((allPts[hullPts.vertices,0],\
