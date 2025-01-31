@@ -27,12 +27,12 @@ Functions. What can be done:
     - plot_the_frame_2coll: plot the signal
 """
 
-import ScintSuite as ss
 import ScintSuite._Mapping as ssmapplting
 from ScintSuite.SimulationCodes.FILDSIM.execution import get_energy
 from ScintSuite.SimulationCodes.FILDSIM.execution import get_gyroradius
 import ScintSuite.SimulationCodes.FILDSIM.forwardModelling as ssfM
 import ScintSuite.SimulationCodes.Common.geometry as geometry
+from ScintSuite._Plotting._ColorMaps import Gamma_II
 
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
@@ -248,7 +248,7 @@ def obtain_WF(smap, scintillator, efficiency_flag = False, B=4, A=2, Z=2,
 
 
 def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, 
-                        plot=False,):
+                        plot=False, cmap=Gamma_II()):
     """
     Synthetic signal for pinhole and scintillator in pitch-gyroradius space
 
@@ -316,7 +316,6 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
 
     # Default plot to control results
     if plot == True:
-        cmap = ss.plt.Gamma_II()
         fig, ax = plt.subplots(2,2, figsize=(8, 6),
                                     facecolor='w', edgecolor='k') 
         # Plot of the synthetic signals, pinhole and scintillator
@@ -357,7 +356,7 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
 
 
 def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, 
-                         plot=False,):
+                         plot=False, cmap = Gamma_II()):
     """
     Transfors the pitch-gyroradius signal to pitch-energy signal
 
@@ -417,7 +416,6 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2,
     out['SC'] = ssSC_pe/integral_s_e*integral_s
 
     if plot == True:
-        cmap=ss.plt.Gamma_II()   
         fig, ax = plt.subplots(2,2, figsize=(8, 6),
                                     facecolor='w', edgecolor='k')
         # Plot of the synthetic signals, pinhole and scintillator
@@ -909,7 +907,7 @@ def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
 
 def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
                    cam_params: dict={}, maxval = None,
-                   figtitle = None):
+                   figtitle = None, cmap = Gamma_II()):
     """
     Plot one frame, the scintillator and the strikemap
     
@@ -942,7 +940,6 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
         logger.info('- Maximum set to %4.2f max signal', maxval)
 
     # Initialize the plot
-    cmap=ss.plt.Gamma_II()
     fig, ax = plt.subplots(figsize=(7,4))
     ax.set_aspect(1)      
     
@@ -990,7 +987,8 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
     return fig, ax
 
 
-def plot_noise_contributions(frame, cam_params: dict={}, maxval = False):
+def plot_noise_contributions(frame, cam_params: dict={}, maxval = False,
+                             cmap=Gamma_II()):
     """
     Plot all the noise contributions
     
@@ -1030,7 +1028,7 @@ def plot_noise_contributions(frame, cam_params: dict={}, maxval = False):
             max_count = 2 ** cam_params['range'] - 1       
             fig, ax = plt.subplots(figsize=(7,4))
             ax.set_aspect(1)   
-            frame_to_plot.plot.imshow(ax=ax, cmap=ss.plt.Gamma_II(),
+            frame_to_plot.plot.imshow(ax=ax, cmap=cmap,
                     vmin=0, vmax=max_count,
                     cbar_kwargs={"label": 'Pixel counts','spacing': 'proportional'})
                     
@@ -1642,7 +1640,7 @@ def synthsig_xy_2coll(distros, scint,
 
 def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
                    cam_params: dict={}, maxval = None,
-                   figtitle = None):
+                   figtitle = None, cmap=Gamma_II()):
     """
     Plot one frame, the scintillator and the strikemap
     
@@ -1675,7 +1673,6 @@ def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = 
         logger.info('- Maximum set to %4.2f max signal', maxval)
 
     # Initialize the plot
-    cmap=ss.plt.Gamma_II()
     fig, ax = plt.subplots(figsize=(7,4))
     ax.set_aspect(1)      
     
