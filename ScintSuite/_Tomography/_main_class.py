@@ -210,6 +210,189 @@ class Tomography():
         self.inversion['nnlsq']['r2'] = xr.DataArray(r2)
         self.inversion['nnlsq']['residual'].attrs['long_name'] = '$r^2$'
 
+    def kaczmarz_solve(self, x0, iterations, window = None, 
+                       damp = None, tol = None, 
+                       relaxParam = 1, **kargs) -> None:
+        """
+        Perform kaczmarz algorithm
+
+        Marina Jimenez Comez: mjimenez37@us.es
+
+        :param iterations: number of iterations that the user wants the 
+        algorithmn to perform
+        :param  **kargs: extra arguments 
+        """
+        # --- Ensure we have an array or iterable:
+        if isinstance(iterations, (list, np.ndarray)):
+            numIter = iterations
+        else:
+            numIter = np.array([iterations])
+        n_execution = len(numIter)
+        # --- Perform the algorithm
+        logger.info('Performing kaczmarz algorithm')
+        x_hat, MSE, res, r2, time = \
+                solvers.kaczmarz_solve(self.W2D, self.s1D, x0, maxiter = numIter,
+                                       damp = damp, tol = tol, 
+                                       relaxParam = relaxParam,
+                                        x_coord = self.W['x'], 
+                                        y_coord = self.W['y'],
+                                        window = window, 
+                                        **kargs)
+        # --- reshape the coefficients
+        logger.info('Reshaping prediction')
+        x_hat_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_execution))
+        for i in range(n_execution):
+            x_hat_shaped[..., i] = \
+                matrix.restore_array2D(x_hat[:, i], self.W.shape[2],
+                                       self.W.shape[3])
+        # --- Save it in the dataset
+        self.inversion['kaczmarz'] = xr.Dataset()
+        self.inversion['kaczmarz']['F'] = xr.DataArray(
+                x_hat_shaped, dims=('x', 'y','alpha'),
+                coords={'x': self.W['x'], 'y': self.W['y'], 'alpha': numIter}
+        )
+        self.inversion['kaczmarz']['F'].attrs['long_name'] = 'FI distribution'
+        self.inversion['kaczmarz']['alpha'].attrs['long_name'] = 'alpha'
+
+        self.inversion['kaczmarz']['MSE'] = xr.DataArray(MSE, dims='alpha')
+        self.inversion['kaczmarz']['MSE'].attrs['long_name'] = 'MSE'
+
+        self.inversion['kaczmarz']['residual'] = xr.DataArray(res,dims='alpha')
+        self.inversion['kaczmarz']['residual'].attrs['long_name'] = 'Residual'
+
+        self.inversion['kaczmarz']['r2'] = xr.DataArray(r2, dims='alpha')
+        self.inversion['kaczmarz']['residual'].attrs['long_name'] = '$r^2$'
+
+        self.inversion['kaczmarz']['time'] = xr.DataArray(time, dims='alpha')
+        self.inversion['kaczmarz']['time'].attrs['long_name'] = '$t (s)$'
+
+    def coordinate_descent_solve(self, x0, iterations = None, window = None,
+                                 pitch_map = None, gyro_map = None,
+                                 resolution = False, peak_amp = 0.15,
+                                  damp = None, tol = None, 
+                                  relaxParam = 1, control_iters = 100,
+                                    **kargs) -> None:
+        """
+        Perform coordinate descent algorithm
+
+        Marina Jimenez Comez: mjimenez37@us.es
+
+        :param iterations: number of iterations that the user wants the 
+        algorithmn to perform
+        :param  **kargs: extra arguments 
+        """
+
+        # --- Ensure we have an array or iterable:
+        n_execution = 1
+        if iterations is not None:
+            if not isinstance(iterations, (list, np.ndarray)):
+                iterations = np.array([iterations])
+            n_execution = len(iterations)
+
+        # --- Perform the algorithm
+        logger.info('Performing coordinate descent algorithm')
+        x_hat, MSE, res, r2, time, alphas = \
+                solvers.coordinate_descent_solve(self.W2D, self.s1D, x0,
+                                                  maxiter = iterations,
+                                                  pitch_map = pitch_map,
+                                                  gyro_map = gyro_map,
+                                                  resolution = resolution,
+                                                  peak_amp = peak_amp,
+                                                  damp = damp, tol = tol, 
+                                                  relaxParam = relaxParam, 
+                                                  control_iters = control_iters,
+                                                  x_coord = self.W['x'], 
+                                                  y_coord = self.W['y'],
+                                                  window = window,
+                                                  **kargs)
+        # --- reshape the coefficients
+        logger.info('Reshaping prediction')
+        x_hat_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_execution))
+        for i in range(n_execution):
+            x_hat_shaped[..., i] = \
+                matrix.restore_array2D(x_hat[:, i], self.W.shape[2],
+                                       self.W.shape[3])
+        # --- Save it in the dataset
+        self.inversion['descent'] = xr.Dataset()
+        self.inversion['descent']['F'] = xr.DataArray(
+                x_hat_shaped, dims=('x', 'y','alpha'),
+                coords={'x': self.W['x'], 'y': self.W['y'], 'alpha': alphas}
+        )
+        self.inversion['descent']['F'].attrs['long_name'] = 'FI distribution'
+        self.inversion['descent']['alpha'].attrs['long_name'] = 'alpha'
+
+        self.inversion['descent']['MSE'] = xr.DataArray(MSE, dims='alpha')
+        self.inversion['descent']['MSE'].attrs['long_name'] = 'MSE'
+
+        self.inversion['descent']['residual'] = xr.DataArray(res,dims='alpha')
+        self.inversion['descent']['residual'].attrs['long_name'] = 'Residual'
+
+        self.inversion['descent']['r2'] = xr.DataArray(r2, dims='alpha')
+        self.inversion['descent']['residual'].attrs['long_name'] = '$r^2$'
+
+        self.inversion['descent']['time'] = xr.DataArray(time, dims='alpha')
+        self.inversion['descent']['time'].attrs['long_name'] = '$t (s)$'
+
+
+    def cimmino_solve(self, x0, iterations, window = None,
+                       damp = None, tol = None, 
+                       relaxParam = 1, **kargs) -> None:
+        """
+        Perform cimmino algorithm
+
+        Marina Jimenez Comez: mjimenez37@us.es
+
+        :param iterations: number of iterations that the user wants the 
+        algorithmn to perform
+        :param  **kargs: extra arguments 
+        """
+
+        # --- Ensure we have an array or iterable:
+        if isinstance(iterations, (list, np.ndarray)):
+            numIter = iterations
+        else:
+            numIter = np.array([iterations])
+        n_execution = len(numIter)
+        # --- Perform the algorithm
+        logger.info('Performing cimmino algorithm')
+        x_hat, MSE, res, r2, time = \
+                solvers.cimmino_solve(self.W2D, self.s1D, x0,
+                                                  maxiter = numIter,
+                                                  damp = damp, tol = tol, 
+                                                  relaxParam = relaxParam, 
+                                                  x_coord = self.W['x'], 
+                                                  y_coord = self.W['y'],
+                                                  window = window,
+                                                  **kargs)
+        # --- reshape the coefficients
+        logger.info('Reshaping prediction')
+        x_hat_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_execution))
+        for i in range(n_execution):
+            x_hat_shaped[..., i] = \
+                matrix.restore_array2D(x_hat[:, i], self.W.shape[2],
+                                       self.W.shape[3])
+        # --- Save it in the dataset
+        self.inversion['cimmino'] = xr.Dataset()
+        self.inversion['cimmino']['F'] = xr.DataArray(
+                x_hat_shaped, dims=('x', 'y','alpha'),
+                coords={'x': self.W['x'], 'y': self.W['y'], 'alpha': numIter}
+        )
+        self.inversion['cimmino']['F'].attrs['long_name'] = 'FI distribution'
+        self.inversion['cimmino']['alpha'].attrs['long_name'] = 'alpha'
+
+        self.inversion['cimmino']['MSE'] = xr.DataArray(MSE, dims='alpha')
+        self.inversion['cimmino']['MSE'].attrs['long_name'] = 'MSE'
+
+        self.inversion['cimmino']['residual'] = xr.DataArray(res,dims='alpha')
+        self.inversion['cimmino']['residual'].attrs['long_name'] = 'Residual'
+
+        self.inversion['cimmino']['r2'] = xr.DataArray(r2, dims='alpha')
+        self.inversion['cimmino']['residual'].attrs['long_name'] = '$r^2$'
+
+        self.inversion['cimmino']['time'] = xr.DataArray(time, dims='alpha')
+        self.inversion['cimmino']['time'].attrs['long_name'] = '$t (s)$'
+
+
     def tikhonov0(self, alpha, weights=None, **kargs) -> None:
         """
         Perform a 0th order Tikonov regularized regression
@@ -791,9 +974,21 @@ class Tomography():
         fig, ax = plt.subplots(2,2)
         if true_solution is not None:
             ax[0,0].plot(EprofTrue.y, EprofTrue, '--k', label='True',)
+            ax[0,0].set_title('Gyroscalar profile')
+            ax[0,0].set_xlabel('Gyroscalar')
+            ax[0,0].set_ylabel('Counts')
             ax[1,0].plot(RprofTrue.x, RprofTrue, '--k', label='True',)
+            ax[1,0].set_title('Pitch profile')
+            ax[1,0].set_xlabel('Pitch')
+            ax[1,0].set_ylabel('Counts')
         ax[0, 1].plot(MSE, Total)
+        ax[0,1].set_title('L-curve plot')
+        ax[0, 1].set_xlabel('MSE')
+        ax[0, 1].set_ylabel('Norm of reconstructed signal')
         ax[1, 1].plot(self.inversion[inversion].alpha, curvature) 
+        ax[1, 1].set_title('Curvature plot')
+        ax[1, 1].set_xlabel('Hyperparameter')
+        ax[1, 1].set_ylabel('Curvature')
         ax[0, 1].set_xscale('log')
         ax[0, 1].set_yscale('log')       
         ax[1, 1].set_xscale('log')
@@ -970,6 +1165,116 @@ class Tomography():
 
 
         return ax, [lineE, lineR], sliders
+    
+    def plot_MSE_error(self, inverters = ['descent', 'kaczmarz', 
+                                                'cimmino'], ax=None,
+                    plot_params: dict = {}) -> plt.Axes:
+            """
+            Plot the MSE
+    
+            Marina Jimenez Comez: mjimenez37@us.es
+
+            :param inversion: name of the inversions to plot.
+            :param ax: axes to plot the data.
+
+            :return ax: axes where the data has been plotted
+            """
+            # ---- Initialise the settings
+            if ax is None:
+                fig, ax = plt.subplots()
+            if 'label_size' in plot_params.keys():
+                label_size = plot_params['label_size']
+            else:
+                label_size = 16
+
+            true_norm = (self.s**2).sum(dim=('xs','ys')) # It's squared
+            for inv in inverters:
+                MSE = self.inversion[inv].MSE
+                error = MSE/ true_norm
+                ax.plot(self.inversion[inv].alpha, error, '-o', label=inv)
+
+            ax.set_title('Normalized MSE vs iterations', fontsize=label_size)
+            ax.set_xlabel('k', fontsize=label_size)
+            ax.set_ylabel('Error', fontsize=label_size)
+            ax.legend(inverters)
+
+            return ax
+    
+    def plot_synthetic_error(self, x_syntheticXR, 
+                             inverters = ['descent', 'kaczmarz', 'cimmino'], 
+                             ax=None,
+                    plot_params: dict = {}) -> plt.Axes:
+            """
+            Plot the error with respect to the synthetic data
+    
+            Marina Jimenez Comez: mjimenez37@us.es
+
+            :param x_syntheticXR: synthetic data at the pinhole plane
+            :param inversion: names of the inversions to plot.
+            :param ax: axes to plot the data.
+
+            :return ax: axes where the data has been plotted
+            """
+            # ---- Initialise the settings
+            if ax is None:
+                fig, ax = plt.subplots()
+            if 'label_size' in plot_params.keys():
+                label_size = plot_params['label_size']
+            else:
+                label_size = 16
+            
+            norm = 1
+            if self.norms['normalised'][0] ==1:
+                norm = self.norms['s']/self.norms['W']
+
+            for inv in inverters:
+                x_hat = self.inversion[inv].F.copy()*norm
+                MSE = np.sqrt(((x_hat-x_syntheticXR)**2).sum(dim=('x','y')))
+                true_norm = np.sqrt((x_syntheticXR**2).sum(dim=('x','y')))
+                error = MSE/ true_norm
+                ax.plot(self.inversion[inv].alpha, error, '-o', label=inv)
+
+            ax.set_title('Error vs iterations', fontsize=label_size)
+            ax.set_xscale('log')
+            ax.set_xlabel('k', fontsize=label_size)
+            ax.set_ylabel('Error', fontsize=label_size)
+            ax.legend(inverters)
+
+            return ax
+    
+    def plot_computational_time(self, inverters = ['descent', 'kaczmarz',
+                                                'cimmino'], ax=None,
+                    plot_params: dict = {}) -> plt.Axes:
+            """
+            Plot the computational time
+    
+            Marina Jimenez Comez: mjimenez37@us.es
+
+            :param inversion: name of the inversion to plot.
+            :param ax: axes to plot the data.
+
+            :return ax: axes where the data has been plotted
+            """
+            # ---- Initialise the settings
+            if ax is None:
+                fig, ax = plt.subplots()
+            if 'label_size' in plot_params.keys():
+                label_size = plot_params['label_size']
+            else:
+                label_size = 16
+
+            for inv in inverters:
+                time = self.inversion[inv].time
+                ax.plot(self.inversion[inv].alpha, time, '-o', label=inv)
+
+            ax.set_title('Computational time vs iterations', fontsize=label_size)
+            ax.set_xlabel('k', fontsize=label_size)
+            ax.set_ylabel('Time [s]', fontsize=label_size,)
+            ax.legend(inverters)
+
+            return ax
+
+
     # ------------------------------------------------------------------------
     # %% Export block
     # ------------------------------------------------------------------------

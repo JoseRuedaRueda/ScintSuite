@@ -1,0 +1,171 @@
+"""
+Method to create a synthetic signal for testing purposes
+
+Marina Jimenez Comez - mjimenez37@us.es
+"""
+
+import numpy as np
+import xarray as xr
+import ScintSuite._Tomography._martix_collapse as matrix
+from scipy.stats import multivariate_normal
+
+def create_synthetic_signal(WF, mu_gyro, mu_pitch, power, sigma_gyro,  
+                            sigma_pitch, noise_level, background_level,
+                              seed = 0):
+    """
+    Generate a synthetic signal in the pinhole for testing purposes
+    and a synthetic frame assosiated.
+
+    Parameters
+    ----------
+    WF : xarray.DataArray
+        Weight function.
+    mu_gyro : list
+        Mean value of the gyro angle.
+    power : list
+        Power of the signal.
+    sigma_gyro : float
+        Standard deviation of the gyro angle.
+    mu_pitch : list
+        Mean value of the pitch angle.
+    sigma_pitch : float
+        Standard deviation of the pitch angle.
+    noise_level : float
+        Noise level.
+    background_level : float
+        Background level.
+    seed : int, optional
+        Seed for the random number generator. The default is 0.
+
+    Returns
+    -------
+    frame_synthetic : xarray.DataArray
+        Synthetic frame.
+
+    :Example:
+    --------
+    WF = xr.load_dataarray(WFfile)
+    mu_gyro = [3.1, 4.3, 5.4] 
+    power = [0.1, 0.2, 0.7] 
+    sigma_gyro = [0.01, 0.01, 0.01]
+    mu_pitch = [55, 55, 55]
+    sigma_pitch = [7, 7, 7]
+    noise_level = 0.1
+    background_level = 0.1
+    x, y = synthetic_signal.create_synthetic_signal(WF, mu_gyro, mu_pitch,
+                                                    power, sigma_gyro, 
+                                                    sigma_pitch, noise_level,
+                                                    background_level,
+                                                    seed=seed)
+
+
+    """
+    # Generate grid
+    gyro_gridP = WF.y.values
+    pitch_gridP = WF.x.values
+    gyro_gridS = WF.ys.values
+    pitch_gridS = WF.xs.values
+    X, Y = np.meshgrid(WF.y, WF.x) # gyroradius for x and pitch for y
+    grid = np.dstack((X, Y))
+
+    # Generate synthetic signal
+    x_synthetic = np.zeros_like(X)
+
+    for i in range(len(mu_gyro)):
+        distrib = multivariate_normal([mu_gyro[i], mu_pitch[i]],
+                                            [[sigma_gyro[i]**2, 0],
+                                            [0, sigma_pitch[i]**2]], seed=seed)
+        pdf = distrib.pdf(grid)
+        x_synthetic += pdf/pdf.max()*power[i]
+
+    x_synthetic[x_synthetic < 0.001*x_synthetic.max()]=0
+
+
+    # Final synthetic signal
+    x_syntheticXR = xr.DataArray(data=x_synthetic,
+                                    dims=['x', 'y'],
+                                    coords=dict(
+                                        x = (['x'], pitch_gridP),
+                                        y = (['y'], gyro_gridP))
+                                    )
+    
+    y_signal = np.tensordot(WF, x_syntheticXR)
+    row, col = y_signal.shape
+    np.random.seed(seed)
+    gauss = np.random.randn(row, col)
+    noise1 = noise_level*y_signal * gauss
+    noise2 = gauss*background_level*y_signal.max()
+    combined_noise = np.maximum(noise1, noise2)
+    y_synthetic = y_signal + combined_noise
+
+
+    frame_synthetic = xr.DataArray(data=y_synthetic,
+                                      dims=['xs', 'ys'],
+                                      coords=dict(
+                                        xs = (['xs'], pitch_gridS),
+                                        ys = (['ys'], gyro_gridS)))
+    
+    return x_syntheticXR, frame_synthetic
+
+def create_synthetic_delta(WF, mu_gyro, mu_pitch, noise_level, background_level,
+                           seed=0):
+    """
+
+    Generate a synthetic signal in the pinhole for testing purposes with delta
+    functions and a synthetic frame assosiated.
+
+    Parameters
+    ----------
+    WF : xarray.DataArray
+        Weight function.
+    mu_gyro : list
+        Mean value of the gyro angle.
+    mu_pitch : list
+        Mean value of the pitch angle.
+    noise_level : float
+        Noise level.
+    background_level : float
+        Background level.
+    seed : int, optional
+        Seed for the random number generator. The default is 0.
+        
+    Returns
+    -------
+    frame_synthetic : xarray.DataArray
+        Synthetic frame.
+    """
+    # Generate grid
+    gyro_grid = WF.y.values
+    pitch_grid = WF.x.values
+    gyro_gridS = WF.ys.values
+    pitch_gridS = WF.xs.values
+    X, _ = np.meshgrid(WF.y, WF.x) # gyroradius for x and pitch for y
+
+    # Generate synthetic signal
+    x_synthetic = np.zeros_like(X)
+
+    # Final synthetic signal
+    x_syntheticXR = xr.DataArray(data=x_synthetic,
+                                    dims=['x', 'y'],
+                                    coords=dict(
+                                        x = (['x'], pitch_grid),
+                                        y = (['y'], gyro_grid))
+                                    )
+    x_syntheticXR.loc[dict(x=mu_pitch, y=mu_gyro)] = 1
+    
+    y_signal = np.tensordot(WF, x_syntheticXR)
+    row, col = y_signal.shape
+    np.random.seed(seed)
+    gauss = np.random.randn(row, col)
+    noise1 = noise_level*y_signal * gauss
+    noise2 = gauss*background_level*y_signal.max()
+    combined_noise = np.maximum(noise1, noise2)
+    y_synthetic = y_signal + combined_noise
+
+    frame_synthetic = xr.DataArray(data=y_synthetic,
+                                        dims=['xs', 'ys'],
+                                        coords=dict(
+                                            xs = (['xs'], pitch_gridS),
+                                            ys = (['ys'], gyro_gridS)))
+    
+    return x_syntheticXR, frame_synthetic
