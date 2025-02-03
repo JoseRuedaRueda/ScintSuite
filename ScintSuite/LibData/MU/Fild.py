@@ -260,6 +260,7 @@ class FILD_logbook:
         else:  # Take the default approx value
             logger.warning('R not in the logbook nor the file, returning default')
             position['R'] = default['R']
+        logger.debug('RFILD is: %f ' % (position['R']))
         if 'Z [m]' in dummy.keys() and flag:  # Look for Z
             position['z'] = dummy['Z [m]'].values[i]
             logger.info('Vertical position (z) read from logbook')
@@ -307,10 +308,15 @@ class FILD_logbook:
                 logger.warning('Shot not found in logbook')
         dummy = self.positionDatabase['FILD'+str(FILDid)]
         if beta_angle is not None: # if beta_angle has been read from the video file
-            orientation['beta'] = beta_angle
-            logger.info('Beta angle read from the file')
+            orientation['beta'] = - beta_angle
+            logger.info('Beta angle read from the file, multiplied by -1')
+            logger.info(
+                'Please make sure the beta angle in the camera files is still contrary to convention')
+            logger.info(
+                'Convention is: negative when counterclockwise, looked from outside the vessel')
         elif 'Beta [deg]' in dummy.keys():  # Look for beta angle in the logbook
             orientation['beta'] = - dummy['Beta [deg]'].values[i]
+            logger.info('Beta angle read from the logbook, multiplied by -1')
             logger.info(
                 'Please make sure the beta angle in the logbook is still contrary to convention')
             logger.info(
@@ -318,6 +324,7 @@ class FILD_logbook:
         else:  # Take the default value
             logger.warning('Beta angle not in the logbook nor the file, returning default')
             orientation['beta'] = default['beta']
+        logger.debug('Beta angle is (should be negative): %f ' % (orientation['beta']))
         if 'Alpha [deg]' in dummy.keys() and flag:  # Look for Z
             orientation['alpha'] = dummy['Alpha [deg]'].values[i]
             logger.info('alpha angle read from logbook')

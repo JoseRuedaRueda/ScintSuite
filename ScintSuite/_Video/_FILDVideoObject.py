@@ -9,11 +9,10 @@ Jose Rueda Rueda: jrrueda@us.es
 Lina Velarde Gallardo: lvelarde@us.es
 """
 import os
+import f90nml
 import logging
 import numpy as np
 import xarray as xr
-import f90nml
-import logging
 import tkinter as tk                       # To open UI windows
 import ScintSuite._Paths as p
 import ScintSuite.errors as sserrors
