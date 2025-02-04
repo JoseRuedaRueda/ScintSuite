@@ -33,6 +33,7 @@ from ScintSuite.SimulationCodes.FILDSIM.execution import get_gyroradius
 import ScintSuite.SimulationCodes.FILDSIM.forwardModelling as ssfM
 import ScintSuite.SimulationCodes.Common.geometry as geometry
 from ScintSuite._Plotting._ColorMaps import Gamma_II
+import ScintSuite._Plotting as ssplt
 
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
@@ -324,12 +325,12 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
         ssPH.transpose().plot.imshow(ax=ax[0,0],cmap=cmap,
                                      vmax=0.5*ssPH.max().item(),
                                      cbar_kwargs={"label": 'ions/(s cm deg)'})
-        ax[0,0] = ss.plt.axis_beauty(ax[0,0], ax_param)
+        ax[0,0] = ssplt.axis_beauty(ax[0,0], ax_param)
         ax[0,0].set_title("Pinhole")    
         ssSC.transpose().plot.imshow(ax=ax[0,1], cmap=cmap,
                                      vmax=0.5*ssSC.max().item(),
                                      cbar_kwargs={"label": 'ions/(s cm deg)'})
-        ax[0,1] = ss.plt.axis_beauty(ax[0,1], ax_param)
+        ax[0,1] = ssplt.axis_beauty(ax[0,1], ax_param)
         ax[0,1].set_title("Scintillator")
 
         # Plot of the distributions of pitch and gyroradius
@@ -339,14 +340,14 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
         (ssSC.sum(dim='ys')/ssSC.sum(dim='ys').integrate('xs')).plot.\
             line(ax=ax[1,0], color='red', label='Scintillator')
         ax_options_profiles['xlabel'] = 'Pitch [$\\degree$]'  
-        ax[1,0] = ss.plt.axis_beauty(ax[1,0], ax_options_profiles)
+        ax[1,0] = ssplt.axis_beauty(ax[1,0], ax_options_profiles)
         ax[1,0].legend()        
         (ssPH.sum(dim='x')/ssPH.sum(dim='x').integrate('y')).plot.\
             line(ax=ax[1,1], color='black', label='Pinhole')
         (ssSC.sum(dim='xs')/ssSC.sum(dim='xs').integrate('ys')).plot.\
             line(ax=ax[1,1], color='red', label='Scintillator')      
         ax_options_profiles['xlabel'] = 'Gyroradius [cm]'
-        ax[1,1] = ss.plt.axis_beauty(ax[1,1], ax_options_profiles)
+        ax[1,1] = ssplt.axis_beauty(ax[1,1], ax_options_profiles)
         ax[1,1].legend()
 
         fig.tight_layout()
@@ -424,12 +425,12 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2,
         ssPH_pe.transpose().plot.imshow(ax=ax[0,0], cmap=cmap,
                                      vmax=0.5*ssPH_pe.max().item(),
                                      cbar_kwargs={"label": 'ions/(s cm deg)'})
-        ax[0,0] = ss.plt.axis_beauty(ax[0,0], ax_param)
+        ax[0,0] = ssplt.axis_beauty(ax[0,0], ax_param)
         ax[0,0].set_title("Pinhole")    
         ssSC_pe.transpose().plot.imshow(ax=ax[0,1], cmap=cmap,
                                      vmax=0.5*ssPH_pe.max().item(),
                                      cbar_kwargs={"label": 'ions/(s cm deg)'})
-        ax[0,1] = ss.plt.axis_beauty(ax[0,1], ax_param)
+        ax[0,1] = ssplt.axis_beauty(ax[0,1], ax_param)
         ax[0,1].set_title("Scintillator")
 
         # Plot of the distributions of pitch and gyroradius
@@ -439,14 +440,14 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2,
         (ssSC_pe.sum(dim='ys')/ssSC_pe.sum(dim='ys').integrate('xs'))\
             .plot.line(ax=ax[1,0], color='red', label='Scintillator')
         ax_options_profiles['xlabel'] = 'Pitch [$\\degree$]'  
-        ax[1,0] = ss.plt.axis_beauty(ax[1,0], ax_options_profiles)
+        ax[1,0] = ssplt.axis_beauty(ax[1,0], ax_options_profiles)
         ax[1,0].legend()        
         (ssPH_pe.sum(dim='x')/ssPH_pe.sum(dim='x').integrate('y'))\
             .plot.line(ax=ax[1,1], color='black', label='Pinhole')
         (ssSC_pe.sum(dim='xs')/ssSC_pe.sum(dim='xs').integrate('ys'))\
             .plot.line(ax=ax[1,1], color='red', label='Scintillator')      
         ax_options_profiles['xlabel'] = 'Energy [eV]'
-        ax[1,1] = ss.plt.axis_beauty(ax[1,1], ax_options_profiles)
+        ax[1,1] = ssplt.axis_beauty(ax[1,1], ax_options_profiles)
         ax[1,1].legend()
 
         fig.tight_layout()
@@ -977,7 +978,7 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
     plt.yticks(fontsize=9)
     ax_param = {'fontsize': 10, \
                     'xlabel': 'x pix.', 'ylabel': 'y pix.'}
-    ax = ss.plt.axis_beauty(ax, ax_param)
+    ax = ssplt.axis_beauty(ax, ax_param)
 
     if figtitle != None:
         fig.suptitle(figtitle, fontsize=11)
@@ -1038,7 +1039,7 @@ def plot_noise_contributions(frame, cam_params: dict={}, maxval = False,
         plt.yticks(fontsize=9)
         ax_param = {'fontsize': 10, \
                         'xlabel': 'x pix.', 'ylabel': 'y pix.'}
-        ax = ss.plt.axis_beauty(ax, ax_param)
+        ax = ssplt.axis_beauty(ax, ax_param)
         fig.suptitle(i, fontsize=11)
         print(i)    
 
@@ -1705,7 +1706,7 @@ def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = 
     plt.yticks(fontsize=9)
     ax_param = {'fontsize': 10, \
                     'xlabel': 'x pix.', 'ylabel': 'y pix.'}
-    ax = ss.plt.axis_beauty(ax, ax_param)
+    ax = ssplt.axis_beauty(ax, ax_param)
 
     if figtitle != None:
         fig.suptitle(figtitle, fontsize=11)
