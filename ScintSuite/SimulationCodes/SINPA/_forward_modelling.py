@@ -1203,7 +1203,7 @@ def new_synthsig_xy(distro, smap, scint, WF,
     xdum = dscint._coord_pix['x']
     ydum = dscint._coord_pix['y'] 
     allPts = np.column_stack((xdum,ydum))
-    hullPts = geometry.scint_ConvexHull(allPts)
+    hullPts = geometry.scint_ConvexHull(allPts, coords='pix')
     scint_x = np.concatenate((allPts[hullPts.vertices,0],\
                               np.array([allPts[hullPts.vertices,0][0]])))
     scint_y = np.concatenate((allPts[hullPts.vertices,1],\
@@ -1620,7 +1620,7 @@ def synthsig_xy_2coll(distros, scint,
     # Define the scintillator perimeter and find the area in the pixel space
     logger.info('- Building the scintillator perimeter and xarray...')
     
-    scint_perim = geometry.scint_ConvexHull(dscint)
+    scint_perim = geometry.scint_ConvexHull(dscint, coords='pix')
 
     scint_path = Path(scint_perim, closed=True)
     dummy = copy.deepcopy(signal_frame)*0

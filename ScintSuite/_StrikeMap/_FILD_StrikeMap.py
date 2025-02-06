@@ -431,7 +431,7 @@ class Fsmap(FILDINPA_Smap):
         return
     
 
-    def build_parameters_xarray(self, fit_to_WF = False):
+    def build_parameters_xarray(self):
         """
         Put all the fitting parameters into an xarray and WF
 
@@ -474,27 +474,4 @@ class Fsmap(FILDINPA_Smap):
                 self._resolutions['fit_xarrays'][name+'_'+j] = (['x','y'],dummy)
         self._resolutions['fit_xarrays']['coll_factor'] = (['x','y'],
                                           self('collimator_factor_matrix'))
-
-        # --- Make all the matrices to have the same coordinates as the WF
-        if fit_to_WF:
-            try:  
-                new_x = self.instrument_function['x'].values
-                new_y = self.instrument_function['y'].values
-                # Interpolate
-                self._resolutions['fit_xarrays'] =\
-                    self._resolutions['fit_xarrays']\
-                    .interp(x = new_x, y = new_y, method = 'slinear')
-                # Eliminate less than 0 values, excep for gamma
-                for key in list(self._resolutions['fit_xarrays'].data_vars):
-                    if 'gamma' not in key:
-                        self._resolutions['fit_xarrays'][key] =\
-                            self._resolutions['fit_xarrays'][key]\
-                            .where(self._resolutions['fit_xarrays'][key]>=0.0, 0)
-                logger.info('Interpolating matrices')
-            except:
-                logger.warning('Define the WF first')
-
-        try:
-            self._resolutions['fit_xarrays']['WF'] = self.instrument_function
-        except:
-            logger.warning('WF not present in the matrices. Define it before.')
+        
