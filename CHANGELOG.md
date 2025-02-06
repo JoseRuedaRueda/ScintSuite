@@ -2,7 +2,6 @@
 - Added a check feature in the execution. Erased the problems with duplicity of mesh values
 - Number of gyroradius and pitch mesh points is now automatic
 - Added build_parameters_xarray: unites all the relevant fit parameters in a single dataset
-- Interpolation and fill of NaN values is available
 - Now the collimator can be plotted in the forward modelling (experimental)
 
 # 1.3.12 Update of MASTU nc files - position and orientation read from file + new timebase
