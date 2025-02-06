@@ -1,7 +1,13 @@
-# 1.3.13 MSE-constrained eq in MAST-U
+# 1.3.13 
+## Making the simulations easier
+- Added a check feature in the execution. Erased the problems with duplicity of mesh values
+- Number of gyroradius and pitch mesh points is now automatic
+- Added build_parameters_xarray: unites all the relevant fit parameters in a single dataset
+- Now the collimator can be plotted in the forward modelling (experimental)
+
+## MSE-constrained eq in MAST-U
 - By default it will now try to read the MSE-constrained equilibrium. If not possible, will read the standard one.
 - Fixed bug in MU beta angle when reading from file
-
 
 # 1.3.12 Update of MASTU nc files - position and orientation read from file + new timebase
 - Updated default position and orientation for MU FILD
@@ -9,7 +15,6 @@
 - MU RFILD and orientation are now directly read from the ximea file, before looking at the logbook
 - MU FILD's adquisition frequency and trigger time (that were only used for the PCO camera) are now read from the DiagParams
 - Solved bug in _Mapping/_FILD.py, line 311: hardwritten magnetic field to calculate the energy
-
 
 # 1.3.11 Implementation of xarray in forward modelling
 - Capable of creating synthetic siganls with WF xarray
