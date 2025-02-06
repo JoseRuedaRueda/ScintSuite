@@ -436,9 +436,6 @@ class Fsmap(FILDINPA_Smap):
         Put all the fitting parameters into an xarray and WF
 
         Alex Reyner Viñolas: alereyvinn@alum.us.es
-
-        param  interpolate: interpolates the data for better resolution and 
-                uniformity between matrices
         """
         # --- Check the StrikeMap
         if self.strike_points is None:
