@@ -9,11 +9,10 @@ Jose Rueda Rueda: jrrueda@us.es
 Lina Velarde Gallardo: lvelarde@us.es
 """
 import os
+import f90nml
 import logging
 import numpy as np
 import xarray as xr
-import f90nml
-import logging
 import tkinter as tk                       # To open UI windows
 import ScintSuite._Paths as p
 import ScintSuite.errors as sserrors
@@ -136,9 +135,11 @@ class FILDVideo(FIV):
             FILDlogbook = ssdat.FILD_logbook(**logbookOptions)  # Logbook
             try:
                 AdqFreq = FILDlogbook.getAdqFreq(shot, diag_ID)
-                t_trig = FILDlogbook.gettTrig(shot, diag_ID)
             except AttributeError:
                 AdqFreq = None
+            try:
+                t_trig = FILDlogbook.gettTrig(shot, diag_ID)
+            except AttributeError:
                 t_trig = None
             # initialise the parent class
             FIV.__init__(self, file=file, shot=shot, empty=empty,
@@ -152,9 +153,16 @@ class FILDVideo(FIV):
                     self.position = FILDlogbook.getPosition(shot, diag_ID, 
                                                             insertion=self.header['insertion'])
                 except KeyError:
-                    self.position = FILDlogbook.getPosition(shot, diag_ID)
-                self.orientation = \
-                    FILDlogbook.getOrientation(shot, diag_ID)
+                    try: # if the radial position is in the video file
+                        self.position = FILDlogbook.getPosition(shot, diag_ID, 
+                                                            RFILD=self.header['R_FILD'])
+                    except KeyError:
+                        self.position = FILDlogbook.getPosition(shot, diag_ID)
+                try:
+                    self.orientation = \
+                        FILDlogbook.getOrientation(shot, diag_ID, beta_angle=self.header['beta_angle'])
+                except KeyError:
+                        self.orientation = FILDlogbook.getOrientation(shot, diag_ID)
                 self.geometryID = FILDlogbook.getGeomID(shot, diag_ID)
                 self.CameraCalibration = \
                     FILDlogbook.getCameraCalibration(shot, diag_ID)
