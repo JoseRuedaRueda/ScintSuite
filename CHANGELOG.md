@@ -1,3 +1,6 @@
+# 1.3.10 New calibrations
+- Added a calibration kind for the situation where the tild is in the object space and not the image space
+
 
 # 1.3.9 D3D implementation
 ## General

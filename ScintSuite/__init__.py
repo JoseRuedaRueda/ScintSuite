@@ -87,7 +87,7 @@ if len(logger.handlers) == 0:
     hnd = logging.StreamHandler()
     hnd.setFormatter(_CustomFormatter())
     logger.addHandler(hnd)
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.DEBUG)
 logger.propagate = False
 # Initialise the real logger for the suite
 Suite_logger = logging.getLogger('ScintSuite')
@@ -131,6 +131,7 @@ import ScintSuite._StrikeMap as smap
 import ScintSuite.SimulationCodes.FILDSIM as fildsim
 import ScintSuite.SimulationCodes.SINPA as sinpa
 import ScintSuite.SimulationCodes.Common as simcom
+import ScintSuite.SimulationCodes.TRANSP as transp
 try:
     import FIDASIM4py as fidasim
 except ModuleNotFoundError:

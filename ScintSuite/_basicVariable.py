@@ -57,7 +57,7 @@ class BasicVariable():
         return self.data.mean(**kwargs)
 
     def std(self, **kwargs):
-        return self.std.mean(**kwargs)
+        return self.data.std.mean(**kwargs)
     
     def sum(self, **kwargs):
         return self.data.sum(**kwargs)
@@ -204,8 +204,10 @@ class BasicSignalVariable():
             elif len(self[k].shape) == 2:  # Variable with time + something
                 if self[k].dims[1] == 't':
                     channeldim = 0
+                    nt = self[k].shape[1]
                 elif self[k].dims[0] == 't':
                     channeldim = 1
+                    nt = self[k].shape[0]
                 else:
                     logger.error('Time dimension not found')
                     raise errors.CalculationError('Time dimension not found')
@@ -214,11 +216,11 @@ class BasicSignalVariable():
                     if channeldim == 0:
                         self._data['detrend_' + k].values[i, :] -=\
                             signal.detrend(self[k].values[i, :], type='linear', 
-                                       bp=np.arange(0, self[k].size, npoints))
+                                       bp=np.arange(0, nt, npoints))
                     else:
                         self._data['detrend_' + k].values[:, i] -= \
                             signal.detrend(self[k].values[:,i], type='linear', 
-                                       bp=np.arange(0, self[k].size, npoints))
+                                       bp=np.arange(0, nt, npoints))
                         # xr.DataArray(
                         # filters[method](self[k].values[i, :], **kargs),
                         # dims='t')
@@ -474,7 +476,9 @@ class BasicSignalVariable():
                        alpha: Optional[float] = 0.05,
                        percent: Optional[float] = 0.05,
                        nchannel: Optional[int] = None,
-                       rawLine: Optional[bool] = False):
+                       rawLine: Optional[bool] = False,
+                       t1: Optional[float] = 0.0, 
+                       t2: Optional[float] = 10.0):
         """
         Plot a signal shaded and smooth
 
@@ -514,17 +518,22 @@ class BasicSignalVariable():
             ls = 'None'
             marker = 'o'
         if len(self[signal].shape) == 1:
-            self[signal][flags].plot(ax=ax, color=color, alpha=alpha, 
+            sig = self[signal][flags].sel(t=slice(t1, t2))
+            nt = sig.size
+            flags = np.random.rand(nt) < percent
+            sig[flags].plot(ax=ax, color=color, alpha=alpha, 
                                      marker=marker, linestyle=ls, markersize=2)
         else:
-            self[signal].sel(channel=nchannel)[flags].plot(ax=ax, color=color, 
-                                                    marker=marker, markersize=2,
+            sig = self[signal].sel(channel=nchannel).sel(t=slice(t1,t2))
+            nt = sig.size
+            flags = np.random.rand(nt) < percent
+            sig[flags].plot(ax=ax, color=color, marker=marker, markersize=2,
                                                     alpha=alpha, linestyle=ls)
         # Plot the smoothed data
         if len(self[signal].shape) == 1:
-            self['filtered_' + signal].plot(ax=ax, color=color, linewidth=0.5)
+            self['filtered_' + signal].sel(t=slice(t1,t2)).plot(ax=ax, color=color, linewidth=0.5)
         else:
-            self['filtered_' + signal].sel(channel=nchannel).plot(ax=ax,
+            self['filtered_' + signal].sel(channel=nchannel).sel(t=slice(t1,t2)).plot(ax=ax,
                                                                   color=color,
                                                                   linewidth=0.5)
         return ax

@@ -88,7 +88,13 @@ class SAWc():
             # --- Generating output:
             gqq, gmm = np.meshgrid(qpsi, mpol)
             grr, gmm = np.meshgrid(rpsi, mpol)
-
+            # Print some info
+            logger.debug('gqq shape: %s', gqq.shape)
+            logger.debug('gmm shape: %s', gmm.shape)
+            logger.debug('grr shape: %s', grr.shape)
+            logger.debug('gmm shape: %s', gmm.shape)
+            logger.debug('Rmajor shape: %s', Rmajor.shape)
+            
             # omega_max = np.zeros([len(rpsi), len(mpol)-1, len(ntor)])
             # omega_min = np.zeros([len(rpsi), len(ntor)])
             if jt == 0:
@@ -210,7 +216,7 @@ class SAWc():
         if created:
             ax.set_ylabel('Freq. [%s]'%units)
             ax.set_xlabel(self.data.rho.long_name)
-            ax.set_ylim(0, 1.75*self.data.fMin.mean()*factors[units])
+            ax.set_ylim(0, 1.75*self.data.fMin.max()*factors[units])
         else:
             ax.set_xlim(oldXlim)
             ax.set_ylim(oldYlim)
@@ -238,15 +244,21 @@ class MHDmode():
 
     def __init__(self, shot: int = 41091, mi=2.013*cnt.m_u,
                  loadTi: bool = True, calcNi: bool = True,
-                 Zimp: float = 6.0):
+                 Zimp: float = 6.0, profiles: Optional[xr.Dataset] = None):
 
         
         # --- Densities
         self._ne = ssdat.get_ne(shot, xArrayOutput=True)
+        if profiles is not None:
+            if 'ne' in profiles:
+                self._ne = profiles['ne']
         # See if there is Zeff information
         if calcNi:
             try:
                 self._zeff = ssdat.get_Zeff(shot)
+                if profiles is not None:
+                    if 'zeff' in profiles:
+                        self._zeff = profiles['zeff']
                 self._zeff = self._zeff.interp(t=self._ne['t'], rho=self._ne['rho'])
                 self._ni = self._ne.copy()
                 self._ni['data'] = self._ne['data'] * (1.0 - (self._zeff['data'] - 1.0)/(Zimp - 1.0))
@@ -258,12 +270,17 @@ class MHDmode():
                     pass
             except errors.DatabaseError:
                 logger.warning('Using ni=ne, no Zeff found in database')
+                self._zeff = None
                 self._ni = self._ne.copy()
         else: 
             self._ni = self._ne.copy()
 
         # --- Temperatures:
         self._te = ssdat.get_Te(shot, xArrayOutput=True)
+        if profiles is not None:
+            if 'te' in profiles:
+                self._te = profiles['te']
+                
         if loadTi:
             try:
                 self._ti = ssdat.get_Ti(shot,
@@ -273,8 +290,14 @@ class MHDmode():
                 self._ti = self._te.copy()
         else:
             self._ti = self._te.copy()
+        if profiles is not None:
+            if 'ti' in profiles:
+                self._ti = profiles['ti']
         # --- q-profile:
         self._q = ssdat.get_q_profile(shot, rho=self._ne.rho.values, xArrayOutput=True,)
+        if profiles is not None:
+            if 'q' in profiles:
+                self._q = profiles['q']
         # --- Other data:
         self._basic = ssdat.get_shot_basics(shot)
         self._R0 = xr.Dataset()
@@ -296,8 +319,11 @@ class MHDmode():
         # ---- Plasma rotation
         try:
             self._rotation = ssdat.get_tor_rotation(shot, xArrayOutput=True)
+            if profiles is not None:
+                if 'rotation' in profiles:
+                    self._rotation = profiles['rotation']
         except errors.DatabaseError:
-            self.rotation = None
+            self._rotation = None
             logger.warning('Not found toroidal rotation, no doppler shift')
         # --- Now interpolate everything in the time/rho basis of ne
         # self._ni = self._ni.interp(t=self._ne['t'], rho=self._ne['rho'],
@@ -491,6 +517,30 @@ class MHDmode():
         
         plt.draw()
         plt.show()
+        return ax
+    
+    def plotPlasmaProfiles(self) -> plt.Axes:
+        """
+        Plot the plasma profiles used to calculate everythin
+        """
+        fig, ax = plt.subplots(10, sharex=True)
+        self._ne.data.plot(ax=ax[0], label='ne')
+        self._ni.data.plot(ax=ax[1], label='ni')
+        self._te.data.plot(ax=ax[2], label='Te')
+        self._ti.data.plot(ax=ax[3], label='Ti')
+        self._q.data.plot(ax=ax[4], label='q')
+        self._R0.data.plot(ax=ax[5], label='R0')
+        self._ahor.data.plot(ax=ax[6], label='ahor')
+        self._kappa.data.plot(ax=ax[7], label='kappa')
+        self._B0.data.plot(ax=ax[8], label='B0')
+        if self._rotation is not None:
+            self._rotation.data.plot(ax=ax[9], label='rotation')
+        # Remove all x labels
+        for a in ax:
+            a.set_xlabel('')
+            
+        ax[-1].set_xlabel('Time [s]')
+        plt.tight_layout()
         return ax
 
 

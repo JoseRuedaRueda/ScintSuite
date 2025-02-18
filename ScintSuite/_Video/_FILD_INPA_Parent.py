@@ -147,6 +147,20 @@ class FIV(BVO):
                                 self.position[key2],
                                 time=time,
                                 **extra_options)
+        # It can happen that the magnetic field is not calculated in all the points (e.g. near t=0). To be honest, we do not care about that points, as there is no even NBI or FI source at that time, so just change nans by the means
+        brflags = np.isnan(br)
+        br[brflags] = np.nanmean(br)
+        bzflags = np.isnan(bz)
+        bz[bzflags] = np.nanmean(bz)
+        btflags = np.isnan(bt)
+        bt[btflags] = np.nanmean(bt)
+        bpflags = np.isnan(bp)
+        bp[bpflags] = np.nanmean(bp)
+        bnan = brflags + bzflags + btflags + bpflags
+        # 
+        if np.sum(bnan) > 0:
+            logger.warning('The magnetic field was not calculated in some points. The mean value was used instead for those points')        
+        
         # Save the data in the array
         self.BField = xr.Dataset()
         self.BField['BR'] = xr.DataArray(np.array(br).squeeze(), dims=('t'),
@@ -159,6 +173,9 @@ class FIV(BVO):
         self.BField.attrs['units'] = 'T'
         self.BField.attrs['R'] = self.position[key1]
         self.BField.attrs['z'] = self.position[key2]
+        self.BField.attrs['shot'] = self.shot
+        self.BField['flags'] = xr.DataArray(bnan, dims=('t'))
+        self.BField['flags'].attrs['description'] = '1 if the magnetic field was not calculated, 0 otherwise'
         self.BField.attrs.update(extra_options)
 
     def _getNBIpower(self):
@@ -255,9 +272,14 @@ class FIV(BVO):
             trace, mask = super().getTimeTrace(t=t, mask=mask,
                                            ROIname=ROIname, vmax=vmax)
         else:
-            mask = \
-                self.ROIscintillator.getMask(self.exp_dat['frames'][:, :,
-                                             0].squeeze())
+            if self.ROIscintillator is not None:
+                mask = \
+                    self.ROIscintillator.getMask(self.exp_dat['frames'][:, :,
+                                                0].squeeze())
+            else:
+                frame1 = self.exp_dat.frames.isel(t=0).values
+                frame1[:] = 1
+                mask = frame1.astype(bool)
             trace = TimeTrace(self, mask, ROIname='ScintROI')
 
         return trace, mask
