@@ -336,13 +336,13 @@ class GeneralStrikeMap(XYtoPixel):
         marker_options = {
             'markersize': 1,
             'fillstyle': 'none',
-            'color': 'r',
+            'color': 'w',
             'marker': 'o',
             'linestyle': 'none'
         }
         marker_options.update(marker_params)
         line_options = {
-            'color': 'r',
+            'color': 'w',
             'marker': ''
         }
         line_options.update(line_params)
