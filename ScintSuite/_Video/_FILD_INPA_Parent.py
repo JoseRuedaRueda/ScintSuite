@@ -134,7 +134,7 @@ class FIV(BVO):
         else:
             time = self.exp_dat['t'].values
         # Calculate the magnetic field
-        print('Calculating magnetic field (this might take a while): ')
+        logger.info('Calculating magnetic field (this might take a while): ')
         if 'R_scintillator' in self.position.keys():  # INPA case
             key1 = 'R_scintillator'
             key2 = 'z_scintillator'
@@ -188,39 +188,43 @@ class FIV(BVO):
 
         :return full_name_smap: Name of the used strike map
         """
+        # # Get Bangles
+        # if self.Bangles is None:
+        #     self._getB()
+        #     self._getBangles()
         # Get the frame number
         if t is not None:
             frame_index = np.argmin(abs(self.exp_dat['t'].values - t))
-            theta_used = self.remap_dat['theta_used'].values[frame_index]
-            phi_used = self.remap_dat['phi_used'].values[frame_index]
+            theta_used = self.Bangles['theta_used'].values[frame_index]
+            phi_used = self.Bangles['phi_used'].values[frame_index]
         else:
             frame_index = self.exp_dat['nframes'].values == frame_number
-            theta_used = self.remap_dat['theta_used'].values[frame_index][0]
-            phi_used = self.remap_dat['phi_used'].values[frame_index][0]
+            theta_used = self.Bangles['theta_used'].values[frame_index][0]
+            phi_used = self.Bangles['phi_used'].values[frame_index][0]
 
         # Get the full name of the file
-        if self.diag == 'FILD' and self.remap_dat['frames'].attrs['CodeUsed'].lower() == 'fildsim':
+        if self.diag == 'FILD' and self.strikemap.attrs['CodeUsed'].lower() == 'fildsim':
             name__smap = ssFILDSIM.guess_strike_map_name(
                 phi_used, theta_used, geomID=self.geometryID,
-                decimals=self.remap_dat['frames'].attrs['decimals'])
+                decimals=self.Bangles['theta_used'].attrs['decimals'])
         elif self.diag == 'FILD':
             name__smap = ssSINPA.execution.guess_strike_map_name(
                 phi_used, theta_used, geomID=self.geometryID,
-                decimals=self.remap_dat['frames'].attrs['decimals']
+                decimals=self.Bangles['theta_used'].attrs['decimals']
                 )
         elif self.diag == 'INPA':
             name__smap = ssSINPA.execution.guess_strike_map_name(
                 phi_used, theta_used, geomID=self.geometryID,
-                decimals=self.remap_dat['frames'].attrs['decimals']
+                decimals=self.Bangles['theta_used'].attrs['decimals']
                 )
         else:
             raise Exception('Diagnostic not understood')
-        smap_folder = self.remap_dat['frames'].attrs['smap_folder']
+        smap_folder = self.strikemap.attrs['smap_folder']
         full_name_smap = os.path.join(smap_folder, name__smap)
 
         if verbose:
-            theta_calculated = self.remap_dat['theta'].values[frame_index]
-            phi_calculated = self.remap_dat['phi'].values[frame_index]
+            theta_calculated = self.Bangles['theta'].values[frame_index]
+            phi_calculated = self.Bangles['phi'].values[frame_index]
             print('Calculated theta: ', theta_calculated)
             print('Used theta: ', theta_used)
             print('Calculated phi: ', phi_calculated)
@@ -231,7 +235,7 @@ class FIV(BVO):
     # --------------------------------------------------------------------------
     # --- Time Traces
     # --------------------------------------------------------------------------
-    def getTimeTrace(self, t: float = None, mask=None, ROIname: str = None):
+    def getTimeTrace(self, t: float = None, mask=None, ROIname: str = None, vmax: int=None):
         """
         Calculate the timeTrace of the video. Extended method from parent class
 
@@ -249,7 +253,7 @@ class FIV(BVO):
         """
         if mask is not None or t is not None:
             trace, mask = super().getTimeTrace(t=t, mask=mask,
-                                           ROIname=ROIname)
+                                           ROIname=ROIname, vmax=vmax)
         else:
             mask = \
                 self.ROIscintillator.getMask(self.exp_dat['frames'][:, :,
@@ -272,7 +276,8 @@ class FIV(BVO):
                    RemoveAxisTicksLabels: bool = False,
                    flagAverage:bool = False,
                    normalise=None,
-                   smap_labels: bool = False):
+                   smap_labels: bool = False,
+                   rotate_frame: bool = False):
         """
         Plot a frame from the loaded frames
 
@@ -316,6 +321,7 @@ class FIV(BVO):
             if normalise == <number> it would be normalised to this value
             if normalise == None, nothing will be done
         :param  smap_labels: boolean flag to plot the labels of the strike map
+        :param rotate_frame: boolean flag to rotate the frame the rotation angle of the optical parameters
 
         :return ax: the axes where the frame has been drawn
         """
@@ -327,7 +333,8 @@ class FIV(BVO):
             IncludeColorbar=IncludeColorbar,
             RemoveAxisTicksLabels=RemoveAxisTicksLabels,
             flagAverage=flagAverage,
-            normalise=normalise
+            normalise=normalise, 
+            rotate_frame=rotate_frame
         )
         # Get the frame number
         if t is not None:
@@ -393,6 +400,7 @@ class FIV(BVO):
         :param  color_labels_in_plot: Color for the labels in the plot
         :param  translation: tuple with the desired specie and translation to
             plot. Example ('D', 1)
+        
 
         :return ax: the axes where the frame has been drawn
         """
@@ -479,14 +487,15 @@ class FIV(BVO):
         if IncludeColorbar:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
-            plt.colorbar(img, label='Counts [a.u.]', cax=cax,
+            cbar = plt.colorbar(img, label='Counts [a.u.]', cax=cax,
                          format=cbar_tick_format)
+            cbar.set_label(label='Counts [a.u.]')
         # Set the labels with t and shot
         ax.text(0.05, 0.9, '#' + str(self.shot),
                 horizontalalignment='left',
                 color=color_labels_in_plot, verticalalignment='bottom',
                 transform=ax.transAxes)
-        plt.text(0.95, 0.9, 't = ' + str(round(tf, 4)) + (' s'),
+        plt.text(0.95, 0.9, 't = ' + str(round(tf, 3)) + (' s'),
                  horizontalalignment='right',
                  color=color_labels_in_plot, verticalalignment='bottom',
                  transform=ax.transAxes)
@@ -796,6 +805,18 @@ class FIV(BVO):
     # --------------------------------------------------------------------------
     # --- Export Block
     # --------------------------------------------------------------------------
+    def export_strikemap(self, filename):
+        """
+        Export the strikemap attribute into a netCDF files
+
+        :param  filename: filename
+
+        Notice, in principle this function should not be called, the method
+            self.export_remap() will take care of calling this one
+        """
+        logger.info('Saving strikemap attr in file %s' % filename)
+        self.strikemap.to_netcdf(filename)
+
     def export_Bangles(self, filename):
         """
         Export the B angles into a netCDF files
@@ -823,11 +844,11 @@ class FIV(BVO):
     def export_remap(self, folder: str = None, clean: bool = False,
                      overwrite: bool = False):
         """
-        Export video file
+        Export remap
 
         Notice: This will create a netcdf with the exp_dat xarray, this is not
         intended as a replace of the data base, as camera settings and
-        metadata will not be exported. But allows to quickly export the video
+        metadata will not be exported. But allows to quickly export the remap
         to netCDF format to be easily shared among computers
 
         :param  folder: Path to the folder where to save the results. It is
@@ -842,6 +863,7 @@ class FIV(BVO):
         # Now get the name of the files:
         magField = os.path.join(folder, 'Bfield.nc')
         magFieldAngles = os.path.join(folder, 'BfieldAngles.nc')
+        strikemaps = os.path.join(folder, 'strikeMaps.nc')
         remap = os.path.join(folder, 'remap.nc')
         calibration = os.path.join(folder, 'CameraCalibration.nc')
         versionFile = os.path.join(folder, 'version.txt')
@@ -858,8 +880,15 @@ class FIV(BVO):
         os.makedirs(folder, exist_ok=True)
 
         # Create the individual netCDF files
-        self.export_Bangles(magFieldAngles)
-        self.export_Bfield(magField)
+        try:
+            self.export_Bangles(magFieldAngles)
+            self.export_Bfield(magField)
+            self.export_strikemap(strikemaps)
+            wroteFields = True
+        except AttributeError:
+            wroteFields = False
+            pass
+            # If the remap was done with a single smap, the angles are not calculated
         self.remap_dat.to_netcdf(remap)
         self.CameraCalibration.save2netCDF(calibration)
         if 'frame_noise' in self.exp_dat:
@@ -872,14 +901,16 @@ class FIV(BVO):
             f.write('CameraFileBPP: %s\n'%self.settings['RealBPP'])
 
         json.dump(self.position, open(positionFile, 'w'))
-        json.dump({k:v.tolist() for k,v in self.orientation.items()},
+        json.dump({k:np.atleast_1d(v).tolist() for k,v in self.orientation.items()},
                   open(orientationFile, 'w' ) )
         if self.CameraData is not None:
             json.dump(self.CameraData, open(cameraData))
         # Create the tar file
         tar = tarfile.open(name=tarFile, mode='w')
-        tar.add(magField, arcname='Bfield.nc')
-        tar.add(magFieldAngles, arcname='BfieldAngles.nc')
+        if wroteFields:
+            tar.add(magField, arcname='Bfield.nc')
+            tar.add(magFieldAngles, arcname='BfieldAngles.nc')
+            tar.add(strikemaps, arcname='strikeMaps.nc')
         tar.add(remap, arcname='remap.nc')
         tar.add(calibration, arcname='CameraCalibration.nc')
         tar.add(versionFile, arcname='version.txt')
@@ -896,6 +927,7 @@ class FIV(BVO):
         if clean:
             os.remove(magField)
             os.remove(magFieldAngles)
+            os.remove(strikemaps)
             os.remove(remap)
             os.remove(calibration)
             os.remove(versionFile)

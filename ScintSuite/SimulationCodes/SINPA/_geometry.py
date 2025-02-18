@@ -28,6 +28,9 @@ def calculate_rotation_matrix(n, u1=None, verbose=True):
     :param  u1: Unit vector normal to n
 
     :return M: Rotation matrix
+
+    for fortran please write in the transmpose maatrix, as fortran and python
+    store internally things in the opposite order
     """
     # --- Check the unit vector
     modn = math.sqrt(np.sum(n * n))

@@ -55,9 +55,9 @@ class OrbitClass:
         self.kindOfFile = np.fromfile(fid, 'int32', 1)[0]
         self.rl = np.zeros(nOrbits)
         self.xi = np.zeros(nOrbits)
-        self.counters = np.zeros(nOrbits, np.int_)
+        self.counters = np.zeros(nOrbits, int)
         self.data = np.empty(nOrbits, dtype=np.ndarray)
-        self.kindOfCollision = np.zeros(nOrbits, np.int_)
+        self.kindOfCollision = np.zeros(nOrbits, int)
 
         for i in range(nOrbits):
             self.counters[i] = np.fromfile(fid, 'int32', 1)[0]

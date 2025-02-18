@@ -6,12 +6,12 @@
 ! Description: Default FILD collimator
 
 &MU01
-  R = 1.6
+  R = 1.49
   z = 0.159
   phi = 15.0
 
   alpha = 0.0
-  beta = 0.0
+  beta = -27.0
   gamma = 0.0
 
 /

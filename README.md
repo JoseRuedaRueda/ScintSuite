@@ -1,81 +1,71 @@
 # SCINTILLATOR SUITE
 
-This code is created to analyze the signal from scintillator diagnostics. Support for FILD, INPA and i-HIBP is planned. To include a different diagnostic, please contact Jose Rueda: jose.rueda@ipp.mpg.de
+This code is created to analyze the signal from scintillator diagnostics. Native support for FILD, INPA. for iHIBP, you need the extra module of iHIBPsim. To include a different diagnostic, please contact Jose Rueda: jruedaru@uci.edu
 
+## Citation of the code
+To cite the code please use the ScintSuite [![DOI](https://zenodo.org/badge/13886727.svg)](https://doi.org/10.5281/zenodo.13886727)
 ## Installation and documentation
-### Prerequisites. Python 3.7 or higher
-Needed packages. Only listed *non-standard* packages. See below, there is a script to install them.
+### Prerequisites
+- Python 3.7 or higher
+- Pip (anaconda is recommended)
 
-#### Essentials
-The suite will not work without them:
-- f90nml: To read FORTRAN namelist in an easy way (needed since version 0.1.10) `pip install f90nml`. This is the suite standard to read and write namelists!!!
-- xarray: To handle the data sets (videos, remaps, timetraces, needed since version 1.0.0) [tested with version 0.20.1]
-- numpy > 1.21.0: To support xarray
+### Cloning the suite and installing
 
-#### Optional (the suite will work but some capabilities will not be available)
-- cv2 (OpenCv): To load frames from .mp4 files and to export videos `pip install opencv-python`
-- lmfit: To perform the fits needed for the resolution calculation `pip install lmfit`
-- cycler: To set default plotting color `pip install cycler`
-- pyfftw: To have extra capabilities in the spectrogram calculation `pip install pyfftw`
-- scipy 1.7.0 or newer, to have the RBF interpolators for the strike points
-- aug_sfutils > 0.7.0: To load the AUG magnetic field (see AUG python documentation for the different ways of installing this package https://www.aug.ipp.mpg.de/aug/manuals/aug_sfutils/)
-- mesh: To deal with CAD files
-- numba > 0.55.1 to perform fast iHIBPsim xsection calculations and tomography
-- odfpy: To read INPA logbook (which is written in an .ODS file)
+The code can be installed via pip, just change `<branch>` for the name of the branch you want to install and `<ParentFolderForSuite>`
 
-#### Complete list:
-In a clean-typical python installation with anaconda, taking care only of the packages and versions listed above should be enough and the suite will run smoothly, but python package dependence can sometimes a mess. As an indication, in the folder `Data/TestedEnv` you can find the result of the command `pip list` in a python environment where the suite was tested and working fine. So if you find a series of problems with packages versions, try to create your virtual environment and reproduce the installed package list detailed there. The files are labeled with the Suite version for which they were tested and 'Optx', meaning 'Option x', as different user can have different list of packages which could work.
-
-### Cloning the suite and installing (dev Mode. Install method 1)
-In order to clone the suite just open a terminal in your home directory and type:
+For AUG users: `<ParentFolderForSuite> = /shares/departments/AUG/users/$USER`
 ```bash
- git clone https://gitlab.mpcdf.mpg.de/ruejo/scintsuite.git ScintSuite
-```
-To install all non-standard (not machine dependent) packages, you can give a try the script: `first_run.py`. It will work in personal computers and *standard installations* although things can go wrong if your system has some particular rights limitations and you are not allowed to change them using =pip install=. In these cases, you should use a virtual environment:
-
-1. Install virtualenv: `pip install virtualenv`
-2. Create your virtual environment (let us call it SSvirtualenv): `virtualenv -p python3 --system-site-packages SSvirtualenv`
-3. Activate your virtual environment (remember to do this everytime you are using ScintSuite or add it to your login script): `source SSvirtualenv/bin/activate`
-4. Force install the compatible versions using `pip install modulename==X.X.X`. A list of compatible versions is listed here (checked in MAST-U and JET):
-```python
-scipy==1.7.0
-scikit-image==0.16.2
-pyfftw==0.12.0
-pandas==1.3.1
-```
-Once the python modules are created, you need to create the folder `MyData` inside the Data folder, and copy in it the .txt files which are located in `Data/MyDataTemplates`. These are the configuration files of the Suite, they are needed to import the sutie and can be modified (the ones in MYData folder) to change the behaviour of the plotting, warning, paths... If you installed the sutie with the script: `first_run.py` this step was done already, so you can ignore it
-
-### Cloning and installed the suite (vainilla user. Install method 2)
-The code can be installed via pip, just change `<branch>` for the name of the branch you want to install 
-```bash
-cd 
-git clone https://gitlab.mpcdf.mpg.de/ruejo/scintsuite ScintSuite
+cd <ParentFolderForSuite>
+git clone https://github.com/JoseRuedaRueda/ScintSuite ScintSuite
 cd ScintSuite
 git checkout <branch>
 python first_run_pip.py
-pip install .
+pip install -e .
 ```
-This will install all requirement via pip. It is needed that your machine support pip installation of python packages
+This will install all requirements via pip. It is needed that your machine support pip installation of python packages
+
+> IMPORTANT: 
+> If you install the suite outside your home dir, you should create an environmental variable pointing towards the suite folder. Add to your bash (or similar file) the following:
+```bash
+export ScintSuitePath=<ParentFolderForSuite>/ScintSuite
+```
+For AUG people, if they followed the recommended route for the code:
+```bash
+export ScintSuitePath=/shares/departments/AUG/users/$USER/ScintSuite
+```
+> IMPORTANT: 
+> Each kind of terminal has its own command to define environmental variables. Please change the previous line as needed for your system.
+
+
+#### Advanced installation
+Things can go wrong if your system has some particular rights limitations and you are not allowed to change them using `pip install`. In these cases, a virtual environment could help:
+
+1. Install virtualenv: `pip install virtualenv`
+2. Create your virtual environment (let us call it SSvirtualenv): `virtualenv -p python3 --system-site-packages SSvirtualenv` [Note: for MU users, this has to be done as `python -m virtualenv ...`]
+3. Activate your virtual environment (remember to do this every time you are using ScintSuite or add it to your login script): `source SSvirtualenv/bin/activate`
+4. Force install the compatible versions using `pip install modulename==X.X.X`. A list of compatible versions is listed in Data/TestedEnv. There you can find the result of the command `pip list` in a python environment where the suite was tested and working fine. The files are labeled with the Suite version for which they were tested and 'Optx', meaning 'Option x', as different user can have different list of packages which could work.
+
+Once this is done, run the script `first_run.py` to create the folder `MyData` and its contents. These are the configuration files of the Suite, they are needed to import the Suite and can be modified (the ones in MyData folder only!!!) to change the behavior of the plotting, warning, paths... If this script fails, you can copy the templates manually. The templates are in the folder: `Data/MyDataTemplates`
+
 ### Getting started
 **Importing the suite**
 
-*Short story*: 
-- DevUser (install method 1): Go to the main directory of the suite in your python terminal and run: `import ScintSuite as ss` (or change ss by the name you want)
-- VainillaUser (install method 2): run `import ScintSuite as ss` from whatever place, as this is already in your python path
-
-*Long story*: (only for method 1 of installation) In order to import the ScintSuite as `import ScintSuite as MyAwesomeName`, you need to set in your environment the different paths to the external modules. For example, in the case of AUG, the path towards the AUG-python library. To do this, you just need to run the file path suite. For example, just type in a python terminal `run paths_suite` (being on the main Suite directory). After running it, you should be able to import the suite from everywhere in your computer. However, if your working directory is the root directory of the Suite, there is no need of running this line, you can just execute directly `import ScintSuite as MyAwesomeName` and enjoy (as the function path_suite is called in the Sutie `__init__.py`)
+Except in the parent folder where the code is installed, just run:
+```python
+import ScintSuite as ss
+``` 
 
 **Using it**
 
-Please see the examples in the Examples folder of the Suite, it contains the basic lines to execute the suite for each of they main capabilities. Please note than the examples does not contain all possibles ways of doing things iside the code, you will need to dig arround a bit if you need something too specific.
+Please see the examples in the Examples folder of the Suite, it contains the basic lines to execute the suite for each of they main capabilities. Please note than the examples does not contain all possibles ways of doing things inside the code, you will need to dig around a bit if you need something too specific. **Before doing anything new, please ask in the discord server, because most probably one of the other users already did it**
 
 ### Paths
 There are three files containing the paths and routes for the suite:
-- `paths_suite.py`: Located in the main directory of the suite. This one just contain the routes pointing to the python packages/files needed by the suite. It says to python where to find what it needs. If you need to add something due to the peculiarities of your system, please do it locally in your bash file or open a issue in gitlab, do not modify this file.
-- `LibPaths.py`: Located inside the Lib folder, there they are all the paths pointing towards the different codes (FILDSIM, INPASIM etc) and the results/strike maps directories. Again do not modify this file just to put your custom paths, please.
+- `paths_suite.py`: Located in the main directory of the suite. This one just contain the routes pointing to the python packages/files needed by the suite. It says to python where to find what it needs. If you need to add something due to the peculiarities of your system, please do it locally in your bash file or open an issue in gitlab, do not modify this file.
+- `LibPaths.py`: Located inside the Lib folder, there they are all the paths pointing towards the different codes (FILDSIM, SINPA, iHIBPsim, etc) and the results/strike maps directories. Again do not modify this file just to put your custom paths, please.
 - `MyData/Paths.txt`: It could happen that you have FILDSIM, SINPA or whatever installed in a route which is not *the official*. Inside this file, you can set all these paths. The file should be created when you run the script `first_run.py`; although you can always copy it from the `Data/MyDataTemplates folder`.
 
-**Important:** The suite must be installed in your home directory. The reason for this is that I found no other way for the Suite to localise this custom directory. Please, if you find a woraround for this, send me an email and we will be happy to implement it.
+**Important:** If the ScintSuite is not installed in your home directory, you need to define the EnvVar `ScintSuitePath` pointing towards the installation location of the code. If that variable is not defined, the code will assume it is located in your home dir. 
 
 VRT related paths are hardcoded. There is a significant number of them and overloading LibPaths seems like a poor solution. Blame Javier Hidalgo for this (jhsalaverri@us.es)
 

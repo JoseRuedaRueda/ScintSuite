@@ -14,13 +14,13 @@ last revision:
     SINPA (uFILDSIM): version 2.3
 """
 import os
-import ScintSuite.as ss
+import ScintSuite as ss
 import matplotlib.pyplot as plt
 
 # --- Settings
 runID = 'Example_test'  # runID of the performed SINPA simulation
 smap_flag = True  # execute the strike_map demonstration block
-orbits_flag = True  # execute the orbit demonstration block
+orbits_flag = False  # execute the orbit demonstration block
 collimator_flag = True  # execute the collimator demonstration block
 
 
@@ -83,9 +83,9 @@ if smap_flag:
     # This is kinda deprecates, still use the old sintax, will be changed in the
     # next version
     smap.plot_phase_space_resolution_fits(var='Gyroradius',
-                              XI_index=3,
+                              XI_index=5,
                               gyroradius=None, pitch=None,
-                              kind_of_plot='normal',
+                              kind_of_plot='bar',
                               include_legend=True)
     plt.show()
 

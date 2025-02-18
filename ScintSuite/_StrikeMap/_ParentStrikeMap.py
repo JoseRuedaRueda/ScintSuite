@@ -111,7 +111,13 @@ class GeneralStrikeMap(XYtoPixel):
         :param  variables_to_remap: tuple contianing the name of the 2 selected
             variables
         """
-        self._to_remap = [self._data[name] for name in variables_to_remap]
+        try:
+            self._to_remap = [self._data[name] for name in variables_to_remap]
+        except KeyError:
+            text = 'The variables to remap are not present in the strike map\n'+\
+                'Available variables are: %s' % self._data.keys()
+        
+            raise errors.NotValidInput(text)
         self._remap_var_names = variables_to_remap
         if verbose:
             logger.warning('Please call interp_grid to update the interpolators')
@@ -407,7 +413,7 @@ class GeneralStrikeMap(XYtoPixel):
                                     color=line_options['color'],
                                     rotation=rotation_for_y_label)
 
-        plt.draw()
+        #plt.draw()
         return ax
 
     def plot_real(self, ax=None, marker_params: dict = {},
@@ -627,6 +633,9 @@ class GeneralStrikeMap(XYtoPixel):
     @property
     def variables(self):
         return self._header['variables']['name']
+
+    def keys(self):
+        return self._data.keys()
 
     def __call__(self, name):
         return self._data[name].data

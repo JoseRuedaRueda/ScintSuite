@@ -23,11 +23,13 @@ from scipy.ndimage import gaussian_filter
 logger = logging.getLogger('ScintSuite.Optics')
 
 paths = Path(machine)
+
 # try:
 #     from wand.image import Image
 # except ModuleNotFoundError:
 #     text = 'Wand image not found, you cannnot apply distortion to figures'
 #     logger.warning('10: %s' % text)
+
 try:
     import lmfit
 except ModuleNotFoundError:
@@ -148,11 +150,11 @@ def distort_image(frame, params: dict = {}):
     options.update(params)
     if options['model'] == 'WandImage':
         maximum = frame.max()
-        dummy = frame.astype(np.float) / maximum
+        dummy = frame.astype(float) / maximum
         img = Image.from_array(dummy)
         img.virtual_pixel = 'transparent'
         img.distort(**options['parameters'])
-        output = np.array(img)[:, :, 0].astype(np.float) * maximum / 255
+        output = np.array(img)[:, :, 0].astype(float) * maximum / 255
 
     return output.astype(np.uint)
 

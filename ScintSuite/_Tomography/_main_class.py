@@ -64,9 +64,18 @@ class Tomography():
             self.W = W
             self.s = s
             self.inversion = {}
+            # --- Get the shape of W
+            self.Wndims = len(W.shape)
+            self.sndims = len(s.shape)
             # --- Now collapse the signal and the weight function
             logger.info('Collapsing W: ')
-            self.W2D = matrix.collapse_array4D(self.W.values)
+            if self.Wndims == 4:
+                self.W2D = matrix.collapse_array4D(self.W.values)
+            elif self.Wndims == 5:
+                self.W2D = matrix.collapse_array5D(self.W.values)
+            else:
+                raise errors.NotValidInput('W should be 4 or 5D')
+                
             logger.info('Collapsing Signal')
             self.s1D = matrix.collapse_array2D(self.s.values.squeeze())
             # self.W2D, self.s1D = self._collapseWandS()
@@ -99,9 +108,17 @@ class Tomography():
                 logger.warning(text)
                 self.norms = {}
                 needGuess = True
+            # --- Get the shape of W
+            self.Wndims = len(self.W.shape)
+            self.sndims = len(self.s.shape)
             # --- Now collapse the signal and the weight function
             logger.info('Collapsing W ')
-            self.W2D = matrix.collapse_array4D(self.W.values)
+            if self.Wndims == 4:
+                self.W2D = matrix.collapse_array4D(self.W.values)
+            elif self.Wndims == 5:
+                self.W2D = matrix.collapse_array5D(self.W.values)
+            else:
+                raise errors.NotValidInput('W should be 4 or 5D')
             logger.info('Collapsing Signal')
             self.s1D = matrix.collapse_array2D(self.s.values.squeeze())
             if needGuess:
@@ -112,7 +129,7 @@ class Tomography():
                 }
             # --- Now load the inversions
             supportedFiles = ['nnelasticnet.nc', 'nntikhonov0.nc',
-                              'tikhonov0.nc',
+                              'tikhonov0.nc', 'nntikhonov0projective.nc',
                               'nnlsq.nc', 'maxEntropy.nc']
             for file in supportedFiles:
                 filename = os.path.join(folder, file)
@@ -163,13 +180,25 @@ class Tomography():
         beta, MSE, res, r2 = solvers.nnlsq(self.W2D, self.s1D, **kargs)
         self.inversion['nnlsq'] = xr.Dataset()
         # -- Reshape the coefficients
-        beta_shaped = matrix.restore_array2D(beta, self.W.shape[2],
-                                             self.W.shape[3])
+        if self.Wndims == 4:
+            beta_shaped = matrix.restore_array2D(beta, self.W.shape[2],
+                                                self.W.shape[3])
+        else:
+            beta_shaped = matrix.restore_array3D(beta, self.W.shape[2],
+                                                self.W.shape[3],
+                                                self.W.shape[4])
         # -- save it in the xr.Dataset()
-        self.inversion['nnlsq']['F'] = xr.DataArray(
+        if self.Wndims == 4:
+            self.inversion['nnlsq']['F'] = xr.DataArray(
                 beta_shaped, dims=('x', 'y'),
                 coords={'x': self.W['x'], 'y': self.W['y']}
-        )
+            )
+        else:
+            self.inversion['nnlsq']['F'] = xr.DataArray(
+                    beta_shaped, dims=('x', 'y', 'z'),
+                    coords={'x': self.W['x'], 'y': self.W['y'],
+                            'z': self.W['z']}
+            )
         self.inversion['nnlsq']['F'].attrs['long_name'] = 'FI distribution'
 
         self.inversion['nnlsq']['MSE'] = xr.DataArray(MSE)
@@ -213,18 +242,34 @@ class Tomography():
                                   **kargs)
         # --- reshape the coefficients
         logger.info('Reshaping the distribution')
-        beta_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_alpha))
-        for i in range(n_alpha):
-            beta_shaped[..., i] = \
-                matrix.restore_array2D(beta[:, i], self.W.shape[2],
-                                       self.W.shape[3])
+        if self.Wndims == 4:
+            beta_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_alpha))
+            for i in range(n_alpha):
+                beta_shaped[..., i] = \
+                    matrix.restore_array2D(beta[:, i], self.W.shape[2],
+                                           self.W.shape[3])
+        elif self.Wndims == 5:
+            beta_shaped = np.zeros((self.W.shape[2], self.W.shape[3],
+                                  self.W.shape[4], n_alpha))
+            for i in range(n_alpha):
+                beta_shaped[..., i] = \
+                    matrix.restore_array3D(beta[:, i], self.W.shape[2],
+                                           self.W.shape[3], self.W.shape[4])
+
         # --- Save it in the dataset
         self.inversion['tikhonov0'] = xr.Dataset()
-        self.inversion['tikhonov0']['F'] = xr.DataArray(
-                beta_shaped, dims=('x', 'y', 'alpha'),
-                coords={'x': self.W['x'], 'y': self.W['y'],
-                        'alpha': alp}
-        )
+        if self.Wndims == 4:
+            self.inversion['tikhonov0']['F'] = xr.DataArray(
+                    beta_shaped, dims=('x', 'y', 'alpha'),
+                    coords={'x': self.W['x'], 'y': self.W['y'],
+                            'alpha': alp}
+            )
+        else:
+            self.inversion['tikhonov0']['F'] = xr.DataArray(
+                    beta_shaped, dims=('x', 'y', 'z', 'alpha'),
+                    coords={'x': self.W['x'], 'y': self.W['y'], 'z': self.W['z'],
+                            'alpha': alp}
+            )
         self.inversion['tikhonov0']['F'].attrs['long_name'] = 'FI distribution'
 
         self.inversion['tikhonov0']['alpha'].attrs['long_name'] = '$\\alpha$'
@@ -269,18 +314,33 @@ class Tomography():
                 solvers.nntikhonov0(self.W2D, self.s1D, alp[i], **kargs)
         # --- reshape the coefficients
         logger.info('Reshaping the distribution')
-        beta_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_alpha))
-        for i in range(n_alpha):
-            beta_shaped[..., i]  = \
-                matrix.restore_array2D(beta[:,i], self.W.shape[2],
-                                       self.W.shape[3])
+        if self.Wndims == 4:
+            beta_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_alpha))
+            for i in range(n_alpha):
+                beta_shaped[..., i]  = \
+                    matrix.restore_array2D(beta[:,i], self.W.shape[2],
+                                        self.W.shape[3])
+        else:
+            beta_shaped = np.zeros((self.W.shape[2], self.W.shape[3],
+                                  self.W.shape[4], n_alpha))
+            for i in range(n_alpha):
+                beta_shaped[..., i] = \
+                    matrix.restore_array3D(beta[:, i], self.W.shape[2],
+                                           self.W.shape[3], self.W.shape[4])
         # --- Save it in the dataset
         self.inversion['nntikhonov0'] = xr.Dataset()
-        self.inversion['nntikhonov0']['F'] = xr.DataArray(
-                beta_shaped, dims=('x', 'y', 'alpha'),
-                coords={'x': self.W['x'], 'y': self.W['y'],
-                        'alpha': alp}
-        )
+        if self.Wndims == 4:
+            self.inversion['nntikhonov0']['F'] = xr.DataArray(
+                    beta_shaped, dims=('x', 'y', 'alpha'),
+                    coords={'x': self.W['x'], 'y': self.W['y'],
+                            'alpha': alp}
+            )
+        else:
+            self.inversion['nntikhonov0']['F'] = xr.DataArray(
+                    beta_shaped, dims=('x', 'y', 'z', 'alpha'),
+                    coords={'x': self.W['x'], 'y': self.W['y'], 'z': self.W['z'],
+                            'alpha': alp}
+            )
         self.inversion['nntikhonov0']['F'].attrs['long_name'] =\
             'FI distribution'
 
@@ -297,7 +357,85 @@ class Tomography():
 
         self.inversion['nntikhonov0']['r2'] = xr.DataArray(r2, dims='alpha')
         self.inversion['nntikhonov0']['residual'].attrs['long_name'] = '$r^2$'
+        
+    def nntikhonov0projective(self, alpha, **kargs) -> None:
+        """
+        Perform a 0th order Tikonov regularized regression followed by a 
+        projection
+        
+        NOTE: The projection is done before calculating the MSE and R2
 
+        Jose Rueda-Rueda: jrrueda@us.es
+
+        :param  alpha: hyperparameter. Can be a number (single regression) or
+            a list or array. In this latter case, the regression will be done
+            for each value in the list (array)
+        :param  weights: weights, placeholder for the future
+        :param  **kargs: extra arguments for the nnlsqr solver
+        """
+        # --- Ensure we have an array or iterable:
+        if isinstance(alpha, (list, np.ndarray)):
+            alp = alpha
+        else:
+            alp = np.array([alpha])
+        n_alpha = len(alp)
+        # --- Initialise the variables
+        npoints, nfeatures = self.W2D.shape
+        beta = np.zeros((nfeatures, n_alpha))
+        MSE = np.zeros(n_alpha)
+        r2 = np.zeros(n_alpha)
+        res = np.zeros(n_alpha)
+        # --- Perform the regression
+        logger.info('Performing 0th-nnTikhonovprojective regularization')
+        for i in tqdm(range(n_alpha)):
+            beta[:, i], MSE[i], res[i], r2[i] = \
+                solvers.nntikhonov0projective(self.W2D, self.s1D, alp[i], **kargs)
+        # --- reshape the coefficients
+        logger.info('Reshaping the distribution')
+        if self.Wndims == 4:
+            beta_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_alpha))
+            for i in range(n_alpha):
+                beta_shaped[..., i]  = \
+                    matrix.restore_array2D(beta[:,i], self.W.shape[2],
+                                        self.W.shape[3])
+        else:
+            beta_shaped = np.zeros((self.W.shape[2], self.W.shape[3],
+                                  self.W.shape[4], n_alpha))
+            for i in range(n_alpha):
+                beta_shaped[..., i] = \
+                    matrix.restore_array3D(beta[:, i], self.W.shape[2],
+                                           self.W.shape[3], self.W.shape[4])
+        # --- Save it in the dataset
+        self.inversion['nntikhonov0projective'] = xr.Dataset()
+        if self.Wndims == 4:
+            self.inversion['nntikhonov0projective']['F'] = xr.DataArray(
+                    beta_shaped, dims=('x', 'y', 'alpha'),
+                    coords={'x': self.W['x'], 'y': self.W['y'],
+                            'alpha': alp}
+            )
+        else:
+            self.inversion['nntikhonov0projective']['F'] = xr.DataArray(
+                    beta_shaped, dims=('x', 'y', 'z', 'alpha'),
+                    coords={'x': self.W['x'], 'y': self.W['y'], 'z': self.W['z'],
+                            'alpha': alp}
+            )
+        self.inversion['nntikhonov0projective']['F'].attrs['long_name'] =\
+            'FI distribution'
+
+        self.inversion['nntikhonov0projective']['alpha'].attrs['long_name'] =\
+            '$\\alpha$'
+
+        self.inversion['nntikhonov0projective']['MSE'] = xr.DataArray(MSE, dims='alpha')
+        self.inversion['nntikhonov0projective']['MSE'].attrs['long_name'] = 'MSE'
+
+        self.inversion['nntikhonov0projective']['residual'] = \
+            xr.DataArray(res, dims='alpha')
+        self.inversion['nntikhonov0projective']['residual'].attrs['long_name'] =\
+            'Residual'
+
+        self.inversion['nntikhonov0projective']['r2'] = xr.DataArray(r2, dims='alpha')
+        self.inversion['nntikhonov0projective']['residual'].attrs['long_name'] = '$r^2$'
+        
     def nnElasticNet(self, alpha, l1_ratio, **kargs) -> None:
         """
         Perform a 0th order Tikonov regularized non-negative regression
@@ -337,19 +475,37 @@ class Tomography():
                                         positive=True, **kargs)
         # --- reshape the coefficients
         logger.info('Reshaping the distribution')
-        beta_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_alpha, n_l1))
-        for i in range(n_alpha):
-            for j in range(n_l1):
-                beta_shaped[..., i, j] = \
-                    matrix.restore_array2D(beta[:, i, j], self.W.shape[2],
-                                           self.W.shape[3])
+        if self.Wndims == 4:
+            beta_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_alpha, n_l1))
+            for i in range(n_alpha):
+                for j in range(n_l1):
+                    beta_shaped[..., i, j] = \
+                        matrix.restore_array2D(beta[:, i, j], self.W.shape[2],
+                                            self.W.shape[3])
+        elif self.Wndims == 5:
+            beta_shaped = np.zeros((self.W.shape[2], self.W.shape[3],
+                                  self.W.shape[4], n_alpha, n_l1))
+            for i in range(n_alpha):
+                for j in range(n_l1):
+                    beta_shaped[..., i, j] = \
+                        matrix.restore_array3D(beta[:, i, j], self.W.shape[2],
+                                            self.W.shape[3], self.W.shape[4])
+        else:
+            raise errors.NotValidInput('W should be 4 or 5D')
         # --- Save it in the dataset
         self.inversion['nnelasticnet'] = xr.Dataset()
-        self.inversion['nnelasticnet']['F'] = xr.DataArray(
-                beta_shaped, dims=('x', 'y', 'alpha', 'l1'),
-                coords={'x': self.W['x'], 'y': self.W['y'],
-                        'alpha': alp, 'l1': l1}
-        )
+        if self.Wndims == 4:
+            self.inversion['nnelasticnet']['F'] = xr.DataArray(
+                    beta_shaped, dims=('x', 'y', 'alpha', 'l1'),
+                    coords={'x': self.W['x'], 'y': self.W['y'],
+                            'alpha': alp, 'l1': l1}
+            )
+        else:
+            self.inversion['nnelasticnet']['F'] = xr.DataArray(
+                    beta_shaped, dims=('x', 'y', 'z', 'alpha', 'l1'),
+                    coords={'x': self.W['x'], 'y': self.W['y'], 'z': self.W['z'],
+                            'alpha': alp, 'l1': l1}
+            )
         self.inversion['nnelasticnet']['F'].attrs['long_name'] =\
             'FI distribution'
 
@@ -628,6 +784,9 @@ class Tomography():
             # get the profiles
             EprofTrue = trueSolInterp.sum('x')
             RprofTrue = trueSolInterp.sum('y')
+        else:
+            EprofTrue = None
+            RprofTrue = None
         Total = np.sqrt((data**2).sum(dim=('x','y')))
         fig, ax = plt.subplots(2,2)
         if true_solution is not None:
@@ -730,14 +889,20 @@ class Tomography():
         Eprof = data.sum('x')
         Rprof = data.sum('y')
         # Interpolate the true solution in the grid
-        trueSolInterp = true_solution.interp(x=data.x, y=data.y)
-        # get the profiles
-        EprofTrue = trueSolInterp.sum('x')
-        RprofTrue = trueSolInterp.sum('y')
+        if true_solution is not None:
+            trueSolInterp = true_solution.interp(x=data.x, y=data.y)
+            # get the profiles
+            EprofTrue = trueSolInterp.sum('x')
+            RprofTrue = trueSolInterp.sum('y')
+            weHaveTrue = True
+        else:
+            weHaveTrue = False
+
         Total = np.sqrt(self.inversion[inversion].F**2).sum(dim=('x','y'))
         fig, ax = plt.subplots(2,2)
-        ax[0,0].plot(EprofTrue.y, EprofTrue, '--k', label='True',)
-        ax[1,0].plot(RprofTrue.x, RprofTrue, '--k', label='True',)
+        if weHaveTrue:
+            ax[0,0].plot(EprofTrue.y, EprofTrue, '--k', label='True',)
+            ax[1,0].plot(RprofTrue.x, RprofTrue, '--k', label='True',)
         ax[0, 1].plot(self.inversion[inversion].MSE,
                       Total)
         # ax[1, 1].plot(self.inversion[inversion].alpha,

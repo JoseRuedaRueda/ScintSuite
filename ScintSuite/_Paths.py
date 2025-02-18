@@ -31,7 +31,7 @@ class Path:
                                                 'StrikeMaps', 'FILD', 'Remap')
         self.FILDPositionDatabase = ''
         self.INPALogbook = ''
-
+        self.StrikeMapDatabase = None
         if machine == 'AUG':
             self.FILDStrikeMapsRemap += '/AUG/'
             self.bcoils_phase_corr = os.path.join(self.ScintSuite,

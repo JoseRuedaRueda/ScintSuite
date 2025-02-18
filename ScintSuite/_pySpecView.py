@@ -104,7 +104,8 @@ class pySpecView:
              cross_phasogram: bool = False, 
              gamma: float = 0.5,
              label: bool = True,
-             n_cross_phasogram: Optional[int] = None,):
+             n_cross_phasogram: Optional[int] = None, 
+             interpolation='nearest'):
         """
         Plot the spectogram or the cross_phasogram
 
@@ -204,7 +205,7 @@ class pySpecView:
                                                  ticks=np.arange(N_min,
                                                                  N_max + 1),
                                                  spacing='uniform')
-                cax.set_xlabel('N')
+                cax.set_xlabel('#')
                 cax.xaxis.set_label_position('top')
         # ---- Set the axis labels
         ax.set_xlabel('Time [s]')

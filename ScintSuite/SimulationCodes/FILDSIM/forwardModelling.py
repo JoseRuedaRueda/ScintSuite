@@ -301,7 +301,7 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
         if eff:
             signal += col_factor * g_func(g_grid.flatten(), **g_parameters) \
                 * pitch_func(p_grid.flatten(), **p_parameters)\
-                * distro_w[i] * efficiency(distro_energy[i]/1000.0)
+                * distro_w[i] * efficiency(distro_energy[i]/1000.0).values
         else:
             dummy = col_factor * g_func(g_grid.flatten(), **g_parameters) \
                     * pitch_func(p_grid.flatten(), **p_parameters)\
@@ -576,7 +576,7 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     # Consider the exposure time
     synthetic_frame *= exp_time
     # Pass to integer, as we are dealing with counts
-    synthetic_frame = synthetic_frame.astype(np.int)
+    synthetic_frame = synthetic_frame.astype(int)
     original_frame = synthetic_frame.copy()
     # --- Add noise
     noise = {
@@ -589,7 +589,7 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
         'neutrons': None,
         'gamma': None,
         'camera_gamma': None,
-        'total': np.zeros(synthetic_frame.shape, np.int),
+        'total': np.zeros(synthetic_frame.shape, int),
     }
     # broken pixels or fibers
     dummy = ssnoise.broken_pixels(synthetic_frame, **noise_options['broken'])

@@ -59,42 +59,49 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal: CalParams):
     >>> y = np.array([15, 35, 27, 106])
     >>> xp, yp = ss.mapping.transform_to_pixel(x, y, cal)
     """
-    eps = 1e-7  # Level for the distortion coefficient to be considered as
-    #             zero (see below)
-    # Perform the undistorted transformation
-    alpha = cal.deg * np.pi / 180
-    xpixel = (np.cos(alpha) * x - np.sin(alpha) * y) * cal.xscale + \
-        cal.xshift
-    ypixel = (np.sin(alpha) * x + np.cos(alpha) * y) * cal.yscale + \
-        cal.yshift
-    # Apply the distortion
-    if abs(cal.c1) > eps:
-        xp = xpixel - cal.xcenter
-        yp = ypixel - cal.ycenter
-        rp = np.sqrt(xp**2 + yp**2)
-        if ('type' not in cal.__dict__) or (cal.type != 'non-poly'):
-            # Get the r array respect to the optical axis
-            D = cal.c1 * rp
-            xpixel = (1 + D) * xp + cal.xcenter
-            ypixel = (1 + D) * yp + cal.ycenter
-            if cal.c1 < 0:
-                rlim = -0.5 / cal.c1
-                rcamera_limit = (1 + cal.c1 * rlim) * rlim
-                flags = rp > rlim
-                xpixel[flags] = rcamera_limit*xp[flags]/rp[flags] + cal.xcenter
-                ypixel[flags] = rcamera_limit*yp[flags]/rp[flags] + cal.ycenter
-        else:
-            if cal.c1 > 0.0:
-                rp_limit = 1.0/2.0/np.sqrt(cal.c1)
-                rp_copy = rp.copy()
-                flags = rp_copy >= rp_limit
-                rp_copy[flags] = rp_copy
+    if cal.type.lower() != 'homomorphism' and cal.type.lower() != 'homomorphic':
+        eps = 1e-7  # Level for the distortion coefficient to be considered as
+        #             zero (see below)
+        # Perform the undistorted transformation
+        alpha = cal.deg * np.pi / 180
+        xpixel = (np.cos(alpha) * x - np.sin(alpha) * y) * cal.xscale + \
+            cal.xshift
+        ypixel = (np.sin(alpha) * x + np.cos(alpha) * y) * cal.yscale + \
+            cal.yshift
+        # Apply the distortion
+        if abs(cal.c1) > eps:
+            xp = xpixel - cal.xcenter
+            yp = ypixel - cal.ycenter
+            rp = np.sqrt(xp**2 + yp**2)
+            if ('type' not in cal.__dict__) or (cal.type != 'non-poly'):
+                # Get the r array respect to the optical axis
+                D = cal.c1 * rp
+                xpixel = (1 + D) * xp + cal.xcenter
+                ypixel = (1 + D) * yp + cal.ycenter
+                if cal.c1 < 0:
+                    rlim = -0.5 / cal.c1
+                    rcamera_limit = (1 + cal.c1 * rlim) * rlim
+                    flags = rp > rlim
+                    xpixel[flags] = rcamera_limit*xp[flags]/rp[flags] + cal.xcenter
+                    ypixel[flags] = rcamera_limit*yp[flags]/rp[flags] + cal.ycenter
             else:
-                # When k < 0, there is no way the determinant goes to negative.
-                rp_copy = rp.copy()
-            d = (1-np.sqrt(1-4*cal.c1*rp**2))/(2*cal.c1*rp)
-            xpixel = xp*(1+cal.c1*d**2) + cal.xcenter
-            ypixel = yp*(1+cal.c1*d**2) + cal.ycenter
+                if cal.c1 > 0.0:
+                    rp_limit = 1.0/2.0/np.sqrt(cal.c1)
+                    rp_copy = rp.copy()
+                    flags = rp_copy >= rp_limit
+                    rp_copy[flags] = rp_copy
+                else:
+                    # When k < 0, there is no way the determinant goes to negative.
+                    rp_copy = rp.copy()
+                d = (1-np.sqrt(1-4*cal.c1*rp**2))/(2*cal.c1*rp)
+                xpixel = xp*(1+cal.c1*d**2) + cal.xcenter
+                ypixel = yp*(1+cal.c1*d**2) + cal.ycenter
+    else:
+        logger.debug('Applying homomorphism transformation')
+        coords = np.array([x,y,np.ones_like(x)])
+        coords_pixel = cal.H @ coords
+        xpixel = coords_pixel[0, :].flatten()
+        ypixel = coords_pixel[1, :].flatten()
     return xpixel, ypixel
 
 

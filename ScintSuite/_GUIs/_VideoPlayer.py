@@ -8,6 +8,7 @@ import ScintSuite._Plotting as ssplt
 import ScintSuite.SimulationCodes.SINPA as sssinpa
 import ScintSuite._Mapping as ssmap
 import ScintSuite._IO as io
+import ScintSuite._StrikeMap as ssmap
 from matplotlib.figure import Figure
 from tkinter import ttk
 
@@ -15,8 +16,9 @@ class ApplicationShowVid:
     """Class to show the camera frames"""
 
     def __init__(self, master, data, remap_dat, GeomID='AUG02',
-                 calibration=None, scintillator=None, apd_fibres=None,
-                 shot: int = None):
+
+                 calibration=None, scintillator=None, shot: int = None,
+                 mask=None, apd_fibres=None,):
         """
         Create the window with the sliders
 
@@ -27,6 +29,7 @@ class ApplicationShowVid:
         :param  calibration: Calibration parameters
         :param  scintillator: Scintillator object
         :param  apd_fibres: APD (or PMT fibers) positions
+        :param  mask: to plot a small coloured mask on top of the image
         """
         # --- List of supported colormaps
         self.cmaps = {
@@ -45,6 +48,7 @@ class ApplicationShowVid:
         self.CameraCalibration=calibration
         self.scintillator = scintillator
         self.apd_fibres = apd_fibres
+        self.mask = mask
         t = data['t'].values
         # --- Create a tk container
         frame = tk.Frame(master)
@@ -158,14 +162,28 @@ class ApplicationShowVid:
         # --- Button for the APD:
         # If there is not APD data, deactivate the button
         state = tk.NORMAL
+        # --- Button for the mask:
+        # If there is not scintillator data, deactivate the button
+        if self.mask is None:
+            state = tk.DISABLED
+        else:
+            state = tk.NORMAL
+
         # Initialise the variable of the button
         self.checkVar3 = tk.BooleanVar()
         self.checkVar3.set(False)
         # Create the button
+
         self.apd_button = tk.Button(master, text="Draw APD",
                                       command=self.apd_Button_change,
                                       takefocus=0, state=state)
         self.apd_button.grid(row=4, column=4)
+
+        self.mask_button = tk.Button(master, text="Draw mask",
+                                      command=self.mask_Button_change,
+                                      takefocus=0, state=state)
+        self.mask_button.grid(row=3, column=5)
+
         # Draw and show
         self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=0, column=0, columnspan=5,
@@ -175,7 +193,7 @@ class ApplicationShowVid:
         # allows to the canvas to resize when I resize the window
         # --- Quit button
         self.qButton = tk.Button(master, text="Quit", command=master.quit)
-        self.qButton.grid(row=3, column=5)
+        self.qButton.grid(row=5, column=5)
         frame.grid()
         plt.show()  #AJVV needed to install qt5 event loop, to overplot lines on the canvas using plt
 
@@ -207,10 +225,10 @@ class ApplicationShowVid:
                 smap_folder = self.remap_dat['frames'].attrs['smap_folder']
                 full_name_smap = os.path.join(smap_folder, name__smap)
                 # Load the map:
-                smap = ssmap.StrikeMap(0, full_name_smap)
+                smap = ssmap.Fsmap(full_name_smap)
             else:
                 ##use user selected strikemap instead
-                smap = ssmap.StrikeMap(0, self.full_name_smap)
+                smap = ssmap.Fsmap(full_name_smap)
             # Calculate pixel coordinates
             smap.calculate_pixel_coordinates(self.CameraCalibration)
             # Plot the map
@@ -225,6 +243,9 @@ class ApplicationShowVid:
         if self.checkVar3.get():
             for i in range(len(self.apd_data)):
                 self.canvas.figure.axes[0].plot(self.apd_data[i][:,0], self.apd_data[i][:,1], 'r-')
+
+            # Plot the mask:
+
         self.canvas.draw()
         
 
@@ -261,6 +282,7 @@ class ApplicationShowVid:
         self.canvas.draw()
 
 
+
     def apd_Button_change(self):
         """Decide to plot or not the APD fibre positions"""
         if self.checkVar3.get():
@@ -278,3 +300,24 @@ class ApplicationShowVid:
         self.checkVar3.set(not self.checkVar3.get())
         print('Draw APD fibres :', self.checkVar3.get())
         self.canvas.draw()
+
+    def mask_Button_change(self):
+        """Decide to plot or not the mask. Careful. Press once, move to next
+        frame for it to do something and then deactivate so it doesn't add layers."""
+        
+        # If it was true and we push the button, the smap should be deleted:
+        if self.checkVar3.get():
+            ssplt.remove_last_image(self.canvas.figure.axes[0])
+        # If we activate it, print instructions
+        # Update the value
+        self.checkVar3.set(not self.checkVar3.get())
+        print('Draw mask :', self.checkVar3.get())
+        if self.checkVar3.get():
+            ax=self.canvas.figure.axes[0]
+            self.mask_plot = ax.imshow(self.mask, origin='lower', alpha=0.2, cmap='spring')
+
+        if self.checkVar3.get(): 
+            print('The mask has been activated. Now, move to the next frame and deactivate \
+                    it again so it does not add layers.')
+        self.canvas.draw()
+

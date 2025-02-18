@@ -23,7 +23,7 @@ num_of_gyrotrons = 8  # Number of gyrotrons available in AUG.
 # -----------------------------------------------------------------------------
 #                           FILD PARAMETERS
 # -----------------------------------------------------------------------------
-_fild1 = {'path': '/p/IPP/AUG/rawfiles/FIT/',  # Path for the video files
+_fild1 = {'path': '/shares/experiments/aug-rawfiles/FIT/',  # Path for the video files
           'camera': 'PHANTOM',  # Type of used camera
           'extension': lambda shot:\
           '_v710.cin' if shot < 41202 else '_ID9404.cin',  # Extension of the video
@@ -32,19 +32,19 @@ _fild1 = {'path': '/p/IPP/AUG/rawfiles/FIT/',  # Path for the video files
           'channel': 'FILD3_',  # prefix of the name of each channel (shotfile)
           'nch': 20}  # Number of fast channels
 
-_fild2 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD2/',
+_fild2 = {'path': '/shares/experiments/aug-rawfiles/FIL/FILD2/',
           'extension': lambda shot: '', 'label': 'FILD2', 'diag': 'FHA',
           'channel': 'FIPM_',
           'nch': 20, 'camera': 'CCD'}
 
-_fild3 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD3/',
+_fild3 = {'path': '/shares/experiments/aug-rawfiles/FIL/FILD3/',
           'extension': lambda shot: '', 'label': 'FILD3', 'diag': 'xxx',
           'channel': 'xxxxx',
           'nch': 99, 'camera': 'CCD'}
 
 # FILD4 coil position from CAD. Coil dimensions in catholic units.
 # Parking position from FARO measurements
-_fild4 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD4/',
+_fild4 = {'path': '/shares/experiments/aug-rawfiles/FIL/FILD4/',
           'extension': lambda shot: '', 'label': 'FILD4', 'diag': 'FHD',
           'channel': 'Chan-',
           'nch': 32, 'camera': 'CCD', 'coil': {'R_coil': 2.2252,
@@ -55,7 +55,7 @@ _fild4 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD4/',
                                                'R_parking': 2.0824,
                                                'Z_parking': -0.437}}
 
-_fild5 = {'path': '/afs/ipp-garching.mpg.de/augd/augd/rawfiles/FIL/FILD5/',
+_fild5 = {'path': '/shares/experiments/aug-rawfiles/FIL/FILD5/',
           'extension': lambda shot: '', 'label': 'FILD5', 'diag': 'FHE',
           'channel': 'Chan-',
           'nch': 64, 'camera': 'CCD'}
@@ -71,12 +71,12 @@ def _INPA1_path(shot=42000):
     """
     Contain hardcored paths of were INPA data is stored
 
-    Last update: 09/02/2022
+    Last update: 02/11/2023
     """
     if shot < 40260:
         path = '/afs/ipp-garching.mpg.de/home/f/fild/INPA1'
     elif shot < 41202:
-        path = '/afs/ipp-garching.mpg.de/home/a/augd/rawfiles/INP'
+        path = '/shares/experiments/aug-rawfiles/INP'
     elif shot >= 41202:
         path = '/p/IPP/AUG/rawfiles/FIT/'
     else:
