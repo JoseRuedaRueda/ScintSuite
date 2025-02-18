@@ -195,8 +195,8 @@ class FIV(BVO):
             phi_used = self.remap_dat['phi_used'].values[frame_index]
         else:
             frame_index = self.exp_dat['nframes'].values == frame_number
-            theta_used = 0#self.remap_dat['theta_used'].values[frame_index][0]
-            phi_used = 0#self.remap_dat['phi_used'].values[frame_index][0]
+            theta_used = self.remap_dat['theta_used'].values[frame_index][0]
+            phi_used = self.remap_dat['phi_used'].values[frame_index][0]
 
         # Get the full name of the file
         if self.diag == 'FILD' and self.remap_dat['frames'].attrs['CodeUsed'].lower() == 'fildsim':
