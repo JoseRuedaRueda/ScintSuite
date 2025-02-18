@@ -295,7 +295,9 @@ class BVO:
         >>> vid = ss.vid.INPAVideo(shot=41090)
         >>> vid.read_frame()  # To load all the video
         """
-
+        # --- Clean video if needed
+        if 't' in self.exp_dat and internal:
+            self.exp_dat = xr.Dataset()
         # --- Select frames to load
         if (frames_number is not None) and (t1 is not None):
             raise errors.NotValidInput('You cannot give frames number and time')
