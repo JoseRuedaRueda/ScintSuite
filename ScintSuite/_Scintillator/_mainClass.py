@@ -231,7 +231,7 @@ class Scintillator(XYtoPixel):
         :return ax: axes used to plot
         """
         plt_options = {
-            'color': 'r',
+            'color': 'w',
             'marker': '',
         }
         plt_options.update(line_params)
@@ -271,7 +271,7 @@ class Scintillator(XYtoPixel):
         :return ax: the axes where the scintilator was drawn
         """
         plt_options = {
-            'color': 'r',
+            'color': 'w',
             'marker': '',
         }
         plt_options.update(line_params)
