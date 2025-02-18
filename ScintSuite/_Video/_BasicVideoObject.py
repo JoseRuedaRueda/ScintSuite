@@ -25,6 +25,7 @@ import ScintSuite._Video._CinFiles as cin
 import ScintSuite._Video._PNGfiles as png
 import ScintSuite._Video._PCOfiles as pco
 import ScintSuite._Video._MP4files as mp4
+import ScintSuite._Video._MATfiles as mat
 import ScintSuite._Video._TIFfiles as tif
 import ScintSuite._Video._h5D3D as h5d3d
 import ScintSuite._Video._NetCDF4files as ncdf
@@ -36,7 +37,7 @@ from ScintSuite._Paths import Path
 from ScintSuite._Machine import machine
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import Slider, Button, RadioButtons
-
+import gc
 
 # --- Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.Video')
@@ -206,6 +207,18 @@ class BVO:
                     self.exp_dat['frames'] = \
                         self.exp_dat['frames'].transpose('px', 'py', 't')
                     self.type_of_file = '.mp4'
+                elif file.endswith('.mat'):
+                    '''
+                    Matlab .mat files with video data are not a standard format, 
+                    Therefore use machine specific implementation to import data
+                    e.g. see TCV implementation
+                    '''
+                    mat_data = ssdat.read_MAT_video_data(file)
+                    self.timebase = mat_data['t'].data
+                    self.exp_dat['frames'] = mat_data['frames']
+                    self.type_of_file = '.mat'     
+                    self.settings = {'RealBPP': mat_data['RealBPP'].data}                     
+            
                 else:
                     raise Exception('Not recognised file extension')
             else:
@@ -280,7 +293,8 @@ class BVO:
         self.CameraData = None
         ## Scintillator plate:
         self.scintillator = None
-
+        gc.collect()
+        gc.enable()
     # --------------------------------------------------------------------------
     # --- Manage Frames
     # --------------------------------------------------------------------------
@@ -354,6 +368,9 @@ class BVO:
             M = pco.read_frame(self, frames_number,
                                limitation=limitation, limit=limit,
                                verbose=verbose)
+        elif self.type_of_file == '.mat':
+            M = np.array(self.exp_dat['frames'][ :, :, frames_number])
+
         elif self.type_of_file == '.nc':
             M = ncdf.read_frame(self, frames_number,
                                limitation=limitation, limit=limit,
@@ -366,6 +383,11 @@ class BVO:
         # --- End here if we just want the frame
         if not internal:
             return M
+
+        # --- Clean video if needed
+        if 't' in self.exp_dat and internal:
+            self.exp_dat = xr.Dataset()
+ 
         # --- Save the stuff in the structure
         # Get the spatial axes
         nx, ny, nt = M.shape
@@ -377,7 +399,7 @@ class BVO:
         if frames_number is None:
             nframes = np.arange(nt) + 1
         else:
-            nframes = frames_number
+            nframes = np.array(frames_number)
         # Quick solve for the case we have just one frame
         try:
             if len(tframes) != 1:
@@ -428,6 +450,8 @@ class BVO:
                                                             'px': px, 'py': py})
         self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
         self.exp_dat.attrs['dtype'] = dtype
+
+
         # --- Count saturated pixels
         max_scale_frames = 2 ** self.settings['RealBPP'] - 1
         threshold = threshold_saturation * max_scale_frames
@@ -1018,6 +1042,7 @@ class BVO:
                                      shot=self.shot, mask=mask)
         root.mainloop()
         root.destroy()
+        gc.collect()
 
     def GUI_frames_simple(self, flagAverage: bool = False, **kwargs):
         """
@@ -1071,7 +1096,7 @@ class BVO:
 
         slider.on_changed(update)
         plt.show()
-
+        gc.collect()
         return ax, slider
 
 

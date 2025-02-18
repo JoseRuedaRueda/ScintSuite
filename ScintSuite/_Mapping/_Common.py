@@ -8,9 +8,14 @@ Introduced in version 0.6.0
 import logging
 import datetime
 import numpy as np
+import ScintSuite._CustomFitModels as models
+import math
 from ScintSuite.decorators import deprecated
 from ScintSuite._Mapping._Calibration import CalParams
 from scipy.interpolate import griddata
+from lmfit import Parameters
+from lmfit import Model
+from scipy import special
 logger = logging.getLogger('ScintSuite.MappingCommon')
 try:
     import lmfit
@@ -224,21 +229,45 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
         normalization = 1.0
     cent = 0.5 * (edges[1:] + edges[:-1])
     # --- Make the fit
-    if model == 'Gauss':
+    if model.lower() == 'gauss' or model.lower() == 'gaussian':
         model = lmfit.models.GaussianModel()
         params = model.guess(hist, x=cent)
-        result = model.fit(hist, params, x=cent)
-        par = {'amplitude': result.params['amplitude'].value,
-               'center': result.params['center'].value,
-               'sigma': result.params['sigma'].value}
-    elif model == 'sGauss':
+    elif model.lower() == 'sgauss' or model.lower() == 'skewedgaussian':
         model = lmfit.models.SkewedGaussianModel()
         params = model.guess(hist, x=cent)
-        result = model.fit(hist, params, x=cent)
-        par = {'amplitude': result.params['amplitude'].value,
-               'center': result.params['center'].value,
-               'sigma': result.params['sigma'].value,
-               'gamma': result.params['gamma'].value}
+    elif model.lower() == 'raisedcosine': #reaised cosine model for the energy
+        model = models.RaisedCosine()
+        # estimate the parameters using a quick fit to the skewed Gaussian
+        params = model.make_params()
+        SG = lmfit.models.SkewedGaussianModel()
+        paramsSG = SG.guess(hist, x=cent)
+        result = SG.fit(hist, paramsSG, x=cent)
+        params['sigma'] = result.params['sigma']
+        params['amplitude'] = result.params['amplitude']
+        params['center'] = result.params['center']
+        params['beta'].set(value=result.params['gamma']/result.params['sigma'], min=0.0,)
+    elif model.lower() == 'wignersemicircle': #wigner semicircle model
+        model = models.WignerSemicircle()
+        # estimate the parameters using a quick fit to a Gaussian
+        Gauss = lmfit.models.GaussianModel()
+        paramsGauss = Gauss.guess(hist, x=cent)
+        result = Gauss.fit(hist, paramsGauss, x=cent)
+        params = model.make_params()
+        params['amplitude'] = result.params['amplitude']
+        params['center'] = result.params['center']
+        params['sigma'] = result.params['sigma']        
+    else:
+        mods = ['Gauss', 'sGauss', 'raisedCosine', 'WignerSemicircle']
+        logger.error('Only models: ' + ', '.join(mods) + ' are implemented')
+        raise ValueError('Model not implemented')
+
+    # Fit
+    result = model.fit(hist, params, x=cent)
+    par = {}
+
+    for key in model.param_names:
+        par[key] = result.params[key].value
+  
     # --- Get the uncertainty
     if uncertainties:
         uncertainty = lmfit.conf_interval(result, result,
@@ -332,6 +361,11 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         # Get the phase variables at each pixel
         x = smap._grid_interp[namex].flatten()
         y = smap._grid_interp[namey].flatten()
+
+        idx_isnotnan = ~np.isnan(x)  #added by AJVV
+        x = x[idx_isnotnan]
+        y = y[idx_isnotnan]
+
         dummy = np.column_stack((x, y))
         # --- 2: Remap
         xcenter = 0.5 * (x_edges[1:] + x_edges[:-1])
@@ -343,6 +377,9 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
             z = frame.copy().astype(float)
             z[~mask] = 0
             z = z.flatten()
+
+        z = z[idx_isnotnan]
+
         H = griddata(dummy, z, (XX.flatten(), YY.flatten()),
                      method='linear', fill_value=0).reshape(XX.shape)
         # Normalise H to counts per unit of each axis
@@ -372,7 +409,6 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         H /= delta_x * delta_y
 
     return H
-
 
 @deprecated('Deprecated! Please use integrate_remap from the video object')
 def gyr_profile(remap_frame, pitch_centers, min_pitch: float,

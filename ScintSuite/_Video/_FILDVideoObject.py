@@ -209,6 +209,7 @@ class FILDVideo(FIV):
                 for plate in [platename, platename2]:
                     if os.path.isfile(plate):
                         self.scintillator = ssmap.Scintillator(file=plate)
+                        # self.scintillator.code = 'fildsim'
                         self.scintillator.calculate_pixel_coordinates(
                                 self.CameraCalibration)
                         # self.ROIscintillator = self.scintillator.get_roi()
@@ -403,6 +404,7 @@ class FILDVideo(FIV):
                 logger.warning('Need to recalculate the angles. Doing it now')
                 self._getBangles()
         self.remap_dat = ssmap.remapAllLoadedFrames(self, **options)
+
         # Calculate the integral of the remap
         ouput = self.integrate_remap(xmin=self.remap_dat['x'].values[0],
                                      xmax=self.remap_dat['x'].values[-1],

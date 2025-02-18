@@ -18,8 +18,7 @@ import shutil
 
 # home = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 home = os.getenv("ScintSuitePath")
-if home is None:
-    home = os.path.join(os.getenv("HOME"), 'ScintSuite')
+
 try:
     file = \
         os.path.join(home, 'Data',

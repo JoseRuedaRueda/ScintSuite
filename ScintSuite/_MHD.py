@@ -297,7 +297,9 @@ class MHDmode():
         try:
             self._rotation = ssdat.get_tor_rotation(shot, xArrayOutput=True)
         except errors.DatabaseError:
-            self.rotation = None
+            self._rotation = None
+        else:
+            self._rotation = None
             logger.warning('Not found toroidal rotation, no doppler shift')
         # --- Now interpolate everything in the time/rho basis of ne
         # self._ni = self._ni.interp(t=self._ne['t'], rho=self._ne['rho'],
@@ -454,7 +456,7 @@ class MHDmode():
                 dataToPlot = data[flags].copy()
                 # Now smooth if needed
                 if smooth > 0:
-                    dataToPlot = dataToPlot.rolling(t=smooth).mean()
+                    dataToPlot = dataToPlot.rolling(t=smooth, center=True).mean()
                 if n is not None:
                     if self._rotation is None:
                         raise Exception('You want Doppler shift but there is no f')
