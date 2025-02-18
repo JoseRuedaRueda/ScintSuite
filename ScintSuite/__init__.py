@@ -16,7 +16,8 @@ import shutil
 ## ----------------------------------------------------------------------------
 # --- Filters and color handler, logging
 
-home = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+# home = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+home = os.getenv("ScintSuitePath")
 try:
     file = \
         os.path.join(home, 'Data',
