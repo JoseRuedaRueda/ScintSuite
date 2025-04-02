@@ -15,15 +15,22 @@ WFfile = '~/ScintSuite/MyRoutines/W_39573_2.000.nc'
 outputPath = '/home/marjimcom/ScintSuite/MyRoutines/tomography/results/W_39573_2.000/'
 
 # - Resolution maps parameters
+
+# domain: Domain of the grid where you want to calculate the resolution map
+# minimum pitch, maximum pitch, minimum gyroscalar, maximum gyroscalar
+domain = [50, 70, 7, 16]
+
 # Type of map to calculate: 'pitch' or 'gyro'.
-map_type = 'pitch'
+map_type = 'gyro'
+
 # Setting the number of maximum iterations
-maxiter = 100
+maxiter = 50
+
 # Setting algorithm to be used. Pick just one algebraic algorithm:
 # 'descent', 'kaczmarz' or 'cimmino'
 inverter = 'descent'
-# Window
-window = [40, 80, 3, 8]
+
+
 # Setting plotting parameters
 cmap = ss.plt.Gamma_II()
 # -----------------------------------------------------------------------------
@@ -32,13 +39,27 @@ cmap = ss.plt.Gamma_II()
 WF = xr.load_dataarray(WFfile)
 
 # -----------------------------------------------------------------------------
-# --- Section 2: Perform the tomography
+# --- Section 2: Load smap and fit parameters
 # -----------------------------------------------------------------------------
-resolution = resP.calculate_resolution_map(WF, inverter, window,
-                                            maxiter, map_type)
+# Path to the smap file
+smapFile = '/home/marjimcom/ScintSuite/MyRoutines/W_-8.75_-8.08_MU_FILD.map'
 
-savePath = outputPath +'resolution_map_'+ map_type + '_' + str(maxiter) 
+# Loading smap
+smap = ss.smap.Fsmap(file=smapFile)
+smap.load_strike_points()
 
+# Load fit parameters
+smap.build_parameters_xarray()
+fits = smap._resolutions['fit_xarrays']
+
+
+# -----------------------------------------------------------------------------
+# --- Section 3: Calculate resolution map
+# -----------------------------------------------------------------------------
+resolution = resP.calculate_resolution_map(WF, inverter, domain,
+                                            maxiter, fits, map_type)
+
+savePath = outputPath +'resolution_map_'+ map_type + str(maxiter)
 resolution.to_netcdf(os.path.join(savePath + '.nc'))
 
 fig, ax = plt.subplots()

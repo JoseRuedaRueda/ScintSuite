@@ -49,9 +49,7 @@ background_level = 0.01
 window = [45, 65, 3, 9]
 
 # - Tomography parameters
-# Setting the number of maximum iterations
-# iters = np.array([10,25])
-iters = 10
+
 # Flag to use the resolution principle
 resolution = True
 
@@ -108,10 +106,32 @@ if 'descent' == inverter:
                                   pitch_map = resolution_pitch,
                                   gyro_map = resolution_gyro, 
                                   resolution = resolution)
+    
+if 'kaczmarz' == inverter:
+    tomo.kaczmarz_solve(x0, 
+                        window = window, damp = damp, 
+                        relaxParam = relaxParam, 
+                        pitch_map = resolution_pitch,
+                        gyro_map = resolution_gyro, 
+                        resolution = resolution)
+    
+if 'cimmino' == inverter:
+    tomo.cimmino_solve(x0, 
+                       window = window, damp = damp, 
+                       relaxParam = relaxParam, 
+                       pitch_map = resolution_pitch,
+                       gyro_map = resolution_gyro, 
+                       resolution = resolution)
 
+
+# Tomo object by default normalizes the WF and the frame. If this is the case, 
+# then the output needs to be denormalized
+
+norm = tomo.norms['s']/tomo.norms['W']
+xHat = tomo.inversion[inverter].F.isel(alpha = 0)*norm
 
 # -----------------------------------------------------------------------------
-# --- Section 3: Plot results
+# --- Section 3: Plot results for the synthetic case
 # -----------------------------------------------------------------------------
 
 # best_alpha = len(iters)-1
@@ -130,11 +150,10 @@ axs[1].set_title('y_synthetic')
 axs[1].set_xlabel('Gyroradius')
 axs[1].set_ylabel('pitch')
 
-# Plot inversion kacmarz
-tomo.inversion[inverter].F.isel(alpha = 0 ).plot(ax = axs[2], 
-                                                                cmap=cmap)
+# Plot inversion
+xHat.plot(ax = axs[2], cmap=cmap)
 axs[2].set_title('Iterative algorithm with resolution principle')
 
 
 plt.subplots_adjust(wspace=0.6)
-plt.savefig(os.path.join(outputPath,'full_result.png')) 
+plt.savefig(os.path.join(outputPath,'resolution_principle.png')) 
