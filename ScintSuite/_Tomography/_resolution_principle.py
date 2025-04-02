@@ -9,7 +9,8 @@ import xarray as xr
 from scipy.ndimage import label
 import ScintSuite._Tomography._synthetic_signal as synthetic_signal
 import ScintSuite._Tomography._martix_collapse as matrix
-
+import logging
+logger = logging.getLogger('ScintSuite.Tomography.Resolution_Principle')
 
 def binarize_xarray(xarray, threshold):
     '''
@@ -30,13 +31,13 @@ def binarize_xarray(xarray, threshold):
     return (xarray > threshold).astype(int)
 
 
-def calculate_centroid(labeled, ncomponents, xHat):
+def calculate_centroid(labeledXR, ncomponents, xHat):
     '''
     Calculate the centroid of an xarray DataArray.
 
     Parameters
     ----------
-    labeled : np.array
+    labeled : xarray.DataArray
         The labeled image.
     ncomponents : int
         The number of components in the image.
@@ -48,9 +49,6 @@ def calculate_centroid(labeled, ncomponents, xHat):
     np.array
         The centroid of the xarray DataArray.
     '''
-    ar = xHat.values
-    
-    labeledXR = xr.DataArray(labeled, dims=xHat.dims, coords=xHat.coords)
 
     centroids = []
     max_intensity = []
@@ -70,7 +68,7 @@ def calculate_centroid(labeled, ncomponents, xHat):
     return centroids, max_intensity
 
 
-def threshold_centroids(centroids, max_intensity, threshold):
+def threshold_centroids(centroids, max_intensity, threshold = 0.15):
     '''
     Take centroids with maximum intensity above a threshold.
 
@@ -133,10 +131,9 @@ def check_separation(peaks, xHat, map_type='pitch'):
     # Calculate the separation in gyro
     separationGyro = np.abs(np.diff(peaks[:,1], axis=0))
     
-
+    logger.warning('This conditions were implemented for MAST-U.')
     if map_type == 'pitch':
         if (separationPitch >= gridPitch) and (separationGyro <= 3*gridGyro):
-            separated = True
             return True
 
     elif map_type == 'gyro':
@@ -147,7 +144,7 @@ def check_separation(peaks, xHat, map_type='pitch'):
     
     return False
 
-def get_peaks_connected_components(xHat, peak_amplitude=0.15):
+def get_peaks_connected_components(xHat, peak_amp=0.15):
 
     '''
     Get the peaks of the tomography solution xHat. The method is based on 
@@ -176,21 +173,22 @@ def get_peaks_connected_components(xHat, peak_amplitude=0.15):
     # Connected components: 8-connectivity
     structure = np.ones((3, 3), dtype=int)
     labeled, ncomponents = label(xHat_binary, structure)
+    labeledXR = xr.DataArray(labeled, dims=xHat.dims, coords=xHat.coords)
 
     # Calculate centroids and max intensity of the components
-    centroids, max_intensity = calculate_centroid(labeled, ncomponents, xHat)
+    centroids, max_intensity = calculate_centroid(labeledXR, ncomponents, xHat)
 
     # Take centroids with maximum intensity above a threshold
     centroidsTresh, intensityTresh = threshold_centroids(centroids, 
                                                          max_intensity, 
-                                                   threshold=peak_amplitude)
+                                                   threshold = float(peak_amp))
 
-    return centroidsTresh, intensityTresh
+    return centroidsTresh, intensityTresh, labeledXR
 
 
 
-def calculate_resolution_point(xHat, original_distance, map_type='pitch', 
-                               peak_amp=0.15):
+def calculate_resolution_point(xHat, mu_gyro, mu_pitch, original_distance, 
+                               map_type='pitch', peak_amp=0.15):
     '''
     Calculate the resolution map for an specific point
       from the tomography solution xHat.
@@ -201,44 +199,67 @@ def calculate_resolution_point(xHat, original_distance, map_type='pitch',
     ----------
     xHat : xarray.DataArray
         Tomography solution.
+    mu_gyro : list
+        Values of pitch where the deltas are placed.
+    mu_pitch : list
+        Values of pitch where the deltas are placed.
     original_distance : float
         Original distance between the peaks.
     map_type : str
         Type of resolution map to calculate. Options are 'pitch' and 'gyro'.
 
     '''
-    # Get peaks
-    centroids, intensity = get_peaks_connected_components(xHat, 
-                                                          peak_amplitude=peak_amp)
-
-    # Order centroids by intensity
-    order = np.argsort(intensity)
-    centroids = centroids[order]
-    max_intensity = intensity[order]
-
-    # Take the first 2 centroids
-    peaks = centroids[-2:]
-    # intensity = intensity[-2:]
-
-
-    # Check separation between peaks
-    separated = check_separation(peaks, xHat, map_type=map_type)
-
+    # Initialize resolution value
     resolution = 0.0
-    if separated:
-        # Calculate distance between peaks
-        distance = np.linalg.norm(np.diff(peaks, axis=0))
 
-        if round(distance,1) >= round(original_distance,1):
-            resolution = 1/distance
+    # Get peaks
+    centroids, intensity, labelXR = get_peaks_connected_components(xHat, 
+                                                          peak_amp=peak_amp)
+
+    # Check which component each delta belongs to 
+    c1 = labelXR.sel(x = mu_pitch[0], y = mu_gyro[0] ).values
+    c2 = labelXR.sel(x = mu_pitch[1], y = mu_gyro[1] ).values
+
+    # If both deltas are in the same component or if one of them has been
+    # detected as background (component 0) then resolution is zero
+    # On the contrary, keep calculating the resolution
+    if (c1 == c2 or c1==0 or c2==0):
+        resolution = 0.0
+    else: 
+        # Order centroids by intensity
+        order = np.argsort(intensity)
+        centroids = centroids[order]
+        # max_intensity = intensity[order]
+
+        # Take the first 2 centroids
+        peaks = centroids[-2:]
+        # intensity = intensity[-2:]
+
+
+        # Check separation between peaks
+        separated = check_separation(peaks, xHat, map_type=map_type)
+
+        if separated:
+            # Calculate distance between peaks
+            distance = np.linalg.norm(np.diff(peaks, axis=0))
+            if map_type == 'gyro':
+                gyro_grid = xHat.y.values
+                grid_res = gyro_grid[1]-gyro_grid[0]
+            else:
+                pitch_grid = xHat.x.values
+                grid_res = pitch_grid[1]-pitch_grid[0]
+            if round(distance,1) >= round(original_distance,1)- 6*grid_res:
+                resolution = distance.copy()
         
 
     return resolution
 
 
-def calculate_resolution(WF, mu_gyro, mu_pitch, inverter, iters, 
-                         original_distance, map_type='pitch', peak_amp=0.15):
+def calculate_resolution(WF_original, mu_gyro, mu_pitch, inverter, iters, 
+                         original_distance, map_type ='pitch', 
+                         peak_amp = 0.15, sigma_gyro = 0.7, sigma_pitch = 1):
     '''
+
     Calculate the resolution of a point from the tomography solution xHat.
 
     Marina Jimenez Comez: mjimenez37@us.es
@@ -246,7 +267,7 @@ def calculate_resolution(WF, mu_gyro, mu_pitch, inverter, iters,
     Parameters
     ----------
 
-    WF : xarray.DataArray
+    WF_original : xarray.DataArray
         Wave function.
     mu_gyro : list
         Gyro values.
@@ -263,6 +284,9 @@ def calculate_resolution(WF, mu_gyro, mu_pitch, inverter, iters,
 
     '''
 
+    
+    WF = WF_cutDomain(WF_original, sigma_gyro, sigma_pitch, mu_gyro, mu_pitch)
+
     # Generate synthetic signal
     _, y = synthetic_signal.create_synthetic_delta(WF, mu_gyro, mu_pitch,
                                                     noise_level = 0.1,
@@ -274,7 +298,8 @@ def calculate_resolution(WF, mu_gyro, mu_pitch, inverter, iters,
     
         # Tomography
     tomo = ss.tomography(WF, y)
-    x0 = np.zeros(tomo.s1D.shape)
+    n = WF.shape[2]*WF.shape[3]
+    x0 = np.zeros(n)
     if inverter == 'descent':
         tomo.coordinate_descent_solve(x0, iters,  damp = 0.1, 
                                   relaxParam = 1)
@@ -286,16 +311,69 @@ def calculate_resolution(WF, mu_gyro, mu_pitch, inverter, iters,
     # Calculate resolution of the point
     xHat_max = tomo.inversion[inverter].F.isel(alpha = 0).max()
     xHat = tomo.inversion[inverter].F.isel(alpha = 0)/xHat_max.copy()
-    resolution = calculate_resolution_point(xHat, original_distance, 
+    resolution = calculate_resolution_point(xHat, mu_gyro, mu_pitch,
+                                                original_distance, 
                                                 map_type=map_type, 
                                                 peak_amp = peak_amp)
+    del tomo
+    del y
+    del xHat
+
     return resolution
 
 
 
 
-def calculate_resolution_map(WF, inverter, window, maxiter, map_type='pitch', 
-                             peak_amp = 0.15):
+
+
+def WF_cutDomain(WF, sigma_gyro, sigma_pitch, mu_gyro, mu_pitch):
+    '''
+    Calculate the resolution map from the tomography solution xHat.
+
+    Marina Jimenez Comez:
+
+    Parameters
+    ----------
+     WF: xarray.DataArray
+        Wave function.
+    sigma_gyro : float
+        Width in gyroscalar of typical signal in scintillator.
+    sigma_pitch : float
+        Width in pitch of typical signal in scintillator.
+    mu_gyro : list
+        Gyroscalar of various deltas in pinhole. The minimum must be 
+        the resolution of the WF grid in gyroscalar.
+    mu_pitch : list
+        Pitch of various deltas in pinhole. The minimum must be 
+        the resolution of the WF grid in pitch.
+    '''
+    pitch_grid = WF.x.values
+    gyro_grid = WF.y.values
+    res_pitch = pitch_grid[1]-pitch_grid[0]
+    res_gyro = gyro_grid[1]-gyro_grid[0]
+
+    if 3*sigma_pitch < res_pitch:
+        sigma_pitch = res_pitch.copy()
+
+    if 3*sigma_gyro < res_gyro:
+        sigma_gyro = res_gyro.copy()
+
+    y_min = mu_gyro[0] - 3*sigma_gyro
+    y_max = mu_gyro[1] + 3*sigma_gyro
+    conditionGyro = (WF.ys >= y_min) & (WF.ys <= y_max) & \
+                    (WF.y >= y_min) & (WF.y <= y_max)
+    
+    x_min = mu_pitch[0] - 3*sigma_pitch
+    x_max = mu_pitch[1] + 3*sigma_pitch
+    conditionPitch = (WF.xs >= x_min) & (WF.xs <= x_max) & \
+                    (WF.x >= x_min) & (WF.x <= x_max)
+   
+    newWF = WF.where(conditionGyro & conditionPitch, drop = True)
+
+    return newWF
+
+def calculate_resolution_map(WF, inverter, domain, maxiter, fits, map_type='pitch', 
+                             peak_amp = 0.15, sigma_gyro = 3, sigma_pitch = 2):
     '''
     Calculate the resolution map from the tomography solution xHat.
 
@@ -307,8 +385,8 @@ def calculate_resolution_map(WF, inverter, window, maxiter, map_type='pitch',
         Wave function.
     inverter : str
         Inverter to use: kackzmarz, descent, cimmino.
-    window : list
-        Window for the coordinate descent algorithm and for resolution_map.
+    domain : list
+        domain for the coordinate descent algorithm and for resolution_map.
     maxiter : int
         Maximum number of iterations.
     map_type : str
@@ -319,12 +397,12 @@ def calculate_resolution_map(WF, inverter, window, maxiter, map_type='pitch',
     # gyroradius for x and pitch for y
     r_values = WF.y.values
     p_values = WF.x.values
+    
+    r_liminf = r_values [r_values >= domain[2]]
+    p_liminf = p_values[p_values >= domain[0]]
 
-    r_liminf = r_values [r_values >= window[2]]
-    p_liminf = p_values[p_values >= window[0]]
-
-    r_selected = r_liminf[r_liminf <= window[3]]
-    p_selected = p_liminf[p_liminf <= window[1]]
+    r_selected = r_liminf[r_liminf <= domain[3]]
+    p_selected = p_liminf[p_liminf <= domain[1]]
 
     resolution_mapXR = xr.DataArray(np.nan*np.empty((len(p_selected), len(r_selected))), 
                                 coords=[('x', p_selected), ('y', r_selected)])
@@ -340,11 +418,19 @@ def calculate_resolution_map(WF, inverter, window, maxiter, map_type='pitch',
                     mu_gyro = [r_selected[gyro_i], r_liminf[gyro_i+k]]
                     mu_pitch = [pitch, pitch]
                     original_distance = r_liminf[gyro_i+k] - r_selected[gyro_i]
+                    sigma_pitch = fits.pitch_sigma.interp(x = mu_pitch[0],
+                                           y = mu_gyro, method = 'slinear') \
+                                  .values.max()
+                    sigma_gyro = fits.gyroradius_sigma.interp(x = mu_pitch[0],
+                                           y = mu_gyro, method = 'slinear') \
+                                  .values.max()
                     resolution = calculate_resolution(WF, mu_gyro, mu_pitch, 
                                                   inverter, maxiter, 
                                                   original_distance, 
                                                   map_type = map_type,  
-                                                  peak_amp=peak_amp)
+                                                  peak_amp=peak_amp,
+                                                  sigma_gyro=sigma_gyro,
+                                                  sigma_pitch=sigma_pitch)
                     k += 1 
                 resolution_mapXR.loc[dict(x=mu_pitch[0], y=mu_gyro[0])] = resolution
                 
@@ -362,17 +448,26 @@ def calculate_resolution_map(WF, inverter, window, maxiter, map_type='pitch',
                     mu_gyro = [gyro, gyro]
                     mu_pitch = [p_selected[pitch_i], p_liminf[pitch_i+k]]
                     original_distance = p_liminf[pitch_i+k] - p_selected[pitch_i]
+                    sigma_pitch = fits.pitch_sigma.interp(x = mu_pitch,
+                                           y = mu_gyro[0], method = 'slinear') \
+                                  .values.max()
+                    sigma_gyro = fits.gyroradius_sigma.interp(x = mu_pitch,
+                                           y = mu_gyro[0], method = 'slinear') \
+                                  .values.max()
                     resolution = calculate_resolution(WF, mu_gyro, mu_pitch, 
                                                   inverter, maxiter, 
                                                   original_distance, 
                                                   map_type=map_type,
-                                                  peak_amp=peak_amp)
+                                                  peak_amp=peak_amp,
+                                                  sigma_gyro=sigma_gyro,
+                                                  sigma_pitch=sigma_pitch)
                     k += 1
                 resolution_mapXR.loc[dict(x=mu_pitch[0], y=mu_gyro[0])] = resolution
 
 
     
     return resolution_mapXR
+
 
 def resolution_principle(xk, x_coord, y_coord, pitch_map, gyro_map, peak_amp):
     '''
@@ -384,10 +479,17 @@ def resolution_principle(xk, x_coord, y_coord, pitch_map, gyro_map, peak_amp):
     ----------
         xHat: xarray.DataArray
             Wave function.
+        x_coord: np.array
+            Contains the pitch coordinate values of the pinhole
+        y_coord: np.array
+            Contains the gyro coordinate values of the pinhole
         pitch_map : xarray.DataArray
             Pitch resolution map.
         gyro_map : xarray.DataArray
             Gyroscalar resolution map.
+        peak_amp: float
+            Threshold for peaks relative intensity with respect to the 
+            maximum value of the reconstruction
 
     '''
     x_size = len(x_coord)
@@ -395,37 +497,69 @@ def resolution_principle(xk, x_coord, y_coord, pitch_map, gyro_map, peak_amp):
     # xk2D = np.zeros((x_size, y_size))
     xk2D = matrix.restore_array2D(xk, x_size, y_size)
 
-    xHat = xr.DataArray(xk2D, dims=('x', 'y'),
+    xHat = xr.DataArray(xk2D*(1/xk2D.max()), dims=('x', 'y'),
                          coords={'x': x_coord, 'y': y_coord})
 
 
     # Get peaks
-    peaks, _ = get_peaks_connected_components(xHat, peak_amplitude=peak_amp)
-
+    peaks, _, _ = get_peaks_connected_components(xHat, peak_amp=peak_amp)
     if len(peaks) < 2:
         return False
     
-    conditionPitch = True
-    conditionGyro = True
+    
+    # Two conditions are set: for pitch and for gyro
+    # If conditions are False then peaks are enough 
+    # separated and the iterations can continue
 
+    # Checking distance in pitch of the detected peaks is above the resolution
     sort_pitch = sorted(peaks, key=lambda x: (x[0]))
-    separationPitch = np.abs(np.diff(sort_pitch, axis=0))[:,0]        
-    for p_i in np.arange(len(separationPitch)):
+    separationPitch_P = np.abs(np.diff(sort_pitch, axis=0))[:,0]  
+    separationPitch_G = np.abs(np.diff(sort_pitch, axis=0))[:,1]   
+    conditionPitch = np.empty(len(separationPitch_P))
+
+    for p_i in np.arange(len(separationPitch_P)):
         p = sort_pitch[p_i]
+        gyro_res = gyro_map.sel(x = p[0], y = p[1], method = 'nearest') \
+                            .values.tolist()
         pitch_res = pitch_map.sel(x = p[0], y = p[1], method = 'nearest') \
                              .values.tolist()
-        conditionPitch = conditionPitch & (pitch_res >= separationPitch[p_i])
+        
+        if (pitch_res >= separationPitch_P[p_i]):
+            # The points are below the gyroscalar resolution
+            # Check if they are enough separated in pitch
+            if (gyro_res < separationPitch_G[p_i]):
+                conditionPitch[p_i] = False
+            else:
+                conditionPitch[p_i] =  True
+        else:
+            conditionPitch[p_i] =  False
 
+    # Checking distance in gyro of the detected peaks is above the resolution
     sort_gyro = sorted(peaks, key=lambda x: (x[1]))
-    separationGyro = np.abs(np.diff(sort_gyro, axis=0))[:,1]
-    for p_i in np.arange(len(separationGyro)):
-        gyro_res = gyro_map.sel(x = p[0], y = p[1], method = 'nearest') \
-                           .values.tolist()
-        conditionGyro = conditionGyro and (gyro_res >= separationGyro[p_i])
+    separationGyro_P = np.abs(np.diff(sort_gyro, axis=0))[:,0]
+    separationGyro_G = np.abs(np.diff(sort_gyro, axis=0))[:,1]
+    conditionGyro = np.empty(len(separationGyro_G))
     
-    condition = conditionGyro or conditionPitch
-    print('Condition ', condition)
+    for p_i in np.arange(len(separationGyro_G)):
+        p = sort_gyro[p_i]
+        gyro_res = gyro_map.sel(x = p[0], y = p[1], method = 'nearest') \
+                            .values.tolist()
+        pitch_res = pitch_map.sel(x = p[0], y = p[1], method = 'nearest') \
+                            .values.tolist()
+        
+        if (gyro_res >= separationGyro_G[p_i]):
+            # The points are below the gyroscalar resolution
+            # Check if they are enough separated in pitch
+            if (pitch_res < separationGyro_P[p_i]):
+                conditionGyro[p_i] =  False
+            else:
+                conditionGyro[p_i] = True
+        else:
+            conditionGyro[p_i] = False
+    
+    condition = any(conditionGyro) or any(conditionPitch)
     return condition
+ 
 
 
                 
