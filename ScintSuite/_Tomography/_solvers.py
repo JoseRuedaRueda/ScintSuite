@@ -87,17 +87,25 @@ def nnlsq(X, y, **kargs):
     res = residual(y_pred, y)
     return beta, MSE, res, r2
 
-def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam,
-                             x_coord, y_coord, window, **kargs):
+def kaczmarz_solve(W, y, x0, maxiter, pitch_map, gyro_map,
+                             resolution, peak_amp, damp, tol, relaxParam,
+                             x_coord, y_coord, window,
+                              control_iters = 100, **kargs):
         """
         Perform kaczmarz algorithm.
 
         Marina Jimenez Comez: mjimenez37@us.es
 
-        :param  W: Design matrix
+        :param  W: Weigth matrix
         :param  y: signal
         :param x0: initial guess
+        :param  pitch_map: Pitch resolution map
+        :param  gyro_map: Gyroscalar resolution map
         :param  maxiter: maximum number of iterations to perform
+        :param  resolution: boolean. If True, the algorithm will stop when
+                            the resolution principle is satisfied or when the
+                            control number of iterations is reached.
+        :param  peak_amp: Peak amplitude threshold for the resolution principle
         :param  damp: damping factor
         :param  tol: tolerance
         :param  relaxParam: relaxation parameter
@@ -106,12 +114,32 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam,
         :param  window: Region of interest. All values outside the 
                         window are set to zero. The window is defined as
                         [x_min, x_max, y_min, y_max]. X and Y are the  
-                        pitch and gyroscalar coordinates, respectively.
+                        pitch and gyroscalar coordinates, respectively
+        :param  control_iters: number of iterations to control maximum number of
+                        iterations done when using the resolution principle.
         :param  *kargs: arguments for the coordinate descent algorithm
 
+        :return xk_output: output of the algorithm for each iteration set to save
         :return MSE: Mean squared error
+        :return res: Residual
         :return r2: R2 score
+        :return duration: time taken for after each iteration
+        :return maxiter: numbers of the iterations that were saved
         """
+
+        if resolution:
+            
+            if pitch_map is None:
+                raise ValueError("pitch_map cannot be empty if resolution is True")
+            
+            if gyro_map is None:
+                raise ValueError("gyro_map cannot be empty if resolution is True")
+            
+            if maxiter is not None:
+                raise ValueError("maxiter cannot be defined if resolution is True")
+           
+            maxiter = np.array([control_iters])
+
         # Start time
         timeStart = time.time()
         timeEnd = np.zeros(len(maxiter))
@@ -175,19 +203,26 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam,
 
             # Truncate the output so that we just keep values inside 
             # the signal region
-            # Save the output and end time
             if window is not None:
                 xk = apply_window2(xk, x_coord.values, y_coord.values, window)
 
+            if resolution: 
+                resP_boolean = resP.resolution_principle(xk, x_coord, y_coord,
+                                                      pitch_map, gyro_map, 
+                                                      peak_amp)
+                if resP_boolean:
+                    maxiter = np.array([k])
+                    maxK = maxiter.max()
+            
+            rk = y - W @ xk
+            stop_loop = stopping_criterion(k, rk, maxK, tol)
 
+            # Save the output and time
             if k in maxiter:
                 xk_output[:,num_exec] = xk
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
-                
 
-            rk = y - W @ xk
-            stop_loop = stopping_criterion(k, rk, maxK, tol)
 
         # Calculated performance metrics
         MSE = np.zeros(len(maxiter))
@@ -202,7 +237,7 @@ def kaczmarz_solve(W, y, x0, maxiter, damp, tol, relaxParam,
             duration[i] = timeEnd[i] - timeStart
 
 
-        return xk_output, MSE, res, r2, duration
+        return xk_output, MSE, res, r2, duration, maxiter
 
 def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
                              resolution, peak_amp, damp, tol, relaxParam,
@@ -213,10 +248,16 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
 
         Marina Jimenez Comez: mjimenez37@us.es
 
-        :param  W: Design matrix
+        :param  W: Weigth matrix
         :param  y: signal
         :param x0: initial guess
+        :param  pitch_map: Pitch resolution map
+        :param  gyro_map: Gyroscalar resolution map
         :param  maxiter: maximum number of iterations to perform
+        :param  resolution: boolean. If True, the algorithm will stop when
+                            the resolution principle is satisfied or when the
+                            control number of iterations is reached.
+        :param  peak_amp: Peak amplitude threshold for the resolution principle
         :param  damp: damping factor
         :param  tol: tolerance
         :param  relaxParam: relaxation parameter
@@ -225,11 +266,18 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
         :param  window: Region of interest. All values outside the 
                         window are set to zero. The window is defined as
                         [x_min, x_max, y_min, y_max]. X and Y are the  
-                        pitch and gyroscalar coordinates, respectively.
+                        pitch and gyroscalar coordinates, respectively
+        :param  control_iters: number of iterations to control maximum number of
+                        iterations done when using the resolution principle.
         :param  *kargs: arguments for the coordinate descent algorithm
 
+        :return xk_output: output of the algorithm for each iteration set to save
         :return MSE: Mean squared error
+        :return res: Residual
         :return r2: R2 score
+        :return duration: time taken for after each iteration
+        :return maxiter: numbers of the iterations that were saved
+
         """
 
         if resolution:
@@ -321,6 +369,8 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
                     else:
                         F[j] = 1
             if window is not None:
+                # Truncate the output so that we just keep values inside 
+                # the signal region
                 xk = apply_window2(xk, x_coord.values, y_coord.values, window)
 
             if resolution: 
@@ -333,14 +383,10 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
 
             stop_loop = stopping_criterion(k, rk, maxK, tol)           
 
-            # Truncate the output so that we just keep values inside 
-            # the signal region
-            # Save the output and end time
-
+            
+            # Save the output and time
             if k in maxiter:        
-                xk_output[:,num_exec] = xk
-                
-
+                xk_output[:,num_exec] = xk            
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
                 
@@ -361,17 +407,25 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
 
         return xk_output, MSE, res, r2, duration, maxiter
 
-def cimmino_solve(W, y, x0, maxiter, damp, tol, relaxParam,
-                             x_coord, y_coord, window, **kargs):
+def cimmino_solve(W, y, x0, maxiter, pitch_map, gyro_map,
+                             resolution, peak_amp, damp, tol, relaxParam,
+                             x_coord, y_coord, window,
+                              control_iters = 100, **kargs):
         """
         Perform kaczmarz algorithm.
 
         Marina Jimenez Comez: mjimenez37@us.es
 
-        ::param  W: Design matrix
+        :param  W: Weigth matrix
         :param  y: signal
         :param x0: initial guess
+        :param  pitch_map: Pitch resolution map
+        :param  gyro_map: Gyroscalar resolution map
         :param  maxiter: maximum number of iterations to perform
+        :param  resolution: boolean. If True, the algorithm will stop when
+                            the resolution principle is satisfied or when the
+                            control number of iterations is reached.
+        :param  peak_amp: Peak amplitude threshold for the resolution principle
         :param  damp: damping factor
         :param  tol: tolerance
         :param  relaxParam: relaxation parameter
@@ -380,12 +434,32 @@ def cimmino_solve(W, y, x0, maxiter, damp, tol, relaxParam,
         :param  window: Region of interest. All values outside the 
                         window are set to zero. The window is defined as
                         [x_min, x_max, y_min, y_max]. X and Y are the  
-                        pitch and gyroscalar coordinates, respectively.
+                        pitch and gyroscalar coordinates, respectively
+        :param  control_iters: number of iterations to control maximum number of
+                        iterations done when using the resolution principle.
         :param  *kargs: arguments for the coordinate descent algorithm
 
+        :return xk_output: output of the algorithm for each iteration set to save
         :return MSE: Mean squared error
+        :return res: Residual
         :return r2: R2 score
+        :return duration: time taken for after each iteration
+        :return maxiter: numbers of the iterations that were saved
         """
+
+        if resolution:
+            
+            if pitch_map is None:
+                raise ValueError("pitch_map cannot be empty if resolution is True")
+            
+            if gyro_map is None:
+                raise ValueError("gyro_map cannot be empty if resolution is True")
+            
+            if maxiter is not None:
+                raise ValueError("maxiter cannot be defined if resolution is True")
+           
+            maxiter = np.array([control_iters])
+
 
         # Start time
         timeStart = time.time()
@@ -444,18 +518,26 @@ def cimmino_solve(W, y, x0, maxiter, damp, tol, relaxParam,
         
             # Truncate the output so that we just keep values inside 
             # the signal region
-            # Save the output and end time
             if window is not None:
                 xk = apply_window2(xk, x_coord.values, y_coord.values, window)
 
+            if resolution: 
+                resP_boolean = resP.resolution_principle(xk, x_coord, y_coord,
+                                                      pitch_map, gyro_map, 
+                                                      peak_amp)
+                if resP_boolean:
+                    maxiter = np.array([k])
+                    maxK = maxiter.max()
+            
+            rk = y - W @ xk
+            stop_loop = stopping_criterion(k, rk, maxK, tol)
+            
+            # Save the output and time
             if k in maxiter:
                 xk_output[:,num_exec] = xk
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
-                
-
-            rk = y - W @ xk
-            stop_loop = stopping_criterion(k, rk, maxK, tol)
+ 
         
 
         # Calculated performance metrics
@@ -471,7 +553,7 @@ def cimmino_solve(W, y, x0, maxiter, damp, tol, relaxParam,
             duration[i] = timeEnd[i] - timeStart
 
 
-        return xk_output, MSE, res, r2, duration
+        return xk_output, MSE, res, r2, duration, maxiter
 
 def apply_window(xk, x_coord, y_coord, window):
 

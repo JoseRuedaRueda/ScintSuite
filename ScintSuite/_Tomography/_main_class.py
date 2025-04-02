@@ -210,34 +210,76 @@ class Tomography():
         self.inversion['nnlsq']['r2'] = xr.DataArray(r2)
         self.inversion['nnlsq']['residual'].attrs['long_name'] = '$r^2$'
 
-    def kaczmarz_solve(self, x0, iterations, window = None, 
-                       damp = None, tol = None, 
-                       relaxParam = 1, **kargs) -> None:
+    def kaczmarz_solve(self, x0, iterations = None, window = None,
+                                 pitch_map = None, gyro_map = None,
+                                 resolution = False, peak_amp = 0.15,
+                                 damp = None, tol = None, 
+                                 relaxParam = 1, control_iters = 100,
+                                 **kargs) -> None:
         """
         Perform kaczmarz algorithm
 
         Marina Jimenez Comez: mjimenez37@us.es
 
+        :param x0: initial guess for the algorithm solution. Can be initialised
+        as 1D array of zeros with the same size as the number of pixels in the pinhole
+
         :param iterations: number of iterations that the user wants the 
-        algorithmn to perform
+        algorithmn to perform. This is valid only if the resolution flag is set to False
+        
+        :param window: area of the signal domain. The solution will be projected 
+        onto this region
+
+        :param pitch_map: 2D array with the pitch map. Only neded if the resolution
+        flag is set to True
+
+        :param gyro_map: 2D array with the gyro map. Only neded if the resolution
+        flag is set to True
+
+        :param resolution: if True, the algorithm will be performed using the
+        resolution principle as stoping criteria. If False, the algorithm will be
+        stoped when the maximum number of iterations is reached
+
+        :param peak_amp: maximum amplitude of the signal that can be used for the 
+        resolution principle. Only needed if the resolution flag is set to True
+
+        :param damp: damping factor for the algorithm equation.
+
+        :param tol: tolerance for the algorithm. If the difference between two 
+        consecutive iterations is smaller than this value, the algorithm will be
+        stoped. If None, the algorithm will be stoped when the maximum number of
+        iterations is reached
+
+        :param relaxParam: relaxation parameter for the algorithm.
+
+        :param control_iters: number of iterations to do as maximum when the 
+        resolution principle is used
+        
         :param  **kargs: extra arguments 
         """
         # --- Ensure we have an array or iterable:
-        if isinstance(iterations, (list, np.ndarray)):
-            numIter = iterations
-        else:
-            numIter = np.array([iterations])
-        n_execution = len(numIter)
+        n_execution = 1
+        if iterations is not None:
+            if not isinstance(iterations, (list, np.ndarray)):
+                iterations = np.array([iterations])
+            n_execution = len(iterations)
+
         # --- Perform the algorithm
         logger.info('Performing kaczmarz algorithm')
-        x_hat, MSE, res, r2, time = \
-                solvers.kaczmarz_solve(self.W2D, self.s1D, x0, maxiter = numIter,
-                                       damp = damp, tol = tol, 
-                                       relaxParam = relaxParam,
-                                        x_coord = self.W['x'], 
-                                        y_coord = self.W['y'],
-                                        window = window, 
-                                        **kargs)
+        x_hat, MSE, res, r2, time, alphas = \
+                solvers.kaczmarz_solve(self.W2D, self.s1D, x0,
+                                                  maxiter = iterations,
+                                                  pitch_map = pitch_map,
+                                                  gyro_map = gyro_map,
+                                                  resolution = resolution,
+                                                  peak_amp = peak_amp,
+                                                  damp = damp, tol = tol, 
+                                                  relaxParam = relaxParam, 
+                                                  control_iters = control_iters,
+                                                  x_coord = self.W['x'], 
+                                                  y_coord = self.W['y'],
+                                                  window = window,
+                                                  **kargs)
         # --- reshape the coefficients
         logger.info('Reshaping prediction')
         x_hat_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_execution))
@@ -249,7 +291,7 @@ class Tomography():
         self.inversion['kaczmarz'] = xr.Dataset()
         self.inversion['kaczmarz']['F'] = xr.DataArray(
                 x_hat_shaped, dims=('x', 'y','alpha'),
-                coords={'x': self.W['x'], 'y': self.W['y'], 'alpha': numIter}
+                coords={'x': self.W['x'], 'y': self.W['y'], 'alpha': alphas}
         )
         self.inversion['kaczmarz']['F'].attrs['long_name'] = 'FI distribution'
         self.inversion['kaczmarz']['alpha'].attrs['long_name'] = 'alpha'
@@ -277,9 +319,41 @@ class Tomography():
 
         Marina Jimenez Comez: mjimenez37@us.es
 
+        :param x0: initial guess for the algorithm solution. Can be initialised
+        as 1D array of zeros with the same size as the number of pixels in the pinhole
+
         :param iterations: number of iterations that the user wants the 
-        algorithmn to perform
-        :param  **kargs: extra arguments 
+        algorithmn to perform. This is valid only if the resolution flag is set to False
+        
+        :param window: area of the signal domain. The solution will be projected 
+        onto this region
+
+        :param pitch_map: 2D array with the pitch map. Only neded if the resolution
+        flag is set to True
+
+        :param gyro_map: 2D array with the gyro map. Only neded if the resolution
+        flag is set to True
+
+        :param resolution: if True, the algorithm will be performed using the
+        resolution principle as stoping criteria. If False, the algorithm will be
+        stoped when the maximum number of iterations is reached
+
+        :param peak_amp: maximum amplitude of the signal that can be used for the 
+        resolution principle. Only needed if the resolution flag is set to True
+
+        :param damp: damping factor for the algorithm equation.
+
+        :param tol: tolerance for the algorithm. If the difference between two 
+        consecutive iterations is smaller than this value, the algorithm will be
+        stoped. If None, the algorithm will be stoped when the maximum number of
+        iterations is reached
+
+        :param relaxParam: relaxation parameter for the algorithm.
+
+        :param control_iters: number of iterations to do as maximum when the 
+        resolution principle is used
+        
+        :param  **kargs: extra arguments  
         """
 
         # --- Ensure we have an array or iterable:
@@ -334,32 +408,73 @@ class Tomography():
         self.inversion['descent']['time'].attrs['long_name'] = '$t (s)$'
 
 
-    def cimmino_solve(self, x0, iterations, window = None,
-                       damp = None, tol = None, 
-                       relaxParam = 1, **kargs) -> None:
+    def cimmino_solve(self, x0, iterations = None, window = None,
+                                 pitch_map = None, gyro_map = None,
+                                 resolution = False, peak_amp = 0.15,
+                                  damp = None, tol = None, 
+                                  relaxParam = 1, control_iters = 100,
+                                    **kargs) -> None:
         """
         Perform cimmino algorithm
 
         Marina Jimenez Comez: mjimenez37@us.es
 
+        :param x0: initial guess for the algorithm solution. Can be initialised
+        as 1D array of zeros with the same size as the number of pixels in the pinhole
+
         :param iterations: number of iterations that the user wants the 
-        algorithmn to perform
-        :param  **kargs: extra arguments 
+        algorithmn to perform. This is valid only if the resolution flag is set to False
+        
+        :param window: area of the signal domain. The solution will be projected 
+        onto this region
+
+        :param pitch_map: 2D array with the pitch map. Only neded if the resolution
+        flag is set to True
+
+        :param gyro_map: 2D array with the gyro map. Only neded if the resolution
+        flag is set to True
+
+        :param resolution: if True, the algorithm will be performed using the
+        resolution principle as stoping criteria. If False, the algorithm will be
+        stoped when the maximum number of iterations is reached
+
+        :param peak_amp: maximum amplitude of the signal that can be used for the 
+        resolution principle. Only needed if the resolution flag is set to True
+
+        :param damp: damping factor for the algorithm equation.
+
+        :param tol: tolerance for the algorithm. If the difference between two 
+        consecutive iterations is smaller than this value, the algorithm will be
+        stoped. If None, the algorithm will be stoped when the maximum number of
+        iterations is reached
+
+        :param relaxParam: relaxation parameter for the algorithm.
+
+        :param control_iters: number of iterations to do as maximum when the 
+        resolution principle is used
+        
+        :param  **kargs: extra arguments  
         """
 
         # --- Ensure we have an array or iterable:
-        if isinstance(iterations, (list, np.ndarray)):
-            numIter = iterations
-        else:
-            numIter = np.array([iterations])
-        n_execution = len(numIter)
+        n_execution = 1
+        if iterations is not None:
+            if not isinstance(iterations, (list, np.ndarray)):
+                iterations = np.array([iterations])
+            n_execution = len(iterations)
+
         # --- Perform the algorithm
         logger.info('Performing cimmino algorithm')
-        x_hat, MSE, res, r2, time = \
+        x_hat, MSE, res, r2, time, alphas = \
                 solvers.cimmino_solve(self.W2D, self.s1D, x0,
-                                                  maxiter = numIter,
+                                                  maxiter = iterations,
+                                                  pitch_map = pitch_map,
+                                                  gyro_map = gyro_map,
+                                                  resolution = resolution,
+                                                  peak_amp = peak_amp,
                                                   damp = damp, tol = tol, 
                                                   relaxParam = relaxParam, 
+                                                  control_iters = control_iters,
                                                   x_coord = self.W['x'], 
                                                   y_coord = self.W['y'],
                                                   window = window,
@@ -375,7 +490,7 @@ class Tomography():
         self.inversion['cimmino'] = xr.Dataset()
         self.inversion['cimmino']['F'] = xr.DataArray(
                 x_hat_shaped, dims=('x', 'y','alpha'),
-                coords={'x': self.W['x'], 'y': self.W['y'], 'alpha': numIter}
+                coords={'x': self.W['x'], 'y': self.W['y'], 'alpha': alphas}
         )
         self.inversion['cimmino']['F'].attrs['long_name'] = 'FI distribution'
         self.inversion['cimmino']['alpha'].attrs['long_name'] = 'alpha'
