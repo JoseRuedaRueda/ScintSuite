@@ -275,8 +275,8 @@ class INPAVideo(FIV):
             if self.BField['BR'].size != nt:
                 logger.info('Need to recalculate the magnetic field')
                 self._getB(self.BFieldOptions, use_average=use_avg)
-            if self.Bangles['phi'].size != nt:
-                self._getBangles()
+            if self.Bangles['phi'].size != nt: 
+                self._getBangles(use_average=use_avg)
         self.remap_dat = \
             ssmap.remapAllLoadedFramesINPA(self, **options)
         # Calculate the integral of the remap

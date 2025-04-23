@@ -431,7 +431,7 @@ class Fsmap(FILDINPA_Smap):
         return
     
 
-    def build_parameters_xarray(self):
+    def build_parameters_xarray(self,calculate_uncertainties=False):
         """
         Put all the fitting parameters into an xarray and WF
 
@@ -442,7 +442,7 @@ class Fsmap(FILDINPA_Smap):
             logger.info('Strikes not loaded, loading')
             self.load_strike_points()
         if self._resolutions is None:
-            self.calculate_phase_space_resolution()
+            self.calculate_phase_space_resolution(calculate_uncertainties=calculate_uncertainties)
 
         # --- Get the names / models of the variables
         names = [self._resolutions['variables'][k].name for k in range(2)]
@@ -463,6 +463,10 @@ class Fsmap(FILDINPA_Smap):
 
         # --- Build the dataset
         self._resolutions['fit_xarrays'] = xr.Dataset(coords={'x':xcoords,'y':ycoords})
+        self._resolutions['fit_xarrays'].coords['y'].attrs['long_name'] = 'Gyroradius'
+        self._resolutions['fit_xarrays'].coords['y'].attrs['units'] = 'cm'   
+        self._resolutions['fit_xarrays'].coords['x'].attrs['long_name'] = 'Pitch'
+        self._resolutions['fit_xarrays'].coords['x'].attrs['units'] = 'º'    
         for i in range(2):
             name = names[i]
             model = models[i]
@@ -471,4 +475,17 @@ class Fsmap(FILDINPA_Smap):
                 self._resolutions['fit_xarrays'][name+'_'+j] = (['x','y'],dummy)
         self._resolutions['fit_xarrays']['coll_factor'] = (['x','y'],
                                           self('collimator_factor_matrix'))
+        
+
+        # --- Add uncs if they exist
+        try:
+            self._resolutions['unc_xarrays'] = xr.Dataset(coords={'x':xcoords,'y':ycoords})
+            for i in range(2):
+                name = names[i]
+                model = models[i]
+                for j in parameters_to_consider[model]:
+                    dummy = self._resolutions['unc_'+name][j]
+                    self._resolutions['unc_xarrays'][name+'_'+j] = (['x','y'],dummy)
+        except:
+            pass
         
