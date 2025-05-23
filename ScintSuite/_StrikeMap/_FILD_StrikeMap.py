@@ -431,7 +431,8 @@ class Fsmap(FILDINPA_Smap):
         return
     
 
-    def build_parameters_xarray(self,calculate_uncertainties=False):
+    def build_parameters_xarray(self, calculate_uncertainties=False,
+                                 verbose: bool = False):
         """
         Put all the fitting parameters into an xarray and WF
 
@@ -440,9 +441,10 @@ class Fsmap(FILDINPA_Smap):
         # --- Check the StrikeMap
         if self.strike_points is None:
             logger.info('Strikes not loaded, loading')
-            self.load_strike_points()
+            self.load_strike_points(verbose=verbose)
         if self._resolutions is None:
-            self.calculate_phase_space_resolution(calculate_uncertainties=calculate_uncertainties)
+            self.calculate_phase_space_resolution(calculate_uncertainties=calculate_uncertainties,
+                                                  verbose=verbose)
 
         # --- Get the names / models of the variables
         names = [self._resolutions['variables'][k].name for k in range(2)]
