@@ -64,10 +64,18 @@ def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal: CalParams):
         #             zero (see below)
         # Perform the undistorted transformation
         alpha = cal.deg * np.pi / 180
-        xpixel = (np.cos(alpha) * x - np.sin(alpha) * y) * cal.xscale + \
-            cal.xshift
-        ypixel = (np.sin(alpha) * x + np.cos(alpha) * y) * cal.yscale + \
-            cal.yshift
+        if cal.type.lower() != 'scint':
+            xpixel = (np.cos(alpha) * x - np.sin(alpha) * y) * cal.xscale + \
+                cal.xshift
+            ypixel = (np.sin(alpha) * x + np.cos(alpha) * y) * cal.yscale + \
+                cal.yshift
+        else:
+            xpixel = (np.cos(alpha) * x * cal.xscale 
+                      - np.sin(alpha) * y * cal.yscale) + \
+                cal.xshift
+            ypixel = (np.sin(alpha) * x * cal.xscale 
+                      + np.cos(alpha) * y * cal.yscale ) + \
+                cal.yshift
         # Apply the distortion
         if abs(cal.c1) > eps:
             xp = xpixel - cal.xcenter

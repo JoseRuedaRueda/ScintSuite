@@ -338,36 +338,36 @@ class TimeTrace(BasicSignalVariable):
             line_options['label'] = self._ROIname
         # --- Select the proper data:
         if data == 'sum':
-            y = self['sum_of_roi'].values.copy()
+            y = self['sum_of_roi'].copy()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = 'Counts [a.u.]'
                 else:
                     ax_params['ylabel'] = 'Counts'
         elif data == 'std':
-            y = self['std_of_roi'].values.copy()
+            y = self['std_of_roi'].copy()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = '$\\sigma [a.u.]$'
                 else:
                     ax_params['ylabel'] = '$\\sigma$'
         elif data == 'mean/absmax':
-            y = self['mean_of_roi'].values.copy() \
-                / self['max_of_roi'].values.max()
+            y = self['mean_of_roi'].copy() \
+                / self['max_of_roi'].max()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = '$Mean/absmax [a.u.]$'
                 else:
                     ax_params['ylabel'] = '$Mean/absmax$'
         elif data == 'max':
-            y = self['max_of_roi'].values.copy()
+            y = self['max_of_roi'].copy()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = '$Max$'
                 else:
                     ax_params['ylabel'] = '$Max [a.u.]$'
         else:
-            y = self['mean_of_roi'].values.copy()
+            y = self['mean_of_roi'].copy()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = 'Mean [a.u.]'
@@ -399,7 +399,7 @@ class TimeTrace(BasicSignalVariable):
         else:
             created_ax = False
         line_options.update(line_params)
-        ax.plot(self['t'], y, **line_options)
+        ax.plot(self['t'], y.values, **line_options)
         ax_options.update(ax_params)
         ax = ssplt.axis_beauty(ax, ax_options)
 

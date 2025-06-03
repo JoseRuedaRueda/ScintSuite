@@ -82,13 +82,19 @@ class SAWc():
             invAspRat2 = inv_asp_rat**2.0
 
             # --- Transforming the inputs into vectors:
-            ntor = np.atleast_1d(self.ntor)
+            ntor = np.abs(np.atleast_1d(self.ntor))
             mpol = np.atleast_1d(self.mpol)
 
             # --- Generating output:
             gqq, gmm = np.meshgrid(qpsi, mpol)
             grr, gmm = np.meshgrid(rpsi, mpol)
-
+            # Print some info
+            logger.debug('gqq shape: %s', gqq.shape)
+            logger.debug('gmm shape: %s', gmm.shape)
+            logger.debug('grr shape: %s', grr.shape)
+            logger.debug('gmm shape: %s', gmm.shape)
+            logger.debug('Rmajor shape: %s', Rmajor.shape)
+            
             # omega_max = np.zeros([len(rpsi), len(mpol)-1, len(ntor)])
             # omega_min = np.zeros([len(rpsi), len(ntor)])
             if jt == 0:
@@ -209,8 +215,11 @@ class SAWc():
         # Ax beauty
         if created:
             ax.set_ylabel('Freq. [%s]'%units)
-            ax.set_xlabel(self.data.rho.long_name)
-            ax.set_ylim(0, 1.75*self.data.fMin.mean()*factors[units])
+            try:
+                ax.set_xlabel(self.data.rho.long_name)
+            except AttributeError:
+                ax.set_xlabel(r'$\rho$')
+            ax.set_ylim(0, 1.75*self.data.fMin.max()*factors[units])
         else:
             ax.set_xlim(oldXlim)
             ax.set_ylim(oldYlim)
@@ -238,35 +247,160 @@ class MHDmode():
 
     def __init__(self, shot: int = 41091, mi=2.013*cnt.m_u,
                  loadTi: bool = True, calcNi: bool = True,
-                 Zimp: float = 6.0):
-
+                 Zimp: float = 6.0, 
+                 profiles: Optional[xr.Dataset] = None,
+                 omfitFile: Optional[str] = None,
+                 q_prof_options: dict = {}):
+        """
+        """
+        self.shot = shot
+        self.mi = mi
+        self.loadTi = loadTi
+        self.calcNi = calcNi
+        self.Zimp = Zimp
         
-        # --- Densities
-        self._ne = ssdat.get_ne(shot, xArrayOutput=True)
-        # See if there is Zeff information
-        if calcNi:
+        if profiles is not None and omfitFile is not None:
+            raise ValueError('Only one of profiles or omfitFile can be used')
+        
+        if profiles is not None:
+            self._read_from_database(q_prof_options=q_prof_options) # Read first eveything from the database
+            # Then overwrite the profiles
+            logger.debug('Using profiles: %s', profiles)
+            self._read_profiles(profiles)
+        elif omfitFile is not None:
+            logger.debug('Using omfitFile: %s', omfitFile)
+            self._read_from_database(q_prof_options=q_prof_options) # Read first eveything from the database
+            self._read_omfit(omfitFile)
+        else:
+            self._read_from_database()
+        # Interpolate all in the density base
+        self._ni = self._ni.interp(t=self._ne['t'], rho=self._ne['rho'],
+                                  method="linear")
+        self._te = self._te.interp(t=self._ne['t'], rho=self._ne['rho'],
+                                      method="linear")
+        self._ti = self._ti.interp(t=self._ne['t'], rho=self._ne['rho'],
+                                    method="linear")
+        q_attrs = self._q.attrs.copy()
+        self._q = self._q.interp(t=self._ne['t'], rho=self._ne['rho'],
+                                    method="linear")
+        self._q.attrs.update(q_attrs)
+        
+        if self._rotation is not None:
+            self._rotation = self._rotation.interp(t=self._ne['t'], rho=self._ne['rho'],
+                                               method="linear",
+                                                   kwargs={'fill_value': 0.0})
+        self._R0 = self._R0.interp(t=self._ne['t'], method="linear")
+        self._ahor = self._ahor.interp(t=self._ne['t'], method="linear")
+        self._B0 = self._B0.interp(t=self._ne['t'], method="linear")
+        self._kappa = self._kappa.interp(t=self._ne['t'], method="linear")
+        # --- Precalculate some stuff:
+        if self._B0.data.mean() < 0.0:
+            factor = -1.0
+        else:
+            factor = 1.0
+        self._va0 = factor*self._B0 / np.sqrt(cnt.mu_0 * self.mi * self._ni*1.0e19)
+
+        self._va0 = self._va0.interp(t=self._ne['t'], method="linear",
+                                     rho=self._ne['rho'],)
+        # --- Alocate space for the frequencies
+        self.freq = xr.Dataset()
+        # --- Calculate the frequencies
+        self._calcGAMfreq()
+        self._calcTAEfreq()
+        self._calcEAEfreq()
+        
+    def _read_profiles(self, profiles):
+        if 'ne' in profiles:
+            logger.debug('Using ne from profiles')
+            self._ne['data'] = profiles['ne']
             try:
-                self._zeff = ssdat.get_Zeff(shot)
-                self._zeff = self._zeff.interp(t=self._ne['t'], rho=self._ne['rho'])
+                self._ne['uncertainty'] = profiles['ne_uncertainty']
+            except KeyError:
+                self._ne['uncertainty'] = None
+                pass
+        if 'zeff' in profiles:
+            logger.debug('Using zeff from profiles')
+            self._zeff['data'] = profiles['zeff']
+            try: # Try to get the uncertainty
+                self._zeff['uncertainty'] = profiles['zeff_uncertainty']
+            except KeyError:
+                self._zeff['uncertainty'] = None
+                pass
+            
+            if self.calcNi:
                 self._ni = self._ne.copy()
-                self._ni['data'] = self._ne['data'] * (1.0 - (self._zeff['data'] - 1.0)/(Zimp - 1.0))
+                self._ni['data'] = self._ne['data'] * (1.0 - (self._zeff['data'] - 1.0)/(self.Zimp - 1.0))
                 try: # Try to get the uncertainty
                     self._ni['uncertainty'] = self._ni['data'] * (
                         self._ne['uncertainty']/self._ne['data'] +
-                        1.0/(Zimp - 1.0)/(1.0 - (self._zeff['data'] - 1.0)/(Zimp - 1.0))*self._zeff['uncertainty'])
+                        1.0/(self.Zimp - 1.0)/(1.0 - (self._zeff['data'] - 1.0)/(self.Zimp - 1.0))*self._zeff['uncertainty'])
+                except KeyError:
+                    self._ni['uncertainty'] = None
+                    pass
+                
+        if 'Te' in profiles:
+            logger.debug('Using Te from profiles')
+            self._te['data'] = profiles['Te']
+            try:
+                self._te['uncertainty'] = profiles['Te_uncertainty']
+            except KeyError:
+                self._te['uncertainty'] = None
+                pass
+                
+        if 'Ti' in profiles and self.loadTi:
+            logger.debug('Using Ti from profiles')
+            self._ti['data'] = profiles['Ti']
+            try:
+                self._ti['uncertainty'] = profiles['Ti_uncertainty']
+            except KeyError:
+                self._ti['uncertainty'] = None
+                pass
+        if 'q' in profiles:
+            logger.debug('Using q from profiles')
+            self._q['data'] = profiles['q']
+            try:
+                self._q['uncertainty'] = profiles['q_uncertainty']
+            except KeyError:
+                self._q['uncertainty'] = None
+                pass
+            
+        if 'rotation' in profiles:
+            logger.debug('Using rotation from profiles')
+            self._rotation = profiles['rotation']
+            try:
+                self._rotation['uncertainty'] = profiles['rotation_uncertainty']
+            except KeyError:
+                self._rotation['uncertainty'] = None
+                pass
+            
+    def _read_from_database(self, q_prof_options={}):
+        # --- Densities
+        self._ne = ssdat.get_ne(self.shot, xArrayOutput=True)
+        # See if there is Zeff information
+        if self.calcNi:
+            try:
+                self._zeff = ssdat.get_Zeff(self.shot)
+                self._zeff = self._zeff.interp(t=self._ne['t'], rho=self._ne['rho'])
+                self._ni = self._ne.copy()
+                self._ni['data'] = self._ne['data'] * (1.0 - (self._zeff['data'] - 1.0)/(self.Zimp - 1.0))
+                try: # Try to get the uncertainty
+                    self._ni['uncertainty'] = self._ni['data'] * (
+                        self._ne['uncertainty']/self._ne['data'] +
+                        1.0/(self.Zimp - 1.0)/(1.0 - (self._zeff['data'] - 1.0)/(self.Zimp - 1.0))*self._zeff['uncertainty'])
                 except KeyError:
                     pass
             except errors.DatabaseError:
                 logger.warning('Using ni=ne, no Zeff found in database')
+                self._zeff = None
                 self._ni = self._ne.copy()
         else: 
             self._ni = self._ne.copy()
 
         # --- Temperatures:
-        self._te = ssdat.get_Te(shot, xArrayOutput=True)
-        if loadTi:
+        self._te = ssdat.get_Te(self.shot, xArrayOutput=True)
+        if self.loadTi:
             try:
-                self._ti = ssdat.get_Ti(shot,
+                self._ti = ssdat.get_Ti(self.shot,
                                         xArrayOutput=True)
             except:
                 logger.warning('XX: Not func Ti, using Te=Ti')
@@ -274,9 +408,13 @@ class MHDmode():
         else:
             self._ti = self._te.copy()
         # --- q-profile:
-        self._q = ssdat.get_q_profile(shot, rho=self._ne.rho.values, xArrayOutput=True,)
+        if 'shot' not in q_prof_options:
+            self._q = ssdat.get_q_profile(self.shot, rho=self._ne.rho.values, xArrayOutput=True,input_coords='rho_tor', **q_prof_options)
+        else:
+            self._q = ssdat.get_q_profile(rho=self._ne.rho.values, xArrayOutput=True,input_coords='rho_tor', **q_prof_options)
+        self._q['data'].values[np.isnan(self._q['data'].values)] = 0.0
         # --- Other data:
-        self._basic = ssdat.get_shot_basics(shot)
+        self._basic = ssdat.get_shot_basics(self.shot)
         self._R0 = xr.Dataset()
         self._R0['data'] = xr.DataArray(
             self._basic['Rmag'], dims='t',
@@ -295,20 +433,13 @@ class MHDmode():
             coords={'t': self._basic['bttime']})
         # ---- Plasma rotation
         try:
-            self._rotation = ssdat.get_tor_rotation(shot, xArrayOutput=True)
+            self._rotation = ssdat.get_tor_rotation(self.shot, xArrayOutput=True)
         except errors.DatabaseError:
-            self._rotation = None
-        else:
             self._rotation = None
             logger.warning('Not found toroidal rotation, no doppler shift')
         # --- Now interpolate everything in the time/rho basis of ne
         # self._ni = self._ni.interp(t=self._ne['t'], rho=self._ne['rho'],
         #                            method="linear")
-        self._te = self._te.interp(t=self._ne['t'], rho=self._ne['rho'],
-                                   method="linear")
-
-        self._ti = self._ti.interp(t=self._ne['t'], rho=self._ne['rho'],
-                                   method="linear")
         # Put the temperatures in ev
         if self._te.attrs['units'] == 'keV':
             self._te['data'] *= 1.0e3
@@ -317,35 +448,93 @@ class MHDmode():
             self._ti['data'] *= 1.0e3
             self._ti.attrs['units'] = 'eV'
 
-        self._q = self._q.interp(t=self._ne['t'], rho=self._ne['rho'],
-                                 method="linear")
-        self._R0 = self._R0.interp(t=self._ne['t'], method="linear")
-        self._ahor = self._ahor.interp(t=self._ne['t'], method="linear")
-        self._B0 = self._B0.interp(t=self._ne['t'], method="linear")
-        self._kappa = self._kappa.interp(t=self._ne['t'], method="linear")
-        if self._rotation is not None:
-            self._rotation = self._rotation.interp(t=self._ne['t'],
-                                                   rho=self._ne['rho'],
-                                                   method="linear",
-                                                   kwargs={'fill_value': 0.0})
 
-        # --- Precalculate some stuff:
-        if self._B0.data.mean() < 0.0:
-            factor = -1.0
-        else:
-            factor = 1.0
-        self._va0 = factor*self._B0 / np.sqrt(cnt.mu_0 * mi * self._ni*1.0e19)
 
-        # --- Alocate space for the frequencies
-        self.freq = xr.Dataset()
 
         # --- Save the mass info
-        self._mi = mi
+        self._mi = self.mi
 
-        # --- Calculate the frequencies
-        self._calcGAMfreq()
-        self._calcTAEfreq()
-        self._calcEAEfreq()
+    def _read_omfit(self, omfitFile: str):
+        """
+        Read from an omfit file
+        """
+        data = xr.load_dataset(omfitFile)
+        data = data.rename({'time':'t'})
+        data['t'].values[:] /= 1.0e3
+        # --- Densities
+        if 'n_e' in data:
+            logger.debug('Using n_e from omfit file')
+            self._ne = xr.Dataset()
+            self._ne['data'] = data['n_e']/1e19
+            self._ne.attrs['units'] = '1e19m^-3'
+            try:
+                self._ne['uncertainty'] = data['n_e__uncertainty']/1e19
+            except KeyError:
+                self._ne['uncertainty'] = None
+                pass
+        if 'Zeff' in data:
+            logger.debug('Using Zeff from omfit file')
+            self._zeff = xr.Dataset()
+            self._zeff['data'] = data['Zeff']
+            self._zeff.attrs['units'] = '1'
+            try:
+                self._zeff['uncertainty'] = data['Zeff__uncertainty']
+            except KeyError:
+                self._zeff['uncertainty'] = None
+                pass
+        if 'n_12C6' in data:
+            logger.debug('Using n_12C6 from omfit file')
+            self._ni = xr.Dataset()
+            self._ni = self._ne.copy()
+            if self.calcNi:
+                self._ni['data'] = self._ne['data'] - 6.0 * data['n_12C6'] / 1e19
+                self._ni.attrs['units'] = '1e19m^-3'
+                try:
+                    self._ni['uncertainty'] = self._ne['uncertainty'] + 6.0*data['n_12C6__uncertainty']
+                except KeyError:
+                    self._ni['uncertainty'] = None
+                    pass
+        else:
+            self._ni = self._ne.copy()
+            if self.calcNi:
+                self._ni['data'] = self._ne['data'] * (1.0 - (self._zeff['data'] - 1.0)/(self.Zimp - 1.0))
+                try: # Try to get the uncertainty
+                    self._ni['uncertainty'] = self._ni['data'] * (
+                        self._ne['uncertainty']/self._ne['data'] +
+                        1.0/(self.Zimp - 1.0)/(1.0 - (self._zeff['data'] - 1.0)/(self.Zimp - 1.0))*self._zeff['uncertainty'])
+                except KeyError:
+                    self._ni['uncertainty'] = None
+                    pass
+        # Temperatures
+        if 'T_e' in data:
+            self._te = xr.Dataset()
+            self._te['data'] = data['T_e']
+            self._te.attrs['units'] = 'eV'
+            try:
+                self._te['uncertainty'] = data['T_e__uncertainty']
+            except KeyError:
+                self._te['uncertainty'] = None
+                pass
+        if 'T_12C6' in data and self.loadTi:
+            self._ti = xr.Dataset()
+            self._ti['data'] = data['T_12C6']
+            self._ti.attrs['units'] = 'eV'
+            try:
+                self._ti['uncertainty'] = data['T_12C6__uncertainty']
+            except KeyError:
+                self._ti['uncertainty'] = None
+                pass
+        # Rotation
+        if 'omega_tor_12C6' in data:
+            self._rotation = xr.Dataset()
+            self._rotation['data'] = data['omega_tor_12C6']
+            self._rotation.attrs['units'] = 'rad/s'
+            try:
+                self._rotation['uncertainty'] = data['omegator__uncertainty']
+            except KeyError:
+                self._rotation['uncertainty'] = None
+                pass
+        
 
     def _calcGAMfreq(self) -> None:
         """
@@ -405,7 +594,7 @@ class MHDmode():
                     rotation=self._rotation,
                     correct_by_plasma_rotation=correct_by_plasma_rotation)
 
-    def plot(self, var: str = 'GAM', rho: float = 0.0, ax=None, line_params={},
+    def plot(self, var: str = 'GAM', rho: float = 0.45, ax=None, line_params={},
              units: str = 'kHz', t: tuple = None, smooth: int = 0,
              n: float=None)->plt.Axes:
         """
@@ -493,6 +682,30 @@ class MHDmode():
         
         plt.draw()
         plt.show()
+        return ax
+    
+    def plotPlasmaProfiles(self) -> plt.Axes:
+        """
+        Plot the plasma profiles used to calculate everythin
+        """
+        fig, ax = plt.subplots(10, sharex=True)
+        self._ne.data.plot(ax=ax[0], label='ne')
+        self._ni.data.plot(ax=ax[1], label='ni')
+        self._te.data.plot(ax=ax[2], label='Te')
+        self._ti.data.plot(ax=ax[3], label='Ti')
+        self._q.data.plot(ax=ax[4], label='q')
+        self._R0.data.plot(ax=ax[5], label='R0')
+        self._ahor.data.plot(ax=ax[6], label='ahor')
+        self._kappa.data.plot(ax=ax[7], label='kappa')
+        self._B0.data.plot(ax=ax[8], label='B0')
+        if self._rotation is not None:
+            self._rotation.data.plot(ax=ax[9], label='rotation')
+        # Remove all x labels
+        for a in ax:
+            a.set_xlabel('')
+            
+        ax[-1].set_xlabel('Time [s]')
+        plt.tight_layout()
         return ax
 
 

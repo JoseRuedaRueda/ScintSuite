@@ -212,7 +212,7 @@ class FILDVideo(FIV):
                         # self.scintillator.code = 'fildsim'
                         self.scintillator.calculate_pixel_coordinates(
                                 self.CameraCalibration)
-                        # self.ROIscintillator = self.scintillator.get_roi()
+                        self.ROIscintillator = self.scintillator.get_roi()
             else:
                 self.scintillator = None
                 self.ROIscintillator = None

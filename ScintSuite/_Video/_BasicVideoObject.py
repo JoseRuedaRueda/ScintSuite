@@ -1193,7 +1193,7 @@ class BVO:
                 raise Exception('Video frame has no meaning when loading averages')
         return t
 
-    def getTimeTrace(self, t: float = None, mask=None, ROIname: str =None, vmax: int=None):
+    def getTimeTrace(self, t: float = None, mask=None, ROIname: str =None, vmax: int=None, vmin: int=None, cmap=None):
         """
         Calculate the timeTrace of the video
 
@@ -1208,7 +1208,7 @@ class BVO:
         """
         if mask is None:
             # - Plot the frame
-            ax_ref = self.plot_frame(t=t, vmax=vmax)
+            ax_ref = self.plot_frame(t=t, vmin=vmin, vmax=vmax, ccmap=cmap)
             fig_ref = plt.gcf()
             # - Define roi
             roi = sstt.roipoly(fig_ref, ax_ref)
@@ -1323,3 +1323,38 @@ class BVO:
         logger.debug(f'Saving to file {fn}')
         mp4.write_file(fn=fn, video=data, bit_size=bits_size,
                        encoding=encoding, fps=fps)
+    
+    # --------------------------------------------------------------------------
+    # %% Cleaning
+    # --------------------------------------------------------------------------
+    def delFile(self, confirmation=True):
+        """
+        Delete the file associated to the video object
+
+        DANGER!!!! This is intended to delete the file associated with the 
+        video, this was created for machines like D3D or TCV, where the video 
+        is intalled in a server and downloaded each time to scratch. Use this 
+        to clean the tmp files creates. Do not use in places like AUG, were the 
+        file is stored in the server where the code is running, as this will 
+        delete the only copy from the server and destroy the experiment data!!!
+        
+        Jose Rueda: jrueda@uci.edu
+        
+        :param confirmation: if True, the user will be asked for confirmation
+            before deleting the file
+        """
+        if self.file is not None:
+            if not confirmation:
+                print('Deleting file: ', self.file)
+                os.remove(self.file)
+            else:
+                print('Deleting file: ', self.file)
+                ans = input('Are you sure you want to delete the file? [y/n]')
+                if ans == 'y':
+                    os.remove(self.file)
+                else:
+                    print('File not deleted')
+            # self.file = None
+        else:
+            raise Exception('No file to delete')
+        return

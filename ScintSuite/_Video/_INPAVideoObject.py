@@ -129,6 +129,7 @@ class INPAVideo(FIV):
             # Initialise the logbook
             self.logbookOptions = logbookOptions
             INPAlogbook = ssdat.INPA_logbook(**logbookOptions)  # Logbook
+            self.logbook = INPAlogbook
             if shot is not None:
                 self.position, self.orientation = \
                     INPAlogbook.getPositionOrientation(shot, diag_ID)
@@ -136,6 +137,11 @@ class INPAVideo(FIV):
                 self.CameraCalibration = \
                     INPAlogbook.getCameraCalibration(shot, diag_ID)
 #                self.operatorComment = INPAlogbook.getComment(shot)
+                try:
+                    self.PMTcalibration = \
+                        INPAlogbook.getPMTCalibration(shot, diag_ID)
+                except FileNotFoundError:
+                    self.PMTcalibration = None
             else:
                 self.position = None
                 self.orientation = None
@@ -147,10 +153,9 @@ class INPAVideo(FIV):
                 print('You need to give the camera calibration parameters')
             # Try to load the scintillator plate
             if self.geometryID is not None:
-                platename = os.path.join(pa.ScintSuite, 'Data', 'Plates',
+                platename = os.path.join(pa.ScintPlates,
                                          'INPA', machine,
-                                         self.geometryID,
-                                         'Scintillator.pl')
+                                         self.geometryID+'.pl')
                 if os.path.isfile(platename):
                     self.scintillator = Scintillator(file=platename)
                     self.scintillator.calculate_pixel_coordinates(
@@ -250,7 +255,8 @@ class INPAVideo(FIV):
                            'remap_method':  'centers',
                            'variables_to_remap': ('R0', 'e0'),
         }
-        options.update(default_options)
+        default_options.update(options)
+        opt = default_options.copy()
         # Destroy the previous dataset, if there was some
         if self.remap_dat is not None:
             self.remap_dat = None
@@ -277,8 +283,9 @@ class INPAVideo(FIV):
                 self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles['phi'].size != nt:
                 self._getBangles()
+        logger.debug('Number of MC particles %i', opt['MC_number'])
         self.remap_dat = \
-            ssmap.remapAllLoadedFramesINPA(self, **options)
+            ssmap.remapAllLoadedFramesINPA(self, **opt)
         # Calculate the integral of the remap
         ouput = self.integrate_remap(xmin=self.remap_dat['x'].values[0],
                                      xmax=self.remap_dat['x'].values[-1],
@@ -368,6 +375,39 @@ class INPAVideo(FIV):
     # --------------------------------------------------------------------------
     # ---- GUIs/plot
     # --------------------------------------------------------------------------
+    def GUI_frames(self, flagAverage: bool = False):
+        """
+        Small GUI to explore camera frames
+
+        :param  flagAverage: flag to decide if we need to use the averaged frames
+            of the experimental ones in the GUI
+        OVERWRITE THE PARENT CLASS
+        """
+        text = 'Press TAB until the time slider is highlighted in red.'\
+            + ' Once that happend, you can move the time with the arrows'\
+            + ' of the keyboard, frame by frame'
+        logger.info('--. ..- ..')
+        logger.info(text)
+        logger.info('-... . ..- - -.--')
+        root = tk.Tk()
+        root.resizable(height=None, width=None)
+        if flagAverage:
+            ssGUI.ApplicationShowVid(root, self.avg_dat, self.remap_dat,
+                                     self.geometryID,
+                                     self.CameraCalibration,
+                                     shot=self.shot,
+                                     PMTcalibration=self.PMTcalibration,)
+        else:
+            ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat,
+                                     GeomID=self.geometryID,
+                                     calibration=self.CameraCalibration,
+                                     scintillator=self.scintillator,
+                                     shot=self.shot,
+                                     PMTcalibration=self.PMTcalibration,)
+        root.mainloop()
+        root.destroy()
+    
+    
     def GUI_frames_and_remap(self):
         """GUI to explore camera and remapped frames."""
         text = 'Press TAB until the time slider is highlighted in red.'\
@@ -378,7 +418,7 @@ class INPAVideo(FIV):
         root.resizable(height=None, width=None)
         ssGUI.ApplicationShowVidRemap(root, self.exp_dat, self.remap_dat,
                                       self.CameraCalibration,
-                                      self.geometryID)
+                                      self.geometryID,)
         root.mainloop()
         root.destroy()
 
@@ -445,15 +485,15 @@ class INPAVideo(FIV):
         if t is None:  # 2d plots
             # --- Gyroradius profiles
             fig1, ax1 = plt.subplots()   # Open figure and plot
-            dummy = self.remap_dat['sprofy'].copy()
+            dummy = self.remap_dat['integral_over_x'].copy()
             if normalise:
-                dummy /= self.remap_dat['sprofy'].max()
+                dummy /= self.remap_dat['integral_over_x'].max()
             cont = ax1.imshow(dummy, cmap=cmap,
                               vmin=min_gyr, vmax=max_gyr,
                               extent=[self.remap_dat['tframes'][0],
                                       self.remap_dat['tframes'][-1],
-                                      self.remap_dat['yaxis'][0],
-                                      self.remap_dat['yaxis'][-1]],
+                                      self.remap_dat['y'][0],
+                                      self.remap_dat['y'][-1]],
                               aspect='auto', origin='lower',
                               interpolation=interpolation,
                               **extra_options_plot)

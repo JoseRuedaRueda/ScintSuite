@@ -12,6 +12,8 @@ import numpy as np
 from lmfit.models import ExpressionModel
 from lmfit import Model
 from scipy import special
+from  scipy.special import loggamma
+
 # -----------------------------------------------------------------------------
 # %% Bivariant Gaussian
 # -----------------------------------------------------------------------------
@@ -148,6 +150,10 @@ def WignerSemicircle():
     """
     return Model(_wignerse)
 
+# -----------------------------------------------------------------------------
+# %% Parse model names
+# -----------------------------------------------------------------------------
+
 def parseModelNames(name:str)->Model:
     """
     Parse the name of the model and return the proper model
@@ -170,3 +176,26 @@ def parseModelNames(name:str)->Model:
         return WignerSemicircle()
     else:
         raise ValueError(f'Unknown model name: {name}')
+    
+    
+# -----------------------------------------------------------------------------
+# %% Poisson distribution
+# -----------------------------------------------------------------------------
+def _log_poisson(x, mu):
+    """
+    Logarithm of the Poisson distribution
+
+    :param x: (array) x values
+    :param mu: (float) mean of the distribution
+
+    :return out: (array) log of the Poisson distribution
+    """
+    return -mu + x*np.log(mu) - loggamma(x+1)
+
+def log_poisson() -> lmfit.models.ExpressionModel:
+    """
+    Create a Poisson distribution model
+
+    :return out: (lmfit.model.ExpressionModel) Poisson distribution model
+    """
+    return ExpressionModel(_log_poisson, independent_vars=['x'], name='log_poisson')

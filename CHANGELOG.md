@@ -1,3 +1,30 @@
+# 1.4.0 Mayor release
+
+## General
+- Easy initialization of the ScintSuite outside the hom directory thanks to env variables
+- Added detrend signal
+## INPA and FILD Remap
+- allIn is no longer a bool, now 0,1,2 options are valid, so you can ask the user, calculate all maps or not calculate any
+- default path to store data separated for each dioagnostic
+## MULTIPOW
+- Added module to read multipow files
+## MHD
+- Addep option to initialize the MHD object from OMFIT data
+## Plotting
+- Added radar plots
+- Changed the suite default style properties
+## GUIS
+- Added a button for fast channels
+## Fast channels
+- rewritten from scratch to make use of datatrees.
+## OWCF
+- Created module to read topological maps from OWCF
+## Minor improvements
+- Plate directory now controlled by a line in the custom paths, no longer hardcored
+- New calibration object for the fast channel, giving the ROI and mask for remaps and camera timetraces
+- Added a calibration kind for the situation where the tild is in the object space and not the image space
+
+
 # 1.3.13 
 ## Making the simulations easier
 - Added a check feature in the execution. Erased the problems with duplicity of mesh values
@@ -28,6 +55,7 @@
 - Plot mask option added to the GUI_frames
 - Included option to load both remap and video
 - Fixed the rotation of the frames when plotting for MU01
+
 
 # 1.3.9 D3D implementation
 ## General

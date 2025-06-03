@@ -434,7 +434,7 @@ def read_camera_properties(file: str) -> dict:
 # -----------------------------------------------------------------------------
 # --- Tomography
 # -----------------------------------------------------------------------------
-# @deprecated('Use the export option from the strike map!!!')
+@deprecated('Use the export option from the strike map!!!')
 def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
                 efficiency: bool = False):
     """
@@ -540,13 +540,16 @@ def save_FILD_W(W4D, grid_p, grid_s, W2D=None, filename: str = None,
 # -----------------------------------------------------------------------------
 # --- Remaped videos
 # -----------------------------------------------------------------------------
-def load_remap(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
+def load_remap(filename: str = '', diag: str='FILD',
+               diag_ID: int = None, 
+               shot: int = None,
+               ed: int = 0) -> Union[FILDVideo, INPAVideo]:
     """
     Load a tar remap file into a video object
 
     :param filename: path to the .tar file or the folder containing the files
     """
-    if not os.path.isdir(filename):
+    if not os.path.isdir(filename) and shot is None:
         if filename is None:
             filename = ' '
             filename = check_open_file(filename)
@@ -568,6 +571,23 @@ def load_remap(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
         vid = INPAVideo(empty=True)
     else:
         raise errors.NotValidInput('Not suported diagnostic')
+    if shot is not None and filename== '':
+        rootFolder = paths['Results'][diag]
+        if diag_ID is not None:
+            dummyFolder = os.path.join(rootFolder, diag + str(diag_ID))
+            if ed > 0:
+                dummyFolder = os.path.join(dummyFolder, "%i_%i"%(shot, ed))
+            else:
+                counter = 1
+                dummyFolder = os.path.join(dummyFolder, "%i_%i"%(shot, counter))
+                while os.path.isdir(dummyFolder):
+                    counter += 1
+                    newdummyFolder = os.path.join(dummyFolder, "%i_%i"%(shot, counter))
+                    if os.path.isdir(newdummyFolder):
+                        dummyFolder = newdummyFolder
+                    else:
+                        break
+         
     vid.remap_dat = xr.load_dataset(os.path.join(dummyFolder, 'remap.nc'))
     try:
         vid.BField = xr.load_dataset(os.path.join(dummyFolder, 'Bfield.nc'))
@@ -619,7 +639,7 @@ def load_remap(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
         try:
             vid._getNBIpower()
             vid._getNe()
-        except TypeError:
+        except:
             pass
     return vid
 

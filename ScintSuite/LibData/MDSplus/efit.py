@@ -169,6 +169,17 @@ class EFIT:
 
         return
     
+    def calculate_rhopol_interpolator(self):
+        """
+        Calculate the rhopol interpolator
+        """
+        rho = RegularGridInterpolator((self['GTIME'], self['R'], self['Z']),
+                                      self['RHOPOL'],
+                                      method='linear', fill_value=0.0,
+                                      bounds_error=False,)
+        self['rhopol'] = rho
+        return
+    
     def calculate_q_interpolator(self):
         """
         Calculate the q interpolator

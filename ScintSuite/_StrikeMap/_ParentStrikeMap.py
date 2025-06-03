@@ -126,7 +126,7 @@ class GeneralStrikeMap(XYtoPixel):
                     verbose: bool = False,
                     grid_params: dict = {}, MC_number: int = 100,
                     variables_to_interpolate: tuple = None,
-                    limitation: float = 10.0):
+                    limitation: float = 12.0):
         """
         Interpolate grid values on the frames.
 
@@ -523,7 +523,7 @@ class GeneralStrikeMap(XYtoPixel):
                                          variables: tuple,
                                          grid_options: dict,
                                          frame_shape: tuple,
-                                         limitation: float = 10.0,
+                                         limitation: float = 12.0,
                                          overwrite: bool = True):
         """
         Calculate the transformation matrix from camera pixel to phase space
