@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
 import ScintSuite.errors as errors
 import ScintSuite._Plotting as ssplt
+import ScintSuite.LibData as ssdat
 from tqdm import tqdm
 from ScintSuite._Paths import Path
 from ScintSuite._SideFunctions import createGrid
@@ -19,6 +20,7 @@ from ScintSuite.decorators import deprecated
 from ScintSuite._basicVariable import BasicVariable
 from ScintSuite._Mapping._Common import _fit_to_model_
 from ScintSuite.SimulationCodes.Common.strikes import Strikes
+from ScintSuite._CustomFitModels import parseModelNames
 from ScintSuite._StrikeMap._ParentStrikeMap import GeneralStrikeMap
 from ScintSuite.SimulationCodes.FILDSIM.execution import get_energy
 from ScintSuite.SimulationCodes.SINPA._execution import guess_strike_map_name
@@ -138,6 +140,18 @@ class FILDINPA_Smap(GeneralStrikeMap):
             'z': Z,
         }
 
+    def convert_to_normalized_pitch(self):
+        """
+        Convert the pitch angles to normalised pitch values
+
+        Anton Jansen van Vuuren: anton.jansenvanvuuren@epfl.ch
+
+        """
+
+        p0 = np.cos(np.deg2rad(self._data['pitch'].data))
+        self._data['p0'] = BasicVariable(name='p0', units='', data=p0)
+
+
     def load_strike_points(self, file=None, verbose: bool = True,
                            calculate_pixel_coordinates: bool = False,
                            remap_in_pixel_space: bool = False,
@@ -237,7 +251,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
             'dx': 1.0,
             'dy': 0.1,
             'x_method': 'Gauss',
-            'y_method': 'sGauss'
+            'y_method': 'sGauss',
         }
         diag_options.update(diag_params)
         # Select the variables
@@ -260,12 +274,11 @@ class FILDINPA_Smap(GeneralStrikeMap):
             iix = self.strike_points.header['info'][namex]['i']
             iiy = self.strike_points.header['info'][namey]['i']
         # Get the names of the variables to fit
-        names = {
-            'Gauss': ['amplitude', 'center', 'sigma'],
-            'sGauss': ['amplitude', 'center', 'sigma', 'gamma']
-        }
-        xnames = names[diag_options['x_method']]
-        ynames = names[diag_options['y_method']]
+        xModel = parseModelNames(diag_options['x_method'])
+        yModel = parseModelNames(diag_options['y_method'])
+        # Get the names of the paremeters from keys to list
+        xnames = list(xModel.make_params().keys())
+        ynames = list(yModel.make_params().keys())
 
         # allocate the variables
         self._resolutions = {
@@ -299,7 +312,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 if self.strike_points.header['counters'][ix, iy] < min_statistics:
                     continue
                 # -- Prepare the basic bin edges
-                # Prepare the bin edges according to the desired width
+                # Prepare the bin edges according to the desired width                    
                 if adaptative:
                     sigmax = np.std(data[:, iix])
                     dx = sigmax / float(bin_per_sigma)
@@ -331,7 +344,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                     self._resolutions['unc_' + variables[0]][key][ix, iy] = \
                         unc[key]
 
-                # -- fit the y variable
+                # -- fit the y variable                  
                 params, self._resolutions['fits_' + variables[1]][ix, iy], \
                     self._resolutions['norm_' + variables[1]][ix, iy], unc = \
                     _fit_to_model_(
@@ -820,8 +833,12 @@ class FILDINPA_Smap(GeneralStrikeMap):
         ax_options = {
             'xlabel': self.MC_variables[0].plot_label,
             'ylabel': self.MC_variables[1].plot_label,
+            'x_var': 'normalized_pitch',
+            'y_var': 'energy'
         }
+     
         ax_options.update(ax_params)
+        
         if cmap is None:
             cmap = ssplt.Gamma_II()
         # --- Plot the resolution
@@ -868,7 +885,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 cont = subplot.contourf(
                     xAxisPlot, yAxisPlot,
                     res_matrix,
-                    levels=nlev_new, cmap=cmap
+                    levels=nlev, cmap=cmap
                 )
                 subplot = ssplt.axis_beauty(subplot, ax_options)
                 # Now place the color var in the proper position
@@ -942,7 +959,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                                          kind_of_plot: str = 'normal',
                                          include_legend: bool = False,
                                          XI_index=None,
-                                         normalize: bool = False):
+                                         grid: bool = False):
         """
         Plot the fits done to calculate the resolution
 
@@ -953,7 +970,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         :param  gyr_index: index, or arrays of indeces, of gyroradius to plot
         :param  pitch_index: index, or arrays of indeces, of pitches to plot,
             this is outdated code, please use XI_index instead
-        :param  gyroradius: gyroradius value of array of then to plot. If
+        :param  gyroradius: gyroradius value or array of them to plot. If
         present, gyr_index will be ignored
         :param  pitch: idem to gyroradius bu for the pitch
         :param  kind_of_plot: kind of plot to make:
@@ -964,7 +981,6 @@ class FILDINPA_Smap(GeneralStrikeMap):
             - just_fit: Just a line plot as the fit
         :param  include_legend: flag to include a legend
         :param  XI_index: equivalent to pitch_index, but with the new criteria
-        :param  normalize: normalize the output
         """
         # --- Initialise plotting options and axis:
         default_labels = {
@@ -975,11 +991,18 @@ class FILDINPA_Smap(GeneralStrikeMap):
             'pitch': {
                 'xlabel': 'Pitch [$\\degree$]',
                 'ylabel': 'Counts [a.u.]'
+            },
+            'e0': {
+                'xlabel': 'Energy [keV]',
+                'ylabel': 'Counts [a.u.]'
             }
         }
-        ax_options = {
-            'grid': 'both',
-        }
+        if grid:
+            ax_options = {
+                'grid': 'both',
+            }
+        else:
+            ax_options = {}
         ax_options.update(default_labels[var.lower()])
         ax_options.update(ax_params)
         if ax is None:
@@ -992,7 +1015,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         # --- Localise the values to plot
         if gyroradius is not None:
             # test if it is a number or an array of them
-            if isinstance(gyroradius, (list, np.ndarray)):
+            if isinstance(gyroradius, (np.ndarray)):
                 gyroradius = gyroradius
             else:
                 gyroradius = np.array([gyroradius])
@@ -1000,7 +1023,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
             for i in range(index_gyr.size):
                 index_gyr[i] = \
                     np.argmin(np.abs(self.MC_variables[1].data - gyroradius[i]))
-            logger.debug('Found gyroradius: %.2f' % self.MC_variables[1].data)
+            logger.debug('Found gyroradius: %.2f' % self.MC_variables[1].data[index_gyr])
         else:
             # test if it is a number or an array of them
             if gyr_index is not None:
@@ -1042,18 +1065,18 @@ class FILDINPA_Smap(GeneralStrikeMap):
             for ip in index_pitch:
                 # The lmfit model has included a plot function, but is slightly
                 # not optimal so we will plot it 'manually'
-                if self._resolutions['fits_' + var.lower()][ip, ir] is not None:
+                if self._resolutions['fits_' + var.lower()][ip, ir] is not None:                    
                     x = self._resolutions['fits_' + var.lower()][ip, ir].userkws['x']
                     deltax = x.max() - x.min()
                     x_fine = np.linspace(x.min() - 0.1 * deltax,
                                          x.max() + 0.1 * deltax)
-                    name = 'rl: ' + str(round(self.MC_variables[1].data[ir], 1))\
+                    name = 'rL: ' + str(round(self.MC_variables[1].data[ir], 1))\
                         + ' $\\lambda$: ' + \
-                        str(round(self.MC_variables[1].data[ip], 1))
+                        str(round(self.MC_variables[0].data[ip], 1))
                     normalization = \
                         self._resolutions['norm_' + var.lower()][ip, ir]
                     y = self._resolutions['fits_' + var.lower()][ip, ir].eval(
-                        x=x_fine) * normalization
+                        x=x_fine) * normalization                                                                                     
                     if kind_of_plot.lower() == 'normal':
                         # plot the data as scatter plot
                         scatter = ax.scatter(
@@ -1064,6 +1087,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                         ax.plot(x_fine, y,
                                 color=scatter.get_facecolor()[0, :3],
                                 label=name)
+                        
                     elif kind_of_plot.lower() == 'bar':
                         bar = ax.bar(
                             x,
@@ -1098,11 +1122,13 @@ class FILDINPA_Smap(GeneralStrikeMap):
             ax.legend()
         if created:
             ax = ssplt.axis_beauty(ax, ax_options)
+        plt.show()
 
     @deprecated('Some input will change name in the final version')
     def plot_collimator_factor(self, ax_param: dict = {}, cMap=None,
                                nlev: int = 20, ax_lim: dict = {},
                                cmap_lim: float = 0):
+                                   
         """
         Plot the collimator factor.
 
@@ -1118,6 +1144,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
         :param  ax_lim: Manually set the x and y axes, currently only works for making it bigger, not smaller
                        Should be given as ax_lim = {'xlim' : [x1,x2], 'ylim' : [y1,y2]}
         :param  cmap_lim: Manually set the upper limit for the color map
+        :param     A: Ion mass, in uma. Only used if we want to use energy to remap
+        :param     Z: Ion charge, in e units. Only used if we want to use energy
         """
         # --- Initialise the settings:
         if cMap is None:
@@ -1126,7 +1154,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
             cmap = cMap
         ax_options = {
             'xlabel': '$\\lambda [\\degree]$',
-            'ylabel': '$r_l [cm]$'
+            'ylabel': '$r_l [cm]$',
+            'xvar':  'normalized_pitch',
+            'yvar': 'energy'
         }
         ax_options.update(ax_param)
 
@@ -1138,26 +1168,27 @@ class FILDINPA_Smap(GeneralStrikeMap):
         # In case you want to manually set the axis limits to something bigger
         xAxisPlot = self.MC_variables[0].data
         yAxisPlot = self.MC_variables[1].data
+            
         if ax_lim:
-            if ax_lim["xlim"][0] < np.min(self.MC_variables[0].data):
+            if ax_lim["xlim"][0] < np.min(xAxisPlot):
                 n,m = coll_matrix.shape
                 coll_matrix_new = np.zeros((n,m+1))
                 coll_matrix_new[:,1:] = coll_matrix
                 coll_matrix = coll_matrix_new
                 xAxisPlot = np.insert(xAxisPlot,0,ax_lim["xlim"][0])
-            if ax_lim["xlim"][1] > np.max(self.MC_variables[0].data):
+            if ax_lim["xlim"][1] > np.max(xAxisPlot):
                 n,m = coll_matrix.shape
                 coll_matrix_new = np.zeros((n,m+1))
                 coll_matrix_new[:,:-1] = coll_matrix
                 coll_matrix = coll_matrix_new
                 xAxisPlot = np.append(xAxisPlot,ax_lim["xlim"][1])
-            if ax_lim["ylim"][0] < np.min(self.MC_variables[1].data):
+            if ax_lim["ylim"][0] < np.min(yAxisPlot):
                 n,m = coll_matrix.shape
                 coll_matrix_new = np.zeros((n+1,m))
                 coll_matrix_new[1:,:] = coll_matrix
                 coll_matrix = coll_matrix_new
                 yAxisPlot = np.insert(yAxisPlot,0,ax_lim["ylim"][0])
-            if ax_lim["ylim"][1] > np.max(self.MC_variables[1].data):
+            if ax_lim["ylim"][1] > np.max(yAxisPlot):
                 n,m = coll_matrix.shape
                 coll_matrix_new = np.zeros((n+1,m))
                 coll_matrix_new[:-1,:] = coll_matrix
@@ -1213,3 +1244,4 @@ class FILDINPA_Smap(GeneralStrikeMap):
                                                          interpolation=interpolation)
         ax = ssplt.axis_beauty(ax, ax_params,)
         return ax
+    

@@ -25,6 +25,7 @@ import ScintSuite._Video._CinFiles as cin
 import ScintSuite._Video._PNGfiles as png
 import ScintSuite._Video._PCOfiles as pco
 import ScintSuite._Video._MP4files as mp4
+import ScintSuite._Video._MATfiles as mat
 import ScintSuite._Video._TIFfiles as tif
 import ScintSuite._Video._h5D3D as h5d3d
 import ScintSuite._Video._NetCDF4files as ncdf
@@ -36,7 +37,7 @@ from ScintSuite._Paths import Path
 from ScintSuite._Machine import machine
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import Slider, Button, RadioButtons
-
+import gc
 
 # --- Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.Video')
@@ -206,6 +207,18 @@ class BVO:
                     self.exp_dat['frames'] = \
                         self.exp_dat['frames'].transpose('px', 'py', 't')
                     self.type_of_file = '.mp4'
+                elif file.endswith('.mat'):
+                    '''
+                    Matlab .mat files with video data are not a standard format, 
+                    Therefore use machine specific implementation to import data
+                    e.g. see TCV implementation
+                    '''
+                    mat_data = ssdat.read_MAT_video_data(file)
+                    self.timebase = mat_data['t'].data
+                    self.exp_dat['frames'] = mat_data['frames']
+                    self.type_of_file = '.mat'     
+                    self.settings = {'RealBPP': mat_data['RealBPP'].data}                     
+            
                 else:
                     raise Exception('Not recognised file extension')
             else:
@@ -214,7 +227,7 @@ class BVO:
                     raise FileNotFoundError(file + ' not found')
                 ## path to the file
                 self.path = file
-                # Do a quick run for the folder looking of .tiff or .png files
+                # Do a quick run on the folder looking of .tiff or .png files
                 f = []
                 for (dirpath, dirnames, filenames) in os.walk(self.path):
                     f.extend(filenames)
@@ -280,7 +293,8 @@ class BVO:
         self.CameraData = None
         ## Scintillator plate:
         self.scintillator = None
-
+        gc.collect()
+        gc.enable()
     # --------------------------------------------------------------------------
     # --- Manage Frames
     # --------------------------------------------------------------------------
@@ -354,6 +368,9 @@ class BVO:
             M = pco.read_frame(self, frames_number,
                                limitation=limitation, limit=limit,
                                verbose=verbose)
+        elif self.type_of_file == '.mat':
+            M = np.array(self.exp_dat['frames'][ :, :, frames_number])
+
         elif self.type_of_file == '.nc':
             M = ncdf.read_frame(self, frames_number,
                                limitation=limitation, limit=limit,
@@ -366,6 +383,11 @@ class BVO:
         # --- End here if we just want the frame
         if not internal:
             return M
+
+        # --- Clean video if needed
+        if 't' in self.exp_dat and internal:
+            self.exp_dat = xr.Dataset()
+ 
         # --- Save the stuff in the structure
         # Get the spatial axes
         nx, ny, nt = M.shape
@@ -377,7 +399,7 @@ class BVO:
         if frames_number is None:
             nframes = np.arange(nt) + 1
         else:
-            nframes = frames_number
+            nframes = np.array(frames_number)
         # Quick solve for the case we have just one frame
         try:
             if len(tframes) != 1:
@@ -428,6 +450,8 @@ class BVO:
                                                             'px': px, 'py': py})
         self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
         self.exp_dat.attrs['dtype'] = dtype
+
+
         # --- Count saturated pixels
         max_scale_frames = 2 ** self.settings['RealBPP'] - 1
         threshold = threshold_saturation * max_scale_frames
@@ -517,12 +541,12 @@ class BVO:
 
             logger.info('Using frames from the video')
             logger.info('%i frames will be used to average noise', it2 - it1 + 1)
-            frame = self.exp_dat['frames'].isel(t=slice(it1, it2)).mean(dim='t')
+            frame = self.exp_dat['frames'].isel(t=slice(it1, it2+1)).mean(dim='t')
             #frame = np.mean(self.exp_dat['frames'].values[:, :, it1:(it2 + 1)],
             #                dtype=original_dtype, axis=2)
 
         else:  # The frame is given by the user
-            logger.info('Using noise frame provider by the user')
+            logger.info('Using noise frame provided by the user')
             try:
                 nxf = frame.px.size
                 nyf = frame.py.size
@@ -932,9 +956,20 @@ class BVO:
             extra_options['extent'] = extent
 
         if rotate_frame:
-            imgR = ndimage.rotate(dummy, -self.CameraCalibration.deg, reshape=False)
+            if self.geometryID == 'MU01':
+                try:
+                    imgR = ndimage.rotate(dummy, -self.CameraCalibration.deg, reshape=False)
+                except ValueError:
+                    imgR = ndimage.rotate(dummy, -self.CameraCalibration.deg[0], reshape=False)
+            else:
+                angle = input('Please provide a rotation angle (in degrees): ')
+                imgR = ndimage.rotate(dummy, angle, reshape=False)
+            if self.CameraCalibration.yscale <= 0:
+                imgR =imgR[::-1,:]
+            if self.CameraCalibration.xscale <= 0:
+                imgR =imgR[:,::-1]
             img = ax.imshow(imgR, cmap=cmap,
-                        alpha=alpha, **extra_options)
+                        alpha=alpha,origin='lower', **extra_options)
         else:
             img = ax.imshow(dummy, origin='lower', cmap=cmap,
                         alpha=alpha, **extra_options)
@@ -978,12 +1013,13 @@ class BVO:
         return ax
 
 
-    def GUI_frames(self, flagAverage: bool = False):
+    def GUI_frames(self, flagAverage: bool = False, mask=None):
         """
         Small GUI to explore camera frames
 
         :param  flagAverage: flag to decide if we need to use the averaged frames
             of the experimental ones in the GUI
+        :param  mask: to plot a small coloured mask on top of the image
         """
         text = 'Press TAB until the time slider is highlighted in red.'\
             + ' Once that happend, you can move the time with the arrows'\
@@ -997,15 +1033,16 @@ class BVO:
             ssGUI.ApplicationShowVid(root, self.avg_dat, self.remap_dat,
                                      self.geometryID,
                                      self.CameraCalibration,
-                                     shot=self.shot)
+                                     shot=self.shot, mask=mask)
         else:
             ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat,
                                      GeomID=self.geometryID,
                                      calibration=self.CameraCalibration,
                                      scintillator=self.scintillator,
-                                     shot=self.shot)
+                                     shot=self.shot, mask=mask)
         root.mainloop()
         root.destroy()
+        gc.collect()
 
     def GUI_frames_simple(self, flagAverage: bool = False, **kwargs):
         """
@@ -1059,7 +1096,7 @@ class BVO:
 
         slider.on_changed(update)
         plt.show()
-
+        gc.collect()
         return ax, slider
 
 

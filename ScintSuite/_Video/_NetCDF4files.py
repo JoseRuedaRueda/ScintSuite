@@ -1,5 +1,5 @@
 """
-Routines to read pco (.b16) files.
+Routines to read XIMEA (.nc) files.
 
 Written by Jose Rueda: jrrueda@us.es
 Adapted by Lina Velarde: lvelarde@us.es
@@ -37,6 +37,8 @@ def read_file_anddata(filename):
         exposure in us
     """
     data = nc.Dataset(filename, 'r')
+    RFILD = None
+    beta_angle = None
     try: #try reading old format
         vid = data['video'][:].data
         time = data['time'][:].data
@@ -46,47 +48,62 @@ def read_file_anddata(filename):
         try:
             RFILD = data['RFILD'][:].data
         except IndexError:
-            print('No RFILD field in netcdf.')
-            print('Will look in the logbook.')
+            logger.warning('No RFILD field in netcdf.')
+            logger.warning('Will look in the logbook.')
         try:
             analoggain = data['gain'][:].data
         except IndexError:
             analoggain = 0
-            print('No _gain_ field in netcdf.')
+            logger.warning('No _gain_ field in netcdf.')
             try:
-                print('Trying _analoggain_ field.')
                 analoggain = data['analoggain'][:].data
-                print('That worked! _analoggain_ field found.')
             except IndexError:
-                print('No _analoggain_ field either. Setting to 0.')
                 analoggain = 0
         try:
-            print('Trying _diggain_ field.')
             digitalgain = data['diggain'][:].data
-            print('That worked! _diggain_ field found.')
         except IndexError:
-            print('No _diggain_ field. Setting to 0.')
             digitalgain = 0
+        logger.info('Reading old format of the nc file.')
     except: # it must be in standard format then
+        logger.info('Reading standard format of the nc file.')
         vid = data['xfx']['video'][:].data
         time = data['xfx']['time'][:].data 
-        timebase = (time[:]-time[0])/1e6 - 0.100 # in s
+        # in the standard format, there have been two different ways to write
+        # the timebase. The first one was in ms and then converted to s, 
+        # by correcting it to 0 and removing the trigger time (0.1 s), while the
+        # second one was written directly in s and the corrections were made before
+        # writing it to the file. We need to check which type we are reading here.
+        # If in ms, all elements are positive. If in s, the first element is negative 
+        # (due to the trigger).
+        if np.all(time[:]>0): 
+            timebase = (time[:]-time[0])/1e6 - 0.100 # in s
+            # print log message that this is the old format
+            logger.info('Reading old format of the XIMEA timebase. This will be deprecated.')
+        elif time[0] < 0: # if the first element is negative, it is already in s
+            timebase = time[:]
+            logger.info('Reading new format of the XIMEA timebase.')
+        else:
+            raise Exception('Timebase is not in the expected format. Please check the file.')        
         fps = data['devices']['fps'][:].data
         exp = data['devices']['exposure'][:].data
         try:
             RFILD = data['devices']['RFILD'][:].data
         except IndexError:
-            print('No RFILD field in netcdf.')
-            print('Will look in the logbook.')
+            logger.warning('No RFILD info in netcdf. Will look in the logbook.')
+        try:
+            beta_angle = data['devices']['FILDangle'][:].data
+        except IndexError:
+            logger.warning('No beta angle info in netcdf. Will look in the logbook.')
+
         try:
             analoggain = data['devices']['analoggain'][:].data
         except IndexError:
-            print('No _analoggain_ field. Setting to 0.')
+            logger.warning('No _analoggain_ field. Setting to 0.')
             analoggain = 0
         try:
             digitalgain = data['devices']['diggain'][:].data
         except IndexError:
-            print('No _diggain_ field. Setting to 0.')
+            logger.warning('No _diggain_ field. Setting to 0.')
             digitalgain = 0
     
     data.close()
@@ -101,7 +118,22 @@ def read_file_anddata(filename):
         'biWidth': vid.shape[0],
         'biHeight': vid.shape[1],
         'framesDtype': vid.dtype}
-    header = {'ImageCount': vid.shape[2]}
+    if RFILD is None and beta_angle is None:
+        header = {'ImageCount': vid.shape[2]}
+    elif RFILD is not None and beta_angle is None:
+        header = {
+        'ImageCount': vid.shape[2],
+        'R_FILD': np.round(float(RFILD),4)}
+    elif beta_angle is not None and RFILD is None:
+        header = {
+        'ImageCount': vid.shape[2],
+        'beta_angle': np.round(beta_angle,4)}
+    else:
+        header = {
+        'ImageCount': vid.shape[2],
+        'R_FILD': np.round(float(RFILD),4),
+        'beta_angle': np.round(beta_angle,4)}
+
     # Possible bytes per pixels for the camera
     BPP = {'uint8': 8, 'uint16': 16, 'uint32': 32, 'int32': 32, 'uint64': 64}
     settings = {
@@ -113,8 +145,8 @@ def read_file_anddata(filename):
         settings['RealBPP'] = BPP[imageheader['framesDtype'].name]
         text = 'In the nc there is no info about the real BitesPerPixel'\
             + ' used in the camera. Assumed that the BPP coincides with'\
-            + ' the byte size of the variable!!!'
-        print(text)
+            + ' the byte size of the variable.'
+        logger.warning(text)
     except KeyError:
         raise Exception('Expected uint8,16,32,64 in the frames')
  
@@ -166,7 +198,7 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
     @return M: array of frames, [px in x, px in y, number of frames]
     """
     # Frames would have a name as CCD_qe_frame.b16 example: CCD_qe_0001.b16
-    print('Reading nc files')
+    logger.info('Reading nc files')
     
     # check the size of the files, data will be saved as float32
     size_frame = video_object.imageheader['biWidth'] * \
@@ -189,21 +221,14 @@ def read_frame(video_object, frames_number=None, limitation: bool = True,
         counter = 0
         if limitation and \
                 size_frame * len(frames_number) > limit:
-            print('Loading all frames is too much')
+            logger.warning('Loading all frames is too much')
             return 0
         M = np.zeros((video_object.imageheader['biWidth'],
                       video_object.imageheader['biHeight'],
                       len(frames_number)),
                      dtype=video_object.imageheader['framesDtype'])
 
-        # for j in frames_number:
-        #     dummy = load_nc(video_object.file, j)
-        #     M[:, :, counter] = dummy
-        #     counter = counter + 1
-        # print('Number of loaded frames: ', counter)
-
-        # Would it be possible to do it like: ??
         dummy = load_nc(video_object.file, frames_number)
         M[:, :, :] = dummy
-        print('Number of loaded frames: ', len(frames_number))
+        logger.info(f'Number of loaded frames: {len(frames_number)}')
     return M

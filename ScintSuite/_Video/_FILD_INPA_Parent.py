@@ -830,6 +830,18 @@ class FIV(BVO):
     # --------------------------------------------------------------------------
     # --- Export Block
     # --------------------------------------------------------------------------
+    def export_strikemap(self, filename):
+        """
+        Export the strikemap attribute into a netCDF files
+
+        :param  filename: filename
+
+        Notice, in principle this function should not be called, the method
+            self.export_remap() will take care of calling this one
+        """
+        logger.info('Saving strikemap attr in file %s' % filename)
+        self.strikemap.to_netcdf(filename)
+
     def export_Bangles(self, filename):
         """
         Export the B angles into a netCDF files
@@ -871,6 +883,7 @@ class FIV(BVO):
         # Now get the name of the files:
         magField = os.path.join(folder, 'Bfield.nc')
         magFieldAngles = os.path.join(folder, 'BfieldAngles.nc')
+        strikemaps = os.path.join(folder, 'strikeMaps.nc')
         remap = os.path.join(folder, 'remap.nc')
         calibration = os.path.join(folder, 'CameraCalibration.nc')
         versionFile = os.path.join(folder, 'version.txt')
@@ -890,6 +903,7 @@ class FIV(BVO):
         try:
             self.export_Bangles(magFieldAngles)
             self.export_Bfield(magField)
+            self.export_strikemap(strikemaps)
             wroteFields = True
         except AttributeError:
             wroteFields = False
@@ -916,7 +930,7 @@ class FIV(BVO):
         if wroteFields:
             tar.add(magField, arcname='Bfield.nc')
             tar.add(magFieldAngles, arcname='BfieldAngles.nc')
-
+            tar.add(strikemaps, arcname='strikeMaps.nc')
         tar.add(remap, arcname='remap.nc')
         tar.add(calibration, arcname='CameraCalibration.nc')
         tar.add(versionFile, arcname='version.txt')
@@ -933,6 +947,7 @@ class FIV(BVO):
         if clean:
             os.remove(magField)
             os.remove(magFieldAngles)
+            os.remove(strikemaps)
             os.remove(remap)
             os.remove(calibration)
             os.remove(versionFile)

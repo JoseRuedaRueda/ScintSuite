@@ -6,10 +6,11 @@ import matplotlib.backends.backend_tkagg as tkagg
 import matplotlib.pyplot as plt
 import ScintSuite._Plotting as ssplt
 import ScintSuite.SimulationCodes.SINPA as sssinpa
+import ScintSuite._Mapping as ssmap
+import ScintSuite._IO as io
 import ScintSuite._StrikeMap as ssmap
 from matplotlib.figure import Figure
 from tkinter import ttk
-
 
 class ApplicationShowVid:
     """Class to show the camera frames"""
@@ -25,6 +26,9 @@ class ApplicationShowVid:
         :param  remap_dat: the dictionary of remapped data
         :param  GeomID: Geometry id of the detector (to load smaps if needed)
         :param  calibration: Calibration parameters
+        :param  scintillator: Scintillator object
+        :param  apd_fibres: APD (or PMT fibers) positions
+        :param  mask: to plot a small coloured mask on top of the image
         """
         # --- List of supported colormaps
         self.cmaps = {
@@ -122,6 +126,7 @@ class ApplicationShowVid:
             state = tk.DISABLED
         else:
             state = tk.NORMAL
+        state = tk.NORMAL
         # Initialise the variable of the button
         self.checkVar1 = tk.BooleanVar()
         self.checkVar1.set(False)
@@ -155,6 +160,31 @@ class ApplicationShowVid:
                                       command=self.scint_Button_change,
                                       takefocus=0, state=state)
         self.scint_button.grid(row=3, column=4)
+        # --- Button for the APD:
+        # If there is not APD data, deactivate the button
+        state = tk.NORMAL
+        # --- Button for the mask:
+        # If there is not scintillator data, deactivate the button
+        if self.mask is None:
+            state = tk.DISABLED
+        else:
+            state = tk.NORMAL
+
+        # Initialise the variable of the button
+        self.checkVar3 = tk.BooleanVar()
+        self.checkVar3.set(False)
+        # Create the button
+
+        self.apd_button = tk.Button(master, text="Draw APD",
+                                      command=self.apd_Button_change,
+                                      takefocus=0, state=state)
+        self.apd_button.grid(row=4, column=4)
+
+        self.mask_button = tk.Button(master, text="Draw mask",
+                                      command=self.mask_Button_change,
+                                      takefocus=0, state=state)
+        self.mask_button.grid(row=3, column=5)
+
         # Draw and show
         self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=0, column=0, columnspan=5,
@@ -164,8 +194,9 @@ class ApplicationShowVid:
         # allows to the canvas to resize when I resize the window
         # --- Quit button
         self.qButton = tk.Button(master, text="Quit", command=master.quit)
-        self.qButton.grid(row=3, column=5)
+        self.qButton.grid(row=5, column=5)
         frame.grid()
+        plt.show()  #AJVV needed to install qt5 event loop, to overplot lines on the canvas using plt
 
     def change_cmap(self, cmap_cname):
         """Change frame cmap"""
@@ -184,19 +215,21 @@ class ApplicationShowVid:
             # remove the old one
             ssplt.remove_lines(self.canvas.figure.axes[0])
             # choose the new one:
-            # get parameters of the map
-            theta_used = self.remap_dat['theta_used'].values[it]
-            phi_used = self.remap_dat['phi_used'].values[it]
-
-            # Get the full name of the file
-            name__smap = sssinpa.execution.guess_strike_map_name(
-                phi_used, theta_used, geomID=self.GeomID,
-                decimals=self.remap_dat['frames'].attrs['decimals'])
-            smap_folder = self.remap_dat['frames'].attrs['smap_folder']
-            full_name_smap = os.path.join(smap_folder, name__smap)
-            # Load the map:
-            # @ToDO: Add here the INPA map if needed
-            smap = ssmap.Fsmap(full_name_smap)
+            if self.checkSmapDatabase.get():
+                # get parameters of the map
+                theta_used = self.remap_dat['theta_used'].values[it]
+                phi_used = self.remap_dat['phi_used'].values[it]
+                # Get the full name of the file
+                name__smap = sssinpa.execution.guess_strike_map_name(
+                    phi_used, theta_used, geomID=self.GeomID,
+                    decimals=self.remap_dat['frames'].attrs['decimals'])
+                smap_folder = self.remap_dat['frames'].attrs['smap_folder']
+                full_name_smap = os.path.join(smap_folder, name__smap)
+                # Load the map:
+                smap = ssmap.Fsmap(full_name_smap)
+            else:
+                ##use user selected strikemap instead
+                smap = ssmap.Fsmap(full_name_smap)
             # Calculate pixel coordinates
             smap.calculate_pixel_coordinates(self.CameraCalibration)
             # Plot the map
@@ -214,6 +247,7 @@ class ApplicationShowVid:
             ssplt.remove_lines(self.canvas.figure.axes[0])
             self.PMTcalibration.plot_pix(ax=self.canvas.figure.axes[0], color='g')
         self.canvas.draw()
+        
 
     def set_scale(self):
         """Set color scale"""
@@ -251,3 +285,44 @@ class ApplicationShowVid:
         self.checkVar2.set(not self.checkVar2.get())
         print('Draw scintillator :', self.checkVar2.get())
         self.canvas.draw()
+
+
+
+    def apd_Button_change(self):
+        """Decide to plot or not the APD fibre positions"""
+        if self.checkVar3.get():
+            ssplt.remove_lines(self.canvas.figure.axes[0])
+        else:
+            path_dir = io.ask_to_open_dir()
+            ch = 1
+            self.apd_data = []
+            while os.path.isfile(path_dir + '/ch_'+str(ch)+'.txt'):
+                self.apd_data.append(np.genfromtxt(path_dir + '/ch_'+str(ch)+'.txt'))
+                ch+=1
+             
+
+        # Now update the value
+        self.checkVar3.set(not self.checkVar3.get())
+        print('Draw APD fibres :', self.checkVar3.get())
+        self.canvas.draw()
+
+    def mask_Button_change(self):
+        """Decide to plot or not the mask. Careful. Press once, move to next
+        frame for it to do something and then deactivate so it doesn't add layers."""
+        
+        # If it was true and we push the button, the smap should be deleted:
+        if self.checkVar3.get():
+            ssplt.remove_last_image(self.canvas.figure.axes[0])
+        # If we activate it, print instructions
+        # Update the value
+        self.checkVar3.set(not self.checkVar3.get())
+        print('Draw mask :', self.checkVar3.get())
+        if self.checkVar3.get():
+            ax=self.canvas.figure.axes[0]
+            self.mask_plot = ax.imshow(self.mask, origin='lower', alpha=0.2, cmap='spring')
+
+        if self.checkVar3.get(): 
+            print('The mask has been activated. Now, move to the next frame and deactivate \
+                    it again so it does not add layers.')
+        self.canvas.draw()
+

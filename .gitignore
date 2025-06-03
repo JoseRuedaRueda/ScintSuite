@@ -28,7 +28,15 @@ fort*
 core.*
 *.js
 *.nc
+
+
+# -----------------------------------------------------------------------------
+# --- Files to ignore
+# -----------------------------------------------------------------------------
 Data/MyData/paths.txt
+requirements_freia.txt
+requirements_freia_orig.txt
+
 # -----------------------------------------------------------------------------
 # --- Folders to ignore
 # -----------------------------------------------------------------------------
@@ -40,6 +48,7 @@ Data/BEP/spectra/*
 Data/MyData/*
 Data/Magnetics/*
 Data/RemapStrikeMaps/*
+Data/Calibrations/FILD/TCV/APD/*
 Data/RemapDatabase/*
 MyRoutines/*
 Results/*

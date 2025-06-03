@@ -6,10 +6,14 @@ Jose Rueda Rueda: jrrueda@us.es
 
 Introduced in version
 """
+import math
 import lmfit
 import numpy as np
 from lmfit.models import ExpressionModel
+from lmfit import Model
+from scipy import special
 from  scipy.special import loggamma
+
 # -----------------------------------------------------------------------------
 # %% Bivariant Gaussian
 # -----------------------------------------------------------------------------
@@ -78,6 +82,102 @@ def multiGaussian(n: int) -> lmfit.model.CompositeModel:
             compositeModel + lmfit.models.GaussianModel(prefix=prefix)
     return compositeModel
 
+# ------------------------------------------------------------------------------
+# %% Raised Cosine
+# ------------------------------------------------------------------------------
+# Auxiliary function
+def _raised_cosine(x,amplitude,center,sigma,beta):
+    """
+    Raised cosine model.
+    
+    See https://doi.org/10.1088/1361-6587/ad268f for full details
+    
+    :param x: x values where to evaluate the model
+    :param amplitude: amplitude of the model
+    :param center: center of the model
+    :param sigma: width parameter of the model
+    :param beta: decay like parameter of the model
+    
+    To avoid the non linearity, gamma/sigma in the erro function, which is more
+    difficult to fit, I define beta = gamma/sigma. This way, the model is
+    easier to fit. The gamma parameter for the model can be easily obtained 
+    from here
+
+    """
+    # Only defined inside a sigma interval
+    cosine_part = (1.0+np.cos((x-center)/sigma*math.pi))/2.0/sigma
+    cosine_part[np.abs(x-center)>sigma] = 0.0
+    error_part = 1.0 + special.erf((x-center)/math.sqrt(2.0)*beta)
+    # print((x-center)/sigma/math.sqrt(2.0)*gamma)
+    # print(error_part)
+    return amplitude*cosine_part*error_part
+
+# lmfit model
+def RaisedCosine():
+    """
+    Raised cosine model.
+    
+    See https://doi.org/10.1088/1361-6587/ad268f for full details
+    """
+    
+    return Model(_raised_cosine)
+
+# -----------------------------------------------------------------------------
+# %% Weigner Semicircle
+# -----------------------------------------------------------------------------
+def _wignerse(x,amplitude,center,sigma):
+    """
+    Wigner's semicircle paper.
+    
+    See https://doi.org/10.1088/1361-6587/ad268f for full details
+    
+    :param x: x values where to evaluate the model
+    :param amplitude: amplitude of the model
+    :param center: center of the model
+    :param sigma: width parameter of the model
+    """
+    out = np.zeros_like(x)
+    y = x-center
+    mask = np.abs(y)**2 < sigma**2
+    out[mask] = 2.0 * amplitude * np.sqrt(sigma**2 - y[mask]**2) / math.pi / sigma**2
+    return out
+
+def WignerSemicircle():
+    """
+    Wigner's semicircle paper.
+    
+    See https://doi.org/10.1088/1361-6587/ad268f for full details
+    """
+    return Model(_wignerse)
+
+# -----------------------------------------------------------------------------
+# %% Parse model names
+# -----------------------------------------------------------------------------
+
+def parseModelNames(name:str)->Model:
+    """
+    Parse the name of the model and return the proper model
+
+    :param name: (str) Name of the model to be parsed
+
+    :return out: lmfit.Model Model corresponding to the name
+    """
+    if name.lower() == 'gaussian' or name.lower() == 'gauss':
+        return lmfit.models.GaussianModel()
+    elif name.lower() == 'bivariategaussian':
+        return BivariateNormalDistribution
+    elif name.lower() == 'multigaussian':
+        return multiGaussian
+    elif name.lower() == 'sgauss' or name.lower() == 'skewedgaussian':
+        return lmfit.models.SkewedGaussianModel()
+    elif name.lower() == 'raisedcosine':
+        return RaisedCosine()
+    elif name.lower() == 'wignersemicircle':
+        return WignerSemicircle()
+    else:
+        raise ValueError(f'Unknown model name: {name}')
+    
+    
 # -----------------------------------------------------------------------------
 # %% Poisson distribution
 # -----------------------------------------------------------------------------

@@ -301,7 +301,7 @@ def synthetic_signal_remap(distro, smap, spoints=None, diag_params: dict = {},
         if eff:
             signal += col_factor * g_func(g_grid.flatten(), **g_parameters) \
                 * pitch_func(p_grid.flatten(), **p_parameters)\
-                * distro_w[i] * efficiency(distro_energy[i]/1000.0)
+                * distro_w[i] * efficiency(distro_energy[i]/1000.0).values
         else:
             dummy = col_factor * g_func(g_grid.flatten(), **g_parameters) \
                     * pitch_func(p_grid.flatten(), **p_parameters)\

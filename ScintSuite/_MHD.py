@@ -645,7 +645,7 @@ class MHDmode():
                 dataToPlot = data[flags].copy()
                 # Now smooth if needed
                 if smooth > 0:
-                    dataToPlot = dataToPlot.rolling(t=smooth).mean()
+                    dataToPlot = dataToPlot.rolling(t=smooth, center=True).mean()
                 if n is not None:
                     if self._rotation is None:
                         raise Exception('You want Doppler shift but there is no f')

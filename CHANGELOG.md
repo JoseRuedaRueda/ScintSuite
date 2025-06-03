@@ -19,14 +19,42 @@
 - rewritten from scratch to make use of datatrees.
 ## OWCF
 - Created module to read topological maps from OWCF
-
-
-# 1.3.11 Minor improvements
+## Minor improvements
 - Plate directory now controlled by a line in the custom paths, no longer hardcored
 - New calibration object for the fast channel, giving the ROI and mask for remaps and camera timetraces
-
-# 1.3.10 New calibrations
 - Added a calibration kind for the situation where the tild is in the object space and not the image space
+
+
+# 1.3.13 
+## Making the simulations easier
+- Added a check feature in the execution. Erased the problems with duplicity of mesh values
+- Number of gyroradius and pitch mesh points is now automatic
+- Added build_parameters_xarray: unites all the relevant fit parameters in a single dataset
+- Now the collimator can be plotted in the forward modelling (experimental)
+
+## MSE-constrained eq in MAST-U
+- By default it will now try to read the MSE-constrained equilibrium. If not possible, will read the standard one.
+- Fixed bug in MU beta angle when reading from file
+
+# 1.3.12 Update of MASTU nc files - position and orientation read from file + new timebase
+- Updated default position and orientation for MU FILD
+- The new format of the timebase can now be read
+- MU RFILD and orientation are now directly read from the ximea file, before looking at the logbook
+- MU FILD's adquisition frequency and trigger time (that were only used for the PCO camera) are now read from the DiagParams
+- Solved bug in _Mapping/_FILD.py, line 311: hardwritten magnetic field to calculate the energy
+
+# 1.3.11 Implementation of xarray in forward modelling
+- Capable of creating synthetic siganls with WF xarray
+- Change in phase space remapped synthetic signals
+- Camera frames, with implemention of diferent kind of noises and filters
+- Capability to compute synthetic signals for double collimators
+- smap class fit parameters matrix wrap for easy optimization
+
+# 1.3.10 Minor fixes
+- Bug solved in substract noise, last frame was not taken into account (bug introduced in 1.2.1)
+- Plot mask option added to the GUI_frames
+- Included option to load both remap and video
+- Fixed the rotation of the frames when plotting for MU01
 
 
 # 1.3.9 D3D implementation
@@ -57,13 +85,12 @@
 # 1.3.7 Solved (again) np.int stuff
 - removed np.int and np.float calls
 
-
 # 1.3.6 Updated fild export
 - Updated pip requirements
 - Updated export fild, for the case of single smap used in remap
 
 # 1.3.5 Shares path, Update netCDF library for MU
-- Updated basic pathjs of AUG FILD and INPa to the shares
+- Updated basic paths of AUG FILD and INPa to the shares
 - The netCDF library has been updated to read new standard MU format
 
 # 1.3.4 Home flexibility

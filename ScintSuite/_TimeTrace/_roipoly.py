@@ -12,6 +12,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.path as mplPath
 
+def read_path_from_file(path_file: str):
+    """
+    Function for reading ROI path (N,2) data for setting up ROI object
+    
+    """
+
+    path_in_pixels = np.genfromtxt(path_file) 
+
+    return path_in_pixels
+
+
 
 class roipoly:
     """

@@ -16,4 +16,4 @@ from ScintSuite.LibData.AUG.Fild import *
 from ScintSuite.LibData.AUG.pellets import *
 import ScintSuite.LibData.AUG.FILD_traject as FILD_traject
 from ScintSuite.LibData.AUG._INPA import *
-from ScintSuite.LibData.AUG._pySpecView import pySpecView
+from ScintSuite._pySpecView import pySpecView

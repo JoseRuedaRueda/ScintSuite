@@ -1,7 +1,9 @@
 # SCINTILLATOR SUITE
 
-This code is created to analyze the signal from scintillator diagnostics. Native support for FILD, INPA. for iHIBP, you need the extra module of iHIBPsim. To include a different diagnostic, please contact Jose Rueda: jrrueda@us.es
+This code is created to analyze the signal from scintillator diagnostics. Native support for FILD, INPA. for iHIBP, you need the extra module of iHIBPsim. To include a different diagnostic, please contact Jose Rueda: jruedaru@uci.edu
 
+## Citation of the code
+To cite the code please use the ScintSuite [![DOI](https://zenodo.org/badge/13886727.svg)](https://doi.org/10.5281/zenodo.13886727)
 ## Installation and documentation
 ### Prerequisites
 - Python 3.7 or higher
