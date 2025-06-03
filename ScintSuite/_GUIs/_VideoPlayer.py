@@ -15,7 +15,8 @@ class ApplicationShowVid:
     """Class to show the camera frames"""
 
     def __init__(self, master, data, remap_dat, GeomID='AUG02',
-                 calibration=None, scintillator=None, shot: int = None):
+                 calibration=None, scintillator=None, shot: int = None,
+                 PMTcalibration=None):
         """
         Create the window with the sliders
 
@@ -41,6 +42,7 @@ class ApplicationShowVid:
         self.GeomID = GeomID
         self.CameraCalibration=calibration
         self.scintillator = scintillator
+        self.PMTcalibration = PMTcalibration
         t = data['t'].values
         # --- Create a tk container
         frame = tk.Frame(master)
@@ -82,7 +84,7 @@ class ApplicationShowVid:
         # We need a new frame because the toolbar uses 'pack' internally and we
         # are using 'grid' to place our elements, so they are not compatible
         self.toolbarFrame = tk.Frame(master=master)
-        self.toolbarFrame.grid(row=4, column=1, columnspan=5)
+        self.toolbarFrame.grid(row=4, column=1, columnspan=4)
         self.toolbar = \
             tkagg.NavigationToolbar2Tk(self.canvas, self.toolbarFrame)
         self.toolbar.update()
@@ -128,6 +130,17 @@ class ApplicationShowVid:
                                      command=self.smap_Button_change,
                                      takefocus=0, state=state)
         self.smap_button.grid(row=3, column=3)
+        # PMT button
+        if self.PMTcalibration is None:
+            state = tk.DISABLED
+        else:
+            state = tk.NORMAL
+        self.checkVarPMT = tk.BooleanVar()
+        self.checkVarPMT.set(False)
+        self.PMTbutton = tk.Button(master, text="Draw PMTs",
+                                command=self.PMT_Button_change,
+                                takefocus=0, state=state)
+        self.PMTbutton.grid(row=4, column=5)
         # --- Button for the Scintillator:
         # If there is not scintillator data, deactivate the button
         if self.scintillator is None:
@@ -192,9 +205,14 @@ class ApplicationShowVid:
             smap.plot_pix(ax=self.canvas.figure.axes[0], labels=False)
             self.canvas.figure.axes[0].set_xlim(self.xlim[0], self.xlim[1])
             self.canvas.figure.axes[0].set_ylim(self.ylim[0], self.ylim[1])
-            # Plot the scintillator:
+        # Plot the scintillator:
         if self.checkVar2.get():
             self.scintillator.plot_pix(ax=self.canvas.figure.axes[0])
+        # Plot the PMT:
+        if self.checkVarPMT.get():
+            # remove the old one
+            ssplt.remove_lines(self.canvas.figure.axes[0])
+            self.PMTcalibration.plot_pix(ax=self.canvas.figure.axes[0], color='g')
         self.canvas.draw()
 
     def set_scale(self):
@@ -204,6 +222,16 @@ class ApplicationShowVid:
         self.image.set_clim(cmin, cmax)
         self.canvas.draw()
 
+    def PMT_Button_change(self):
+        """Decide to plot or not PMTs"""
+        # If it was true and we push the button, the smap should be deleted:
+        if self.checkVar1.get():
+            ssplt.remove_lines(self.canvas.figure.axes[0])
+        # Now update the value
+        self.checkVarPMT.set(not self.checkVarPMT.get())
+        print('Draw Smap :', self.checkVarPMT.get())
+        self.canvas.draw()
+
     def smap_Button_change(self):
         """Decide to plot or not Smap"""
         # If it was true and we push the button, the smap should be deleted:
@@ -211,7 +239,7 @@ class ApplicationShowVid:
             ssplt.remove_lines(self.canvas.figure.axes[0])
         # Now update the value
         self.checkVar1.set(not self.checkVar1.get())
-        print('Draw Smap :', self.checkVar1.get())
+        print('Draw PMT :', self.checkVar1.get())
         self.canvas.draw()
 
     def scint_Button_change(self):

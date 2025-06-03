@@ -7,11 +7,12 @@ import time
 import numpy as np
 import scipy.signal as sp  # signal processing
 import ScintSuite.errors as errors
+import ScintSuite._Plotting as ssplt
 import matplotlib.pyplot as plt
 import xarray as xr
 from scipy.fft import rfft, rfftfreq
+from ScintSuite._SideFunctions import detrend
 from scipy import signal
-import ScintSuite._Plotting as ssplt
 from typing import Optional, Union
 import logging
 logger = logging.getLogger('ScintSutie.BasicVariables')
@@ -78,7 +79,7 @@ class BasicSignalVariable():
     @ToDo add time units
     """
     def __init__(self):
-        self._data = xr.Dataset()
+        self._data = xr.DataTree()
     
     # --------------------------------------------------------------------------
     # %% Baseline correction
@@ -95,19 +96,21 @@ class BasicSignalVariable():
         :param t1: initial time for the baseline calculation
         :param t2: final time for the baseline calculation
         """
+        # --- Initialise the signals to be corrected:
         if signals is None:
-            signals = []
-            for k in self.keys():
-                if not k.startswith('fft') and not k.startswith('spec') and not k.startswith('baseline'):
-                    # Neglect fft or spectrum:
-                    signals.append(k)
+            signals = self.getSignalNames()
+        # --- Get and correct the baseline:
+        if 'baselines' not in self._data['signals'].keys():
+            basDs = xr.Dataset()
+            self._data['signals']['baselines'] = xr.DataTree(name='baselines',
+                                    dataset=basDs)
+            
         for k in signals:
-            baseline = self[k].sel(t=slice(t1, t2)).mean(dim='t')
-            self._data['baseline_' + k] = baseline.copy()
-            self._data[k] -= baseline
+            baseline = self._data['signals'][k].sel(t=slice(t1, t2)).mean(dim='t')
+            self._data['signals']['baselines'][k] = baseline.copy()
+            self._data['signals'][k] -= baseline
         return
             
-    
     
     # --------------------------------------------------------------------------
     # %% Filtering
@@ -118,8 +121,8 @@ class BasicSignalVariable():
         """
         Filter the time dependent variables
 
-        :param  signals: list of signal to be filtered. If none, all signals will
-            be filtered
+        :param  signals: list of signal to be filtered. If none, all signals
+            will be filtered
 
         @ ToDo: implement some fancy ... index to handle dimensions
         """
@@ -130,7 +133,7 @@ class BasicSignalVariable():
         }
         settings = {
             'savgol': {
-                'window_length': 201,
+                'window_length': 2001,
                 'polyorder': 3
             },
             'median': {
@@ -142,96 +145,64 @@ class BasicSignalVariable():
         filter_options = settings[method.lower()].copy()
         filter_options.update(filter_params)
         if signals is None:
-            signals = []
-            for k in self.keys():
-                if not k.startswith('fft') and not k.startswith('spec') and not k.startswith('baseline'):
-                    # Neglect fft or spectrum:
-                    signals.append(k)
-        
+            signals = self.getSignalNames()
+        # --- Create the children in the signal tree
+        if 'filtered' not in self._data['signals'].keys():
+            filteredDs = xr.Dataset()
+            self._data['signals']['filtered'] = xr.DataTree(name='filtered',
+                                                 dataset=filteredDs)
+        # --- Proceed with the filtering
+        logger.info('Filtering signals with method %s' % method)
         for k in signals:
-            if len(self[k].shape) == 1:  # Variable with just time axis
-                self._data['filtered_' + k] = xr.DataArray(
-                        filters[method](self[k].values, **filter_options),
-                        dims='t')
-            elif len(self[k].shape) == 2:  # Variable with time + something
-                if self[k].dims[1] == 't':
-                    channeldim = 0
-                elif self[k].dims[0] == 't':
-                    channeldim = 1
-                else:
-                    logger.error('Time dimension not found')
-                    raise errors.CalculationError('Time dimension not found')
-                self._data['filtered_' + k] = self._data[k].copy()
-                for i in range(self[k].shape[channeldim]):
-                    if channeldim == 0:
-                        self._data['filtered_' + k].values[i, :] = \
-                            filters[method](self[k].values[i, :], **filter_options)
-                    else:
-                        self._data['filtered_' + k].values[:, i] = \
-                            filters[method](self[k].values[:, i], **filter_options)
-                        # xr.DataArray(
-                        # filters[method](self[k].values[i, :], **kargs),
-                        # dims='t')
-            else:
-                raise errors.NotImplementedError('To be done')
+            axis = self._data['signals'][k].dims.index('t')
+            self._data['signals']['filtered'][k] = xr.DataArray(
+                filters[method](self[k].values, axis=axis, **filter_options),
+                dims=self._data['signals'][k].dims,
+                coords=self._data['signals'][k].coords
+            )
+            # Add the attributes to the filtered signals
+            self._data['signals']['filtered'][k].attrs['filter_method'] = method
+            for key, value in filter_options.items():
+                self._data['signals']['filtered'][k].attrs[key] = value
+            try:
+                self._data['signals']['filtered'][k].attrs['units'] = self._data['signals'][k].attrs['units']
+            except KeyError:
+                pass
+        logger.info('Filtering done')
 
-    def detrend(self, signals: Optional[list] = None,
+    def detrend(self, signals: Optional[list] = None, type: str = 'linear',
                 detrendSizeInterval: Optional[float] = 0.001):
         """
         Filter the time dependent variables
 
-        :param  signals: list of signal to be filtered. If none, all signals will
-            be filtered
+        :param  signals: list of signal to be filtered. If none, all signals 
+            will be filtered
         :param  detrendSizeInterval: size of the interval to be used for the detrend
-
         """
         if signals is None:
-            signals = []
-            for k in self.keys():
-                if not k.startswith('fft') and not k.startswith('spec') and not k.startswith('baseline'):
-                    # Neglect fft or spectrum:
-                    signals.append(k)
-        
+            signals = self.getSignalNames()
+        # Allocate the detrended tree
+        if 'detrended' not in self._data['signals'].keys():
+            detrendDs = xr.Dataset()
+            self._data['signals']['detrended'] = xr.DataTree(name='detrend',
+                                                 dataset=detrendDs)
+        # --- Proceed with the detrending
+        logger.info('Detrending signals with size interval %f s' % detrendSizeInterval)
         for k in signals:
-            dt = self[k]['t'][1] - self[k]['t'][0]
-            npoints = int(detrendSizeInterval/dt)
-            logger.info('Detrending %s with %i points' % (k, npoints))
-            if len(self[k].shape) == 1:  # Variable with just time axis
-                dummy = signal.detrend(self[k].values, type='linear', 
-                                       bp=np.arange(0, self[k].size, npoints))
-                self._data['detrend_' + k] = \
-                    xr.DataArray(self[k].values - dummy, dims='t')
-            elif len(self[k].shape) == 2:  # Variable with time + something
-                if self[k].dims[1] == 't':
-                    channeldim = 0
-                    nt = self[k].shape[1]
-                elif self[k].dims[0] == 't':
-                    channeldim = 1
-                    nt = self[k].shape[0]
-                else:
-                    logger.error('Time dimension not found')
-                    raise errors.CalculationError('Time dimension not found')
-                self._data['detrend_' + k] = self._data[k].copy()
-                for i in range(self[k].shape[channeldim]):
-                    if channeldim == 0:
-                        self._data['detrend_' + k].values[i, :] -=\
-                            signal.detrend(self[k].values[i, :], type='linear', 
-                                       bp=np.arange(0, nt, npoints))
-                    else:
-                        self._data['detrend_' + k].values[:, i] -= \
-                            signal.detrend(self[k].values[:,i], type='linear', 
-                                       bp=np.arange(0, nt, npoints))
-                        # xr.DataArray(
-                        # filters[method](self[k].values[i, :], **kargs),
-                        # dims='t')
-            else:
-                raise errors.NotImplementedError('To be done')
+            self._data['signals']['detrended'][k] = detrend(self._data['signals'][k],type=type,detrendSizeInterval=detrendSizeInterval)
+            # Add the attributes to the detrended signals
+            self._data['signals']['detrended'][k].attrs['detrend_method'] = type
+            self._data['signals']['detrended'][k].attrs['detrendSizeInterval'] = detrendSizeInterval
+            try:
+                self._data['signals']['detrended'][k].attrs['units'] = self._data['signals'][k].attrs['units']
+            except KeyError:
+                pass
 
 
     # --------------------------------------------------------------------------
     # %% Frequency anasylis
     # --------------------------------------------------------------------------
-    def calculate_fft(self, signals: list = None, **kargs):
+    def calculate_fft(self, signals: Optional[list] = None, **kargs):
         """
         Calculate the fft of the time trace
 
@@ -244,179 +215,44 @@ class BasicSignalVariable():
         see scipy.fft.rfft for full details
 
 
-        :return:  nothing, just fill self.fft
+        :return:  nothing, just fill the tree node
         """
-        # --- Object cleaning:
-        if 'freq_fft' in self.keys():
-            logger.warning('11: Overwritting fft data')
-            self._data.drop_dims('freq_fft')
+        # --- Object allocation:
+        if 'fft' not in self._data['signals'].keys():
+            detrendDs = xr.Dataset()
+            self._data['fft'] = xr.DataTree(name='fft',
+                                                 dataset=detrendDs)
         # --- Prepare the signal names for the fft
         if signals is None:
-            signals = []
-            for k in self.keys():
-                if not k.startswith('fft') and not k.startswith('spec') and not k.startswith('baseline'):
-                    # Neglect fft or spectrum:
-                    signals.append(k)
+            signals = self.getSignalNames()
         # --- Prepare the fft axis
         N = len(self['t'].values)
         freq_fft = rfftfreq(N, (self['t'][2] - self['t'][1]).values)
 
-        self._data = self._data.assign_coords({'freq_fft': freq_fft})
-        self._data['freq_fft'].attrs['long_name'] = 'Frequency'
+        self._data['fft'].dataset = self._data['fft'].dataset.assign_coords({'f': freq_fft})
+        self._data['fft']['f'].attrs['long_name'] = 'Frequency'
 
         # --- Proceed with the fft
         for k in signals:
-            if len(self[k].shape) == 1:  # Variable with just time axis
-                self._data['fft_' + k] = xr.DataArray(
-                    rfft(self[k].values, **kargs), dims='freq_fft')
-            elif len(self[k].shape) == 2:  # Variable with time + something
-                dummy = np.zeros((self[k].shape[0], freq_fft.size))
-                for i in range(self[k].shape[0]):
-                    dummy[i, :] = rfft(self[k].values[i, :], **kargs)
-                self._data['fft_' + k] = xr.DataArray(
-                    dummy, dims=(self[k].dims[0], 'freq_fft'))
-            else:
-                raise errors.NotImplementedError('To be done')
+            # Find the time axis
+            axis = self._data['signals'][k].dims.index('t')
+            # get the coordinates but remove the time
+            coords = dict(self._data['signals'][k].coords)
+            if 't' in coords:
+                coords.pop('t')
+            # Now add the frequency coordinate
+            coords['f'] = freq_fft
 
-            self._data['fft_' + k].attrs['long_name'] = 'Fast Fourier Trans'
+            self._data['fft'][k] = xr.DataArray(
+                rfft(self[k].values, axis=axis, **kargs),
+                dims=self._data['signals'][k].dims[:axis] + ('f',) +
+                     self._data['signals'][k].dims[axis + 1:],
+                coords=coords
+            )
+            # Add the attributes to the fft signals
+            self._data['fft']['f'].attrs['long_name'] = 'Fast Fourier Trans'
     
-    def calculate_spectrogram(self, signals: Optional[list] = None,
-                              window: Union[str, np.ndarray] = 'gaussian',
-                              winParams: Optional[dict] = {'Nx': 1000},
-                              **kargs):
-        """
-        Calculate the spectrogram of the data
 
-        Jose Rueda Rueda: jruedaru@uci.edu
-        
-        :param signals: list of signal for whcih we want the fft. If none,
-        all signals present in self._data will be considered
-        :param window: window for the spectrogram, if a numpy array is given,
-        it will be used as the window. If a string is given, the window will be
-        selected from the scipy.signal.get_window function
-        :param winParams: dictionary with the parameters for the window (if needed)
-        :param kargs: parameters for the scipy.signal.ShortTimeFFT function
-
-        :return:  nothing, just fill self._data.spec_*
-        """
-        # --- Object cleaning
-        if 'time_spec' in self.keys():
-            logger.warning('11: Overwritting spectrogram data')
-            self._data.drop_dims(('time_spec', 'freq_spec'))
-        # --- Settings initialization
-        if signals is None:
-            signals = []
-            for k in self.keys():
-                if not k.startswith('fft') and not k.startswith('spec'):
-                    # Neglect fft or spectrum:
-                    signals.append(k)
-        if 'Nx' not in winParams:
-            logger.warning('Nx not defined, using 1000')
-            winParams['Nx'] = 1000
-        # --- Window selection
-        if type(window) == np.ndarray:
-            win = window
-        else:
-            if window.lower() == 'gaussian':
-                # Gaussian window cannot be returned with the generic get window
-                if 'std' not in winParams:
-                    logger.warning('std not defined, using 7')
-                    winParams['std'] = 7
-                win = signal.windows.gaussian(winParams['Nx'], std=winParams['std'])
-            else:
-                win = signal.windows.get_window(window, **winParams)
-        # --- Spectogram calculation
-        sampling_freq = 1 / np.mean(np.diff(self['t']))
-        for k in signals:
-            if len(self[k].shape) == 1:
-                # If the signal is just a 1D time signal, we can perform the 
-                # Sepctrogram directly
-                SFT = signal.ShortTimeFFT(win, fs=sampling_freq, **kargs)
-                Sx = SFT.stft(self[k].values)
-                freq_spec = SFT.f
-                t_0, t_1 = SFT.extent(self._data.t.size)[:2]  # time range of plot
-                time_spec = np.arange(t_0, t_1, SFT.delta_t)
-                # Safety check
-                dt1 = np.mean(np.diff(time_spec))
-                dt2 = SFT.delta_t
-                if np.abs(dt1 - dt2) > 1e-6:
-                    logger.error('Time step mismatch: %f vs %f' % (dt1, dt2))
-                    raise errors.CalculationError('Time step mismatch')
-                self._data['spec_' + k] = xr.DataArray(
-                    Sx, dims=('freq_spec', 'time_spec'), 
-                    coords={'freq_spec': freq_spec, 
-                            'time_spec': time_spec})
-                # Add the factors to the attributes
-                self._data['spec_' + k].attrs['fac_magnitude'] = SFT.fac_magnitude
-                self._data['spec_' + k].attrs['fac_psd'] = SFT.fac_psd
-                self._data['spec_' + k].attrs['fft_mode'] = SFT.fft_mode
-                self._data['spec_' + k].attrs['invertible'] = SFT.invertible
-                self._data['spec_' + k].attrs['scaling'] = SFT.scaling
-                self._data['spec_' + k].attrs['window'] = SFT.win
-            elif len(self[k].shape) == 2:
-                # In this case, we need to perform the calculationn for each
-                # of the rows inside the signal group, for example, for 
-                # different channels
-                # First find in which dimension is the time
-                if self[k].dims[1] == 't':
-                    channeldim = 0
-                elif self[k].dims[0] == 't':
-                    channeldim = 1
-                else:
-                    logger.error('Time dimension not found')
-                    raise errors.CalculationError('Time dimension not found')
-                
-                spectra = []
-                metadata = {'fac_magnitude': [], 'fac_psd': [], 'fft_mode': [],
-                            'invertible': [], 'scaling': [], 'window': []}
-                for i in range(self[k].shape[channeldim]):
-                    # Get the spectrogram for each of the channels\
-                    SFT = signal.ShortTimeFFT(win, fs=sampling_freq, **kargs)
-                    if channeldim == 0:
-                        Sx = SFT.stft(self[k].values[i, :])
-                    else:
-                        Sx = SFT.stft(self[k].values[:, i])
-                    # Save the metadata
-                    metadata['fac_magnitude'].append(SFT.fac_magnitude)
-                    metadata['fac_psd'].append(SFT.fac_psd)
-                    metadata['fft_mode'].append(SFT.fft_mode)
-                    metadata['invertible'].append(SFT.invertible)
-                    metadata['scaling'].append(SFT.scaling)
-                    metadata['window'].append(SFT.win)
-                    # Accumulate the spectra in the list
-                    spectra.append(Sx)
-                # Save everything to the dataarray, as they have the same time
-                # base and window, they share the frequency axis and tiem axis
-                freq_spec = SFT.f
-                t_0, t_1 = SFT.extent(self._data.t.size)[:2]  # time range of plot
-                time_spec = np.arange(t_0, t_1, SFT.delta_t)
-                # Safety check
-                dt1 = np.mean(np.diff(time_spec))
-                dt2 = SFT.delta_t
-                if np.abs(dt1 - dt2) > 1e-6:
-                    logger.error('Time step mismatch: %f vs %f' % (dt1, dt2))
-                    raise errors.CalculationError('Time step mismatch')
-                if time_spec.size != Sx.shape[1]:
-                    logger.error('Time size mismatch: %i vs %i, discarting the last point and trying again' % (time_spec.size, Sx.shape[1]))
-                    time_spec = time_spec[:-1]
-                    if time_spec.size != Sx.shape[1]:
-                        logger.error('Time size mismatch: %i vs %i, aborting' % (time_spec.size, Sx.shape[1]))
-                        raise errors.CalculationError('Time size mismatch')
-                nchannels = self[k].shape[channeldim]
-                dummy = np.zeros((nchannels, Sx.shape[0], Sx.shape[1]),
-                                 dtype=complex)
-                for i in range(self[k].shape[0]):
-                    dummy[i, ...] = spectra[i]
-                self._data['spec_' + k] = xr.DataArray(
-                    dummy, dims=(self[k].dims[channeldim], 'freq_spec', 'time_spec'),
-                    coords={'freq_spec': freq_spec, 
-                            'time_spec': time_spec})
-                self._data['spec_' + k].attrs = metadata
-            else:
-                raise errors.NotImplementedError('To be done')   
-
-        self._data['time_spec'].attrs['long_name'] = 'Time'
-        self._data['freq_spec'].attrs['long_name'] = 'Frequency'
     
     # --------------------------------------------------------------------------
     # %% Plotting
@@ -574,4 +410,12 @@ class BasicSignalVariable():
         return self._data.keys()
     
     def __getitem__(self, item):
-        return self._data[item]
+        return self._data.signals[item]
+    
+    def getSignalNames(self):
+        """
+        Get the names of the signals in the dataset
+
+        :return: list of signal names
+        """
+        return [k for k in self._data['signals'].dataset.keys()]

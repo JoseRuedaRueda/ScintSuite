@@ -10,42 +10,29 @@ documentation
 @mainpage Scintillator Suite Project
 """
 import os
-import f90nml
+import yaml
 import logging
 import shutil
-## ----------------------------------------------------------------------------
-# --- Filters and color handler, logging
 
-# home = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+# -----------------------------------------------------------------------------
+# %% Read the settings file
+# -----------------------------------------------------------------------------
 home = os.getenv("ScintSuitePath")
 if home is None:
     home = os.path.join(os.getenv("HOME"), 'ScintSuite')
-try:
-    file = \
-        os.path.join(home, 'Data',
-                     'MyData', 'IgnoreWarnings.txt')
-    to_ignore = str(f90nml.read(file)['Warnings']['warningstoignore'])
-except FileNotFoundError:
-    file_template = \
-        os.path.join(home, 'Data', 'MyDataTemplates', 'IgnoreWarnings.txt')
-    shutil.copyfile(file_template, file)
-    to_ignore = 'None'
+UserSettings = os.path.join(home, 'Settings.yml')
+with open(UserSettings, 'r') as stream:
+    try:
+        settings = yaml.safe_load(stream)
+    except yaml.YAMLError as exc:
+        print(exc)
+        raise Exception('Error reading the settings file')
+# Get the warnings to ignore:
+to_ignore = settings['warningsToIgnore']
 
-# Checking if paths and plot files are also in the MyData.
-file = os.path.join(home, 'Data',
-                    'MyData', 'Paths.txt')
-if not os.path.isfile(file):
-    file_template = \
-        os.path.join(home, 'Data', 'MyDataTemplates', 'Paths.txt')
-    shutil.copyfile(file_template, file)
-
-file = os.path.join(home, 'Data',
-                    'MyData', 'plotting_default_param.cfg')
-if not os.path.isfile(file):
-    file_template = \
-        os.path.join(home, 'Data', 'MyDataTemplates', 'plotting_default_param.cfg')
-    shutil.copyfile(file_template, file)
-
+# ----------------------------------------------------------------------------
+# %% Set the logger
+# ----------------------------------------------------------------------------
 class _NoParsingFilter(logging.Filter):
     def filter(self, record, to_ignore=to_ignore):
         return not record.getMessage().startswith(to_ignore)
@@ -74,8 +61,6 @@ class _CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-## ----------------------------------------------------------------------------
-# --- Suite Logger. Main logging element
 # Itialise the root logger
 logging.basicConfig()
 
@@ -89,6 +74,7 @@ if len(logger.handlers) == 0:
     logger.addHandler(hnd)
 logger.setLevel(logging.DEBUG)
 logger.propagate = False
+
 # Initialise the real logger for the suite
 Suite_logger = logging.getLogger('ScintSuite')
 
@@ -100,17 +86,18 @@ Suite_logger.setLevel(logging.DEBUG)
 Suite_logger.addFilter(_NoParsingFilter())
 Suite_logger.propagate = False
 
-## ----------------------------------------------------------------------------
-# --- Add the paths directories for python
+# ----------------------------------------------------------------------------
+# %% Extend the path to find machine dependent libraries
+# -----------------------------------------------------------------------------
 try:
-    from paths_suite import paths_of_the_suite
-    paths_of_the_suite()
+    from envPathExtend import envPathExtend
+    envPathExtend()
 except (ImportError, ModuleNotFoundError):
     pass
 
 
-## ----------------------------------------------------------------------------
-# --- Suite modules
+# ----------------------------------------------------------------------------
+# %% Suite modules
 # Custom exceptions
 import ScintSuite.errors as err
 
@@ -132,6 +119,9 @@ import ScintSuite.SimulationCodes.FILDSIM as fildsim
 import ScintSuite.SimulationCodes.SINPA as sinpa
 import ScintSuite.SimulationCodes.Common as simcom
 import ScintSuite.SimulationCodes.TRANSP as transp
+import ScintSuite.SimulationCodes.OWCF as OWCF
+from ScintSuite._MULTIPOW import MULTIPOW
+
 try:
     import FIDASIM4py as fidasim
 except ModuleNotFoundError:
@@ -199,8 +189,8 @@ ver.printGITcommit()
 # -------------------------------------------------------------------------
 # It seems that with some matplotlib installations, this could fail, so let
 # us make just a try
-#try:
-#    plt.plotSettings()
-#except:
-#    logger.warning('28: It was not possible to initialise the plotting ' +
-#                   'settings')
+try:
+    plt.plotSettings()
+except:
+   logger.warning('28: It was not possible to initialise the plotting ' +
+                  'settings')

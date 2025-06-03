@@ -13,8 +13,11 @@ import ScintSuite.LibData as ssdat
 import ScintSuite._FrequencyAnalysis as ssfq
 import ScintSuite.errors as errors
 import scipy.signal as sp  # signal processing
-from ScintSuite._basicVariable import BasicSignalVariable
-
+try:
+    from d3dsuite.LibData.D3D._FastChannels import FastSignal as _fast
+except ImportError:
+    from ScintSuite._basicVariable import BasicSignalVariable as _fast
+from ScintSuite._TimeTrace import roipoly
 
 # -----------------------------------------------------------------------------
 # --- Classes
@@ -22,158 +25,6 @@ from ScintSuite._basicVariable import BasicSignalVariable
 # class FastChannel:
 #     """To interact with signals from the fast channel"""
 
-#     def __init__(self, diag: str, diag_ID: int, channels: np.ndarray,
-#                  shot: int):
-#         """Initialize the class, see get_fast_channel for inputs description"""
-#         ## Experimental data (time and channel signals)
-#         self.raw_data = \
-#             ssdat.get_fast_channel(diag, diag_ID, channels, shot)
-#         ## Filtered data:
-#         self.filtered_data = None
-#         ## Spectras
-#         self.spectra = None
-#         ## Diagnostic name
-#         self.diag = diag
-#         ## Diagnostic number
-#         self.diag_ID = diag_ID
-#         ## Shot number
-#         self.shot = shot
-
-#     def filter(self, method: str = 'savgol', params: dict = {}):
-#         """
-#         Smooth the signal
-
-#         Jose Rueda: jrrueda@us.es
-
-#         :param s method: Smooth to be applied. Up to now supported:
-#             - savgol: Savitzky-Golay (see scipy savgol_filter doc)
-#             - median:  Median filter (See scipy.signal.medfilt)
-#         """
-#         # --- Initialise the settings
-#         options_filter = {
-#             'savgol': {
-#                 'window_length': 51,
-#                 'polyorder': 3,
-#             },
-#             'median': {
-#                 'kernel_size': None
-#             }
-#         }
-#         filters = {
-#             'savgol': sp.savgol_filter,
-#             'median': sp.medfilt,
-#         }
-#         # --- Perform the filter
-#         if method not in options_filter.keys():
-#             raise errors.NotImplementedError('Method not implemented')
-#         filtered_data = self.raw_data['data'].copy()
-#         options = options_filter[method]
-#         options.update(params)
-#         for i in self.raw_data['channels']:
-#             dummy = filters[method](self.raw_data['data'][i - 1], **options)
-#             filtered_data[i - 1] = dummy.copy()
-#             del dummy
-#         self.filtered_data = {
-#             'time': self.raw_data['time'],
-#             'data': filtered_data,
-#             'channels': self.raw_data['channels']
-#         }
-#         return
-
-#     def calculate_spectrogram(self, method: str = 'scipy', params: dict = {},
-#                               timeResolution: float = 0.002):
-#         """
-#         Calculate spectrograms of loaded signals
-
-#         Jose Rueda: jrrueda@us.es
-
-#         @todo: if 'gauss' timewindow is passed as parameter, my call to
-#         get_nfft is wrong
-
-#         :param  method: method to perfor the fourier transform:
-#             - sfft
-#             - stft: hort-Time Fourier Transform, Giovanni implementation.
-#             - stft2: Short-Time Fourier Transform, scipy.signal implementation.
-#             - scipy: just call the scipy spectrogram function (recomended)
-#         :param  params: dictionary containing the optional parameters of those
-#                        methos (see ScintSuite._FrequencyAnalysis)
-#         :param  timeResolution: set the time resolution of the spectogram, if
-#                                sfft, stft2 or stft are selected this would be
-#                                the time resolution parameter, normalise to one,
-#                                see fast channel library for more information.
-#                                If you select the scipy method, this will be
-#                                just the time window you want to use in each
-#                                point to calculate the fourier transform. Notice
-#                                that if you include manually 'nperseg' in the
-#                                params dict, this timeResolution will be ignored
-#         """
-#         # --- Just select the desited method
-#         if method != 'scipy':
-#             if method == 'stft':
-#                 spec = ssfq.stft
-#             elif method == 'sfft':
-#                 spec = ssfq.sfft
-#             elif method == 'stft2':
-#                 spec = ssfq.stft2
-#             else:
-#                 raise errors.NotImplementedError('Method not understood')
-#             # --- Perform the spectogram for each channel:
-#             ch = np.arange(len(self.raw_data['data'])) + 1
-#             spectra = []
-#             # Estimate the window size for the ft
-#             dt = self.raw_data['time'][1] - self.raw_data['time'][0]
-#             nfft = int(ssfq.get_nfft(timeResolution, method,
-#                                      self.raw_data['time'].size,
-#                                      'hann', dt))
-#             for ic in ch:
-#                 if self.raw_data['data'][ic - 1] is not None:
-#                     s, fvec, tvec = \
-#                         spec(self.raw_data['time'],
-#                              self.raw_data['data'][ic - 1],
-#                              nfft, **params)
-#                     dummy = {
-#                         'spec': abs(s),
-#                         'fvec': fvec.copy(),
-#                         'tvec': tvec.copy(),
-#                     }
-#                     spectra.append(dummy)
-#                 else:
-#                     spectra.append(0)
-#             self.spectra = spectra
-#         else:
-#             # --- Time spacing of the data points
-#             dt = self.raw_data['time'][1] - self.raw_data['time'][0]
-
-#             # --- default options for the spectrogram
-#             options = {
-#                 'window': ('tukey', 0.),
-#                 'fs': 1.0 / dt
-#             }
-#             options.update(params)
-
-#             # --- estimate the number of points we need:
-#             npoints = int(timeResolution/dt)
-#             print(npoints)
-#             if 'nperseg' not in options:
-#                 options['nperseg'] = npoints
-#             # --- Perform the spectogram for each channel:
-#             ch = np.arange(len(self.raw_data['data'])) + 1
-#             spectra = []
-#             for ic in ch:
-#                 if self.raw_data['data'][ic - 1] is not None:
-#                     fvec, tvec, s = \
-#                         sp.spectrogram(self.raw_data['data'][ic - 1],
-#                                        **options)
-#                     dummy = {
-#                         'spec': np.abs(s).T,
-#                         'fvec': fvec.copy(),
-#                         'tvec': tvec.copy(),
-#                     }
-#                     spectra.append(dummy)
-#                 else:
-#                     spectra.append(0)
-#             self.spectra = spectra
-#         return
 
 #     def plot_channels(self, ch_number=None, line_params: dict = {},
 #                       ax_params: dict = {}, ax=None, normalise: bool = True,
@@ -358,21 +209,104 @@ from ScintSuite._basicVariable import BasicSignalVariable
 #         return ax
 
 
-class FastChannel(BasicSignalVariable):
+class FastChannel(_fast):
     """
     Class for the fast channel signals
     
     This is just a wrapper for the fast channel signals.
     """
     def __init__(self, diag, diag_ID, channels=None, shot: int = 199439, exp: str = 'd3d'):
-        BasicSignalVariable.__init__(self)
+        _fast.__init__(self)
+        self._data['signals'] = xr.DataTree(name='signals')
         raw_data = \
              ssdat.get_fast_channel(diag, diag_ID, channels=channels, 
                                     shot=shot, exp=exp)
         if type(raw_data) == xr.core.dataarray.DataArray:
             # The get fast channel is the new routine, nothing to do here
-            self._data['signal'] = raw_data
+            self._data['signals'][diag + str(diag_ID)] = raw_data
         else: # Old format from AUG
-            self._data['signal'] = xr.DataArray(np.array(raw_data['data']),
+            self._data['signals'][diag + str(diag_ID)] = xr.DataArray(np.array(raw_data['data']),
                 dims=('channel', 't'), coords={'channel': raw_data['channels'],
                                             't': raw_data['time']})
+
+class FastChanneltoCamera:
+    """
+    Class to read the calibration of the PMTs and plot them in the camera space
+    
+    
+    """
+    def __init__(self, calibrationFile:str):
+        """
+        Read the calibration file and store the data in a dictionary
+        """
+        self._readCalibrationFile(calibrationFile)
+    
+    def _readCalibrationFile(self, calibrationFile:str):
+        """
+        Read the calibration file and store the data in a dictionary
+        """
+        # Read the line to know which type of calibration we have
+        caltype = np.loadtxt(calibrationFile, max_rows=1, skiprows=1)
+        if caltype == 0:
+            # We have a circular calibration file
+            cx, cy, r = np.loadtxt(calibrationFile, skiprows=3, unpack=True, delimiter=',')
+            self.calibration = {
+                'type': 'circular',
+                'cx': cx,
+                'cy': cy,
+                'r': r
+            }
+    def plot_pix(self, ax=None, **kwargs):
+        """
+        Plot the calibration in the camera space
+        """
+        if self.calibration['type'] == 'circular':
+            # Plot the calibration in the camera space
+            if ax is None:
+                fig, ax = plt.subplots()
+            phi = np.linspace(0, 2 * np.pi, 100)
+            for i in range(len(self.calibration['cx'])):
+                xcir = self.calibration['cx'][i] + self.calibration['r'][i] * np.cos(phi)
+                ycir = self.calibration['cy'][i] + self.calibration['r'][i] * np.sin(phi)
+                ax.plot(xcir, ycir, **kwargs)
+            ax.set_aspect('equal')
+        return ax
+    
+    def getROIs(self,):
+        """
+        Get an array of ROIpoly objects, one for each channel
+        """
+        if self.calibration['type'] == 'circular':
+            rois = []
+            phi = np.linspace(0, 2 * np.pi, 100)
+            for i in range(len(self.calibration['cx'])):
+                if self.calibration['r'][i] > 0:
+                    xroi = self.calibration['cx'][i] + self.calibration['r'][i] * np.cos(phi)
+                    yroi = self.calibration['cy'][i] + self.calibration['r'][i] * np.sin(phi)
+                    path = np.array([xroi, yroi]).T
+                    rois.append(roipoly(path=path))
+                else:
+                    rois.append(None)
+        else:
+            raise errors.NotImplementedError('Calibration type not implemented')
+        self.rois = rois
+        return rois
+        
+    def getMask(self, currentImage=None, imageShape=None):
+        """
+        Get the binary mask from the selected ROI points.
+        
+        Taken from the toupy codecode https://github.com/jcesardasilva/toupy
+
+        :param  currentImage: Image (matrix) for which we want the ROI ignored 
+            if imageShape is passed
+        :param  imageShape: Shape of the image (ny, nx) for which we want the ROI 
+        """
+        masks = []
+        for roi in self.rois:
+            if roi is not None:
+                masks.append(roi.getMask(currentImage=currentImage, imageShape=imageShape))
+            else:
+                masks.append(None)
+        self.masks = masks
+        return masks

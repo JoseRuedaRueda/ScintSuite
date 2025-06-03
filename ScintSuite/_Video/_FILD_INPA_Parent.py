@@ -109,6 +109,8 @@ class FIV(BVO):
         self.ROIscintillator = None
         ## Scintilaltor plate
         self.scintillator = None
+        ## PMTcalibration
+        self.PMTcalibration = None
 
     # --------------------------------------------------------------------------
     # --- Get shot / magnetic data
@@ -252,7 +254,7 @@ class FIV(BVO):
     # --------------------------------------------------------------------------
     # --- Time Traces
     # --------------------------------------------------------------------------
-    def getTimeTrace(self, t: float = None, mask=None, ROIname: str = None, vmax: int=None):
+    def getTimeTrace(self, t: float = None, mask=None, ROIname: str = None, vmin: int=None, vmax: int=None, cmap: str='plasma'):
         """
         Calculate the timeTrace of the video. Extended method from parent class
 
@@ -269,8 +271,9 @@ class FIV(BVO):
         :returns timetrace: a timetrace object
         """
         if mask is not None or t is not None:
-            trace, mask = super().getTimeTrace(t=t, mask=mask,
-                                           ROIname=ROIname, vmax=vmax)
+            trace, mask = super().getTimeTrace(t=t, mask=mask,vmin=vmin,
+                                           ROIname=ROIname, vmax=vmax, 
+                                           cmap=cmap)
         else:
             if self.ROIscintillator is not None:
                 mask = \
@@ -854,12 +857,7 @@ class FIV(BVO):
     def export_remap(self, folder: str = None, clean: bool = False,
                      overwrite: bool = False):
         """
-        Export video file
-
-        Notice: This will create a netcdf with the exp_dat xarray, this is not
-        intended as a replace of the data base, as camera settings and
-        metadata will not be exported. But allows to quickly export the video
-        to netCDF format to be easily shared among computers
+        Export remap file
 
         :param  folder: Path to the folder where to save the results. It is
             recommended to leave it as None

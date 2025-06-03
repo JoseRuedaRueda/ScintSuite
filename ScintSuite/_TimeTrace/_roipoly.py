@@ -77,15 +77,23 @@ class roipoly:
             y = np.concatenate((self.ypoints, np.array([self.ypoints[0]])))
             plt.plot(x, y)
 
-    def getMask(self, currentImage):
+    def getMask(self, currentImage=None, imageShape=None):
         """
         Get the binary mask from the selected ROI points.
+        
+        Taken from the toupy codecode https://github.com/jcesardasilva/toupy
 
-        Taken from the toupy code https://github.com/jcesardasilva/toupy
-
-        :param  currentImage: Image (matrix) for which we want the ROI
+        :param  currentImage: Image (matrix) for which we want the ROI ignored 
+            if imageShape is passed
+        :param  imageShape: Shape of the image (ny, nx) for which we want the ROI 
         """
-        ny, nx = np.shape(currentImage)
+        if imageShape is not None:
+            ny, nx = imageShape
+        elif currentImage is not None:
+            ny, nx = np.shape(currentImage)
+        else:
+            raise ValueError('You need to provide either the image or the ' +
+                             'image shape')
         poly_verts = [(self.xpoints[0], self.ypoints[0])]
         for i in range(len(self.xpoints) - 1, -1, -1):
             poly_verts.append((self.xpoints[i], self.ypoints[i]))

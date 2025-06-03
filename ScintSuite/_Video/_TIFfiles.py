@@ -86,15 +86,28 @@ def load_tiff(filename: str):
     Load the tiff files.
 
     Assume there is only one frame per file
+    
+    In the case of multi tiff files, we assume that all the frames are the same,
+    ie, you are doing a calibration with a lamp, so we take the average of the
+    frames. The time timmension is assumed to be the shortest one
 
     :param  filename: full path pointing to the tiff
 
     :return frame: loaded frame
     """
     dummy = io.imread(filename)
-    if len(dummy.shape) > 2:     # We have an rgb tiff, transform it to gray
-        dummy = aux.rgb2gray(dummy)
-
+    if len(dummy.shape) > 2:     
+        if dummy.shape[2] == 3:
+            dummy = aux.rgb2gray(dummy) # We have an rgb tiff, transform it to gray
+        else:
+            # Find the axis with lest point
+            n1, n2, n3 = dummy.shape
+            if n1 < n2 and n1 < n3:
+                dummy = np.mean(dummy, axis=0)
+            elif n2 < n1 and n2 < n3:
+                dummy = np.mean(dummy, axis=1)
+            else:
+                dummy = np.mean(dummy, axis=2)
     return dummy[::-1, :]
 
 def load_tiff_singleFile(filename: str):

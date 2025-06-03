@@ -9,7 +9,7 @@ Introduced in version
 import lmfit
 import numpy as np
 from lmfit.models import ExpressionModel
-
+from  scipy.special import loggamma
 # -----------------------------------------------------------------------------
 # %% Bivariant Gaussian
 # -----------------------------------------------------------------------------
@@ -77,3 +77,25 @@ def multiGaussian(n: int) -> lmfit.model.CompositeModel:
         compositeModel = \
             compositeModel + lmfit.models.GaussianModel(prefix=prefix)
     return compositeModel
+
+# -----------------------------------------------------------------------------
+# %% Poisson distribution
+# -----------------------------------------------------------------------------
+def _log_poisson(x, mu):
+    """
+    Logarithm of the Poisson distribution
+
+    :param x: (array) x values
+    :param mu: (float) mean of the distribution
+
+    :return out: (array) log of the Poisson distribution
+    """
+    return -mu + x*np.log(mu) - loggamma(x+1)
+
+def log_poisson() -> lmfit.models.ExpressionModel:
+    """
+    Create a Poisson distribution model
+
+    :return out: (lmfit.model.ExpressionModel) Poisson distribution model
+    """
+    return ExpressionModel(_log_poisson, independent_vars=['x'], name='log_poisson')

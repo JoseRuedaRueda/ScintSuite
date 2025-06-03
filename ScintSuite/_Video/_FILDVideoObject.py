@@ -203,7 +203,7 @@ class FILDVideo(FIV):
                         self.scintillator = ssmap.Scintillator(file=plate)
                         self.scintillator.calculate_pixel_coordinates(
                                 self.CameraCalibration)
-                        # self.ROIscintillator = self.scintillator.get_roi()
+                        self.ROIscintillator = self.scintillator.get_roi()
             else:
                 self.scintillator = None
                 self.ROIscintillator = None
