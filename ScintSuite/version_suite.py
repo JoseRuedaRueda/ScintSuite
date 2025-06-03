@@ -6,9 +6,9 @@ import numpy as np
 from ScintSuite._Machine import machine
 from ScintSuite._Paths import Path
 
-version = '1.3.13'
+version = '1.4.0'
 
-codename = 'Anacardo'
+codename = 'Huki SX'
 
 
 logger = logging.getLogger('ScintSuite.Version')
