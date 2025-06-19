@@ -1,6 +1,6 @@
 # 1.3.13 MSE-constrained eq in MAST-U
 - By default it will now try to read the MSE-constrained equilibrium. If not possible, will read the standard one.
-- Fixed bug in MU beta angle when reading from file
+- Fixed bug in MU beta angle when reading from file (bug introduced in 1.3.12)
 
 
 # 1.3.12 Update of MASTU nc files - position and orientation read from file + new timebase

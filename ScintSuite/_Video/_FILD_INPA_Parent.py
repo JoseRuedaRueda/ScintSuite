@@ -409,13 +409,6 @@ class FIV(BVO):
             raise Exception('Do not give frame number and time!')
         if (frame_number is None) and (t is None):
             raise Exception("Didn't you want to plot something?")
-        # --- Prepare the scale:
-        if scale == 'sqrt':
-            extra_options = {'norm': colors.PowerNorm(0.5)}
-        elif scale == 'log':
-            extra_options = {'norm': colors.LogNorm(0.5)}
-        else:
-            extra_options = {}
         # --- Load the frames
         # If we use the frame number explicitly
         if frame_number is not None:
@@ -459,14 +452,27 @@ class FIV(BVO):
             cmap = ssplt.Gamma_II()
         else:
             cmap = ccmap
+        # --- Prepare the scale:
+        if vmax is None:
+            vmax = dummy.max()
+        logger.debug('vmin is %i' % vmin)
+        logger.debug('vmax is %i' % vmax)
+        if scale == 'sqrt':
+            extra_options = {'norm': colors.PowerNorm(0.5, vmin=vmin, vmax=vmax)}
+            vmin = None
+            vmax = None
+        elif scale == 'log':
+            extra_options = {'norm': colors.LogNorm(vmin=vmin, vmax=vmax)}
+            vmin = None
+            vmax = None     
+        else:
+            extra_options = {}
         # --- Check the axes to plot
         if ax is None:
             fig, ax = plt.subplots()
             created = True
         else:
             created = False
-        if vmax is None:
-            vmax = dummy.max()
         if translation is None:
             ext = [self.remap_dat['x'].values[0], self.remap_dat['x'].values[-1],
                    self.remap_dat['y'].values[0], self.remap_dat['y'].values[-1]]
