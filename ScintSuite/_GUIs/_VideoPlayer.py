@@ -6,18 +6,18 @@ import matplotlib.backends.backend_tkagg as tkagg
 import matplotlib.pyplot as plt
 import ScintSuite._Plotting as ssplt
 import ScintSuite.SimulationCodes.SINPA as sssinpa
-import ScintSuite._Mapping as ssmap
-import ScintSuite._IO as io
 import ScintSuite._StrikeMap as ssmap
 from matplotlib.figure import Figure
 from tkinter import ttk
+
 
 class ApplicationShowVid:
     """Class to show the camera frames"""
 
     def __init__(self, master, data, remap_dat, GeomID='AUG02',
                  calibration=None, scintillator=None, shot: int = None,
-                 PMTcalibration=None):
+                 PMTcalibration=None, vmax_default=500, vmin_default=50,
+                 apd_fibres=None,):
         """
         Create the window with the sliders
 
@@ -28,7 +28,6 @@ class ApplicationShowVid:
         :param  calibration: Calibration parameters
         :param  scintillator: Scintillator object
         :param  apd_fibres: APD (or PMT fibers) positions
-        :param  mask: to plot a small coloured mask on top of the image
         """
         # --- List of supported colormaps
         self.cmaps = {
@@ -47,6 +46,7 @@ class ApplicationShowVid:
         self.CameraCalibration=calibration
         self.scintillator = scintillator
         self.PMTcalibration = PMTcalibration
+        self.apd_fibres = apd_fibres
         t = data['t'].values
         # --- Create a tk container
         frame = tk.Frame(master)
@@ -72,7 +72,8 @@ class ApplicationShowVid:
         ax = fig.add_subplot(111)
         self.image = ax.imshow(data['frames'].values[:, :, 0].squeeze(),
                                origin='lower', cmap=self.cmaps[defalut_cmap],
-                               aspect='equal')
+                               aspect='equal', vmin=vmin_default, vmax=vmax_default)
+        # Set the axis labels
         self.time = \
             ax.text(0.85, 0.9, str(round(data['t'].values[0], 3)) + ' s',
                     transform=ax.transAxes, color='w')
@@ -88,7 +89,7 @@ class ApplicationShowVid:
         # We need a new frame because the toolbar uses 'pack' internally and we
         # are using 'grid' to place our elements, so they are not compatible
         self.toolbarFrame = tk.Frame(master=master)
-        self.toolbarFrame.grid(row=4, column=1, columnspan=4)
+        self.toolbarFrame.grid(row=5, column=1, columnspan=5)
         self.toolbar = \
             tkagg.NavigationToolbar2Tk(self.canvas, self.toolbarFrame)
         self.toolbar.update()
@@ -108,13 +109,13 @@ class ApplicationShowVid:
         self.cmap_min_label = tk.Label(master, text='Min CMap')
         self.cmap_min_label.grid(row=2, column=1)
         self.cmap_min = tk.Entry(master)
-        self.cmap_min.insert(0, str(round(clim[0])))
+        self.cmap_min.insert(0, str(round(vmin_default)))
         self.cmap_min.grid(row=2, column=2)
 
         self.cmap_max_label = tk.Label(master, text='Max CMap')
         self.cmap_max_label.grid(row=2, column=3)
         self.cmap_max = tk.Entry(master)
-        self.cmap_max.insert(0, str(round(clim[1])))
+        self.cmap_max.insert(0, str(round(vmax_default)))
         self.cmap_max.grid(row=2, column=4)
         # --- Include the button for minimum and maximum of the colormap
         self.cmap_scale_button = tk.Button(master, text='Set Scale',
@@ -126,7 +127,6 @@ class ApplicationShowVid:
             state = tk.DISABLED
         else:
             state = tk.NORMAL
-        state = tk.NORMAL
         # Initialise the variable of the button
         self.checkVar1 = tk.BooleanVar()
         self.checkVar1.set(False)
@@ -135,56 +135,38 @@ class ApplicationShowVid:
                                      command=self.smap_Button_change,
                                      takefocus=0, state=state)
         self.smap_button.grid(row=3, column=3)
+        
+        self.checkSmapDatabase = tk.BooleanVar()
+        self.checkSmapDatabase.set(False)
+        self.smap_checkbox = tk.Checkbutton(master, text="Use database",
+                                     takefocus=0, state=tk.NORMAL,
+                                     variable = self.checkSmapDatabase)
+        self.smap_checkbox.grid(row=4, column=3)
         # PMT button
         if self.PMTcalibration is None:
-            state = tk.DISABLED
+            statePMT = tk.DISABLED
         else:
-            state = tk.NORMAL
+            statePMT = tk.NORMAL
         self.checkVarPMT = tk.BooleanVar()
         self.checkVarPMT.set(False)
         self.PMTbutton = tk.Button(master, text="Draw PMTs",
                                 command=self.PMT_Button_change,
-                                takefocus=0, state=state)
+                                takefocus=0, state=statePMT)
         self.PMTbutton.grid(row=4, column=5)
         # --- Button for the Scintillator:
         # If there is not scintillator data, deactivate the button
         if self.scintillator is None:
-            state = tk.DISABLED
+            stateScint = tk.DISABLED
         else:
-            state = tk.NORMAL
+            stateScint = tk.NORMAL
         # Initialise the variable of the button
         self.checkVar2 = tk.BooleanVar()
         self.checkVar2.set(False)
         # Create the button
         self.scint_button = tk.Button(master, text="Draw Scint",
                                       command=self.scint_Button_change,
-                                      takefocus=0, state=state)
+                                      takefocus=0, state=stateScint)
         self.scint_button.grid(row=3, column=4)
-        # --- Button for the APD:
-        # If there is not APD data, deactivate the button
-        state = tk.NORMAL
-        # --- Button for the mask:
-        # If there is not scintillator data, deactivate the button
-        if self.mask is None:
-            state = tk.DISABLED
-        else:
-            state = tk.NORMAL
-
-        # Initialise the variable of the button
-        self.checkVar3 = tk.BooleanVar()
-        self.checkVar3.set(False)
-        # Create the button
-
-        self.apd_button = tk.Button(master, text="Draw APD",
-                                      command=self.apd_Button_change,
-                                      takefocus=0, state=state)
-        self.apd_button.grid(row=4, column=4)
-
-        self.mask_button = tk.Button(master, text="Draw mask",
-                                      command=self.mask_Button_change,
-                                      takefocus=0, state=state)
-        self.mask_button.grid(row=3, column=5)
-
         # Draw and show
         self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=0, column=0, columnspan=5,
@@ -194,9 +176,15 @@ class ApplicationShowVid:
         # allows to the canvas to resize when I resize the window
         # --- Quit button
         self.qButton = tk.Button(master, text="Quit", command=master.quit)
-        self.qButton.grid(row=5, column=5)
+        self.qButton.grid(row=3, column=5)
+        # APD button
+        self.checkVar3 = tk.BooleanVar()
+        self.checkVar3.set(False)
+        self.apd_button = tk.Button(master, text="Draw APD",
+                                command=self.apd_Button_change,
+                                takefocus=0, state=state)
+        self.apd_button.grid(row=5, column=5)
         frame.grid()
-        plt.show()  #AJVV needed to install qt5 event loop, to overplot lines on the canvas using plt
 
     def change_cmap(self, cmap_cname):
         """Change frame cmap"""
@@ -219,6 +207,7 @@ class ApplicationShowVid:
                 # get parameters of the map
                 theta_used = self.remap_dat['theta_used'].values[it]
                 phi_used = self.remap_dat['phi_used'].values[it]
+
                 # Get the full name of the file
                 name__smap = sssinpa.execution.guess_strike_map_name(
                     phi_used, theta_used, geomID=self.GeomID,
@@ -226,28 +215,32 @@ class ApplicationShowVid:
                 smap_folder = self.remap_dat['frames'].attrs['smap_folder']
                 full_name_smap = os.path.join(smap_folder, name__smap)
                 # Load the map:
+                # @ToDO: Add here the INPA map if needed
                 smap = ssmap.Fsmap(full_name_smap)
+                # Calculate pixel coordinates
+                smap.calculate_pixel_coordinates(self.CameraCalibration)
+                # Plot the map
+                self.xlim = self.canvas.figure.axes[0].get_xlim()
+                self.ylim = self.canvas.figure.axes[0].get_ylim()
+                smap.plot_pix(ax=self.canvas.figure.axes[0], labels=False)
+                self.canvas.figure.axes[0].set_xlim(self.xlim[0], self.xlim[1])
+                self.canvas.figure.axes[0].set_ylim(self.ylim[0], self.ylim[1])
             else:
                 ##use user selected strikemap instead
-                smap = ssmap.Fsmap(full_name_smap)
-            # Calculate pixel coordinates
-            smap.calculate_pixel_coordinates(self.CameraCalibration)
-            # Plot the map
-            self.xlim = self.canvas.figure.axes[0].get_xlim()
-            self.ylim = self.canvas.figure.axes[0].get_ylim()
-            smap.plot_pix(ax=self.canvas.figure.axes[0], labels=False)
-            self.canvas.figure.axes[0].set_xlim(self.xlim[0], self.xlim[1])
-            self.canvas.figure.axes[0].set_ylim(self.ylim[0], self.ylim[1])
+                smap = ssmap.StrikeMap(0, self.full_name_smap)
+
         # Plot the scintillator:
         if self.checkVar2.get():
             self.scintillator.plot_pix(ax=self.canvas.figure.axes[0])
+        if self.checkVar3.get():
+            for i in range(len(self.apd_data)):
+                self.canvas.figure.axes[0].plot(self.apd_data[i][:,0], self.apd_data[i][:,1], 'r-')
         # Plot the PMT:
         if self.checkVarPMT.get():
             # remove the old one
             ssplt.remove_lines(self.canvas.figure.axes[0])
             self.PMTcalibration.plot_pix(ax=self.canvas.figure.axes[0], color='g')
         self.canvas.draw()
-        
 
     def set_scale(self):
         """Set color scale"""
@@ -263,7 +256,7 @@ class ApplicationShowVid:
             ssplt.remove_lines(self.canvas.figure.axes[0])
         # Now update the value
         self.checkVarPMT.set(not self.checkVarPMT.get())
-        print('Draw Smap :', self.checkVarPMT.get())
+        print('Draw PMT :', self.checkVarPMT.get())
         self.canvas.draw()
 
     def smap_Button_change(self):
@@ -273,7 +266,11 @@ class ApplicationShowVid:
             ssplt.remove_lines(self.canvas.figure.axes[0])
         # Now update the value
         self.checkVar1.set(not self.checkVar1.get())
-        print('Draw PMT :', self.checkVar1.get())
+        print('Draw SMAP :', self.checkVar1.get())
+        
+        if self.checkVar1.get():
+            if not self.checkSmapDatabase.get():
+                self.full_name_smap = io.ask_to_open()
         self.canvas.draw()
 
     def scint_Button_change(self):
@@ -285,9 +282,7 @@ class ApplicationShowVid:
         self.checkVar2.set(not self.checkVar2.get())
         print('Draw scintillator :', self.checkVar2.get())
         self.canvas.draw()
-
-
-
+    
     def apd_Button_change(self):
         """Decide to plot or not the APD fibre positions"""
         if self.checkVar3.get():
@@ -299,30 +294,8 @@ class ApplicationShowVid:
             while os.path.isfile(path_dir + '/ch_'+str(ch)+'.txt'):
                 self.apd_data.append(np.genfromtxt(path_dir + '/ch_'+str(ch)+'.txt'))
                 ch+=1
-             
+            
 
         # Now update the value
         self.checkVar3.set(not self.checkVar3.get())
         print('Draw APD fibres :', self.checkVar3.get())
-        self.canvas.draw()
-
-    def mask_Button_change(self):
-        """Decide to plot or not the mask. Careful. Press once, move to next
-        frame for it to do something and then deactivate so it doesn't add layers."""
-        
-        # If it was true and we push the button, the smap should be deleted:
-        if self.checkVar3.get():
-            ssplt.remove_last_image(self.canvas.figure.axes[0])
-        # If we activate it, print instructions
-        # Update the value
-        self.checkVar3.set(not self.checkVar3.get())
-        print('Draw mask :', self.checkVar3.get())
-        if self.checkVar3.get():
-            ax=self.canvas.figure.axes[0]
-            self.mask_plot = ax.imshow(self.mask, origin='lower', alpha=0.2, cmap='spring')
-
-        if self.checkVar3.get(): 
-            print('The mask has been activated. Now, move to the next frame and deactivate \
-                    it again so it does not add layers.')
-        self.canvas.draw()
-

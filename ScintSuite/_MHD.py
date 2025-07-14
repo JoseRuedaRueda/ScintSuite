@@ -226,6 +226,11 @@ class SAWc():
         fig.show()
         return ax
 
+    def to_h5(self, filename: str):
+        """
+        Save the SAW continuum to an h5 file
+        """
+        self.data.to_netcdf(filename, engine='h5netcdf',)
 
 # -----------------------------------------------------------------------------
 # --- Main class

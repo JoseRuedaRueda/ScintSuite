@@ -262,3 +262,23 @@ class pySpecView:
 
         if typ == 'gamma':  # standard definition of gamma
             return z ** self.gamma
+    
+    def nPhasogram(self):
+        """
+        Return the nphasogram, in an usable format
+        """
+        nindex = self._dat['cross-phasogram'][1].flatten()
+        # now, we need to find the posions of nindex in the vector of 
+        # modes
+        # For each value in nindex, find its index in self._dat['mode colorbar'][1]
+        mode_indices = self._dat['mode colorbar'][1]
+        indeces = np.array([np.where(mode_indices == n)[0][0] for n in nindex])
+        real_n = self._dat['mode colorbar'][0][indeces].reshape(self._dat['cross-phasogram'][1].shape)
+        # Now move to a DataArray
+        nphasogram = xr.DataArray(
+            real_n.T, dims=('t', 'f'),
+            coords={'t': self._dat['tvec'], 'f': self._dat['fvec'] / 1000.0})
+        nphasogram.attrs['long_name'] = 'n-phasogram'
+        nphasogram.attrs['units'] = ''
+        return nphasogram
+        #

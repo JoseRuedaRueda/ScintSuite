@@ -6,6 +6,7 @@
 ## INPA and FILD Remap
 - allIn is no longer a bool, now 0,1,2 options are valid, so you can ask the user, calculate all maps or not calculate any
 - default path to store data separated for each dioagnostic
+- Advanced remap methods developed by TCV team are back! (J. Rueda Rueda eliminated them by mistake when merging TCVdev branch). These new methods are the recommended default!
 ## MULTIPOW
 - Added module to read multipow files
 ## MHD
