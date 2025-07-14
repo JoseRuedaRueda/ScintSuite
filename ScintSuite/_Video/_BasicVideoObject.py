@@ -1033,13 +1033,13 @@ class BVO:
             ssGUI.ApplicationShowVid(root, self.avg_dat, self.remap_dat,
                                      self.geometryID,
                                      self.CameraCalibration,
-                                     shot=self.shot, mask=mask)
+                                     shot=self.shot)
         else:
             ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat,
                                      GeomID=self.geometryID,
                                      calibration=self.CameraCalibration,
                                      scintillator=self.scintillator,
-                                     shot=self.shot, mask=mask)
+                                     shot=self.shot)
         root.mainloop()
         root.destroy()
         gc.collect()

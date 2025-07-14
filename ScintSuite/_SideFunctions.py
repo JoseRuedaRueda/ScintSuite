@@ -151,12 +151,16 @@ def gkern(l=int(4.5*6)+1, sig=4.5):
     return kernel / np.sum(kernel)
 
 
-def smooth(y, box_pts,mode='same'):
+def smooth(y, box_pts,mode='same', axis=-1):
     """
     Smooth signals, just convoluting it with a box
     """
     box = np.ones(box_pts)/box_pts
-    y_smooth = np.convolve(y, box, mode=mode)
+    if y.shape == 1:
+        y_smooth = np.convolve(y, box, mode=mode)
+    else:
+        y_smooth = np.apply_along_axis(
+            lambda m: np.convolve(m, box, mode=mode), axis, y)
     return y_smooth
 
 def detrend(x: xr.DataArray, type: str='linear',

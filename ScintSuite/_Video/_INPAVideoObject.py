@@ -111,7 +111,7 @@ class INPAVideo(FIV):
     def __init__(self, file: str = None, shot: int = None,
                  diag_ID: int = 1, empty: bool = False,
                  logbookOptions: dict = {}, Boptions: dict = {},
-                 verbose: bool = True, loadPlasmaData: bool = True,
+                 verbose: bool = False, loadPlasmaData: bool = False,
                  YOLO: bool = True, cameraDataFile: str = None):
         """Initialise the class."""
         if not empty:

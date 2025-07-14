@@ -29,6 +29,8 @@ except ModuleNotFoundError:
     prange = range
     logger.warning('10: Neutron filters will be slow (NUMBA missing')
 from scipy import constants
+from scipy.ndimage import generic_filter
+from numba import njit, prange
 
 # -----------------------------------------------------------------------------
 # %% Pitch methods:
@@ -116,18 +118,48 @@ def neutron_filter(M: np.ndarray, nsigma: int = 3)->np.ndarray:
     :param  M: Matrix with the counts to be filtered (np.array)
     :return Mo: Matrix filtered
     """
-    Mo = M.copy()
-    sx, sy = M.shape
-    for ix in range(1, sx-1):
-        for iy in range(1, sy-1):
-            dummy = M[(ix-1):(ix+1), (iy-1):(iy+1)].copy()
-            dummy[1, 1] = 0
-            mean = np.mean(dummy)
-            std = np.std(dummy)
-            if Mo[ix, iy] > mean + nsigma * std:
-                Mo[ix, iy] = mean
-
+    # Use numba for fast, parallel filtering
+    try:
+        @njit(parallel=True)
+        def fast_neutron_filter(M, nsigma):
+            Mo = M.copy()
+            sx, sy = M.shape
+            for ix in prange(1, sx-1):
+                for iy in range(1, sy-1):
+                    dummy = M[(ix-1):(ix+2), (iy-1):(iy+2)].copy()
+                    dummy[1, 1] = 0
+                    mean = np.mean(dummy)
+                    std = np.std(dummy)
+                    if Mo[ix, iy] > mean + nsigma * std:
+                        Mo[ix, iy] = mean
+            return Mo
+        Mo = fast_neutron_filter(M, nsigma)
+    except Exception:
+        # fallback to original slow python loop
+        Mo = M.copy()
+        sx, sy = M.shape
+        for ix in range(1, sx-1):
+            for iy in range(1, sy-1):
+                dummy = M[(ix-1):(ix+2), (iy-1):(iy+2)].copy()
+                dummy[1, 1] = 0
+                mean = np.mean(dummy)
+                std = np.std(dummy)
+                if Mo[ix, iy] > mean + nsigma * std:
+                    Mo[ix, iy] = mean
     return Mo
+    # # Vectorized implementation for speed
+    # Mo = M.copy()
+    # sx, sy = M.shape
+    # for ix in range(1, sx-1):
+    #     for iy in range(1, sy-1):
+    #         dummy = M[(ix-1):(ix+1), (iy-1):(iy+1)].copy()
+    #         dummy[1, 1] = 0
+    #         mean = np.mean(dummy)
+    #         std = np.std(dummy)
+    #         if Mo[ix, iy] > mean + nsigma * std:
+    #             Mo[ix, iy] = mean
+
+    # return Mo
 
 # @njit(nogil=True, parallel=True)
 # def neutronAndDeadFilter(M: float, nsigma: float = 3.0, dead: bool = True):

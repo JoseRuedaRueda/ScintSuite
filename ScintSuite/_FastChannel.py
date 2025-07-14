@@ -215,12 +215,12 @@ class FastChannel(_fast):
     
     This is just a wrapper for the fast channel signals.
     """
-    def __init__(self, diag, diag_ID, channels=None, shot: int = 199439, exp: str = 'd3d'):
+    def __init__(self, diag, diag_ID, channels=None, shot: int = 199439, exp: str = 'd3d', **kwargs):
         _fast.__init__(self)
         self._data['signals'] = xr.DataTree(name='signals')
         raw_data = \
              ssdat.get_fast_channel(diag, diag_ID, channels=channels, 
-                                    shot=shot, exp=exp)
+                                    shot=shot, exp=exp,**kwargs)
         if type(raw_data) == xr.core.dataarray.DataArray:
             # The get fast channel is the new routine, nothing to do here
             self._data['signals'][diag + str(diag_ID)] = raw_data

@@ -170,6 +170,7 @@ class BasicSignalVariable():
                 pass
         logger.info('Filtering done')
 
+
     def detrend(self, signals: Optional[list] = None, type: str = 'linear',
                 detrendSizeInterval: Optional[float] = 0.001):
         """
@@ -197,7 +198,6 @@ class BasicSignalVariable():
                 self._data['signals']['detrended'][k].attrs['units'] = self._data['signals'][k].attrs['units']
             except KeyError:
                 pass
-
 
     # --------------------------------------------------------------------------
     # %% Frequency anasylis
