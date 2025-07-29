@@ -256,7 +256,7 @@ def calculate_resolution_point(xHat, mu_gyro, mu_pitch, original_distance,
 
 
 def calculate_resolution(WF_original, mu_gyro, mu_pitch, inverter, iters, 
-                         original_distance, map_type ='pitch', 
+                         original_distance, window=None, map_type ='pitch', 
                          peak_amp = 0.15, sigma_gyro = 0.7, sigma_pitch = 1):
     '''
 
@@ -301,12 +301,12 @@ def calculate_resolution(WF_original, mu_gyro, mu_pitch, inverter, iters,
     n = WF.shape[2]*WF.shape[3]
     x0 = np.zeros(n)
     if inverter == 'descent':
-        tomo.coordinate_descent_solve(x0, iters,  damp = 0.1, 
+        tomo.coordinate_descent_solve(x0, iters, window=window, damp = 0.1, 
                                   relaxParam = 1)
     elif inverter == 'kaczmarz':
-        tomo.kaczmarz_solve(x0, iters,  damp = 0.1, relaxParam = 1)
+        tomo.kaczmarz_solve(x0, iters, window=window, damp = 0.1, relaxParam = 1)
     elif inverter == 'cimmino':
-        tomo.cimmino_solve(x0, iters,  damp = 0.1, relaxParam = 1)
+        tomo.cimmino_solve(x0, iters, window=window, damp = 0.1, relaxParam = 1)
         
     # Calculate resolution of the point
     xHat_max = tomo.inversion[inverter].F.isel(alpha = 0).max()
@@ -372,7 +372,7 @@ def WF_cutDomain(WF, sigma_gyro, sigma_pitch, mu_gyro, mu_pitch):
 
     return newWF
 
-def calculate_resolution_map(WF, inverter, domain, maxiter, fits, map_type='pitch', 
+def calculate_resolution_map(WF, inverter, domain, maxiter, fits, window=None, map_type='pitch', 
                              peak_amp = 0.15, sigma_gyro = 3, sigma_pitch = 2):
     '''
     Calculate the resolution map from the tomography solution xHat.
@@ -426,7 +426,8 @@ def calculate_resolution_map(WF, inverter, domain, maxiter, fits, map_type='pitc
                                   .values.max()
                     resolution = calculate_resolution(WF, mu_gyro, mu_pitch, 
                                                   inverter, maxiter, 
-                                                  original_distance, 
+                                                  original_distance,
+                                                  window=window, 
                                                   map_type = map_type,  
                                                   peak_amp=peak_amp,
                                                   sigma_gyro=sigma_gyro,
@@ -457,6 +458,7 @@ def calculate_resolution_map(WF, inverter, domain, maxiter, fits, map_type='pitc
                     resolution = calculate_resolution(WF, mu_gyro, mu_pitch, 
                                                   inverter, maxiter, 
                                                   original_distance, 
+                                                  window=window,
                                                   map_type=map_type,
                                                   peak_amp=peak_amp,
                                                   sigma_gyro=sigma_gyro,
@@ -556,8 +558,13 @@ def resolution_principle(xk, x_coord, y_coord, pitch_map, gyro_map, peak_amp):
                 conditionGyro[p_i] = True
         else:
             conditionGyro[p_i] = False
-    
     condition = any(conditionGyro) or any(conditionPitch)
+
+    if condition:
+        logger.info(' ')
+        logger.info('Resolution principle not satisfied.')
+        logger.info('Peaks detected [pitch angle, gyroscalar ] = %s', peaks)
+
     return condition
  
 

@@ -20,6 +20,9 @@ outputPath = '/home/marjimcom/ScintSuite/MyRoutines/tomography/results/W_39573_2
 # minimum pitch, maximum pitch, minimum gyroscalar, maximum gyroscalar
 domain = [50, 70, 7, 16]
 
+# Window: Space to project the reconstruction to avoid artifacts
+window = [50, 75, 7, 18]
+
 # Type of map to calculate: 'pitch' or 'gyro'.
 map_type = 'gyro'
 
@@ -57,7 +60,8 @@ fits = smap._resolutions['fit_xarrays']
 # --- Section 3: Calculate resolution map
 # -----------------------------------------------------------------------------
 resolution = resP.calculate_resolution_map(WF, inverter, domain,
-                                            maxiter, fits, map_type)
+                                            maxiter, fits, window = window,
+                                              map_type = map_type)
 
 savePath = outputPath +'resolution_map_'+ map_type + str(maxiter)
 resolution.to_netcdf(os.path.join(savePath + '.nc'))
