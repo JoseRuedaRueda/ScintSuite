@@ -9,7 +9,8 @@ import numpy as np
 import tkinter as tk
 import xarray as xr
 import ScintSuite._Tomography._synthetic_signal as synthetic_signal
-
+import logging
+logger = logging.getLogger('ScintSuite.Tomography.NoiseSensitivity')
 
 def noise_sensitivity(WF, inverter, window, iters, noise_levels, 
                       max_noise = 0.15):
@@ -98,8 +99,29 @@ def noise_sensitivity(WF, inverter, window, iters, noise_levels,
                         
 
 
+def snr(x, x_hat):
+    """
+    Calculates signal to noise ratio.
 
-def fidelity_map(domain, WF, inverter, window, iters, noise, background_noise):
+    Parameters:
+        x (np.ndarray): original 2D array.
+        x_hat (np.ndarray): reconstructed 2D array.
+
+    Returns:
+        float: scalar value of the SNR.
+    """
+
+    signal_power = np.mean(x**2)
+    noise_power = np.mean((x - x_hat)**2)
+
+    snr_value = 10 * np.log10(signal_power / noise_power)
+    
+    return snr_value
+
+
+def fidelity_map(domain, WF, inverter, window, iters, noise, background_noise, 
+                 gyro_map = None, pitch_map = None, resolution = False, 
+                 error_metric='relativel2'):
         '''
         This function calculates the fidelity map of the tomography algorithm.
         For the noise levels selected, the function generates a synthetic
@@ -124,13 +146,38 @@ def fidelity_map(domain, WF, inverter, window, iters, noise, background_noise):
             Window of the signal space to project thye reconstructions.
             [pitch_min, pitch_max, gyro_min, gyro_max]
         iters: int
-            Maximum number of iterations.
+            Maximum number of iterations. If resolution is True, iters must be None.
         noise: float
             Signal noise level.
         background_noise: float
             Background noise level.
+        resolution_gyro: xarray.DataArray
+            Gyroscalar resolution map.
+        resolution_pitch: xarray.DataArray
+            Pitch resolution map.
+        resolution: bool
+            If True, the function will use the resolution principle as stopping 
+            condition of the iterative algorithms. 
+            If False, it will not use the resolution maps.
+        error_metric: str
+            Error metric to be used. Two options: 'relativel2' or 'snr'.
+            The default is 'relativel2'.
 
         '''
+        if resolution:
+            logger.warning('This stopping condition is not recommended for delta reconstructions. ' \
+            'The reconstructions will likely stop after reaching a predefined number of iterations.')
+
+            if pitch_map is None:
+                raise ValueError("pitch_map cannot be empty if resolution is True")
+            
+            if gyro_map is None:
+                raise ValueError("gyro_map cannot be empty if resolution is True")
+            
+            if iters is not None:
+                raise ValueError("You cannot set a number of iterations if resolution is True. " \
+                "iters must be set to None.")
+
         # Generate grid
         # gyroradius for x and pitch for y
         r_values = WF.y.values
@@ -171,23 +218,36 @@ def fidelity_map(domain, WF, inverter, window, iters, noise, background_noise):
                 x0 = np.zeros(n)
                 if inverter == 'descent':
                     tomo.coordinate_descent_solve(x0, iters, window, damp = 0.1, 
-                                                relaxParam = 1)
+                                                relaxParam = 1,                                                
+                                                pitch_map = pitch_map,
+                                                gyro_map = gyro_map, 
+                                                resolution = resolution)
                 elif inverter == 'kaczmarz':
                     tomo.kaczmarz_solve(x0, iters,window, damp = 0.1, 
-                                            relaxParam = 1)
+                                            relaxParam = 1,
+                                            pitch_map = pitch_map,
+                                            gyro_map = gyro_map, 
+                                            resolution = resolution)
                 elif inverter == 'cimmino':
                     tomo.cimmino_solve(x0, iters, window, damp = 0.1, 
-                                           relaxParam = 1)
+                                           relaxParam = 1,
+                                           pitch_map = pitch_map,
+                                           gyro_map = gyro_map, 
+                                           resolution = resolution)
                     
                 norm = 1
                 if tomo.norms['normalised'][0] ==1:
                     norm = tomo.norms['s']/tomo.norms['W']
-                xHat = tomo.inversion[inverter].F.isel(alpha = 0).copy()*norm              
-                MSE = np.sqrt(((xHat-x)**2).sum(dim=('x','y')))
-                true_norm = np.sqrt((x**2).sum(dim=('x','y')))
-                error = MSE/true_norm
+                xHat = tomo.inversion[inverter].F.isel(alpha = 0).copy()*norm         
+                
+                if error_metric == 'snr':
+                    error = snr(x, xHat)
+                elif error_metric == 'relativel2':
+                    MSE = np.sqrt(((xHat-x)**2).sum(dim=('x','y')))
+                    true_norm = np.sqrt((x**2).sum(dim=('x','y')))
+                    error = MSE/true_norm
+
                 fidelity_mapXR[j,i] = error
                     
 
         return fidelity_mapXR
-

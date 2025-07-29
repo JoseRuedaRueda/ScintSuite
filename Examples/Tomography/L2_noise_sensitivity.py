@@ -41,6 +41,12 @@ background_level = 0.1
 # 'descent', 'kaczmarz' or 'cimmino'
 inverter = 'descent'
 
+# Error to use. Two options: 'relativel2' or 'snr'
+error_metric = 'relativel2'
+
+# Setting the resolution principle as stopping criteria
+resolution = True
+
 # Setting plotting parameters
 cmap = ss.plt.Gamma_II()
 # -----------------------------------------------------------------------------
@@ -52,7 +58,9 @@ WF = xr.load_dataarray(WFfile)
 # --- Section 2: Calculate the fidelity map
 # -----------------------------------------------------------------------------
 fidelity_map = noise.fidelity_map(domain, WF, inverter, window, \
-                                   maxiter, noise_level, background_level)
+                                   maxiter, noise_level, background_level,
+                                   resolution = resolution, 
+                                   error_metric = error_metric)
 
 fig, ax = plt.subplots()
 fidelity_map.plot(ax = ax, cmap=cmap)
