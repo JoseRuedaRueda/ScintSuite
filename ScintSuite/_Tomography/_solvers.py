@@ -148,7 +148,7 @@ def kaczmarz_solve(W, y, x0, maxiter, pitch_map, gyro_map,
         m, n = W.shape
         xk_output = np.zeros((n, len(maxiter)))
         
-        lbound = np.zeros(m)
+        lbound = np.zeros(n)
         # Residual of initial guess
         rk = y - W @ x0
 
