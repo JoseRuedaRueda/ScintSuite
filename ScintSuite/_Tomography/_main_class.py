@@ -260,11 +260,9 @@ class Tomography():
         :param  **kargs: extra arguments 
         """
         # --- Ensure we have an array or iterable:
-        n_execution = 1
         if iterations is not None:
             if not isinstance(iterations, (list, np.ndarray)):
                 iterations = np.array([iterations])
-            n_execution = len(iterations)
 
         # --- Perform the algorithm
         logger.info('Performing kaczmarz algorithm')
@@ -284,8 +282,9 @@ class Tomography():
                                                   **kargs)
         # --- reshape the coefficients
         logger.info('Reshaping prediction')
-        x_hat_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_execution))
-        for i in range(n_execution):
+        num_exec = len(alphas)
+        x_hat_shaped = np.zeros((self.W.shape[2], self.W.shape[3], num_exec))
+        for i in range(num_exec):
             x_hat_shaped[..., i] = \
                 matrix.restore_array2D(x_hat[:, i], self.W.shape[2],
                                        self.W.shape[3])
@@ -362,11 +361,10 @@ class Tomography():
         """
 
         # --- Ensure we have an array or iterable:
-        n_execution = 1
         if iterations is not None:
             if not isinstance(iterations, (list, np.ndarray)):
                 iterations = np.array([iterations])
-            n_execution = len(iterations)
+
 
         # --- Perform the algorithm
         logger.info('Performing coordinate descent algorithm')
@@ -386,8 +384,9 @@ class Tomography():
                                                   **kargs)
         # --- reshape the coefficients
         logger.info('Reshaping prediction')
-        x_hat_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_execution))
-        for i in range(n_execution):
+        num_exec = len(alphas)
+        x_hat_shaped = np.zeros((self.W.shape[2], self.W.shape[3], num_exec))
+        for i in range(num_exec):
             x_hat_shaped[..., i] = \
                 matrix.restore_array2D(x_hat[:, i], self.W.shape[2],
                                        self.W.shape[3])
@@ -464,11 +463,9 @@ class Tomography():
         """
 
         # --- Ensure we have an array or iterable:
-        n_execution = 1
         if iterations is not None:
             if not isinstance(iterations, (list, np.ndarray)):
                 iterations = np.array([iterations])
-            n_execution = len(iterations)
 
         # --- Perform the algorithm
         logger.info('Performing cimmino algorithm')
@@ -488,8 +485,9 @@ class Tomography():
                                                   **kargs)
         # --- reshape the coefficients
         logger.info('Reshaping prediction')
-        x_hat_shaped = np.zeros((self.W.shape[2], self.W.shape[3], n_execution))
-        for i in range(n_execution):
+        num_exec = len(alphas)
+        x_hat_shaped = np.zeros((self.W.shape[2], self.W.shape[3], num_exec))
+        for i in range(num_exec):
             x_hat_shaped[..., i] = \
                 matrix.restore_array2D(x_hat[:, i], self.W.shape[2],
                                        self.W.shape[3])

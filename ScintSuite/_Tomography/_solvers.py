@@ -107,7 +107,8 @@ def kaczmarz_solve(W, y, x0, iterations, pitch_map, gyro_map,
                             stopping condition.
         :param  resolution: boolean. If True, the algorithm will stop when
                             the resolution principle is satisfied or when the
-                            control number of iterations is reached.
+                            control number of iterations is reached. All iterations
+                            will be saved while the resolution principle is satisfied.
         :param  peak_amp: Peak amplitude threshold for the resolution principle
         :param  damp: damping factor
         :param  tol: tolerance
@@ -143,7 +144,8 @@ def kaczmarz_solve(W, y, x0, iterations, pitch_map, gyro_map,
             
             # Setting the maximum number of iterations in case the resolution principle 
             # does not stop the algorithm
-            iterations = np.array([control_iters])
+            control_iters = control_iters + 1
+            iterations = np.arange(1, control_iters)
 
         # Start time
         timeStart = time.time()
@@ -217,7 +219,7 @@ def kaczmarz_solve(W, y, x0, iterations, pitch_map, gyro_map,
                                                       pitch_map, gyro_map, 
                                                       peak_amp)
                 if resP_boolean:
-                    iterations = np.array([k])
+                    iterations = np.arange(1, k + 1)
                     maxK = k
             
             rk = y - W @ xk
@@ -264,7 +266,8 @@ def coordinate_descent_solve(W, y, x0, iterations, pitch_map, gyro_map,
                             stopping condition.
         :param  resolution: boolean. If True, the algorithm will stop when
                             the resolution principle is satisfied or when the
-                            control number of iterations is reached.
+                            control number of iterations is reached. All iterations
+                            will be saved while the resolution principle is satisfied.
         :param  peak_amp: Peak amplitude threshold for the resolution principle
         :param  damp: damping factor
         :param  tol: tolerance
@@ -299,7 +302,7 @@ def coordinate_descent_solve(W, y, x0, iterations, pitch_map, gyro_map,
             if iterations is not None:
                 raise ValueError("iterations cannot be defined if resolution is True")
 
-            iterations = np.array([control_iters])
+            iterations = np.arange(1, control_iters + 1)
 
         # Start time
         timeStart = time.time()
@@ -386,7 +389,7 @@ def coordinate_descent_solve(W, y, x0, iterations, pitch_map, gyro_map,
                                                       pitch_map, gyro_map, 
                                                       peak_amp)
                 if resP_boolean:
-                    iterations = np.array([k])
+                    iterations = np.arange(1, k+1)
                     maxK = iterations.max()
 
             stop_loop = stopping_criterion(k, rk, maxK, tol)           
@@ -435,7 +438,8 @@ def cimmino_solve(W, y, x0, iterations, pitch_map, gyro_map,
                             stopping condition.
         :param  resolution: boolean. If True, the algorithm will stop when
                             the resolution principle is satisfied or when the
-                            control number of iterations is reached.
+                            control number of iterations is reached. All iterations
+                            will be saved while the resolution principle is satisfied.
         :param  peak_amp: Peak amplitude threshold for the resolution principle
         :param  damp: damping factor
         :param  tol: tolerance
@@ -469,7 +473,7 @@ def cimmino_solve(W, y, x0, iterations, pitch_map, gyro_map,
             if iterations is not None:
                 raise ValueError("iterations cannot be defined if resolution is True")
 
-            iterations = np.array([control_iters])
+            iterations = np.arange(1, control_iters + 1)
 
 
         # Start time
@@ -537,7 +541,7 @@ def cimmino_solve(W, y, x0, iterations, pitch_map, gyro_map,
                                                       pitch_map, gyro_map, 
                                                       peak_amp)
                 if resP_boolean:
-                    iterations = np.array([k])
+                    iterations = np.arange(1, k + 1)
                     maxK = k
             
             rk = y - W @ xk
