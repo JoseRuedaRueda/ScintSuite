@@ -17,7 +17,7 @@ plt.ion()
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - Paths:
-WFfile = '~/ScintSuite/MyRoutines/W_39573_2.000.nc'
+WFfile = '~/ScintSuite/MyRoutines/W_47132_0.300_new_p46_ext.nc'
 
 # - Paths for outputs:
 outputPath = 'MyRoutines/tomography/results/test'
@@ -25,24 +25,28 @@ outputPath = 'MyRoutines/tomography/results/test'
 # Setting frame to be used: synthetic or experimental
 frame_type = 'synthetic'
 
-# Path for remap file
+# Path for remap file if using experimental frame
+# If using synthetic frame, this variable is not used.
 remapFile = '~/ScintSuite/MyRoutines/remap47132_-010to450ms_centr_rL.nc'
 ttomo = 0.28    # Time to perform the tomography
 
 # Parameters for the synthetic signal
 seed = 0
-mu_gyro = [3.1, 4.3, 5.4]
-power = [0.1, 0.2, 0.7]
-sigma_gyro = [0.01, 0.01, 0.01]
-mu_pitch = [55, 55, 55]
-sigma_pitch = [7, 7, 7]
+mu_gyro = [12.3, 8.8, 7.2]
+power = [0.7, 0.2, 0.1]
+sigma_gyro = [0.45, 0.45, 0.45]
+mu_pitch = [60, 60, 60]
+sigma_pitch = [0.1, 0.1, 0.1]
 noise_level = 0.1
 background_level = 0.01
-window = [45, 65, 3, 9]
+window = [59.0, 61.0, 6.5, 15.0]
 
 # - Tomography parameters
-# Setting the number of maximum iterations
-iters = np.array([1, 10, 30, 50, 100])
+# Setting iterations to be saved. 
+# The algorithms will stop at the largest iteration set in this array.
+# i.e. if iterations = np.arange(1,101), the algorithms will stop at
+# 100 iterations.
+iterations = np.array([1, 10, 30, 50, 100, 150])
 
 # Setting algorithms to be used
 inverters = ['kaczmarz','descent','cimmino']
@@ -86,19 +90,19 @@ n = WF.shape[2]*WF.shape[3]
 
 x0 = np.zeros(n)
 if 'cimmino' in inverters: 
-    tomo.cimmino_solve(x0, iters, window = window, 
+    tomo.cimmino_solve(x0, iterations, window = window, 
                        damp = damp, relaxParam = relaxParam)
 
 
 x0 = np.zeros(n)
 if 'descent' in inverters:
-    tomo.coordinate_descent_solve(x0, iters, window = window, damp = damp, 
+    tomo.coordinate_descent_solve(x0, iterations, window = window, damp = damp, 
                                   relaxParam = relaxParam)
 
 
 x0 = np.zeros(n)
 if 'kaczmarz' in inverters:
-    tomo.kaczmarz_solve(x0, iters, window = window, 
+    tomo.kaczmarz_solve(x0, iterations, window = window, 
                         damp = damp, relaxParam = relaxParam)
 
 # -----------------------------------------------------------------------------
@@ -111,17 +115,23 @@ plt.savefig(os.path.join(outputPath,'computation_time.png'))
 tomo.plot_MSE_error(inverters=inverters)
 plt.savefig(os.path.join(outputPath,'MSE.png')) 
 
-tomo.plot_synthetic_error(x_syntheticXR=x_synthetic, inverters=inverters)
-plt.savefig(os.path.join(outputPath,'error.png')) 
+# The following function will plot the relative l2 error. It can only be used
+# if the synthetic signal is used.
+if frame_type == 'synthetic':
+    tomo.plot_synthetic_error(x_syntheticXR=x_synthetic, inverters=inverters)
+    plt.savefig(os.path.join(outputPath,'relative_l2_error.png'))
 
 
 # -----------------------------------------------------------------------------
 # --- Section 4: Plot results
 # -----------------------------------------------------------------------------
+# The maximum number of iterations is considered an hyperparameter. To keep 
+# consistency with other tomographic algorithms in the ScintSuite, this value 
+# is saved in the attribute 'alpha'.
 
-best_alpha_kaczmarz = len(iters)-1
-best_alpha_descent = len(iters)-1
-best_alpha_cimmino = len(iters)-1
+best_alpha_kaczmarz = len(iterations)-1
+best_alpha_descent = len(iterations)-1
+best_alpha_cimmino = len(iterations)-1
 
 fig, axs = plt.subplots(1, 5,  figsize=(20, 5))
 

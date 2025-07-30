@@ -255,7 +255,7 @@ def calculate_resolution_point(xHat, mu_gyro, mu_pitch, original_distance,
     return resolution
 
 
-def calculate_resolution(WF_original, mu_gyro, mu_pitch, inverter, iters, 
+def calculate_resolution(WF_original, mu_gyro, mu_pitch, inverter, maxiter, 
                          original_distance, window=None, map_type ='pitch', 
                          peak_amp = 0.15, sigma_gyro = 0.7, sigma_pitch = 1):
     '''
@@ -275,7 +275,7 @@ def calculate_resolution(WF_original, mu_gyro, mu_pitch, inverter, iters,
         Pitch values.
     inverter : str
         Inverter to use: kackzmarz, descent, cimmino.
-    iters : int
+    maxiter : int
         Number of iterations.
     original_distance : float
         Original distance between the peaks.
@@ -301,16 +301,16 @@ def calculate_resolution(WF_original, mu_gyro, mu_pitch, inverter, iters,
     n = WF.shape[2]*WF.shape[3]
     x0 = np.zeros(n)
     if inverter == 'descent':
-        tomo.coordinate_descent_solve(x0, iters, window=window, damp = 0.1, 
+        tomo.coordinate_descent_solve(x0, maxiter, window=window, damp = 0.1, 
                                   relaxParam = 1)
     elif inverter == 'kaczmarz':
-        tomo.kaczmarz_solve(x0, iters, window=window, damp = 0.1, relaxParam = 1)
+        tomo.kaczmarz_solve(x0, maxiter, window=window, damp = 0.1, relaxParam = 1)
     elif inverter == 'cimmino':
-        tomo.cimmino_solve(x0, iters, window=window, damp = 0.1, relaxParam = 1)
+        tomo.cimmino_solve(x0, maxiter, window=window, damp = 0.1, relaxParam = 1)
         
     # Calculate resolution of the point
-    xHat_max = tomo.inversion[inverter].F.isel(alpha = 0).max()
-    xHat = tomo.inversion[inverter].F.isel(alpha = 0)/xHat_max.copy()
+    xHat_max = tomo.inversion[inverter].F.isel(alpha = -1).max()
+    xHat = tomo.inversion[inverter].F.isel(alpha = -1)/xHat_max.copy()
     resolution = calculate_resolution_point(xHat, mu_gyro, mu_pitch,
                                                 original_distance, 
                                                 map_type=map_type, 

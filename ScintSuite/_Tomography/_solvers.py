@@ -87,7 +87,7 @@ def nnlsq(X, y, **kargs):
     res = residual(y_pred, y)
     return beta, MSE, res, r2
 
-def kaczmarz_solve(W, y, x0, maxiter, pitch_map, gyro_map,
+def kaczmarz_solve(W, y, x0, iterations, pitch_map, gyro_map,
                              resolution, peak_amp, damp, tol, relaxParam,
                              x_coord, y_coord, window,
                               control_iters = 100, **kargs):
@@ -101,7 +101,10 @@ def kaczmarz_solve(W, y, x0, maxiter, pitch_map, gyro_map,
         :param x0: initial guess
         :param  pitch_map: Pitch resolution map
         :param  gyro_map: Gyroscalar resolution map
-        :param  maxiter: maximum number of iterations to perform
+        :param  iterations: iterations to be saved. The algorithms will stop 
+                            at the largest iteration unless 'resolution' is true.
+                            In that case, the resolution principle will be the 
+                            stopping condition.
         :param  resolution: boolean. If True, the algorithm will stop when
                             the resolution principle is satisfied or when the
                             control number of iterations is reached.
@@ -115,8 +118,8 @@ def kaczmarz_solve(W, y, x0, maxiter, pitch_map, gyro_map,
                         window are set to zero. The window is defined as
                         [x_min, x_max, y_min, y_max]. X and Y are the  
                         pitch and gyroscalar coordinates, respectively
-        :param  control_iters: number of iterations to control maximum number of
-                        iterations done when using the resolution principle.
+        :param  control_iters: maximum number of iterations allowed when using the
+                                resolution principle.
         :param  *kargs: arguments for the coordinate descent algorithm
 
         :return xk_output: output of the algorithm for each iteration set to save
@@ -135,26 +138,28 @@ def kaczmarz_solve(W, y, x0, maxiter, pitch_map, gyro_map,
             if gyro_map is None:
                 raise ValueError("gyro_map cannot be empty if resolution is True")
             
-            if maxiter is not None:
-                raise ValueError("maxiter cannot be defined if resolution is True")
-           
-            maxiter = np.array([control_iters])
+            if iterations is not None:
+                raise ValueError("iterations cannot be defined if resolution is True")
+            
+            # Setting the maximum number of iterations in case the resolution principle 
+            # does not stop the algorithm
+            iterations = np.array([control_iters])
 
         # Start time
         timeStart = time.time()
-        timeEnd = np.zeros(len(maxiter))
+        timeEnd = np.zeros(len(iterations))
 
         # Initialize matrix to return
         m, n = W.shape
-        xk_output = np.zeros((n, len(maxiter)))
-        
+        xk_output = np.zeros((n, len(iterations)))
+
         lbound = np.zeros(n)
         # Residual of initial guess
         rk = y - W @ x0
 
         # Initialization before iterations.
         k = 0   # Iteration counter.
-        maxK = maxiter.max() # Maximum iterations from all the ksteps to return
+        maxK = iterations.max() # Maximum number of iterations to calculate
         xk = x0.copy() # Use initial vector.
         
         stop_loop = stopping_criterion(k, rk, maxK, tol)
@@ -167,6 +172,7 @@ def kaczmarz_solve(W, y, x0, maxiter, pitch_map, gyro_map,
 
         # Set row order
         I = [i for i in range(len(normWi)) if normWi[i] > 0]
+        
         # Apply damping
         normWi += damp * np.max(normWi)
 
@@ -178,7 +184,7 @@ def kaczmarz_solve(W, y, x0, maxiter, pitch_map, gyro_map,
             fast = False
 
         # Starting loop
-        num_exec = 0 # number of times that an element of maxiter is reached
+        num_exec = 0 # number of times that an element of 'iterations' is reached
 
         while not stop_loop:
             k += 1  
@@ -211,35 +217,34 @@ def kaczmarz_solve(W, y, x0, maxiter, pitch_map, gyro_map,
                                                       pitch_map, gyro_map, 
                                                       peak_amp)
                 if resP_boolean:
-                    maxiter = np.array([k])
-                    maxK = maxiter.max()
+                    iterations = np.array([k])
+                    maxK = k
             
             rk = y - W @ xk
             stop_loop = stopping_criterion(k, rk, maxK, tol)
 
             # Save the output and time
-            if k in maxiter:
+            if k in iterations:
                 xk_output[:,num_exec] = xk
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
 
 
         # Calculated performance metrics
-        MSE = np.zeros(len(maxiter))
-        r2 = np.zeros(len(maxiter))
-        res = np.zeros(len(maxiter))
-        duration = np.zeros(len(maxiter))
-        for i in range(len(maxiter)):
+        MSE = np.zeros(len(iterations))
+        r2 = np.zeros(len(iterations))
+        res = np.zeros(len(iterations))
+        duration = np.zeros(len(iterations))
+        for i in range(len(iterations)):
             y_pred = W @ xk_output[:,i]
             MSE[i] = mean_squared_error(y, y_pred)
             r2[i] = r2_score(y,y_pred)
             res[i] = residual(y_pred, y)
             duration[i] = timeEnd[i] - timeStart
 
+        return xk_output, MSE, res, r2, duration, iterations
 
-        return xk_output, MSE, res, r2, duration, maxiter
-
-def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
+def coordinate_descent_solve(W, y, x0, iterations, pitch_map, gyro_map,
                              resolution, peak_amp, damp, tol, relaxParam,
                              x_coord, y_coord, window,
                               control_iters = 100, **kargs):
@@ -253,7 +258,10 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
         :param x0: initial guess
         :param  pitch_map: Pitch resolution map
         :param  gyro_map: Gyroscalar resolution map
-        :param  maxiter: maximum number of iterations to perform
+        :param  iterations: iterations to be saved. The algorithms will stop 
+                            at the largest iteration unless 'resolution' is true.
+                            In that case, the resolution principle will be the 
+                            stopping condition.
         :param  resolution: boolean. If True, the algorithm will stop when
                             the resolution principle is satisfied or when the
                             control number of iterations is reached.
@@ -267,8 +275,8 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
                         window are set to zero. The window is defined as
                         [x_min, x_max, y_min, y_max]. X and Y are the  
                         pitch and gyroscalar coordinates, respectively
-        :param  control_iters: number of iterations to control maximum number of
-                        iterations done when using the resolution principle.
+        :param  control_iters: maximum number of iterations allowed when using the
+                                resolution principle.
         :param  *kargs: arguments for the coordinate descent algorithm
 
         :return xk_output: output of the algorithm for each iteration set to save
@@ -288,24 +296,24 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
             if gyro_map is None:
                 raise ValueError("gyro_map cannot be empty if resolution is True")
             
-            if maxiter is not None:
-                raise ValueError("maxiter cannot be defined if resolution is True")
-           
-            maxiter = np.array([control_iters])
+            if iterations is not None:
+                raise ValueError("iterations cannot be defined if resolution is True")
+
+            iterations = np.array([control_iters])
 
         # Start time
         timeStart = time.time()
-        timeEnd = np.zeros(len(maxiter))
+        timeEnd = np.zeros(len(iterations))
 
         # Initialize matrix to return
-        xk_output = np.zeros((x0.shape[0], len(maxiter)))
+        xk_output = np.zeros((x0.shape[0], len(iterations)))
 
         # Residual of initial guess
         rk = y - W @ x0
 
         # Initialization before iterations.
         k = 0   # Iteration counter.
-        maxK = maxiter.max() # Maximum iterations from all the ksteps to return
+        maxK = iterations.max() # Maximum iterations from all the ksteps to return
         xk = x0.copy() # Use initial vector.
         m,n = W.shape
 
@@ -330,7 +338,7 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
         Nflag = np.zeros(n)
 
         # Starting loop
-        num_exec = 0 # number of times that an element of maxiter is reached -1
+        num_exec = 0 # number of times that an element of 'iterations' is reached -1
         Numflag = np.round(maxK/4)
         kbegin = 10
         THR = 1e-4
@@ -378,14 +386,14 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
                                                       pitch_map, gyro_map, 
                                                       peak_amp)
                 if resP_boolean:
-                    maxiter = np.array([k])
-                    maxK = maxiter.max()
+                    iterations = np.array([k])
+                    maxK = iterations.max()
 
             stop_loop = stopping_criterion(k, rk, maxK, tol)           
 
             
             # Save the output and time
-            if k in maxiter:        
+            if k in iterations:        
                 xk_output[:,num_exec] = xk            
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
@@ -393,11 +401,11 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
         
 
         # Calculated performance metrics
-        MSE = np.zeros(len(maxiter))
-        r2 = np.zeros(len(maxiter))
-        res = np.zeros(len(maxiter))
-        duration = np.zeros(len(maxiter))
-        for i in range(len(maxiter)):
+        MSE = np.zeros(len(iterations))
+        r2 = np.zeros(len(iterations))
+        res = np.zeros(len(iterations))
+        duration = np.zeros(len(iterations))
+        for i in range(len(iterations)):
             y_pred = W @ xk_output[:,i]
             MSE[i] = mean_squared_error(y, y_pred)
             r2[i] = r2_score(y,y_pred)
@@ -405,9 +413,9 @@ def coordinate_descent_solve(W, y, x0, maxiter, pitch_map, gyro_map,
             duration[i] = timeEnd[i] - timeStart
 
 
-        return xk_output, MSE, res, r2, duration, maxiter
+        return xk_output, MSE, res, r2, duration, iterations
 
-def cimmino_solve(W, y, x0, maxiter, pitch_map, gyro_map,
+def cimmino_solve(W, y, x0, iterations, pitch_map, gyro_map,
                              resolution, peak_amp, damp, tol, relaxParam,
                              x_coord, y_coord, window,
                               control_iters = 100, **kargs):
@@ -421,7 +429,10 @@ def cimmino_solve(W, y, x0, maxiter, pitch_map, gyro_map,
         :param x0: initial guess
         :param  pitch_map: Pitch resolution map
         :param  gyro_map: Gyroscalar resolution map
-        :param  maxiter: maximum number of iterations to perform
+        :param  iterations: iterations to be saved. The algorithms will stop 
+                            at the largest iteration unless 'resolution' is true.
+                            In that case, the resolution principle will be the 
+                            stopping condition.
         :param  resolution: boolean. If True, the algorithm will stop when
                             the resolution principle is satisfied or when the
                             control number of iterations is reached.
@@ -435,8 +446,8 @@ def cimmino_solve(W, y, x0, maxiter, pitch_map, gyro_map,
                         window are set to zero. The window is defined as
                         [x_min, x_max, y_min, y_max]. X and Y are the  
                         pitch and gyroscalar coordinates, respectively
-        :param  control_iters: number of iterations to control maximum number of
-                        iterations done when using the resolution principle.
+        :param  control_iters: maximum number of iterations allowed when using the
+                                resolution principle.
         :param  *kargs: arguments for the coordinate descent algorithm
 
         :return xk_output: output of the algorithm for each iteration set to save
@@ -455,19 +466,19 @@ def cimmino_solve(W, y, x0, maxiter, pitch_map, gyro_map,
             if gyro_map is None:
                 raise ValueError("gyro_map cannot be empty if resolution is True")
             
-            if maxiter is not None:
-                raise ValueError("maxiter cannot be defined if resolution is True")
-           
-            maxiter = np.array([control_iters])
+            if iterations is not None:
+                raise ValueError("iterations cannot be defined if resolution is True")
+
+            iterations = np.array([control_iters])
 
 
         # Start time
         timeStart = time.time()
-        timeEnd = np.zeros(len(maxiter))
+        timeEnd = np.zeros(len(iterations))
 
         # Initialize matrix to return
         m, n = W.shape
-        xk_output = np.zeros((n, len(maxiter)))
+        xk_output = np.zeros((n, len(iterations)))
         lbound = np.zeros(n)
 
         # Transpose of the matrix
@@ -478,7 +489,7 @@ def cimmino_solve(W, y, x0, maxiter, pitch_map, gyro_map,
 
         # Initialization before iterations.
         k = 0   # Iteration counter.
-        maxK = maxiter.max() # Maximum iterations from all the ksteps to return
+        maxK = iterations.max() # Maximum iterations from all the ksteps to return
         xk = x0.copy() # Use initial vector.
         
         stop_loop = stopping_criterion(k, rk, maxK, tol)
@@ -526,14 +537,14 @@ def cimmino_solve(W, y, x0, maxiter, pitch_map, gyro_map,
                                                       pitch_map, gyro_map, 
                                                       peak_amp)
                 if resP_boolean:
-                    maxiter = np.array([k])
-                    maxK = maxiter.max()
+                    iterations = np.array([k])
+                    maxK = k
             
             rk = y - W @ xk
             stop_loop = stopping_criterion(k, rk, maxK, tol)
             
             # Save the output and time
-            if k in maxiter:
+            if k in iterations:
                 xk_output[:,num_exec] = xk
                 timeEnd[num_exec] = time.time()
                 num_exec += 1
@@ -541,11 +552,11 @@ def cimmino_solve(W, y, x0, maxiter, pitch_map, gyro_map,
         
 
         # Calculated performance metrics
-        MSE = np.zeros(len(maxiter))
-        r2 = np.zeros(len(maxiter))
-        res = np.zeros(len(maxiter))
-        duration = np.zeros(len(maxiter))
-        for i in range(len(maxiter)):
+        MSE = np.zeros(len(iterations))
+        r2 = np.zeros(len(iterations))
+        res = np.zeros(len(iterations))
+        duration = np.zeros(len(iterations))
+        for i in range(len(iterations)):
             y_pred = W @ xk_output[:,i]
             MSE[i] = mean_squared_error(y, y_pred)
             r2[i] = r2_score(y,y_pred)
@@ -553,7 +564,7 @@ def cimmino_solve(W, y, x0, maxiter, pitch_map, gyro_map,
             duration[i] = timeEnd[i] - timeStart
 
 
-        return xk_output, MSE, res, r2, duration, maxiter
+        return xk_output, MSE, res, r2, duration, iterations
 
 def apply_window(xk, x_coord, y_coord, window):
 

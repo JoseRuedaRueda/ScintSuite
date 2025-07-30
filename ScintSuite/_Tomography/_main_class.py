@@ -224,8 +224,10 @@ class Tomography():
         :param x0: initial guess for the algorithm solution. Can be initialised
         as 1D array of zeros with the same size as the number of pixels in the pinhole
 
-        :param iterations: number of iterations that the user wants the 
-        algorithmn to perform. This is valid only if the resolution flag is set to False
+        :param iterations: list or array containing the number of iterations that
+          the user wants the algorithm to save. If an int is introduced then that 
+          will be the maximum  number of iterations performed. This is valid only 
+          if the resolution flag is set to False
         
         :param window: area of the signal domain. The solution will be projected 
         onto this region
@@ -268,7 +270,7 @@ class Tomography():
         logger.info('Performing kaczmarz algorithm')
         x_hat, MSE, res, r2, time, alphas = \
                 solvers.kaczmarz_solve(self.W2D, self.s1D, x0,
-                                                  maxiter = iterations,
+                                                  iterations = iterations,
                                                   pitch_map = pitch_map,
                                                   gyro_map = gyro_map,
                                                   resolution = resolution,
@@ -320,12 +322,15 @@ class Tomography():
         Marina Jimenez Comez: mjimenez37@us.es
 
         :param x0: initial guess for the algorithm solution. Can be initialised
-        as 1D array of zeros with the same size as the number of pixels in the pinhole
+        as 1D array of zeros with the same size as the number of pixels in the 
+        pinhole
 
-        :param iterations: number of iterations that the user wants the 
-        algorithmn to perform. This is valid only if the resolution flag is set to False
-        
-        :param window: area of the signal domain. The solution will be projected 
+        :param iterations: list or array containing the number of iterations that
+          the user wants the algorithm to save. If an int is introduced then that 
+          will be the maximum  number of iterations performed. This is valid only 
+          if the resolution flag is set to False
+
+        :param window: area of the signal domain. The solution will be projected
         onto this region
 
         :param pitch_map: 2D array with the pitch map. Only neded if the resolution
@@ -367,7 +372,7 @@ class Tomography():
         logger.info('Performing coordinate descent algorithm')
         x_hat, MSE, res, r2, time, alphas = \
                 solvers.coordinate_descent_solve(self.W2D, self.s1D, x0,
-                                                  maxiter = iterations,
+                                                  iterations = iterations,
                                                   pitch_map = pitch_map,
                                                   gyro_map = gyro_map,
                                                   resolution = resolution,
@@ -422,8 +427,10 @@ class Tomography():
         :param x0: initial guess for the algorithm solution. Can be initialised
         as 1D array of zeros with the same size as the number of pixels in the pinhole
 
-        :param iterations: number of iterations that the user wants the 
-        algorithmn to perform. This is valid only if the resolution flag is set to False
+        :param iterations: list or array containing the number of iterations that
+          the user wants the algorithm to save. If an int is introduced then that 
+          will be the maximum  number of iterations performed. This is valid only 
+          if the resolution flag is set to False
         
         :param window: area of the signal domain. The solution will be projected 
         onto this region
@@ -467,7 +474,7 @@ class Tomography():
         logger.info('Performing cimmino algorithm')
         x_hat, MSE, res, r2, time, alphas = \
                 solvers.cimmino_solve(self.W2D, self.s1D, x0,
-                                                  maxiter = iterations,
+                                                  iterations = iterations,
                                                   pitch_map = pitch_map,
                                                   gyro_map = gyro_map,
                                                   resolution = resolution,

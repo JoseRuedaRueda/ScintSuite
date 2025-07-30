@@ -119,7 +119,7 @@ def snr(x, x_hat):
     return snr_value
 
 
-def fidelity_map(domain, WF, inverter, window, iters, noise, background_noise, 
+def fidelity_map(domain, WF, inverter, window, maxiter, noise, background_noise, 
                  gyro_map = None, pitch_map = None, resolution = False, 
                  error_metric='relativel2'):
         '''
@@ -145,7 +145,7 @@ def fidelity_map(domain, WF, inverter, window, iters, noise, background_noise,
         window: list
             Window of the signal space to project thye reconstructions.
             [pitch_min, pitch_max, gyro_min, gyro_max]
-        iters: int
+        maxiter: int
             Maximum number of iterations. If resolution is True, iters must be None.
         noise: float
             Signal noise level.
@@ -174,7 +174,7 @@ def fidelity_map(domain, WF, inverter, window, iters, noise, background_noise,
             if gyro_map is None:
                 raise ValueError("gyro_map cannot be empty if resolution is True")
             
-            if iters is not None:
+            if maxiter is not None:
                 raise ValueError("You cannot set a number of iterations if resolution is True. " \
                 "iters must be set to None.")
 
@@ -217,19 +217,19 @@ def fidelity_map(domain, WF, inverter, window, iters, noise, background_noise,
                 n = WF.shape[2]*WF.shape[3]
                 x0 = np.zeros(n)
                 if inverter == 'descent':
-                    tomo.coordinate_descent_solve(x0, iters, window, damp = 0.1, 
+                    tomo.coordinate_descent_solve(x0, maxiter, window, damp = 0.1, 
                                                 relaxParam = 1,                                                
                                                 pitch_map = pitch_map,
                                                 gyro_map = gyro_map, 
                                                 resolution = resolution)
                 elif inverter == 'kaczmarz':
-                    tomo.kaczmarz_solve(x0, iters,window, damp = 0.1, 
+                    tomo.kaczmarz_solve(x0, maxiter, window, damp = 0.1, 
                                             relaxParam = 1,
                                             pitch_map = pitch_map,
                                             gyro_map = gyro_map, 
                                             resolution = resolution)
                 elif inverter == 'cimmino':
-                    tomo.cimmino_solve(x0, iters, window, damp = 0.1, 
+                    tomo.cimmino_solve(x0, maxiter, window, damp = 0.1, 
                                            relaxParam = 1,
                                            pitch_map = pitch_map,
                                            gyro_map = gyro_map, 
@@ -238,7 +238,7 @@ def fidelity_map(domain, WF, inverter, window, iters, noise, background_noise,
                 norm = 1
                 if tomo.norms['normalised'][0] ==1:
                     norm = tomo.norms['s']/tomo.norms['W']
-                xHat = tomo.inversion[inverter].F.isel(alpha = 0).copy()*norm         
+                xHat = tomo.inversion[inverter].F.isel(alpha = -1).copy()*norm         
                 
                 if error_metric == 'snr':
                     error = snr(x, xHat)

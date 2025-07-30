@@ -18,7 +18,7 @@ import xarray as xr
 WFfile = '~/ScintSuite/MyRoutines/W_47132_0.280_doldby2.nc'
 
 # - Paths for outputs:
-outputPath = '/home/marjimcom/ScintSuite/MyRoutines/tomography/results/ECPD2025/'
+outputPath = '/home/marjimcom/ScintSuite/MyRoutines/tomography/results/test/'
 
 # Setting the number of maximum iterations
 maxiter = 50
@@ -44,8 +44,11 @@ inverter = 'descent'
 # Error to use. Two options: 'relativel2' or 'snr'
 error_metric = 'relativel2'
 
-# Setting the resolution principle as stopping criteria
-resolution = True
+# Setting the resolution principle as stopping criteria.
+# This is not recommended for the fidelity map as it might not stop the 
+# reconstruction of a single delta. In any case, the number of iterations 
+# will be limited by a control number of iterations set by default to 150.
+resolution = False
 
 # Setting plotting parameters
 cmap = ss.plt.Gamma_II()

@@ -10,9 +10,9 @@ import xarray as xr
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - Paths:
-WFfile = '~/ScintSuite/MyRoutines/W_39573_2.000.nc'
+WFfile = '~/ScintSuite/MyRoutines/W_47132_0.300_new_p46_ext.nc'
 # - Paths for outputs:
-outputPath = '/home/marjimcom/ScintSuite/MyRoutines/tomography/results/W_39573_2.000/'
+outputPath = '/home/marjimcom/ScintSuite/MyRoutines/tomography/results/test/'
 
 # - Resolution maps parameters
 
@@ -45,10 +45,28 @@ WF = xr.load_dataarray(WFfile)
 # --- Section 2: Load smap and fit parameters
 # -----------------------------------------------------------------------------
 # Path to the smap file
-smapFile = '/home/marjimcom/ScintSuite/MyRoutines/W_-8.75_-8.08_MU_FILD.map'
+# Path parameters
+shot = 47132
+time = 0.30
+geomID = 'MU_FILD'
+home_dir_user = os.getenv("HOME")
+
+# Load the frame
+remapFile = '~/ScintSuite/MyRoutines/remap47132_-010to450ms_centr_rL.nc'
+remap = xr.load_dataset(remapFile)
+
+# Getting path
+phi = remap.phi.sel(t = time, method = 'nearest').values
+theta = remap.sel(t = time, method = 'nearest').theta.values
+phi = np.array(phi).squeeze()      # To get rid of the SOBJ
+theta = np.array(theta).squeeze()
+runID = 'W_%4.2f_%4.2f_%s' % (phi, theta, geomID)
+runfolder = os.path.join(home_dir_user, 'uFILDSIM/', 'runs', runID)
+resultsDir = os.path.join(runfolder, 'results')
+mapName = os.path.join(resultsDir, '%s.map' % runID)
 
 # Loading smap
-smap = ss.smap.Fsmap(file=smapFile)
+smap = ss.smap.Fsmap(file=mapName)
 smap.load_strike_points()
 
 # Load fit parameters

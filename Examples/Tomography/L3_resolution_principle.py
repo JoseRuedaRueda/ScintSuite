@@ -19,42 +19,45 @@ import ScintSuite._Tomography._synthetic_signal as synthetic_signal
 # - Paths:
 homeDir = '/home/marjimcom/ScintSuite/'
 
-WFfile = homeDir + 'MyRoutines/W_39573_2.000.nc'
+WFfile = '~/ScintSuite/MyRoutines/W_47132_0.300_new_p46_ext.nc'
 
 # - Paths for outputs:
 outputPath = 'MyRoutines/tomography/results/test'
 
-# Path for remap file
 remapFile = '~/ScintSuite/MyRoutines/remap47132_-010to450ms_centr_rL.nc'
-ttomo = 0.28    # Time to perform the tomography
+ttomo = 0.30    # Time to perform the tomography
 
 # Resolution maps paths
 resolution_pitch_file = homeDir + \
-    'MyRoutines/tomography/results/W_39573_2.000/resolution_map_pitch_20_09_100.nc'
+    'MyRoutines/tomography/results/ECPD2025_paper_p46/resolution_map_by2_pitch70.nc'
 resolution_gyro_file = homeDir + \
-    'MyRoutines/tomography/results/W_39573_2.000/resolution_map_gyro_13_09_100.nc'
+    'MyRoutines/tomography/results/ECPD2025_paper_p46/resolution_map_by2_gyro70.nc'
 
 # Setting frame to be used: synthetic or experimental
 frame_type = 'synthetic'
 
 # Parameters for the synthetic signal
 seed = 0
-mu_gyro = [3.1, 4.3, 5.4]
-power = [0.1, 0.2, 0.7]
-sigma_gyro = 0.01
-mu_pitch = [55, 55, 55]
-sigma_pitch = 7
+mu_gyro = [12.3, 8.8, 7.2]
+power = [0.7, 0.2, 0.1]
+sigma_gyro = [0.45, 0.45, 0.45]
+mu_pitch = [60, 60, 60]
+sigma_pitch = [0.1, 0.1, 0.1]
 noise_level = 0.1
 background_level = 0.01
-window = [45, 65, 3, 9]
+window = [59.0, 61.0, 6.5, 15.0]
 
 # - Tomography parameters
 
 # Flag to use the resolution principle
+# If resolution is set to True, the algorithm will stop when the resolution principle
+# is no longer satisfied. However, to prevent calculations from taking too long, the number
+# of iterations will be limited by a control number of iterations set by default. This
+# number can be changed in the variable control_iters
 resolution = True
 
 # Setting algorithm to be used: 'descent', 'kaczmarz' or 'cimmino'
-inverter = 'descent'
+inverter = 'kaczmarz'
 
 # Setting values for damping 
 damp = 0.1
@@ -105,7 +108,9 @@ if 'descent' == inverter:
                                   relaxParam = relaxParam, 
                                   pitch_map = resolution_pitch,
                                   gyro_map = resolution_gyro, 
-                                  resolution = resolution)
+                                  resolution = resolution,
+                                  peak_amp=0.10, 
+                                  control_iters=150)
     
 if 'kaczmarz' == inverter:
     tomo.kaczmarz_solve(x0, 
@@ -113,7 +118,9 @@ if 'kaczmarz' == inverter:
                         relaxParam = relaxParam, 
                         pitch_map = resolution_pitch,
                         gyro_map = resolution_gyro, 
-                        resolution = resolution)
+                        resolution = resolution,
+                        peak_amp=0.10, 
+                        control_iters=150)
     
 if 'cimmino' == inverter:
     tomo.cimmino_solve(x0, 
@@ -121,14 +128,16 @@ if 'cimmino' == inverter:
                        relaxParam = relaxParam, 
                        pitch_map = resolution_pitch,
                        gyro_map = resolution_gyro, 
-                       resolution = resolution)
+                       resolution = resolution,
+                       peak_amp=0.10, 
+                       control_iters=150)
 
 
 # Tomo object by default normalizes the WF and the frame. If this is the case, 
 # then the output needs to be denormalized
 
 norm = tomo.norms['s']/tomo.norms['W']
-xHat = tomo.inversion[inverter].F.isel(alpha = 0)*norm
+xHat = tomo.inversion[inverter].F.isel(alpha = -1)*norm
 
 # -----------------------------------------------------------------------------
 # --- Section 3: Plot results for the synthetic case
