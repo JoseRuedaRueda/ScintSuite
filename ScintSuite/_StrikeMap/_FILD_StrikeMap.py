@@ -433,7 +433,7 @@ class Fsmap(FILDINPA_Smap):
 
     def build_parameters_xarray(self):
         """
-        Put all the fitting parameters into an xarray
+        Put all the fitting parameters into an xarray and WF
 
         Alex Reyner Viñolas: alereyvinn@alum.us.es
         """
@@ -469,6 +469,6 @@ class Fsmap(FILDINPA_Smap):
             for j in parameters_to_consider[model]:
                 dummy = self._resolutions[name][j]
                 self._resolutions['fit_xarrays'][name+'_'+j] = (['x','y'],dummy)
-                
         self._resolutions['fit_xarrays']['coll_factor'] = (['x','y'],
                                           self('collimator_factor_matrix'))
+        

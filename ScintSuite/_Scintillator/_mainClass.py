@@ -104,8 +104,8 @@ class Scintillator(XYtoPixel):
                 for i in range(self.n_vertices + 3):
                     f.readline()
                 ## Units in which the scintillator data is loaded:
-                dummy = f.readline()
-                self.units = dummy[:-1]
+                dummy = f.readline().strip()
+                self.units = dummy
 
             ## Coordinates of the vertex of the scintillator (X,Y,Z).
             self._coord_real['x3'], self._coord_real['x1'], \
@@ -125,6 +125,7 @@ class Scintillator(XYtoPixel):
             
             if self.units not in factor:
                 factor = 0.01
+                logger.warning('Found units %s, assuming cm.', self.units)
                 logger.warning('XX: Not found units, assuming cm.')
             else:
                 factor = factor[self.units]

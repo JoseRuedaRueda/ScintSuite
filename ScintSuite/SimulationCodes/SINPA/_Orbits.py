@@ -199,7 +199,7 @@ class OrbitClass:
             ax = ssplt.axis_beauty(ax, ax_options)
         return ax
 
-    def save_orbits_to_txt(self, kind=(2,), units: str = 'mm'):
+    def save_orbits_to_txt(self, kind=(2,), units: str = 'mm', seperated: bool = False ):
         """
         Save each individual orbit in a text file structred with collums for
         x y z positions of the orbits, to be easily uplaoded in CAD software
@@ -219,16 +219,28 @@ class OrbitClass:
         possible_factors = {'m': 1.0, 'cm': 100.0, 'mm': 1000.0}
         factor = possible_factors[units]
 
-        # --- Plot the markers:
-        for i in range(self.nOrbits):
-            if self.kindOfCollision[i] in kind:
-                with open('orb_run_%s_rl_%.2f_xi_%.2f.txt'
-                          % (self.runID[0].strip().decode("utf-8"),
-                             self.rl[i],
-                             np.rad2deg(np.arccos(self.xi[i]))), 'w') as f:
-                    for p in range(len(self.data[i]['position'][:, 0])):
-                        f.write('%f %f %f \n'
-                                % (self.data[i]['position'][p, 0] * factor,
-                                   self.data[i]['position'][p, 1] * factor,
-                                   self.data[i]['position'][p, 2] * factor)
-                                )
+        # --- save the orbit steps:
+        if seperated:
+            for i in range(self.nOrbits):
+                if self.kindOfCollision[i] in kind:
+                    with open('orb_run_%s_rl_%.2f_xi_%.2f.txt'
+                            % (self.runID[0].strip().decode("utf-8"),
+                                self.rl[i],
+                                np.rad2deg(np.arccos(self.xi[i]))), 'w') as f:
+                        for p in range(len(self.data[i]['position'][:, 0])):
+                            f.write('%f %f %f \n'
+                                    % (self.data[i]['position'][p, 0] * factor,
+                                    self.data[i]['position'][p, 1] * factor,
+                                    self.data[i]['position'][p, 2] * factor)
+                                    )
+        else:
+            with open('orb_run_%s.txt'
+                    % (self.runID[0].strip().decode("utf-8")), 'w') as f:
+                for i in range(self.nOrbits):
+                    if self.kindOfCollision[i] in kind:
+                        for p in range(len(self.data[i]['position'][:, 0])):
+                            f.write('%f %f %f \n'
+                                    % (self.data[i]['position'][p, 0] * factor,
+                                    self.data[i]['position'][p, 1] * factor,
+                                    self.data[i]['position'][p, 2] * factor)
+                                    )

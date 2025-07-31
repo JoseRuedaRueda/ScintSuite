@@ -7,7 +7,9 @@ Introduced in version 0.6.0
 """
 
 import numpy as np
-
+import xarray as xr
+from scipy.signal import detrend as scipy_detrend
+from typing import Optional, Union
 
 # -----------------------------------------------------------------------------
 # --- Dictionaries
@@ -149,10 +151,44 @@ def gkern(l=int(4.5*6)+1, sig=4.5):
     return kernel / np.sum(kernel)
 
 
-def smooth(y, box_pts,mode='same'):
+def smooth(y, box_pts,mode='same', axis=-1):
     """
     Smooth signals, just convoluting it with a box
     """
     box = np.ones(box_pts)/box_pts
-    y_smooth = np.convolve(y, box, mode=mode)
+    if y.shape == 1:
+        y_smooth = np.convolve(y, box, mode=mode)
+    else:
+        y_smooth = np.apply_along_axis(
+            lambda m: np.convolve(m, box, mode=mode), axis, y)
     return y_smooth
+
+def detrend(x: xr.DataArray, type: str='linear',
+            detrendSizeInterval: Optional[float]=0.001) -> xr.DataArray:
+    """
+    Detrend a signal
+
+    :param x: signal to detrend, it must have a time dimmension with name 't' and units in the same of the detrendSizeInterval
+    :param type: type of detrending, 'linear' or 'constant'
+    :param detrendSizeInterval: size of the interval to detrend, in units of the time dimension of the signal.
+    
+    :return: detrended signal
+    """
+    if 't' not in x.dims:
+        raise ValueError("The input signal must have a time dimension named 't'")
+    # Get the detrned intertval size
+    dt =(x['t'][1] - x['t'][0]).values
+    npoints = int(detrendSizeInterval / dt)
+    if npoints < 1:
+        raise ValueError("The detrendSizeInterval must be larger than the time "
+                         "interval of the signal")
+    else:
+        bp = np.arange(0, x.t.size, npoints)
+    axis = x.dims.index('t')
+    return xr.DataArray(
+        scipy_detrend(x.values, type=type, bp=bp, axis=axis),
+        dims=x.dims,
+        coords=x.coords
+    )
+
+        

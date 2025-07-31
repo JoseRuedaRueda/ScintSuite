@@ -130,7 +130,8 @@ def triangles2stl(fn_in: str, fn_out: str, units: str = 'mm'):
 
 def write_triangles_to_stl(geom: dict,
                            file_name_save: str = 'Test',
-                           units: str = 'mm'):
+                           units: str = 'mm',
+                           viewScint = False):
     '''
     Function to store trianlges from Geometry object to stl format
 
@@ -145,6 +146,8 @@ def write_triangles_to_stl(geom: dict,
         return
     else:
         key_base = 'triangles'
+        if viewScint:
+            key_base = 'trianglesScint'
     # See which data we need to plot
     key = key_base
 

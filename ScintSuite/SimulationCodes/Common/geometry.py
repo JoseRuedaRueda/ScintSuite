@@ -21,6 +21,7 @@ from ScintSuite._Paths import Path
 from ScintSuite._Plotting import axis_beauty, axisEqual3D, clean3Daxis
 import ScintSuite._CAD as libcad
 import f90nml
+import scipy.spatial as spsp
 paths = Path(machine)
 logger = logging.getLogger('ScintSuite.SimCod')
 
@@ -784,7 +785,7 @@ class Geometry:
 
         return ax
 
-    def writeGeometry(self, path):
+    def writeGeometry(self, path, viewScint = False):
         """
         Write the geometry into the folder
 
@@ -802,9 +803,12 @@ class Geometry:
                     f.writelines([str(self[i]['kind']) + '\n',
                                   str(self[i]['n']) + '\n'])
                     for it in range(3 * self[i]['n']):
-                        f.writelines([str(self[i]['triangles'][it, 0]) + ' ',
-                                      str(self[i]['triangles'][it, 1]) + ' ',
-                                      str(self[i]['triangles'][it, 2]) + '\n'])
+                        view = ''
+                        if viewScint:
+                            view = 'Scint'
+                        f.writelines([str(self[i]['triangles'+view][it, 0]) + ' ',
+                                      str(self[i]['triangles'+view][it, 1]) + ' ',
+                                      str(self[i]['triangles'+view][it, 2]) + '\n'])
             # Write the namelist
             file = os.path.join(path, 'ExtraGeometryParams.txt')
             f90nml.write({'ExtraGeometryParams': self.ExtraGeometryParams},
@@ -830,7 +834,8 @@ class Geometry:
 
 
     def elements_to_stl(self, element_to_save=[0, 1, 2], units: str = 'cm'
-                           ,file_name_save: str = 'Test'):
+                           ,file_name_save: str = 'Test',
+                           viewScint = False):
         """
         Store the geometric elements to stl files. Useful for testing SINPA inputs
         Anton van Vuuren: avanvuuren@us.es
@@ -849,6 +854,37 @@ class Geometry:
             if ele['kind'] in element_to_save:
                 libcad.write_triangles_to_stl(ele, units=units ,
                                                 file_name_save = file_name_save
-                                                + "_" + file_mod[ele['kind']])
+                                                + "_" + file_mod[ele['kind']],
+                                                viewScint = viewScint)
 
 ##
+
+def scint_ConvexHull(scint, coords='real'):
+    """
+    Calculates a convex shape around the scintillator perimeter.
+
+    Alex Reyner Vinolas: alereyvinn@alum.us.es
+
+    This is very useful for the plots of synthetic signals, where we don't want
+    to manually give the scintillator edges or have lots of lines in the middle
+
+    :param  scint: scintillator object from the suite, with the geometry file
+    :param  coords: what coordinates you want to plot: real or pix
+
+    :return scint_perim: scintillator contour shape
+    """
+    if coords == 'real':
+        xdum = scint._coord_real['x1']
+        ydum = scint._coord_real['x2'] 
+    elif coords == 'pix':
+        xdum = scint._coord_pix['x']
+        ydum = scint._coord_pix['y'] 
+    allPts = np.column_stack((xdum,ydum))
+    hullPts = spsp.ConvexHull(allPts)
+    scint_x = np.concatenate((allPts[hullPts.vertices,0],\
+                              np.array([allPts[hullPts.vertices,0][0]])))
+    scint_y = np.concatenate((allPts[hullPts.vertices,1],\
+                              np.array([allPts[hullPts.vertices,1][0]])))
+    scint_perim = np.column_stack((scint_x, scint_y))
+
+    return scint_perim

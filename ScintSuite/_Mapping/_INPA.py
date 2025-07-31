@@ -42,7 +42,7 @@ def remapAllLoadedFrames(video,
                          map=None,
                          remap_method: str = 'centers',
                          MC_number: int = 100,
-                         allIn: bool = False,
+                         allIn: int = 0,
                          use_average: bool = False,
                          variables_to_remap: tuple = ('R0', 'gyroradius'),
                          A: float = 2.01410178, Z: float = 1.0,
@@ -80,12 +80,15 @@ def remapAllLoadedFrames(video,
               remapping of the frames (MC recomended for tomography, but it
               needs 3 minutes per new strike map...)
     :param     number of MC markers for the MC remap
-    :param     allIn: boolean flag to disconect the interaction with the user,
+    :param     allIn: flag to disconect the interaction with the user,
               where looking for the strike map in the database, we will take
               the closer one available in time, without expecting an answer for
               the user. This option was implemented to remap large number of
               shots 'automatically' without interaction from the user needed.
               Option not used if you give an input strike map
+              allIn == 0:  ask the user for the answer
+              allIn == 1:  take the closest map in time
+              allIn == 2: Calculate all the missing maps
     :param     use_average: if true, use the averaged frames instead of the
               raw ones
 
@@ -122,6 +125,7 @@ def remapAllLoadedFrames(video,
     # --------------------------------------------------------------------------
     # --- INPUTS CHECK AND PREPARATION
     # --------------------------------------------------------------------------
+    epsB = 0.001 # Fields below this value are considered zero
     acceptedVars = ('energy', 'r0', 'gyroradius', 'rho_pol', 'e0')
     units = {'e0': 'keV', 'R0': 'm', 'gyroradius': 'cm', 'rho_pol': ' '}
     var_remap = [v.lower() for v in variables_to_remap]  # force small letter
@@ -143,7 +147,8 @@ def remapAllLoadedFrames(video,
         for i in range(2):
             if var_remap[i] == 'r0':
                 var_remap[i] = 'R0'
-
+    logger.debug('number of MC markers: %i', MC_number)
+    logger.debug('remap method: %s', remap_method)
     # -- Check inputs strike map
     if map is None:
         got_smap = False
@@ -156,6 +161,7 @@ def remapAllLoadedFrames(video,
     if smap_folder is None:
         smap_folder = os.path.join(paths.ScintSuite, 'Data', 'RemapStrikeMaps',
                                    'INPA', video.geometryID)
+    logger.debug('Looking for strike maps in: %s', smap_folder)
     # -- Check the mask
     if type(mask) is str:
         # the user gave us a saved mask, not the matrix, so load the matrix:
@@ -223,13 +229,19 @@ def remapAllLoadedFrames(video,
         elif nnSmap == nframes:
             logger.info('Non a single strike map, full calculation needed')
         elif nnSmap != 0:
-            if not allIn:
+            if allIn == 0:
                 print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
                 print('Write 1 to proceed, 0 to take the closer'
                       + '(in time) existing strikemap')
                 x = int(input('Enter answer:'))
-            else:
+            elif allIn == 1:
+                logger.info('We will take the closer existing strike map')
                 x = 0
+            elif allIn == 2:
+                logger.info('We will calculate all the missing strike maps')
+                x = 1
+            else:
+                raise errors.NotValidInput('Wrong value for allIn. Only 0, 1 or 2 accepted')
             if x == 0:
                 print('We will not calculate new strike maps')
                 print('Looking for the closer ones')
@@ -250,7 +262,10 @@ def remapAllLoadedFrames(video,
     # -- Initialise the variables:
     remaped_frames = np.zeros((nx, ny, nframes))
     logger.info('Remapping frames ...')
+    logger.debug('Number of MC markers: %i', MC_number)
     for iframe in tqdm(range(nframes)):
+        if video.BField['B'].values[iframe] < epsB:
+            continue
         if not got_smap:
             name = ssSINPA.execution.find_strike_map_INPA(
                 phi_used[iframe], theta_used[iframe], smap_folder,

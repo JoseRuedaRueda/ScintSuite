@@ -25,6 +25,7 @@ import ScintSuite._Video._CinFiles as cin
 import ScintSuite._Video._PNGfiles as png
 import ScintSuite._Video._PCOfiles as pco
 import ScintSuite._Video._MP4files as mp4
+import ScintSuite._Video._MATfiles as mat
 import ScintSuite._Video._TIFfiles as tif
 import ScintSuite._Video._h5D3D as h5d3d
 import ScintSuite._Video._NetCDF4files as ncdf
@@ -36,7 +37,7 @@ from ScintSuite._Paths import Path
 from ScintSuite._Machine import machine
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import Slider, Button, RadioButtons
-
+import gc
 
 # --- Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.Video')
@@ -293,7 +294,8 @@ class BVO:
         self.CameraData = None
         ## Scintillator plate:
         self.scintillator = None
-
+        gc.collect()
+        gc.enable()
     # --------------------------------------------------------------------------
     # --- Manage Frames
     # --------------------------------------------------------------------------
@@ -492,6 +494,7 @@ class BVO:
                                                                 'px': px, 'py': py})
             self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
             self.exp_dat.attrs['dtype'] = dtype
+
         # --- Count saturated pixels
         max_scale_frames = 2 ** self.settings['RealBPP'] - 1
         threshold = threshold_saturation * max_scale_frames
@@ -1074,15 +1077,16 @@ class BVO:
             ssGUI.ApplicationShowVid(root, self.avg_dat, self.remap_dat,
                                      self.geometryID,
                                      self.CameraCalibration,
-                                     shot=self.shot, mask=mask)
+                                     shot=self.shot)
         else:
             ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat,
                                      GeomID=self.geometryID,
                                      calibration=self.CameraCalibration,
                                      scintillator=self.scintillator,
-                                     shot=self.shot, mask=mask)
+                                     shot=self.shot)
         root.mainloop()
         root.destroy()
+        gc.collect()
 
     def GUI_frames_simple(self, flagAverage: bool = False, **kwargs):
         """
@@ -1136,7 +1140,7 @@ class BVO:
 
         slider.on_changed(update)
         plt.show()
-
+        gc.collect()
         return ax, slider
 
 
@@ -1233,7 +1237,7 @@ class BVO:
                 raise Exception('Video frame has no meaning when loading averages')
         return t
 
-    def getTimeTrace(self, t: float = None, mask=None, ROIname: str =None, vmax: int=None):
+    def getTimeTrace(self, t: float = None, mask=None, ROIname: str =None, vmax: int=None, vmin: int=None, cmap=None):
         """
         Calculate the timeTrace of the video
 
@@ -1248,7 +1252,7 @@ class BVO:
         """
         if mask is None:
             # - Plot the frame
-            ax_ref = self.plot_frame(t=t, vmax=vmax)
+            ax_ref = self.plot_frame(t=t, vmin=vmin, vmax=vmax, ccmap=cmap)
             fig_ref = plt.gcf()
             # - Define roi
             roi = sstt.roipoly(fig_ref, ax_ref)
@@ -1363,3 +1367,38 @@ class BVO:
         logger.debug(f'Saving to file {fn}')
         mp4.write_file(fn=fn, video=data, bit_size=bits_size,
                        encoding=encoding, fps=fps)
+    
+    # --------------------------------------------------------------------------
+    # %% Cleaning
+    # --------------------------------------------------------------------------
+    def delFile(self, confirmation=True):
+        """
+        Delete the file associated to the video object
+
+        DANGER!!!! This is intended to delete the file associated with the 
+        video, this was created for machines like D3D or TCV, where the video 
+        is intalled in a server and downloaded each time to scratch. Use this 
+        to clean the tmp files creates. Do not use in places like AUG, were the 
+        file is stored in the server where the code is running, as this will 
+        delete the only copy from the server and destroy the experiment data!!!
+        
+        Jose Rueda: jrueda@uci.edu
+        
+        :param confirmation: if True, the user will be asked for confirmation
+            before deleting the file
+        """
+        if self.file is not None:
+            if not confirmation:
+                print('Deleting file: ', self.file)
+                os.remove(self.file)
+            else:
+                print('Deleting file: ', self.file)
+                ans = input('Are you sure you want to delete the file? [y/n]')
+                if ans == 'y':
+                    os.remove(self.file)
+                else:
+                    print('File not deleted')
+            # self.file = None
+        else:
+            raise Exception('No file to delete')
+        return
