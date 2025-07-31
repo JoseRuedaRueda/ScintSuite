@@ -1,7 +1,10 @@
-# 1.4.0 Mayor release
+# 1.4.1 MAST-U read from UDA
+MU FILD XIMEA videos can now be read from UDA (the cloud) so no need to download every video
+
+# 1.4.0 Major release
 
 ## General
-- Easy initialization of the ScintSuite outside the hom directory thanks to env variables
+- Easy initialization of the ScintSuite outside the home directory thanks to env variables
 - Added detrend signal
 ## INPA and FILD Remap
 - allIn is no longer a bool, now 0,1,2 options are valid, so you can ask the user, calculate all maps or not calculate any
