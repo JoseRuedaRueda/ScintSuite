@@ -39,17 +39,21 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
 
     Note Juanfran criteria of organising files is assumed: .../<shot>/...
 
+    To read from UDA:
+    client.get("/", "$MAST_DATA/<kshot>/<shot>/LATEST/xfx<ishot>.nc")
+
     :param  shot: shot number
     :param  diag_ID: FILD manipulator number
 
     :return file: the name of the file/folder
     """
-    base_dir = params.FILD[diag_ID-1]['path'](shot)
-    extension = params.FILD[diag_ID-1]['extension'](shot)
-    prefix = params.FILD[diag_ID-1]['prefix'](shot)
-    shot_str = str(shot)
-    name = prefix + shot_str + extension
-    file = os.path.join(base_dir, name)
+    file = params.FILD[diag_ID-1]['path'](shot)
+    # base_dir = params.FILD[diag_ID-1]['path'](shot)
+    # extension = params.FILD[diag_ID-1]['extension'](shot)
+    # prefix = params.FILD[diag_ID-1]['prefix'](shot)
+    # shot_str = str(shot)
+    # name = prefix + shot_str + extension
+    # file = os.path.join(base_dir, name)
     return file
 
 

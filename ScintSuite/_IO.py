@@ -624,7 +624,7 @@ def load_remap(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
     return vid
 
 
-def load_remap_and_video(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
+def load_remap_and_video(filename, diag='FILD', shotfile=None) -> Union[FILDVideo, INPAVideo]:
     """
     Load a video & its tar remap file into a video object
     The noise subtraction will be performed using the NoiseFrame stored in the tar file
@@ -652,9 +652,12 @@ def load_remap_and_video(filename, diag='FILD') -> Union[FILDVideo, INPAVideo]:
         shot = int(f.readline().split(':')[-1])
         diag_ID = int(f.readline().split(':')[-1])
     if diag.lower() == 'fild':
-        vid = FILDVideo(shot=shot, diag_ID=diag_ID) 
+        if shotfile:
+            vid = FILDVideo(file=shotfile, diag_ID=diag_ID) 
+        else:
+            vid = FILDVideo(shot=shot, diag_ID=diag_ID) 
     else:
-        raise errors.NotValidInput('Not suported diagnostic')
+        raise errors.NotValidInput('Not suported diagnostic or not implemented yet')
     # Load rest of data in the tar file
     vid.remap_dat = xr.load_dataset(os.path.join(dummyFolder, 'remap.nc'))
     try:
