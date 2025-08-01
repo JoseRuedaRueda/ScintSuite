@@ -88,7 +88,7 @@ class TopoMap:
 
         """
         logger.info('Reading the topological map from %s' % filename)
-        self.data = xr.load_dataset(filename)
+        self.data = xr.open_dataset(filename, engine='h5netcdf')
         # Set the coodinates
         self.data = self.data.swap_dims({
             'phony_dim_0':'E_array',

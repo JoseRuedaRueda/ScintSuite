@@ -587,6 +587,7 @@ def load_remap(filename: str = '', diag: str='FILD',
                         dummyFolder = newdummyFolder
                     else:
                         break
+    logger.info('Loading remap from: %s' % dummyFolder)
          
     vid.remap_dat = xr.load_dataset(os.path.join(dummyFolder, 'remap.nc'))
     try:
