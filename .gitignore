@@ -48,6 +48,7 @@ Data/BEP/spectra/*
 Data/MyData/*
 Data/Magnetics/*
 Data/RemapStrikeMaps/*
+Data/Calibrations/FILD/TCV/APD/*
 Data/RemapDatabase/*
 MyRoutines/*
 Results/*
@@ -64,3 +65,11 @@ html/*
 build/*
 *.egg-info/
 *tmpFILDVideos
+Settings.yml
+# -----------------------------------------------------------------------------
+# --- Confidential files
+# -----------------------------------------------------------------------------
+D3D01.txt
+D3D02.txt
+D3D01.pl
+D3D02.pl

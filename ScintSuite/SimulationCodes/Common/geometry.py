@@ -785,7 +785,7 @@ class Geometry:
 
         return ax
 
-    def writeGeometry(self, path):
+    def writeGeometry(self, path, viewScint = False):
         """
         Write the geometry into the folder
 
@@ -803,9 +803,12 @@ class Geometry:
                     f.writelines([str(self[i]['kind']) + '\n',
                                   str(self[i]['n']) + '\n'])
                     for it in range(3 * self[i]['n']):
-                        f.writelines([str(self[i]['triangles'][it, 0]) + ' ',
-                                      str(self[i]['triangles'][it, 1]) + ' ',
-                                      str(self[i]['triangles'][it, 2]) + '\n'])
+                        view = ''
+                        if viewScint:
+                            view = 'Scint'
+                        f.writelines([str(self[i]['triangles'+view][it, 0]) + ' ',
+                                      str(self[i]['triangles'+view][it, 1]) + ' ',
+                                      str(self[i]['triangles'+view][it, 2]) + '\n'])
             # Write the namelist
             file = os.path.join(path, 'ExtraGeometryParams.txt')
             f90nml.write({'ExtraGeometryParams': self.ExtraGeometryParams},
@@ -831,7 +834,8 @@ class Geometry:
 
 
     def elements_to_stl(self, element_to_save=[0, 1, 2], units: str = 'cm'
-                           ,file_name_save: str = 'Test'):
+                           ,file_name_save: str = 'Test',
+                           viewScint = False):
         """
         Store the geometric elements to stl files. Useful for testing SINPA inputs
         Anton van Vuuren: avanvuuren@us.es
@@ -850,7 +854,8 @@ class Geometry:
             if ele['kind'] in element_to_save:
                 libcad.write_triangles_to_stl(ele, units=units ,
                                                 file_name_save = file_name_save
-                                                + "_" + file_mod[ele['kind']])
+                                                + "_" + file_mod[ele['kind']],
+                                                viewScint = viewScint)
 
 ##
 

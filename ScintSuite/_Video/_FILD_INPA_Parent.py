@@ -109,6 +109,8 @@ class FIV(BVO):
         self.ROIscintillator = None
         ## Scintilaltor plate
         self.scintillator = None
+        ## PMTcalibration
+        self.PMTcalibration = None
 
     # --------------------------------------------------------------------------
     # --- Get shot / magnetic data
@@ -147,6 +149,20 @@ class FIV(BVO):
                                 self.position[key2],
                                 time=time,
                                 **extra_options)
+        # It can happen that the magnetic field is not calculated in all the points (e.g. near t=0). To be honest, we do not care about that points, as there is no even NBI or FI source at that time, so just change nans by the means
+        brflags = np.isnan(br)
+        br[brflags] = np.nanmean(br)
+        bzflags = np.isnan(bz)
+        bz[bzflags] = np.nanmean(bz)
+        btflags = np.isnan(bt)
+        bt[btflags] = np.nanmean(bt)
+        bpflags = np.isnan(bp)
+        bp[bpflags] = np.nanmean(bp)
+        bnan = brflags + bzflags + btflags + bpflags
+        # 
+        if np.sum(bnan) > 0:
+            logger.warning('The magnetic field was not calculated in some points. The mean value was used instead for those points')        
+        
         # Save the data in the array
         self.BField = xr.Dataset()
         self.BField['BR'] = xr.DataArray(np.array(br).squeeze(), dims=('t'),
@@ -159,6 +175,9 @@ class FIV(BVO):
         self.BField.attrs['units'] = 'T'
         self.BField.attrs['R'] = self.position[key1]
         self.BField.attrs['z'] = self.position[key2]
+        self.BField.attrs['shot'] = self.shot
+        self.BField['flags'] = xr.DataArray(bnan, dims=('t'))
+        self.BField['flags'].attrs['description'] = '1 if the magnetic field was not calculated, 0 otherwise'
         self.BField.attrs.update(extra_options)
 
     def _getNBIpower(self):
@@ -235,7 +254,7 @@ class FIV(BVO):
     # --------------------------------------------------------------------------
     # --- Time Traces
     # --------------------------------------------------------------------------
-    def getTimeTrace(self, t: float = None, mask=None, ROIname: str = None, vmax: int=None):
+    def getTimeTrace(self, t: float = None, mask=None, ROIname: str = None, vmin: int=None, vmax: int=None, cmap: str='plasma'):
         """
         Calculate the timeTrace of the video. Extended method from parent class
 
@@ -252,12 +271,18 @@ class FIV(BVO):
         :returns timetrace: a timetrace object
         """
         if mask is not None or t is not None:
-            trace, mask = super().getTimeTrace(t=t, mask=mask,
-                                           ROIname=ROIname, vmax=vmax)
+            trace, mask = super().getTimeTrace(t=t, mask=mask,vmin=vmin,
+                                           ROIname=ROIname, vmax=vmax, 
+                                           cmap=cmap)
         else:
-            mask = \
-                self.ROIscintillator.getMask(self.exp_dat['frames'][:, :,
-                                             0].squeeze())
+            if self.ROIscintillator is not None:
+                mask = \
+                    self.ROIscintillator.getMask(self.exp_dat['frames'][:, :,
+                                                0].squeeze())
+            else:
+                frame1 = self.exp_dat.frames.isel(t=0).values
+                frame1[:] = 1
+                mask = frame1.astype(bool)
             trace = TimeTrace(self, mask, ROIname='ScintROI')
 
         return trace, mask
@@ -409,13 +434,6 @@ class FIV(BVO):
             raise Exception('Do not give frame number and time!')
         if (frame_number is None) and (t is None):
             raise Exception("Didn't you want to plot something?")
-        # --- Prepare the scale:
-        if scale == 'sqrt':
-            extra_options = {'norm': colors.PowerNorm(0.5)}
-        elif scale == 'log':
-            extra_options = {'norm': colors.LogNorm(0.5)}
-        else:
-            extra_options = {}
         # --- Load the frames
         # If we use the frame number explicitly
         if frame_number is not None:
@@ -459,14 +477,27 @@ class FIV(BVO):
             cmap = ssplt.Gamma_II()
         else:
             cmap = ccmap
+        # --- Prepare the scale:
+        if vmax is None:
+            vmax = dummy.max()
+        logger.debug('vmin is %i' % vmin)
+        logger.debug('vmax is %i' % vmax)
+        if scale == 'sqrt':
+            extra_options = {'norm': colors.PowerNorm(0.5, vmin=vmin, vmax=vmax)}
+            vmin = None
+            vmax = None
+        elif scale == 'log':
+            extra_options = {'norm': colors.LogNorm(vmin=vmin, vmax=vmax)}
+            vmin = None
+            vmax = None     
+        else:
+            extra_options = {}
         # --- Check the axes to plot
         if ax is None:
             fig, ax = plt.subplots()
             created = True
         else:
             created = False
-        if vmax is None:
-            vmax = dummy.max()
         if translation is None:
             ext = [self.remap_dat['x'].values[0], self.remap_dat['x'].values[-1],
                    self.remap_dat['y'].values[0], self.remap_dat['y'].values[-1]]
@@ -844,12 +875,7 @@ class FIV(BVO):
     def export_remap(self, folder: str = None, clean: bool = False,
                      overwrite: bool = False):
         """
-        Export remap
-
-        Notice: This will create a netcdf with the exp_dat xarray, this is not
-        intended as a replace of the data base, as camera settings and
-        metadata will not be exported. But allows to quickly export the remap
-        to netCDF format to be easily shared among computers
+        Export remap file
 
         :param  folder: Path to the folder where to save the results. It is
             recommended to leave it as None

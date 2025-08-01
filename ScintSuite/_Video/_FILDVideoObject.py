@@ -133,14 +133,8 @@ class FILDVideo(FIV):
             # Initialise the logbook
             self.logbookOptions = logbookOptions
             FILDlogbook = ssdat.FILD_logbook(**logbookOptions)  # Logbook
-            try:
-                AdqFreq = FILDlogbook.getAdqFreq(shot, diag_ID)
-            except AttributeError:
-                AdqFreq = None
-            try:
-                t_trig = FILDlogbook.gettTrig(shot, diag_ID)
-            except AttributeError:
-                t_trig = None
+            AdqFreq = None
+            t_trig = None
             # initialise the parent class
             FIV.__init__(self, file=file, shot=shot, empty=empty,
                          adfreq=AdqFreq, t_trig=t_trig, YOLO=YOLO)
@@ -149,6 +143,14 @@ class FILDVideo(FIV):
             ## Diagnostic ID (FILD manipulator number)
             self.diag_ID = diag_ID
             if shot is not None:
+                try:
+                    AdqFreq = FILDlogbook.getAdqFreq(shot, diag_ID)
+                except AttributeError:
+                    AdqFreq = None
+                try:
+                    t_trig = FILDlogbook.gettTrig(shot, diag_ID)
+                except AttributeError:
+                    t_trig = None
                 try:  # if the insertion is in the video file
                     self.position = FILDlogbook.getPosition(shot, diag_ID, 
                                                             insertion=self.header['insertion'])
@@ -209,9 +211,10 @@ class FILDVideo(FIV):
                 for plate in [platename, platename2]:
                     if os.path.isfile(plate):
                         self.scintillator = ssmap.Scintillator(file=plate)
+                        # self.scintillator.code = 'fildsim'
                         self.scintillator.calculate_pixel_coordinates(
                                 self.CameraCalibration)
-                        # self.ROIscintillator = self.scintillator.get_roi()
+                        self.ROIscintillator = self.scintillator.get_roi()
             else:
                 self.scintillator = None
                 self.ROIscintillator = None
@@ -406,6 +409,7 @@ class FILDVideo(FIV):
                 logger.warning('Need to recalculate the angles. Doing it now')
                 self._getBangles(use_average=use_avg)
         self.remap_dat = ssmap.remapAllLoadedFrames(self, **options)
+
         # Calculate the integral of the remap
         ouput = self.integrate_remap(xmin=self.remap_dat['x'].values[0],
                                      xmax=self.remap_dat['x'].values[-1],

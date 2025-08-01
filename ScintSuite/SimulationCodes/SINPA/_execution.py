@@ -264,7 +264,7 @@ def find_strike_map_INPA(phi: float, theta: float, strike_path: str,
     raise Exception(a)
 
 
-def write_namelist(nml, p=None, overwrite=True, grid_correction=True):
+def write_namelist(nml, p=None, overwrite=True, grid_correction=False):
     """
     Write fortran namelist
 
@@ -291,7 +291,7 @@ def write_namelist(nml, p=None, overwrite=True, grid_correction=True):
 
     # --- Automatic filling of relevant parameters of the mesh
     if grid_correction == True:
-        logger.warning('11: Autocorrecting the inputs')
+        logger.warning('11: Autocorrecting the number of gyroradii and xi')
         dummy=nml
         for ik, k in enumerate(keys_lower_input):
             if k == 'rl':
@@ -374,7 +374,7 @@ def check_files(runID: str):
 
 
 def executeRun(runID: str = None, queue: bool = False, cluster: str = 'MPCDF',
-               namelistFile: str = None):
+               namelistFile: str = None, fileOutput: bool = False):
     """
     Execute a SINPA simulation
 
@@ -385,6 +385,10 @@ def executeRun(runID: str = None, queue: bool = False, cluster: str = 'MPCDF',
     :param  queue: Flag to launch the FILDSIM simulation into the queue
     :param  cluster: string identifying the cluster. Each cluster may require
         different submition option. Up to now, only MPCDF ones are supported
+    :param  namelistFile: full path to the namelist file. If None, it will
+        look for the namelist in the inputs folder of the runID
+    :param  fileOutput: If True, the output will be written to a file, else it
+        will be printed to the terminal, only working for no queue mode
     """
     if not queue:       # Just execute the code in the current terminal
         SINPAbinary = os.path.join(paths.SINPA, 'bin', 'SINPA.go')
@@ -393,7 +397,18 @@ def executeRun(runID: str = None, queue: bool = False, cluster: str = 'MPCDF',
                              runID + '.cfg')
         else:
             p = namelistFile
-        os.system(SINPAbinary + ' ' + p)
+        if fileOutput:
+            # If fileOutput is True, we will write the output to a file
+            folderinputs, file = os.path.split(p)
+            # Not the folder is one level up
+            folder = os.path.dirname(folderinputs)
+            folder = os.path.join(folder, 'results')
+            extra = ' > ' + os.path.join(folder, 'out.txt')
+            if not os.path.isdir(folder):
+                os.makedirs(folder, exist_ok=True)
+        else:
+            extra = ''
+        os.system(SINPAbinary + ' ' + p + extra)
     else:  # Prepare a simulation to be launched in the queue
         if cluster.lower() == 'mpcdf':
             p = os.path.join(paths.SINPA, 'runs', runID,

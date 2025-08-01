@@ -16,6 +16,8 @@ logger = logging.getLogger('ScintSuite.Utilities')
 try:
     from shapely.geometry import LineString
     from shapely.errors import ShapelyDeprecationWarning
+    from shapely.geometry import Point, MultiPoint, MultiLineString
+    
     warnings.filterwarnings('ignore',
                             category=ShapelyDeprecationWarning)
 except ModuleNotFoundError:
@@ -29,6 +31,9 @@ except ModuleNotFoundError:
     prange = range
     logger.warning('10: Neutron filters will be slow (NUMBA missing')
 from scipy import constants
+from scipy.ndimage import generic_filter
+from numba import njit, prange
+from itertools import chain
 
 # -----------------------------------------------------------------------------
 # %% Pitch methods:
@@ -116,18 +121,48 @@ def neutron_filter(M: np.ndarray, nsigma: int = 3)->np.ndarray:
     :param  M: Matrix with the counts to be filtered (np.array)
     :return Mo: Matrix filtered
     """
-    Mo = M.copy()
-    sx, sy = M.shape
-    for ix in range(1, sx-1):
-        for iy in range(1, sy-1):
-            dummy = M[(ix-1):(ix+1), (iy-1):(iy+1)].copy()
-            dummy[1, 1] = 0
-            mean = np.mean(dummy)
-            std = np.std(dummy)
-            if Mo[ix, iy] > mean + nsigma * std:
-                Mo[ix, iy] = mean
-
+    # Use numba for fast, parallel filtering
+    try:
+        @njit(parallel=True)
+        def fast_neutron_filter(M, nsigma):
+            Mo = M.copy()
+            sx, sy = M.shape
+            for ix in prange(1, sx-1):
+                for iy in range(1, sy-1):
+                    dummy = M[(ix-1):(ix+2), (iy-1):(iy+2)].copy()
+                    dummy[1, 1] = 0
+                    mean = np.mean(dummy)
+                    std = np.std(dummy)
+                    if Mo[ix, iy] > mean + nsigma * std:
+                        Mo[ix, iy] = mean
+            return Mo
+        Mo = fast_neutron_filter(M, nsigma)
+    except Exception:
+        # fallback to original slow python loop
+        Mo = M.copy()
+        sx, sy = M.shape
+        for ix in range(1, sx-1):
+            for iy in range(1, sy-1):
+                dummy = M[(ix-1):(ix+2), (iy-1):(iy+2)].copy()
+                dummy[1, 1] = 0
+                mean = np.mean(dummy)
+                std = np.std(dummy)
+                if Mo[ix, iy] > mean + nsigma * std:
+                    Mo[ix, iy] = mean
     return Mo
+    # # Vectorized implementation for speed
+    # Mo = M.copy()
+    # sx, sy = M.shape
+    # for ix in range(1, sx-1):
+    #     for iy in range(1, sy-1):
+    #         dummy = M[(ix-1):(ix+1), (iy-1):(iy+1)].copy()
+    #         dummy[1, 1] = 0
+    #         mean = np.mean(dummy)
+    #         std = np.std(dummy)
+    #         if Mo[ix, iy] > mean + nsigma * std:
+    #             Mo[ix, iy] = mean
+
+    # return Mo
 
 # @njit(nogil=True, parallel=True)
 # def neutronAndDeadFilter(M: float, nsigma: float = 3.0, dead: bool = True):
@@ -247,15 +282,33 @@ def find_2D_intersection(x1, y1, x2, y2):
     first_line = LineString(np.column_stack((x1.flatten(), y1.flatten())))
     second_line = LineString(np.column_stack((x2.flatten(), y2.flatten())))
     intersection = first_line.intersection(second_line)
-    try:  # just one point
-        return intersection.xy
-    except AssertionError:
-        return LineString(intersection).xy
-    except NotImplementedError:
-        return LineString(intersection).xy
-    except AttributeError:
+    if intersection.is_empty:
         print('No intersection found')
         return None, None
+    # Handle different intersection types
+    if intersection.geom_type == 'Point':
+        x, y = intersection.xy
+        return x, y
+    elif intersection.geom_type == 'MultiPoint':
+        xs = []
+        ys = []
+        for pt in intersection.geoms:
+            x, y = pt.xy
+            xs.extend(x)
+            ys.extend(y)
+        return np.array(xs), np.array(ys)
+    elif intersection.geom_type in ['LineString', 'MultiLineString']:
+        # For overlapping segments, return all points along the overlap
+        x, y = intersection.xy
+        return np.array(x), np.array(y)
+    else:
+        # Fallback for other types
+        try:
+            x, y = intersection.xy
+            return x, y
+        except Exception:
+            print('Intersection type not handled:', intersection.geom_type)
+            return None, None
 
 
 # -----------------------------------------------------------------------------
@@ -298,6 +351,15 @@ def distmat(a: np.ndarray, index: tuple)->np.ndarray:
     """
     i, j = np.indices(a.shape)
     return np.sqrt((i-index[0])**2 + (j-index[1])**2)
+
+def flatten(lst):
+    """
+    Flatten a list of arrays
+    """
+    return list(chain.from_iterable(
+        flatten(x) if isinstance(x, (list, np.ndarray)) and not isinstance(x, str) and hasattr(x, '__iter__') and not isinstance(x, bytes) else [x]
+        for x in lst
+    ))
 
 # -----------------------------------------------------------------------------
 # %% v2E and E2v

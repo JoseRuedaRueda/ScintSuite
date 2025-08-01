@@ -17,14 +17,17 @@ if os.path.isdir('/shares/departments/AUG'):
         detectedMachines.append('AUG')
         machine = 'AUG'
     except ModuleNotFoundError:
-        pass
+        machine = 'Generic'
+if os.path.isdir('/NoTivoli'):
+    machine = 'TCV'
+    detectedMachines.append('TCV')
 # ---- Check if we are at D3D
 if os.path.isdir('/fusion/projects/xpsi'):
     # We are in D3D
     detectedMachines.append('D3D')
     machine = 'D3D'
     # Add the path to the s3-pure library, this is to download FILD data
-sys.path.append('/fusion/usc/src/s3-pure')
+    sys.path.append('/fusion/usc/src/s3-pure')
 # ---- Check if we are in MU
 if os.path.isdir('/common/uda-scratch') or os.path.isdir('/home/muadmin/package'):
     detectedMachines.append('MU')
