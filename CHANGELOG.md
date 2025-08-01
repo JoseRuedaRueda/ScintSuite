@@ -1,7 +1,10 @@
-# 1.4.0 Mayor release
+# 1.4.1 MAST-U read from UDA
+MU FILD XIMEA videos can now be read from UDA (the cloud) so no need to download every video
+
+# 1.4.0 Major release
 
 ## General
-- Easy initialization of the ScintSuite outside the hom directory thanks to env variables
+- Easy initialization of the ScintSuite outside the home directory thanks to env variables
 - Added detrend signal
 ## INPA and FILD Remap
 - allIn is no longer a bool, now 0,1,2 options are valid, so you can ask the user, calculate all maps or not calculate any
@@ -35,7 +38,7 @@
 
 ## MSE-constrained eq in MAST-U
 - By default it will now try to read the MSE-constrained equilibrium. If not possible, will read the standard one.
-- Fixed bug in MU beta angle when reading from file
+- Fixed bug in MU beta angle when reading from file (bug introduced in 1.3.12)
 
 # 1.3.12 Update of MASTU nc files - position and orientation read from file + new timebase
 - Updated default position and orientation for MU FILD
