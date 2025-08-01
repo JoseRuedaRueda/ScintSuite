@@ -229,7 +229,7 @@ class FILDVideo(FIV):
             FIV.__init__(self, empty=empty)
 
     def _getBangles(self, checkdatabase: bool = True, decimals: int = 1,
-                    allIn: bool = False):
+                    allIn: bool = False, use_average: bool = False):
         """
         Get the orientation of the field respec to the head.
         If the name of the corresponding strike maps for each pair of angles is
@@ -269,7 +269,10 @@ class FILDVideo(FIV):
         # --- STRIKE MAP SEARCH
         # ----------------------------------------------------------------------
         if checkdatabase:
-            nframes = self.exp_dat['t'].size
+            if use_average:
+                nframes = self.avg_dat['t'].size
+            else:
+                nframes = self.exp_dat['t'].size
             exist = np.zeros(nframes, bool)
             name = ' '      # To save the name of the strike map
 
@@ -395,7 +398,7 @@ class FILDVideo(FIV):
             if self.BField is None:
                 self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles is None:
-                self._getBangles()
+                self._getBangles(use_average=use_avg)
             # Check if we need to recalculate them because they do not
             # have the proper length (ie they were calculated for the exp_dat
             # not the average)
@@ -404,7 +407,7 @@ class FILDVideo(FIV):
                 self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles['phi'].size != nt:
                 logger.warning('Need to recalculate the angles. Doing it now')
-                self._getBangles()
+                self._getBangles(use_average=use_avg)
         self.remap_dat = ssmap.remapAllLoadedFrames(self, **options)
 
         # Calculate the integral of the remap

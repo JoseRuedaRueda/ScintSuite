@@ -77,8 +77,10 @@ def _INPA1_path(shot=42000):
         path = '/afs/ipp-garching.mpg.de/home/f/fild/INPA1'
     elif shot < 41202:
         path = '/shares/experiments/aug-rawfiles/INP'
-    elif shot >= 41202:
+    elif 41202 <= shot < 42473:
         path = '/p/IPP/AUG/rawfiles/FIT/'
+    elif shot >= 42473:
+        path = '/shares/experiments/aug-rawfiles/FIT'
     else:
         raise errors.NotValidInput('Wrong shot number?')
     return path
@@ -92,8 +94,10 @@ def _INPA1_extension(shot=42000):
     """
     if shot < 41202:
         ext = ''
-    elif shot >= 41202:
+    elif 41202 <= shot < 42473:
         ext = '_ID24167.cin'
+    elif shot >= 42473:
+        ext = '_ID9404.cin'
     else:
         raise errors.NotValidInput('Wrong shot number?')
     return ext

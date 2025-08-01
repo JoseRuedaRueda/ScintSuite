@@ -45,6 +45,7 @@ import xarray as xr
 import scipy.ndimage as spnd
 import math
 import copy
+import sys
 
 import logging
 logger = logging.getLogger('ScintSuite.FwdMod')
@@ -192,6 +193,50 @@ def read_ASCOT_dist(filename, pinhole_area = None, B=4, A=None, Z=None,
         r = get_gyroradius(out['energy'], B, A, Z)
         out['gyroradius'] = r
 
+
+    if version == 'locust':
+        names = ['pitch', 'energy', 'rho_L', 'weight', 'gyrophase', 'ID_FILD']
+        
+        if A==None or Z==None:
+            logger.error('No A and/or B as input. STOPING')      
+            sys.exit()
+
+        with open(filename, 'r') as file:
+                lines = file.readlines()
+        modified_lines = []       
+        for line in lines:
+            if line.startswith('#'): #skips headers
+                continue
+            else:
+                c = line.split()
+                c[0] = math.acos(float(c[0]))*180.0/math.pi
+
+                c[1] = float(c[1])*1e6
+
+                ions_head += float(c[3])
+                if pinhole_area != None: #multiply weight by pinhole_area
+                    c[3] = float(c[3])*pinhole_area
+                    ions_pinhole += float(c[3])
+                
+                modified_line = f"{c[0]} {c[1]} {c[2]} {c[3]} {c[4]} {c[5]} "
+                modified_lines.append(modified_line)    
+
+        # Write a second file with the pitch in degreees
+        filename2=filename[:-4]+'_procesed.dat'
+        with open(filename2, 'w') as file2:
+            file2.write('\n'.join(modified_lines))
+
+        # Load the data of this second file
+        data = np.loadtxt(filename2)
+        for i in range(len(names)):
+            out[names[i]] = data[:, i]
+        out['n'] = len(data[:, 0])  
+
+        # Calculate the gyroradius
+        r = get_gyroradius(out['energy'], B, A, Z)
+        out['gyroradius'] = r
+
+
     logger.info("ions/s arriving to the head = %e", ions_head)
     if pinhole_area != None: #multiply weight by pinhole_area
         logger.info("Area covered by pinhole = %e of the head", pinhole_area)
@@ -320,8 +365,7 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
         fig, ax = plt.subplots(2,2, figsize=(8, 6),
                                     facecolor='w', edgecolor='k') 
         # Plot of the synthetic signals, pinhole and scintillator
-        ax_param = {'fontsize': 10, \
-                    'xlabel': 'Pitch [º]', 'ylabel': '$r_l [cm]$'}         
+        ax_param = {'xlabel': 'Pitch [º]', 'ylabel': 'Gyroradius [cm]'}         
         ssPH.transpose().plot.imshow(ax=ax[0,0],cmap=cmap,
                                      vmax=0.5*ssPH.max().item(),
                                      cbar_kwargs={"label": 'ions/(s cm deg)'})
@@ -334,7 +378,7 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
         ax[0,1].set_title("Scintillator")
 
         # Plot of the distributions of pitch and gyroradius
-        ax_options_profiles = {'fontsize': 10, 'ylabel': 'Signal [a.u.]'}
+        ax_options_profiles = {'ylabel': 'Signal [a.u.]'}
         (ssPH.sum(dim='y')/ssPH.sum(dim='y').integrate('x')).plot.\
             line(ax=ax[1,0], color='black', label='Pinhole')
         (ssSC.sum(dim='ys')/ssSC.sum(dim='ys').integrate('xs')).plot.\
@@ -420,8 +464,7 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2,
         fig, ax = plt.subplots(2,2, figsize=(8, 6),
                                     facecolor='w', edgecolor='k')
         # Plot of the synthetic signals, pinhole and scintillator
-        ax_param = {'fontsize': 10, \
-            'xlabel': 'Pitch [º]', 'ylabel': 'Energy [eV]'}         
+        ax_param = {'xlabel': 'Pitch [º]', 'ylabel': 'Energy [eV]'}         
         ssPH_pe.transpose().plot.imshow(ax=ax[0,0], cmap=cmap,
                                      vmax=0.5*ssPH_pe.max().item(),
                                      cbar_kwargs={"label": 'ions/(s cm deg)'})
@@ -434,7 +477,7 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2,
         ax[0,1].set_title("Scintillator")
 
         # Plot of the distributions of pitch and gyroradius
-        ax_options_profiles = {'fontsize': 10, 'ylabel': 'Signal [a.u.]'}
+        ax_options_profiles = {'ylabel': 'Signal [a.u.]'}
         (ssPH_pe.sum(dim='y')/ssPH_pe.sum(dim='y').integrate('x'))\
             .plot.line(ax=ax[1,0], color='black', label='Pinhole')
         (ssSC_pe.sum(dim='ys')/ssSC_pe.sum(dim='ys').integrate('xs'))\
@@ -466,7 +509,7 @@ def original_synthsig_xy(distro, smap, scint, collimator=None,
                      smapplt = None, 
                      gyrophases = np.pi,
                      smoother = None,
-                     scint_params: dict = {},
+                     scint_params: dict = {}, centering = False,
                      px_shift: int = 0, py_shift: int = 0):
     """
     Maps a signal in the scintillator
@@ -523,6 +566,7 @@ def original_synthsig_xy(distro, smap, scint, collimator=None,
     scint_signal = ssfM.synthetic_signal_remap(distro, dsmap,
                                           efficiency=efficiency,
                                           **scint_options)
+
     # LOCATE AND CENTER THE SCINTILLATOR AND SMAP
     # -----------------------------------------------------------------------
     logger.info('- Locating the smap and scintillator...')
@@ -543,14 +587,29 @@ def original_synthsig_xy(distro, smap, scint, collimator=None,
         beta = chip_min_length / scintillator_max_length
         logger.info('   Optics magnification, beta: %e', beta)
         optic_params['beta'] = beta
-    # Center the scintillator at the coordinate origin
-    y_scint_center = 0.5 * (scint._coord_real['x2'].max()
-                            + scint._coord_real['x2'].min())
-    x_scint_center = 0.5 * (scint._coord_real['x1'].max()
-                            + scint._coord_real['x1'].min())
-    dscint._coord_real['x2'] -= y_scint_center
-    dscint._coord_real['x1'] -= x_scint_center
-    # Center of the scintillator in pixel space
+    
+    if centering:
+        # Center image to FoV
+        xsc_percent = optic_params['FoV'][0]
+        ysc_percent = optic_params['FoV'][1]
+        xsc_min = scint._coord_real['x1'].min()
+        xsc_max = scint._coord_real['x1'].max()
+        ysc_min = scint._coord_real['x2'].min()
+        ysc_max = scint._coord_real['x2'].max()
+        x_scint_center = (xsc_max - xsc_min) * xsc_percent + xsc_min
+        y_scint_center = (ysc_max - ysc_min) * ysc_percent + ysc_min
+        dscint._coord_real['x2'] -= y_scint_center
+        dscint._coord_real['x1'] -= x_scint_center        
+    else:
+        # Center the scintillator at the coordinate origin
+        y_scint_center = 0.5 * (scint._coord_real['x2'].max()
+                        + scint._coord_real['x2'].min())
+        x_scint_center = 0.5 * (scint._coord_real['x1'].max()
+                        + scint._coord_real['x1'].min())
+        dscint._coord_real['x2'] -= y_scint_center
+        dscint._coord_real['x1'] -= x_scint_center
+
+    # Shift the imatge, if wanted
     px_0 = px_center + px_shift
     py_0 = py_center + py_shift
     # Scale to relate scintillator to camera
@@ -664,6 +723,9 @@ def original_synthsig_xy(distro, smap, scint, collimator=None,
     scint_area = copy.deepcopy(dummy)
     
     # Define the output
+    signal_frame /=   \
+       ((cam_params['px_x_size']*cam_params['px_y_size'])/(optic_params['beta']**2))
+    signal_frame.attrs['long_name'] = 'Photons/cm²'
     output = {
         'smap': dsmap,
         'smapplt': dsmapplt,
@@ -758,6 +820,8 @@ def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
     # Compute the maximum counts for the camera
     max_count = 2 ** cam_params['range'] - 1
     # Now apply all factors
+    # Adjust pixel sizes and beta
+    final_frame *= ((cam_params['px_x_size']*cam_params['px_y_size'])/(optic_params['beta']**2))
     # Divide by 4\pi, ie, assume isotropic emission of the scintillator
     final_frame *= 1 / 4 / np.pi
     # Consider the solid angle covered by the optics and the transmission of
@@ -901,14 +965,16 @@ def noise_optics_camera(frame, exp_time: float, eliminate_saturation = False,
     # Transform the counts to integers    
     final_frame = final_frame.astype(int)
     # Change the previous frame for the camera frame
+    final_frame.attrs['long_name'] = 'Pixel counts'
     out['signal_frame'] = final_frame
+
 
     return out
 
 
 def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
                    cam_params: dict={}, maxval = None,
-                   figtitle = None, cmap = Gamma_II()):
+                   figtitle = None, cmap = Gamma_II(), interpolation = 'none'):
     """
     Plot one frame, the scintillator and the strikemap
     
@@ -941,19 +1007,19 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
         logger.info('- Maximum set to %4.2f max signal', maxval)
 
     # Initialize the plot
-    fig, ax = plt.subplots(figsize=(7,4))
+    fig, ax = plt.subplots(figsize=(8,4))
     ax.set_aspect(1)      
     
-    frame_to_plot.plot.imshow(ax=ax, cmap=cmap,
-                    vmin=0, vmax=max_count,
-                    cbar_kwargs={"label": 'Pixel counts','spacing': 'proportional'})
+    frame_to_plot.plot.imshow(ax=ax, cmap=cmap, vmin=0, vmax=max_count,
+                              interpolation = interpolation, 
+                              cbar_kwargs={'spacing': 'proportional'})
 
     if plot_smap == True:
         smapplt.plot_pix(ax, labels=False, marker_params={'marker':None},
                          line_params={'color':'w', 'linewidth':1.2, 'alpha':0.8})
 
     if plot_scint == True:
-        ax.plot(scint_perim[:,0],scint_perim[:,1], color ='w', linewidth=3)
+        ax.plot(scint_perim[:,0],scint_perim[:,1], color ='w', linewidth=1)
 
     try: #This is experimental right now, but won't mess up your code
         coll_perim=frame['collimator']
@@ -972,17 +1038,18 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
         except:
             logger.info('- No FoV plotted beacuse whatever')
 
-    ax.set_xlim((0,cam_params['nx']))
-    ax.set_ylim((0,cam_params['ny']))
-    plt.xticks(fontsize=9)   
-    plt.yticks(fontsize=9)
-    ax_param = {'fontsize': 10, \
-                    'xlabel': 'x pix.', 'ylabel': 'y pix.'}
+    ax.set_xlim((1,cam_params['nx']))
+    ax.set_ylim((1,cam_params['ny']))
+    # plt.xticks(fontsize=9)   
+    # plt.yticks(fontsize=9)
+    ax_param = {'xlabel': 'x pix.', 'ylabel': 'y pix.'}
     ax = ssplt.axis_beauty(ax, ax_param)
 
     if figtitle != None:
-        fig.suptitle(figtitle, fontsize=11)
+        fig.suptitle(figtitle)
         
+    plt.tight_layout()
+    ax.set_aspect(1)
     plt.show(block=False)
 
     return fig, ax
@@ -1011,36 +1078,30 @@ def plot_noise_contributions(frame, cam_params: dict={}, maxval = False,
 
     for i in frame['noises']:
         frame_to_plot = frame['noises'][i]
+        fig, ax = plt.subplots(figsize=(8,5))
         if i == 'broken':
             bw_cmap =  LinearSegmentedColormap.from_list(
                 'mycmap', ['black', 'white'], N=2)
-            fig, ax = plt.subplots(figsize=(7,4))
-            ax.set_aspect(1)   
             frame_to_plot.plot.imshow(ax=ax, cmap=bw_cmap,
                     vmin=0, vmax=1,
                     cbar_kwargs={"label": '  Broken pixel             Functioning pixel',
                                  'spacing': 'proportional'})
         elif i == 'radiometry':
-            fig, ax = plt.subplots(figsize=(7,4))
-            ax.set_aspect(1)
             frame_to_plot.plot.imshow(ax=ax, center=1,
                     cbar_kwargs={"label": 'Relative Illumination', 'spacing': 'proportional'})
         else:
-            max_count = 2 ** cam_params['range'] - 1       
-            fig, ax = plt.subplots(figsize=(7,4))
-            ax.set_aspect(1)   
+            max_count = 2 ** cam_params['range'] - 1
             frame_to_plot.plot.imshow(ax=ax, cmap=cmap,
                     vmin=0, vmax=max_count,
                     cbar_kwargs={"label": 'Pixel counts','spacing': 'proportional'})
                     
         ax.set_xlim((0,cam_params['nx']))
         ax.set_ylim((0,cam_params['ny']))
-        plt.xticks(fontsize=9)   
-        plt.yticks(fontsize=9)
-        ax_param = {'fontsize': 10, \
-                        'xlabel': 'x pix.', 'ylabel': 'y pix.'}
+        ax_param = {'xlabel': 'x pix.', 'ylabel': 'y pix.'}
         ax = ssplt.axis_beauty(ax, ax_param)
-        fig.suptitle(i, fontsize=11)
+        fig.suptitle(i)
+        ax.set_aspect(1)      
+        plt.tight_layout()
         print(i)    
 
     plt.show()
@@ -1612,6 +1673,7 @@ def synthsig_xy_2coll(distros, scint,
  
     signal_frame = output['side_signal']['left'] +\
                    output['side_signal']['right']
+    signal_frame = signal_frame.where(signal_frame>0,0)
     integral=signal_frame.integrate('x').integrate('y').item()
     logger.info("   Total signal = %e photons/s", integral)
 
@@ -1677,8 +1739,7 @@ def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = 
     fig, ax = plt.subplots(figsize=(7,4))
     ax.set_aspect(1)      
     
-    frame_to_plot.plot.imshow(ax=ax, cmap=cmap,
-                    vmin=0, vmax=max_count,
+    frame_to_plot.plot.imshow(ax=ax, cmap=cmap, vmin=0, vmax=max_count,
                     cbar_kwargs={"label": 'Pixel counts','spacing': 'proportional'})
 
     if plot_smap == True:
@@ -1702,15 +1763,14 @@ def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = 
 
     ax.set_xlim((0,cam_params['nx']))
     ax.set_ylim((0,cam_params['ny']))
-    plt.xticks(fontsize=9)   
-    plt.yticks(fontsize=9)
-    ax_param = {'fontsize': 10, \
-                    'xlabel': 'x pix.', 'ylabel': 'y pix.'}
+    ax_param = {'xlabel': 'x pix.', 'ylabel': 'y pix.'}
     ax = ssplt.axis_beauty(ax, ax_param)
+    ax.set_aspect(1)
 
     if figtitle != None:
         fig.suptitle(figtitle, fontsize=11)
-        
+    
+    plt.tight_layout()
     plt.show()
 
     return fig, ax
