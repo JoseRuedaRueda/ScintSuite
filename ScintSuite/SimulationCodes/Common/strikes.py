@@ -26,7 +26,7 @@ from ScintSuite._SideFunctions import createGrid
 from ScintSuite._Mapping._Common import transform_to_pixel, remap
 from ScintSuite.SimulationCodes.Common.strikeHeader import orderStrikes as order
 from ScintSuite._Plotting import axisEqual3D, clean3Daxis
-
+from ScintSuite._Utilities import flatten
 
 # -----------------------------------------------------------------------------
 # --- Prepare auxiliary objects
@@ -65,7 +65,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
         plate = 'wrong'
     else:
         raise Exception('File not understood. Has you changed the ext???')
-
+    logger.debug('Identified plate: %s', plate)
     # --- Open the file and read
     with open(filename, 'rb') as fid:
         header = {
@@ -113,14 +113,16 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             # try backwards until we find the proper one
             found_header = False
             id_version = header['versionID1']
+            logger.debug('Kind of File: %i', header['kindOfFile'])
             if header['FILDSIMmode']:
                 key_to_look = 'sinpa_FILD'
             else:
                 key_to_look = 'sinpa_INPA'
             while not found_header:
-
+                logger.debug('Looking version %i'%id_version)
                 if header['versionID1'] < 4:
                     try:
+                        logger.debug('Looking version %i'%id_version)
                         header['info'] = deepcopy(
                             order[key_to_look][id_version][plate.lower()])
                         found_header = True
@@ -131,7 +133,8 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
                     if id_version < 0:
                         raise Exception('Not undestood SINPA version')
                 else:
-                    if plate.lower() != 'collimator':
+                    
+                    if plate.lower() != 'collimator':  
                         try:
                             header['info'] = deepcopy(
                                 order[key_to_look][id_version][plate.lower()][header['kindOfFile']])
@@ -140,8 +143,9 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
                             id_version -= 1
                     else:
                         try:
+                            logger.debug('Looking version %i'%id_version)
                             header['info'] = deepcopy(
-                                order[key_to_look][id_version][plate.lower()])
+                                order[key_to_look][id_version][plate.lower()][header['kindOfFile']])
                             found_header = True
                         except KeyError:
                             id_version -= 1
@@ -1402,7 +1406,7 @@ class Strikes:
             for ia in index_XI:
                 if self.header['counters'][ia, ig] > 0:
                     var.append(self.data[ia, ig][:, column_to_plot])
-        return np.array(var).flatten()
+        return np.array(flatten(var))
 
     # -------------------------------------------------------------------------
     # --- Plotting functions

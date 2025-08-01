@@ -255,7 +255,8 @@ class MHDmode():
                  Zimp: float = 6.0, 
                  profiles: Optional[xr.Dataset] = None,
                  omfitFile: Optional[str] = None,
-                 q_prof_options: dict = {}):
+                 q_prof_options: dict = {}, 
+                 transpFile = None):
         """
         """
         self.shot = shot
@@ -276,6 +277,11 @@ class MHDmode():
             logger.debug('Using omfitFile: %s', omfitFile)
             self._read_from_database(q_prof_options=q_prof_options) # Read first eveything from the database
             self._read_omfit(omfitFile)
+        elif transpFile is not None:
+            logger.debug('Using transpFile: %s', transpFile)
+            logger.warning('Using ni and Ti from TRANSP!!! ignoring loadTi and calcNi')
+            self._read_from_database(q_prof_options=q_prof_options) # Read first eveything from the database
+            
         else:
             self._read_from_database()
         # Interpolate all in the density base
@@ -539,7 +545,43 @@ class MHDmode():
             except KeyError:
                 self._rotation['uncertainty'] = None
                 pass
-        
+
+    def _read_transp(self, transpFile: str):
+        """
+        Read from an omfit file
+        """
+        data = xr.open_dataset(transpFile)
+        data = data.rename({'TIME3':'t', 'X': 'rho'})
+        # electron density
+        self._ne = xr.Dataset()
+        self._ne['data'] = data['NE']/1e13
+        self._ne.attrs['units'] = '1e19m^-3'
+        self._ne['uncertainty'] = 0.0
+        # ion density
+        self._ni = xr.Dataset()
+        self._ni['data'] = data['NI']/1e13
+        self._ni.attrs['units'] = '1e19m^-3'
+        self._ni['uncertainty'] = 0.0
+        # electron temperature
+        self._te = xr.Dataset()
+        self._te['data'] = data['TE']  # eV
+        self._te.attrs['units'] = 'eV'
+        self._te['uncertainty'] = 0.0
+        # ion temperature
+        self._ti = xr.Dataset()
+        self._ti['data'] = data['TI']
+        self._ti.attrs['units'] = 'eV'
+        self._ti['uncertainty'] = 0.0
+        # q-profile
+        self._q = xr.Dataset()
+        self._q['data'] = data['Q']
+        self._q.attrs['units'] = '1'
+        self._q['uncertainty'] = 0.0
+        # Rotation
+        self._rotation = xr.Dataset()
+        self._rotation['data'] = data['OMEGA']
+        self._rotation.attrs['units'] = 'rad/s'
+        self._rotation['uncertainty'] = 0.0      
 
     def _calcGAMfreq(self) -> None:
         """

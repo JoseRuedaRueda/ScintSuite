@@ -399,8 +399,13 @@ def executeRun(runID: str = None, queue: bool = False, cluster: str = 'MPCDF',
             p = namelistFile
         if fileOutput:
             # If fileOutput is True, we will write the output to a file
-            folder, file = os.path.split(p)
+            folderinputs, file = os.path.split(p)
+            # Not the folder is one level up
+            folder = os.path.dirname(folderinputs)
+            folder = os.path.join(folder, 'results')
             extra = ' > ' + os.path.join(folder, 'out.txt')
+            if not os.path.isdir(folder):
+                os.makedirs(folder, exist_ok=True)
         else:
             extra = ''
         os.system(SINPAbinary + ' ' + p + extra)

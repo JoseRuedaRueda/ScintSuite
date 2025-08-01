@@ -1043,7 +1043,7 @@ orderStrikes = {
         },
         4: {
             'scintillator': {
-                1: {
+                2: {
                 'x': {
                     'i': 0,  # Column index in the file
                     'units': 'm',  # Units
@@ -1457,7 +1457,7 @@ orderStrikes = {
                     'pitchion': {
                         'i': 22,  # Column index in the file
                         'units': ' ',  # Units
-                        'longName': 'Pitch at Ionization Position',
+                        'longName': 'Pitch at GC CX position',
                         'shortName': r'$\lambda_{ion}$',
                     },
                 }, # End of INPA signal version 4:102

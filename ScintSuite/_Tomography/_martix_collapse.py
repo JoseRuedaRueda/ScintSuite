@@ -173,7 +173,25 @@ def collapse_array3D(W: float):
             for ix in range(nx):
                 f[iz + nz * (iy + ny * ix)] = W[ix, iy, iz]
     return f
-    
+
+def index3Dto1D(ix: int, iy: int, iz: int, ny: int, nz: int) -> int:
+    """
+    Convert 3D indices to 1D index
+
+    Jose Rueda:
+    :param ix: x index
+    :param iy: y index
+    :param iz: z index
+    :param nx: number of elements in the x direction
+    :param ny: number of elements in the y direction
+    :return: 1D index
+    :Example:
+    >>> index3Dto1D(1, 2, 3, 4, 5) 
+    # returns iz + nz * (iy + ny * ix)
+    # returns 3 + 5 * (2 + 4 * 1) = 3 + 10 = 13  
+    """
+    return iz + nz * (iy + ny * ix)
+
 
 @njit(nogil=True, parallel=True)
 def restore_array3D(s1d: float, nx: int, ny:int, nz:int):
