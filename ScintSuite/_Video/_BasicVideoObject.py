@@ -28,7 +28,6 @@ import ScintSuite._Video._MP4files as mp4
 import ScintSuite._Video._MATfiles as mat
 import ScintSuite._Video._TIFfiles as tif
 import ScintSuite._Video._h5D3D as h5d3d
-import ScintSuite._Video._NetCDF4files as ncdf
 import ScintSuite._Utilities as ssutilities
 import ScintSuite._Video._AuxFunctions as aux
 from tqdm import tqdm                      # For waitbars
@@ -38,6 +37,10 @@ from ScintSuite._Machine import machine
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import Slider, Button, RadioButtons
 import gc
+from ScintSuite._Machine import machine as _machine
+if _machine == 'MU':
+    import ScintSuite._Video._NetCDF4files as ncdf
+
 
 # --- Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.Video')
@@ -132,6 +135,21 @@ class BVO:
         self.avg_dat = None
         ## Shot number
         self.shot = shot
+        ## Headers
+        self.header = None
+        ## Image header
+        self.imageheader = None
+        ## Settings
+        self.settings = None
+        ## Time base
+        self.timebase = None
+        ## Path to the file
+        self.path = None
+        ## File name
+        self.file_name = None
+        ## Full file name
+        self.file = None
+        
         if not empty:
             if shot is None:
                 self.shot = aux.guess_shot(file, ssdat.shot_number_length)
@@ -143,149 +161,164 @@ class BVO:
             ## Name of the file (full path)
             self.file = file
 
-            # Check if the file is actually a .cin file
-            if file.endswith('.cin') or file.endswith('.cine'):
-                ## Header dictionary with the file info
-                self.header = cin.read_header(file)
-                ## Settings dictionary
-                self.settings = cin.read_settings(file,
-                                                    self.header['OffSetup'])
-                ## Image Header dictionary
-                self.imageheader = cin.read_image_header(file, self.header[
-                    'OffImageHeader'])
-                ## Time array
-                self.timebase = cin.read_time_base(file, self.header,
-                                                    self.settings)
-                self.type_of_file = '.cin'
-            elif file.endswith('.png') or file.endswith('.tif'):
-                file, name = os.path.split(file)
-                self.path = file
+            # Check if the file is actually a file:
+            # Quick Fix, MU now use files from the cloud, so they are not found
+            # by os.path.isfile, that is why we need to add there the .ncMASTU    
+            if os.path.isfile(file) or file.endswith('.ncMASTU'):
+                if file.endswith('.cin') or file.endswith('.cine'):
+                    ## Header dictionary with the file info
+                    self.header = cin.read_header(file)
+                    ## Settings dictionary
+                    self.settings = cin.read_settings(file,
+                                                        self.header['OffSetup'])
+                    ## Image Header dictionary
+                    self.imageheader = cin.read_image_header(file, self.header[
+                        'OffImageHeader'])
+                    ## Time array
+                    self.timebase = cin.read_time_base(file, self.header,
+                                                        self.settings)
+                    self.type_of_file = '.cin'
+                elif file.endswith('.png') or file.endswith('.tif'):
+                    file, name = os.path.split(file)
+                    self.path = file
 
-            elif file.endswith('.ncMASTU'):
-                # initialising the video in mastu will already 
-                # imply reading the frames, can't just read
-                # header, settings and timebase
-                self.connection = ncdf.client.get("/",file[:-5])
-                dummy, self.header, self.imageheader, self.settings,\
-                        = ncdf.read_file_anddata(connection = self.connection)
-                self.timebase = dummy['timebase']
-                self.exp_dat = xr.Dataset()
-                nx, ny, nt = dummy['frames'].shape
-                px = np.arange(nx)
-                py = np.arange(ny)
-                self.exp_dat['frames'] = \
-                    xr.DataArray(dummy['frames'][::-1, ...], dims=('px', 'py', 't'),
-                                    coords={'px': px,
-                                            'py': py,
-                                            't': self.timebase.squeeze()})
-                self.exp_dat['frames'] = self.exp_dat['frames']
-                self.type_of_file = '.ncMASTU'
+                elif file.endswith('.ncMASTU'):
+                    # initialising the video in mastu will already 
+                    # imply reading the frames, can't just read
+                    # header, settings and timebase
+                    self.connection = ncdf.client.get("/",file[:-5])
+                    dummy, self.header, self.imageheader, self.settings,\
+                            = ncdf.read_file_anddata(connection = self.connection)
+                    self.timebase = dummy['timebase']
+                    self.exp_dat = xr.Dataset()
+                    nx, ny, nt = dummy['frames'].shape
+                    px = np.arange(nx)
+                    py = np.arange(ny)
+                    logger.info('Reading frames from MASTU netcdf file, if you did not want to read the whole file, contact L.Velarde for a better solution')
+                    self.exp_dat['frames'] = \
+                        xr.DataArray(dummy['frames'][::-1, ...], dims=('px', 'py', 't'),
+                                        coords={'px': px,
+                                                'py': py,
+                                                't': self.timebase.squeeze()})
+                    self.exp_dat['frames'] = self.exp_dat['frames']
+                    self.type_of_file = '.ncMASTU'
 
-            elif file.endswith('.nc'):
-                # this category was originally written for the MASTU netcdf
-                # so same issue as before
-                dummy, self.header, self.imageheader, self.settings,\
-                        = ncdf.read_file_anddata(filename = file)
-                self.timebase = dummy['timebase']
-                self.exp_dat = xr.Dataset()
-                nx, ny, nt = dummy['frames'].shape
-                px = np.arange(nx)
-                py = np.arange(ny)
+                elif file.endswith('.nc'):
+                    # this category was originally written for the MASTU netcdf
+                    # so same issue as before
+                    dummy, self.header, self.imageheader, self.settings,\
+                            = ncdf.read_file_anddata(filename = file)
+                    self.timebase = dummy['timebase']
+                    self.exp_dat = xr.Dataset()
+                    nx, ny, nt = dummy['frames'].shape
+                    px = np.arange(nx)
+                    py = np.arange(ny)
 
-                self.exp_dat['frames'] = \
-                    xr.DataArray(dummy['frames'], dims=('px', 'py', 't'),
-                                    coords={'px': px,
-                                            'py': py,
-                                            't': self.timebase.squeeze()})
-                self.type_of_file = '.nc'
+                    self.exp_dat['frames'] = \
+                        xr.DataArray(dummy['frames'], dims=('px', 'py', 't'),
+                                        coords={'px': px,
+                                                'py': py,
+                                                't': self.timebase.squeeze()})
+                    self.type_of_file = '.nc'
 
-            elif file.endswith('.h5') and machine == 'D3D':
-                self.header, self.imageheader, self.settings, self.timebase\
-                        = h5d3d.read_data(file)
-                self.type_of_file = '.h5d3d'
-            
-            elif file.endswith('.mp4'):
-                if not 'properties' in self.__dict__:
-                    self.properties = {}
-                dummy = mp4.read_file(file, **self.properties)
+                elif file.endswith('.h5') and machine == 'D3D':
+                    self.header, self.imageheader, self.settings, self.timebase\
+                            = h5d3d.read_data(file)
+                    self.type_of_file = '.h5d3d'
+                
+                elif file.endswith('.mp4'):
+                    if not 'properties' in self.__dict__:
+                        self.properties = {}
+                    dummy = mp4.read_file(file, **self.properties)
 
-                frames = dummy.pop('frames')
-                self.properties.update(dummy)
-                self.exp_dat = xr.Dataset()
-                nt, nx, ny = frames.shape
-                px = np.arange(nx)
-                py = np.arange(ny)
+                    frames = dummy.pop('frames')
+                    self.properties.update(dummy)
+                    self.exp_dat = xr.Dataset()
+                    nt, nx, ny = frames.shape
+                    px = np.arange(nx)
+                    py = np.arange(ny)
 
-                self.exp_dat['frames'] = \
-                    xr.DataArray(frames, dims=('t', 'px', 'py'),
-                                    coords={'t': self.timebase.squeeze(),
-                                            'px': px,
-                                            'py': py})
-                self.exp_dat['frames'] = \
-                    self.exp_dat['frames'].transpose('px', 'py', 't')
-                self.type_of_file = '.mp4'
+                    self.exp_dat['frames'] = \
+                        xr.DataArray(frames, dims=('t', 'px', 'py'),
+                                        coords={'t': self.timebase.squeeze(),
+                                                'px': px,
+                                                'py': py})
+                    self.exp_dat['frames'] = \
+                        self.exp_dat['frames'].transpose('px', 'py', 't')
+                    self.type_of_file = '.mp4'
+                elif file.endswith('.mat'):
+                        '''
+                        Matlab .mat files with video data are not a standard format, 
+                        Therefore use machine specific implementation to import data
+                        e.g. see TCV implementation
+                        '''
+                        mat_data = ssdat.read_MAT_video_data(file)
+                        self.timebase = mat_data['t'].data
+                        self.exp_dat['frames'] = mat_data['frames']
+                        self.type_of_file = '.mat'     
+                        self.settings = {'RealBPP': mat_data['RealBPP'].data} 
+                else:
+                    raise Exception('Not recognised file extension')
             else:
-                raise Exception('Not recognised file extension')
-            # else:
-            #     print('Looking in the folder: ', file)
-            #     if not os.path.isdir(file):
-            #         raise FileNotFoundError(file + ' not found')
-            #     ## path to the file
-            #     self.path = file
-            #     # Do a quick run on the folder looking of .tiff or .png files
-            #     f = []
-            #     for (dirpath, dirnames, filenames) in os.walk(self.path):
-            #         f.extend(filenames)
-            #         break
+                print('Looking in the folder: ', file)
+                if not os.path.isdir(file):
+                    raise FileNotFoundError(file + ' not found')
+                ## path to the file
+                self.path = file
+                # Do a quick run on the folder looking of .tiff or .png files
+                f = []
+                for (dirpath, dirnames, filenames) in os.walk(self.path):
+                    f.extend(filenames)
+                    break
 
-            #     # To establish the format, count to 3 to make sure there are no
-            #     # other types of files randomly inserted in the same folder
-            #     # that mislead the type_of_file.
-            #     count_png = 0
-            #     count_tif = 0
-            #     count_pco = 0
-            #     for i in range(len(f)):
-            #         if f[i].endswith('.png'):
-            #             count_png += 1
-            #             if count_png == 3:
-            #                 self.type_of_file = '.png'
-            #                 print('Found PNG files!')
-            #                 break
-            #         elif f[i].endswith('.b16'):
-            #             count_pco += 1
-            #             if count_pco == 3:
-            #                 self.type_of_file = '.b16'
-            #                 print('Found PCO files!')
-            #                 break
-            #         elif f[i].endswith('.tif'):
-            #             count_tif += 1
-            #             if count_tif == 1:
-            #                 self.type_of_file = '.tif'
-            #                 print('Found tif files!')
-            #                 break
-            #     else:
-            #         raise Exception('Type of f variable not found. Please revise code.')
-            #      # if we do not have .png or tiff, give an error
-            #     supported_type = ['.png', '.tif', '.b16', '.nc']
-            #     if self.type_of_file not in supported_type:
-            #         print(self.type_of_file)
-            #         raise Exception('No .pgn, .tiff, .nc nor .b16 files found')
+                # To establish the format, count to 3 to make sure there are no
+                # other types of files randomly inserted in the same folder
+                # that mislead the type_of_file.
+                count_png = 0
+                count_tif = 0
+                count_pco = 0
+                for i in range(len(f)):
+                    if f[i].endswith('.png'):
+                        count_png += 1
+                        if count_png == 3:
+                            self.type_of_file = '.png'
+                            print('Found PNG files!')
+                            break
+                    elif f[i].endswith('.b16'):
+                        count_pco += 1
+                        if count_pco == 3:
+                            self.type_of_file = '.b16'
+                            print('Found PCO files!')
+                            break
+                    elif f[i].endswith('.tif'):
+                        count_tif += 1
+                        if count_tif == 1:
+                            self.type_of_file = '.tif'
+                            print('Found tif files!')
+                            break
+                else:
+                    raise Exception('Type of f variable not found. Please revise code.')
+                    # if we do not have .png or tiff, give an error
+                supported_type = ['.png', '.tif', '.b16', '.nc']
+                if self.type_of_file not in supported_type:
+                    print(self.type_of_file)
+                    raise Exception('No .pgn, .tiff, .nc nor .b16 files found')
 
-            #     # If we have a .png file, a .txt must be present with the
-            #     # information of the exposure time and from a basic frame we
-            #     # can load the file size
-            #     if self.type_of_file == '.png':
-            #         self.header, self.imageheader, self.settings,\
-            #             self.timebase = png.read_data(self.path, YOLO)
-            #     elif self.type_of_file == '.b16':
-            #         self.header, self.imageheader, self.settings,\
-            #             self.timebase = pco.read_data(
-            #                 self.path, adfreq, t_trig)
-            #     elif self.type_of_file == '.tif':
-            #         self.header, self.imageheader, self.settings,\
-            #             self.timebase = tif.read_data(self.path)
-            # if self.type_of_file is None:
-            #     raise Exception('Not file found!')
+                # If we have a .png file, a .txt must be present with the
+                # information of the exposure time and from a basic frame we
+                # can load the file size
+                if self.type_of_file == '.png':
+                    self.header, self.imageheader, self.settings,\
+                        self.timebase = png.read_data(self.path, YOLO)
+                elif self.type_of_file == '.b16':
+                    self.header, self.imageheader, self.settings,\
+                        self.timebase = pco.read_data(
+                            self.path, adfreq, t_trig)
+                elif self.type_of_file == '.tif':
+                    self.header, self.imageheader, self.settings,\
+                        self.timebase = tif.read_data(self.path)
+            if self.type_of_file is None:
+                raise Exception('Not file found!')
         ## Geometry of the diagnostic head used to record the video
         self.geometryID = None
         ## Camera calibration to relate the scintillator and the camera sensor,
@@ -336,11 +369,6 @@ class BVO:
         :Note:
         In MAST-U, initialising the video will have already read all frames
         """
-        # --- Discard any issues
-        logger.debug(f"[read_frame] Called with:")
-        logger.debug(f"  t1 = {t1}, type = {type(t1)}, shape = {getattr(t1, 'shape', 'scalar')}")
-        logger.debug(f"  t2 = {t2}, type = {type(t2)}, shape = {getattr(t2, 'shape', 'scalar')}")
-        logger.debug(f"[read_frame] timebase min: {self.timebase.min()}, max: {self.timebase.max()}")
         # --- Select frames to load
         if (frames_number is not None) and (t1 is not None):
             raise errors.NotValidInput('You cannot give frames number and time')
@@ -362,7 +390,37 @@ class BVO:
             frames_number = np.arange(start=it1, stop=it2+1, step=1)
         logger.info('Reading frames: ')
         logger.debug(f'Frames number are: {frames_number}')
-        if self.type_of_file == '.ncMASTU':
+        # --- Clean video if needed
+        if 't' in self.exp_dat and internal and not self.type_of_file == '.ncMASTU':
+            self.exp_dat = xr.Dataset()
+        # --- Read the frames
+        if self.type_of_file == '.cin':
+            M = cin.read_frame(self, frames_number,
+                            limitation=limitation, limit=limit)
+        elif self.type_of_file == '.png':
+            M = png.read_frame(self, frames_number,
+                            limitation=limitation, limit=limit)
+        elif self.type_of_file == '.tif':
+            M = tif.read_frame(self, frames_number,
+                            limitation=limitation, limit=limit)
+        elif self.type_of_file == '.b16':
+            M = pco.read_frame(self, frames_number,
+                            limitation=limitation, limit=limit,
+                            verbose=verbose)
+        elif self.type_of_file == '.mat':
+            M = np.array(self.exp_dat['frames'][ :, :, frames_number])
+        elif self.type_of_file == '.nc':
+            M = ncdf.read_frame(self, frames_number,
+                            limitation=limitation, limit=limit,
+                            verbose=verbose)
+        elif self.type_of_file == '.h5d3d':
+            M = h5d3d.read_frame(self, frames_number,
+                                limitation=limitation, limit=limit)
+        elif self.type_of_file == '.ncMASTU':
+            logger.debug(f"[read_frame] Called with:")
+            logger.debug(f"  t1 = {t1}, type = {type(t1)}, shape = {getattr(t1, 'shape', 'scalar')}")
+            logger.debug(f"  t2 = {t2}, type = {type(t2)}, shape = {getattr(t2, 'shape', 'scalar')}")
+            logger.debug(f"[read_frame] timebase min: {self.timebase.min()}, max: {self.timebase.max()}")
             if frames_number is None:
                 # Use full dataset, do nothing
                 M = self.exp_dat['frames']
@@ -404,96 +462,72 @@ class BVO:
             # self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
             dtype = self.exp_dat['frames'].dtype
         else:
-            # --- Clean video if needed
-            if 't' in self.exp_dat and internal:
-                self.exp_dat = xr.Dataset()
-            if self.type_of_file == '.cin':
-                M = cin.read_frame(self, frames_number,
-                                limitation=limitation, limit=limit)
-            elif self.type_of_file == '.png':
-                M = png.read_frame(self, frames_number,
-                                limitation=limitation, limit=limit)
-            elif self.type_of_file == '.tif':
-                M = tif.read_frame(self, frames_number,
-                                limitation=limitation, limit=limit)
-            elif self.type_of_file == '.b16':
-                M = pco.read_frame(self, frames_number,
-                                limitation=limitation, limit=limit,
-                                verbose=verbose)
-            elif self.type_of_file == '.nc':
-                M = ncdf.read_frame(self, frames_number,
-                                limitation=limitation, limit=limit,
-                                verbose=verbose)
-            elif self.type_of_file == '.h5d3d':
-                M = h5d3d.read_frame(self, frames_number,
-                                    limitation=limitation, limit=limit)
+            raise Exception('Not initialised / not implemented file type?')
+        # --- End here if we just want the frame
+        if not internal:
+            return M
+        # --- Save the stuff in the structure
+        # Get the spatial axes
+        nx, ny, nt = M.shape
+        px = np.arange(nx)
+        py = np.arange(ny)
+        # Get the time axis
+        tframes = self.timebase[frames_number]
+        # Get the frames number
+        if frames_number is None:
+            nframes = np.arange(nt) + 1
+        else:
+            nframes = np.array(frames_number)
+        # Quick solve for the case we have just one frame
+        try:
+            if len(tframes) != 1:
+                tbase = tframes.squeeze()
+                nbase = nframes.squeeze()
             else:
-                raise Exception('Not initialised / not implemented file type?')
-            # --- End here if we just want the frame
-            if not internal:
-                return M
-            # --- Save the stuff in the structure
-            # Get the spatial axes
-            nx, ny, nt = M.shape
-            px = np.arange(nx)
-            py = np.arange(ny)
-            # Get the time axis
-            tframes = self.timebase[frames_number]
-            # Get the frames number
-            if frames_number is None:
-                nframes = np.arange(nt) + 1
-            else:
-                nframes = frames_number
-            # Quick solve for the case we have just one frame
-            try:
-                if len(tframes) != 1:
-                    tbase = tframes.squeeze()
-                    nbase = nframes.squeeze()
-                else:
-                    tbase = tframes
-                    nbase = nframes
-            except TypeError:
-                tbase = np.array([tframes])
-                nbase = np.array([nframes])
-            if len(tbase.shape) == 2:
-                tbase = tbase.squeeze()
-                nbase = nbase.squeeze()
-            # Get the data-type
-            dtype = M.dtype
-            # Apply the neccesary transformations
-            if self.CameraData is not None:
-                # Crop the frames if needed
-                if 'xmin' in self.CameraData:
-                    xmax = self.CameraData['xmax']
-                    xmin = self.CameraData['xmin']
-                    px = np.arange(xmax - xmin)
-                    M = M[xmin:xmax, :, :]
-                if 'ymin' in self.CameraData:
-                    ymax = self.CameraData['ymax']
-                    ymin = self.CameraData['ymin']
-                    px = np.arange(ymax - ymin)
-                    M = M[:, ymin:ymax, :]
-                # invert the frames if needed
-                if 'invertx' in self.CameraData:
-                    if self.CameraData['invertx']:
-                        M = M[::-1, :, :]
-                if 'inverty' in self.CameraData:
-                    if self.CameraData['inverty']:
-                        M = M[:, ::-1, :]
-                # Exchange xy if needed:
-                if 'exchangexy' in self.CameraData:
-                    if self.CameraData['exchangexy']:
-                        M = M.transpose((1, 0, 2))
-                        px_tmp = px.copy()
-                        px = py.copy()
-                        py = px_tmp
+                tbase = tframes
+                nbase = nframes
+        except TypeError:
+            tbase = np.array([tframes])
+            nbase = np.array([nframes])
+        if len(tbase.shape) == 2:
+            tbase = tbase.squeeze()
+            nbase = nbase.squeeze()
+        # Get the data-type
+        dtype = M.dtype
+        # Apply the neccesary transformations
+        if self.CameraData is not None:
+            # Crop the frames if needed
+            if 'xmin' in self.CameraData:
+                xmax = self.CameraData['xmax']
+                xmin = self.CameraData['xmin']
+                px = np.arange(xmax - xmin)
+                M = M[xmin:xmax, :, :]
+            if 'ymin' in self.CameraData:
+                ymax = self.CameraData['ymax']
+                ymin = self.CameraData['ymin']
+                px = np.arange(ymax - ymin)
+                M = M[:, ymin:ymax, :]
+            # invert the frames if needed
+            if 'invertx' in self.CameraData:
+                if self.CameraData['invertx']:
+                    M = M[::-1, :, :]
+            if 'inverty' in self.CameraData:
+                if self.CameraData['inverty']:
+                    M = M[:, ::-1, :]
+            # Exchange xy if needed:
+            if 'exchangexy' in self.CameraData:
+                if self.CameraData['exchangexy']:
+                    M = M.transpose((1, 0, 2))
+                    px_tmp = px.copy()
+                    px = py.copy()
+                    py = px_tmp
 
-            # Store it
-            self.exp_dat['frames'] = \
-                xr.DataArray(M, dims=('px', 'py', 't'), coords={'t': tbase,
-                                                                'px': px, 'py': py})
-            self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
-            self.exp_dat.attrs['dtype'] = dtype
+        # Store it
+        self.exp_dat['frames'] = \
+            xr.DataArray(M, dims=('px', 'py', 't'), coords={'t': tbase,
+                                                            'px': px, 'py': py})
+        self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
+        self.exp_dat.attrs['dtype'] = dtype
 
         # --- Count saturated pixels
         max_scale_frames = 2 ** self.settings['RealBPP'] - 1

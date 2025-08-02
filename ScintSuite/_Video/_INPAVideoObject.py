@@ -284,8 +284,10 @@ class INPAVideo(FIV):
 
             if self.Bangles['phi'].size != nt: 
                 self._getBangles(use_average=use_avg)
-                
-        logger.debug('Number of MC particles %i', opt['MC_number'])
+        if 'MC_number' in opt.keys():        
+            logger.debug('Number of MC particles %i', opt['MC_number'])
+        else:
+            logger.debug('Number of MC particles not given')
 
         self.remap_dat = \
             ssmap.remapAllLoadedFramesINPA(self, **opt)

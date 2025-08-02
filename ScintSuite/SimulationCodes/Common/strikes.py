@@ -291,10 +291,10 @@ def readFILDSIMstrikes(filename: str, verbose: bool = False):
     :param  plate: plate to collide with (Collimator or Scintillator)
     :param  file: if a filename is provided, data will be loaded from this
     file, ignoring the SINPA folder structure (and runID)
-    :param  verbose. flag to print some info in the command line
+    :param  verbose. flag to print some info in the command line, ignored, kept
+    for retrocompatibility
     """
-    if verbose:
-        print('Reading strike points: ', filename)
+    logger.info('Reading strike points: ', filename)
     dummy = np.loadtxt(filename, skiprows=3)
     header = {
         'FILDSIMmode': True,
@@ -352,9 +352,8 @@ def readFILDSIMstrikes(filename: str, verbose: bool = False):
         print('Total number of strike points: ', nmarkers)
         print('Total number of counters: ', total_counter)
         raise Exception('Total number of markers not matching!!!')
-    if verbose:
-        print('Total number of strike points: ', total_counter)
-        print('Average number of strike points per centroid: ',
+    logger.info('Total number of strike points: ', total_counter)
+    logger.info('Average number of strike points per centroid: ',
               int(header['counters'].mean()))
     # Small retrocompatibility part
     # Just for old FILDSIM user which may have their routines based on the
@@ -395,7 +394,7 @@ class Strikes:
             signalcollimator or signalscintillator).Not used if code=='FILDSIM'
         :param  file: if a filename is provided, data will be loaded from this
             file, ignoring the code folder structure (and runID)
-        :param  verbose. flag to print some info in the command line
+        :param  verbose. flag to print some info in the command line, useles, kept for retrocompatibility
         :param  code: name of the code where the data is coming from
         """
         # --- Get the name of the file
