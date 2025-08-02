@@ -9,11 +9,10 @@ Jose Rueda Rueda: jrrueda@us.es
 Lina Velarde Gallardo: lvelarde@us.es
 """
 import os
+import f90nml
 import logging
 import numpy as np
 import xarray as xr
-import f90nml
-import logging
 import tkinter as tk                       # To open UI windows
 import ScintSuite._Paths as p
 import ScintSuite.errors as sserrors
@@ -134,12 +133,8 @@ class FILDVideo(FIV):
             # Initialise the logbook
             self.logbookOptions = logbookOptions
             FILDlogbook = ssdat.FILD_logbook(**logbookOptions)  # Logbook
-            try:
-                AdqFreq = FILDlogbook.getAdqFreq(shot, diag_ID)
-                t_trig = FILDlogbook.gettTrig(shot, diag_ID)
-            except AttributeError:
-                AdqFreq = None
-                t_trig = None
+            AdqFreq = None
+            t_trig = None
             # initialise the parent class
             FIV.__init__(self, file=file, shot=shot, empty=empty,
                          adfreq=AdqFreq, t_trig=t_trig, YOLO=YOLO)
@@ -148,13 +143,28 @@ class FILDVideo(FIV):
             ## Diagnostic ID (FILD manipulator number)
             self.diag_ID = diag_ID
             if shot is not None:
+                try:
+                    AdqFreq = FILDlogbook.getAdqFreq(shot, diag_ID)
+                except AttributeError:
+                    AdqFreq = None
+                try:
+                    t_trig = FILDlogbook.gettTrig(shot, diag_ID)
+                except AttributeError:
+                    t_trig = None
                 try:  # if the insertion is in the video file
                     self.position = FILDlogbook.getPosition(shot, diag_ID, 
                                                             insertion=self.header['insertion'])
                 except KeyError:
-                    self.position = FILDlogbook.getPosition(shot, diag_ID)
-                self.orientation = \
-                    FILDlogbook.getOrientation(shot, diag_ID)
+                    try: # if the radial position is in the video file
+                        self.position = FILDlogbook.getPosition(shot, diag_ID, 
+                                                            RFILD=self.header['R_FILD'])
+                    except KeyError:
+                        self.position = FILDlogbook.getPosition(shot, diag_ID)
+                try:
+                    self.orientation = \
+                        FILDlogbook.getOrientation(shot, diag_ID, beta_angle=self.header['beta_angle'])
+                except KeyError:
+                        self.orientation = FILDlogbook.getOrientation(shot, diag_ID)
                 self.geometryID = FILDlogbook.getGeomID(shot, diag_ID)
                 self.CameraCalibration = \
                     FILDlogbook.getCameraCalibration(shot, diag_ID)
@@ -201,9 +211,10 @@ class FILDVideo(FIV):
                 for plate in [platename, platename2]:
                     if os.path.isfile(plate):
                         self.scintillator = ssmap.Scintillator(file=plate)
+                        # self.scintillator.code = 'fildsim'
                         self.scintillator.calculate_pixel_coordinates(
                                 self.CameraCalibration)
-                        # self.ROIscintillator = self.scintillator.get_roi()
+                        self.ROIscintillator = self.scintillator.get_roi()
             else:
                 self.scintillator = None
                 self.ROIscintillator = None
@@ -218,7 +229,7 @@ class FILDVideo(FIV):
             FIV.__init__(self, empty=empty)
 
     def _getBangles(self, checkdatabase: bool = True, decimals: int = 1,
-                    allIn: bool = False):
+                    allIn: bool = False, use_average: bool = False):
         """
         Get the orientation of the field respec to the head.
         If the name of the corresponding strike maps for each pair of angles is
@@ -258,7 +269,10 @@ class FILDVideo(FIV):
         # --- STRIKE MAP SEARCH
         # ----------------------------------------------------------------------
         if checkdatabase:
-            nframes = self.exp_dat['t'].size
+            if use_average:
+                nframes = self.avg_dat['t'].size
+            else:
+                nframes = self.exp_dat['t'].size
             exist = np.zeros(nframes, bool)
             name = ' '      # To save the name of the strike map
 
@@ -384,7 +398,7 @@ class FILDVideo(FIV):
             if self.BField is None:
                 self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles is None:
-                self._getBangles()
+                self._getBangles(use_average=use_avg)
             # Check if we need to recalculate them because they do not
             # have the proper length (ie they were calculated for the exp_dat
             # not the average)
@@ -393,8 +407,9 @@ class FILDVideo(FIV):
                 self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles['phi'].size != nt:
                 logger.warning('Need to recalculate the angles. Doing it now')
-                self._getBangles()
+                self._getBangles(use_average=use_avg)
         self.remap_dat = ssmap.remapAllLoadedFrames(self, **options)
+
         # Calculate the integral of the remap
         ouput = self.integrate_remap(xmin=self.remap_dat['x'].values[0],
                                      xmax=self.remap_dat['x'].values[-1],

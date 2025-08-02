@@ -26,7 +26,7 @@ from ScintSuite._SideFunctions import createGrid
 from ScintSuite._Mapping._Common import transform_to_pixel, remap
 from ScintSuite.SimulationCodes.Common.strikeHeader import orderStrikes as order
 from ScintSuite._Plotting import axisEqual3D, clean3Daxis
-
+from ScintSuite._Utilities import flatten
 
 # -----------------------------------------------------------------------------
 # --- Prepare auxiliary objects
@@ -65,7 +65,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
         plate = 'wrong'
     else:
         raise Exception('File not understood. Has you changed the ext???')
-
+    logger.debug('Identified plate: %s', plate)
     # --- Open the file and read
     with open(filename, 'rb') as fid:
         header = {
@@ -113,14 +113,16 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
             # try backwards until we find the proper one
             found_header = False
             id_version = header['versionID1']
+            logger.debug('Kind of File: %i', header['kindOfFile'])
             if header['FILDSIMmode']:
                 key_to_look = 'sinpa_FILD'
             else:
                 key_to_look = 'sinpa_INPA'
             while not found_header:
-
+                logger.debug('Looking version %i'%id_version)
                 if header['versionID1'] < 4:
                     try:
+                        logger.debug('Looking version %i'%id_version)
                         header['info'] = deepcopy(
                             order[key_to_look][id_version][plate.lower()])
                         found_header = True
@@ -131,7 +133,8 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
                     if id_version < 0:
                         raise Exception('Not undestood SINPA version')
                 else:
-                    if plate.lower() != 'collimator':
+                    
+                    if plate.lower() != 'collimator':  
                         try:
                             header['info'] = deepcopy(
                                 order[key_to_look][id_version][plate.lower()][header['kindOfFile']])
@@ -140,8 +143,9 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
                             id_version -= 1
                     else:
                         try:
+                            logger.debug('Looking version %i'%id_version)
                             header['info'] = deepcopy(
-                                order[key_to_look][id_version][plate.lower()])
+                                order[key_to_look][id_version][plate.lower()][header['kindOfFile']])
                             found_header = True
                         except KeyError:
                             id_version -= 1
@@ -287,10 +291,10 @@ def readFILDSIMstrikes(filename: str, verbose: bool = False):
     :param  plate: plate to collide with (Collimator or Scintillator)
     :param  file: if a filename is provided, data will be loaded from this
     file, ignoring the SINPA folder structure (and runID)
-    :param  verbose. flag to print some info in the command line
+    :param  verbose. flag to print some info in the command line, ignored, kept
+    for retrocompatibility
     """
-    if verbose:
-        print('Reading strike points: ', filename)
+    logger.info('Reading strike points: ', filename)
     dummy = np.loadtxt(filename, skiprows=3)
     header = {
         'FILDSIMmode': True,
@@ -348,9 +352,8 @@ def readFILDSIMstrikes(filename: str, verbose: bool = False):
         print('Total number of strike points: ', nmarkers)
         print('Total number of counters: ', total_counter)
         raise Exception('Total number of markers not matching!!!')
-    if verbose:
-        print('Total number of strike points: ', total_counter)
-        print('Average number of strike points per centroid: ',
+    logger.info('Total number of strike points: ', total_counter)
+    logger.info('Average number of strike points per centroid: ',
               int(header['counters'].mean()))
     # Small retrocompatibility part
     # Just for old FILDSIM user which may have their routines based on the
@@ -391,7 +394,7 @@ class Strikes:
             signalcollimator or signalscintillator).Not used if code=='FILDSIM'
         :param  file: if a filename is provided, data will be loaded from this
             file, ignoring the code folder structure (and runID)
-        :param  verbose. flag to print some info in the command line
+        :param  verbose. flag to print some info in the command line, useles, kept for retrocompatibility
         :param  code: name of the code where the data is coming from
         """
         # --- Get the name of the file
@@ -1402,7 +1405,7 @@ class Strikes:
             for ia in index_XI:
                 if self.header['counters'][ia, ig] > 0:
                     var.append(self.data[ia, ig][:, column_to_plot])
-        return np.array(var).flatten()
+        return np.array(flatten(var))
 
     # -------------------------------------------------------------------------
     # --- Plotting functions

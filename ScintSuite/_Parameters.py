@@ -21,7 +21,8 @@ filetypes = [('netCDF files', '*.nc'),
              ('ASCII files', '*.txt'),
              ('cine files', ('*.cin', '*.cine')),
              ('Python files', '*.py'),
-             ('Pickle4 files', '*.pk4')]
+             ('Pickle4 files', '*.pk4'),
+             ('Strikemap files', '*.map')]
 
 # Access to files via seek routine.
 SEEK_BOF = 0

@@ -125,8 +125,8 @@ def remapAllLoadedFrames(video,
     # --- INPUTS CHECK AND PREPARATION
     # --------------------------------------------------------------------------
     # -- Accepted variables to remap
-    acceptedVars = ('energy', 'pitch', 'gyroradius', 'e0')
-    units = {'e0': 'keV', 'pitch': 'degree', 'gyroradius': 'cm'}
+    acceptedVars = ('energy', 'pitch', 'gyroradius', 'e0', 'p0')
+    units = {'e0': 'keV', 'pitch': 'degree', 'gyroradius': 'cm', 'p0': ''}
     var_remap = [v.lower() for v in variables_to_remap]  # force small letter
     for v in var_remap:
         if v not in acceptedVars:
@@ -140,6 +140,14 @@ def remapAllLoadedFrames(video,
                 var_remap[i] = 'e0'
     else:
         wantEnergy = False
+
+
+    if ('p0' in var_remap):
+        wantP0 = True
+    else:
+        wantP0 = False
+    
+
     # -- Check the tipe of remap
     if remap_method.lower() == 'centers':
         MC_number = 0  # to turn off the transformation matrix calculation
@@ -151,6 +159,7 @@ def remapAllLoadedFrames(video,
     # -- Get frame shape:
     nframes = data['frames'].shape[2]
     frame_shape = data['frames'].shape[0:2]
+
     # -- Check inputs strike map
     print('.-. . -- .- .--. .--. .. -. --.')
     if map is None:
@@ -308,8 +317,11 @@ def remapAllLoadedFrames(video,
             smap = Fsmap(file=os.path.join(smap_folder, name))
             # -- Set the remap variables
             if wantEnergy:
-                #smap.calculate_energy(video.BField['B'].values[iframe], A, Z)
-                smap.calculate_energy(1.59, A, Z)
+                smap.calculate_energy(video.BField['B'].values[iframe], A, Z)
+            
+            if wantP0:
+                smap.convert_to_normalized_pitch()
+                
             smap.setRemapVariables(var_remap, verbose=False)
             # -- Calculate the pixel coordinates
             smap.calculate_pixel_coordinates(video.CameraCalibration)

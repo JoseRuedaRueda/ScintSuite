@@ -85,17 +85,30 @@ class INPAStrikes(Strikes):
         ivz = self.header['info']['vz0']['i']
         ivx = self.header['info']['vx0']['i']
         ivy = self.header['info']['vy0']['i']
+        iteration = 0
         for ig in range(self.header['ngyr']):
             for ia in range(self.header['nXI']):
                 if self.header['counters'][ia, ig] > 0:
+                    logger.debug('Calculating pitch for %i, %i. Counters: %i' % (ia, ig, self.header['counters'][ia, ig]))
                     phi = np.arctan2(self.data[ia, ig][:, iy],
                                      self.data[ia, ig][:, ix])
-                    br, bz, bt, bp =\
-                        ssdat.get_mag_field(self.header['shot'],
-                                            self.data[ia, ig][:, ir],
-                                            self.data[ia, ig][:, iz],
-                                            time=self.header['time'],
-                                            **Boptions)
+                    if iteration == 0:
+                        br, bz, bt, bp, efit =\
+                            ssdat.get_mag_field(self.header['shot'],
+                                                self.data[ia, ig][:, ir],
+                                                self.data[ia, ig][:, iz],
+                                                time=self.header['time'],
+                                                returnEFITObject=True,
+                                                **Boptions)
+                        iteration += 1
+                    else:
+                        br, bz, bt, bp =\
+                            ssdat.get_mag_field(self.header['shot'],
+                                                self.data[ia, ig][:, ir],
+                                                self.data[ia, ig][:, iz],
+                                                time=self.header['time'],
+                                                EFITObject=efit,
+                                                **Boptions)
                     bx = br*np.cos(phi) - bt*np.sin(phi)
                     #raise Exception('check this')
                     by = br*np.sin(phi) + bt*np.cos(phi)
@@ -103,10 +116,10 @@ class INPAStrikes(Strikes):
                     v = np.sqrt(self.data[ia, ig][:, ivx]**2
                                 + self.data[ia, ig][:, ivy]**2
                                 + self.data[ia, ig][:, ivz]**2)
-                    pitch = (self.data[ia, ig][:, ivx] * bx
+                    pitch = np.atleast_1d((self.data[ia, ig][:, ivx] * bx
                              + self.data[ia, ig][:, ivy] * by
-                             + self.data[ia, ig][:, ivz] * bz).squeeze()
-                    pitch /= v*b*IPBtSign
+                             + self.data[ia, ig][:, ivz] * bz).squeeze())
+                    pitch /= np.atleast_1d(v*b*IPBtSign)
                     if overwrite:
                         self.data[ia, ig][:, ipitch0] = pitch.copy()
                     else:

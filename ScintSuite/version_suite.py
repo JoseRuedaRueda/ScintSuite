@@ -6,9 +6,9 @@ import numpy as np
 from ScintSuite._Machine import machine
 from ScintSuite._Paths import Path
 
-version = '1.3.10'
+version = '1.4.0'
 
-codename = 'PIPas con sal'
+codename = 'Huki SX'
 
 
 logger = logging.getLogger('ScintSuite.Version')
@@ -74,10 +74,14 @@ def printGITcommit()->None:
     Print the information of the latest suite commit
     :return:
     """
-    data = readGITcommit()
-    logger.info('Branch: %s', data['branch'])
-    logger.info('Commit: %s', data['latest_comit'])
-    logger.info('Commit message: %s', data['latest_comit_message'])
-    logger.info('Date: %s', data['date'])
-    logger.info('Commit responsible: %s', data['author'])
-    logger.info('Mail: %s', data['email'])
+    try:  # Can fail if you are not the repo owner
+        data = readGITcommit()
+        logger.info('Branch: %s', data['branch'])
+        logger.info('Commit: %s', data['latest_comit'])
+        logger.info('Commit message: %s', data['latest_comit_message'])
+        logger.info('Date: %s', data['date'])
+        logger.info('Commit responsible: %s', data['author'])
+        logger.info('Mail: %s', data['email'])
+    except Exception as e:
+        logger.warning('Error reading the commit information: %s', e)
+        logger.warning('Please check the git repository')

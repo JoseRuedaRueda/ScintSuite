@@ -126,7 +126,7 @@ class GeneralStrikeMap(XYtoPixel):
                     verbose: bool = False,
                     grid_params: dict = {}, MC_number: int = 100,
                     variables_to_interpolate: tuple = None,
-                    limitation: float = 10.0):
+                    limitation: float = 12.0):
         """
         Interpolate grid values on the frames.
 
@@ -222,7 +222,8 @@ class GeneralStrikeMap(XYtoPixel):
                                 self._coord_pix['y']))
                 self._grid_interp['interpolators'][coso] = \
                     interpolator(grid, self._data[coso].data,
-                                 fill_value=1000.0)
+                                 fill_value=1000.0
+                                 )
             except KeyError:  # the ihibp does not have coll factor
                 logger.warning('16: %s not found!!! skiping' % coso)
         # --- Calculate the transformation matrix
@@ -279,7 +280,7 @@ class GeneralStrikeMap(XYtoPixel):
             tras = 0.
         # --- Save the map
         with open(filename, 'w') as f:
-            for xm, ym, zm in zip(self.x, self.y, self.z):
+            for xm, ym, zm in zip(self._coord_real['x3'], self._coord_real['x1'], self._coord_real['x2']):
                 point_rotated = rot.T @ (np.array([xm, ym, zm])) + tras
                 f.write('%f %f %f \n' % (point_rotated[0] * factor,
                                          point_rotated[1] * factor,
@@ -522,7 +523,7 @@ class GeneralStrikeMap(XYtoPixel):
                                          variables: tuple,
                                          grid_options: dict,
                                          frame_shape: tuple,
-                                         limitation: float = 10.0,
+                                         limitation: float = 12.0,
                                          overwrite: bool = True):
         """
         Calculate the transformation matrix from camera pixel to phase space

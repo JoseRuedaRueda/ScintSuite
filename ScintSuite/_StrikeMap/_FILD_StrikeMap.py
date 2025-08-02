@@ -429,3 +429,65 @@ class Fsmap(FILDINPA_Smap):
         self.instrument_function.attrs['A'] = A
 
         return
+    
+
+    def build_parameters_xarray(self, calculate_uncertainties=False,
+                                 verbose: bool = False):
+        """
+        Put all the fitting parameters into an xarray and WF
+
+        Alex Reyner Viñolas: alereyvinn@alum.us.es
+        """
+        # --- Check the StrikeMap
+        if self.strike_points is None:
+            logger.info('Strikes not loaded, loading')
+            self.load_strike_points(verbose=verbose)
+        if self._resolutions is None:
+            self.calculate_phase_space_resolution(calculate_uncertainties=calculate_uncertainties,
+                                                  verbose=verbose)
+
+        # --- Get the names / models of the variables
+        names = [self._resolutions['variables'][k].name for k in range(2)]
+        models = [self._resolutions['model_' + dum] for dum in names]
+        logger.info("Calculating FILD fit parameters matrix -> \
+                    self._resolutions['fit_xarrays']")
+        logger.debug('Applied models: ' + models[0] + ' ' +  models[1])
+
+        # Prepare the parameters that will be included in the xarray:
+        parameters_to_consider = {
+            'Gauss': ['sigma', 'center'],
+            'sGauss': ['sigma', 'gamma', 'center']
+        }
+
+        #  --- Define the x and y coordinates
+        xcoords = self.MC_variables[0].data
+        ycoords = self.MC_variables[1].data
+
+        # --- Build the dataset
+        self._resolutions['fit_xarrays'] = xr.Dataset(coords={'x':xcoords,'y':ycoords})
+        self._resolutions['fit_xarrays'].coords['y'].attrs['long_name'] = 'Gyroradius'
+        self._resolutions['fit_xarrays'].coords['y'].attrs['units'] = 'cm'   
+        self._resolutions['fit_xarrays'].coords['x'].attrs['long_name'] = 'Pitch'
+        self._resolutions['fit_xarrays'].coords['x'].attrs['units'] = 'º'    
+        for i in range(2):
+            name = names[i]
+            model = models[i]
+            for j in parameters_to_consider[model]:
+                dummy = self._resolutions[name][j]
+                self._resolutions['fit_xarrays'][name+'_'+j] = (['x','y'],dummy)
+        self._resolutions['fit_xarrays']['coll_factor'] = (['x','y'],
+                                          self('collimator_factor_matrix'))
+        
+
+        # --- Add uncs if they exist
+        try:
+            self._resolutions['unc_xarrays'] = xr.Dataset(coords={'x':xcoords,'y':ycoords})
+            for i in range(2):
+                name = names[i]
+                model = models[i]
+                for j in parameters_to_consider[model]:
+                    dummy = self._resolutions['unc_'+name][j]
+                    self._resolutions['unc_xarrays'][name+'_'+j] = (['x','y'],dummy)
+        except:
+            pass
+        

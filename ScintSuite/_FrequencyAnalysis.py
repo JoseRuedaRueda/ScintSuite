@@ -564,10 +564,12 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     # Checking the plotting options.
     if 'cmap' not in plotOpts:
         plotOpts['cmap'] = colorMap.plasma
-    if 'shading' not in plotOpts:
-        plotOpts['shading'] = 'flat'
-    if 'antialiased' not in plotOpts:
-        plotOpts['antialiased'] = True
+    if 'aspect' not in plotOpts:
+        plotOpts['aspect'] = 'auto'
+    # if 'shading' not in plotOpts:
+    #     plotOpts['shading'] = 'flat'
+    # if 'antialiased' not in plotOpts:
+    #     plotOpts['antialiased'] = True
 
     # The time overlap cannot be smaller than the time step.
     if (tOverlap is None) or (tOverlap < dt):
@@ -619,7 +621,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
 
     # --- Checking the peaking finding data.
     if 'prominence' not in peak_opts:
-        peak_opts['prominence'] = 0.50 # 66.7%
+        peak_opts['prominence'] = 0.25 # 66.7%
     if 'width' not in peak_opts:
         peak_opts['width'] = (None, None)
 
@@ -632,7 +634,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     # --- Looking for the peaks in the spectrum.
     # The peaks in the spectrum work as the vertex of the Graph used to
     # track the frequency.
-    nwindows = np.floor(len(time)%2)
+    nwindows = int(np.floor(len(timeLims)%2+1))
     if verbose:
         print('There are %d time windows to parse'%nwindows)
 
@@ -651,12 +653,13 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     peak_map = defaultdict(list)
     kk = int(0) # Index running for the time ordered list.
     for ii in range(nwindows):
-        t0 = np.abs(time - timeLims[2*ii]).argmin()
-        t1 = np.abs(time - timeLims[2*ii + 1]).argmin()
+        t0 = np.argmin(np.abs(time - timeLims[2*ii]))
+        t1 = np.argmin(np.abs(time - timeLims[2*ii + 1]))
 
         nTimes_slices = int((t1-t0+1)/nOverlap)
         for jj in range(nTimes_slices):
             t0_avg = t0 + jj*nOverlap
+            print('t0_avg = ',t0_avg)
             t1_avg = np.minimum(t0+(jj+1)*nOverlap, t1+1)
 
             data = np.mean(spec2[t0_avg:t1_avg, :], axis=0)
@@ -695,7 +698,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
             peak_data['width'][kk] = props['widths']*df
             peak_data['freq'][kk] = freq2[peaks]
             peak_data['spec_val'][kk]= np.mean(spec2[t0_avg:t1_avg, peaks],
-                                               axis=0)
+                                               axis=0).flatten()
             peak_data['spec_norm'][kk]  = data[peaks]
             peak_data['prominences'][kk] = props['prominences']
 
@@ -724,7 +727,10 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     if plot:
         if ax is None:
             fig, ax = plt.subplots(1)
-        im1 = ax.pcolormesh(time, freq2, spec2.T, **plotOpts)
+        im1 = ax.imshow(spec2.T, extent=[time[0], time[-1],
+                                        freq2[0], freq2[-1]],
+                        origin='lower',
+                        **plotOpts)
         ax.set_xlabel('Time [s]')
         ax.set_ylabel('Frequency [kHz]')
 
@@ -890,24 +896,27 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     ampcurve_total = list()
     widths_curve   = list()
     for ii in path:
-        timecurve.append(peak_map[ii][0])
-        freqcurve.append(peak_map[ii][1])
-        ampcurve_norm.append(peak_map[ii][2])
-        ampcurve_total.append(peak_map[ii][3])
-        widths_curve.append(peak_map[ii][4])
+        timecurve.append(np.atleast_1d(peak_map[ii][0])[:])
+        freqcurve.append(np.atleast_1d(peak_map[ii][1])[:])
+        ampcurve_norm.append(np.atleast_1d(peak_map[ii][2])[:])
+        ampcurve_total.append(np.atleast_1d(peak_map[ii][3])[:])
+        widths_curve.append(np.atleast_1d(peak_map[ii][4])[:])
 
-    output = { 'track': { 'time': np.flip(np.array(timecurve)),
-                          'freq': np.flip(np.array(freqcurve)),
-                          'Anorm': np.flip(np.array(ampcurve_norm)),
-                          'Atot': np.flip(np.array(ampcurve_total)),
-                          'width': np.flip(np.array(widths_curve))
+            
+
+    print(ampcurve_total[-1][0])
+    output = { 'track': { 'time': np.flip(np.array(timecurve).flatten()),
+                          'freq': np.flip(np.array(freqcurve).flatten()),
+                          'Anorm': np.flip(np.array(ampcurve_norm).flatten()),
+                          'Atot': np.flip(np.array(ampcurve_total).flatten()),
+                          'width': np.flip(np.array(widths_curve).flatten())
                         },
               'peak_data': peak_data,
               'peak_map': peak_map,
               'path_by_graph': path.reverse(),
               'cost': distmin
              }
-
+    print(output['track']['time'])
     # --- Print the curve.
     if plot:
         if 'color' not in lineOpts:
