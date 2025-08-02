@@ -6,7 +6,7 @@ import numpy as np
 from ScintSuite._Machine import machine
 from ScintSuite._Paths import Path
 
-version = '1.4.0'
+version = '1.4.1'
 
 codename = 'Huki SX'
 
