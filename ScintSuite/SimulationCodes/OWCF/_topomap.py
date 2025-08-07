@@ -85,36 +85,49 @@ class TopoMap:
     def __init__(self, filename: str):
         """
         Initialize the class with the filename of the topological map.
+        
+        This class accept both a topological map and an orbit grid as input files
+        
+        
 
         """
+        self.filename = filename
+        self._readFile(filename)
+
+    def _readFile(self, filename: str):
         logger.info('Reading the topological map from %s' % filename)
-        self.data = xr.open_dataset(filename, engine='h5netcdf')
-        # Set the coodinates
-        self.data = self.data.swap_dims({
-            'phony_dim_0':'E_array',
-            'phony_dim_1':'R_array',
-            'phony_dim_2':'p_array',
-            'phony_dim_3':'z_array'
-        }).rename({
-            'E_array':'E0axis',
-            'R_array':'R0axis',
-            'p_array':'p0axis',
-            'z_array':'z0axis'
-        })
-        self.data['R0axis'].attrs['long_name'] = 'R'
-        self.data['R0axis'].attrs['units'] = 'm'
-        self.data['z0axis'].attrs['long_name'] = 'z'
-        self.data['z0axis'].attrs['units'] = 'm'
-        self.data['E0axis'].attrs['long_name'] = 'E'
-        self.data['E0axis'].attrs['units'] = 'eV'
-        self.data['p0axis'].attrs['long_name'] = 'p'
-        self.data['p0axis'].attrs['units'] = 'm'
-        
-        try:
-            self.data['Wpol'] = 2.0*np.pi/self.data['polTransTimes']
-            self.data['Wtor'] = 2.0*np.pi/self.data['torTransTimes']
-        except KeyError:
-            logger.warning('No transit times in file')
+        dtree = xr.open_datatree(filename, engine='h5netcdf')
+        if 'og' in dtree:
+            logger.debug('File identified as orbit grid')
+            raise NotImplementedError('Orbit grid reading not implemented yet')
+        else:
+            self.data = dtree.dataset
+            # Set the coodinates
+            self.data = self.data.swap_dims({
+                'phony_dim_0':'E_array',
+                'phony_dim_1':'R_array',
+                'phony_dim_2':'p_array',
+                'phony_dim_3':'z_array'
+            }).rename({
+                'E_array':'E0axis',
+                'R_array':'R0axis',
+                'p_array':'p0axis',
+                'z_array':'z0axis'
+            })
+            self.data['R0axis'].attrs['long_name'] = 'R'
+            self.data['R0axis'].attrs['units'] = 'm'
+            self.data['z0axis'].attrs['long_name'] = 'z'
+            self.data['z0axis'].attrs['units'] = 'm'
+            self.data['E0axis'].attrs['long_name'] = 'E'
+            self.data['E0axis'].attrs['units'] = 'eV'
+            self.data['p0axis'].attrs['long_name'] = 'p'
+            self.data['p0axis'].attrs['units'] = 'm'
+            
+            try:
+                self.data['Wpol'] = 2.0*np.pi/self.data['polTransTimes']
+                self.data['Wtor'] = 2.0*np.pi/self.data['torTransTimes']
+            except KeyError:
+                logger.warning('No transit times in file')
 
     def calculateResonances(self, omega: float, n: int, p: float,
                             threshold: float = 2.0, waiting_bar: bool=False):
