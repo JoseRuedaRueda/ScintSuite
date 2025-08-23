@@ -478,6 +478,13 @@ class Fsmap(FILDINPA_Smap):
         self._resolutions['fit_xarrays']['coll_factor'] = (['x','y'],
                                           self('collimator_factor_matrix'))
         
+        # --- Add attributes and units to variables
+        self._resolutions['fit_xarrays']['coll_factor'].attrs['long_name'] = '$f_{coll}$'
+        self._resolutions['fit_xarrays']['coll_factor'].attrs['units'] = '%'
+        self._resolutions['fit_xarrays']['gyroradius_sigma'].attrs['long_name'] = '$\\sigma_{gyro}$'
+        self._resolutions['fit_xarrays']['gyroradius_sigma'].attrs['units'] = 'cm'        
+        self._resolutions['fit_xarrays']['pitch_sigma'].attrs['long_name'] = '$\\sigma_{pitch}$'
+        self._resolutions['fit_xarrays']['pitch_sigma'].attrs['units'] = 'º'  
 
         # --- Add uncs if they exist
         try:
