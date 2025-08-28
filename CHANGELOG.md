@@ -1,3 +1,8 @@
+# 1.4.3 Udated documentation
+- Updated first bunch or routiens to NumPy doc stile for our public release of documentation
+- Minor changes to readme 
+- Minor stability and functionality additions
+
 # 1.4.2 ALCON support added
 - Added support to read ALCON output files
 

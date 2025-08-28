@@ -160,8 +160,15 @@ class TopoMap:
         p = np.atleast_1d(p)
         omega = np.atleast_1d(omega)
         # Generating the output: log of the (\Omega_{nl}/omega_res)
-        res = np.zeros((n.size, p.size, omega.size,
-                        *self.data.Wpol.shape), dtype=float)
+        matrixShape = (n.size, p.size, omega.size, *self.data.Wpol.shape)
+        matrixSize = np.prod(matrixShape)
+        if matrixSize*8/1024/1024/1024 > 1.0 :  # If the matrix is bigger than 1 GB
+            logger.warning('The resulting matrix is too big (%d MB). '
+                           'Consider using a smaller range of n, p or omega.'
+                           % (matrixSize*8/1024/1024))
+            raise MemoryError('The resulting matrix is too big. (%d MB)' % (matrixSize*8/1024/1024))
+         
+        res = np.zeros(matrixShape, dtype=float)
         omega_res = np.zeros_like(self.data.Wpol.values)
         flagsNoOrbit = self.data.topoMap.astype(int).values == 9
         for ii, intor in tqdm(enumerate(n), disable=not waiting_bar):
@@ -483,6 +490,7 @@ class resonance_viewer:
         # Checking the names are in the data coordinates.
         for name in names:
             if not name in self.data.coords.keys():
+                print('Available coordinates: %s' % self.data.coords.keys())
                 raise ValueError('%s is not in the data coordinates.'%name)
 
         # Lets' check if the stacked_vars is in the data coordinates.

@@ -641,6 +641,54 @@ class MHDmode():
                     rotation=self._rotation,
                     correct_by_plasma_rotation=correct_by_plasma_rotation)
 
+    
+    # ------------------------------------------------------------------------
+    # %% Wave vectors
+    # ------------------------------------------------------------------------
+    def _getIonGyroradius(self, mu=2, Z=1):
+        """
+        Formula taken from NRL Plasma Formulary, page 28
+        """
+        return 1.02*np.sqrt(mu) * np.sqrt(self._ti.data)/np.abs(self._B0.data)/1.0e4/Z    
+    
+    def getKparallel(self, rho: float, mode: str = 'TAE') -> float:
+        """
+        Calculate the parallel wave vector for a given rho, ntor and mpol.
+
+        :param rho: radial coordinate
+
+        :return: kpara
+        """
+        if mode == 'TAE':
+            q = self._q.data.sel(rho=rho, method='nearest')
+            R = self._R0.data
+            kpara = 0.5 / R / q
+        else:
+            raise ValueError('Mode %s not implemented for kpara calculation' % mode)
+        return kpara
+    
+    def getKperpendicular(self, omega, rho: float, mode: str = 'TAE') -> float:
+        """
+        Calculate the perpendicular wave vector for a given rho, ntor and mpol.
+
+        :param rho: radial coordinate
+
+        :return: kperp
+        """
+        if mode == 'TAE':
+            logger.warning('Using the long wavelenghth limit')
+            te_ti = (self._te / self._ti).data.sel(rho=rho, method='nearest')
+            kpara = self.getKparallel(rho, mode=mode)
+            k2va = kpara**2 * self._va0.data.sel(rho=rho, method='nearest')**2
+            ri = self._getIonGyroradius().sel(rho=rho, method='nearest')
+            kperp = np.sqrt((omega**2 - k2va) / k2va*(0.75 + te_ti)) / ri
+        else:
+            raise ValueError('Mode %s not implemented for kperp calculation' % mode)
+        return kperp
+    # ------------------------------------------------------------------------
+    # %% Plotting methods
+    # ------------------------------------------------------------------------
+    
     def plot(self, var: str = 'GAM', rho: float = 0.45, ax=None, line_params={},
              units: str = 'kHz', t: tuple = None, smooth: int = 0,
              n: float=None)->plt.Axes:

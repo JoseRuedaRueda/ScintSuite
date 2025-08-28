@@ -19,16 +19,27 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 0,
     """
     Read camera calibration database.
 
-    Jose Rueda: jrrueda@us.es
+    Parameters
+    ----------
+    filename : str
+        Complete path to the file with the calibrations.
+    n_header : int, optional
+        Number of header lines (default is 0; 5 in the official format).
+    verbose : bool, optional
+        If True, print some information in the command line (not used).
 
-    :param  filename: Complete path to the file with the calibrations
-    :param  n_header: Number of header lines (5 in the oficial format)
-    :param  verbose: if true, print some information in the command line
-        verbose is no longer used
+    Returns
+    -------
+    pandas.DataFrame or dict
+        Pandas dataframe with the database, or dict if parsing fails.
 
-    :return database: Pandas dataframe with the database
+    Raises
+    ------
+    errors.NotValidInput
+        If filename does not point to a file or a folder.
 
-    :raise errors.NotValidInput: if filename does not point to a file or a folder
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu  
     """
     if os.path.isfile(filename):
         # ASDEX like calibration files, a txt with things
@@ -76,6 +87,22 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 0,
 
 
 def readTimeDependentCalibration(filename):
+    """
+    Read time-dependent calibration from file.
+
+    Parameters
+    ----------
+    filename : str
+        Path to the calibration file.
+
+    Returns
+    -------
+    xarray.Dataset
+        Calibration dataset with time-dependent parameters.
+    
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu  
+    """
     fields = {
         1: ['time', 'xshift', 'yshift', 'xscale', 'yscale',
             'deg', 'c1', 'xcenter', 'ycenter']
@@ -112,15 +139,33 @@ def readTimeDependentCalibration(filename):
 def get_calibration_method(data, shot: int = None, diag_ID: int = None, 
                            method: str = None):
     """
-    Give the calibration parameters of a precise database entry
+    Get calibration parameters for a specific database entry.
 
-    Jose Rueda Rueda: jrrueda@us.es
-    Hannah Lindl: hannah.lindl@ipp.mpg.de
+    Parameters
+    ----------
+    data : dict
+        Calibration database.
+    shot : int, optional
+        Shot number for which calibration is needed.
+    diag_ID : int, optional
+        Diagnostic ID.
+    method : str, optional
+        Calibration method.
 
-    :param shot: shotnumber of which we want the calibration
-    :param camera: name of the camera
-    :param diag_ID: ID of the diagnostic
-    :param type: calibration method
+    Returns
+    -------
+    CalParams
+        Calibration parameters object.
+
+    Raises
+    ------
+    errors.NotFoundCameraCalibration
+        If no entry is found in the database.
+    errors.FoundSeveralCameraCalibration
+        If multiple entries fulfill the condition.
+    
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu  
     """
 
     flags = np.zeros_like(data['CalID'])
@@ -162,19 +207,39 @@ def get_calibration_method(data, shot: int = None, diag_ID: int = None,
 # ---- Calibration database object
 # ------------------------------------------------------------------------------
 class CalibrationDatabase:
-    """Database of parameter to align the scintillator."""
+    """
+    Database of parameters to align the scintillator.
+
+    Parameters
+    ----------
+    filename : str
+        Complete path to the file with the calibrations.
+    n_header : int, optional
+        Number of header lines (default is 3).
+
+    Attributes
+    ----------
+    file : str
+        Name of file with the data.
+    header : list
+        Header of the file.
+    data : dict
+        Dictionary with the data from the calibration.
+    
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu  
+    """
 
     def __init__(self, filename: str, n_header: int = 3):
         """
-        Read the calibration database, to align the strike maps.
+        Initialize CalibrationDatabase and read calibration data.
 
-        See database page for a full documentation of each field
-
-        @author Jose Rueda Rueda: jrrueda@us.es
-
-        :param  filename: Complete path to the file with the calibrations
-        :param  n_header: Number of header lines
-        :return database: Dictionary containing the database information
+        Parameters
+        ----------
+        filename : str
+            Complete path to the file with the calibrations.
+        n_header : int, optional
+            Number of header lines (default is 3).
         """
         ## Name of file with the data
         self.file = filename
@@ -194,15 +259,12 @@ class CalibrationDatabase:
 
     def write_database_to_txt(self, file: str = None):
         """
-        Write database into a txt.
+        Write database into a txt file.
 
-        If no name is given, the name of the loaded file will be used but a
-        'new' will be added. Example: if the file from where the info has
-        been loaded is 'calibration.txt' the new file would be
-        'calibration_new.txt'. This is just to be save and avoid overwriting
-        the original database.
-
-        :param  file: name of the file where to write the results
+        Parameters
+        ----------
+        file : str, optional
+            Name of the file where to write the results. If None, uses loaded file name with '_new' appended.
         """
         if file is None:
             file = self.file[:-4] + '_new.txt'
@@ -235,16 +297,28 @@ class CalibrationDatabase:
 
     def get_calibration(self, shot, diag_ID, type=None):
         """
-        Give the calibration parameter of a precise database entry.
+        Get calibration parameters for a specific database entry.
 
-        :param  shot: Shot number for which we want the calibration
-        :param  camera: Camera used
-        :param  cal_type: Type of calibration we want
-        :param  diag_ID: ID of the diagnostic we want
-        :param  typ: type of calibration. Poly or non-poly. Only used
-                     when there is type-dependent calibrations.
+        Parameters
+        ----------
+        shot : int
+            Shot number for which calibration is needed.
+        diag_ID : int
+            Diagnostic ID.
+        type : str, optional
+            Calibration type.
 
-        :return cal: CalParams() object
+        Returns
+        -------
+        CalParams
+            Calibration parameters object.
+
+        Raises
+        ------
+        errors.NotFoundCameraCalibration
+            If no entry is found in the database.
+        errors.FoundSeveralCameraCalibration
+            If multiple entries fulfill the condition.
         """
         flags = np.zeros(len(self.data['CalID']), dtype=bool)
         for i in range(len(self.data['CalID'])):
@@ -276,11 +350,17 @@ class CalibrationDatabase:
     
     def get_nearest_calibration(self, shot: int):
         """
-        Return the calibration data from the nearest shot in the database.
+        Return calibration data from the nearest shot in the database.
 
-        Pablo Oyola - poyola@us.es
+        Parameters
+        ----------
+        shot : int
+            Shot number for which calibration is needed.
 
-        :param shot: Shot number for which we want the calibration.
+        Returns
+        -------
+        CalParams
+            Calibration parameters object.
         """
         # Find the nearest calibration
         shot1 = self.data['shot1']
@@ -301,25 +381,47 @@ class CalibrationDatabase:
 # ------------------------------------------------------------------------------
 class CalParams:
     """
-    Information to relate points in the camera sensor the scintillator.
+    Information to relate points in the camera sensor to the scintillator.
 
-    In a future, it will contain the correction of the optical distortion and
-    all the methods necessary to correct it.
-
-    :Example of Use:
-
-    >>> # Initialise the calibration object
-    >>> import Lib as ss
-    >>> import numpy as np
-    >>> cal = ss.mapping.CalParams()
-    >>> # Fill the calibration
-    >>> cal.xscale = cal.yscale = 27.0
-    >>> cal.xshift = cal.yshift = 0.0
-    >>> cal.deg = 25.0
+    Attributes
+    ----------
+    xscale : float
+        Pixel/cm in the x direction.
+    yscale : float
+        Pixel/cm in the y direction.
+    xshift : float
+        Offset to align 0,0 of the sensor with the scintillator (x).
+    yshift : float
+        Offset to align 0,0 of the sensor with the scintillator (y).
+    deg : float
+        Rotation angle to transform from the sensor to the scintillator.
+    camera : str
+        Camera type.
+    c1 : float
+        First order factor for distortion.
+    c2 : float
+        Second order factor for distortion.
+    xcenter : float
+        X-pixel position of the optical axis.
+    ycenter : float
+        Y-pixel position of the optical axis.
+    nxpix : int
+        Camera size in x.
+    nypix : int
+        Camera size in y.
+    type : str
+        Used calibration method.
+    H : array-like
+        Homomorphism matrix (for homomorphic calibration).
+        
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu    
     """
 
     def __init__(self):
-        """Initialize the class"""
+        """
+        Initialize CalParams object.
+        """
         # To transform the from real coordinates to pixel (see
         # transform_to_pixel())
         ## pixel/cm in the x direction
@@ -353,19 +455,26 @@ class CalParams:
 
     def print(self):
         """
-        Print calibration.
-        
-        >>> # Assume you have in your workspace a calibration called call
+        Print calibration parameters.
+
+        Examples
+        --------
         >>> cal.print()
         """
         for ikey in self.__dict__.keys():
-            print('%s:'%ikey, self.__dict__[ikey])
+            print('%s'%ikey, self.__dict__[ikey])
 
     def __str__(self):
         """
-        Print the calibration via the print routine.
+        Return string representation of calibration parameters.
 
-        Pablo Oyola - poyola@us.es
+        Returns
+        -------
+        str
+            String with calibration parameters.
+        
+        :Authors:
+            Jose Rueda - jruedaru@uci.edu
         """
         text =  ''
         text =  'xscale: ' + str(self.xscale) + '\n'
@@ -384,16 +493,19 @@ class CalParams:
 
     def save2netCDF(self, filename):
         """
-        Save the calibration in a netCDF file
+        Save the calibration in a netCDF file.
 
-        :param filename: (str) name of the file for the calibration
+        Parameters
+        ----------
+        filename : str
+            Name of the file for the calibration.
 
-        Jose Rueda: jrrueda@us.es
-
-        :Example of use:
-
-        >>> # Assume you have in your workspace a calibration called call
+        Examples
+        --------
         >>> cal.save2netCDF('calibration.nc')
+        
+        :Authors:
+            Jose Rueda - jruedaru@uci.edu
         """
         logger.info('Saving results in: %s', filename)
         with netcdf.netcdf_file(filename, 'w') as f:
@@ -462,4 +574,4 @@ class CalParams:
             H = f.createVariable('H', 'float64', ('i', 'j'))
             H[:] = self.H
             H.long_name = 'Homomorphism matrix'
-            
+
