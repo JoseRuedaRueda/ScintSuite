@@ -6,14 +6,14 @@ This code is created to analyze the signal from scintillator diagnostics. Native
 To cite the code please use the ScintSuite [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13886726.svg)](https://doi.org/10.5281/zenodo.13886726)
 ## Installation and documentation
 ### Prerequisites
-- Python 3.7 or higher
+- Python 3.9 or higher
 - Pip (anaconda is recommended)
 
 ### Cloning the suite and installing
 
 The code can be installed via pip, just change `<branch>` for the name of the branch you want to install and `<ParentFolderForSuite>`
 
-For AUG users: `<ParentFolderForSuite> = /shares/departments/AUG/users/$USER`
+For AUG users is recommended: `<ParentFolderForSuite> = /shares/departments/AUG/users/$USER`
 ```bash
 cd <ParentFolderForSuite>
 git clone https://github.com/JoseRuedaRueda/ScintSuite ScintSuite
@@ -60,27 +60,45 @@ import ScintSuite as ss
 Please see the examples in the Examples folder of the Suite, it contains the basic lines to execute the suite for each of they main capabilities. Please note than the examples does not contain all possibles ways of doing things inside the code, you will need to dig around a bit if you need something too specific. **Before doing anything new, please ask in the discord server, because most probably one of the other users already did it**
 
 ### Paths
-There are three files containing the paths and routes for the suite:
-- `paths_suite.py`: Located in the main directory of the suite. This one just contain the routes pointing to the python packages/files needed by the suite. It says to python where to find what it needs. If you need to add something due to the peculiarities of your system, please do it locally in your bash file or open an issue in gitlab, do not modify this file.
-- `LibPaths.py`: Located inside the Lib folder, there they are all the paths pointing towards the different codes (FILDSIM, SINPA, iHIBPsim, etc) and the results/strike maps directories. Again do not modify this file just to put your custom paths, please.
-- `MyData/Paths.txt`: It could happen that you have FILDSIM, SINPA or whatever installed in a route which is not *the official*. Inside this file, you can set all these paths. The file should be created when you run the script `first_run.py`; although you can always copy it from the `Data/MyDataTemplates folder`.
+There custom path to the different codes and folders must be added to the `Settings.yml` in the root folder of the suite. this file will be created when using the installation script. An example of the path section is:
+
+```yaml
+UserPaths:
+  # Paths to the different simulation codes
+  SINPA: '/pth/to/SINPA'
+
+  # Paths to the remap databases
+  StrikeMapDatabase:
+    FILD: '/path to my strike maps database/'
+    INPA: '/path to my INPA strike maps database/s'
+    iHIBP: ''
+
+  # Path to the scintillator plates
+  ScintPlates: '/Path to where I store my plates'
+
+  # Default paths to export/load results
+  Results:
+    default: '/path where I want all results to be exported by default'
+    INPA: 'path where I want INPA results to be exported'
+    FILD: '/path where I want FILD results to be exported'
+    iHIBP: '/path where I want FILD results to be exported'
+```
+
 
 **Important:** If the ScintSuite is not installed in your home directory, you need to define the EnvVar `ScintSuitePath` pointing towards the installation location of the code. If that variable is not defined, the code will assume it is located in your home dir. 
 
-VRT related paths are hardcoded. There is a significant number of them and overloading LibPaths seems like a poor solution. Blame Javier Hidalgo for this (jhsalaverri@us.es)
-
-### FILDSIM notes
+### FILDSIM notes (legacy)
 - You need to create an empty folder in the root of FILDSIM code with name 'cfg_files' in order to run the remap routine. The namelist of the new calculated strike maps will be stored here, so we do not create thousands of files in the main FILDSIM paths
 - FILDSIM code receive no more support since version 0.8.0. FILDSIM libraries will not be updated further, except some important bug is found. Please use the new code version (uFILDSIM/SINPA)
 
 ### Documentation
-- All objects and methods are documented such that the user can understand what is going on
+- All objects and methods are documented such that the user can understand what is going on. NumPuy doc string is assumed. All new code since version 1.4.0 should be in this format
 - As everything has doc-strings, you can always write in the python terminal <fname>? and you will get all the description of the <fname> method or object
 - The routines in the Example folder are intended to illustrate the use of the different tools in the suite. Please, if you want to play with them, make your own copy on 'MyRoutines', modifying the examples can cause merge conflicts in the future
-- If you have installed Doxygen you can generate the documentation in html and LaTex format just opening a terminal in the Suite root directory and typing  `doxygen Doxyfile`. Once the documentation is generated, you can open the index with the following command `xdg-open doc/index.html`. For a (old and outdated) Doxygen generated documentation, see: <https://hdvirtual.us.es/discovirt/index.php/s/FBjZ9FPfjjwMDS2> download the content and open the index.html file, inside the html folder.
+
 
 ## Data export
-All data exported and saved by the Suite is done in netCDF, as default format. Platform independendent and binary format.
+All data exported and saved by the Suite is done in netCDF (h5), as default format. Platform independendent and binary format.
 
 If the user is *alergic* to the use of programing languages in order to read the netCDF, this NASA program could be usefull: https://www.giss.nasa.gov/tools/panoply/download/ It allows you to open and plot the variables in the netCDF file
 

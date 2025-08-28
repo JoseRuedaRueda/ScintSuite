@@ -85,36 +85,49 @@ class TopoMap:
     def __init__(self, filename: str):
         """
         Initialize the class with the filename of the topological map.
+        
+        This class accept both a topological map and an orbit grid as input files
+        
+        
 
         """
+        self.filename = filename
+        self._readFile(filename)
+
+    def _readFile(self, filename: str):
         logger.info('Reading the topological map from %s' % filename)
-        self.data = xr.open_dataset(filename, engine='h5netcdf')
-        # Set the coodinates
-        self.data = self.data.swap_dims({
-            'phony_dim_0':'E_array',
-            'phony_dim_1':'R_array',
-            'phony_dim_2':'p_array',
-            'phony_dim_3':'z_array'
-        }).rename({
-            'E_array':'E0axis',
-            'R_array':'R0axis',
-            'p_array':'p0axis',
-            'z_array':'z0axis'
-        })
-        self.data['R0axis'].attrs['long_name'] = 'R'
-        self.data['R0axis'].attrs['units'] = 'm'
-        self.data['z0axis'].attrs['long_name'] = 'z'
-        self.data['z0axis'].attrs['units'] = 'm'
-        self.data['E0axis'].attrs['long_name'] = 'E'
-        self.data['E0axis'].attrs['units'] = 'eV'
-        self.data['p0axis'].attrs['long_name'] = 'p'
-        self.data['p0axis'].attrs['units'] = 'm'
-        
-        try:
-            self.data['Wpol'] = 2.0*np.pi/self.data['polTransTimes']
-            self.data['Wtor'] = 2.0*np.pi/self.data['torTransTimes']
-        except KeyError:
-            logger.warning('No transit times in file')
+        dtree = xr.open_datatree(filename, engine='h5netcdf')
+        if 'og' in dtree:
+            logger.debug('File identified as orbit grid')
+            raise NotImplementedError('Orbit grid reading not implemented yet')
+        else:
+            self.data = dtree.dataset
+            # Set the coodinates
+            self.data = self.data.swap_dims({
+                'phony_dim_0':'E_array',
+                'phony_dim_1':'R_array',
+                'phony_dim_2':'p_array',
+                'phony_dim_3':'z_array'
+            }).rename({
+                'E_array':'E0axis',
+                'R_array':'R0axis',
+                'p_array':'p0axis',
+                'z_array':'z0axis'
+            })
+            self.data['R0axis'].attrs['long_name'] = 'R'
+            self.data['R0axis'].attrs['units'] = 'm'
+            self.data['z0axis'].attrs['long_name'] = 'z'
+            self.data['z0axis'].attrs['units'] = 'm'
+            self.data['E0axis'].attrs['long_name'] = 'E'
+            self.data['E0axis'].attrs['units'] = 'eV'
+            self.data['p0axis'].attrs['long_name'] = 'p'
+            self.data['p0axis'].attrs['units'] = 'm'
+            
+            try:
+                self.data['Wpol'] = 2.0*np.pi/self.data['polTransTimes']
+                self.data['Wtor'] = 2.0*np.pi/self.data['torTransTimes']
+            except KeyError:
+                logger.warning('No transit times in file')
 
     def calculateResonances(self, omega: float, n: int, p: float,
                             threshold: float = 2.0, waiting_bar: bool=False):
@@ -147,8 +160,15 @@ class TopoMap:
         p = np.atleast_1d(p)
         omega = np.atleast_1d(omega)
         # Generating the output: log of the (\Omega_{nl}/omega_res)
-        res = np.zeros((n.size, p.size, omega.size,
-                        *self.data.Wpol.shape), dtype=float)
+        matrixShape = (n.size, p.size, omega.size, *self.data.Wpol.shape)
+        matrixSize = np.prod(matrixShape)
+        if matrixSize*8/1024/1024/1024 > 1.0 :  # If the matrix is bigger than 1 GB
+            logger.warning('The resulting matrix is too big (%d MB). '
+                           'Consider using a smaller range of n, p or omega.'
+                           % (matrixSize*8/1024/1024))
+            raise MemoryError('The resulting matrix is too big. (%d MB)' % (matrixSize*8/1024/1024))
+         
+        res = np.zeros(matrixShape, dtype=float)
         omega_res = np.zeros_like(self.data.Wpol.values)
         flagsNoOrbit = self.data.topoMap.astype(int).values == 9
         for ii, intor in tqdm(enumerate(n), disable=not waiting_bar):
@@ -470,6 +490,7 @@ class resonance_viewer:
         # Checking the names are in the data coordinates.
         for name in names:
             if not name in self.data.coords.keys():
+                print('Available coordinates: %s' % self.data.coords.keys())
                 raise ValueError('%s is not in the data coordinates.'%name)
 
         # Lets' check if the stacked_vars is in the data coordinates.

@@ -1,8 +1,15 @@
+# 1.4.3 Udated documentation
+- Updated first bunch or routiens to NumPy doc stile for our public release of documentation
+- Minor changes to readme 
+- Minor stability and functionality additions
+
+# 1.4.2 ALCON support added
+- Added support to read ALCON output files
+
 # 1.4.1 MAST-U read from UDA
-MU FILD XIMEA videos can now be read from UDA (the cloud) so no need to download every video
+- MU FILD XIMEA videos can now be read from UDA (the cloud) so no need to download every video
 
 # 1.4.0 Major release
-
 ## General
 - Easy initialization of the ScintSuite outside the home directory thanks to env variables
 - Added detrend signal

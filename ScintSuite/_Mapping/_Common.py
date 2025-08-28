@@ -32,32 +32,37 @@ __all__ = ['transform_to_pixel', 'XYtoPixel', '_fit_to_model_',
 def transform_to_pixel(x: np.ndarray, y: np.ndarray, cal: CalParams):
     """
     Transform from X,Y coordinates (scintillator) to pixels in the camera.
+    
+    
 
-    Jose Rueda Rueda: jrrueda@us.es
-    Hannah Lindl: hannah.lindl@ipp.mpg.de
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Array of positions to be transformed, x coordinate.
+    y : numpy.ndarray
+        Array of positions to be transformed, y coordinate.
+    cal : CalParams
+        Object containing all the information for the transformation.
 
-    :param  x: np.array of positions to be transformed, x coordinate
-    :param  y: np.array of positions to be transformed, y coordinate
-    :param  cal: Object containing all the information for the
-        transformation, see class CalParams()
+    Returns
+    -------
+    xpixel : numpy.ndarray
+        x positions in pixels.
+    ypixel : numpy.ndarray
+        y positions in pixels.
 
-    :return xpixel: x positions in pixels
-    :return ypixel: y position in pixels
-
-    :Example:
-
-    >>> # Initialise the calibration object
-    >>> import Lib as ss
-    >>> import numpy as np
+    Examples
+    --------
     >>> cal = ss.mapping.CalParams()
-    >>> # Fill the calibration
     >>> cal.xscale = cal.yscale = 27.0
     >>> cal.xshift = cal.yshift = 0.0
     >>> cal.deg = 25.0
-    >>> # Apply the calibration
     >>> x = np.array([35, 45, 22, 105])
     >>> y = np.array([15, 35, 27, 106])
     >>> xp, yp = ss.mapping.transform_to_pixel(x, y, cal)
+    
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu
     """
     if cal.type.lower() != 'homomorphism' and cal.type.lower() != 'homomorphic':
         eps = 1e-7  # Level for the distortion coefficient to be considered as
@@ -127,6 +132,22 @@ class XYtoPixel:
     Jose Rueda: jrrueda@us.es
 
     Introduced in version 0.8.2
+
+
+    Attributes
+    ----------
+    _coord_real : dict
+        Coordinates of the vertex of the scintillator (X,Y,Z).
+    _normal_vector : numpy.ndarray or None
+        Normal vector to the plane containing the element.
+    _coord_pix : dict
+        Coordinates of the vertex of the scintillator in pixels.
+    CameraCalibration : CalParams or None
+        Camera calibration object.
+        
+        
+    :Authors:
+    Jose Rueda - jruedaru@uci.edu    
     """
 
     def __init__(self):
@@ -153,15 +174,16 @@ class XYtoPixel:
 
     def calculate_pixel_coordinates(self, cal) -> None:
         """
-        Transfom real coordinates into pixel.
+        Transform real coordinates into pixel coordinates.
 
-        Just a wrapper to the function transform_to_pixel
+        Parameters
+        ----------
+        cal : CalParams
+            Camera calibration to apply.
 
-        Jose Rueda Rueda: jrrueda@us.es
-
-        :param  cal: camera calibration to apply
-
-        :return: nothing, just fill the _coord_pix dictionary
+        Returns
+        -------
+        None
         """
         self._coord_pix['x'], self._coord_pix['y'] = \
             transform_to_pixel(self._coord_real['x1'], self._coord_real['x2'],
@@ -174,22 +196,29 @@ def estimate_effective_pixel_area(frame_shape, xscale: float, yscale: float,
     """
     Estimate the effective area covered by a pixel.
 
-    Jose Rueda Rueda: jrrueda@us.es based on a routine of Joaquín Galdón
+    Parameters
+    ----------
+    frame_shape : tuple
+        Shape of the frame.
+    xscale : float
+        The scale [#pixel/cm] of the calibration to align the map.
+    yscale : float
+        The scale [#pixel/cm] of the calibration to align the map.
+    type : int, optional
+        0 to ignore distortion, 1 to include distortion (not implemented).
 
-    If there is no distortion:
-    Area_covered_by_1_pixel: A_omega=Area_scint/#pixels inside scintillator
-    #pixels inside scint=L'x_scint*L'y_scint=Lx_scint*xscale*Ly_scint*yscale
-    xscale and yscale are in units of : #pixels/cm
-    So A_omega can be approximated by: A_omega=1/(xscale*yscale) [cm^2 or m^2]
+    Returns
+    -------
+    area : numpy.ndarray
+        Matrix where each element is the area covered by that pixel.
 
-    :param  frame_shape: shape of the frame
-    :param s yscale: the scale [#pixel/cm] of the calibration to align the map
-    :param s xscale: the scale [#pixel/cm] of the calibration to align the map
-    :param  type: 0, ignore distortion, 1 include distortion (not done)
-    :return area: Matrix where each element is the area covered by that pixel
-    @todo Include the model of distortion
-    @todo now that the default calibrations are in m^-1, we should remove the
-    1e-4, I am not a fan of including an extra optional argument...
+    Notes
+    -----
+    Now that the default calibrations are in m^-1, the 1e-4 factor is used to convert to m^2.
+    
+        
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu
     """
     # Initialise the matrix:
     area = np.zeros(frame_shape)
@@ -210,22 +239,36 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
     """
     Make histogram of input data and fit to a model.
 
-    Jose Rueda: jrrueda@us.es
+    Parameters
+    ----------
+    data : array-like
+        Input data to be histogrammed and fitted.
+    bins : int or array-like, optional
+        Desired number of bins or the edges.
+    model : str, optional
+        Model to fit ('Gauss', 'sGauss', 'raisedCosine', 'WignerSemicircle').
+    normalize : bool, optional
+        Flag to normalise the number of counts in the bins between 0 and 1.
+    confidence_level : float, optional
+        Confidence level for the uncertainty determination.
+    uncertainties : bool, optional
+        Flag to calculate the uncertainties of the fit.
 
-    :param  bins: Can be the desired number of bins or the edges
-    :param  model: 'Gauss' Pure Gaussian, 'sGauss' Screw Gaussian
-    :param  normalize: flag to normalise the number of counts in the bins
-        between 0, 1; to improve fit performance
-    :param  confidence_level: confidence level for the uncertainty determination
-    :param  uncertainties: flag to calcualte the uncertainties of the fit
-
-    :return par: Dictionary containing the fit parameters
-    :return results: the lmfit model object with the results
-    :return normalization: The used normalization for the histogram
-    :return unc_output: The width of the confidence interval. Notice that this
-        is half the average of the upper and lower limits, so symmetric
-        confidence interval is assumed. If you need non symstric conficende
-        intervals you would need to run conf_interval of the fit on your own
+    Returns
+    -------
+    par : dict
+        Dictionary containing the fit parameters.
+    result : lmfit.model.ModelResult
+        The lmfit model object with the results.
+    normalization : float
+        The used normalization for the histogram.
+    unc_output : dict
+        The width of the confidence interval for each parameter.
+        
+        
+        
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu    
     """
     # --- Make the histogram of the data
     hist, edges = np.histogram(data, bins=bins)
@@ -300,23 +343,35 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
     """
     Remap a frame.
 
-    Jose Rueda: jrrueda@us.es
+    Parameters
+    ----------
+    smap : StrikeMap
+        StrikeMap object with the strike map.
+    frame : numpy.ndarray
+        The frame to be remapped.
+    x_edges : array-like, optional
+        Edges of the x coordinate, for FILD, pitch [º].
+    y_edges : array-like, optional
+        Edges of the y coordinate, for FILD, gyroradius [cm].
+    mask : numpy.ndarray, optional
+        Mask to apply to the frame.
+    method : str, optional
+        Procedure for the remap ('MC', 'centers', 'griddata', 'forward_warping_simple', 'forward_warping_advanced').
 
-    Edges are only needed if you select the centers method, if not, they will
-    be 'inside' the transformation matrix already
+    Returns
+    -------
+    H : numpy.ndarray
+        Remapped frame.
 
-    :param  smap: StrikeMap() object with the strike map
-    :param  frame: the frame to be remapped
-    :param  x_edges: edges of the x coordinate, for FILD, pitch [º]
-    :param  y_edges: edges of the y coordinate, for FILD, gyroradius [cm]
-    :param  method: procedure for the remap
-        - MC: Use the transformation matrix calculated with markers at the chip
-        - centers: Consider just the center of each pixel (Old IDL method)
-        - griddata: Consider the center ofeach pixel and interpolate among them
-
-    :Notes:
-    - The different modules and video objects will call this method
-      internally. Please ony call it directly if you know what you are doing
+    Notes
+    -----
+    Edges are only needed if you select the centers method, if not, they will be inside the transformation matrix already.
+    The different modules and video objects will call this method internally.
+    
+        
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu
+        Antonin J. van Vuuren - anton.jansenvanvuuren@epfl.ch
     """
     # --- 0: Check inputs
     if smap._grid_interp is None:
@@ -692,20 +747,35 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
     """
     Cut the FILD signal to get a profile along gyroradius.
 
-    DEPRECATED!!!! Please use the integrate_remap method from the video object
+    Parameters
+    ----------
+    remap_frame : numpy.ndarray
+        Remapped frame.
+    pitch_centers : numpy.ndarray
+        Array produced by the remap function.
+    min_pitch : float
+        Minimum pitch to include.
+    max_pitch : float
+        Maximum pitch to include.
+    verbose : bool, optional
+        If True, print the actual pitch interval.
+    name : str, optional
+        If given, the profile will be exported in ASCII format.
+    gyr : numpy.ndarray, optional
+        The gyroradius values, to export.
 
-    @author:  Jose Rueda: jrrueda@us.es
+    Returns
+    -------
+    profile : numpy.ndarray
+        The profile in gyroradius.
 
-    :param     remap_frame: np.array with the remapped frame
-    :param     pitch_centers: np array produced by the remap function
-    :param     min_pitch: minimum pitch to include
-    :param     max_pitch: Maximum pitch to include
-    :param     verbose: if true, the actual pitch interval will be printed
-    :param     name: if given, the profile will be exported in ASCII format
-    :param     gyr: the gyroradius values, to export
-    :return   profile:  the profile in gyroradius
-    @raises   ExceptionName: exception if the desired pitch range is not in the
-    frame
+    Raises
+    ------
+    Exception
+        If the desired pitch range is not in the frame.
+        
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu
     """
     # See which cells do we need
     flags = (pitch_centers <= max_pitch) * (pitch_centers >= min_pitch)
@@ -751,36 +821,35 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
     """
     Cut the FILD signal to get a profile along pitch.
 
-    DEPRECATED!!!! Please use the integrate_remap method from the video object
+    Parameters
+    ----------
+    remap_frame : numpy.ndarray
+        Remapped frame.
+    gyr_centers : numpy.ndarray
+        Array produced by the remap function.
+    min_gyr : float
+        Minimum gyroradius to include.
+    max_gyr : float
+        Maximum gyroradius to include.
+    verbose : bool, optional
+        If True, print the actual pitch interval.
+    name : str, optional
+        Full path to the file to export the profile. If present, file will be written.
+    pitch : numpy.ndarray, optional
+        Array of pitches used in the remapped, only used if the export option is activated.
 
+    Returns
+    -------
+    profile : numpy.ndarray
+        Pitch profile of the signal.
 
-    @author:  Jose Rueda: jrrueda@us.es
-
-    :param     remap_frame: np.array with the remapped frame
-    @type:    ndarray
-
-    :param     gyr_centers: np array produced by the remap function
-    @type:    ndarray
-
-    :param     min_gyr: minimum pitch to include
-    @type:    float
-
-    :param     max_gyr: Maximum pitch to include
-    @type:    float
-
-    :param     verbose: if true, the actual pitch interval will be printed
-    @type:    bool
-
-    :param     name: Full path to the file to export the profile. if present,
-    file willbe written
-
-    :param     pitch: array of pitches used in the remapped, only used if the
-    export option is activated
-
-    :return   profile:  pitch profile of the signal
-
-    @raises   ExceptionName: exception if the desired gyroradius range is not
-    in the frame
+    Raises
+    ------
+    Exception
+        If the desired gyroradius range is not in the frame.
+        
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu    
     """
     # See which cells do we need
     flags = (gyr_centers <= max_gyr) * (gyr_centers >= min_gyr)

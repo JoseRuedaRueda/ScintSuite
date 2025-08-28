@@ -389,7 +389,7 @@ class BVO:
             it2 = np.argmin(abs(self.timebase-t2))
             frames_number = np.arange(start=it1, stop=it2+1, step=1)
         logger.info('Reading frames: ')
-        logger.debug(f'Frames number are: {frames_number}')
+
         # --- Clean video if needed
         if 't' in self.exp_dat and internal and not self.type_of_file == '.ncMASTU':
             self.exp_dat = xr.Dataset()
@@ -417,6 +417,7 @@ class BVO:
             M = h5d3d.read_frame(self, frames_number,
                                 limitation=limitation, limit=limit)
         elif self.type_of_file == '.ncMASTU':
+            logger.debug(f'Frames number are: {frames_number}')
             logger.debug(f"[read_frame] Called with:")
             logger.debug(f"  t1 = {t1}, type = {type(t1)}, shape = {getattr(t1, 'shape', 'scalar')}")
             logger.debug(f"  t2 = {t2}, type = {type(t2)}, shape = {getattr(t2, 'shape', 'scalar')}")

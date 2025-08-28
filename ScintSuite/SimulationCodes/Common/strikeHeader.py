@@ -1454,7 +1454,7 @@ orderStrikes = {
                         'longName': 'Ionization Position',
                         'shortName': '$z_ion$',
                     },
-                    'pitchion': {
+                    'pitch0': {
                         'i': 22,  # Column index in the file
                         'units': ' ',  # Units
                         'longName': 'Pitch at GC CX position',
