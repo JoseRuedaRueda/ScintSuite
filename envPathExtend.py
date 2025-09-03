@@ -5,13 +5,25 @@ import sys
 from ScintSuite._Machine import machine
 
 
-def envPathExtend():
+def envPathExtend(machine=machine):
     """
     Add to the path all the necessary folders for the suite to run.
 
     Jose Rueda Rueda: jrrueda@us.es
+    
+    
+    Parameters
+    ----------
+    machine : str
+        Name of the machine where we are working
 
-    @param machine: Machine where we are working
+    Returns
+    -------
+    None
+
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu  
+
     """
     if os.path.isdir('/common/uda-scratch'):
         machine = 'MU'
@@ -74,4 +86,4 @@ def envPathExtend():
 
 if __name__ == "__main__":
 
-    paths_of_the_suite()
+    envPathExtend()

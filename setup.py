@@ -45,11 +45,11 @@ with open('.setup/keywords.txt', 'rt') as fh:
 
 setup(
     name='ScintSuite',
-    version='1.3.10',
+    version='1.4.4',
     description=short_desc,
     author = author_list,
     author_email = email_list,
-    url = 'https://gitlab.mpcdf.mpg.de/ruejo/scintsuite',
+    url = 'https://github.com/JoseRuedaRueda/ScintSuite',
     maintainer=author_list[0],
     maintainer_email=email_list[0],
     license='GPLv3',

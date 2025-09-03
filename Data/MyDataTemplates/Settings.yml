@@ -1,0 +1,122 @@
+# ------------------------------------------------------------------------------
+# %% SCINTSUITE CUSTOM SETTINGS
+# ------------------------------------------------------------------------------
+# This file is used to define all the user custom paths for the different codes,
+# plotting stiles, warning filtering, etc
+
+
+# -----------------------------------------------------------------------------
+# %% BLOCK 1: SCINTSUITE CUSTOM PATHS
+# -----------------------------------------------------------------------------
+# Insert here your customs paths for the different codes and folders.
+# If a path is not defined, the suite will use the default path, present in
+# Lib.LibPaths.py
+
+# Please, use only this file to define your custom paths and do not modify
+# the Lib.LibPaths, to avoid merge conflicts or overwriting the paths to other
+# users
+UserPaths:
+  # Paths to the different simulation codes
+  SINPA: ''
+
+  # Paths to the remap databases
+  StrikeMapDatabase:
+    FILD: ''
+    INPA: ''
+    iHIBP: ''
+
+  # Path to the scintillator plates
+  ScintPlates: ''
+
+  # Default paths to export/load results
+  Results:
+    default: ''
+    INPA: ''
+    FILD: ''
+    iHIBP: ''
+
+# -----------------------------------------------------------------------------
+# %% BLOCK 2: SCINTSUITE CUSTOM PLOTTING STYLES
+# -----------------------------------------------------------------------------
+UserPlotStyles:
+  default:
+    font: 'Arial'                       # Default font for axis
+    transparent_background: true        # Set transparent background to export
+    tick_direction: 'in'                # Set ticks direction inwards
+    default_line_colors: ['b', 'r', 'k', 'm', 'c', 'y']
+  article:
+    font_family: 'serif'                # Font family
+    font_name: 'Latin Modern Roman'       # Font
+    axis_font_size: 12                  # Size for axis labels
+    legend_font_size: 11                # Size for legends
+    title_font_size: 12                 # Size for titles
+
+    Major_tick_length: 8                     # Major tick length (in points)
+    Major_tick_width: 1                      # Major tick width (in points)
+    minor_tick_length: 6                     # Minor tick length (in points)
+    minor_tick_width: 1                      # Minot tick width (in points)
+
+    line_width: 0.75                       # Line width (in points)
+    marker_size: 4                     # Marker size (in points)
+
+  presentation:
+    font_family: 'sans-serif'           # Font family
+    font_name: 'Arial'                   # Font
+    axis_font_size: 16                  # Size for axis labels
+    legend_font_size: 16                # Size for legends
+    title_font_size: 16                 # Size for titles
+
+    Major_tick_length: 8                # Major tick length (in points)
+    Major_tick_width: 2                 # Major tick width (in points)
+    minor_tick_length: 6                # Minor tick length (in points)
+    minor_tick_width: 1                 # Minot tick width (in points)
+
+    line_width: 2                       # Line width (in points)
+    marker_size: 6                      # Marker size (in points)
+
+  software:
+    font_family: 'sans-serif'           # Font family
+    font_name: 'Arial'                   # Font
+    axis_font_size: 10                  # Size for axis labels
+    legend_font_size: 8                 # Size for legends
+    title_font_size: 12                 # Size for titles
+
+    Major_tick_length: 4                     # Major tick length (in points)
+    Major_tick_width: 1                      # Major tick width (in points)
+    minor_tick_length: 2                     # Minor tick length (in points)
+    minor_tick_width: 1                      # Minot tick width (in points)
+
+    line_width: 1.5                     # Line width (in points)
+    marker_size: 6                      # Marker size (in points)
+
+# -----------------------------------------------------------------------------
+# %% BLOCK 3: SCINTSUITE CUSTOM WARNING FILTERING
+# -----------------------------------------------------------------------------
+# Meaning:
+#  'None': Nothing will be hidden
+#  10: Missing a non essential module, like xarray
+#  11: OverWrittingData: Raised when an attribute class will try to overwrite data
+#  12: Old version of a module, but things should work
+#  13: Existing file, to overwrite when saving
+#  14: Non-existing file to be opened
+#  15: No fonts found, use matplotlib default
+#  16: SideCalculation could not be computed
+#  17: Calculation likely to be wrong
+#  18: Not found time point, taking the closest one
+#  19: Calculation requires large amount of memory
+#  20: Not fully tested in general case
+#  21: Not implemented
+#  22: Data not present in the logbook, returning default
+#  23: Tokamak environment not recognised, database calls will not work
+#  24: Expected strike map already prepared
+#  25: An ill-formatted input set for the iHIBP code(s)
+#  26: Cannot find database entry (shotnumber, ...) so the respective option is ignored.
+#  27: Interpolators not present in the strike map, calculating them with default settings
+#  28: It was not possible to initialise the plotting settings
+#  29: Not found excel document of the logbook
+#  30: Ignored input
+warningsToIgnore: None # example [0,1,2],
+
+
+
+

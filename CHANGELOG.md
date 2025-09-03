@@ -1,3 +1,8 @@
+# 1.4.4 Updated installation script
+- first_run.py deprecated, first_run_pip.py is now the only official installation script and was renamed to first_run.py
+- Added the missing settings template
+- corrected minor version labelling fault in pip
+
 # 1.4.3 Udated documentation
 - Updated first bunch or routiens to NumPy doc stile for our public release of documentation
 - Minor changes to readme 
