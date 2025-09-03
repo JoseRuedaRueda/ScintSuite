@@ -19,7 +19,7 @@ cd <ParentFolderForSuite>
 git clone https://github.com/JoseRuedaRueda/ScintSuite ScintSuite
 cd ScintSuite
 git checkout <branch>
-python first_run_pip.py
+python first_run.py
 pip install -e .
 ```
 This will install all requirements via pip. It is needed that your machine support pip installation of python packages
@@ -45,7 +45,7 @@ Things can go wrong if your system has some particular rights limitations and yo
 3. Activate your virtual environment (remember to do this every time you are using ScintSuite or add it to your login script): `source SSvirtualenv/bin/activate`
 4. Force install the compatible versions using `pip install modulename==X.X.X`. A list of compatible versions is listed in Data/TestedEnv. There you can find the result of the command `pip list` in a python environment where the suite was tested and working fine. The files are labeled with the Suite version for which they were tested and 'Optx', meaning 'Option x', as different user can have different list of packages which could work.
 
-Once this is done, run the script `first_run.py` to create the folder `MyData` and its contents. These are the configuration files of the Suite, they are needed to import the Suite and can be modified (the ones in MyData folder only!!!) to change the behavior of the plotting, warning, paths... If this script fails, you can copy the templates manually. The templates are in the folder: `Data/MyDataTemplates`
+Once this is done, run the script `first_run.py` to create the folder `MyData` and the settings file `settings.yml`. This are the configuration files of the Suite, they are needed to import the Suite and can be modified (the one in the root folder only!!!) to change the behavior of the plotting, warning, paths... If this script fails, you can copy the settings template manually. The templates is in the folder: `Data/MyDataTemplates`
 
 ### Getting started
 **Importing the suite**
