@@ -330,8 +330,9 @@ def get_energy(gyroradius, B: float, A: float = 2.01410178, Z: float = 1.0):
 
     :return E: the energy [in eV]
     """
+    # E[ev] = (1/2 * (r[cm]/100*Z*B[T])**2 / m) * ec
     m = ssp.amu2kg * A  # Mass of the ion
-    E = 0.5 * (gyroradius/100.0 * Z * B)**2 / m * ssp.ec
+    E = (0.5 * ((gyroradius/100.0) * Z * B)**2 / m) * ssp.ec
     return E
 
 
@@ -348,6 +349,35 @@ def get_gyroradius(E, B: float, A: float = 2.01410178, Z: float = 1.0):
 
     :return r: Larmor radius as taken from FILD strike map [in cm]
     """
+    # r[cm] = sqrt(2*(E[eV]/ec)*m) / (Z*B[T]) * 100
     m = ssp.amu2kg * A  # Mass of the ion
-    r = 100. * np.sqrt(2.0 * E * m / ssp.ec) / Z / B
+    r = 100. * np.sqrt(2.0 * (E/ssp.ec) * m) / (Z*B)
     return r
+
+
+def get_velocity(*, gyroradius = None, E=None, 
+                 B: float = 1.9, A: float = 2.01410178, Z: float = 1.0):
+    """
+    Calculate the velocity given a gyroradius or energy, FILDSIM criteria
+
+    Alex Reyner: alereyvinn@alum.us.es
+
+    :param  gyroradius: Larmor radius as taken from FILD strike map [in cm]
+    :param  energy: Energy [eV]
+    :param  B: Magnetic field, [in T]
+    :param  A: Ion mass number
+    :param  Z: Ion charge [in e units]
+
+    :return E: the energy [in eV]
+    """
+
+    if gyroradius is not None:
+        # v = ((r[cm]/100) * Z*B[T] * ec ) / m
+        m = ssp.amu2kg * A  # Mass of the ion
+        v_tot = ((gyroradius/100) *Z*B* ssp.ec)/m
+    elif gyroradius is None and E is not None:
+        # v = sqrt(2*E[eV]*ec / m)
+        m = ssp.amu2kg * A  # Mass of the ion
+        v_tot = np.sqrt(2 * (E*ssp.ec) / m)
+
+    return v_tot
