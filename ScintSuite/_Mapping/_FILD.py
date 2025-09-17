@@ -40,7 +40,7 @@ def remapAllLoadedFrames(video,
                          map=None,
                          remap_method: str = 'centers',
                          MC_number: int = 100,
-                         allIn: bool = False,
+                         allIn: int = 0,
                          use_average: bool = False,
                          variables_to_remap: tuple = ('pitch', 'gyroradius'),
                          A: float = 2.01410178, Z: float = 1.0,
@@ -80,12 +80,15 @@ def remapAllLoadedFrames(video,
               needs 3 minutes per new strike map. Centers recommended for a
               general video overview
     :param     MC_number: number of MC markers for the MC remap
-    :param     allIn: boolean flag to disconnect the interaction with the user.
-              When looking for the strike map in the database, we will take
+    :param     allIn: flag to disconect the interaction with the user,
+              where looking for the strike map in the database, we will take
               the closer one available in time, without expecting an answer for
               the user. This option was implemented to remap large number of
               shots 'automatically' without interaction from the user needed.
               Option not used if you give an input strike map
+              allIn == 0:  ask the user for the answer
+              allIn == 1:  take the closest map in time
+              allIn == 2: Calculate all the missing maps
     :param     use_average: if true, use the averaged frames instead of the
               raw ones
     :param     variables_to_remap: tupple containing the name of the variables
@@ -263,13 +266,19 @@ def remapAllLoadedFrames(video,
             elif nnSmap == nframes:
                 print('Non a single strike map, full calculation needed')
             elif nnSmap != 0:
-                if not allIn:
+                if allIn == 0:
                     print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
                     print('Write 1 to proceed, 0 to take the closer'
-                        + '(in time) existing strikemap')
+                          + '(in time) existing strikemap')
                     xx = int(input('Enter answer:'))
-                else:
+                elif allIn == 1:
+                    logger.info('We will take the closer existing strike map')
                     xx = 0
+                elif allIn == 2:
+                    logger.info('We will calculate all the missing strike maps')
+                    xx = 1
+                else:
+                    raise errors.NotValidInput('Wrong value for allIn. Only 0, 1 or 2 accepted')
                 if xx == 0:
                     print('We will not calculate new strike maps')
                     print('Looking for the closer ones')
@@ -306,7 +315,6 @@ def remapAllLoadedFrames(video,
                     geomID=video.geometryID, FILDSIM_options=code_options,
                     decimals=decimals, clean=True)
             else:  # SINPA CODE
-                
                 name = ssSINPA.execution.find_strike_map_FILD(
                     phi_used[iframe], theta_used[iframe], smap_folder,
                     geomID=video.geometryID, SINPA_options=code_options,

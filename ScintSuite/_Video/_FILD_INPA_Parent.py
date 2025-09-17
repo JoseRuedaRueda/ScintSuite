@@ -158,11 +158,12 @@ class FIV(BVO):
         bt[btflags] = np.nanmean(bt)
         bpflags = np.isnan(bp)
         bp[bpflags] = np.nanmean(bp)
-        bnan = brflags + bzflags + btflags + bpflags
+        bnan = (brflags + bzflags + btflags + bpflags).flatten()
         # 
         if np.sum(bnan) > 0:
             logger.warning('The magnetic field was not calculated in some points. The mean value was used instead for those points')        
         
+
         # Save the data in the array
         self.BField = xr.Dataset()
         self.BField['BR'] = xr.DataArray(np.array(br).squeeze(), dims=('t'),

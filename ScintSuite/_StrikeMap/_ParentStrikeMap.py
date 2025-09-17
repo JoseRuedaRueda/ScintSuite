@@ -169,8 +169,8 @@ class GeneralStrikeMap(XYtoPixel):
             interpolator = scipy_interp.CloughTocher2DInterpolator
         else:
             raise errors.NotValidInput('Not recognized interpolation method')
-
-        logger.debug('Using %s interpolation of the grid' % met)
+        if verbose == True:
+            logger.debug('Using %s interpolation of the grid' % met)
         if self._grid_interp is not None:
             if self._grid_interp['method'] != met:
                 text = 'Interpolation method must equal the previous one'

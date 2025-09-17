@@ -15,7 +15,7 @@ import numpy as np
 import xarray as xr
 import tkinter as tk                       # To open UI windows
 import ScintSuite._Paths as p
-import ScintSuite.errors as sserrors
+import ScintSuite.errors as errors
 import ScintSuite._GUIs as ssGUI             # For GUI elements
 import ScintSuite.LibData as ssdat
 import ScintSuite._Mapping as ssmap
@@ -229,7 +229,7 @@ class FILDVideo(FIV):
             FIV.__init__(self, empty=empty)
 
     def _getBangles(self, checkdatabase: bool = True, decimals: int = 1,
-                    allIn: bool = False, use_average: bool = False):
+                    allIn: int = 0, use_average: bool = False):
         """
         Get the orientation of the field respec to the head.
         If the name of the corresponding strike maps for each pair of angles is
@@ -241,12 +241,15 @@ class FILDVideo(FIV):
 
         :param    checkdatabase: Flag to check the strikemap database and return
                   the names for each case.
-        :param     allIn: boolean flag to disconnect the interaction with the user.
-              When looking for the strike map in the database, we will take
-              the closer one available in time, without expecting an answer for
-              the user. This option was implemented to remap large number of
-              shots 'automatically' without interaction from the user needed.
-              Option not used if you give an input strike map
+        :param     allIn: flag to disconect the interaction with the user,
+                where looking for the strike map in the database, we will take
+                the closer one available in time, without expecting an answer for
+                the user. This option was implemented to remap large number of
+                shots 'automatically' without interaction from the user needed.
+                Option not used if you give an input strike map
+                allIn == 0:  ask the user for the answer
+                allIn == 1:  take the closest map in time
+                allIn == 2: Calculate all the missing maps
         :param    decimals: Number of decimals that will be used for the strikemap
                   name.
         @TODO: add posibility to look for smaps in other folder
@@ -282,7 +285,7 @@ class FILDVideo(FIV):
                                         'FILD', self.geometryID)
             else:
                 # @TODO< change this 0
-                smap_folder = os.path.join(paths.StrikeMapDatabase, self.geometryID)
+                smap_folder = os.path.join(paths.StrikeMapDatabase['FILD'], self.geometryID)
             logger.info('Looking for strikemaps in: %s', smap_folder)
             # -- Check which code generated the library
             namelistFile = os.path.join(smap_folder, 'parameters.cfg')
@@ -323,13 +326,19 @@ class FILDVideo(FIV):
             elif nnSmap == nframes:
                 print('Non a single strike map, full calculation needed')
             elif nnSmap != 0:
-                if not allIn:
+                if allIn == 0:
                     print('We need to calculate, at most:', nnSmap, 'StrikeMaps')
                     print('Write 1 to proceed, 0 to take the closer'
-                        + '(in time) existing strikemap')
+                          + '(in time) existing strikemap')
                     xx = int(input('Enter answer:'))
-                else:
+                elif allIn == 1:
+                    logger.info('We will take the closer existing strike map')
                     xx = 0
+                elif allIn == 2:
+                    logger.info('We will calculate all the missing strike maps')
+                    xx = 1
+                else:
+                    raise errors.NotValidInput('Wrong value for allIn. Only 0, 1 or 2 accepted')
                 if xx == 0:
                     print('We will not calculate new strike maps')
                     print('Looking for the closer ones')
@@ -391,14 +400,18 @@ class FILDVideo(FIV):
         else:
             use_avg = False
             nt = self.exp_dat['t'].size
-
+        # Check if allIn flag in the options
+        if 'allIn' in options.keys():
+            aIn = options['allIn']
+        else:
+            aIn = 0
         # Check if the magnetic field and the angles are ready, only if the map
         # is not given
         if 'map' not in options.keys():
             if self.BField is None:
                 self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles is None:
-                self._getBangles(use_average=use_avg)
+                self._getBangles(use_average=use_avg, allIn = aIn)
             # Check if we need to recalculate them because they do not
             # have the proper length (ie they were calculated for the exp_dat
             # not the average)
@@ -407,7 +420,7 @@ class FILDVideo(FIV):
                 self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles['phi'].size != nt:
                 logger.warning('Need to recalculate the angles. Doing it now')
-                self._getBangles(use_average=use_avg)
+                self._getBangles(use_average=use_avg, allIn = aIn)
         self.remap_dat = ssmap.remapAllLoadedFrames(self, **options)
 
         # Calculate the integral of the remap
@@ -559,7 +572,7 @@ class FILDVideo(FIV):
                 'norm': colors.PowerNorm(0.5)
             }
         else:
-            raise sserrors.NotValidInput('Not understood scale')
+            raise errors.NotValidInput('Not understood scale')
         if t is None:  # 2d plots
             # --- Gyroradius profiles (integral over x)
             fig1, ax1 = plt.subplots()   # Open figure and plot
@@ -637,7 +650,7 @@ class FILDVideo(FIV):
             ax2 = ssplt.axis_beauty(ax2, ax_params)
             plt.tight_layout()
         else:  # The line plots:
-            raise sserrors.NotImplementedError('Sorry, not implemented')
+            raise errors.NotImplementedError('Sorry, not implemented')
             # Set the grid option for plotting
             if 'grid' not in ax_params:
                 ax_params['grid'] = 'both'
