@@ -31,6 +31,7 @@ __all__ = ['remapAllLoadedFrames']
 def remapAllLoadedFrames(video,
                          ymin: float = 1., ymax: float = 10.5, dy: float = 0.1,
                          xmin: float = 15., xmax: float = 90., dx: float = 1.0,
+                         t0: float = None,
                          code_options: dict = {},
                          method: int = 1,
                          verbose: bool = False,
@@ -160,6 +161,11 @@ def remapAllLoadedFrames(video,
     else:
         data = video.avg_dat
     # -- Get frame shape:
+    if t0 != None:
+        idx = int(np.abs(data.t - t0).argmin())
+        data = data.isel(t=slice(idx,idx+1), drop=False)
+        video.Bangles = video.Bangles.isel(t=slice(idx,idx+1), drop=False)
+        video.strikemap = video.strikemap.isel(t=slice(idx,idx+1), drop=False)
     nframes = data['frames'].shape[2]
     frame_shape = data['frames'].shape[0:2]
 

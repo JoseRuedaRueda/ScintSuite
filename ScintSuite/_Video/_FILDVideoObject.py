@@ -229,7 +229,8 @@ class FILDVideo(FIV):
             FIV.__init__(self, empty=empty)
 
     def _getBangles(self, checkdatabase: bool = True, decimals: int = 1,
-                    allIn: int = 0, use_average: bool = False):
+                    allIn: int = 0, use_average: bool = False,
+                    verbose: bool = False):
         """
         Get the orientation of the field respec to the head.
         If the name of the corresponding strike maps for each pair of angles is
@@ -306,7 +307,7 @@ class FILDVideo(FIV):
                         phi[iframe], theta[iframe], geomID=self.geometryID,
                         decimals=decimals
                         )
-                logger.debug(os.path.join(smap_folder, name))
+                if verbose: logger.debug(os.path.join(smap_folder, name))
                 # See if the strike map exist
                 if os.path.isfile(os.path.join(smap_folder, name)):
                     exist[iframe] = True
