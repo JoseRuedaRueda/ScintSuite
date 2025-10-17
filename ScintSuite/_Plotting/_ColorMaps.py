@@ -9,7 +9,7 @@ Contains:
     -Cai: Color map with the colors of Cadiz
 """
 from matplotlib.colors import LinearSegmentedColormap
-__all__ = ['Gamma_II', 'Gamma_III', 'Cai']
+__all__ = ['Gamma_II', 'Gamma_III', 'Gamma_I', 'Cai']
 
 # Deprecated
 # def Gamma_II(n=256):
@@ -60,6 +60,19 @@ def Gamma_III(n=256):
     return cmap
 
 
+def Gamma_I(n=256):
+    """
+    Gamma_I colormap without white
+
+    Alex Reyner: alereyvinn@alum.us.es
+
+    :param  n: numbers of levels of the output colormap
+    """
+    cmap = LinearSegmentedColormap.from_list(
+        'mycmap', ['black', 'blue', 'purple', 
+                   'red', 'orange', 'yellow'], N=n)
+    
+    return cmap
 
 def Cai(n=256):
     """
