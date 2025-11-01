@@ -317,7 +317,109 @@ def read_plate(filename):
 # -----------------------------------------------------------------------------
 # --- Energy definition FILDSIM
 # -----------------------------------------------------------------------------
+
+
 def get_energy(gyroradius, B: float, A: float = 2.01410178, Z: float = 1.0):
+    """
+    Calculate the energy given a gyroradius, FILDSIM criteria
+    Relativistic correction, implemented to include runaway electrons
+
+    Alex Reyner: alereyvinn@alum.us.es
+
+    :param  gyroradius: Larmor radius as taken from FILD strike map [in cm]
+    :param  B: Magnetic field, [in T]
+    :param  A: Ion mass number
+    :param  Z: Ion charge [in e units]
+
+    :return E: the energy [in eV]
+    """
+    if A == 0:
+        m = ssp.m_e_kg
+        Z = 1
+    else:
+        m = ssp.amu2kg * A
+
+    gamma = np.sqrt((gyroradius/100. * Z*ssp.ec *B /m)**2 /ssp.c**2 + 1) 
+    E = (gamma-1) *(m *ssp.c**2) / ssp.ec
+
+    return E
+
+
+def get_gyroradius(E, B: float, A: float = 2.01410178, Z: float = 1.0):
+    """
+    Calculate the gyroradius given an energy, FILDSIM criteria
+    Relativistic correction, implemented to include runaway electrons
+
+    Alex Reyner: areyner@us.es
+
+    :param  energy: Energy [eV]
+    :param  B: Magnetic field, [in T]
+    :param  A: Ion mass number. 0 means electrons
+    :param  Z: Ion charge [in e units]
+
+    :return r: Larmor radius as taken from FILD strike map [in cm]
+    """
+    if A == 0:
+        m = ssp.m_e_kg
+        Z = 1
+    else:
+        m = ssp.amu2kg * A
+
+    gamma = 1 + (E*ssp.ec)/(m*ssp.c**2)
+    beta = np.sqrt(1-1/gamma**2)
+    v = ssp.c * beta
+    r = 100. * (gamma*m*v) / (Z*ssp.ec) / B
+
+    return r
+
+def get_beta(E, B: float, A: float = 2.01410178, Z: float = 1.0):
+    """
+    Calculate the relativistic factor
+
+    Alex Reyner: areyner@us.es
+
+    :param  energy: Energy [eV]
+    :param  B: Magnetic field, [in T]
+    :param  A: Ion mass number. 0 means electrons
+    :param  Z: Ion charge [in e units]
+
+    :return beta: v/c
+    """
+    if A == 0:
+        m = ssp.m_e_kg
+        Z = 1
+    else:
+        m = ssp.amu2kg * A
+
+    gamma = 1 + (E*ssp.ec)/(m*ssp.c**2)
+    beta = np.sqrt(1 - 1/gamma**2)
+
+    return beta
+
+def get_velocity(gyroradius, B: float = 1.9, A: float = 2.01410178, Z: float = 1.0):
+    """
+    Calculate the velocity given a gyroradius, FILDSIM criteria
+    Relativistic correction, implemented to include runaway electrons
+
+    Alex Reyner: alereyvinn@alum.us.es
+
+    :param  gyroradius: Larmor radius as taken from FILD strike map [in cm]
+    :param  energy: Energy [eV]
+    :param  B: Magnetic field, [in T]
+    :param  A: Ion mass number
+    :param  Z: Ion charge [in e units]
+
+    :return E: the energy [in eV]
+    """
+
+    E = get_energy(gyroradius,B,A,Z)
+    beta = get_beta(E,B,A,Z)
+    v = beta * ssp.c
+
+    return v
+
+
+def get_energy_classic(gyroradius, B: float, A: float = 2.01410178, Z: float = 1.0):
     """
     Calculate the energy given a gyroradius, FILDSIM criteria
 
@@ -335,8 +437,7 @@ def get_energy(gyroradius, B: float, A: float = 2.01410178, Z: float = 1.0):
     E = (0.5 * ((gyroradius/100.0) * Z * B)**2 / m) * ssp.ec
     return E
 
-
-def get_gyroradius(E, B: float, A: float = 2.01410178, Z: float = 1.0):
+def get_gyroradius_classic(E, B: float, A: float = 2.01410178, Z: float = 1.0):
     """
     Calculate the gyroradius given an energy, FILDSIM criteria
 
@@ -355,29 +456,3 @@ def get_gyroradius(E, B: float, A: float = 2.01410178, Z: float = 1.0):
     return r
 
 
-def get_velocity(*, gyroradius = None, E=None, 
-                 B: float = 1.9, A: float = 2.01410178, Z: float = 1.0):
-    """
-    Calculate the velocity given a gyroradius or energy, FILDSIM criteria
-
-    Alex Reyner: alereyvinn@alum.us.es
-
-    :param  gyroradius: Larmor radius as taken from FILD strike map [in cm]
-    :param  energy: Energy [eV]
-    :param  B: Magnetic field, [in T]
-    :param  A: Ion mass number
-    :param  Z: Ion charge [in e units]
-
-    :return E: the energy [in eV]
-    """
-
-    if gyroradius is not None:
-        # v = ((r[cm]/100) * Z*B[T] * ec ) / m
-        m = ssp.amu2kg * A  # Mass of the ion
-        v_tot = ((gyroradius/100) *Z*B* ssp.ec)/m
-    elif gyroradius is None and E is not None:
-        # v = sqrt(2*E[eV]*ec / m)
-        m = ssp.amu2kg * A  # Mass of the ion
-        v_tot = np.sqrt(2 * (E*ssp.ec) / m)
-
-    return v_tot

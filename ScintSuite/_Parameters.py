@@ -2,17 +2,18 @@
 
 Basically here are hard-cored almost all the parameters of the suite
 """
+from scipy.constants import speed_of_light as c
 from scipy.constants import elementary_charge as ec
-from scipy.constants import electron_mass
+from scipy.constants import electron_mass as m_e_kg
+from scipy.constants import proton_mass as m_p_kg
+from scipy.constants import neutron_mass as m_n_kg
 
 # Physics constants
 mp = 938.272e6  # Mass of the proton, in eV/c^2
-mp_kg = 1.67262192369e-27  # Mass of the proton in kg
-c = 2.99792458e8       # Speed of light in m/s
 amu2kg = 1.660538782e-27  # Scaling factor to go from AMU to SI units (NIST)
 h_planck = 4.135667e-15         # [eV/s]
 eps0 = 5.52635e7  # Vaccum permitivity in e/Vm
-mass_electron_amu = electron_mass/amu2kg # Electron mass in Atomic Mass Units.
+mass_electron_amu = m_e_kg/amu2kg # Electron mass in Atomic Mass Units.
 
 # -----------------------------------------------------------------------------
 # --- File parameters
