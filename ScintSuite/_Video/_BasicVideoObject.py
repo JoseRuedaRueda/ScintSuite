@@ -668,6 +668,9 @@ class BVO:
         """
         Filter the camera frames
 
+        Jose Rueda: jrrueda@us.es
+        Alex Reyner: areyvinn@alum.us.es
+
         :param  method: method to be used:
             -# jrr: neutron method of the extra package (not recommended,
                 extremelly slow)
@@ -696,7 +699,7 @@ class BVO:
             'nsigma': 3
         }
         median_options = {
-            'size': 2
+            'size': 3
         }
         gaussian_options = {
             'sigma': 1
@@ -720,19 +723,30 @@ class BVO:
             # from the default options, to avoid issues in the median filter
             if 'footprint' in options:
                 median_options['size'] = None
-            # Now update the options
             median_options.update(options)
-            for i in tqdm(range(nt)):
-                self.exp_dat['frames'][:, :, i] = \
-                    ndimage.median_filter(self.exp_dat['frames'].values[:, :, i],
-                                          **median_options)
+            self.exp_dat['frames'].values = \
+                ndimage.median_filter(self.exp_dat['frames'].values, 
+                                      size=(median_options['size'],
+                                            median_options['size'], 1))
+            # previous slower method
+            # for i in tqdm(range(nt)):
+            #     self.exp_dat['frames'][:, :, i] = \
+            #         ndimage.median_filter(self.exp_dat['frames'].values[:, :, i],
+            #                               **median_options)
+
         elif method == 'gaussian':
             logger.info('Gaussian filter selected!')
             gaussian_options.update(options)
-            for i in tqdm(range(nt)):
-                self.exp_dat['frames'][:, :, i] = \
-                    ndimage.gaussian_filter(self.exp_dat['frames'].values[:, :, i],
-                                            **gaussian_options)
+            self.exp_dat['frames'].values = \
+                ndimage.gaussian_filter(self.exp_dat['frames'].values, 
+                                        sigma=(gaussian_options['sigma'], 
+                                               gaussian_options['sigma'], 1))
+            # previous slower method
+            # for i in tqdm(range(nt)):
+            #     self.exp_dat['frames'][:, :, i] = \
+            #         ndimage.gaussian_filter(self.exp_dat['frames'].values[:, :, i],
+            #                                 **gaussian_options)
+            
         logger.info('\\n-... -.-- . / -... -.-- .')
         return
 

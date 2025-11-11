@@ -304,7 +304,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
         # --- Core: Calculation of the resolution
         if verbose:
             logger.info('Calculating resolutions ...')
-        for ix in tqdm(range(nx)):
+        else:
+            tqdm_disable = True
+        for ix in tqdm(range(nx), disable=tqdm_disable):
             for iy in range(ny):
                 # -- Select the data:
                 data = self.strike_points.data[ix, iy]

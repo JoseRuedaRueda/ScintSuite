@@ -319,7 +319,7 @@ class FILDVideo(FIV):
             theta_used = np.round(theta, decimals=decimals)
             phi_used = np.round(phi, decimals=decimals)
 
-            # The variable x will be the flag to calculate or not more strike maps
+            # The variable xx will be the flag to calculate or not more strike maps
             if nnSmap == 0:
                 print('--. .-. . .- -')
                 text = 'Ideal situation, not a single map needs to be calculated'
