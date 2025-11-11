@@ -126,7 +126,7 @@ def read_ASCOT_dist(filename, pinhole_area = None, B=4, A=None, Z=None,
             A = out['Anum']
         if Z==None:
             Z = out['Znum']
-        r = get_gyroradius(out['energy'], B, A, Z)
+        r = get_gyroradius(E=out['energy'], B=B, A=A, Z=Z)
         out['gyroradius'] = r
 
 
@@ -196,7 +196,7 @@ def read_ASCOT_dist(filename, pinhole_area = None, B=4, A=None, Z=None,
 
 
     if version == 'locust':
-        names = ['pitch', 'energy', 'rho_L', 'weight', 'gyrophase', 'ID_FILD']
+        names = ['R', 'Z', 'phi', 'vR', 'vZ', 'vphi', 'pitch', 'energy', 'rho_Larmor', 'weight', 'gyrophase', 'ID_FILD']
         
         if A==None or Z==None:
             logger.error('No A and/or B as input. STOPING')      
@@ -204,22 +204,23 @@ def read_ASCOT_dist(filename, pinhole_area = None, B=4, A=None, Z=None,
 
         with open(filename, 'r') as file:
                 lines = file.readlines()
-        modified_lines = []       
+        modified_lines = []        
         for line in lines:
             if line.startswith('#'): #skips headers
                 continue
             else:
                 c = line.split()
-                c[0] = math.acos(float(c[0]))*180.0/math.pi
+                c[6] = math.acos(float(c[6]))*180.0/math.pi
 
-                c[1] = float(c[1])*1e6
+                c[7] = float(c[7])*1e6
 
                 ions_head += float(c[3])
                 if pinhole_area != None: #multiply weight by pinhole_area
-                    c[3] = float(c[3])*pinhole_area
-                    ions_pinhole += float(c[3])
+                    c[9] = float(c[9])*pinhole_area
+                    ions_pinhole += float(c[9])
                 
-                modified_line = f"{c[0]} {c[1]} {c[2]} {c[3]} {c[4]} {c[5]} "
+                modified_line = f"{c[0]} {c[1]} {c[2]} {c[3]} {c[4]} {c[5]} \
+                      {c[6]} {c[7]} {c[8]} {c[9]} {c[10]} {c[11]}"
                 modified_lines.append(modified_line)    
 
         # Write a second file with the pitch in degreees
@@ -1114,9 +1115,6 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
         except:
             logger.info('- No FoV plotted beacuse whatever')
     
-    # ax_param = {'xlabel': 'xpix', 'ylabel': 'ypix'}
-    # ax = ssplt.axis_beauty(ax, ax_param)
-    
 
     if figtitle != None:
         fig.suptitle(figtitle,size=12)
@@ -1125,6 +1123,10 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
     plt.tight_layout()
     ax.set_xlim([1,cam_params['nx']])
     ax.set_ylim([1,cam_params['ny']])
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xlabel('')
+    ax.set_ylabel('')
     plt.show(block=False)
 
     return fig, ax
@@ -1153,7 +1155,7 @@ def plot_noise_contributions(frame, cam_params: dict={}, maxval = False,
 
     for i in frame['noises']:
         frame_to_plot = frame['noises'][i]
-        fig, ax = plt.subplots(figsize=(8,15/2.54))
+        fig, ax = plt.subplots(figsize=(8,6))
         if i == 'broken':
             bw_cmap =  LinearSegmentedColormap.from_list(
                 'mycmap', ['black', 'white'], N=2)
