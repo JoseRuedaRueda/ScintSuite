@@ -39,6 +39,8 @@ UserPaths:
 # %% BLOCK 2: SCINTSUITE CUSTOM PLOTTING STYLES
 # -----------------------------------------------------------------------------
 UserPlotStyles:
+  defaultPlotStyle: 'software'
+  defaultColorMap: 'Gamma_II'
   default:
     font: 'Arial'                       # Default font for axis
     transparent_background: true        # Set transparent background to export

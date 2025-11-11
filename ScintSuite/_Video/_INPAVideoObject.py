@@ -140,7 +140,7 @@ class INPAVideo(FIV):
                 try:
                     self.PMTcalibration = \
                         INPAlogbook.getPMTCalibration(shot, diag_ID)
-                except FileNotFoundError:
+                except (FileNotFoundError, AttributeError):
                     self.PMTcalibration = None
             else:
                 self.position = None
@@ -283,7 +283,7 @@ class INPAVideo(FIV):
                 self._getB(self.BFieldOptions, use_average=use_avg)
 
             if self.Bangles['phi'].size != nt: 
-                self._getBangles(use_average=use_avg)
+                self._getBangles()
         if 'MC_number' in opt.keys():        
             logger.debug('Number of MC particles %i', opt['MC_number'])
         else:
@@ -473,7 +473,7 @@ class INPAVideo(FIV):
         # --- Initialise the plotting options
         # Color map
         if ccmap is None:
-            cmap = ssplt.Gamma_II()
+            cmap = ssplt.default_cmap()
         else:
             cmap = ccmap
         # scale

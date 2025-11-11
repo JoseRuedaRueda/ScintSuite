@@ -111,6 +111,8 @@ class GeneralStrikeMap(XYtoPixel):
         :param  variables_to_remap: tuple contianing the name of the 2 selected
             variables
         """
+        if verbose:
+            logger.warning('VERBOSE input is deprecated, will raise an error in 2.0.0')
         try:
             self._to_remap = [self._data[name] for name in variables_to_remap]
         except KeyError:
@@ -119,8 +121,7 @@ class GeneralStrikeMap(XYtoPixel):
         
             raise errors.NotValidInput(text)
         self._remap_var_names = variables_to_remap
-        if verbose:
-            logger.warning('Please call interp_grid to update the interpolators')
+        logger.warning('Please call interp_grid to update the interpolators')
 
     def interp_grid(self, frame_shape, method: int = 2,
                     verbose: bool = False,
@@ -154,6 +155,8 @@ class GeneralStrikeMap(XYtoPixel):
                 'var1_var2': 4D tensor for the remap to var1_var2
             }
         """
+        if verbose:
+            logger.warning('VERBOSE input is deprecated, will raise an error in 2.0.0')
         # ---- Check inputs
         if self._coord_pix['x'] is None:
             raise Exception('Transform to pixel the strike map before')
@@ -169,7 +172,6 @@ class GeneralStrikeMap(XYtoPixel):
             interpolator = scipy_interp.CloughTocher2DInterpolator
         else:
             raise errors.NotValidInput('Not recognized interpolation method')
-
         logger.debug('Using %s interpolation of the grid' % met)
         if self._grid_interp is not None:
             if self._grid_interp['method'] != met:

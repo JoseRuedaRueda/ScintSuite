@@ -38,8 +38,8 @@ def guess_strike_map_name(phi: float, theta: float, geomID: str = 'AUG02',
 
     :return name: the name of the strike map file
     """
-    p = round(phi, ndigits=decimals)
-    t = round(theta, ndigits=decimals)
+    p = np.round(phi, decimals=decimals)
+    t = np.round(theta, decimals=decimals)
     if p < 0:
         if t < 0:
             name = geomID +\

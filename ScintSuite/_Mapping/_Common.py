@@ -790,9 +790,8 @@ def gyr_profile(remap_frame, pitch_centers, min_pitch: float,
     max_used_pitch = used_pitches[-1] + 0.5 * delta
     dummy = remap_frame[flags, :]
     profile = np.sum(dummy, axis=0)
-    if verbose:
-        print('The minimum pitch used is: ', min_used_pitch)
-        print('The maximum pitch used is: ', max_used_pitch)
+    logger.debug('The minimum pitch used is: ', min_used_pitch)
+    logger.debug('The maximum pitch used is: ', max_used_pitch)
     if name is not None:
         if gyr is not None:
             date = datetime.datetime.now()
@@ -851,6 +850,8 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
     :Authors:
         Jose Rueda - jruedaru@uci.edu    
     """
+    if verbose:
+        logger.warning("VERBOSE option is deprecated, please avoid using it. it will raise an error in 2.0.0")
     # See which cells do we need
     flags = (gyr_centers <= max_gyr) * (gyr_centers >= min_gyr)
     if np.sum(flags) == 0:
@@ -864,9 +865,8 @@ def pitch_profile(remap_frame, gyr_centers, min_gyr: float,
     max_used_gyr = used_gyr[-1] + 0.5 * delta
     dummy = remap_frame[:, flags]
     profile = np.sum(dummy, axis=1)
-    if verbose:
-        print('The minimum gyroradius used is: ', min_used_gyr)
-        print('The maximum gyroradius used is: ', max_used_gyr)
+    logger.debug('The minimum gyroradius used is: ', min_used_gyr)
+    logger.debug('The maximum gyroradius used is: ', max_used_gyr)
 
     if name is not None:
         if pitch is not None:

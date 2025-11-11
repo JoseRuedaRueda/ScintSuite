@@ -162,7 +162,7 @@ class VRTVideo(BVO):
             dummy = self.exp_dat['frames'][:, :, frame_index].squeeze()
         # --- Check the colormap
         if ccmap is None:
-            cmap = ssplt.Gamma_II()
+            cmap = ssplt.default_cmap()
         else:
             cmap = ccmap
         # --- Check the axes to plot

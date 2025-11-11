@@ -158,11 +158,12 @@ class FIV(BVO):
         bt[btflags] = np.nanmean(bt)
         bpflags = np.isnan(bp)
         bp[bpflags] = np.nanmean(bp)
-        bnan = brflags + bzflags + btflags + bpflags
+        bnan = (brflags + bzflags + btflags + bpflags).flatten()
         # 
         if np.sum(bnan) > 0:
             logger.warning('The magnetic field was not calculated in some points. The mean value was used instead for those points')        
         
+
         # Save the data in the array
         self.BField = xr.Dataset()
         self.BField['BR'] = xr.DataArray(np.array(br).squeeze(), dims=('t'),
@@ -207,6 +208,8 @@ class FIV(BVO):
 
         :return full_name_smap: Name of the used strike map
         """
+        if verbose:
+            logger.warning("VERBOSE option is deprecated, please avoid using it. it will raise an error in 2.0.0")
         # # Get Bangles
         # if self.Bangles is None:
         #     self._getB()
@@ -241,13 +244,12 @@ class FIV(BVO):
         smap_folder = self.strikemap.attrs['smap_folder']
         full_name_smap = os.path.join(smap_folder, name__smap)
 
-        if verbose:
-            theta_calculated = self.Bangles['theta'].values[frame_index]
-            phi_calculated = self.Bangles['phi'].values[frame_index]
-            print('Calculated theta: ', theta_calculated)
-            print('Used theta: ', theta_used)
-            print('Calculated phi: ', phi_calculated)
-            print('Used phi: ', phi_used)
+        theta_calculated = self.Bangles['theta'].values[frame_index]
+        phi_calculated = self.Bangles['phi'].values[frame_index]
+        logger.debug('Calculated theta: ', theta_calculated)
+        logger.debug('Used theta: ', theta_used)
+        logger.debug('Calculated phi: ', phi_calculated)
+        logger.debug('Used phi: ', phi_used)
 
         return full_name_smap
 
@@ -313,7 +315,7 @@ class FIV(BVO):
 
         :param  frame_number: Number of the frame to plot (option 1)
         :param  ax: Axes where to plot, is none, just a new axes will be created
-        :param  ccmap: colormap to be used, if none, Gamma_II from IDL
+        :param  ccmap: colormap to be used, if none, default from IDL
         :param  strike_map: StrikeMap to plot:
             -  # 'auto': The code will load the Smap corresponding to the theta
             phi angles. Note, the angles should be calculated, so the remap,
@@ -474,7 +476,7 @@ class FIV(BVO):
             dummy = dummy.copy()/dummy.max()  # To avoid modifying the video
         # --- Check the colormap
         if ccmap is None:
-            cmap = ssplt.Gamma_II()
+            cmap = ssplt.default_cmap()
         else:
             cmap = ccmap
         # --- Prepare the scale:

@@ -34,6 +34,7 @@ class ApplicationShowVid:
             'Cai': ssplt.Cai(),
             'Greys': plt.get_cmap('Greys_r'),
             'Gamma_II': ssplt.Gamma_II(),
+            'Gamma_IIb': ssplt.Gamma_IIb(),
             'Plasma': plt.get_cmap('plasma'),
             'BWR': plt.get_cmap('bwr')
         }
