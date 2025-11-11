@@ -255,6 +255,8 @@ class FILDVideo(FIV):
                   name.
         @TODO: add posibility to look for smaps in other folder
         """
+        if verbose:
+            logger.warning("VERBOSE option is deprecated, please avoid using it. it will raise an error in 2.0.0")
         if self.orientation is None:
             raise Exception('FILD orientation not known')
         phi, theta = \
@@ -307,7 +309,7 @@ class FILDVideo(FIV):
                         phi[iframe], theta[iframe], geomID=self.geometryID,
                         decimals=decimals
                         )
-                if verbose: logger.debug(os.path.join(smap_folder, name))
+                logger.debug(os.path.join(smap_folder, name))
                 # See if the strike map exist
                 if os.path.isfile(os.path.join(smap_folder, name)):
                     exist[iframe] = True
@@ -446,6 +448,8 @@ class FILDVideo(FIV):
         :return phi: phi angle [º]
         :return theta: theta angle [º]
         """
+        if verbose:
+            logger.warning("VERBOSE option is deprecated, please avoid using it. it will raise an error in 2.0.0")
         if self.remap_dat is None:
             if self.orientation is None:
                 raise Exception('FILD orientation not know')
@@ -480,15 +484,14 @@ class FILDVideo(FIV):
                 theta = self.remap_dat['theta'].values[it]
                 phi = self.remap_dat['phi'].values[it]
                 time = self.remap_dat['t'].values[it]
-        if verbose:
-            # I include these 'np.array' in order to be compatible with the
-            # case of just one time point and multiple ones. It is not the most
-            # elegant way to proceed, but it works ;)
-            print('Requested time:', t)
-            if self.remap_dat is not None:
-                print('Found time: ', time)
-            print('Average theta:', np.array(theta).mean())
-            print('Average phi:', np.array(phi).mean())
+        # I include these 'np.array' in order to be compatible with the
+        # case of just one time point and multiple ones. It is not the most
+        # elegant way to proceed, but it works ;)
+        logger.debug('Requested time:', t)
+        if self.remap_dat is not None:
+            logger.debug('Found time: ', time)
+        logger.debug('Average theta:', np.array(theta).mean())
+        logger.debug('Average phi:', np.array(phi).mean())
         return phi, theta
 
     def GUI_frames_and_remap(self):
@@ -558,7 +561,7 @@ class FILDVideo(FIV):
         # --- Initialise the plotting options
         # Color map
         if ccmap is None:
-            cmap = ssplt.Gamma_II()
+            cmap = ssplt.default_cmap()
         else:
             cmap = ccmap
         # scale

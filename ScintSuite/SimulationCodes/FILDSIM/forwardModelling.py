@@ -366,7 +366,7 @@ def plot_synthetic_signal(r, p, signal, cmap=None, ax=None, fig=None,
     ax_options_profiles.update(ax_params_profiles)
     # Prepare the color map:
     if cmap is None:
-        cmap = ssplt.Gamma_II()
+        cmap = ssplt.default_cmap()
 
     # Open the axis:
     if ax is None:
@@ -651,7 +651,7 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     }
     if plot:
         fig, ax = plt.subplots()
-        img = ax.imshow(distorted_frame, cmap=ssplt.Gamma_II(), origin='lower',
+        img = ax.imshow(distorted_frame, cmap=ssplt.default_cmap(), origin='lower',
                   vmin=0, vmax=255)
         smap.plot_pix(ax, labels=False)
         scintillator.plot_pix(ax)
@@ -821,7 +821,7 @@ def plot_W(W4D, pr, pp, sr, sp, pp0: float = None, pr0: float = None,
     """
     # --- Color map
     if cmap is None:
-        ccmap = ssplt.Gamma_II()
+        ccmap = ssplt.default_cmap()
     # --- Potting of the scintillator weight
     # We will select a point of the pinhole and see how it seen in the
     # scintillator

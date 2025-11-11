@@ -31,7 +31,6 @@ __all__ = ['remapAllLoadedFrames']
 def remapAllLoadedFrames(video,
                          ymin: float = 1., ymax: float = 10.5, dy: float = 0.1,
                          xmin: float = 15., xmax: float = 90., dx: float = 1.0,
-                         t0: float = None,
                          code_options: dict = {},
                          method: int = 1,
                          verbose: bool = False,
@@ -45,7 +44,9 @@ def remapAllLoadedFrames(video,
                          use_average: bool = False,
                          variables_to_remap: tuple = ('pitch', 'gyroradius'),
                          A: float = 2.01410178, Z: float = 1.0,
-                         transformationMatrixLimit: float = 10.0) -> xr.Dataset:
+                         transformationMatrixLimit: float = 10.0,
+                         t0: float = None,
+                         ) -> xr.Dataset:
     """
     Remap all loaded frames from a FILD video.
 
@@ -125,6 +126,8 @@ def remapAllLoadedFrames(video,
         really knows what is doing. Please use just the function
         remap_all_loaded_frames() from the video object
     """
+    if verbose:
+        logger.warning("VERBOSE option is deprecated, please avoid using it. it will raise an error in 2.0.0")
     # --------------------------------------------------------------------------
     # --- INPUTS CHECK AND PREPARATION
     # --------------------------------------------------------------------------
@@ -157,15 +160,24 @@ def remapAllLoadedFrames(video,
         MC_number = 0  # to turn off the transformation matrix calculation
     # -- Prepare the frames
     if not use_average:
-        data = video.exp_dat
+        if t0 is None:
+            data = video.exp_dat
+        else:
+            idx = int(np.abs(video.exp_dat.t - t0).argmin())
+            data = video.exp_dat.isel(t=slice(idx,idx+1), drop=False)
     else:
-        data = video.avg_dat
+        if t0 is None:
+            data = video.avg_dat
+        else:
+            idx = int(np.abs(video.avg_dat.t - t0).argmin())
+            data = video.avg_dat.isel(t=slice(idx,idx+1), drop=False)
+    if t0 is None:
+        Bangles = video.Bangles
+        strikemap = video.strikemap
+    else:
+        Bangles = video.Bangles.isel(t=slice(idx,idx+1), drop=False)
+        strikemap = video.strikemap.isel(t=slice(idx,idx+1), drop=False)
     # -- Get frame shape:
-    if t0 != None:
-        idx = int(np.abs(data.t - t0).argmin())
-        data = data.isel(t=slice(idx,idx+1), drop=False)
-        video.Bangles = video.Bangles.isel(t=slice(idx,idx+1), drop=False)
-        video.strikemap = video.strikemap.isel(t=slice(idx,idx+1), drop=False)
     nframes = data['frames'].shape[2]
     frame_shape = data['frames'].shape[0:2]
 
@@ -226,12 +238,12 @@ def remapAllLoadedFrames(video,
     name = ' '      # To save the name of the strike map
     name_old = ' '  # To avoid loading twice in a row the same map
     if not got_smap:
-        if decimals != video.Bangles['phi_used'].attrs['decimals']:
+        if decimals != Bangles['phi_used'].attrs['decimals']:
             print('Recalculating theta-phi')
             # CHANGE FROM HERE
             # -- Collect the angles
-            phi = video.Bangles['phi'].values
-            theta = video.Bangles['theta'].values
+            phi = Bangles['phi'].values
+            theta = Bangles['theta'].values
             # Check that the angles were calculated for the frames (it can happen
             # that the user recalculate the angles after averaging, so they are
             # evaluated in the original time base). There is a check in the video
@@ -294,11 +306,11 @@ def remapAllLoadedFrames(video,
                         theta_used[ii] = np.round(theta[icloser], decimals=decimals)
                         phi_used[ii] = np.round(phi[icloser], decimals=decimals)
         else:
-            theta_used = video.Bangles['theta_used'].values
-            theta = video.Bangles['theta'].values
-            phi = video.Bangles['phi'].values
-            phi_used = video.Bangles['phi_used'].values
-            exist = video.strikemap['exist'].values
+            theta_used = Bangles['theta_used'].values
+            theta = Bangles['theta'].values
+            phi = Bangles['phi'].values
+            phi_used = Bangles['phi_used'].values
+            exist = strikemap['exist'].values
 
 
     else:  # the case the smap was passed as input
@@ -352,10 +364,9 @@ def remapAllLoadedFrames(video,
             common.remap(smap, data['frames'].values[:, :, iframe],
                          x_edges=xedges, y_edges=yedges, mask=mask,
                          method=remap_method)
-    if verbose:
-        toc = time.time()
-        print('Whole time interval remapped in: ', toc-tic, ' s')
-        print('Average time per frame: ', (toc-tic) / nframes, ' s')
+    toc = time.time()
+    logger.info('Whole time interval remapped in: ', toc-tic, ' s')
+    logger.info('Average time per frame: ', (toc-tic) / nframes, ' s')
     # Construct the data set
     remap_dat = xr.Dataset()
     remap_dat['frames'] = \

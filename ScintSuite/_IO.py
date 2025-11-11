@@ -172,13 +172,13 @@ def read_variable_ncdf(file: str, varNames, human=True, verbose=True) -> list:
     out = []
     varfile = netcdf.netcdf_file(file, 'r', mmap=False).variables
     for ivar in range(len(listNames)):
-        if verbose: logger.info('Reading: %s' % listNames[ivar])
+        logger.info('Reading: %s' % listNames[ivar])
         try:
             dummy = varfile[listNames[ivar]]
             out.append(dummy)
             del dummy
         except KeyError:
-            if verbose: logger.warning('Var %s not found' % listNames[ivar])
+            logger.warning('Var %s not found' % listNames[ivar])
             out.append(None)
     return out
 

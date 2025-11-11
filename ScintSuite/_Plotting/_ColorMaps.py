@@ -8,26 +8,43 @@ Contains:
     -Gamma_III: Same as Gamma_II, but with grey at the bottom for contrast
     -Cai: Color map with the colors of Cadiz
 """
+import os
+import yaml
 from matplotlib.colors import LinearSegmentedColormap
-__all__ = ['Gamma_II', 'Gamma_III', 'Gamma_I', 'Cai']
+__all__ = ['Gamma_I', 'Gamma_II', 'Gamma_IIb',. 'Gamma_III', 'Cai']
 
-# Deprecated
-# def Gamma_II(n=256):
-#     """
-#     Gamma II colormap
 
-#     This function creates the colormap that coincides with the
-#     Gamma_II_colormap of IDL.
+def Gamma_I(n=256):
+    """
+    Gamma_II colormap without white
 
-#     Jose Rueda: jrrueda@us.es
+    Alex Reyner: alereyvinn@alum.us.es
 
-#     :param  n: numbers of levels of the output colormap
-#     """
-#     cmap = LinearSegmentedColormap.from_list(
-#         'mycmap', ['black', 'blue', 'red', 'yellow', 'white'], N=n)
-#     return cmap
+    :param  n: numbers of levels of the output colormap
+    """
+    cmap = LinearSegmentedColormap.from_list(
+        'mycmap', ['black', 'blue', 'purple', 
+                   'red', 'orange', 'yellow'], N=n)
+    
+    return cmap
 
 def Gamma_II(n=256):
+    """
+    Gamma II colormap
+
+    This function creates the colormap that coincides with the
+    Gamma_II_colormap of IDL.
+
+    Jose Rueda: jrrueda@us.es
+
+    :param  n: numbers of levels of the output colormap
+    """
+    cmap = LinearSegmentedColormap.from_list(
+        'mycmap', ['black', 'blue', 'red', 'yellow', 'white'], N=n)
+    return cmap
+
+
+def Gamma_IIb(n=256):
     """
     Gamma_II colormap
 
@@ -41,7 +58,6 @@ def Gamma_II(n=256):
         'mycmap', ['black', 'blue', 'purple', 
                    'red', 'orange', 'yellow', 'white'], N=n)
     return cmap
-
 
 def Gamma_III(n=256):
     """
@@ -59,21 +75,6 @@ def Gamma_III(n=256):
         "mycmap", list(zip(color_positions, colors)),N=n)
     return cmap
 
-
-def Gamma_I(n=256):
-    """
-    Gamma_I colormap without white
-
-    Alex Reyner: alereyvinn@alum.us.es
-
-    :param  n: numbers of levels of the output colormap
-    """
-    cmap = LinearSegmentedColormap.from_list(
-        'mycmap', ['black', 'blue', 'purple', 
-                   'red', 'orange', 'yellow'], N=n)
-    
-    return cmap
-
 def Cai(n=256):
     """
     Cai II colormap
@@ -87,3 +88,22 @@ def Cai(n=256):
     cmap = LinearSegmentedColormap.from_list(
         'mycmap', ['blue', 'yellow'], N=n)
     return cmap
+
+# ----- SUITE default colormaps -----
+
+home = os.getenv("ScintSuitePath")
+if home is None:
+    home = os.path.join(os.getenv("HOME"), 'ScintSuite')
+UserSettings = os.path.join(home, 'Settings.yml')
+with open(UserSettings, 'r') as stream:
+    try:
+        settings = yaml.safe_load(stream)
+    except yaml.YAMLError as exc:
+        print(exc)
+        raise Exception('Error reading the settings file')
+if 'defaultColorMap' in settings['UserPlotStyles'].keys():
+    default_cmap_name = settings['UserPlotStyles']['defaultColorMap']
+    if default_cmap_name in __all__:
+        default_cmap = globals()[default_cmap_name]
+    else:
+        default_cmap = Gamma_II

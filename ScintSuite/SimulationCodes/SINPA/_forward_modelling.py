@@ -32,9 +32,9 @@ from ScintSuite.SimulationCodes.FILDSIM.execution import get_energy
 from ScintSuite.SimulationCodes.FILDSIM.execution import get_gyroradius
 import ScintSuite.SimulationCodes.FILDSIM.forwardModelling as ssfM
 import ScintSuite.SimulationCodes.Common.geometry as geometry
-from ScintSuite._Plotting._ColorMaps import Gamma_II
+from ScintSuite._Plotting._ColorMaps import default_cmap
 import ScintSuite._Plotting as ssplt
-
+import ScintSuite._Mapping._Common as common
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from matplotlib.colors import LinearSegmentedColormap
@@ -126,7 +126,7 @@ def read_ASCOT_dist(filename, pinhole_area = None, B=4, A=None, Z=None,
             A = out['Anum']
         if Z==None:
             Z = out['Znum']
-        r = get_gyroradius(E=out['energy'], B=B, A=A, Z=Z)
+        r = get_gyroradius(E=out['energy'], B=B, A=A, Z=Z, relativistic=True)
         out['gyroradius'] = r
 
 
@@ -296,7 +296,7 @@ def obtain_WF(smap, scintillator, efficiency_flag = False, B=4, A=2, Z=2,
 
 
 def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi, 
-                        plot=False, cmap=Gamma_II()):
+                        plot=False, cmap=default_cmap()):
     """
     Synthetic signal for pinhole and scintillator in pitch-gyroradius space
 
@@ -403,7 +403,7 @@ def synthetic_signal_pr(distro, WF = None, gyrophases = np.pi,
 
 
 def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2, 
-                         plot=False, cmap = Gamma_II()):
+                         plot=False, cmap = default_cmap()):
     """
     Transfors the pitch-gyroradius signal to pitch-energy signal
 
@@ -1049,7 +1049,7 @@ def noise_optics_camera(frame, eliminate_saturation = False,
 
 def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
                    cam_params: dict={}, maxval = None,
-                   figtitle = None, cmap = Gamma_II(), interpolation = 'none'):
+                   figtitle = None, cmap = default_cmap(), interpolation = 'none'):
     """
     Plot one frame, the scintillator and the strikemap
     
@@ -1133,7 +1133,7 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
 
 
 def plot_noise_contributions(frame, cam_params: dict={}, maxval = False,
-                             cmap=Gamma_II()):
+                             cmap=default_cmap()):
     """
     Plot all the noise contributions
     
@@ -1209,7 +1209,7 @@ def remap_the_frame(frame, WF = None,
     :return frame dictionary adding:
             'remapped_signal': remapped camera synthetic signal
     """    
-    import ScintSuite._Mapping._Common as common
+
 
     # In case WF is not specified, compute it (alpha is default)
     if WF is None:
@@ -1900,7 +1900,7 @@ def synthsig_xy_2coll(distros, scint,
 
 def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
                    cam_params: dict={}, maxval = None,
-                   figtitle = None, cmap=Gamma_II()):
+                   figtitle = None, cmap=default_cmap()):
     """
     Plot one frame, the scintillator and the strikemap
     

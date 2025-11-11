@@ -1611,7 +1611,7 @@ class Strikes:
         Jose Rueda: jrrueda@us.es
         :param  ax: axes where to plot
         :param  ax_params: parameters for the axis beauty
-        :param  cmap: color map to be used, if none -> Gamma_II()
+        :param  cmap: color map to be used, if none -> default()
         :param  nbins: number of bins for the 1D histogram
         :param  kind: kind of markers to consider (for FILDSIM just 0, default)
         """
@@ -1644,7 +1644,7 @@ class Strikes:
             }
         ax_options.update(ax_params)
         if cmap is None:
-            cmap = ssplt.Gamma_II()
+            cmap = ssplt.default_cmap()
         # --- Open the figure (if needed)
         if ax is None:
             fig, ax = plt.subplots()

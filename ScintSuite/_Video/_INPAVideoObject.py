@@ -137,11 +137,11 @@ class INPAVideo(FIV):
                 self.CameraCalibration = \
                     INPAlogbook.getCameraCalibration(shot, diag_ID)
 #                self.operatorComment = INPAlogbook.getComment(shot)
-                # try:
-                #     self.PMTcalibration = \
-                #         INPAlogbook.getPMTCalibration(shot, diag_ID)
-                # except FileNotFoundError:
-                #     self.PMTcalibration = None
+                try:
+                    self.PMTcalibration = \
+                        INPAlogbook.getPMTCalibration(shot, diag_ID)
+                except (FileNotFoundError, AttributeError):
+                    self.PMTcalibration = None
             else:
                 self.position = None
                 self.orientation = None
@@ -272,7 +272,7 @@ class INPAVideo(FIV):
         # is not given
         if 'map' not in options.keys():
             if self.BField is None:
-                self._getB(self.BFieldOptions,)
+                self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles is None:
                 self._getBangles()
             # Check if we need to recaluculate them because they do not
@@ -280,7 +280,7 @@ class INPAVideo(FIV):
             # not the average)
             if self.BField['BR'].size != nt:
                 logger.info('Need to recalculate the magnetic field')
-                self._getB(self.BFieldOptions,)
+                self._getB(self.BFieldOptions, use_average=use_avg)
 
             if self.Bangles['phi'].size != nt: 
                 self._getBangles()
@@ -473,7 +473,7 @@ class INPAVideo(FIV):
         # --- Initialise the plotting options
         # Color map
         if ccmap is None:
-            cmap = ssplt.Gamma_II()
+            cmap = ssplt.default_cmap()
         else:
             cmap = ccmap
         # scale

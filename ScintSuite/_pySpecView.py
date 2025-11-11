@@ -143,7 +143,7 @@ class pySpecView:
 
         # --- Prepare the colormap
         if cmap is None and not cross_phasogram:
-            cmap = ssplt.Gamma_II()
+            cmap = ssplt.default_cmap()
         if cross_phasogram:
             # Taken from Giovanni's code
             N_min = self._dat['mode colorbar'][0].min()

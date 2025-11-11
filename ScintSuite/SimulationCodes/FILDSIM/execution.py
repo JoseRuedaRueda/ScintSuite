@@ -317,9 +317,45 @@ def read_plate(filename):
 # -----------------------------------------------------------------------------
 # --- Energy definition FILDSIM
 # -----------------------------------------------------------------------------
+def get_energy(gyroradius, B: float, A: float = 2.01410178, Z: float = 1.0,
+               relativistic: bool = False):
+    """
+    Calculate the energy given a gyroradius, FILDSIM criteria
+
+    Jose Rueda-Rueda: jruedaru@uci.edu
+    
+    :param  gyroradius: Larmor radius as taken from FILD strike map [in cm]
+    :param  B: Magnetic field, [in T]
+    :param  A: Ion mass number (A=0 means electrons)
+    :param  Z: Ion charge [in e units] (if A=0, Z=1, electron charge)
+    :param  relativistic: Flag to use relativistic formula or not
+    """
+    if relativistic:
+        return get_energy_relativistic(gyroradius, B, A, Z)
+    else:
+        return get_energy_classic(gyroradius, B, A, Z)
 
 
-def get_energy(gyroradius, B: float, A: float = 2.01410178, Z: float = 1.0):
+def get_energy_classic(gyroradius, B: float, A: float = 2.01410178, Z: float = 1.0):
+    """
+    Calculate the energy given a gyroradius, FILDSIM criteria
+
+    jose Rueda: jrrueda@us.es
+
+    :param  gyroradius: Larmor radius as taken from FILD strike map [in cm]
+    :param  B: Magnetic field, [in T]
+    :param  A: Ion mass number
+    :param  Z: Ion charge [in e units]
+
+    :return E: the energy [in eV]
+    """
+    # E[ev] = (1/2 * (r[cm]/100*Z*B[T])**2 / m) * ec
+    m = ssp.amu2kg * A  # Mass of the ion
+    E = (0.5 * ((gyroradius/100.0) * Z * B)**2 / m) * ssp.ec
+    return E
+
+def get_energy_relativistic(gyroradius, B: float, A: float = 2.01410178, 
+                            Z: float = 1.0):
     """
     Calculate the energy given a gyroradius, FILDSIM criteria
     Relativistic correction, implemented to include runaway electrons
@@ -344,8 +380,44 @@ def get_energy(gyroradius, B: float, A: float = 2.01410178, Z: float = 1.0):
 
     return E
 
+def get_gyroradius(E:float, B: float, A: float = 2.01410178, Z: float = 1.0, 
+                   relativistic: bool = False):
+    """
+    Calculate the gyroradius given an energy, FILDSIM criteria
 
-def get_gyroradius(E, B: float, A: float = 2.01410178, Z: float = 1.0):
+    Jose Rueda-Rueda: jruedaru@uci.edu
+    
+    :param  energy: Energy [eV]
+    :param  B: Magnetic field, [in T]
+    :param  A: Ion mass number (A=0 means electrons)
+    :param  Z: Ion charge [in e units] (if A=0, Z=1, electron charge)
+    :param  relativistic: Flag to use relativistic formula or not
+    """
+    if relativistic:
+        return get_gyroradius_relativistic(E, B, A, Z)
+    else:
+        return get_gyroradius_classic(E, B, A, Z)
+
+def get_gyroradius_classic(E, B: float, A: float = 2.01410178, Z: float = 1.0):
+    """
+    Calculate the gyroradius given an energy, FILDSIM criteria
+
+    jose Rueda: jrrueda@us.es
+
+    :param  energy: Energy [eV]
+    :param  B: Magnetic field, [in T]
+    :param  A: Ion mass number
+    :param  Z: Ion charge [in e units]
+
+    :return r: Larmor radius as taken from FILD strike map [in cm]
+    """
+    # r[cm] = sqrt(2*(E[eV]/ec)*m) / (Z*B[T]) * 100
+    m = ssp.amu2kg * A  # Mass of the ion
+    r = 100. * np.sqrt(2.0 * (E/ssp.ec) * m) / (Z*B)
+    return r
+
+def get_gyroradius_relativistic(E, B: float, A: float = 2.01410178, 
+                                Z: float = 1.0):
     """
     Calculate the gyroradius given an energy, FILDSIM criteria
     Relativistic correction, implemented to include runaway electrons
@@ -412,47 +484,9 @@ def get_velocity(gyroradius, B: float = 1.9, A: float = 2.01410178, Z: float = 1
     :return E: the energy [in eV]
     """
 
-    E = get_energy(gyroradius,B,A,Z)
+    E = get_energy(gyroradius,B,A,Z, True)
     beta = get_beta(E,B,A,Z)
     v = beta * ssp.c
 
     return v
-
-
-def get_energy_classic(gyroradius, B: float, A: float = 2.01410178, Z: float = 1.0):
-    """
-    Calculate the energy given a gyroradius, FILDSIM criteria
-
-    jose Rueda: jrrueda@us.es
-
-    :param  gyroradius: Larmor radius as taken from FILD strike map [in cm]
-    :param  B: Magnetic field, [in T]
-    :param  A: Ion mass number
-    :param  Z: Ion charge [in e units]
-
-    :return E: the energy [in eV]
-    """
-    # E[ev] = (1/2 * (r[cm]/100*Z*B[T])**2 / m) * ec
-    m = ssp.amu2kg * A  # Mass of the ion
-    E = (0.5 * ((gyroradius/100.0) * Z * B)**2 / m) * ssp.ec
-    return E
-
-def get_gyroradius_classic(E, B: float, A: float = 2.01410178, Z: float = 1.0):
-    """
-    Calculate the gyroradius given an energy, FILDSIM criteria
-
-    jose Rueda: jrrueda@us.es
-
-    :param  energy: Energy [eV]
-    :param  B: Magnetic field, [in T]
-    :param  A: Ion mass number
-    :param  Z: Ion charge [in e units]
-
-    :return r: Larmor radius as taken from FILD strike map [in cm]
-    """
-    # r[cm] = sqrt(2*(E[eV]/ec)*m) / (Z*B[T]) * 100
-    m = ssp.amu2kg * A  # Mass of the ion
-    r = 100. * np.sqrt(2.0 * (E/ssp.ec) * m) / (Z*B)
-    return r
-
 

@@ -5,7 +5,9 @@ Basically here are hard-cored almost all the parameters of the suite
 from scipy.constants import speed_of_light as c
 from scipy.constants import elementary_charge as ec
 from scipy.constants import electron_mass as m_e_kg
+from scipy.constants import electron_mass #yep, repeated, I need to refractor a bit other parts of the code #TODO 2.0.0
 from scipy.constants import proton_mass as m_p_kg
+from scipy.constants import proton_mass as mp_kg
 from scipy.constants import neutron_mass as m_n_kg
 
 # Physics constants

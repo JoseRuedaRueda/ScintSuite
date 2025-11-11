@@ -21,7 +21,7 @@ __all__ = ['plotSettings', 'axis_beauty']
 # -----------------------------------------------------------------------------
 # --- Plot settings
 # -----------------------------------------------------------------------------
-def plotSettings(plot_mode='default', usetex=False):
+def plotSettings(plot_mode='software', usetex=False):
     """
     Set default options for matplotlib
 
@@ -94,7 +94,7 @@ def plotSettings(plot_mode='default', usetex=False):
     try:
         mpl.rcParams['font.size'] = nml[mode]['inside_text_font_size']
     except KeyError:
-        mpl.rcParams['font.size'] = nml[mode]['axis_font_size'] - 2 # 2 points less than the axis label
+        mpl.rcParams['font.size'] = nml[mode]['axis_font_size']
 
     mpl.rcParams['axes.titlesize'] = nml[mode]['title_font_size']
     plt.rcParams['figure.titlesize'] = nml[mode]['title_font_size']
