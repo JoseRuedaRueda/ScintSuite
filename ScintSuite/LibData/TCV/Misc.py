@@ -244,9 +244,26 @@ def get_ELM_timebase(shot: int, time: float = None, edition: int = 0,
         -# n: The number of ELMs
     """
     # --- Open the AUG shotfile
-    sfo = sf.SFREAD(shot, 'ELM', edition=edition, experiment=exp)
+    '''
+    First run the ELM detection matlab script of Alessandro
+    (https://gitlab.epfl.ch/spc/defuse/-/tree/feature/DEFUSE?ref_type=heads)
+    ssh lac10
+    cd NoTivoli/jansen/DEFUSE
+    matlab
 
-    if not sfo.status:
+    shot = 82451
+
+    setup_DEFUSE_paths;
+    [table_tcv,SXR]=get_sig_data_TCV(shot);
+    [ELM, table_out] = DEFUSE_ELM_detection(struct2table(table_tcv));
+    save('/NoTivoli/jansen/SF/ELM/XXX.mat', 'ELM')
+    '''
+    file = '/NoTivoli/jansen/SF/ELM/%i.mat'%shot
+
+    try:
+        ELM = mat.read_file(file)
+        #ELM['ELM'][0][0][0]
+    except:
         raise Exception('Cannot access shotfile %s:#%05d:ELM' % (exp, shot))
     tELM = {
         't_onset':  sfo('tELM'),
