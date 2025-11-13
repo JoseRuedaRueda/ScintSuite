@@ -170,6 +170,179 @@ def write_stl_geometry_files(root_dir
     
     return
 
+def load_3D_ripple_field(shot, time
+                         , use_gdat = False
+                         ):
+    '''
+
+    '''
+    import sys, os, getpass
+    sys.path.append('/home/jansen/NoTivoli/ascot-tcv/tcvpy/')
+    import tcv
+    import scipy.interpolate as interp
+    import eqtools
+
+    ## first we need to get the coil currents to adjust the 3D field 
+    MDS_tdi_command = r'\magnetics::iphi'
+    MDS_Connection = tcv.shot(shotnum = shot)
+    data_coil = MDS_Connection.tdi(MDS_tdi_command)
+    time_coil = MDS_Connection.tdi('dim_of(%s, 0)'%MDS_tdi_command).values 
+    MDS_Connection.close()
+
+    t_idx = np.argmin( np.abs(time_coil - time) ) 
+    coil_current = data_coil[t_idx, 0].values   
+
+    root = '/home/jansen/NoTivoli/SF/RIPPLE/'
+    if use_gdat:
+        extention = 'chease'
+    else:
+        extention = 'LIUQE'
+
+    Bx = np.genfromtxt('%sbx_%s.csv'%(root, extention), delimiter=',')* coil_current
+    By = np.genfromtxt('%sby_%s.csv'%(root, extention), delimiter=',')* coil_current
+    Bz = np.genfromtxt('%sbz_%s.csv'%(root, extention), delimiter=',')* coil_current
+
+    ###
+    ### load 2D equilibrium
+    ###
+    if use_gdat:
+        #important no spaces allowed in LAC10 when calling MATLAB
+
+        user = getpass.getuser()
+        fn_eqdsk = f'/tmp/{user}/EQDSK_{shot}t{time:1.4f}_COCOS17'
+        #only run CHEASE if eqdsk file doesn't exist, to save some time
+        if not os.path.exists(fn_eqdsk):
+            cmd = f"matlab -nodisplay -r \"eq=gdat({shot},'eqdsk','time',{time},'liuqe',{1},'source','chease');exit\"" 
+            os.system(cmd)
+
+        cocos_in = 17
+        fn_eqdsk = f'/tmp/{user}/EQDSK_{shot}t{time:1.4f}_COCOS17'
+        
+        #equilibrium_bfield = importdata.ImportData.import_geqdsk(importdata.ImportData(), fn = fn_eqdsk, cocos = cocos_in )[1]
+        from freeqdsk import geqdsk
+        with open(fn_eqdsk, "r") as f:
+            eqd = geqdsk.read(f)
+
+        equilibrium_bfield = {
+            "nr" : eqd["nx"],
+            "rmin" : eqd["rleft"], "rmax" : eqd["rleft"]+eqd["rdim"],
+            "nz" : eqd["ny"],
+            "zmin" : eqd["zmid"] - 0.5*eqd["zdim"],
+            "zmax" : eqd["zmid"] + 0.5*eqd["zdim"],
+            "axisr" : eqd["rmagx"], "axisz" : eqd["zmagx"],
+            "psi" : eqd["psi"], "psi0" : eqd["simagx"], "psi1" : eqd["sibdry"],
+            "br" : eqd["psi"], "bz" : eqd["psi"]
+        }
+
+
+
+
+        rGrid = np.linspace(equilibrium_bfield['rmin'], equilibrium_bfield['rmax'], equilibrium_bfield['nr'])
+        zGrid = np.linspace(equilibrium_bfield['zmin'], equilibrium_bfield['zmax'], equilibrium_bfield['nz'])
+        meshR, meshZ   = np.meshgrid(rGrid, zGrid, indexing="ij")
+
+
+        rgrid = np.linspace(equilibrium_bfield['rmin'], equilibrium_bfield['rmax'], equilibrium_bfield['nr'])
+        zgrid = np.linspace(equilibrium_bfield['zmin'], equilibrium_bfield['zmax'], equilibrium_bfield['nz'])
+        rmesh, zmesh   = np.meshgrid(rgrid, zgrid, indexing="ij")
+        import scipy
+        psiOfRZSpline = scipy.interpolate.RectBivariateSpline(
+            rgrid,
+            zgrid,
+            equilibrium_bfield["psi"]/ (2.0 * scipy.pi),
+            s=0
+        )
+
+        _currentSign = 1 if np.mean(eqd['cpasma']) > 1e5 else -1
+
+        equilibrium_bfield['br'] = - 1.0 / rmesh * psiOfRZSpline.ev(rmesh, zmesh, dx=0, dy=1)  * -1.0 * _currentSign
+        equilibrium_bfield['bz'] = 1.0 / rmesh * psiOfRZSpline.ev(rmesh, zmesh, dx=1, dy=0)  * -1.0 * _currentSign
+
+    else:
+        eq = eqtools.TCVLIUQEMATTree(shot)
+
+        rGrid = eq.getRGrid()
+        zGrid = eq.getZGrid()
+        meshR, meshZ = np.meshgrid(rGrid, zGrid, indexing = 'ij')
+
+        br = eq.rz2BR(meshR, meshZ, time)  
+        #bphi = eq.rz2BT(meshR.T, meshZ.T, time) # This only works inside the LCFS, so isntead follow example in importData from a5py
+        bz, it = eq.rz2BZ(meshR, meshZ, time, return_t = True)
+        it = it[0][0]
+
+        psi = eq.getFluxGrid()[it]
+        psi0, psi1 = eq.getFluxAxis()[it], eq.getFluxLCFS()[it]
+
+        axisR = eq.getMagR()[it]
+        axisZ = eq.getMagZ()[it]
+
+        #TCV current sign convention differs form eqtools convention
+        br = br * -1.0 * eq.getCurrentSign()  
+        bz = bz * -1.0 * eq.getCurrentSign()
+
+        # Toroidal component is more complicated for it can be evaluated from
+        # Btor = F/R but we need to map F(psi) to F(R,z) first. However, F(psi)
+        # is given only inside the plasma.
+
+        ##BT is tricky
+        F = eq.getF()[it]
+        psigrid = np.linspace(psi0, psi1, np.shape(F)[0]).T
+
+        if psi0 < psi1:
+            fpolrz  = np.interp(psi.T, psigrid, F, right=F[ -1])
+        else:
+            fpolrz  = np.interp(psi.T, psigrid[::-1], F[::-1], right=F[-1])
+        bphi = fpolrz / meshR
+
+        br = interp.interpn((rGrid, zGrid), br, (meshR, meshZ), fill_value=0.0, method='cubic')
+        bz = interp.interpn((rGrid, zGrid), bz, (meshR, meshZ), fill_value=0.0, method='cubic')
+        bphi = interp.interpn((rGrid, zGrid), bphi, (meshR, meshZ), fill_value=0.0, method='cubic')
+
+        equilibrium_bfield = {}
+        equilibrium_bfield['rmin'], equilibrium_bfield['rmax'], equilibrium_bfield['nr'] = np.min(rGrid), np.max(rGrid), len(rGrid)
+        equilibrium_bfield['zmin'], equilibrium_bfield['zmax'], equilibrium_bfield['nz'] = np.min(zGrid), np.max(zGrid), len(zGrid)
+        equilibrium_bfield['axisr'], equilibrium_bfield['axisz'] = axisR, axisZ
+        equilibrium_bfield['psi'], equilibrium_bfield['psi0'], equilibrium_bfield['psi1'] = psi.T, psi0, psi1
+        equilibrium_bfield['br'], equilibrium_bfield['bphi'], equilibrium_bfield['bz'] = br, bphi, bz
+
+    #reshape bfield components
+    if use_gdat:
+        shape = (129, 129, 360)
+    else:
+        shape = (28, 65, 360)
+
+    bx = np.reshape(Bx, shape)
+    by = np.reshape(By, shape)
+    bz = np.reshape(Bz, shape)
+
+    bx = bx[:,:,:-1]
+    by = by[:,:,:-1]
+    bz = bz[:,:,:-1]
+
+    phiGrid = np.linspace(-np.pi, np.pi, 360)
+    meshR, meshZ, meshPhi = np.meshgrid(rGrid, zGrid, phiGrid,indexing = 'ij')
+    phi = meshPhi#np.reshape(np.genfromtxt('%sphi_%s.csv'%(root, extention), delimiter=','), shape)
+    phi = phi[:,:,:-1]
+
+    br = bx*np.cos(phi) + by*np.sin(phi)
+    bphi = -bx*np.sin(phi) + by*np.cos(phi)
+
+    bphi = bphi#* -1.0 * eq.getCurrentSign() 
+
+    b_phimin, b_phimax, b_nphi = np.rad2deg(-np.pi), np.rad2deg(np.pi), 359
+    #b_phimin, b_phimax, b_nphi = -np.pi, np.pi, 359
+
+    br_3D = br + np.repeat(equilibrium_bfield['br'][:, :, np.newaxis], b_nphi, axis=2)
+    bphi_3D = bphi #+ equilibrium_bfield['bphi'] -  Bt_2D_vac
+    bz_3D = bz + np.repeat(equilibrium_bfield['bz'][:, :, np.newaxis], b_nphi, axis=2)
+
+    br_3D = np.swapaxes(br_3D, 1, 2)
+    bphi_3D = np.swapaxes(bphi_3D, 1, 2)
+    bz_3D = np.swapaxes(bz_3D, 1, 2)
+
+    
+    return rGrid, phiGrid, zGrid, br_3D, bphi_3D, bz_3D
+
 if __name__ == '__main__':
     # -----------------------------------------------------------------------------
     # --- Options
@@ -181,15 +354,15 @@ if __name__ == '__main__':
     plot_plate_geometry = True
     plot_3D = False
 
-    shot = 79177
-    Rinsertion = -17.0 #[mm] #negative means inserted
+    shot = 82846
+    Rinsertion = -17.2 #[mm] #negative means inserted
 
     if shot <=77469:
         year = 2022
     else:
         year = 2023
 
-    time = 1.0
+    time = 0.608
     use_reduced_stl_models = True
     use_1mm_pinhole = True
 
@@ -346,16 +519,17 @@ if __name__ == '__main__':
 
     ###Magnetic Field
     use_1D_Bfield = True  #Use the magnetic field at the slit
-    use_2D_Bfield = not use_1D_Bfield
-    if use_1D_Bfield:
-        xyzPin = np.mean(pinholes[idx_slit]['points'], axis = 0)   #get magnetic field for specific slit
-        xyzPin *=0.001 #convert to [m]
-        Rpin = np.sqrt(xyzPin[0]**2 + xyzPin[1]**2)
-        zPin = xyzPin[2]
-        
-        Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time)#, use_gdat = True)
-        modB = np.sqrt(Br**2 + Bz**2 + Bt**2) 
-    elif  use_2D_Bfield:
+    use_2D_Bfield = False
+    use_3D_ripple_Bfield = False
+    #if use_1D_Bfield:
+    xyzPin = np.mean(pinholes[idx_slit]['points'], axis = 0)   #get magnetic field for specific slit
+    xyzPin *=0.001 #convert to [m]
+    Rpin = np.sqrt(xyzPin[0]**2 + xyzPin[1]**2)
+    zPin = xyzPin[2]
+    
+    Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, Rpin + Rinsertion*0.001, zPin, time)#, use_gdat = True)
+    modB = np.sqrt(Br**2 + Bz**2 + Bt**2) 
+    if  use_2D_Bfield:
         rmin = 0.614  #[m]
         rmax = 1.147
         nr = 129#28
@@ -365,26 +539,37 @@ if __name__ == '__main__':
 
         r_grid = np.linspace(rmin, rmax, nr, dtype=np.float32)
         z_grid = np.linspace(zmin, zmax, nz, dtype=np.float32)
-        r_mesh, z_mesh = np.meshgrid(r_grid, z_grid, indexing = 'ij')
 
-        Br, Bz, Bt, bp =  TCV_equilibrium.get_mag_field(shot, r_mesh, z_mesh, time, use_gdat = False)
-        modB = np.array([1.12817047]) #np.mean( np.sqrt(Br**2 + Bz**2 + Bt**2) ) #this has to be manual :(
+    elif  use_3D_ripple_Bfield:
+        import IPython
+
+        rGrid, phiGrid, zGrid, br_3D, bphi_3D, bz_3D =  load_3D_ripple_field(shot, time
+                         , use_gdat = False
+                         )
+
+        
+        #modB = np.mean( np.sqrt(br_3D**2 + bz_3D**2 + bphi_3D**2) ) #this has to be manual :(
+
+        #IPython.embed()
 
 
     ###
     # Marker inputs
     ###
     #Number of markers per pitch-gyroradius pair
-    n_markers = int(15e4)
+    n_markers = int(1e5)
     # Set n1 and r1 are paremeters for adjusteing # markers per gyroradius. If zero number markers is uniform
     n1 = 0.0
     r1 = 0.0
     #Grids
 
-    energy_arrays = np.arange(3000, 65000, 15000)
+    #energy_arrays = np.arange(3000, 84000, 10000)
+    energy_arrays = np.logspace(3, 5, num=15)
+    #energy_arrays = np.array([10e3, 20e3, 30e3])
     #Gyroradii grid in [cm]
-    g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB)
-
+    g_r = ss.SimulationCodes.FILDSIM.execution.get_gyroradius(energy_arrays, modB
+                                                              , A = 1.0072766, Z = 1.0)
+    #g_r = np.asarray([0.88,1.08, 1.2567])
     #Alternatively use cm grid
     #g_r = np.arange(0.5, 5, 0.2)
 
@@ -402,12 +587,16 @@ if __name__ == '__main__':
                     ]
 
     #alternatively use degree grid
-    #p = np.arange(0.00, 90, 4)
-    #pitch_arrays = [ list(p),
-    #                list(180-p),
-    #                list(p),
-    #                list(180-p)
-    #                ]
+    p = np.linspace(0.00, 90, 20)
+
+    #p = np.array([30, 45, 60])
+
+    pitch_arrays = [ list(p),
+                    list(180-p),
+                    list(p),
+                    list(180-p)
+                    ]
+
 
     #Range of gyrophase to use. Smaller range can be used, but for now allow all gyrophases
     gyrophase_range = [[np.deg2rad(250),np.deg2rad(320)],  #UL  [np.deg2rad(185),np.deg2rad(359)]
@@ -442,6 +631,7 @@ if __name__ == '__main__':
                 'IpBt': -1,        # Sign of toroidal current vs field (for pitch), need to check
                 'flag_efield_on': False,  # Add or not electric field
                 'save_collimator_strike_points': False,  # Save collimator points
+                'save_scintillator_strike_points': False,
                 'backtrace': backtrace,  # Flag to backtrace the orbits
                 'save_self_shadowing_collimator_strike_points': 
                     save_self_shadowing_collimator_strike_points,
@@ -497,6 +687,47 @@ if __name__ == '__main__':
                     field.bdims = 2
                     field.plot('br', phiSlice = 0 ,plot_vessel = False)
                     plt.show()
+                elif use_3D_ripple_Bfield:
+                    field.Bfield['R'] = np.float64(rGrid - Rinsertion*0.001)
+                    field.Bfield['z'] = zGrid
+                    
+                    field.Bfield['nR'] = len(field.Bfield['R'])
+                    field.Bfield['nz'] = len(field.Bfield['z'])
+
+                    field.Bfield['Rmin'] = np.float64(np.min(field.Bfield['R']))
+                    field.Bfield['Rmax'] = np.float64(np.max(field.Bfield['R']))
+                    field.Bfield['zmin'] = np.float64(np.min(field.Bfield['z']))
+                    field.Bfield['zmax'] = np.float64(np.max(field.Bfield['z']))
+
+                    #Ascot stellarator fields only store data for a single period
+                    #bfield [idx_R, idx_phi, idx_Z], thus rrepeat along axis = 1
+                    br = br_3D
+                    bphi = bphi_3D
+                    bz = bz_3D
+                    
+                    field.Bfield['fr'] = np.asfortranarray(br)
+                    field.Bfield['fz'] = np.asfortranarray(bz)
+                    field.Bfield['ft'] = np.asfortranarray(bphi)
+                    
+                    field.Bfield['nPhi'] = np.shape(phiGrid)[0] -1
+        
+                    
+                    field.Bfield['Phimin'] = np.float64(phiGrid[0])
+                    field.Bfield['Phimax'] = np.float64(phiGrid[-1])
+
+
+                    #field.Bfield['nTime'] = 0
+                    #field.Bfield['Timemin'] = 0.
+                    #field.Bfield['Timemax'] = 0.
+                    
+                    field.bdims = 3
+                    field.plot('bphi', phiSlice = 0 ,plot_vessel = False)
+                    plt.show()
+
+
+
+
+
 
                 write_stl_geometry_files(root_dir = geom_dir,
                                         run_name = run_names[i],
