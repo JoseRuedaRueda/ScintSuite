@@ -729,12 +729,6 @@ class BVO:
                 ndimage.median_filter(self.exp_dat['frames'].values, 
                                       size=(median_options['size'],
                                             median_options['size'], 1))
-            # previous slower method
-            # for i in tqdm(range(nt)):
-            #     self.exp_dat['frames'][:, :, i] = \
-            #         ndimage.median_filter(self.exp_dat['frames'].values[:, :, i],
-            #                               **median_options)
-
         elif method == 'gaussian':
             logger.info('Gaussian filter selected!')
             gaussian_options.update(options)
@@ -743,11 +737,6 @@ class BVO:
                 ndimage.gaussian_filter(self.exp_dat['frames'].values, 
                                         sigma=(gaussian_options['sigma'], 
                                                gaussian_options['sigma'], 1))
-            # previous slower method
-            # for i in tqdm(range(nt)):
-            #     self.exp_dat['frames'][:, :, i] = \
-            #         ndimage.gaussian_filter(self.exp_dat['frames'].values[:, :, i],
-            #                                 **gaussian_options)
             
         logger.info('\\n-... -.-- . / -... -.-- .')
         return

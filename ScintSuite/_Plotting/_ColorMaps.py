@@ -11,7 +11,7 @@ Contains:
 import os
 import yaml
 from matplotlib.colors import LinearSegmentedColormap
-__all__ = ['Gamma_I', 'Gamma_II', 'Gamma_IIb',. 'Gamma_III', 'Cai']
+__all__ = ['Gamma_I', 'Gamma_II', 'Gamma_IIb', 'Gamma_III', 'Cai']
 
 
 def Gamma_I(n=256):
