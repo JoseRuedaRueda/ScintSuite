@@ -76,7 +76,8 @@ def get_ne(shotnumber: int, time: float = None,
         #return get_ne_thomson(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)    
 
 def get_ne_conf(shotnumber: int, time: float = None, 
-           xArrayOutput: bool = False):
+           xArrayOutput: bool = False
+           ,trial_indx=1):
     """
     Read the electron density profile from the TCV MODS conf node.
     see https://spcwiki.epfl.ch/wiki/Chie_TCV_nodes#Full_CONF_mds_nodes_list
@@ -95,7 +96,7 @@ def get_ne_conf(shotnumber: int, time: float = None,
     """
     # --- Reading from the database
     try:
-        ne_conf_data = conf.ne(shotnumber,  trial_indx=1)
+        ne_conf_data = conf.ne(shotnumber,  trial_indx=trial_indx)
         ne = ne_conf_data.data.T 
         ne_unc = np.zeros(np.shape(ne)) * np.nan
         rho = ne_conf_data.rho.data
@@ -146,6 +147,7 @@ def get_ne_conf(shotnumber: int, time: float = None,
         output['t'].attrs['units'] = 's'
         output.attrs['diag'] = 'CONF'
         output.attrs['shot'] = shotnumber
+
     return output
 
 def get_Te(shotnumber: int, time: float = None,
@@ -298,13 +300,13 @@ def get_Ti(shotnumber: int, time: float = None,
         raise Exception('Diagnostic non supported!')
 
     if diag == 'CONF':
-        return get_ne_conf(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
+        return get_Ti_conf(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
     elif diag == 'CXRS':
         pass
         #TODO
         #return get_ne_cxrs(shotnumber=shotnumber, time=time, xArrayOutput=xArrayOutput)
 
-def get_Ti_conf(shot: int, time: float = None,  xArrayOutput: bool = False):
+def get_Ti_conf(shotnumber: int, time: float = None,  xArrayOutput: bool = False):
     """"
     Read the ion temperature profile from the TCV MODS conf node.
 
@@ -320,13 +322,13 @@ def get_Ti_conf(shot: int, time: float = None,  xArrayOutput: bool = False):
 
     # --- Reading from the database
     try:
-        ti_conf_data = conf.ti(shot,  trial_indx=1)
+        ti_conf_data = conf.ti(shotnumber,  trial_indx=1)
         ti = ti_conf_data.data.T
         ti_unc = np.zeros(np.shape(ti)) * np.nan
         rho = ti_conf_data.rho.data
         timebase = ti_conf_data.t.data
     except:
-        raise Exception('Cannot read the ion temperature from the conf nodes for shot: #%05d'%shot)
+        raise Exception('Cannot read the ion temperature from the conf nodes for shot: #%05d'%shotnumber)
 
     if time is None:
         time = timebase
@@ -353,11 +355,11 @@ def get_Ti_conf(shot: int, time: float = None,  xArrayOutput: bool = False):
         tmp_unc = np.atleast_2d(tmp_unc)
         time = np.atleast_1d(time)
         output['data'] = xr.DataArray(
-            tmp_ti.T, dims=('rho', 't'),
+            tmp_ti, dims=('rho', 't'),
             coords={'rho': rho, 't': time})
         output['data'].attrs['long_name'] = '$T_i$'
         output['data'].attrs['units'] = 'eV'
-        output['uncertainty'] = xr.DataArray(tmp_unc.T, dims=('rho', 't'))
+        output['uncertainty'] = xr.DataArray(tmp_unc, dims=('rho', 't'))
         output['uncertainty'].attrs['long_name'] = '$\\Delta T_i$'
         output['uncertainty'].attrs['units'] = '$eV$'
 
@@ -365,7 +367,7 @@ def get_Ti_conf(shot: int, time: float = None,  xArrayOutput: bool = False):
         output['t'].attrs['long_name'] = 'Time'
         output['t'].attrs['units'] = 's'
         output.attrs['diag'] = 'CONF'
-        output.attrs['shot'] = shot
+        output.attrs['shot'] = shotnumber
     return output
 
 # -----------------------------------------------------------------------------
@@ -456,7 +458,7 @@ def get_tor_rotation_cxrs_fit(shotnumber: int, time: float = None,
         rotation_unc_label = '$\\sigma\\omega$'
 
     # --- If a time window is provided, we cut out the data.
-    if time is not None:
+    if time is not None and len([time]) > 1:
         t0, t1 = timebase.searchsorted(time)
         data = data[t0:t1, :]
         unc = unc[t0:t1, :]
@@ -544,7 +546,7 @@ def get_Zeff_conf(shot: int):
         Zeff = np.expand_dims(Zeff, axis = 1)
         nrho = 41
         Zeff = np.repeat(Zeff , nrho, axis = 1)
-
+        #Zeff = Zeff.T
         Zeff_unc = Zeff * np.nan
         timebase = Zeff_conf_data.t.data
     except:
@@ -552,7 +554,7 @@ def get_Zeff_conf(shot: int):
 
     z = xr.Dataset()
     rho = np.arange(nrho)/ (nrho-1)  # conf Zeff is not not resolved in
-    z['data'] = xr.DataArray(Zeff, dims=('t', 'rho'), 
+    z['data'] = xr.DataArray(Zeff.T, dims=('rho', 't'), 
                             coords={'t':timebase, 'rho':rho})
     z['uncertainty'] = xr.DataArray(Zeff_unc, dims=('t', 'rho'), 
                             coords={'t':timebase, 'rho':rho})
