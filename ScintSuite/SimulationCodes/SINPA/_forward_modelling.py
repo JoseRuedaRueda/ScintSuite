@@ -2,27 +2,23 @@
 Alex Reyner: alereyvinn@alum.us.es
 
 Workflow:
-    0. Obtain the distribution and define the inputs 
-    1. Run original_synthsig_xy to map the signal in the scintillator space
-    2. Insert the different noises, optic system and the camera
-       - Option to do it separately (not recomended) or at the same time (recomended)
-            with noise_optics_camera
+    0. Obtain the distribution and define the inputs: smap, scint, WF...
+    1. Run synthsig_xy to map the signal in the scintillator space
+    2. Insert noises, optic system and the camera with noise_optics_camera
 
-    - You can plot at any step given the frame and even plot each  noises
+    - You can plot at any step given the frame and even plot each noise
     - You can also directly compute the WF and remapped synthetic signals
 
 Functions. What can be done:
-    - read_ASCOT_dist: Read an ASCOT distribution with ion distribution that 
-        will be used as input
-    - obtain_WF: Obtain the weight function of the smap (scintillator efficency 
-        or not)
-    - synthetic_signal_pr: Compute remapped synthetic signal in pitch-gyroradius 
-        phase space
+    - read_distribution: Read the ion distribution that will be used as input
+    - obtain_WF: Obtain the weight function of the smap
+    - synthsig_pr: Compute remapped synthetic signal in pitch-gyroradius 
     - pr_space_to_pe_space: transform the the signal phase space
     - original_synthsig_xy: compute synthetic signal in real scintillator space
     - noise_optics_camera: add noise and optic effects to the synthetic signal
     - plot_the_frame: plot the signal at a given point
     - plot_noise_contributions: plot the different noise contributions
+    - synthsig_xy: compute synthetic signal in real scintillator space
     - synthsig_xy_2coll: compute synthetic signal of two pinholes
     - plot_the_frame_2coll: plot the signal
 """
@@ -59,8 +55,8 @@ import time
 # --- Inputs distributions
 # -----------------------------------------------------------------------------
 
-def read_ASCOT_dist(filename, pinhole_area = None, wetted_area = None,
-                    B=4, A=None, Z=None, version='5.5'):
+def read_distribution(filename, pinhole_area = None, wetted_area = None,
+                    B = 4, A = 2, Z = 2, version='5.5'):
     """
     Read a distribution coming from ASCOT
 
@@ -72,11 +68,12 @@ def read_ASCOT_dist(filename, pinhole_area = None, wetted_area = None,
         - Manual file for delta tipe ion flux
 
     :param  filename: full path to the file
-    :param  version: ASCOT output custom, default 5.5
-    :param  pinhole_area: relation between pinhole and head-95% area
+    :param  pinhole_area: pinhole area in mm²
+    :param  wetted_area: wetted area in mm²
     :param  B: magnetic field
     :param  A: A value of the ions (in case this does not come with the input)
     :param  Z: Z value of the ions (in case this does not come with the input)
+    :param  version: ASCOT output custom, default 5.5
 
     :return out dictionary containing:
             'gyroradius': Array of gyroradius where the signal is evaluated
@@ -116,25 +113,6 @@ def read_ASCOT_dist(filename, pinhole_area = None, wetted_area = None,
                     {c[4]} {c[5]} {c[6]} {c[7]} {c[8]} "
                 modified_lines.append(modified_line)    
 
-        # BUILD OUTPUT
-        filename2=filename[:-4]+'_procesed.dat'
-        with open(filename2, 'w') as file2:
-            file2.write('\n'.join(modified_lines))
-
-        # Load the data of this second file
-        data = np.loadtxt(filename2)
-        for i in range(len(names)):
-            out[names[i]] = data[:, i]
-        out['n'] = len(data[:, 0])
-
-        # Calculate the gyroradius
-        if A==None:
-            A = out['Anum']
-        if Z==None:
-            Z = out['Znum']
-        r = get_gyroradius(E=out['energy'], B=B, A=A, Z=Z, relativistic=True)
-        out['gyroradius'] = r
-
     
     if version == 'matlab':
         names = ['pitch', 'energy', 'weight']
@@ -153,42 +131,20 @@ def read_ASCOT_dist(filename, pinhole_area = None, wetted_area = None,
                     f"{c[0]} {c[1]} {c[2]}"
                 modified_lines.append(modified_line)    
 
-        # Write a second file with the pitch in degreees
-        filename2=filename[:-4]+'_procesed.dat'
-        with open(filename2, 'w') as file2:
-            file2.write('\n'.join(modified_lines))
-
-        # Load the data of this second file
-        data = np.loadtxt(filename2)
-        for i in range(len(names)):
-            out[names[i]] = data[:, i]
-        out['n'] = len(data[:, 0])  
-
-        # Calculate the gyroradius
-        if A==None:
-            A = out['Anum']
-        if Z==None:
-            Z = out['Znum']
-        r = get_gyroradius(E=out['energy'], B=B, A=A, Z=Z, relativistic=True)
-        out['gyroradius'] = r
-
 
     if version == 'manual':
         names = ['energy', 'pitch', 'Anum', 'Znum', 'weight']
         
-        # Load the data
-        data = np.loadtxt(filename)
-        for i in range(len(names)):
-            out[names[i]] = data[:, i]
-        out['n'] = len(data[:, 0])  
-
-        # Calculate the gyroradius
-        if A==None:
-            A = out['Anum']
-        if Z==None:
-            Z = out['Znum']
-        r = get_gyroradius(E=out['energy'], B=B, A=A, Z=Z, relativistic=True)
-        out['gyroradius'] = r
+        # FILE PREPARATION
+        with open(filename, 'r') as file:
+                lines = file.readlines()
+        modified_lines = []        
+        for line in lines:
+            if line.startswith('#'): #skips headers
+                continue
+            else:                             
+                modified_line = f"{c[0]} {c[1]} {c[2]} {c[3]} {c[4]}"
+                modified_lines.append(modified_line)    
 
 
     if version == 'locust':
@@ -217,21 +173,30 @@ def read_ASCOT_dist(filename, pinhole_area = None, wetted_area = None,
                       {c[6]} {c[7]} {c[8]} {c[9]} {c[10]} {c[11]}"
                 modified_lines.append(modified_line)    
 
-        # BUILD OUTPUT
-        filename2=filename[:-4]+'_procesed.dat'
-        with open(filename2, 'w') as file2:
-            file2.write('\n'.join(modified_lines))
+    # BUILD OUTPUT
+    # -----------------------------------------------------------------------
+    filename2=filename[:-4]+'_procesed.dat'
+    with open(filename2, 'w') as file2:
+        file2.write('\n'.join(modified_lines))
 
-        # Load the data of this second file
-        data = np.loadtxt(filename2)
-        for i in range(len(names)):
-            out[names[i]] = data[:, i]
-        out['n'] = len(data[:, 0])
+    # Load the data of this second file
+    data = np.loadtxt(filename2)
+    for i in range(len(names)):
+        out[names[i]] = data[:, i]
+    out['n'] = len(data[:, 0])
 
-        # Calculate the gyroradius
-        r = get_gyroradius(out['energy'], B, A, Z)
-        out['gyroradius'] = r
-
+    # Fill missing arguments if necessary
+    if 'Anum' not in out:
+        out['Anum'] = np.full(out['n'], A)
+    if 'Znum' not in out:
+        out['Znum'] = np.full(out['n'], Z)
+    if 'B' not in out:
+        out['B'] = np.full(out['n'], B)
+    # Compute gyroradius
+    vect_get_gyroradius = np.vectorize(get_gyroradius)
+    out['gyroradius'] = vect_get_gyroradius(out['energy'], 
+                                            out['B'], out['Anum'], out['Znum'], 
+                                            relativistic=True)
     # Adjust marker weight to strict pinhole area
     out['weight'] = out['weight'] / wetted_area * pinhole_area
     # Calculate the power by each marker in the pinhole
@@ -247,7 +212,6 @@ def read_ASCOT_dist(filename, pinhole_area = None, wetted_area = None,
     logger.info("Wetted flux    -> %e (ions/s)", ions_head)
     logger.info("Pinhole flux   -> %e (ions/s)", ions_pinhole)
 
-
     return out
     
 
@@ -255,9 +219,7 @@ def read_ASCOT_dist(filename, pinhole_area = None, wetted_area = None,
 # --- Synthetic signals using the weight matrix
 # -----------------------------------------------------------------------------
 
-def obtain_WF(smap, B=4, A=2, Z=2,
-              pin_params: dict = {},
-              scint_params: dict = {}):
+def obtain_WF(smap, pin_params: dict = {}, scint_params: dict = {}):
     '''
     Just a wrap of things to make it easier
     Efficency will be applied when generating the images
@@ -272,8 +234,8 @@ def obtain_WF(smap, B=4, A=2, Z=2,
         'ymin': 1, 'ymax': 10, 'dy': 0.2,
     }
     scint_options = {
-        'xmin': 10, 'xmax': 90, 'dx': 0.5,
-        'ymin': 1, 'ymax': 10, 'dy': 0.1,
+        'xmin': 10, 'xmax': 90, 'dx': 0.2,
+        'ymin': 1, 'ymax': 10, 'dy': 0.05,
     }
     # update the matrix options
     pin_options.update(pin_params)
@@ -281,27 +243,33 @@ def obtain_WF(smap, B=4, A=2, Z=2,
 
     smap.build_weight_matrix(scint_options, pin_options,)
     WF = smap.instrument_function
+    WF.x.attrs = {'units': 'º', 'long_name': 'Pitch'}
+    WF.xs.attrs = {'units': 'º', 'long_name': 'Pitch'}
+    WF.y.attrs = {'units': 'cm', 'long_name': 'Gyroradius'}
+    WF.ys.attrs = {'units': 'cm', 'long_name': 'Gyroradius'}
 
     return WF
 
 
-def synthetic_signal_pr(distro, scint, WF = None, gyrophases = np.pi,
-                        mode = 'photons', B=4, A=2, Z=2,
+def synthsig_pr(distro, scint, WF, 
+                        gyrophases = np.pi, mode = 'photons', 
                         plot=False, cmap=default_cmap()):
     """
     Synthetic signal for pinhole and scintillator in pitch-gyroradius space
 
     Alex Reyner: alereyvinn@alum.us.es
 
-    :param  distro: pinhole distribution, created by one of the routines of 
-        this library.
-    :param  WF: weight function xarray generated in this suite. Please be sure
-        that corresponds to the case you want to study.
-    :param  gyrophases: used to renormalize the collimator factor. Range of 
-        gyrophases that we consider. Default pi -> range of gyrophases that go 
-        inside the pinhole
-    :param  plot: flag to plot the synthetic signals, and the histograms in
-        pitch and gyroradius.
+    :param  distro: pinhole distribution, created by read_distribution()
+    :param  WF: weight function xarray generated by obtain_WF()
+    :param  gyrophases: used to renormalize the collimator factor. 
+                Range of gyrophases that we consider. Default pi 
+                -> range of gyrophases pointing into the pinhole
+    :param  mode: select what quantity you want
+                - photons: includes scintillator response (default)
+                - ions: ion flux in the scintillator
+                - power: power flux deposited in the scintillator
+    :param  plot: plot the synthetic signals and histograms
+    :param  cmap: colormap for plots
 
     :return out dictionary containing remapped signals:
             PH: synthetic signal at the pinhole (PH)
@@ -310,70 +278,80 @@ def synthetic_signal_pr(distro, scint, WF = None, gyrophases = np.pi,
     logger.info('----- COMPUTING REMAPED SYNTHETIC SIGNAL USING WF -----')
     start = time.perf_counter()
 
+    # INPUT VERIFICATION
+    # -----------------------------------------------------------------------
     pitch = distro['pitch']
     gyro = distro['gyroradius']
     energy = distro['energy']
-    weight = distro['weight']
-    if mode == 'photons': # the usual, photons after scintillator response
+    B = distro['B']
+    Anum = distro['Anum']
+    Znum = distro['Znum']
+
+    if mode == 'photons':
         if 'energy' in distro.keys() or 'e0' in distro.keys():
-            print(3)
             eff = scint.efficiency(energy/1e3).values
         elif 'gyroradius' in distro.keys():
-            energy = get_energy(gyro, B=B, A=A, Z=Z, relativistic=True)
+            energy = get_energy(gyro, B, Anum, Znum)
             eff = scint.efficiency(energy/1e3).values
         else:
             logger.error('NOT POSSIBLE TO EXTRACT EFFICENCY') 
             sys.exit() 
+        weight = distro['weight']
         cbar_units = 'photons / s cm º'
+
     elif mode == 'ions': # to see the flux of ions in the scintillator
-        eff = np.ones(distro['n'])
+        eff = np.ones(distro['n']) # eficency is 1
+        weight = distro['weight']
         cbar_units = 'ions / s cm º'
-    elif mode == 'power': # to compute the deposited power (beta featura)
-        eff = np.ones(distro['n'])
+
+    elif mode == 'power': # to compute the deposited power (beta feature)
+        eff = np.ones(distro['n']) # eficency is 1
+        weight = distro['power']
         cbar_units = 'W / m º'
-        distro['weight'] = distro['power']
+
     else:
         logger.error('Wrong mode, select either: photons, ions or power')
 
-    # Get data values
+    # VECTORIZED MAPPING
+    # -----------------------------------------------------------------------
     x_val = WF.coords['x'].values
     y_val = WF.coords['y'].values
     nx, ny = len(x_val), len(y_val)
-
-    mask = (
-            (pitch >= x_val.min()) & (pitch <= x_val.max()) &
-            (gyro >= y_val.min()) & (gyro <= y_val.max())
-            )
-    pitch = pitch[mask]
-    gyro = gyro[mask]
-    weight = weight[mask]
-    eff = eff[mask]
+    # Remove markers outside of WF
+    mask = ((pitch >= x_val.min()) & (pitch <= x_val.max()) &
+            (gyro >= y_val.min()) & (gyro <= y_val.max()))
+    pitch, gyro, weight, eff = pitch[mask], gyro[mask], weight[mask], eff[mask]
+    # Calculate steps
     p_step = np.abs(x_val[1]-x_val[0])
     r_step = np.abs(y_val[1]-y_val[0])
+    # Look for the correct indices place for each point
     p_idx = np.searchsorted(x_val, pitch)
     p_idx = np.clip(p_idx, 0, nx-1)
     r_idx = np.searchsorted(y_val, gyro)
     r_idx = np.clip(r_idx, 0, ny-1)
-
-    weights_matrix = np.zeros((ny, nx))
-    np.add.at(weights_matrix, (r_idx, p_idx), weight*eff)
-    weights_da = xr.DataArray(
-                    weights_matrix,
+    # Build the weight matrix
+    w_matrix = np.zeros((ny, nx))
+    np.add.at(w_matrix, (r_idx, p_idx), weight*eff) # fill the weights
+    w_xrarray = xr.DataArray(w_matrix,
                     coords={'y': y_val, 'x': x_val},
-                    dims=('y', 'x')
-                )
-    ssPH = weights_da /p_step /r_step 
-    ssSC = ((WF*weights_da)*(2*np.pi/gyrophases)).sum({'x','y'})
-
+                    dims=('y', 'x'))
+    # Compute the matrices in the pinhole and scintillator vel.-spaces
+    ssPH = w_xrarray /p_step /r_step
+    ssSC = ((WF*w_xrarray) * (2*np.pi/gyrophases)).sum({'x','y'})
+    # Put data into Dataset and assign atributes
     synthetic_signal = xr.Dataset()
+    ssPH.attrs = {'long_name': cbar_units,}
+    ssSC.attrs = {'long_name': cbar_units,}
     synthetic_signal['PH'] = ssPH
     synthetic_signal['SC'] = ssSC
-    synthetic_signal.attrs['units'] = cbar_units
+
 
     end = time.perf_counter()    # end timer
     elapsed = end - start
     logger.info("   Mapping time = %.4f s", elapsed)
-    # Default plot to control results
+
+    # PLOTTING
+    # -----------------------------------------------------------------------
     if plot == True:
         fig, ax = plt.subplots(2,2, figsize=(8, 6),
                                     facecolor='w', edgecolor='k') 
@@ -512,7 +490,6 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2,
     return out
 
 
-
 # -----------------------------------------------------------------------------
 # --- Synthetic signal in the scintillator space and camera frame
 # -----------------------------------------------------------------------------
@@ -553,7 +530,7 @@ def original_synthsig_xy(distro, smap, scint, collimator=None,
             'smap': smap used calibrated to the signal
             'smapplt': smap extra to plot nice figures calibrated to the signal
             'scintillator': scintillator calibrated to the signal
-            'signal_frame': signal in the scintillator space
+            'frame': signal in the scintillator space
             'scint_area': region covered by the scintillator
     """
     logger.info("----- BUILDING THE ORIGINAL FRAME -----")
@@ -789,7 +766,7 @@ def original_synthsig_xy(distro, smap, scint, collimator=None,
     output = {
         'smap': dsmap,
         'smapplt': dsmapplt,
-        'signal_frame': signal_frame,        
+        'frame': signal_frame,        
         'scintillator': dscint,
         'scint_perim': scint_perim,
         'scint_area': scint_area
@@ -818,7 +795,7 @@ def noise_optics_camera(frame, eliminate_saturation = False,
             'smap': smap used calibrated to the signal
             'smapplt': smap extra to plot nice figures calibrated to the signal
             'scintillator': scintillator calibrated to the signal
-            'signal_frame': signal in the scintillator space
+            'frame': signal in the scintillator space
             'scint_area': region covered by the scintillator
     :param  optic_params:  parameters of the optics
     :param  cam_params: parameters of the camera
@@ -840,7 +817,7 @@ def noise_optics_camera(frame, eliminate_saturation = False,
     out = copy.deepcopy(frame)
     # Create a copy of the signal frame where we will operate,
     # and the area covered by the scintillator
-    signal_frame = copy.deepcopy(frame['signal_frame'])
+    signal_frame = copy.deepcopy(frame['frame'])
     
     scint_area = copy.deepcopy(frame['scint_area'])
     scint = copy.deepcopy(frame['scintillator'])
@@ -1071,12 +1048,12 @@ def noise_optics_camera(frame, eliminate_saturation = False,
     final_frame = final_frame.astype(int)
 
     # Substitute the signal_frame
-    out['signal_frame'] = final_frame
-    out['signal_frame'].attrs['long_name'] = 'Pixel counts'
-    out['signal_frame'].coords['x'].attrs['longname'] = 'X'
-    out['signal_frame'].coords['x'].attrs['units'] = 'pix.'
-    out['signal_frame'].coords['y'].attrs['longname'] = 'Y'
-    out['signal_frame'].coords['y'].attrs['units'] = 'pix.'
+    out['frame'] = final_frame
+    out['frame'].attrs['long_name'] = 'Pixel counts'
+    out['frame'].coords['x'].attrs['longname'] = 'X'
+    out['frame'].coords['x'].attrs['units'] = 'pix.'
+    out['frame'].coords['y'].attrs['longname'] = 'Y'
+    out['frame'].coords['y'].attrs['units'] = 'pix.'
 
     # Put all in the dataset
     out['layers']['FIL'] = signal_frame
@@ -1092,7 +1069,7 @@ def noise_optics_camera(frame, eliminate_saturation = False,
     return out
 
 
-def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
+def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = False,
                 cam_params: dict={}, maxval = None,
                 figtitle = None, cmap = default_cmap(),
                 **kwargs):
@@ -1105,7 +1082,7 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
             'smap': smap used calibrated to the signal
             'smapplt': smap extra to plot nice figures calibrated to the signal
             'scintillator': scintillator calibrated to the signal
-            'signal_frame': signal in the scintillator space
+            'frame': signal in the scintillator space
             'scint_area': region covered by the scintillator
             'noises': all the different noises as matrices
     :param  maxval: adjust the maximum of the colorbar to the signal
@@ -1115,7 +1092,7 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
     """
     logger.info("----- SIGNAL PLOT ----- ")
 
-    frame_to_plot = frame['signal_frame']
+    frame_to_plot = frame['frame']
     smapplt = frame['smapplt']
     scint_perim = frame['scint_perim']
 
@@ -1141,12 +1118,6 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = True,
 
     if plot_scint == True:
         ax.plot(scint_perim[:,0],scint_perim[:,1], color ='w', linewidth=2)
-
-    try: #This is experimental right now, but won't mess up your code
-        coll_perim=frame['collimator']
-        ax.plot(coll_perim[:,0],coll_perim[:,1], color ='lime', linewidth=1)
-    except:
-        print('- No collimator to plot')
 
     if plot_FoV == True:
         try:
@@ -1186,7 +1157,7 @@ def plot_noise_contributions(frame, cam_params: dict={}, maxval = False,
             'smap': smap used calibrated to the signal
             'smapplt': smap extra to plot nice figures calibrated to the signal
             'scintillator': scintillator calibrated to the signal
-            'signal_frame': signal in the scintillator space
+            'frame': signal in the scintillator space
             'scint_area': region covered by the scintillator
             'noises': all the different noises as matrices
     :param  maxval: want to limit the colorbar to camera range?
@@ -1241,7 +1212,7 @@ def remap_the_frame(frame, WF = None,
             'smap': smap used calibrated to the signal
             'smapplt': smap extra to plot nice figures calibrated to the signal
             'scintillator': scintillator calibrated to the signal
-            'signal_frame': signal in the scintillator space
+            'frame': signal in the scintillator space
             'scint_area': region covered by the scintillator
             'noises': all the different noises as matrices
     :param  WF: weight function corresponfing to this case
@@ -1276,7 +1247,7 @@ def remap_the_frame(frame, WF = None,
     yedges=np.append(yedges,WF.ys[-1].values+ystep)
 
     # Remap
-    dummy = common.remap(smap=frame['smap'], frame=frame['signal_frame'].values, x_edges=xedges, y_edges=yedges, method='centers')
+    dummy = common.remap(smap=frame['smap'], frame=frame['frame'].values, x_edges=xedges, y_edges=yedges, method='centers')
     remaped_signal = xr.DataArray(dummy, dims=('x', 'y'),
                          coords={'x':WF.xs.values, 'y':WF.ys.values})
 
@@ -1285,23 +1256,11 @@ def remap_the_frame(frame, WF = None,
     return frame
 
 
-
-# These need to be worked on them a bit. Don't use it. Use the ones above.
-# In a future the WF will be used for the computation of the syntt. signals.
-def cretae_mapping_matrix(smap):
-    gyro = smap._data['gyroradius'].data
-    pitch = smap._data['pitch'].data
-    x = smap._coord_pix['x']
-    y = smap._coord_pix['y']
-
-def new_synthsig_xy(distro, smap, WF, scint, collimator=None,
+def synthsig_xy(distro, smap, WF, scint, smapplt = None, 
+                     gyrophases = np.pi, mode = 'photons',
                      cam_params = {}, optic_params = {},
-                     smapplt = None, 
-                     gyrophases = np.pi,
+                     centering = False,
                      smoother = None,
-                     scint_params: dict = {}, centering = False,
-                     px_shift: int = 0, py_shift: int = 0,
-                     mode = 'photons',
                      **kwargs):
     """
     Maps a signal in the scintillator
@@ -1312,17 +1271,19 @@ def new_synthsig_xy(distro, smap, WF, scint, collimator=None,
 
     :param  distro: distribution in the pinhole
     :param  smap: smap to map the signal in the xyspace
-    :param  smapplt: extra smap to do nice plots
+    :param  WF: weight function obtained with obtain WF
     :param  scint: scintillator shape we want in the plots
-    :param  collimator: add the collimator geometry to the plot (experimental)
-    :param  alex: flagg to use the experimental collimator plotting
+    :param  smapplt: extra smap to do nice plots
+    :param  gyrophases: used to renormalize the collimator factor. 
+                Range of gyrophases that we consider. Default pi 
+                -> range of gyrophases pointing into the pinhole
+    :param  mode: select what quantity you want
+                - photons: includes scintillator response (default)
+                - ions: ion flux in the scintillator
+                - power: power flux deposited in the scintillator
     :param  cam_params: parameters of the camera
-    :param  optic_params:  parameters of the optics
-    :param  gyrophases: range of gyrophases considered entering the pinhole
-            (to scale the collimator factor). pi (half sr) is the default.
-            Usually the collimator factor is defined over a 2pi range
+    :param  optic_params: parameters of the optics
     :param  smoother: adds a gaussian filter to the signal with that sigma
-    :param  scint_synthetic_signal_params: grid to remap the frame
 
     :kwarg  eff: deactivate the scintillator efficency with None
 
@@ -1330,26 +1291,27 @@ def new_synthsig_xy(distro, smap, WF, scint, collimator=None,
             'smap': smap used calibrated to the signal
             'smapplt': smap extra to plot nice figures calibrated to the signal
             'scintillator': scintillator calibrated to the signal
-            'signal_frame': signal in the scintillator space
+            'frame': signal in the scintillator space
             'scint_area': region covered by the scintillator
+            'velspace': velocity space signals
     """
-    logger.info("----- STARTING XY MAPPING -----")
+    logger.info("----- STARTING X-Y MAPPING -----")
 
-    # Check inputs and initialise the things
+    # INPUT CHECK
+    # -----------------------------------------------------------------------
+    logger.info('- Input checking...')
     dsmap = copy.deepcopy(smap)
     if smapplt != None:
         dsmapplt = copy.deepcopy(smapplt)
     else:
         dsmapplt = copy.deepcopy(dsmap)
     dscint = copy.deepcopy(scint)
+
     if mode == 'photons': # the usual, photons after scintillator response
-        efficiency = dscint.efficiency
         cbar_units = 'photons / s m²'
     elif mode == 'ions': # to see the flux of ions in the scintillator
-        efficiency = None
         cbar_units = 'ions / s m²'
     elif mode == 'power': # to compute the deposited power (beta featura)
-        efficiency = None
         cbar_units = 'W / m²'
         distro['weight'] = distro['power']
     else:
@@ -1357,10 +1319,11 @@ def new_synthsig_xy(distro, smap, WF, scint, collimator=None,
 
     # SYNTHETIC SIGNAL
     # -----------------------------------------------------------------------
-    logger.info('- Computing synthetic signal...')
     # Calculate the synthetic signal at the scintillator
-    synth_sig = synthetic_signal_pr(distro, WF)
-    scint_signal = synth_sig['SC']
+    remap_sig = synthsig_pr(distro, dscint, WF, mode=mode)
+    scint_signal = remap_sig.SC
+    dp = (WF.x[1]-WF.x[0]).values
+    dr = (WF.y[1]-WF.y[0]).values
 
     # LOCATE AND CENTER THE SCINTILLATOR AND SMAP
     # -----------------------------------------------------------------------
@@ -1405,9 +1368,6 @@ def new_synthsig_xy(distro, smap, WF, scint, collimator=None,
         dscint._coord_real['x2'] -= y_scint_center
         dscint._coord_real['x1'] -= x_scint_center
 
-    # Shift the imatge, if wanted
-    px_0 = px_center + px_shift
-    py_0 = py_center + py_shift
     # Scale to relate scintillator to camera
     xscale = beta / cam_params['px_x_size']
     yscale = beta / cam_params['px_y_size']
@@ -1415,8 +1375,8 @@ def new_synthsig_xy(distro, smap, WF, scint, collimator=None,
     transformation_params = ssmapplting.CalParams()
     transformation_params.xscale = xscale
     transformation_params.yscale = yscale
-    transformation_params.xshift = px_0
-    transformation_params.yshift = py_0
+    transformation_params.xshift = px_center
+    transformation_params.yshift = py_center
     dscint.calculate_pixel_coordinates(transformation_params)
     # Shift the strike map by the same quantity:
     dsmap._data['x2'].data -= y_scint_center
@@ -1433,29 +1393,6 @@ def new_synthsig_xy(distro, smap, WF, scint, collimator=None,
     dsmapplt.calculate_pixel_coordinates(transformation_params)
     dsmapplt.interp_grid((cam_params['ny'], cam_params['nx']),
                          MC_number=0)
-    
-    # LOCATE THE COLLIMATOR (experimental)
-    # Don't use yet. Right now we take advantage of the scintillator libraries
-    # to plot the collimator.
-    # # -----------------------------------------------------------------------
-    # try:
-    #     dcoll=copy.deepcopy(collimator)
-    #     dcoll._coord_real['x2'] -= y_scint_center
-    #     dcoll._coord_real['x1'] -= x_scint_center
-    #     # Calculate the pixel position of the scintillator vertices
-    #     transformation_params = ssmapplting.CalParams()
-    #     transformation_params.xscale = xscale
-    #     transformation_params.yscale = yscale
-    #     transformation_params.xshift = px_0
-    #     transformation_params.yshift = py_0
-    #     dcoll.calculate_pixel_coordinates(transformation_params)
-    #     # Build the scintillator perimeter and find the area in the pixel space
-    #     coll_perim = geometry.scint_ConvexHull(dcoll, coords='pix')
-    #     coll_geom = True
-    #     logger.info('- Collimator located and ready to plot')
-    # except:
-    #     coll_geom = False
-    #     logger.info('- No collimator geometry given')
 
     # MAP THE SIGNAL (new ridiculously fast mapping method)
     # -----------------------------------------------------------------------
@@ -1467,10 +1404,10 @@ def new_synthsig_xy(distro, smap, WF, scint, collimator=None,
     p_grid = dsmap._grid_interp['pitch']
     g_flat, p_flat = g_grid.flatten(), p_grid.flatten()
     # Bin the edges
-    g_edges = scint_signal.ys - scint_params['dr']/2
-    g_edges = np.append(g_edges, scint_signal.ys[-1] + scint_params['dr']/2)
-    p_edges = scint_signal.xs - scint_params['dp']/2
-    p_edges = np.append(p_edges, scint_signal.xs[-1] + scint_params['dp']/2)
+    g_edges = scint_signal.ys - dr/2
+    g_edges = np.append(g_edges, scint_signal.ys[-1] + dr/2)
+    p_edges = scint_signal.xs - dp/2
+    p_edges = np.append(p_edges, scint_signal.xs[-1] + dp/2)
     # Assign pixels to bins (to what bin does each pixel correspond)
     g_idx = np.digitize(g_flat, g_edges) - 1
     p_idx = np.digitize(p_flat, p_edges) - 1
@@ -1489,7 +1426,7 @@ def new_synthsig_xy(distro, smap, WF, scint, collimator=None,
     nonzero = counts > 0 # flag to skip 0 counts
     # Assign weighted values to each pixel
     # Divide the signal by th enumber of pix it is distributed
-    values = scint_signal.values * scint_params['dr'] * scint_params['dp']
+    values = scint_signal.values * dr * dp
     pixel_values = np.zeros(shape, dtype=float)
     pixel_values[nonzero] = values[nonzero] / counts[nonzero]
     # Map back to flattened array
@@ -1548,221 +1485,21 @@ def new_synthsig_xy(distro, smap, WF, scint, collimator=None,
     integral_s *= pix_osize
     logger.info("   Total signal = %e", integral_s)
 
-    signal_frame.attrs['long_name'] = mode
-    signal_frame.attrs['units'] = cbar_units
+    signal_frame.attrs['mode'] = mode
+    signal_frame.attrs['long_name'] = cbar_units
     signal_frame.attrs['integrated_total'] = integral_s
 
     output = {
         'smap': dsmap,
         'smapplt': dsmapplt,
-        'signal_frame': signal_frame,        
+        'frame': signal_frame,        
         'scintillator': dscint,
         'scint_perim': scint_perim,
-        'scint_area': scint_area
+        'scint_area': scint_area,
+        'velspace': remap_sig
     }
-
-    # if coll_geom == True: #Flagg to add the collimator
-    #     output['collimator'] = coll_perim
 
     return output
-
-def add_noise_to_frame(frame, noise_params: dict = {}, cam_params: dict = {}):
-    """
-    Feel free to update with more noises.
-    
-    Alex Reyner: alereyvinn@alum.us.es
-
-    :param  frame dictionary containing:
-            'smap': smap used calibrated to the signal
-            'smapplt': smap extra to plot nice figures calibrated to the signal
-            'scintillator': scintillator calibrated to the signal
-            'signal_frame': signal in the scintillator space
-            'scint_area': region covered by the scintillator
-    :param  optic_params:  parameters of the optics
-
-    :return input dictionary with the noises added to signal_frame,
-            and extra noises elements 
-    """    
-
-    # Copy the input dictionary in the output
-    out = copy.deepcopy(frame)
-
-    # Create a copy of the signal frame where we will add the different nosies,
-    # and the area covered by the scintillator
-    noise_frame = copy.deepcopy(frame['signal_frame'])
-    scint_area = copy.deepcopy(frame['scint_area'])
-
-    # Initialise the noise dictionary. All the noises are not implemented yet.
-    # This needs to be done.
-    noise_opt = {
-        'neutrons': {},
-        'camera_neutrons': {
-            'percent': 1,
-            'vmin': 0,
-            'vmax': 1,
-            'bits': cam_params['range']
-        },
-        'broken': {}
-    }
-    noise_opt.update(noise_params)
-    out['noises']={}
-
-    # Neutron and gamma noise (constant) (just in the scintillator area)
-    """
-    Homogenous noise through the scintillator due to neutrons and gamma 
-    reaching it and producing charged particles that will give signal. Total
-    noise must be given
-    """
-    if noise_opt['neutrons'] > 0:
-        logger.info('Including neutron and gamma noise')
-        num_pix = scint_area.sum().item() # how many pixel we the scint cover?
-        # multiply by 4pi since we will consider the isotropic emision forward
-        # in this model. The noise should be given per sr unit.
-        dummy = copy.deepcopy(scint_area) 
-        dummy *= noise_opt['neutrons']*4*np.pi/num_pix
-        noise_frame += dummy
-        out['noises']['neutrons'] = dummy
-
-    # Put the noise frame where we had the original frame,
-    # and add the nosies to the dictionary
-    out['signal_frame'] = noise_frame
-
-    return out
-
-
-def add_optics_and_camera(frame, exp_time: float, eliminate_saturation = False,
-                          cam_params: dict={},
-                          optic_params: dict={},
-                          noise_params: dict={}):
-    """
-    Gets the frame at the scintillator and transforms it to camera frame. 
-    Adds the electronic noise also.
-    Based on Jose Rueda origianl function. 
-    
-    Alex Reyner: alereyvinn@alum.us.es
-
-    :param  frame dictionary containing:
-            'smap': smap used calibrated to the signal
-            'smapplt': smap extra to plot nice figures calibrated to the signal
-            'scintillator': scintillator calibrated to the signal
-            'signal_frame': signal in the scintillator space
-            'scint_area': region covered by the scintillator
-            'noises': all the different noises as matrices
-    :param  cam_params: parameters of the camera
-    :param  optic_params:  parameters of the optics
-    :param  eliminate_saturation: if we want to get rid of saturated pixels.
-            But we don't need to, this will be done with the plot vmax.
-
-    :return input with the noises added to signal_frame
-    """
-
-    # Copy the input dictionary in the output
-    out = copy.deepcopy(frame)
-
-    # Create a copy of the signal frame to operate   
-    final_frame = copy.deepcopy(out['signal_frame'])
-
-    # Compute the maximum counts for the camera
-    max_count = 2 ** cam_params['range'] - 1
-
-    # --- Now apply all factors
-    # Divide by 4\pi, ie, assume isotropic emission of the scintillator
-    final_frame *= 1 / 4 / np.pi
-    # Consider the solid angle covered by the optics and the transmission of
-    # the beam line through the lenses and mirrors:
-    final_frame *= optic_params['T'] * optic_params['omega']
-    # Photon to electrons in the camera sensor (QE)
-    final_frame *= cam_params['qe']
-    # Electrons to counts in the camera sensor,
-    final_frame /= cam_params['ad_gain']
-    # Consider the exposure time
-    final_frame *= exp_time
-
-    # Do the same for the noises added before the optics
-    for i in out['noises']:
-        out['noises'][i] *= 1 / 4 / np.pi
-        out['noises'][i] *= optic_params['T'] * optic_params['omega']
-        out['noises'][i] *= cam_params['qe']
-        out['noises'][i] /= cam_params['ad_gain']
-        out['noises'][i] *= exp_time          
-
-    noise_opt = {
-        'neutrons': 0,
-        'camera_neutrons': 0,
-        'broken': 0
-    }
-    noise_opt.update(noise_params)        
-
-    # Neutron impact noise
-    """
-    Add noise due to neutron impact on the sensor
-    """
-    if noise_opt['camera_neutrons'] > 0:
-        logger.info('Including neutrons hitting the sensor')    
-        rand = np.random.default_rng()
-        hit = rand.uniform(size = final_frame.shape)
-        intensity = rand.uniform(size=final_frame.shape)
-        # noise frame, select only the pixels with the noise
-        dummy = copy.deepcopy(final_frame)*0
-        dummy += (2**cam_params['range'] - 1)
-        dummy *= intensity 
-        dummy = dummy.where(hit <= noise_opt['camera_neutrons'], 0)
-        # eliminate those same frames from the noise frame and add noise
-        final_frame = final_frame\
-            .where(hit > noise_opt['camera_neutrons'], 0)
-        final_frame += dummy
-        out['noises']['camera_neutrons'] = dummy
-
-    # NOISES IN THE CAMERA
-
-    # Broken pixels
-    """
-    Simulate broken pixels
-    """
-    if noise_opt['broken'] > 0:
-        logger.info('Some pixel are broken')
-        rand = np.random.default_rng()
-        broken = rand.uniform(size = final_frame.shape)
-        # eliminate the pixels
-        dummy = copy.deepcopy(final_frame)*0 + broken
-        dummy = dummy.where(broken > noise_opt['broken'], 0) #the broken
-        dummy = dummy.where(broken <= noise_opt['broken'], 1) #the okay
-        final_frame = final_frame.where(broken > noise_opt['broken'], 0)
-        out['noises']['broken'] = dummy
-
-    # Add the camera noise if both needed parameters are included
-    """
-    Notice: dark current and readout noise are effects always present. It is
-    imposible to measure them independently, so they will be modelled as a
-    single gaussian noise with centroid 'dark_centroid' and sigma
-    'sigma_readout'. Both parameters to be measured for the used camera
-    """
-    flag = ('dark_noise' in cam_params) and \
-        ('readout_noise' in cam_params)
-    if flag:
-        logger.info('Including dark and reading noise')
-        rand = np.random.default_rng()
-        gauss = rand.standard_normal
-        dummy = cam_params['dark_noise'] + \
-            cam_params['readout_noise'] * gauss(final_frame.shape)
-        readout_noise = copy.deepcopy(final_frame)*0 + dummy
-        readout_noise = readout_noise.where(readout_noise > 0 ,0) # needed
-        final_frame += readout_noise
-        out['noises']['readout_noise'] = readout_noise
-
-    # Cap the counts to the maximum counts
-    if eliminate_saturation == True:
-        final_frame = final_frame.where(final_frame < max_count, max_count) 
-
-    # Transform the counts to integers    
-    final_frame = final_frame.astype(int)
-
-    # Change the previous frame for the camera frame
-    out['signal_frame'] = final_frame
-    
-
-    return out
-
 
 
 # -----------------------------------------------------------------------------
@@ -1798,7 +1535,7 @@ def synthsig_xy_2coll(distros, scint,
             'smap'['left','right']: the two smaps for the mapping
             'smapplt'['left','right']: the two smaps to plot
             'side_signal'['left','right']: signal of each side of the total
-            'signal_frame': total signal in the scintillator space
+            'frame': total signal in the scintillator space
             'scintillator': scintillator calibrated to the signal
             'scint_area': region covered by the scintillator
     """
@@ -1971,7 +1708,7 @@ def synthsig_xy_2coll(distros, scint,
     scint_area = copy.deepcopy(dummy)
     
     # Define the output
-    output['signal_frame'] = signal_frame
+    output['frame'] = signal_frame
     output['scintillator'] = scint_perim
     output['scint_area'] = scint_area
 
@@ -1990,7 +1727,7 @@ def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = 
             'smap': smap used calibrated to the signal
             'smapplt': smap extra to plot nice figures calibrated to the signal
             'scintillator': scintillator calibrated to the signal
-            'signal_frame': signal in the scintillator space
+            'frame': signal in the scintillator space
             'scint_area': region covered by the scintillator
             'noises': all the different noises as matrices
     :param  maxval: adjust the maximum of the colorbar to the signal
@@ -2000,7 +1737,7 @@ def plot_the_frame_2coll(frame, plot_smap = True, plot_scint = True, plot_FoV = 
     """
     logger.info("----- 2 COLLIMATOR SIGNAL PLOT ----- ")
     
-    frame_to_plot = frame['signal_frame']
+    frame_to_plot = frame['frame']
     smapplt = frame['smapplt']
     scint_perim = frame['scintillator']
 
