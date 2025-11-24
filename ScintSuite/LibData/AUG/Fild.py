@@ -240,7 +240,9 @@ class FILD_logbook:
         Read the three data bases and save them in atributes of the object
         """
         if verbose:
-            print('.-.. --- --. -... --- --- -.-')
+            logger.warning('VERBOSE option is deprecated, please avoid using it. it will raise an error in 2.0.0')
+            
+        logger.info('.-.. --- --. -... --- --- -.-')
         # Load the camera database
         self.CameraCalibrationDatabase = \
             readCameraCalibrationDatabase(cameraFile, verbose=verbose,
@@ -269,7 +271,8 @@ class FILD_logbook:
         :param  verbose: flag to print some info
         """
         if verbose:
-            print('Looking for the position database: ', filename)
+            logger.warning('VERBOSE option is deprecated, please avoid using it. it will raise an error in 2.0.0')
+        logger.info('Looking for the position database: ', filename)
         dummy = pd.read_excel(filename, engine='openpyxl', header=[0, 1])
         dummy['shot'] = dummy.Shot.Number.values.astype(int)
         # Check if there is information on the overheating in the file
@@ -298,8 +301,7 @@ class FILD_logbook:
                 'GeomID': [], 'diag_ID': []}
 
         # Read the file
-        if verbose:
-            print('Reading Geometry database from: ', filename)
+        logger.info('Reading Geometry database from: ', filename)
         with open(filename) as f:
             for i in range(n_header):
                 dummy = f.readline()
@@ -498,8 +500,7 @@ class FILD_logbook:
             raise errors.NotFoundGeomID('Not found geometry? revise input')
 
         instalations = self.geometryDatabase[flags_geometry]
-        if verbose:
-            print('This geometry was installed %i times:' % n_instalations)
+        logger.info('This geometry was installed %i times:' % n_instalations)
         for i in range(n_instalations):
             print('From shot %i to %i' % (instalations.shot1.values[i],
                                           instalations.shot2.values[i]))

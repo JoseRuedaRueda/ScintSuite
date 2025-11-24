@@ -1,0 +1,253 @@
+"""
+Methods to determine the sensitivity of the tomography algorithm to noise 
+and artefacts.
+"""
+import copy
+import os
+import ScintSuite as ss
+import numpy as np
+import tkinter as tk
+import xarray as xr
+import ScintSuite._Tomography._synthetic_signal as synthetic_signal
+import logging
+logger = logging.getLogger('ScintSuite.Tomography.NoiseSensitivity')
+
+def noise_sensitivity(WF, inverter, window, iters, noise_levels, 
+                      max_noise = 0.15):
+        '''
+        This function calculates the noise sensitivity of the tomography 
+        algorithm.
+
+        Marina Jimenez
+
+        Parameters:
+        -----------
+        WF: xarray.DataArray
+            Weight function.
+        inverter: str
+            Algebraic algorithm to be used. Pick just one algebraic algorithm:
+            'descent', 'kaczmarz' or 'cimmino'
+        window: list
+            Window of the grid to be used for the map.
+        iters: int
+            Maximum number of iterations.
+
+        max_noise: float
+            Maximum noise level that the reconstructed image is allowed to have.
+              The default is 0.15.
+
+        '''
+        # Generate grid
+        # gyroradius for x and pitch for y
+        r_values = WF.y.values
+        p_values = WF.x.values
+
+        r_liminf = r_values [r_values >= window[2]]
+        p_liminf = p_values[p_values >= window[0]]
+
+        r_selected = r_liminf[r_liminf <= window[3]]
+        p_selected = p_liminf[p_liminf <= window[1]]
+
+        noise_sensitivityXR = xr.DataArray(np.nan*np.empty((len(p_selected), 
+                                                       len(r_selected))), 
+                                coords=[('x', p_selected), ('y', r_selected)])
+        
+        # Loop over the index of r_values
+        for i in np.arange(0,len(r_selected)):            
+            # Loop over the index of p_values
+            for j in np.arange(0,len(p_selected)):
+                # Access the j-th element of p_values
+                
+                mu_gyro = r_selected[i]
+                mu_pitch = p_selected[j]
+                noise_sensitivityXR[j,i] = np.min(noise_levels)
+
+                for n in noise_levels:
+                    # Generate the synthetic signal
+                    x, y = synthetic_signal.create_synthetic_delta(WF, mu_gyro, 
+                                                        mu_pitch,
+                                                        noise_level = n,
+                                                        background_level = 0.01,
+                                                        seed=0)
+                    if y.max() == 0:
+                        noise_sensitivityXR[j,i] = 0
+                        continue
+
+                    # Perform the tomography
+                    tomo = ss.tomography(WF, y)
+                    x0 = np.zeros(tomo.s1D.shape)
+                    if inverter == 'descent':
+                        tomo.coordinate_descent_solve(x0, iters,  damp = 0.1, 
+                                                relaxParam = 1)
+                    elif inverter == 'kaczmarz':
+                        tomo.kaczmarz_solve(x0, iters, damp = 0.1, 
+                                            relaxParam = 1)
+                    elif inverter == 'cimmino':
+                        tomo.cimmino_solve(x0, iters, damp = 0.1, 
+                                           relaxParam = 1)
+                    
+                    xHat = tomo.inversion[inverter].F.isel(alpha = 0).copy()
+                    MSE = np.sqrt(((xHat-x)**2).sum(dim=('x','y')))
+                    true_norm = np.sqrt((x**2).sum(dim=('x','y')))
+                    error = MSE/true_norm
+                    if error <= max_noise:
+                        noise_sensitivityXR[j,i] = n
+
+                    
+
+        return noise_sensitivityXR
+                        
+
+
+def snr(x, x_hat):
+    """
+    Calculates signal to noise ratio.
+
+    Parameters:
+        x (np.ndarray): original 2D array.
+        x_hat (np.ndarray): reconstructed 2D array.
+
+    Returns:
+        float: scalar value of the SNR.
+    """
+
+    signal_power = np.mean(x**2)
+    noise_power = np.mean((x - x_hat)**2)
+
+    snr_value = 10 * np.log10(signal_power / noise_power)
+    
+    return snr_value
+
+
+def fidelity_map(domain, WF, inverter, window, maxiter, noise, background_noise, 
+                 gyro_map = None, pitch_map = None, resolution = False, 
+                 error_metric='relativel2'):
+        '''
+        This function calculates the fidelity map of the tomography algorithm.
+        For the noise levels selected, the function generates a synthetic
+        signal, adds noise to it and performs the tomography with the algebraic 
+        algorithm selected and the number of iterations selected. The function 
+        returns the fidelity map asociated. Each value of the fidelity map 
+        is the error of the reconstruction of a delta placed in that pixel.
+
+        Marina Jimenez
+
+        Parameters:
+        -----------
+        domain: list
+            Limits for the domain of the map.
+            [pitch_min, pitch_max, gyro_min, gyro_max]
+        WF: xarray.DataArray
+            Weight function.
+        inverter: str
+            Algebraic algorithm to be used. Pick just one algebraic algorithm:
+            'descent', 'kaczmarz' or 'cimmino'
+        window: list
+            Window of the signal space to project thye reconstructions.
+            [pitch_min, pitch_max, gyro_min, gyro_max]
+        maxiter: int
+            Maximum number of iterations. If resolution is True, iters must be None.
+        noise: float
+            Signal noise level.
+        background_noise: float
+            Background noise level.
+        resolution_gyro: xarray.DataArray
+            Gyroscalar resolution map.
+        resolution_pitch: xarray.DataArray
+            Pitch resolution map.
+        resolution: bool
+            If True, the function will use the resolution principle as stopping 
+            condition of the iterative algorithms. 
+            If False, it will not use the resolution maps.
+        error_metric: str
+            Error metric to be used. Two options: 'relativel2' or 'snr'.
+            The default is 'relativel2'.
+
+        '''
+        if resolution:
+            logger.warning('This stopping condition is not recommended for delta reconstructions. ' \
+            'The reconstructions will likely stop after reaching a predefined number of iterations.')
+
+            if pitch_map is None:
+                raise ValueError("pitch_map cannot be empty if resolution is True")
+            
+            if gyro_map is None:
+                raise ValueError("gyro_map cannot be empty if resolution is True")
+            
+            if maxiter is not None:
+                raise ValueError("You cannot set a number of iterations if resolution is True. " \
+                "iters must be set to None.")
+
+        # Generate grid
+        # gyroradius for x and pitch for y
+        r_values = WF.y.values
+        p_values = WF.x.values
+
+        r_liminf = r_values [r_values >= domain[2]]
+        p_liminf = p_values[p_values >= domain[0]]
+
+        r_selected = r_liminf[r_liminf <= domain[3]]
+        p_selected = p_liminf[p_liminf <= domain[1]]
+
+        fidelity_mapXR = xr.DataArray(np.nan*np.empty((len(p_selected), 
+                                                       len(r_selected))), 
+                                coords=[('x', p_selected), ('y', r_selected)])
+        
+        # Loop over the index of r_values
+        for i in np.arange(0,len(r_selected)):            
+            # Loop over the index of p_values
+            for j in np.arange(0,len(p_selected)):
+                # Access the j-th element of p_values
+                
+                mu_gyro = r_selected[i]
+                mu_pitch = p_selected[j]
+
+                # Generate the synthetic signal
+                x, y = synthetic_signal.create_synthetic_delta(WF, mu_gyro, 
+                                        mu_pitch,
+                                        noise_level = noise,
+                                        background_level = background_noise,
+                                        seed=0)
+                if y.max() == 0:
+                    fidelity_mapXR[j,i] = 0
+                    continue
+
+                # Perform the tomography
+                tomo = ss.tomography(WF, y)
+                n = WF.shape[2]*WF.shape[3]
+                x0 = np.zeros(n)
+                if inverter == 'descent':
+                    tomo.coordinate_descent_solve(x0, maxiter, window, damp = 0.1, 
+                                                relaxParam = 1,                                                
+                                                pitch_map = pitch_map,
+                                                gyro_map = gyro_map, 
+                                                resolution = resolution)
+                elif inverter == 'kaczmarz':
+                    tomo.kaczmarz_solve(x0, maxiter, window, damp = 0.1, 
+                                            relaxParam = 1,
+                                            pitch_map = pitch_map,
+                                            gyro_map = gyro_map, 
+                                            resolution = resolution)
+                elif inverter == 'cimmino':
+                    tomo.cimmino_solve(x0, maxiter, window, damp = 0.1, 
+                                           relaxParam = 1,
+                                           pitch_map = pitch_map,
+                                           gyro_map = gyro_map, 
+                                           resolution = resolution)
+                    
+                norm = 1
+                if tomo.norms['normalised'][0] ==1:
+                    norm = tomo.norms['s']/tomo.norms['W']
+                xHat = tomo.inversion[inverter].F.isel(alpha = -1).copy()*norm         
+                
+                if error_metric == 'snr':
+                    error = snr(x, xHat)
+                elif error_metric == 'relativel2':
+                    MSE = np.sqrt(((xHat-x)**2).sum(dim=('x','y')))
+                    true_norm = np.sqrt((x**2).sum(dim=('x','y')))
+                    error = MSE/true_norm
+
+                fidelity_mapXR[j,i] = error
+                    
+
+        return fidelity_mapXR

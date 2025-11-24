@@ -299,7 +299,7 @@ class BasicSignalVariable():
             options['xlabel'] = 'Time [s]'
 
         fig, ax = plt.subplots()
-        cmap = ssplt.Gamma_II()
+        cmap = ssplt.default_cmap()
         ax.pcolormesh(self['time_spec'], self['freq_spec'],
                       np.log(self['spec_' + data]), shading='gouraud', 
                       cmap=cmap)

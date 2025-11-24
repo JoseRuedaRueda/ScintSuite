@@ -99,11 +99,10 @@ class FILDINPA_Smap(GeneralStrikeMap):
         :param  GeomID: geometry ID of the database (option 2 to load the map)
         :param  decimals: Number of decimasl to look in the database (opt 2)
         :param  diagnostic: diagnostic to look in the database (opt 2)
-        :param  verbose: print some information in the terminal
+        :param  verbose: print some information in the terminal, deprecated
         """
         if (theta is not None) and (phi is not None):
-            if verbose:
-                logger.warning('Theta and phi present, ignoring filename')
+            logger.warning('Theta and phi present, ignoring filename')
             name = guess_strike_map_name(phi, theta, geomID=GeomID,
                                          decimals=decimals)
             file = os.path.join(Path().ScintSuite, 'Data', 'RemapStrikeMaps',
@@ -210,7 +209,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
                                          confidence_level: float = 0.9544997,
                                          bin_per_sigma: int = 4,
                                          variables: tuple = None,
-                                         verbose: bool = False):
+                                         verbose: bool = False,
+                                         tqdm_disable: bool = False):
         """
         Calculate the resolution associated with each point of the map.
 
@@ -241,7 +241,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
             determination
         :param  variables: Variables where to calculate the resolutions. By
             default, the ones selected for the remapping will be used
-        :param  verbose: Flag to print some information
+        :param  verbose: Flag to print some information, deprecated
+        :param  tqdm_disable: Disable the tqdm progress bar
         """
         if self.strike_points is None:
             logger.info('Trying to load the strike points')
@@ -302,9 +303,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
         self._resolutions['model_' + variables[0]] = diag_options['x_method']
         self._resolutions['model_' + variables[1]] = diag_options['y_method']
         # --- Core: Calculation of the resolution
-        if verbose:
-            logger.info('Calculating resolutions ...')
-        for ix in tqdm(range(nx)):
+        logger.info('Calculating resolutions ...')
+        for ix in tqdm(range(nx), disable=tqdm_disable):
             for iy in range(ny):
                 # -- Select the data:
                 data = self.strike_points.data[ix, iy]
@@ -820,7 +820,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         :param  ax_param: parameters for the axis beauty function. Note, labels
         of the color axis are hard-cored, if you want custom axis labels you
         would need to draw the plot on your own
-        :param  cMap: is None, Gamma_II will be used
+        :param  cMap: is None, Suite default will be used
         :param  nlev: number of levels for the contour
         :param  index_gyr: if present, reslution would be plotted along
         gyroradius given by gyroradius[index_gyr]
@@ -840,7 +840,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         ax_options.update(ax_params)
         
         if cmap is None:
-            cmap = ssplt.Gamma_II()
+            cmap = ssplt.default_cmap()
         # --- Plot the resolution
         if (index_x is None) and (index_y is None):
             fig, ax = plt.subplots(1, 2, sharex=True)
@@ -906,7 +906,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 yAxis = self.MC_variables[1].data
                 for var, subplot in zip(self._resolutions['variables'], ax):
                     key = var.name
-                    cmap = ssplt.Gamma_II()
+                    cmap = ssplt.default_cmap()
                     for i in index_x:
                         ssplt.p1D_shaded_error(
                             subplot, yAxis,
@@ -933,7 +933,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 xAxis = self.MC_variables[0].data
                 for var, subplot in zip(self._resolutions['variables'], ax):
                     key = var.name
-                    cmap = ssplt.Gamma_II()
+                    cmap = ssplt.default_cmap()
                     for i in index_y:
                         ssplt.p1D_shaded_error(
                             subplot, xAxis,
@@ -1139,7 +1139,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         :param  ax_param: parameters for the axis beauty function. Note, labels
         of the color axis are hard-cored, if you want custom axis labels you
         would need to draw the plot on your own
-        :param  cMap: is None, Gamma_II will be used
+        :param  cMap: is None, default_cmap will be used
         :param  nlev: number of levels for the contour
         :param  ax_lim: Manually set the x and y axes, currently only works for making it bigger, not smaller
                        Should be given as ax_lim = {'xlim' : [x1,x2], 'ylim' : [y1,y2]}
@@ -1149,7 +1149,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
         """
         # --- Initialise the settings:
         if cMap is None:
-            cmap = ssplt.Gamma_II()
+            cmap = ssplt.default_cmap()
         else:
             cmap = cMap
         ax_options = {
@@ -1237,7 +1237,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
             fig, ax = plt.subplots()
         # - Get the color map
         if cmap is None:
-            cmap = ssplt.Gamma_II()
+            cmap = ssplt.default_cmap()
         # - Plot the stuff
 
         self.instrument_function.sel(**par2).plot.imshow(ax=ax, cmap=cmap,

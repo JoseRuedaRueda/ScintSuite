@@ -1,3 +1,9 @@
+# 1.4.5 Minor improvements
+- Improved video filter speed
+- Added allIn options to FILD video
+- Added relativistic energy calculations for gyroradius
+- Added new Colormaps
+
 # 1.4.4 Updated installation script
 - first_run.py deprecated, first_run_pip.py is now the only official installation script and was renamed to first_run.py
 - Added the missing settings template

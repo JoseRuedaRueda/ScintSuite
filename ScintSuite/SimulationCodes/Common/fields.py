@@ -1199,7 +1199,7 @@ class fields:
         }
         ax_options.update(ax_params)
         if cmap is None:
-            ccmap = ssplt.Gamma_II()
+            ccmap = ssplt.default_cmap()
         else:
             ccmap = cmap
 

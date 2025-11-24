@@ -191,7 +191,11 @@ ver.printGITcommit()
 # It seems that with some matplotlib installations, this could fail, so let
 # us make just a try
 try:
-    plt.plotSettings()
+    if 'defaultPlotStyle' in settings['UserPlotStyles'].keys():
+        pltStyle = settings['UserPlotStyles']['defaultPlotStyle']
+    else:
+        pltStyle = 'software'
+    plt.plotSettings(pltStyle)
 except:
    logger.warning('28: It was not possible to initialise the plotting ' +
                   'settings')

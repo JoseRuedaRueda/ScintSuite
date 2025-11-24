@@ -125,6 +125,8 @@ def remapAllLoadedFrames(video,
     # --------------------------------------------------------------------------
     # --- INPUTS CHECK AND PREPARATION
     # --------------------------------------------------------------------------
+    if verbose:
+        logger.warning("VERBOSE option is deprecated, please avoid using it. it will raise an error in 2.0.0")
     epsB = 0.001 # Fields below this value are considered zero
     acceptedVars = ('energy', 'r0', 'gyroradius', 'rho_pol', 'e0')
     units = {'e0': 'keV', 'R0': 'm', 'gyroradius': 'cm', 'rho_pol': ' '}
@@ -310,10 +312,9 @@ def remapAllLoadedFrames(video,
                          x_edges=x_edges, y_edges=y_edges, mask=mask,
                          method=remap_method)
 
-    if verbose:
-        toc = time.time()
-        print('Whole time interval remapped in: ', toc-tic, ' s')
-        print('Average time per frame: ', (toc-tic) / nframes, ' s')
+    toc = time.time()
+    logger.info('Whole time interval remapped in: ', toc-tic, ' s')
+    logger.info('Average time per frame: ', (toc-tic) / nframes, ' s')
 
     remap_dat = xr.Dataset()
     remap_dat['frames'] = \

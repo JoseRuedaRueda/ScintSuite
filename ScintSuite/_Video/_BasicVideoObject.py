@@ -668,6 +668,9 @@ class BVO:
         """
         Filter the camera frames
 
+        Jose Rueda: jrrueda@us.es
+        Alex Reyner: areyvinn@alum.us.es
+
         :param  method: method to be used:
             -# jrr: neutron method of the extra package (not recommended,
                 extremelly slow)
@@ -716,23 +719,36 @@ class BVO:
                                                **jrr_options)
         elif method == 'median':
             logger.info('Median filter selected!')
+            logger.warning('If your video have not the time axis in the last position please write to jruedaru@uci.edu, as this will fail')
             # if footprint is present in the options given by user, delete size
             # from the default options, to avoid issues in the median filter
             if 'footprint' in options:
                 median_options['size'] = None
-            # Now update the options
             median_options.update(options)
-            for i in tqdm(range(nt)):
-                self.exp_dat['frames'][:, :, i] = \
-                    ndimage.median_filter(self.exp_dat['frames'].values[:, :, i],
-                                          **median_options)
+            self.exp_dat['frames'].values = \
+                ndimage.median_filter(self.exp_dat['frames'].values, 
+                                      size=(median_options['size'],
+                                            median_options['size'], 1))
+            # previous slower method
+            # for i in tqdm(range(nt)):
+            #     self.exp_dat['frames'][:, :, i] = \
+            #         ndimage.median_filter(self.exp_dat['frames'].values[:, :, i],
+            #                               **median_options)
+
         elif method == 'gaussian':
             logger.info('Gaussian filter selected!')
             gaussian_options.update(options)
-            for i in tqdm(range(nt)):
-                self.exp_dat['frames'][:, :, i] = \
-                    ndimage.gaussian_filter(self.exp_dat['frames'].values[:, :, i],
-                                            **gaussian_options)
+            logger.warning('If your video have not the time axis in the last position please write to jruedaru@uci.edu, as this will fail')
+            self.exp_dat['frames'].values = \
+                ndimage.gaussian_filter(self.exp_dat['frames'].values, 
+                                        sigma=(gaussian_options['sigma'], 
+                                               gaussian_options['sigma'], 1))
+            # previous slower method
+            # for i in tqdm(range(nt)):
+            #     self.exp_dat['frames'][:, :, i] = \
+            #         ndimage.gaussian_filter(self.exp_dat['frames'].values[:, :, i],
+            #                                 **gaussian_options)
+            
         logger.info('\\n-... -.-- . / -... -.-- .')
         return
 
@@ -911,7 +927,7 @@ class BVO:
         :param frame_number: Number of the frame to plot (option 1).
                If array: will average over the given frame frange
         :param ax: Axes where to plot, is none, just a new axes will be created
-        :param ccmap: colormap to be used, if none, Gamma_II from IDL
+        :param ccmap: colormap to be used, if none, default_cmap will be used
         :param t: time point to select the frame (option 2)
                   If array: will average over the given frame frange
         :param verbose: If true, info of the theta and phi used will be printed
@@ -1015,7 +1031,7 @@ class BVO:
             extra_options = {'vmin': vmin, 'vmax': vmax}
         # --- Check the colormap
         if ccmap is None:
-            cmap = ssplt.Gamma_II()
+            cmap = ssplt.default_cmap()
         else:
             cmap = ccmap
 
