@@ -32,7 +32,6 @@ except ModuleNotFoundError:
     logger.warning('10: Neutron filters will be slow (NUMBA missing')
 from scipy import constants
 from scipy.ndimage import generic_filter
-from numba import njit, prange
 from itertools import chain
 
 # -----------------------------------------------------------------------------
