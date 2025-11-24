@@ -313,8 +313,8 @@ def remapAllLoadedFrames(video,
                          method=remap_method)
 
     toc = time.time()
-    logger.info('Whole time interval remapped in: ', toc-tic, ' s')
-    logger.info('Average time per frame: ', (toc-tic) / nframes, ' s')
+    logger.info('Whole time interval remapped in: %.2f s'%((toc-tic)))
+    logger.info('Average time per frame: %.2f s'%((toc-tic) / nframes))
 
     remap_dat = xr.Dataset()
     remap_dat['frames'] = \
