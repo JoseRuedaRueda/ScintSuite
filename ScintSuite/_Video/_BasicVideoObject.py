@@ -693,13 +693,15 @@ class BVO:
         >>> # Filter the frames
         >>> vid.filter_frames(method='median', options={'size': 2})
         """
+        import cv2
+
         logger.info('Filtering frames')
         # default options:
         jrr_options = {
             'nsigma': 3
         }
         median_options = {
-            'size': 2
+            'size': 3
         }
         gaussian_options = {
             'sigma': 1
@@ -710,12 +712,13 @@ class BVO:
             logger.info('Not making a copy')
         # Filter frames
         nx, ny, nt = self.exp_dat['frames'].shape
+        frames = self.exp_dat['frames'].values
         if method == 'jrr':
             logger.info('Removing pixels affected by neutrons')
             jrr_options.update(options)
             for i in tqdm(range(nt)):
-                self.exp_dat['frames'][:, :, i] = \
-                    ssutilities.neutron_filter(self.exp_dat['frames'].values[:, :, i],
+                frames[:, :, i] = \
+                    ssutilities.neutron_filter(frames[:, :, i],
                                                **jrr_options)
         elif method == 'median':
             logger.info('Median filter selected!')
@@ -724,20 +727,26 @@ class BVO:
             # from the default options, to avoid issues in the median filter
             if 'footprint' in options:
                 median_options['size'] = None
-            median_options.update(options)
-            self.exp_dat['frames'].values = \
-                ndimage.median_filter(self.exp_dat['frames'].values, 
-                                      size=(median_options['size'],
-                                            median_options['size'], 1))
+            median_options.update(options)        
+            if median_options['size'] % 2 == 0:
+                ksize = median_options['size'] + 1
+            else:
+                ksize = median_options['size']
+            for i in tqdm(range(nt)):
+                frames[:, :, i] = cv2.medianBlur(
+                    frames[:, :, i], 
+                    ksize=ksize)
         elif method == 'gaussian':
             logger.info('Gaussian filter selected!')
             gaussian_options.update(options)
             logger.warning('If your video have not the time axis in the last position please write to jruedaru@uci.edu, as this will fail')
-            self.exp_dat['frames'].values = \
-                ndimage.gaussian_filter(self.exp_dat['frames'].values, 
-                                        sigma=(gaussian_options['sigma'], 
-                                               gaussian_options['sigma'], 1))
-            
+            for i in tqdm(range(nt)):
+                frames[:, :, i] = cv2.GaussianBlur(
+                    frames[:, :, i], 
+                    ksize = (0,0),
+                    sigmaX = gaussian_options['size'])
+
+        self.exp_dat['frames'].values = frames
         logger.info('\\n-... -.-- . / -... -.-- .')
         return
 
