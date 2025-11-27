@@ -158,6 +158,9 @@ def remapAllLoadedFrames(video,
     # -- Check the tipe of remap
     if remap_method.lower() == 'centers':
         MC_number = 0  # to turn off the transformation matrix calculation
+    elif remap_method.lower() == 'forward_warping_simple':
+        MC_number = 0  # to turn off the transformation matrix calculation
+
     # -- Prepare the frames
     if not use_average:
         if t0 is None:
