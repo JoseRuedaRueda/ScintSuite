@@ -94,7 +94,7 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
     out={}
 
     if version == '5.5':
-        names = ['R', 'phi', 'z', 'energy', 'pitch', 
+        names = ['R', 'phi', 'Z', 'energy', 'pitch', 
                  'Anum', 'Znum', 'weight', 'time']
 
         # FILE PREPARATION
@@ -219,7 +219,8 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
 # --- Synthetic signals using the weight matrix
 # -----------------------------------------------------------------------------
 
-def obtain_WF(smap, pin_params: dict = {}, scint_params: dict = {}):
+def obtain_WF(smap, pin_params: dict = {}, scint_params: dict = {},
+              efficiency_flag = False, scintillator = None, B=4, A=4, Z=2):
     '''
     Just a wrap of things to make it easier
     Efficency will be applied when generating the images
@@ -230,16 +231,27 @@ def obtain_WF(smap, pin_params: dict = {}, scint_params: dict = {}):
     smap.load_strike_points()
     # --- Grid for the weight function
     pin_options = {
-        'xmin': 10, 'xmax': 90, 'dx': 1,
-        'ymin': 1, 'ymax': 10, 'dy': 0.2,
-    }
+        'xmin': 20, 'xmax': 90, 'dx': 1,
+        'ymin': 1.5, 'ymax': 12, 'dy': 0.2,
+        }
     scint_options = {
-        'xmin': 10, 'xmax': 90, 'dx': 0.2,
-        'ymin': 1, 'ymax': 10, 'dy': 0.05,
-    }
+        'xmin': 20, 'xmax': 90, 'dx': 0.25,
+        'ymin': 1, 'ymax': 12, 'dy': 0.1,
+        }
     # update the matrix options
     pin_options.update(pin_params)
     scint_options.update(scint_params)
+
+    # Build the weight function 
+    if efficiency_flag == True and scintillator is not None:
+        logger.info('Efficency considered in the computation of the WF')
+        smap.build_weight_matrix(scint_options, pin_options,
+                                efficiency=scintillator.efficiency,
+                                B=B,A=A,Z=Z)
+    else:
+        smap.build_weight_matrix(scint_options, pin_options,
+                                B=B,A=A,Z=Z)
+    WF = smap.instrument_function
 
     smap.build_weight_matrix(scint_options, pin_options,)
     WF = smap.instrument_function
@@ -1040,12 +1052,13 @@ def noise_optics_camera(frame, eliminate_saturation = False,
 
     # ADJUST THE CAMERA FRAME AND OUTPUT  
     # -----------------------------------------------------------------------
+    logger.info('- Buildind the output...')    
     # Cap the counts to the maximum counts
     if eliminate_saturation == True:
         final_frame = final_frame.where(final_frame < max_count, max_count) 
 
     # Transform the counts to integers    
-    final_frame = final_frame.astype(int)
+    final_frame.data = final_frame.data.astype(int, copy=False)
 
     # Substitute the signal_frame
     out['frame'] = final_frame
@@ -1169,7 +1182,7 @@ def plot_noise_contributions(frame, cam_params: dict={}, maxval = False,
 
     for i in frame['noises']:
         frame_to_plot = frame['noises'][i]
-        fig, ax = plt.subplots(figsize=(8,6))
+        fig, ax = plt.subplots(figsize=(8,5))
         if i == 'broken':
             bw_cmap =  LinearSegmentedColormap.from_list(
                 'mycmap', ['black', 'white'], N=2)
@@ -1186,15 +1199,16 @@ def plot_noise_contributions(frame, cam_params: dict={}, maxval = False,
                     vmin=0, vmax=max_count,
                     cbar_kwargs={"label": 'Pixel counts','spacing': 'proportional'})
                     
-        ax.set_xlim((0,cam_params['nx']))
-        ax.set_ylim((0,cam_params['ny']))
-        ax_param = {'xlabel': 'x pix.', 'ylabel': 'y pix.'}
-        ax = ssplt.axis_beauty(ax, ax_param)
         fig.suptitle(i)
-        ax.set_aspect(1)      
+        ax.set_xlim([1,cam_params['nx']])
+        ax.set_ylim([1,cam_params['ny']])
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+        ax.set_aspect('equal', adjustable='box')
         plt.tight_layout()
-        print(i)    
-
+        logger.info('- %s', i)
     plt.show()
  
     return
@@ -1322,8 +1336,8 @@ def synthsig_xy(distro, smap, WF, scint, smapplt = None,
     # Calculate the synthetic signal at the scintillator
     remap_sig = synthsig_pr(distro, dscint, WF, mode=mode)
     scint_signal = remap_sig.SC
-    dp = (WF.x[1]-WF.x[0]).values
-    dr = (WF.y[1]-WF.y[0]).values
+    dp = (WF.xs[1]-WF.xs[0]).values
+    dr = (WF.ys[1]-WF.ys[0]).values
 
     # LOCATE AND CENTER THE SCINTILLATOR AND SMAP
     # -----------------------------------------------------------------------
@@ -1445,10 +1459,6 @@ def synthsig_xy(distro, smap, WF, scint, smapplt = None,
     if smoother != None:
         dummy = copy.deepcopy(synthetic_frame)
         synthetic_frame = spnd.gaussian_filter(dummy,sigma=smoother)
-    # Gyrophases corresponds to the range of gyrophases we consider that enter 
-    # the pinhole. If we only consider the ions that are aiming to the head (pi)
-    # we must have double the collimator factor, and double the particles.
-    synthetic_frame *= 2*np.pi/gyrophases    
 
     # BUILD THE OUTPUT
     # -----------------------------------------------------------------------
@@ -1480,7 +1490,6 @@ def synthsig_xy(distro, smap, WF, scint, smapplt = None,
     pix_osize = ((cam_params['px_x_size']*cam_params['px_y_size'])/\
                  (optic_params['beta']**2)) # pix real size in scintillator
     signal_frame /= pix_osize
-
     integral_s = signal_frame.sum().item()
     integral_s *= pix_osize
     logger.info("   Total signal = %e", integral_s)

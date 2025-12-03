@@ -210,7 +210,6 @@ class GeneralStrikeMap(XYtoPixel):
             new_dict = dict.fromkeys(variables_to_interpolate)
             self._grid_interp.update(new_dict)
             self._grid_interp['interpolators'].update(new_dict)
-
         for coso in variables_to_interpolate:  # For you lina ;)
             try:
                 dummy2 = \
@@ -235,7 +234,6 @@ class GeneralStrikeMap(XYtoPixel):
             self._calculate_transformation_matrix(
                 MC_number, variables_to_interpolate, grid_options,
                 frame_shape, limitation)
-
     def export_spatial_coordinates(self, Geom=None, units: str = 'mm',
                                    file_name_save: str = None,
                                    filename: str = 'Map.txt'):

@@ -735,7 +735,8 @@ class BVO:
             for i in tqdm(range(nt)):
                 frames[:, :, i] = cv2.medianBlur(
                     frames[:, :, i], 
-                    ksize=ksize)
+                    ksize=ksize
+                    )
         elif method == 'gaussian':
             logger.info('Gaussian filter selected!')
             gaussian_options.update(options)
@@ -744,8 +745,8 @@ class BVO:
                 frames[:, :, i] = cv2.GaussianBlur(
                     frames[:, :, i], 
                     ksize = (0,0),
-                    sigmaX = gaussian_options['size'])
-
+                    sigmaX = gaussian_options['sigma']
+                    )
         self.exp_dat['frames'].values = frames
         logger.info('\\n-... -.-- . / -... -.-- .')
         return

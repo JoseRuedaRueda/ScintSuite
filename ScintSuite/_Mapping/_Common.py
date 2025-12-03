@@ -481,6 +481,8 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         ycenter = 0.5 * (y_edges[1:] + y_edges[:-1])
         delta_x = xcenter[1] - xcenter[0]
         delta_y = ycenter[1] - ycenter[0]
+        # Number of bins
+        nx, ny = len(xcenter), len(ycenter)
 
         # Find where each pixel values' phase space values would fit in the defined phase space grid.
         x_index = np.searchsorted(xcenter, x, side = 'right')
@@ -520,8 +522,6 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         wtr = z * (dx1 * dy0) / area_total      # (ix1, iy1)
         wtl = z * (dx0 * dy0) / area_total       # (ix0, iy1)
 
-        # Number of bins
-        nx, ny = len(xcenter), len(ycenter)
         # Concat weight and indices
         all_lin = np.concatenate([lin_bl, lin_br, lin_tr, lin_tl])
         all_w   = np.concatenate([wbl, wbr, wtr, wtl])
