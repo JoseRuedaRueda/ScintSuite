@@ -6,3 +6,4 @@ from ScintSuite._GUIs._VideoPlusRemapPlayer import ApplicationShowVidRemap
 from ScintSuite._GUIs._RemapAnalyser import ApplicationRemapAnalysis
 from ScintSuite._GUIs._RemapAnalyser2D import ApplicationRemap2DAnalyser
 from ScintSuite._GUIs._VideoPlayerTraces import ApplicationShowVidAndTraces
+from ScintSuite._GUIs._FILDvideoGUI import FILDvideoGUI

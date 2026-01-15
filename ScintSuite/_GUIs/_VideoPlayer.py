@@ -9,6 +9,7 @@ import ScintSuite.SimulationCodes.SINPA as sssinpa
 import ScintSuite._StrikeMap as ssmap
 from matplotlib.figure import Figure
 from tkinter import ttk
+from skimage import io                     # To load images
 
 
 class ApplicationShowVid:
