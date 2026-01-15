@@ -41,6 +41,8 @@ from ScintSuite._Machine import machine as _machine
 if _machine == 'MU':
     import ScintSuite._Video._NetCDF4files as ncdf
 
+import time
+
 
 # --- Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.Video')
@@ -545,7 +547,8 @@ class BVO:
 
 
     def subtract_noise(self, t1: float = None, t2: float = None,
-                       frame: np.ndarray = None, flag_copy: bool = False):
+                       frame: np.ndarray = None, flag_copy: bool = False,
+                       fast: bool =  False):
         """
         Subtract noise from camera frames.
 
@@ -590,11 +593,10 @@ class BVO:
         nx = self.exp_dat['px'].size
         ny = self.exp_dat['py'].size
         nt = self.exp_dat['t'].size
-        original_dtype = self.exp_dat['frames'].dtype
         # Get the initial and final time loaded in the video:
         t1_vid = self.exp_dat['t'].values[0]
         t2_vid = self.exp_dat['t'].values[-1]
-        # --- Get the nise frame
+        # --- Get the noise frame
         # Calculate the noise frame, if needed:
         if (t1 is not None) and (t2 is not None):
             if (t1 < t1_vid and t2 < t1_vid) or (t1 > t2_vid and t2 > t2_vid):
@@ -621,9 +623,6 @@ class BVO:
             logger.info('Using frames from the video')
             logger.info('%i frames will be used to average noise', it2 - it1 + 1)
             frame = self.exp_dat['frames'].isel(t=slice(it1, it2+1)).mean(dim='t')
-            #frame = np.mean(self.exp_dat['frames'].values[:, :, it1:(it2 + 1)],
-            #                dtype=original_dtype, axis=2)
-
         else:  # The frame is given by the user
             logger.info('Using noise frame provided by the user')
             try:
@@ -635,10 +634,10 @@ class BVO:
                 print(nx, nxf, ny, nyf)
                 text = 'The noise frame has not the correct shape'
                 raise errors.NotValidInput(text)
-
+            
         # Save the frame in the structure
         self.exp_dat['frame_noise'] = xr.DataArray(frame.squeeze(),
-                                                   dims=('px', 'py'))
+                                                dims=('px', 'py'))
         if t1 is not None:
             self.exp_dat['frame_noise'].attrs['t1_noise'] = t1
             self.exp_dat['frame_noise'].attrs['t2_noise'] = t2
@@ -646,19 +645,34 @@ class BVO:
             self.exp_dat['frame_noise'].attrs['t1_noise'] = -150.0
             self.exp_dat['frame_noise'].attrs['t2_noise'] = -150.0
         # --- Copy the original frame array:
+        original_dtype = self.exp_dat['frames'].dtype
         if 'original_frames' not in self.exp_dat and flag_copy:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
-        # --- Subtract the noise
-        frame = frame.astype(float)  # Get the average as float to later
-        #                              subtract and not have issues with < 0
-        frameDA = xr.DataArray(frame, dims=('px', 'py'),
-                               coords = {'px': self.exp_dat['px'],
-                                         'py': self.exp_dat['py']})
-        #dummy = \
-        #    (self.exp_dat['frames'].values.astype(float) - frame[..., None])
-        dummy = self.exp_dat['frames'].astype(float) - frameDA
-        dummy.values[dummy.values < 0] = 0.0  # Clean the negative values
-        self.exp_dat['frames'].values = dummy.astype(original_dtype)
+
+        if not fast:
+            time1=time.time()
+            # --- Subtract the noise
+            frame = frame.astype(float)  # Get the average as float to later
+            #                              subtract and not have issues with < 0
+            frameDA = xr.DataArray(frame, dims=('px', 'py'),
+                                coords = {'px': self.exp_dat['px'],
+                                            'py': self.exp_dat['py']})
+            dummy = self.exp_dat['frames'].astype(float) - frameDA
+            dummy.values[dummy.values < 0] = 0.0  # Clean the negative values
+            self.exp_dat['frames'].values = dummy.astype(original_dtype)
+            time2=time.time()
+            print('SLOW time',time2-time1)
+        elif fast:
+            time1=time.time()
+            # --- Subtract the noise
+            frames_da = self.exp_dat['frames']
+            bkg = frames_da.sel(t=slice(t1, t2)).mean(dim='t').data
+            frames_f = frames_da.data.astype(np.float32, copy=False)
+            frames_f -= bkg[:, :, None]
+            np.maximum(frames_f, 0, out=frames_f)
+            frames_da.data[:] = frames_f.astype(frames_da.dtype, copy=False)
+            time2=time.time()
+            print('FAST time',time2-time1)
 
         logger.info('-... -.-- . / -... -.-- .')
         return frame.astype(original_dtype)
@@ -693,7 +707,7 @@ class BVO:
         >>> # Filter the frames
         >>> vid.filter_frames(method='median', options={'size': 2})
         """
-        import cv2
+        import cv2 # Has to be imported here to skip compatibility issues
 
         logger.info('Filtering frames')
         # default options:
@@ -712,7 +726,7 @@ class BVO:
             logger.info('Not making a copy')
         # Filter frames
         nx, ny, nt = self.exp_dat['frames'].shape
-        frames = self.exp_dat['frames'].values
+        frames = self.exp_dat['frames'].data
         if method == 'jrr':
             logger.info('Removing pixels affected by neutrons')
             jrr_options.update(options)
