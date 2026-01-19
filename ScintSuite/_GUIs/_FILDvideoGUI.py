@@ -45,7 +45,7 @@ class FILDvideoGUI:
         self.smap_state = False
         self.scint_state = False
 
-        self.save_folder = ss.paths.ScintSuite + '/Data/VideosRemaps/FILD' 
+        self.save_folder = ss.paths.ScintSuite + '/Data/VideosRemaps/FILD/' 
 
         self.collecting = False
         self.roi_points = []
@@ -53,6 +53,7 @@ class FILDvideoGUI:
         self.roi_scatter = None
         self.cid_click = None
         self.ax2 = None
+        self.fig2 = None
 
         # ---- Colors
         self.cmaps = {
@@ -219,12 +220,12 @@ class FILDvideoGUI:
         self.entry_vmax.grid(row=crow, column=3)
         # ---- Smap module
         crow += 1
-        self.btn_smap = tk.Button(self.root, text="Plot smap", 
+        self.btn_smap = tk.Button(self.root, text="SMAP", 
                                   command=self.plot_smap_button, 
                                   state=tk.DISABLED)
         self.btn_smap.grid(row=crow, column=0, columnspan=2, sticky='we')
         # ---- Scinillator module
-        self.btn_scint = tk.Button(self.root, text="Plot scint", 
+        self.btn_scint = tk.Button(self.root, text="SCINT", 
                                    command=self.plot_scint_button,
                                    state=tk.DISABLED)
         self.btn_scint.grid(row=crow, column=2, columnspan=2, sticky='we')
@@ -345,7 +346,7 @@ class FILDvideoGUI:
         if self.scint_state:
             xlim = self.ax.get_xlim()
             ylim = self.ax.get_ylim()
-            self.vid.scintillator.plot_pix(ax=self.ax)
+            self.vid_raw.scintillator.plot_pix(ax=self.ax)
             self.ax.set_xlim(xlim)
             self.ax.set_ylim(ylim)
 
@@ -471,9 +472,9 @@ class FILDvideoGUI:
         '''
         self.smap_state = not self.smap_state  # Change button state
         if self.smap_state:
-            self.btn_smap.config(text="rm smap")
+            self.btn_smap.config(text="SMAP")
         else:
-            self.btn_smap.config(text="Plot smap")
+            self.btn_smap.config(text="SMAP")
         self.plot_lines()
         self.canvas.draw_idle()
 
@@ -483,9 +484,9 @@ class FILDvideoGUI:
         '''
         self.scint_state = not self.scint_state  # Change button state
         if self.scint_state:
-            self.btn_scint.config(text="rm scint")
+            self.btn_scint.config(text="SCINT")
         else:
-            self.btn_scint.config(text="Plot scint")
+            self.btn_scint.config(text="SCINT")
         self.plot_lines()
         self.canvas.draw_idle()
 
@@ -495,8 +496,8 @@ class FILDvideoGUI:
         '''
         shot = int(self.entry_shot.get())
         diag = int(self.entry_diag.get())
-        globals()[f'fild{diag}_{shot}'] = copy.deepcopy(self.vid)
-        with open(self.save_folder+f'AUG_fild{diag}_{shot}'+".obj", "wb") as f:
+        with open(self.save_folder+self.opt_exp.get()+
+                  f'_fild{diag}_{shot}'+".obj", "wb") as f:
             pickle.dump(self.vid, f)
         logger.info('------------------ DATA SAVED ------------------')
 
@@ -567,8 +568,13 @@ class FILDvideoGUI:
             self.fig.canvas.mpl_disconnect(self.cid_click)
             self.cid_click = None
         self.collecting = False
-        self.roi_line = None   
-        self.roi_scatter = None    
+        # if self.roi_line is not None:
+        #     self.roi_line.remove()
+        #     self.roi_line = None
+        if self.roi_scatter is not None:
+            self.roi_scatter.remove()
+            self.roi_scatter = None
+        self.canvas.draw_idle()
 
     def plot_roi_line_scatter(self):
         if self.roi_points:
@@ -580,7 +586,8 @@ class FILDvideoGUI:
         self.canvas.draw_idle()       
 
     def generate_mask(self):
-        ny, nx = self.im.get_array().shape
+        shape = self.im.get_array().shape
+        ny, nx = shape[:2]
         poly = Path(self.roi_points)
         x, y = np.meshgrid(np.arange(nx), np.arange(ny))
         coords = np.vstack((x.ravel(), y.ravel())).T
@@ -590,24 +597,22 @@ class FILDvideoGUI:
         if self.roi_line is not None:
             xs, ys = zip(*(self.roi_points + [self.roi_points[0]]))
             self.roi_line.set_data(xs, ys)
-        self.canvas.draw_idle()
+        self.off_click()
 
     def plot_time_trace(self):
         if self.roi_mask is None:
             return
-
         mask_da = xr.DataArray(self.roi_mask, dims=self.spatial_dims)
         masked_frames = self.frames * mask_da
         time_trace = masked_frames.sum(dim=self.spatial_dims)
-
-        if self.ax2 is not None:
-            time_trace.plot(ax=self.ax2)
-        else: 
+        fig_alive = (self.fig2 is not None and self.ax2 is not None 
+                     and plt.fignum_exists(self.fig2.number))
+        if not fig_alive:
             self.fig2, self.ax2 = plt.subplots(figsize=(8, 4))
-            time_trace.plot(ax=self.ax2)
-        plt.xlabel("Frame")
+        time_trace.plot(ax=self.ax2)
+        self.ax2.set_ylim(0, None)
+        plt.xlabel("Time [s]")
         plt.ylabel("Sum of ROI")
-        plt.title("Time trace of ROI")
         plt.grid(True)
         plt.show()
 
@@ -661,7 +666,7 @@ class FILDvideoGUI:
             self.btn_scint.configure(state=tk.NORMAL)
         elif what_data == 'REMAP':
             self.frames = self.vid.remap_dat.frames.transpose('t','y','x')
-            self.spatial_dims = ['x','y']
+            self.spatial_dims = ['y','x']
             xlabel, ylabel = 'Pitch angle [º]', 'Gyroradius [cm]'
             pad, right = 0.1, 0.5
             aspect = 1
@@ -718,7 +723,11 @@ class FILDvideoGUI:
         self.entry_vmax.bind("<Return>", lambda e: 
                              self.update_plot(self.current_frame))
         self.btn_smap.configure(state=tk.DISABLED)
-        self.btn_scint.configure(state=tk.NORMAL)
+        if self.vid.scintillator is not None and \
+            hasattr(self.vid.scintillato, "plot_pix"):
+            self.btn_scint.configure(state=tk.NORMAL)
+        else:
+            self.btn_scint.configure(state=tk.DISABLED)
         self.btn_export.configure(state=tk.DISABLED)
         self.btn_TT.configure(state=tk.NORMAL)
 
