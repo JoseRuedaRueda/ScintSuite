@@ -1,4 +1,7 @@
-"""GUI for FILDSIM vanilla users"""
+"""
+GUI for FILDSIM vanilla users
+author: areyner@us.es
+"""
 import ScintSuite as ss
 import ScintSuite._Plotting as ssplt
 import ScintSuite._StrikeMap as ssmap
@@ -19,21 +22,42 @@ import xarray as xr
 import os
 import copy
 import pickle
+import time
 
 import logging
 logger = logging.getLogger('ScintSuite.FILDvideoGUI')
 logging.basicConfig(level=logging.INFO)
 
+from ScintSuite._Machine import machine as mach
 
 class FILDvideoGUI:
     '''
     Build a GUI to analyse data from FILD videos.
+    1. Select shot, fild number and time interval -> Read Video
+    2. Define t interval for background subtraction and select size of 
+        median and gaussian filters -> Filter Video
+        - This will apply the filters to the raw data and overwrite the
+            previous treated data.
+        - Will remove the remap, in case of been done before.
+    3. Select mesh for remapping, what smaps to use, the precision of the
+        magnetic field and the remapping method -> Remap Video
+        - This will change the plot to remap format directly
+    - The plotting options include being able to change freely between video 
+        and remapped data, change in colorbar, colorbar limits ([0,None] is the
+        default), plot the smap (if remap is done), and scintillator.
+    - Capacity to export the data to a folder.
+    - Capacity to extract the time trace of various ROI in the same plot, to be
+        able to compare.
     '''
 
-    def __init__(self):
+    def __init__(self, shot = 41256, diag = 1):
         self.tk = tk
         self.root = tk.Tk()
         self.root.title("FILD data explorer GUI")
+
+        self.shot = shot
+        self.diag = diag
+        self.save_folder = ss.paths.ScintSuite + '/Data/VideosRemaps/FILD/'
 
         self.vid = None
         self.vid_raw = None
@@ -44,8 +68,6 @@ class FILDvideoGUI:
 
         self.smap_state = False
         self.scint_state = False
-
-        self.save_folder = ss.paths.ScintSuite + '/Data/VideosRemaps/FILD/' 
 
         self.collecting = False
         self.roi_points = []
@@ -82,22 +104,18 @@ class FILDvideoGUI:
         # -------------------------------------------------------------------
         # ---- Title
         crow = 0
-        tk.Label(self.root, text="EXP:", font=("Arial", 14, "bold"))\
-            .grid(row=crow, column=0, columnspan=2)
-        self.opts_exp = ["AUG", "D3D"]
-        self.opt_exp = tk.StringVar(value="AUG")
-        self.menu_exp = tk.OptionMenu(self.root, 
-                                       self.opt_exp, *self.opts_exp)
-        self.menu_exp.grid(row=crow, column=2, columnspan=2, sticky='news')
+        tk.Label(self.root, text=f"EXP: {mach}", font=("Arial", 14, "bold"))\
+            .grid(row=crow, column=0, columnspan=4)
+
         # ---- Shot
         crow += 1
         tk.Label(self.root, text="Shot:").grid(row=crow, column=0, sticky='e')
         self.entry_shot = tk.Entry(self.root, width=6)
-        self.entry_shot.insert(0, "43440")
+        self.entry_shot.insert(0, str(self.shot))
         self.entry_shot.grid(row=crow, column=1)
         tk.Label(self.root, text="FILD:").grid(row=crow, column=2, sticky='e')
         self.entry_diag = tk.Entry(self.root, width=6)
-        self.entry_diag.insert(0, "4")
+        self.entry_diag.insert(0, str(self.diag))
         self.entry_diag.grid(row=crow, column=3)
         # ---- Time interval
         crow += 1
@@ -270,12 +288,13 @@ class FILDvideoGUI:
     def run(self):
         self.root.mainloop()
 
+
     # FUNTIONS
     # -----------------------------------------------------------------------
     def key_press(self, event):
-        if not self.data_vals:
+        if self.data_vals.size == 0:
             return
-
+        
         if event.keysym == 'Right' and self.current_frame < len(self.data_vals) - 1:
             self.current_frame += 1
         elif event.keysym == 'Left' and self.current_frame > 0:
@@ -362,22 +381,16 @@ class FILDvideoGUI:
             2. Load data
             3. Reset GUI interface
             4. Enable buttons
-        '''               
-        shot = int(self.entry_shot.get())
-        diag = int(self.entry_diag.get())
+        '''
+        self.shot = int(self.entry_shot.get())
+        self.diag = int(self.entry_diag.get())
         t1 = float(self.entry_t1.get())
         t2 = float(self.entry_t2.get())
-
         # Build video object
-        if diag == 1:
-            self.vid_raw = ss.vid.FILDVideo(shot=shot, diag_ID=diag)
-        else:
-            filename = f"/shares/departments/AUG/users/alrevi/ScintSuite/MyRoutines/ASDEX/FILD{diag}/{shot}"
-            self.vid_raw = ss.vid.FILDVideo(file=filename, diag_ID=diag)
+        self.vid_raw = ss.vid.FILDVideo(shot=self.shot, diag_ID=self.diag)
         
         self.vid_raw.read_frame(t1=t1, t2=t2)
         self.vid = copy.deepcopy(self.vid_raw)
-
         self.smap_state = False
         self.scint_state = False
         self.reset_video()
@@ -392,7 +405,6 @@ class FILDvideoGUI:
             4. Enable buttons
         '''        
         self.vid = copy.deepcopy(self.vid_raw)
-
         # Background substraction
         try:
             tn1 = float(self.tn1_entry.get())
@@ -494,11 +506,10 @@ class FILDvideoGUI:
         '''
         Export data to a folder
         '''
-        shot = int(self.entry_shot.get())
-        diag = int(self.entry_diag.get())
-        with open(self.save_folder+self.opt_exp.get()+
-                  f'_fild{diag}_{shot}'+".obj", "wb") as f:
-            pickle.dump(self.vid, f)
+        self.shot = int(self.entry_shot.get())
+        self.diag = int(self.entry_diag.get())
+        ubi = self.save_folder + mach
+        self.vid.export_remap(folder = ubi, clean = True)
         logger.info('------------------ DATA SAVED ------------------')
 
     def extract_time_trace(self):
@@ -614,8 +625,8 @@ class FILDvideoGUI:
         plt.xlabel("Time [s]")
         plt.ylabel("Sum of ROI")
         plt.grid(True)
+        plt.tight_layout()
         plt.show()
-
 
 
     # ---- Internals
@@ -676,10 +687,9 @@ class FILDvideoGUI:
             self.smap_state = False
             self.scint_state = False
 
-        frames_da = self.frames.data
-        self.data_vals[:] = frames_da
-        self.vmax_all[:] = self.frames.quantile(0.999, dim=self.spatial_dims).values
-        
+        self.data_vals = self.frames.data
+        self.vmax_all = self.frames.quantile(0.999, dim=self.spatial_dims).values
+
         self.ax.clear()
         self.im = self.frames.isel(t=self.current_frame).plot.imshow(
             ax=self.ax, add_colorbar=False, cmap=self.cmaps[self.combo_cmap.get()])
@@ -724,7 +734,7 @@ class FILDvideoGUI:
                              self.update_plot(self.current_frame))
         self.btn_smap.configure(state=tk.DISABLED)
         if self.vid.scintillator is not None and \
-            hasattr(self.vid.scintillato, "plot_pix"):
+            hasattr(self.vid.scintillator, "plot_pix"):
             self.btn_scint.configure(state=tk.NORMAL)
         else:
             self.btn_scint.configure(state=tk.DISABLED)
