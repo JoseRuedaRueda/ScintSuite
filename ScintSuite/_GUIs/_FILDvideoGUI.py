@@ -466,9 +466,9 @@ class FILDvideoGUI:
         for key, entry in self.entry_params.items():
                 par[key] = float(entry.get())
 
-        logging.disable(logging.CRITICAL)
+        # logging.disable(logging.CRITICAL)
         self.vid.remap_loaded_frames(par)
-        logging.disable(logging.NOTSET)
+        # logging.disable(logging.NOTSET)
 
         self.enabling_after_remaping()
         self.opt_plot.set("REMAP") # change_data_plot is triggered

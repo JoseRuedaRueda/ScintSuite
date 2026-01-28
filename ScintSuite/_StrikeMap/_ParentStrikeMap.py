@@ -91,10 +91,10 @@ class GeneralStrikeMap(XYtoPixel):
             elif self._header['diagnostic'] == 'iHIBP':
                 variables_to_remap = ('x1', 'x2')
                 # ToDo. Set here the to proper iHIBP variables
-        self.setRemapVariables(variables_to_remap, verbose=False)
         self._grid_interp = None  # allocate the atribute for latter
         self._map_interpolators = None
-        # set tje shape of the map
+        self.setRemapVariables(variables_to_remap, verbose=False)
+        # set the shape of the map
         self._shape = self._header['shape']
         try:
             self._MC_variables = self._header['MC_variables']
@@ -121,7 +121,8 @@ class GeneralStrikeMap(XYtoPixel):
         
             raise errors.NotValidInput(text)
         self._remap_var_names = variables_to_remap
-        logger.warning('Please call interp_grid to update the interpolators')
+        if self._grid_interp is not None:
+            logger.warning('Please call interp_grid to update the interpolators')
 
     def interp_grid(self, frame_shape, method: int = 2,
                     verbose: bool = False,
