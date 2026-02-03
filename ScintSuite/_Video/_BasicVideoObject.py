@@ -675,6 +675,7 @@ class BVO:
             time2 = time.time()
             logger.info('Slow method: %f s', time2-time1)
 
+        logger.warning('Deprecated! Remove speed_flag if method is verified')
         logger.info('-... -.-- . / -... -.-- .')
         return frame.astype(original_dtype)
 
@@ -793,6 +794,8 @@ class BVO:
                             self.exp_dat['frames'].values[:, :, i],
                             **gaussian_options)
         self.exp_dat['frames'].values = frames
+
+        logger.warning('Deprecated! Remove speed_flag if method is verified')
         logger.info('\\n-... -.-- . / -... -.-- .')
         return
 

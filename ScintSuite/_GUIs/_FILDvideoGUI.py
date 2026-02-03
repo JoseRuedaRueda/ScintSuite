@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.ticker import FuncFormatter
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import tkinter as tk
 from tkinter import ttk
@@ -29,6 +30,9 @@ logger = logging.getLogger('ScintSuite.FILDvideoGUI')
 logging.basicConfig(level=logging.INFO)
 
 from ScintSuite._Machine import machine as mach
+
+
+##
 
 class FILDvideoGUI:
     '''
@@ -50,7 +54,7 @@ class FILDvideoGUI:
         able to compare.
     '''
 
-    def __init__(self, shot = 41256, diag = 1):
+    def __init__(self, shot = 41256, diag = 1, tini = 0, tfin = 10):
         self.tk = tk
         self.root = tk.Tk()
         self.root.title("FILD data explorer GUI")
@@ -61,10 +65,28 @@ class FILDvideoGUI:
 
         self.vid = None
         self.vid_raw = None
-        self.frames = None
         self.current_frame = 0
-        self.data_vals = []
-        self.vmax_all = []
+
+        self.fig = Figure(figsize=(14, 5), constrained_layout = False)
+        self.ax1 = self.fig.add_axes([0.05, 0.15, 0.45, 0.75])
+        self.ax2 = self.fig.add_axes([0.60, 0.15, 0.30, 0.75])
+
+        self.frames = None
+        self.data_vals1 = []
+        self.vmax_all1 = []
+        self.im1 = None
+        self.cbar1 = None
+        self.cax1 = None
+        self.t_text1 = None
+        self.shot_text = None
+
+        self.remaps = None
+        self.data_vals2 = []
+        self.vmax_all2 = []
+        self.im2 = None
+        self.cax2 = None
+        self.cbar2 = None
+        self.t_text2 = None
 
         self.smap_state = False
         self.scint_state = False
@@ -74,8 +96,9 @@ class FILDvideoGUI:
         self.roi_line = None
         self.roi_scatter = None
         self.cid_click = None
-        self.ax2 = None
-        self.fig2 = None
+        self.ax3 = None
+        self.ax4 = None
+        self.fig3 = None
 
         # ---- Colors
         self.cmaps = {
@@ -87,16 +110,9 @@ class FILDvideoGUI:
             'hot': plt.get_cmap('hot_r'),
         }
         self.cmap_names = list(self.cmaps.keys())
-        self.cmap_default = 'Gamma_III'
+        self.cmap_default1 = 'Gamma_III'
+        self.cmap_default2 = 'Gamma_II'
 
-        self.fig = Figure(figsize=(8, 5))
-        self.ax = self.fig.add_subplot(111)
-        placeholder = np.zeros((200, 200))
-        self.im = self.ax.imshow(
-            placeholder, cmap=self.cmaps[self.cmap_default],
-            origin='lower', vmin=0, vmax=1
-        )
-        self.ax.set_axis_off()
         self.formater = FuncFormatter(lambda x, _: f"{x:.1e}")
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
 
@@ -122,16 +138,20 @@ class FILDvideoGUI:
         tk.Label(self.root, text="Time interval (s):")\
             .grid(row=crow, column=0, columnspan=2, sticky='e')
         self.entry_t1 = tk.Entry(self.root, width=6)
-        self.entry_t1.insert(0, "0")
+        self.entry_t1.insert(0, str(tini))
         self.entry_t1.grid(row=crow, column=2)
         self.entry_t2 = tk.Entry(self.root, width=6)
-        self.entry_t2.insert(0, "10")
+        self.entry_t2.insert(0, str(tfin))
         self.entry_t2.grid(row=crow, column=3)
         # ---- Load video button
         crow += 1
-        self.btn_load = tk.Button(self.root, text="Read Video", 
+        self.btn_load = tk.Button(self.root, text="Load", bg = 'black',
                                   command=self.load_video)
-        self.btn_load.grid(row=crow, column=0, columnspan=4, sticky='we')
+        self.btn_load.grid(row=crow, column=0, columnspan=2, sticky='we')
+        self.btn_import = tk.Button(self.root, text="Import", bg = 'blue',
+                                     activebackground="#007BFF",
+                                  command=self.import_video)
+        self.btn_import.grid(row=crow, column=2, columnspan=2, sticky='we')
         # ---- Background subtraction
         crow += 1
         tk.Label(self.root, text="BKG sub. (s):")\
@@ -158,34 +178,37 @@ class FILDvideoGUI:
         # ---- Filter video button
         crow += 1
         self.btn_filter = tk.Button(
-            self.root, text="Filter Video",
+            self.root, text="Filter", bg = 'black',
             command=self.process_video, state=tk.DISABLED
         )
         self.btn_filter.grid(row=crow, column=0, columnspan=4, sticky='we')
         # ---- Remap parameters
         crow += 1
-        parameters = {'xmin': 30, 'xmax': 90, 'dx': 1, 
-                      'ymin': 1, 'ymax': 8, 'dy': 0.2}
+        parameters = {'xmin': 20, 'xmax': 90, 'dx': 1, 
+                      'ymin': 1, 'ymax': 8, 'dy': 0.1}
+        labels = {'xmin': ' p min', 'xmax': 'p max', 'dx': 'dp', 
+                  'ymin': ' r min', 'ymax': 'r max', 'dy': 'dr'}
         self.entry_params = {}
-        for i, (name, default) in enumerate(parameters.items()):
+        for i, (var, default) in enumerate(parameters.items()):
             row = i % 3 + crow
             col = (i // 3) * 2
+            name = labels[var]
             tk.Label(self.root, text=f"{name}:")\
                 .grid(row=row, column=col, sticky='e')
             e = tk.Entry(self.root, width=6)
             e.insert(0, str(default))
             e.grid(row=row, column=col+1)
-            self.entry_params[name] = e
+            self.entry_params[var] = e
         crow += 3
         # ---- Strikemap options
         tk.Label(self.root, text="Smaps:")\
             .grid(row=crow, column=0, columnspan=1, sticky='w')
-        self.opts_smap = ["Compute", "Existing"]
-        self.opt_smap = tk.StringVar(value="Compute")
+        self.opts_smap = ["Computed", "Existing"]
+        self.opt_smap = tk.StringVar(value="Computed")
         self.menu_smap = tk.OptionMenu(self.root, 
                                        self.opt_smap, *self.opts_smap)
         self.menu_smap.grid(row=crow, column=1, columnspan=3, sticky='we')
-        self.menu_smap.configure(state = tk.DISABLED)
+        self.menu_smap.configure(state = tk.NORMAL)
         # ---- Strikemap precision
         crow +=1
         tk.Label(self.root, text="Smap precision:")\
@@ -202,40 +225,46 @@ class FILDvideoGUI:
         self.menu_remap = tk.OptionMenu(self.root, 
                                         self.opt_remap, *self.opts_remap)
         self.menu_remap.grid(row=crow, column=1, columnspan=3, sticky='we')
-        self.menu_remap.configure(state = tk.DISABLED)
+        self.menu_remap.configure(state = tk.NORMAL)
         # ---- Remap video
         crow +=1
-        self.btn_remap = tk.Button(self.root, text="Remap Video", 
+        self.btn_remap = tk.Button(self.root, text="Remap", bg = 'black', 
                                    command=self.remap_video, 
                                    state=tk.DISABLED)
-        self.btn_remap.grid(row=crow, column=0, columnspan=4, sticky='we')    
-        # ---- Second title
+        self.btn_remap.grid(row=crow, column=0, columnspan=2, sticky='we')
+        self.btn_all = tk.Button(self.root, text="DO ALL", bg = 'green',
+                                     activebackground="#319F31",
+                                   command=self.do_all_actions, 
+                                   state=tk.NORMAL)
+        self.btn_all.grid(row=crow, column=2, columnspan=2, sticky='we')
+
+        # --------------------------------------------------------------------
         crow +=1
-        tk.Label(self.root, text="PLOT", font=("Arial", 16, "bold"))\
-            .grid(row=crow, column=0, columnspan=4)
-        # ---- Plot changes
-        crow += 1
-        self.opts_plot = ["VIDEO", "REMAP"]
-        self.opt_plot = tk.StringVar(value="VIDEO")
-        self.menu_plot = tk.OptionMenu(self.root, 
-                                       self.opt_plot, *self.opts_plot)
-        self.menu_plot.grid(row=crow, column=0, columnspan=4, sticky='we')
-        self.menu_plot.configure(state=tk.DISABLED)
-        self.opt_plot.trace_add("write", lambda *_: self.change_data_plot())
+        separator = ttk.Separator(self.root, orient='horizontal')
+        separator.grid(row=crow, column=0, columnspan=4, sticky='we', pady=5)
+        # ---- Camera plot
+        crow +=1
+        tk.Label(self.root, text="Camera plot", font=("Arial", 11, "bold"))\
+            .grid(row=crow, column=0, columnspan=2)
+                # ---- Time trace button
+        self.btn_TT1 = tk.Button(text="time-trace",
+            command = lambda: self.extract_time_trace(),
+            width=12, state=tk.DISABLED)
+        self.btn_TT1.grid(row=crow, column=2, columnspan=2, sticky='we')
         # ---- Color menu
         crow += 1
-        self.combo_cmap = ttk.Combobox(self.root, values=self.cmap_names,
+        self.combo_cmap_c = ttk.Combobox(self.root, values=self.cmap_names,
             state="readonly", width=12)
-        self.combo_cmap.set(self.cmap_default)
-        self.combo_cmap.bind("<<ComboboxSelected>>", self.change_cmap)
-        self.combo_cmap.grid(row=crow, column=0, columnspan=2)
-        self.combo_cmap.configure(state=tk.DISABLED)
+        self.combo_cmap_c.set(self.cmap_default1)
+        self.combo_cmap_c.bind("<<ComboboxSelected>>", self.change_cmap)
+        self.combo_cmap_c.grid(row=crow, column=0, columnspan=2)
+        self.combo_cmap_c.configure(state=tk.DISABLED)
         # ---- Colorbar limits
-        self.entry_vmin = tk.Entry(self.root, width=6)
-        self.entry_vmin.insert(0, "0")
-        self.entry_vmin.grid(row=crow, column=2)
-        self.entry_vmax = tk.Entry(self.root, width=6)
-        self.entry_vmax.grid(row=crow, column=3)
+        self.entry_vmin_c = tk.Entry(self.root, width=6)
+        self.entry_vmin_c.insert(0, "0")
+        self.entry_vmin_c.grid(row=crow, column=2)
+        self.entry_vmax_c = tk.Entry(self.root, width=6)
+        self.entry_vmax_c.grid(row=crow, column=3)
         # ---- Smap module
         crow += 1
         self.btn_smap = tk.Button(self.root, text="SMAP", 
@@ -248,6 +277,28 @@ class FILDvideoGUI:
                                    state=tk.DISABLED)
         self.btn_scint.grid(row=crow, column=2, columnspan=2, sticky='we')
 
+        # ---- Remap plot
+        crow +=1
+        tk.Label(self.root, text="Remap plot", font=("Arial", 11, "bold"))\
+            .grid(row=crow, column=0, columnspan=2)
+        self.btn_TT2 = tk.Button(text="time-trace",
+            command = lambda: self.extract_time_trace(remap=True),
+            width=12, state=tk.DISABLED)
+        self.btn_TT2.grid(row=crow, column=2, columnspan=2, sticky='we')
+        # ---- Color menu
+        crow += 1
+        self.combo_cmap_r = ttk.Combobox(self.root, values=self.cmap_names,
+            state="readonly", width=12)
+        self.combo_cmap_r.set(self.cmap_default2)
+        self.combo_cmap_r.bind("<<ComboboxSelected>>", self.change_cmap)
+        self.combo_cmap_r.grid(row=crow, column=0, columnspan=2)
+        self.combo_cmap_r.configure(state=tk.DISABLED)
+        # ---- Colorbar limits
+        self.entry_vmin_r = tk.Entry(self.root, width=6)
+        self.entry_vmin_r.insert(0, "0")
+        self.entry_vmin_r.grid(row=crow, column=2)
+        self.entry_vmax_r = tk.Entry(self.root, width=6)
+        self.entry_vmax_r.grid(row=crow, column=3)
         # ---- Slider
         crow -=1
         self.slider = ttk.Scale(self.root, from_=0, to=0, orient="horizontal", 
@@ -267,13 +318,9 @@ class FILDvideoGUI:
                                command=self.export_data, 
                                width=12, state=tk.DISABLED)
         self.btn_export.pack(side="left", padx=5)
-        # ---- Time trace button
-        self.btn_TT = tk.Button(buttons_frame, text="Extract TT",
-                            command=self.extract_time_trace,
-                            width=12, state=tk.DISABLED)
-        self.btn_TT.pack(side="left", padx=5)
         # ---- Quit button
-        btn_quit = tk.Button(buttons_frame, text="Quit",
+        btn_quit = tk.Button(buttons_frame, text="Quit", bg = 'red',
+                             activebackground="#FF5050",
                              command=self.root.destroy,
                              width=6, state=tk.NORMAL)
         btn_quit.pack(side="left", padx=5)
@@ -292,10 +339,10 @@ class FILDvideoGUI:
     # FUNTIONS
     # -----------------------------------------------------------------------
     def key_press(self, event):
-        if self.data_vals.size == 0:
+        if self.data_vals1.size == 0:
             return
         
-        if event.keysym == 'Right' and self.current_frame < len(self.data_vals) - 1:
+        if event.keysym == 'Right' and self.current_frame < len(self.data_vals1) - 1:
             self.current_frame += 1
         elif event.keysym == 'Left' and self.current_frame > 0:
             self.current_frame -= 1
@@ -303,7 +350,6 @@ class FILDvideoGUI:
             return
 
         self.update_plot(self.current_frame)
-
 
     # ---- Plot updating
     def update_plot(self, idx):
@@ -314,35 +360,54 @@ class FILDvideoGUI:
             3. Plot lines (if wanted)
         '''
         idx = int(float(idx))
-        if idx >= len(self.data_vals):
+        if idx >= len(self.data_vals1):
             return
         self.current_frame = idx
-        self.im.set_data(self.data_vals[idx])
-        self.time_text.set_text(f"{self.frames.t[idx].values:.3f} s")
-        self.change_cbar()
+        self.im1.set_data(self.data_vals1[idx])
+        self.t_text1.set_text(f"{self.frames.t[idx].values:.3f} s")
+        self.change_cbar1()
         self.plot_lines()
-        self.fig.tight_layout()
+        if self.im2 is not None:
+            self.im2.set_data(self.data_vals2[idx])
+            self.t_text2.set_text(f"{self.frames.t[idx].values:.3f} s")
+            self.change_cbar2()
+
+        # self.fig.tight_layout()
         self.canvas.draw_idle()
 
-    def change_cbar(self, event=None):
+    def change_cbar1(self, event=None):
         '''
         Changes colorbar limits.
         Triggered in update_plot
         '''
-        try: vmin = float(self.entry_vmin.get())
+        try: vmin = float(self.entry_vmin_c.get())
         except: vmin = 0.0
-        try: vmax = float(self.entry_vmax.get())
-        except: vmax = self.vmax_all[self.current_frame]
-        self.im.set_clim(vmin=vmin, vmax=vmax)
-        self.cbar.update_normal(self.im)
-        self.cbar.formatter = self.formater
+        try: vmax = float(self.entry_vmax_c.get())
+        except: vmax = self.vamx_all1[self.current_frame]
+        self.im1.set_clim(vmin=vmin, vmax=vmax)
+        self.cbar1.update_normal(self.im1)
+        self.cbar1.formatter = self.formater
+
+    def change_cbar2(self, event=None):
+        '''
+        Changes colorbar limits.
+        Triggered in update_plot
+        '''
+        try: vmin = float(self.entry_vmin_r.get())
+        except: vmin = 0.0
+        try: vmax = float(self.entry_vmax_r.get())
+        except: vmax = self.vamx_all2[self.current_frame]
+        self.im2.set_clim(vmin=vmin, vmax=vmax)
+        self.cbar2.update_normal(self.im2)
+        self.cbar2.formatter = self.formater
 
     def plot_lines(self):
         '''
         Function that plots lines in the image (smap or scint)
         '''
         logging.disable(logging.CRITICAL)
-        ssplt.remove_lines(self.ax)
+        ssplt.remove_lines(self.ax1)
+        ssplt.remove_lines(self.ax2)
 
         if self.smap_state:
             theta_used = self.vid.remap_dat['theta_used'].values[self.current_frame]
@@ -356,18 +421,18 @@ class FILDvideoGUI:
 
             smap = ssmap.Fsmap(full_name_smap)
             smap.calculate_pixel_coordinates(self.vid.CameraCalibration)
-            xlim = self.ax.get_xlim()
-            ylim = self.ax.get_ylim()
-            smap.plot_pix(ax=self.ax, labels=False)
-            self.ax.set_xlim(xlim)
-            self.ax.set_ylim(ylim)
+            xlim = self.ax1.get_xlim()
+            ylim = self.ax1.get_ylim()
+            smap.plot_pix(ax=self.ax1, labels=False)
+            self.ax1.set_xlim(xlim)
+            self.ax1.set_ylim(ylim)
 
         if self.scint_state:
-            xlim = self.ax.get_xlim()
-            ylim = self.ax.get_ylim()
-            self.vid_raw.scintillator.plot_pix(ax=self.ax)
-            self.ax.set_xlim(xlim)
-            self.ax.set_ylim(ylim)
+            xlim = self.ax1.get_xlim()
+            ylim = self.ax1.get_ylim()
+            self.vid_raw.scintillator.plot_pix(ax=self.ax1)
+            self.ax1.set_xlim(xlim)
+            self.ax1.set_ylim(ylim)
 
         logging.disable(logging.NOTSET)
         self.canvas.draw_idle()
@@ -378,23 +443,75 @@ class FILDvideoGUI:
         '''
         Load a new video data.
             1. Get shot, diagnostic and time data
-            2. Load data
-            3. Reset GUI interface
-            4. Enable buttons
+            2. Load and store data
+            3. Set basic variables
+            4. Clear remap plot (if exists)
+            5. Update video plot
+            6. Set slider again
+            7. Enable buttons
         '''
+            
         self.shot = int(self.entry_shot.get())
         self.diag = int(self.entry_diag.get())
         t1 = float(self.entry_t1.get())
         t2 = float(self.entry_t2.get())
-        # Build video object
-        self.vid_raw = ss.vid.FILDVideo(shot=self.shot, diag_ID=self.diag)
         
+        self.vid_raw = ss.vid.FILDVideo(shot=self.shot, diag_ID=self.diag)
         self.vid_raw.read_frame(t1=t1, t2=t2)
         self.vid = copy.deepcopy(self.vid_raw)
+
         self.smap_state = False
         self.scint_state = False
-        self.reset_video()
+        self.current_frame = 0 #go back to first
+
+        self.ax2.clear()
+        if self.cax2 is not None:
+            self.cax2.remove()  
+            self.cax2 = None
+            self.im2 = None
+            self.cbar2 = None
+        
+        self.update_video()
+        self.slider.config(from_=0, to=len(self.data_vals1)-1)
+        self.slider.set(self.current_frame)
         self.enabling_after_loading()    
+
+    def import_video(self):
+        '''
+        Load a new video data.
+            1. Get shot, diagnostic and time data
+            2. Load and store data
+            3. Set basic variables
+            4. Clear remap plot (if exists)
+            5. Update video plot
+            6. Set slider again
+            7. Enable buttons
+        '''
+            
+        self.shot = int(self.entry_shot.get())
+        self.diag = int(self.entry_diag.get())
+        t1 = float(self.entry_t1.get())
+        t2 = float(self.entry_t2.get())
+        
+        self.vid_raw = ss.vid.FILDVideo(shot=self.shot, diag_ID=self.diag)
+        self.vid_raw.read_frame(t1=t1, t2=t2)
+        self.vid = copy.deepcopy(self.vid_raw)
+
+        self.smap_state = False
+        self.scint_state = False
+        self.current_frame = 0 #go back to first
+
+        self.ax2.clear()
+        if self.cax2 is not None:
+            self.cax2.remove()  
+            self.cax2 = None
+            self.im2 = None
+            self.cbar2 = None
+        
+        self.update_video()
+        self.slider.config(from_=0, to=len(self.data_vals1)-1)
+        self.slider.set(self.current_frame)
+        self.enabling_after_loading()  
 
     def process_video(self):
         '''
@@ -433,17 +550,15 @@ class FILDvideoGUI:
             logger.warning('No gaussian filter')
 
         # Update the plotting
-        self.opt_plot.set("VIDEO") # change_data_plot is triggered
+        self.update_video()
         self.enabling_after_loading()        
     
     def remap_video(self):
         '''
         Remaps a video
-            1. Get all the parameters
-            2. Disables logger to not saturate the terminal
-            3. Update data
-            4. Update plot
-            5. Enable the rest of the widgets
+            1. Remap
+            2. Update remap plot
+            3. Enable buttons
         '''
 
         smap_precision = int(self.precision_entry.get())
@@ -453,7 +568,7 @@ class FILDvideoGUI:
             method = 'centers'
         elif remap_method == 'Fwrap_simple':
             method = 'forward_warping_simple'
-        if smap_opt == "Compute":
+        if smap_opt == "Computed":
             allIn = 2
         else:
             allIn = 1
@@ -466,20 +581,26 @@ class FILDvideoGUI:
         for key, entry in self.entry_params.items():
                 par[key] = float(entry.get())
 
-        # logging.disable(logging.CRITICAL)
         self.vid.remap_loaded_frames(par)
-        # logging.disable(logging.NOTSET)
 
+        self.update_remap()
         self.enabling_after_remaping()
-        self.opt_plot.set("REMAP") # change_data_plot is triggered
+
+    def do_all_actions(self):
+        self.load_video()
+        self.process_video()
+        self.remap_video()
 
     def change_cmap(self, event=None):
         '''
         Just changes the colorbar
         '''
 
-        self.im.set_cmap(self.cmaps[self.combo_cmap.get()])
-        self.cbar.update_normal(self.im)
+        self.im1.set_cmap(self.cmaps[self.combo_cmap_c.get()])
+        self.cbar1.update_normal(self.im1)
+        if self.im2 is not None:
+            self.im2.set_cmap(self.cmaps[self.combo_cmap_r.get()])
+            self.cbar2.update_normal(self.im2)
         self.canvas.draw_idle()
 
     def plot_smap_button(self):
@@ -516,24 +637,23 @@ class FILDvideoGUI:
         self.vid.export_remap(folder = ubi, clean = True)
         logger.info('------------------ DATA SAVED ------------------')
 
-    def extract_time_trace(self):
+    def extract_time_trace(self, remap = False):
         '''
         Start ROI selection for time trace
         '''        
-        self.reset_roi()
+        ax = self.ax2 if remap else self.ax1
+        im = self.im2 if remap else self.im1
 
+        self.reset_roi()
         self.collecting = True
         self.roi_points = []
-
-        self.roi_line, = self.ax.plot([], [], c='lime', lw=1, ls='--')
-        self.roi_scatter = self.ax.scatter([], [], c='lime', marker='+', s=50, lw=2)
-
+        self.roi_line, = ax.plot([], [], c='lime', lw=1, ls='--')
+        self.roi_scatter = ax.scatter([], [], c='lime', marker='+', s=50, lw=2)
 
         self.cid_click = self.fig.canvas.mpl_connect(
-            'button_press_event', self.on_click)
-        logger.info('Please select the vertex of the roi in the figure')
-        logger.info('Select each vertex with left click')
-        logger.info('Undo your selection with right click')
+            'button_press_event', lambda event: self.on_click(event, 
+                                                              remap=remap))
+        logger.info('Select the vertex with L click. Undo with R click')
         logger.info('Once you finished, click the middle button')   
 
     def reset_roi(self):
@@ -541,12 +661,6 @@ class FILDvideoGUI:
         if self.cid_click is not None:
             self.fig.canvas.mpl_disconnect(self.cid_click)
             self.cid_click = None
-        if self.roi_line is not None:
-            self.roi_line.remove()
-            self.roi_line = None
-        if self.roi_scatter is not None:
-            self.roi_scatter.remove()
-            self.roi_scatter = None
         # eliminate mask overlay
         if hasattr(self, 'mask_artist') and self.roi_mask is not None:
             self.roi_mask.remove()
@@ -557,10 +671,14 @@ class FILDvideoGUI:
 
         self.canvas.draw_idle()
 
-    def on_click(self, event):
+    def on_click(self, event, remap):
         if not self.collecting:
             return
-        if event.inaxes != self.ax:
+        ax = self.ax2 if remap else self.ax1
+        im = self.im2 if remap else self.im1
+        if event.inaxes != ax:
+            logger.warning("Click out of axis. ROI ignored.")
+            self.off_click()
             return
         # Left click
         if event.button == 1:
@@ -575,17 +693,14 @@ class FILDvideoGUI:
         elif event.button == 2:
             if len(self.roi_points) >= 3:
                 logger.info('Computing mask and time trace')
-                self.generate_mask()
-                self.plot_time_trace()
+                self.generate_mask(remap=remap)
+                self.plot_time_trace(remap=remap)
 
     def off_click(self):
         if self.cid_click is not None:
             self.fig.canvas.mpl_disconnect(self.cid_click)
             self.cid_click = None
         self.collecting = False
-        # if self.roi_line is not None:
-        #     self.roi_line.remove()
-        #     self.roi_line = None
         if self.roi_scatter is not None:
             self.roi_scatter.remove()
             self.roi_scatter = None
@@ -600,12 +715,16 @@ class FILDvideoGUI:
         self.roi_scatter.set_offsets(np.c_[xs, ys])
         self.canvas.draw_idle()       
 
-    def generate_mask(self):
-        shape = self.im.get_array().shape
-        ny, nx = shape[:2]
+    def generate_mask(self, remap):
+        ax = self.ax2 if remap else self.ax1
+        im = self.im2 if remap else self.im1
+        ny, nx = im.get_array().shape[:2]
+        xmin, xmax, ymin, ymax = im.get_extent()
+        x_vals = np.linspace(xmin, xmax, nx)
+        y_vals = np.linspace(ymin, ymax, ny)[::-1] # invert
+        x_grid, y_grid = np.meshgrid(x_vals, y_vals)
         poly = Path(self.roi_points)
-        x, y = np.meshgrid(np.arange(nx), np.arange(ny))
-        coords = np.vstack((x.ravel(), y.ravel())).T
+        coords = np.vstack((x_grid.ravel(), y_grid.ravel())).T
         mask = poly.contains_points(coords)
         self.roi_mask = mask.reshape((ny, nx)).astype(np.uint8)
 
@@ -614,127 +733,132 @@ class FILDvideoGUI:
             self.roi_line.set_data(xs, ys)
         self.off_click()
 
-    def plot_time_trace(self):
+    def plot_time_trace(self, remap):
         if self.roi_mask is None:
             return
-        mask_da = xr.DataArray(self.roi_mask, dims=self.spatial_dims)
-        masked_frames = self.frames * mask_da
-        time_trace = masked_frames.sum(dim=self.spatial_dims)
-        fig_alive = (self.fig2 is not None and self.ax2 is not None 
-                     and plt.fignum_exists(self.fig2.number))
+        fig_alive = (self.fig3 is not None and self.ax3 is not None 
+                    and plt.fignum_exists(self.fig3.number))
         if not fig_alive:
-            self.fig2, self.ax2 = plt.subplots(figsize=(8, 4))
-        time_trace.plot(ax=self.ax2)
-        self.ax2.set_ylim(0, None)
-        plt.xlabel("Time [s]")
-        plt.ylabel("Sum of ROI")
-        plt.grid(True)
-        plt.tight_layout()
-        plt.show()
+            self.fig3, self.ax3 = plt.subplots(figsize=(8, 4))
+            self.ax4 = self.ax3.twinx()
 
+        if remap:
+            mask_da = xr.DataArray(self.roi_mask, dims=['y','x'],
+                                   coords = {'y':self.vid.remap_dat.frames.y,
+                                             'x':self.vid.remap_dat.frames.x})
+            mask_da = mask_da.transpose('y','x')
+            masked_remaps = self.remaps * mask_da
+            time_trace = masked_remaps.sum(dim=['y','x'])
+            time_trace.plot(ax=self.ax4, ls=':')
+        else:
+            mask_da = xr.DataArray(self.roi_mask, dims=['px','py'])
+            masked_frames = self.frames * mask_da
+            time_trace = masked_frames.sum(dim=['px','py'])
+            time_trace.plot(ax=self.ax3)
 
-    # ---- Internals
-    def reset_video(self):
-        '''
-        Function to go back to initial postion of the GUI.
-            1. Set time to 0
-            2. Update slider to new limits
-            3. Set data to plot to VIDEO
-        '''
-        self.current_frame = 0 #go back to first
-        self.slider.set(self.current_frame)
-        self.opt_plot.set("VIDEO")  # change_data_plot is triggered
-        self.slider.config(from_=0, to=len(self.data_vals)-1)
+        self.ax3.set_ylim(0, None)
+        self.ax3.set_xlabel("Time [s]")
+        self.ax3.set_ylabel("Sum of ROI (camera)")
+        self.ax4.set_ylabel("Sum of ROI (remap)")
+        self.ax3.grid(True)
+        self.fig3.tight_layout()
+        self.fig3.show()
 
-    def change_data_plot(self):
-        '''
-        Function to change between VIDEO or REMAP data.
-            1. Updates data
-            2. Resets colorbar
-            3. Update plot (current)
-        '''
-        self.update_data() # prepares data to plot. changes origin if necessasry
-        self.entry_vmin.delete(0, tk.END)
-        self.entry_vmin.insert(0, '0')
-        self.entry_vmax.delete(0, tk.END) # resets colorbar values
-        self.update_plot(self.current_frame) #updates de plot in the same frame
-
-    def update_data(self):
+    def update_video(self):
         '''
         Updates data used for plotting.
-            1. Identifies which data wants to be plotted 
-            2. Sets data for plotting
-            3. Computes vmax
+            1. Get frames
+            2. Compute values and maximums
             4. Plots frame (current)
+            5. Generate secondary ax and cbar
             5. Sets canvas parameters
         '''
-        what_data = self.opt_plot.get()
+        self.frames = self.vid.exp_dat.frames.transpose('t','px','py')
+        xlabel, ylabel = 'xpix','ypix'
+        pad, right = 0.1, 0.5
+        self.smap_state = False
+        self.scint_state = False
 
-        if what_data == 'VIDEO':
-            self.frames = self.vid.exp_dat.frames.transpose('t','px','py')
-            self.spatial_dims = ['px','py']
-            xlabel, ylabel = '',''
-            pad, right = 0.1, 0.5
-            aspect = None
-            hide_ticks =  True
-            self.btn_smap.configure(state=tk.NORMAL)
-            self.btn_scint.configure(state=tk.NORMAL)
-        elif what_data == 'REMAP':
-            self.frames = self.vid.remap_dat.frames.transpose('t','y','x')
-            self.spatial_dims = ['y','x']
-            xlabel, ylabel = 'Pitch angle [º]', 'Gyroradius [cm]'
-            pad, right = 0.1, 0.5
-            aspect = 1
-            hide_ticks =  False
-            self.btn_smap.configure(state=tk.DISABLED)
-            self.btn_scint.configure(state=tk.DISABLED)
-            self.smap_state = False
-            self.scint_state = False
+        self.data_vals1 = self.frames.data
+        self.vamx_all1 = self.frames.quantile(0.999, dim=['px','py']).values
 
-        self.data_vals = self.frames.data
-        self.vmax_all = self.frames.quantile(0.999, dim=self.spatial_dims).values
-
-        self.ax.clear()
-        self.im = self.frames.isel(t=self.current_frame).plot.imshow(
-            ax=self.ax, add_colorbar=False, cmap=self.cmaps[self.combo_cmap.get()])
-        self.ax.set_title("")
-        self.ax.set_xlabel(xlabel)
-        self.ax.set_ylabel(ylabel)
-        if hide_ticks:
-            self.ax.set_xticks([])
-            self.ax.set_yticks([])
-        self.ax.set_box_aspect(aspect)
-        self.ax.set_aspect(1 if aspect is None else 'auto')
-        self.time_text = self.ax.text(0.98, 1.01, 
-                            f"{float(self.frames.t[self.current_frame].values):.3f}"+' s',
-                            ha='right', va='bottom', transform=self.ax.transAxes, color='k')
-        self.shot_text = self.ax.text(0.02, 1.01, 
-                            '#'+str(self.entry_shot.get()),
-                            ha='left', va='bottom', transform=self.ax.transAxes, color='k')
+        self.ax1.clear()
+        self.im1 = self.frames.isel(t=self.current_frame).plot.imshow(
+            ax=self.ax1, add_colorbar=False, cmap=self.cmaps[self.combo_cmap_c.get()])
+        self.ax1.set_title("")
+        self.ax1.set_xlabel(xlabel)
+        self.ax1.set_ylabel(ylabel)
+        self.ax1.set_aspect(1)
+        self.t_text1 = self.ax1.text(0.98, 1.01, 
+                f"{float(self.frames.t[self.current_frame].values):.3f}"+' s',
+                ha='right', va='bottom', transform=self.ax1.transAxes, color='k')
+        self.shot_text = self.ax1.text(0.02, 1.01, 
+                '#'+str(self.entry_shot.get()),
+                ha='left', va='bottom', transform=self.ax1.transAxes, color='k')
         try:
-            self.cbar.remove()
+            self.cbar1.remove()
         except:
             pass
 
-        self.divider = make_axes_locatable(self.ax)
-        self.cax = self.divider.append_axes("right", size="3%", pad=pad)
-        self.cbar = self.fig.colorbar(self.im, cax=self.cax)
-        self.fig.tight_layout()
+        self.divider = make_axes_locatable(self.ax1)
+        self.cax1 = self.divider.append_axes("right", size="3%", pad=pad)
+        self.cbar1 = self.fig.colorbar(self.im1, cax=self.cax1)
+        self.update_plot(self.current_frame)
+
+        self.canvas.draw_idle()
+
+    def update_remap(self):
+        '''
+        Updates data used for plotting.
+            1. Get remaps
+            2. Compute values and maximums
+            4. Plots frame (current)
+            5. Generate secondary ax and cbar
+            5. Sets canvas parameters
+        '''
+        self.remaps = self.vid.remap_dat.frames.transpose('t','y','x')
+        xlabel, ylabel = 'Pitch angle [º]', 'Gyroradius [cm]'
+        pad, right = 0.05, 0.5
+
+        self.data_vals2 = self.remaps.data
+        self.vamx_all2 = self.remaps.quantile(0.999, dim=['y','x']).values
+        self.ax2.clear()
+        self.im2 = self.remaps.isel(t=self.current_frame).plot.imshow(
+            ax=self.ax2, add_colorbar=False, cmap=self.cmaps[self.combo_cmap_r.get()])
+        self.ax2.set_title("")
+        self.ax2.set_xlabel(xlabel)
+        self.ax2.set_ylabel(ylabel)
+        self.ax2.set_box_aspect(1)
+        self.t_text2 = self.ax2.text(0.98, 1.01, 
+                f"{float(self.frames.t[self.current_frame].values):.3f}"+' s',
+                ha='right', va='bottom', transform=self.ax2.transAxes, color='k')
+        self.shot_text = self.ax2.text(0.02, 1.01, 
+                '#'+str(self.entry_shot.get()),
+                ha='left', va='bottom', transform=self.ax2.transAxes, color='k')
+        try:
+            self.cbar2.remove()
+        except:
+            pass
+
+        self.divider = make_axes_locatable(self.ax2)
+        self.cax2 = self.divider.append_axes("right", size="4%", pad=pad)
+        self.cbar2 = self.fig.colorbar(self.im2, cax=self.cax2)
+        self.update_plot(self.current_frame)
+
         self.canvas.draw_idle()
 
     def enabling_after_loading(self):
         '''
         Activate/deactivate widgets after loading a video
         '''
+        self.btn_TT1.configure(state=tk.NORMAL)
         self.btn_filter.configure(state=tk.NORMAL)
-        self.menu_smap.configure(state=tk.NORMAL)
-        self.menu_remap.configure(state=tk.NORMAL)
         self.btn_remap.configure(state=tk.NORMAL)
-        self.menu_plot.configure(state=tk.DISABLED)
-        self.combo_cmap.configure(state=tk.NORMAL)
-        self.entry_vmin.bind("<Return>", lambda e: 
+
+        self.combo_cmap_c.configure(state=tk.NORMAL)
+        self.entry_vmin_c.bind("<Return>", lambda e: 
                              self.update_plot(self.current_frame))
-        self.entry_vmax.bind("<Return>", lambda e: 
+        self.entry_vmax_c.bind("<Return>", lambda e: 
                              self.update_plot(self.current_frame))
         self.btn_smap.configure(state=tk.DISABLED)
         if self.vid.scintillator is not None and \
@@ -742,15 +866,19 @@ class FILDvideoGUI:
             self.btn_scint.configure(state=tk.NORMAL)
         else:
             self.btn_scint.configure(state=tk.DISABLED)
-        self.btn_export.configure(state=tk.DISABLED)
-        self.btn_TT.configure(state=tk.NORMAL)
+        
+        self.btn_export.configure(state=tk.NORMAL)
 
     def enabling_after_remaping(self):
         '''
         Activate/deactivate widgets after remapping a video
         '''
-        self.menu_plot.configure(state=tk.NORMAL)
-        self.btn_smap.configure(state=tk.DISABLED)
-        self.btn_scint.configure(state=tk.DISABLED)
-        self.btn_export.configure(state=tk.NORMAL)
-        self.btn_TT.configure(state=tk.NORMAL)
+        self.btn_smap.configure(state=tk.NORMAL)
+        self.btn_TT2.configure(state=tk.NORMAL)
+
+        self.combo_cmap_r.configure(state=tk.NORMAL)
+        self.entry_vmin_r.bind("<Return>", lambda e: 
+                             self.update_plot(self.current_frame))
+        self.entry_vmax_r.bind("<Return>", lambda e: 
+                             self.update_plot(self.current_frame))
+        
