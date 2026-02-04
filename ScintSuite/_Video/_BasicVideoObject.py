@@ -761,13 +761,13 @@ class BVO:
                         self.exp_dat['frames'][:, :, i] = \
                             ndimage.median_filter(
                                 self.exp_dat['frames'].values[:, :, i],
-                                **median_options)
+                                size = median_options['size'])
             else:
                 for i in tqdm(range(nt)):
                     self.exp_dat['frames'][:, :, i] = \
                         ndimage.median_filter(
                             self.exp_dat['frames'].values[:, :, i],
-                            **median_options)
+                            size = median_options['size'])
 
         elif method == 'gaussian':
             logger.info('Gaussian filter selected!')
@@ -786,13 +786,13 @@ class BVO:
                         self.exp_dat['frames'][:, :, i] = \
                             ndimage.gaussian_filter(
                                 self.exp_dat['frames'].values[:, :, i],
-                                **gaussian_options)                    
+                                sigma = gaussian_options['sigma'])                    
             else:
                 for i in tqdm(range(nt)):
                     self.exp_dat['frames'][:, :, i] = \
                         ndimage.gaussian_filter(
                             self.exp_dat['frames'].values[:, :, i],
-                            **gaussian_options)
+                            sigma = gaussian_options['sigma'])
         self.exp_dat['frames'].values = frames
 
         logger.warning('Deprecated! Remove speed_flag if method is verified')

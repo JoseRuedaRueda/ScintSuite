@@ -349,7 +349,7 @@ class FILDvideoGUI:
             self.current_frame -= 1
         else:
             return
-
+        self.slider.set(self.current_frame)
         self.update_plot(self.current_frame)
 
     # ---- Plot updating
