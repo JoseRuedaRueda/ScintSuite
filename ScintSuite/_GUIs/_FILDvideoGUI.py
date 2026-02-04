@@ -27,7 +27,6 @@ import time
 
 import logging
 logger = logging.getLogger('ScintSuite.FILDvideoGUI')
-logging.basicConfig(level=logging.INFO)
 
 from ScintSuite._Machine import machine as mach
 
@@ -61,6 +60,8 @@ class FILDvideoGUI:
 
         self.shot = shot
         self.diag = diag
+        self.tini = tini
+        self.tfin = tfin
         self.save_folder = ss.paths.ScintSuite + '/Data/VideosRemaps/FILD/'
 
         self.vid = None
@@ -247,7 +248,7 @@ class FILDvideoGUI:
         tk.Label(self.root, text="Camera plot", font=("Arial", 11, "bold"))\
             .grid(row=crow, column=0, columnspan=2)
                 # ---- Time trace button
-        self.btn_TT1 = tk.Button(text="time-trace",
+        self.btn_TT1 = tk.Button(text="ROI time trace",
             command = lambda: self.extract_time_trace(),
             width=12, state=tk.DISABLED)
         self.btn_TT1.grid(row=crow, column=2, columnspan=2, sticky='we')
@@ -281,7 +282,7 @@ class FILDvideoGUI:
         crow +=1
         tk.Label(self.root, text="Remap plot", font=("Arial", 11, "bold"))\
             .grid(row=crow, column=0, columnspan=2)
-        self.btn_TT2 = tk.Button(text="time-trace",
+        self.btn_TT2 = tk.Button(text="ROI time trace",
             command = lambda: self.extract_time_trace(remap=True),
             width=12, state=tk.DISABLED)
         self.btn_TT2.grid(row=crow, column=2, columnspan=2, sticky='we')
@@ -453,11 +454,11 @@ class FILDvideoGUI:
             
         self.shot = int(self.entry_shot.get())
         self.diag = int(self.entry_diag.get())
-        t1 = float(self.entry_t1.get())
-        t2 = float(self.entry_t2.get())
+        self.tini = float(self.entry_t1.get())
+        self.tfin = float(self.entry_t2.get())
         
         self.vid_raw = ss.vid.FILDVideo(shot=self.shot, diag_ID=self.diag)
-        self.vid_raw.read_frame(t1=t1, t2=t2)
+        self.vid_raw.read_frame(t1=self.tini, t2=self.tfin)
         self.vid = copy.deepcopy(self.vid_raw)
 
         self.smap_state = False
@@ -487,14 +488,14 @@ class FILDvideoGUI:
             6. Set slider again
             7. Enable buttons
         '''
-            
+             
         self.shot = int(self.entry_shot.get())
         self.diag = int(self.entry_diag.get())
-        t1 = float(self.entry_t1.get())
-        t2 = float(self.entry_t2.get())
+        self.tini = float(self.entry_t1.get())
+        self.tfin = float(self.entry_t2.get())
         
         self.vid_raw = ss.vid.FILDVideo(shot=self.shot, diag_ID=self.diag)
-        self.vid_raw.read_frame(t1=t1, t2=t2)
+        self.vid_raw.read_frame(t1=self.tini, t2=self.tfin)
         self.vid = copy.deepcopy(self.vid_raw)
 
         self.smap_state = False
@@ -511,7 +512,7 @@ class FILDvideoGUI:
         self.update_video()
         self.slider.config(from_=0, to=len(self.data_vals1)-1)
         self.slider.set(self.current_frame)
-        self.enabling_after_loading()  
+        self.enabling_after_loading()   
 
     def process_video(self):
         '''
@@ -560,6 +561,7 @@ class FILDvideoGUI:
             2. Update remap plot
             3. Enable buttons
         '''
+        logging.basicConfig(level=logging.INFO)
 
         smap_precision = int(self.precision_entry.get())
         smap_opt = self.opt_smap.get()
@@ -585,9 +587,19 @@ class FILDvideoGUI:
 
         self.update_remap()
         self.enabling_after_remaping()
+        logging.basicConfig(level=logging.DEBUG)
 
     def do_all_actions(self):
-        self.load_video()
+        old_params = {'shot':self.shot,
+                      'diag':self.diag,
+                      'tini':self.tini,
+                      'tfin':self.tfin}
+        new_params = {'shot':int(self.entry_shot.get()),
+                      'diag':int(self.entry_diag.get()),
+                      'tini':float(self.entry_t1.get()),
+                      'tfin':float(self.entry_t2.get())}
+        if old_params != new_params or self.vid_raw is None:
+            self.load_video()
         self.process_video()
         self.remap_video()
 
