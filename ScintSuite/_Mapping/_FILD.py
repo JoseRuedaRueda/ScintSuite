@@ -327,6 +327,7 @@ def remapAllLoadedFrames(video,
     # --------------------------------------------------------------------------
     # -- Initialise the variables:
     remaped_frames = np.zeros((nx, ny, nframes))
+    time_interp = 0
     logger.info('Remapping frames ...')
     for iframe in tqdm(range(nframes)):
         if not got_smap:
@@ -354,6 +355,7 @@ def remapAllLoadedFrames(video,
             smap.setRemapVariables(var_remap, verbose=False)
             # -- Calculate the pixel coordinates
             smap.calculate_pixel_coordinates(video.CameraCalibration)
+            t1_int = time.time()
             smap.interp_grid(frame_shape, method=method,
                              MC_number=MC_number,
                              grid_params={'ymin': ymin, 'ymax': ymax,
@@ -361,6 +363,8 @@ def remapAllLoadedFrames(video,
                                           'xmin': xmin, 'xmax': xmax,
                                           'dx': dx},
                              limitation=transformationMatrixLimit)
+            t2_int = time.time()
+            time_interp += (t2_int-t1_int)
         name_old = name
         # remap the frames
         remaped_frames[:, :, iframe] = \
@@ -368,8 +372,9 @@ def remapAllLoadedFrames(video,
                          x_edges=xedges, y_edges=yedges, mask=mask,
                          method=remap_method)
     toc = time.time()
-    logger.info('Whole time interval remapped in: ', toc-tic, ' s')
-    logger.info('Average time per frame: ', (toc-tic) / nframes, ' s')
+    logger.info('Whole time interval remapped in: %f s', toc-tic)
+    logger.info('Time lost in interpolators: %f s', time_interp)
+    logger.info('Average time per frame: %f s', (toc-tic) / nframes)
     # Construct the data set
     remap_dat = xr.Dataset()
     remap_dat['frames'] = \

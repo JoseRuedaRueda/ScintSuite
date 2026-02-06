@@ -65,7 +65,6 @@ class FILDvideoGUI:
         self.save_folder = ss.paths.ScintSuite + '/Data/VideosRemaps/FILD/'
 
         self.vid = None
-        self.vid_raw = None
         self.current_frame = 0
 
         self.fig = Figure(figsize=(14, 5), constrained_layout = False)
@@ -245,7 +244,7 @@ class FILDvideoGUI:
         separator.grid(row=crow, column=0, columnspan=4, sticky='we', pady=5)
         # ---- Camera plot
         crow +=1
-        tk.Label(self.root, text="Camera plot", font=("Arial", 11, "bold"))\
+        tk.Label(self.root, text="Camera plot", font=("Arial", 10, "bold"))\
             .grid(row=crow, column=0, columnspan=2)
                 # ---- Time trace button
         self.btn_TT1 = tk.Button(text="ROI time trace",
@@ -280,7 +279,7 @@ class FILDvideoGUI:
 
         # ---- Remap plot
         crow +=1
-        tk.Label(self.root, text="Remap plot", font=("Arial", 11, "bold"))\
+        tk.Label(self.root, text="Remap plot", font=("Arial", 10, "bold"))\
             .grid(row=crow, column=0, columnspan=2)
         self.btn_TT2 = tk.Button(text="ROI time trace",
             command = lambda: self.extract_time_trace(remap=True),
@@ -431,7 +430,7 @@ class FILDvideoGUI:
         if self.scint_state:
             xlim = self.ax1.get_xlim()
             ylim = self.ax1.get_ylim()
-            self.vid_raw.scintillator.plot_pix(ax=self.ax1)
+            self.vid.scintillator.plot_pix(ax=self.ax1)
             self.ax1.set_xlim(xlim)
             self.ax1.set_ylim(ylim)
 
@@ -457,9 +456,8 @@ class FILDvideoGUI:
         self.tini = float(self.entry_t1.get())
         self.tfin = float(self.entry_t2.get())
         
-        self.vid_raw = ss.vid.FILDVideo(shot=self.shot, diag_ID=self.diag)
-        self.vid_raw.read_frame(t1=self.tini, t2=self.tfin)
-        self.vid = copy.deepcopy(self.vid_raw)
+        self.vid = ss.vid.FILDVideo(shot=self.shot, diag_ID=self.diag)
+        self.vid.read_frame(t1=self.tini, t2=self.tfin)
 
         self.smap_state = False
         self.scint_state = False
@@ -494,9 +492,8 @@ class FILDvideoGUI:
         self.tini = float(self.entry_t1.get())
         self.tfin = float(self.entry_t2.get())
         
-        self.vid_raw = ss.vid.FILDVideo(shot=self.shot, diag_ID=self.diag)
-        self.vid_raw.read_frame(t1=self.tini, t2=self.tfin)
-        self.vid = copy.deepcopy(self.vid_raw)
+        self.vid = ss.vid.FILDVideo(shot=self.shot, diag_ID=self.diag)
+        self.vid.read_frame(t1=self.tini, t2=self.tfin)
 
         self.smap_state = False
         self.scint_state = False
@@ -522,7 +519,7 @@ class FILDvideoGUI:
             3. Since remap is removed, change to VIDEO plot mode (no reset)
             4. Enable buttons
         '''        
-        self.vid = copy.deepcopy(self.vid_raw)
+        self.vid.return_to_original_frames()
         # Background substraction
         try:
             tn1 = float(self.tn1_entry.get())
@@ -551,8 +548,7 @@ class FILDvideoGUI:
             logger.warning('No gaussian filter')
 
         # Update the plotting
-        self.update_video()
-        self.enabling_after_loading()        
+        self.update_video()      
     
     def remap_video(self):
         '''
@@ -598,7 +594,7 @@ class FILDvideoGUI:
                       'diag':int(self.entry_diag.get()),
                       'tini':float(self.entry_t1.get()),
                       'tfin':float(self.entry_t2.get())}
-        if old_params != new_params or self.vid_raw is None:
+        if old_params != new_params or self.vid is None:
             self.load_video()
         self.process_video()
         self.remap_video()

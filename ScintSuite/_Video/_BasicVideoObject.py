@@ -337,7 +337,7 @@ class BVO:
     def read_frame(self, frames_number=None, limitation: bool = True,
                    limit: int = 3072, internal: bool = True, t1: float = None,
                    t2: float = None, threshold_saturation: float = 0.95,
-                   verbose: bool = True):
+                   verbose: bool = True, flag_copy: bool = True):
         """
         Read the video frames
 
@@ -358,6 +358,7 @@ class BVO:
         :param  t2: Final time to load frames (alternative to frames number), if
             just t1 is given , only one frame will be loaded
         :param  verbose: flag to print the numer of saturated frames found
+        :param  flag_copy: flag to make a copy of the original frames
 
         :return M: 3D numpy array with the frames M[px,py,nframes] (if the
             internal flag is set to false)
@@ -531,6 +532,9 @@ class BVO:
                                                             'px': px, 'py': py})
         self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
         self.exp_dat.attrs['dtype'] = dtype
+        # Make a copy of the frames to recover them later
+        if 'original_frames' not in self.exp_dat and flag_copy:
+            self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
 
         # --- Count saturated pixels
         max_scale_frames = 2 ** self.settings['RealBPP'] - 1
