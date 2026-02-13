@@ -64,4 +64,4 @@ html/*
 .vscode/*
 build/*
 *.egg-info/
-*tmpFILDVideos
+*tmpFILDVideosData/Calibrations/FILD/TCV/APD_absolute/
