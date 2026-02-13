@@ -4,6 +4,8 @@
 ## Basic Variable
 - Added a method to crop signals in time
 
+## Strike object
+- Changed data handling to pandas dataframe
 
 
 # 1.4.5 Minor improvements
