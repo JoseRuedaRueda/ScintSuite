@@ -1,3 +1,11 @@
+# 2.0.0 The big change
+- Clean the suite of secondary functions not used which divert the code for its main purpose and added unnecesary dependencies
+- Added unyt calls to the strike object
+## Basic Variable
+- Added a method to crop signals in time
+
+
+
 # 1.4.5 Minor improvements
 - Improved video filter speed
 - Added allIn options to FILD video

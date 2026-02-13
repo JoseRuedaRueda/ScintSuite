@@ -81,6 +81,33 @@ class BasicSignalVariable():
     def __init__(self):
         self._data = xr.DataTree()
     
+    def cropSignals(self, t1: Optional[float] = None,
+                    t2: Optional[float] = None):
+        """
+        Crop the signals in the dataset
+        Jose Rueda Rueda: jruedaru@uci.edu
+        :param t1: initial time for the crop
+        :param t2: final time for the crop
+        """
+        if t1 is None and t2 is None:
+            logger.warning('No time limits provided, not cropping')
+            return
+        if 't' not in self._data['signals'].dataset.coords:
+            logger.error('No time coordinate found in the signals dataset')
+            raise errors.NotValidInput('No time coordinate found')
+        if t1 is None:
+            t1 = self._data['signals'].dataset.coords['t'].values[0]
+        if t2 is None:
+            t2 = self._data['signals'].dataset.coords['t'].values[-1]
+        # Now crop the signals
+        logger.info('Cropping signals from %f to %f' % (t1,
+                                                            t2))
+        self._data['signals'].dataset = self._data['signals'].dataset.sel(
+            t=slice(t1, t2)
+        )
+        return
+            
+    
     # --------------------------------------------------------------------------
     # %% Baseline correction
     # --------------------------------------------------------------------------

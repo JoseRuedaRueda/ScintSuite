@@ -10,11 +10,13 @@ import os
 import math
 import f90nml
 import logging
+import unyt
 import numpy as np
 import xarray as xr
 import ScintSuite.errors as errors
 import ScintSuite._Plotting as ssplt
 import matplotlib.pyplot as plt
+import pandas as pd
 from tqdm import tqdm
 from ScintSuite.version_suite import exportVersion
 from copy import deepcopy
@@ -446,6 +448,8 @@ class Strikes:
         self.histograms = {}
         ## Magnetic field at the detector
         self.B = None
+        # Assembly the dataframe
+        self.df = self.to_dataframe()
 
     # -------------------------------------------------------------------------
     # --- Histogram calculation
@@ -1358,6 +1362,62 @@ class Strikes:
     # -------------------------------------------------------------------------
     # --- Data handling block
     # -------------------------------------------------------------------------
+    # def get(self, var, gyroradius_index=None, XI_index=None)->np.ndarray:
+    #     """
+    #     Return an array with the values of 'var' for all strike points.
+
+    #     Jose Rueda - jrrueda@us.es
+
+    #     :param  var: variable to be returned
+    #     :param  gyroradius_index: index (or indeces if given as an np.array) of
+    #         gyroradii to return, if None, all the gyroradii are returned
+    #     :param  XI_index: index (or indeces if given as an np.array) of
+    #         XIs (pitch or R) to return, if None, all the XIs are returned
+
+    #     :return variable: array of values, all of them will be concatenated
+    #         in a single 1D array, indepentendly of gyroradius_index or XI_index
+    #     """
+    #     # --- get the values of the markers:
+    #     nXI, ngyr = self.header['counters'].shape
+
+    #     # Select gyroradius / pitch indices
+    #     if gyroradius_index is None:
+    #         index_gyr = range(ngyr)
+    #     else:
+    #         if isinstance(gyroradius_index, (list, np.ndarray)):
+    #             index_gyr = gyroradius_index
+    #         else:
+    #             index_gyr = np.array([gyroradius_index])
+
+    #     if XI_index is None:
+    #         index_XI = range(nXI)
+    #     else:
+    #         if isinstance(XI_index, (list, np.ndarray)):
+    #             index_XI = XI_index
+    #         else:
+    #             index_XI = np.array([XI_index])
+        
+    #     parts: List[np.ndarray] = []
+    #     for ig in index_gyr:
+    #         for ia in index_XI:
+    #             if self.header['counters'][ia, ig] > 0:
+    #                 parts.append(self.data[ia, ig][:, column_to_plot])
+
+    #     if len(parts) == 0:
+    #         # Return empty unyt array with units if possible
+    #         try:
+    #             return np.array([]) * unyt.Unit(units if units else '')
+    #         except Exception:
+    #             return np.array([])
+
+    #     flat = np.array(flatten(parts))
+    #     # Attach units if parseable
+    #     try:
+    #         return flat * unyt.Unit(units)
+    #     except Exception:
+    #         logger.warning('Units not understood, returning dimensionless array')
+    #         return flat * unyt.Unit('')
+        
     def get(self, var, gyroradius_index=None, XI_index=None)->np.ndarray:
         """
         Return an array with the values of 'var' for all strike points.
@@ -1406,6 +1466,105 @@ class Strikes:
                 if self.header['counters'][ia, ig] > 0:
                     var.append(self.data[ia, ig][:, column_to_plot])
         return np.array(flatten(var))
+    
+    def to_dataframe(self, gyroradius_index=None, XI_index=None,
+                     include_units: bool = True) -> pd.DataFrame:
+        """
+        Return all strike points as a single pandas DataFrame.
+
+        Columns are taken from `self.header['info']` mapping. Two extra
+        columns are added: `gyroradius` and `XI` with the corresponding
+        parameter values for each marker.
+
+        If `include_units` is True, a mapping of column->unit strings will
+        be attached to `DataFrame.attrs['units']`.
+        """
+        # Build index selection similar to `get`
+        nXI, ngyr = self.header['counters'].shape
+        if gyroradius_index is None:
+            index_gyr = range(ngyr)
+        else:
+            if isinstance(gyroradius_index, (list, np.ndarray)):
+                index_gyr = gyroradius_index
+            else:
+                index_gyr = np.array([gyroradius_index])
+        if XI_index is None:
+            index_XI = range(nXI)
+        else:
+            if isinstance(XI_index, (list, np.ndarray)):
+                index_XI = XI_index
+            else:
+                index_XI = np.array([XI_index])
+
+        # Normalize cache key
+        # try:
+        #     key_g = tuple(int(x) for x in index_gyr)
+        # except Exception:
+        #     key_g = ('all',)
+        # try:
+        #     key_x = tuple(int(x) for x in index_XI)
+        # except Exception:
+        #     key_x = ('all',)
+        # cache_key = (key_g, key_x, bool(include_units))
+        # # Return cached copy if available
+        # cached = self.df.get(cache_key)
+        # if cached is not None:
+        #     return cached.copy()
+
+        info = self.header.get('info', {})
+        if not info:
+            raise errors.NotFoundVariable('No header info available')
+
+        # Determine max column index and name mapping
+        max_i = max([v['i'] for v in info.values()]) if len(info) > 0 else -1
+        col_names = [f'col_{i}' for i in range(max_i + 1)]
+        units_map: Dict[str, str] = {}
+        for name, meta in info.items():
+            idx = meta['i']
+            if idx <= max_i:
+                col_names[idx] = name
+            units_map[name] = meta.get('units', '')
+
+        frames: List['pd.DataFrame'] = []
+        for ig in index_gyr:
+            for ia in index_XI:
+                if self.header['counters'][ia, ig] > 0:
+                    arr = self.data[ia, ig]
+                    ncols = arr.shape[1]
+                    cols = col_names[:ncols]
+                    df = pd.DataFrame(arr, columns=cols)
+                    # add metadata columns
+                    try:
+                        df['gyroradius'] = self.header['gyroradius'][ig]
+                    except Exception:
+                        df['gyroradius'] = np.nan
+                    try:
+                        df['XI'] = self.header['XI'][ia]
+                    except Exception:
+                        df['XI'] = np.nan
+                    frames.append(df)
+
+        if len(frames) == 0:
+            # empty dataframe with known columns
+            df_empty = pd.DataFrame(columns=col_names + ['gyroradius', 'XI'])
+            if include_units:
+                df_empty.attrs['units'] = units_map
+            # cache empty result as well
+            try:
+                self.df[cache_key] = df_empty.copy()
+            except Exception:
+                pass
+            return df_empty
+
+        result = pd.concat(frames, ignore_index=True)
+        if include_units:
+            result.attrs['units'] = units_map
+        # Cache assembled dataframe for this selection
+        try:
+            self.df[cache_key] = result.copy()
+        except Exception:
+            pass
+        return result
 
     # -------------------------------------------------------------------------
     # --- Plotting functions
@@ -1849,6 +2008,11 @@ class Strikes:
             self.header['info'].update(extra_column)
         # Now save the optical calibration for latter
         self.CameraCalibration = calibration
+        # Invalidate assembled DataFrame cache
+        try:
+            self._df_cache.clear()
+        except Exception:
+            self._df_cache = {}
 
     def applyGeometricTramission(self, F_object, cal):
         """
@@ -1904,6 +2068,12 @@ class Strikes:
                 },
             }
             self.header['info'].update(extra_column)
+
+        # Invalidate assembled DataFrame cache (columns changed)
+        try:
+            self._df_cache.clear()
+        except Exception:
+            self._df_cache = {}
 
     # -------------------------------------------------------------------------
     # --- Export block
@@ -2163,7 +2333,7 @@ class Strikes:
     def shape(self):
         return self._shape
 
-    def __call__(self, var: str) -> np.ndarray:
+    def __call__(self, var: str) -> unyt.array.unyt_array:
         """Call for the object"""
         try:
             out = self.get(var)
