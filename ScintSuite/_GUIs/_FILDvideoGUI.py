@@ -24,6 +24,10 @@ import os
 import copy
 import pickle
 import time
+import yaml
+import tarfile
+import json
+import tempfile
 
 import logging
 logger = logging.getLogger('ScintSuite.FILDvideoGUI')
@@ -36,19 +40,19 @@ from ScintSuite._Machine import machine as mach
 class FILDvideoGUI:
     '''
     Build a GUI to analyse data from FILD videos.
-    1. Select shot, fild number and time interval -> Read Video
+    1. Select shot, fild number and time interva
     2. Define t interval for background subtraction and select size of 
-        median and gaussian filters -> Filter Video
+        median and gaussian filters
         - This will apply the filters to the raw data and overwrite the
             previous treated data.
         - Will remove the remap, in case of been done before.
     3. Select mesh for remapping, what smaps to use, the precision of the
-        magnetic field and the remapping method -> Remap Video
+        magnetic field and the remapping method
         - This will change the plot to remap format directly
-    - The plotting options include being able to change freely between video 
-        and remapped data, change in colorbar, colorbar limits ([0,None] is the
-        default), plot the smap (if remap is done), and scintillator.
-    - Capacity to export the data to a folder.
+    - The plotting options include being able to change colorbar, colorbar 
+            limits ([0,None] is the default), plot the smap (if remap is done),
+            and scintillator.
+    - Capacity to export the data
     - Capacity to extract the time trace of various ROI in the same plot, to be
         able to compare.
     '''
@@ -62,9 +66,10 @@ class FILDvideoGUI:
         self.diag = diag
         self.tini = tini
         self.tfin = tfin
-        self.save_folder = ss.paths.ScintSuite + '/Data/VideosRemaps/FILD/'
+        self.save_folder = ss.paths.ScintSuite + '/Data/VideosRemaps/FILD'
 
         self.vid = None
+        self.vid_raw = None
         self.current_frame = 0
 
         self.fig = Figure(figsize=(14, 5), constrained_layout = False)
@@ -148,7 +153,7 @@ class FILDvideoGUI:
         self.btn_load = tk.Button(self.root, text="Load", bg = 'black',
                                   command=self.load_video)
         self.btn_load.grid(row=crow, column=0, columnspan=2, sticky='we')
-        self.btn_import = tk.Button(self.root, text="Import", bg = 'blue',
+        self.btn_import = tk.Button(self.root, text="LoadH5", bg = 'blue',
                                      activebackground="#007BFF",
                                   command=self.import_video)
         self.btn_import.grid(row=crow, column=2, columnspan=2, sticky='we')
@@ -156,12 +161,12 @@ class FILDvideoGUI:
         crow += 1
         tk.Label(self.root, text="BKG sub. (s):")\
             .grid(row=crow, column=0, columnspan=2, sticky="e")
-        self.tn1_entry = tk.Entry(self.root, width=6)
-        self.tn1_entry.insert(0, "0")
-        self.tn1_entry.grid(row=crow, column=2)
-        self.tn2_entry = tk.Entry(self.root, width=6)
-        self.tn2_entry.insert(0, "0.2")
-        self.tn2_entry.grid(row=crow, column=3)
+        self.entry_tn1 = tk.Entry(self.root, width=6)
+        self.entry_tn1.insert(0, "0")
+        self.entry_tn1.grid(row=crow, column=2)
+        self.entry_tn2 = tk.Entry(self.root, width=6)
+        self.entry_tn2.insert(0, "0.2")
+        self.entry_tn2.grid(row=crow, column=3)
         # ---- Median filter
         crow += 1
         tk.Label(self.root, text="Median:")\
@@ -177,11 +182,16 @@ class FILDvideoGUI:
         self.entry_gauss.grid(row=crow, column=3)
         # ---- Filter video button
         crow += 1
-        self.btn_filter = tk.Button(
-            self.root, text="Filter", bg = 'black',
-            command=self.process_video, state=tk.DISABLED
-        )
-        self.btn_filter.grid(row=crow, column=0, columnspan=4, sticky='we')
+        self.btn_filter = tk.Button(self.root, text="Filter", bg = 'black',
+                                    command=self.process_video, 
+                                    state=tk.DISABLED)
+        self.btn_filter.grid(row=crow, column=0, columnspan=2, sticky='we')
+        self.btn_loadfilter = tk.Button(self.root, text="Load + Filter", 
+                                        bg = 'green',
+                                        activebackground="#319F31",
+                                        command=self.load_plus_filter,
+                                        state=tk.NORMAL)
+        self.btn_loadfilter.grid(row=crow, column=2, columnspan=2, sticky='we')
         # ---- Remap parameters
         crow += 1
         parameters = {'xmin': 20, 'xmax': 90, 'dx': 1, 
@@ -213,9 +223,9 @@ class FILDvideoGUI:
         crow +=1
         tk.Label(self.root, text="Smap precision:")\
             .grid(row=crow, column=0, columnspan=2, sticky='w')
-        self.precision_entry = tk.Entry(self.root, width=6)
-        self.precision_entry.insert(0, "1")
-        self.precision_entry.grid(row=crow, column=2)
+        self.entry_precision = tk.Entry(self.root, width=6)
+        self.entry_precision.insert(0, "1")
+        self.entry_precision.grid(row=crow, column=2)
         # ---- Remapping method
         crow +=1
         tk.Label(self.root, text="Method:")\
@@ -456,8 +466,9 @@ class FILDvideoGUI:
         self.tini = float(self.entry_t1.get())
         self.tfin = float(self.entry_t2.get())
         
-        self.vid = ss.vid.FILDVideo(shot=self.shot, diag_ID=self.diag)
-        self.vid.read_frame(t1=self.tini, t2=self.tfin)
+        self.vid_raw = ss.vid.FILDVideo(shot=self.shot, diag_ID=self.diag)
+        self.vid_raw.read_frame(t1=self.tini, t2=self.tfin)
+        self.vid = copy.deepcopy(self.vid_raw)
 
         self.smap_state = False
         self.scint_state = False
@@ -477,23 +488,41 @@ class FILDvideoGUI:
 
     def import_video(self):
         '''
-        Load a new video data.
-            1. Get shot, diagnostic and time data
-            2. Load and store data
-            3. Set basic variables
-            4. Clear remap plot (if exists)
-            5. Update video plot
-            6. Set slider again
-            7. Enable buttons
+        Work on progress. Missing the import of the data to a vid object.
         '''
-             
+
+        base_config = self.get_gui_config()
+        shot_label = str(self.shot) + 'FILD' + str(self.diag)
+        ubi = os.path.join(self.save_folder, mach, shot_label)
+
+        # Here load the GUI config
+        stored_config = self.load_gui_config_from_yaml(folder=ubi)
+        self.apply_gui_config(stored_config)
+        if base_config['t1'] > stored_config ['t2']:
+            logger.warning('Outside of stored video. Setting stored limits.')
+        else:
+            if base_config['t1'] < stored_config['t1']:
+                logger.warning('New initial time previous than stored')
+            else:
+                logger.info('Initial time inside stored video') 
+                self.entry_t1.delete(0, "end")
+                self.entry_t1.insert(0, str(base_config['t1']))
+            if base_config['t2'] > stored_config['t2']:
+                logger.warning('New final time larger than stored') 
+            else:
+                logger.info('Final time inside stored video') 
+                self.entry_t2.delete(0, "end")
+                self.entry_t2.insert(0, str(base_config['t2']))
+
         self.shot = int(self.entry_shot.get())
         self.diag = int(self.entry_diag.get())
         self.tini = float(self.entry_t1.get())
         self.tfin = float(self.entry_t2.get())
         
+        # Here load the video
         self.vid = ss.vid.FILDVideo(shot=self.shot, diag_ID=self.diag)
-        self.vid.read_frame(t1=self.tini, t2=self.tfin)
+        self.vid.import_remap(folder = ubi)
+
 
         self.smap_state = False
         self.scint_state = False
@@ -507,9 +536,11 @@ class FILDvideoGUI:
             self.cbar2 = None
         
         self.update_video()
+        self.update_remap()
         self.slider.config(from_=0, to=len(self.data_vals1)-1)
         self.slider.set(self.current_frame)
-        self.enabling_after_loading()   
+        self.enabling_after_loading()  
+        self.enabling_after_remaping()
 
     def process_video(self):
         '''
@@ -519,11 +550,12 @@ class FILDvideoGUI:
             3. Since remap is removed, change to VIDEO plot mode (no reset)
             4. Enable buttons
         '''        
-        self.vid.return_to_original_frames()
+        self.vid = copy.deepcopy(self.vid_raw)
+
         # Background substraction
         try:
-            tn1 = float(self.tn1_entry.get())
-            tn2 = float(self.tn2_entry.get())
+            tn1 = float(self.entry_tn1.get())
+            tn2 = float(self.entry_tn2.get())
             if tn2 >= tn1:
                 self.vid.subtract_noise(t1=tn1, t2=tn2, speed_flag=True) #from BVO
             else: logger.warning('No background substracted')
@@ -557,9 +589,7 @@ class FILDvideoGUI:
             2. Update remap plot
             3. Enable buttons
         '''
-        logging.basicConfig(level=logging.INFO)
-
-        smap_precision = int(self.precision_entry.get())
+        smap_precision = int(self.entry_precision.get())
         smap_opt = self.opt_smap.get()
         remap_method = self.opt_remap.get()
         if remap_method == 'Centers':
@@ -579,11 +609,31 @@ class FILDvideoGUI:
         for key, entry in self.entry_params.items():
                 par[key] = float(entry.get())
 
+        log_smap = logging.getLogger('ScintSuite.StrikeMap')
+        log_FVid = logging.getLogger('ScintSuite.FILDVideo')
+        log_smap.setLevel(logging.INFO)
+        log_FVid.setLevel(logging.INFO)
         self.vid.remap_loaded_frames(par)
+        log_smap.setLevel(logging.DEBUG)
+        log_FVid.setLevel(logging.DEBUG)
+
+
 
         self.update_remap()
         self.enabling_after_remaping()
-        logging.basicConfig(level=logging.DEBUG)
+
+    def load_plus_filter(self):
+        old_params = {'shot':self.shot,
+                      'diag':self.diag,
+                      'tini':self.tini,
+                      'tfin':self.tfin}
+        new_params = {'shot':int(self.entry_shot.get()),
+                      'diag':int(self.entry_diag.get()),
+                      'tini':float(self.entry_t1.get()),
+                      'tfin':float(self.entry_t2.get())}
+        if old_params != new_params or self.vid is None:
+            self.load_video()
+        self.process_video()
 
     def do_all_actions(self):
         old_params = {'shot':self.shot,
@@ -635,16 +685,94 @@ class FILDvideoGUI:
         self.plot_lines()
         self.canvas.draw_idle()
 
+    ## ---- Data export
     def export_data(self):
         '''
         Export data to a folder
         '''
         self.shot = int(self.entry_shot.get())
         self.diag = int(self.entry_diag.get())
-        ubi = self.save_folder + mach
-        self.vid.export_remap(folder = ubi, clean = True)
-        logger.info('------------------ DATA SAVED ------------------')
+        shot_label = str(self.shot) + 'FILD' + str(self.diag)
+        ubi = os.path.join(self.save_folder, mach, shot_label)
+        self.vid.export_remap(folder = ubi, clean = True, overwrite = True)
+        self.save_gui_config(folder = ubi)
+        logger.info('Data saved')
 
+    def get_gui_config(self):
+        params_values = {k: float(e.get()) for k, e in self.entry_params.items()}
+        config = {
+            "shot": int(self.entry_shot.get()),
+            "diag": int(self.entry_diag.get()),
+            "t1": float(self.entry_t1.get()),
+            "t2": float(self.entry_t2.get()),
+            "tn1": float(self.entry_tn1.get()),
+            "tn2": float(self.entry_tn2.get()),
+            "median": int(self.entry_median.get()),
+            "gaussian": int(self.entry_gauss.get()),
+            "parameters": params_values,
+            "smaps": str(self.opt_smap.get()),
+            "precision": int(self.entry_precision.get()),
+            "method": str(self.opt_remap.get()),
+        }
+        logger.info('GUI configuration obtained')
+        return config
+    
+    def save_gui_config(self, folder: str = None, 
+                        filename: str = "gui_config.yaml"):
+        
+        if folder is None:
+            folder = os.path.join(pa.Results, str(self.shot), self.diag,
+                                str(self.diag_ID))
+        os.makedirs(folder, exist_ok=True)
+        filepath = os.path.join(folder, filename)
+        config = self.get_gui_config()
+        with open(filepath, "w") as f:
+            yaml.dump(config, f)
+        logger.info('GUI configuration saved')
+
+    def load_gui_config_from_yaml(self, folder: str = None, 
+                        filename: str = "gui_config.yaml"):
+        
+        filepath = os.path.join(folder, filename)
+        if not os.path.isfile(filepath):
+            raise FileNotFoundError(f"No config file found at {filepath}")
+        with open(filepath, "r") as f:
+            config = yaml.safe_load(f)
+        logger.info('Stored GUI configuration loaded')
+            
+        return config
+
+    def apply_gui_config(self, config: dict):
+
+        mapping = {
+            "shot": self.entry_shot,
+            "diag": self.entry_diag,
+            "t1": self.entry_t1,
+            "t2": self.entry_t2,
+            "tn1": self.entry_tn1,
+            "tn2": self.entry_tn2,
+            "median": self.entry_median,
+            "gaussian": self.entry_gauss,
+            "precision": self.entry_precision,
+        }
+        for key, widget in mapping.items():
+            if key in config:
+                widget.delete(0, "end")
+                widget.insert(0, str(config[key]))
+
+        if "parameters" in config:
+            for k, val in config["parameters"].items():
+                if k in self.entry_params:
+                    self.entry_params[k].delete(0, "end")
+                    self.entry_params[k].insert(0, str(val))
+        if "smaps" in config:
+            self.opt_smap.set(str(config["smaps"]))
+
+        if "method" in config:
+            self.opt_remap.set(str(config["method"]))
+        logger.info('New GUI configuration applied')
+
+    ## ---- Time Traces        
     def extract_time_trace(self, remap = False):
         '''
         Start ROI selection for time trace
@@ -702,6 +830,7 @@ class FILDvideoGUI:
             if len(self.roi_points) >= 3:
                 logger.info('Computing mask and time trace')
                 self.generate_mask(remap=remap)
+                self.off_click()
                 self.plot_time_trace(remap=remap)
 
     def off_click(self):
@@ -739,39 +868,54 @@ class FILDvideoGUI:
         if self.roi_line is not None:
             xs, ys = zip(*(self.roi_points + [self.roi_points[0]]))
             self.roi_line.set_data(xs, ys)
-        self.off_click()
 
     def plot_time_trace(self, remap):
         if self.roi_mask is None:
             return
         fig_alive = (self.fig3 is not None and self.ax3 is not None 
                     and plt.fignum_exists(self.fig3.number))
+        
         if not fig_alive:
-            self.fig3, self.ax3 = plt.subplots(figsize=(8, 4))
-            self.ax4 = self.ax3.twinx()
-
+            self.fig3, (self.ax3, self.ax4) = plt.subplots(2, 1, 
+                                                           figsize=(8, 6),
+                                                           sharex=True)
         if remap:
             mask_da = xr.DataArray(self.roi_mask, dims=['y','x'],
                                    coords = {'y':self.vid.remap_dat.frames.y,
                                              'x':self.vid.remap_dat.frames.x})
             mask_da = mask_da.transpose('y','x')
             masked_remaps = self.remaps * mask_da
-            time_trace = masked_remaps.sum(dim=['y','x'])
-            time_trace.plot(ax=self.ax4, ls=':')
+            time_trace = masked_remaps.mean(dim=['y','x'])
+            time_trace.plot(ax=self.ax4, ls='-')
         else:
-            mask_da = xr.DataArray(self.roi_mask, dims=['px','py'])
+            mask_da = xr.DataArray(self.roi_mask, dims=['px','py'],
+                                   coords = {'py':self.vid.exp_dat.frames.py,
+                                             'px':self.vid.exp_dat.frames.px})
             masked_frames = self.frames * mask_da
-            time_trace = masked_frames.sum(dim=['px','py'])
-            time_trace.plot(ax=self.ax3)
+            time_trace = masked_frames.mean(dim=['px','py'])
+            time_trace.plot(ax=self.ax3, ls='-')
 
-        self.ax3.set_ylim(0, None)
-        self.ax3.set_xlabel("Time [s]")
-        self.ax3.set_ylabel("Sum of ROI (camera)")
-        self.ax4.set_ylabel("Sum of ROI (remap)")
-        self.ax3.grid(True)
+        for ax in (self.ax3, self.ax4):
+            ax.set_title(' '.join([mach,
+                                        '#'+str(self.entry_shot.get()),
+                                        'FILD'+str(self.diag)]))
+            ax.set_xlabel("Time [s]")
+            ax.grid(True)
+            ax.set_xlim(self.tini,self.tfin)
+            ax.set_ylim(0, max(self.ax3.get_ylim()[1], 
+                                     np.max(time_trace.max())*1.2))
+            ax.xaxis.set_tick_params(labelbottom=True)
+            
+        self.ax3.set_ylabel("Mean of ROI (video)")
+        self.ax4.set_ylabel("Mean of ROI (remap)")
+
         self.fig3.tight_layout()
+        self.fig3.align_ylabels()
         self.fig3.show()
+        self.fig3.canvas.draw()
+        self.fig3.canvas.flush_events()
 
+    ## ---- Data update
     def update_video(self):
         '''
         Updates data used for plotting.
@@ -781,7 +925,9 @@ class FILDvideoGUI:
             5. Generate secondary ax and cbar
             5. Sets canvas parameters
         '''
-        self.frames = self.vid.exp_dat.frames.transpose('t','px','py')
+        self.frames = self.vid.exp_dat.frames\
+            .sel(t=slice(self.tini,self.tfin))\
+            .transpose('t','px','py')
         xlabel, ylabel = 'xpix','ypix'
         pad, right = 0.1, 0.5
         self.smap_state = False
@@ -800,8 +946,8 @@ class FILDvideoGUI:
         self.t_text1 = self.ax1.text(0.98, 1.01, 
                 f"{float(self.frames.t[self.current_frame].values):.3f}"+' s',
                 ha='right', va='bottom', transform=self.ax1.transAxes, color='k')
-        self.shot_text = self.ax1.text(0.02, 1.01, 
-                '#'+str(self.entry_shot.get()),
+        self.shot_text = self.ax1.text(0.02, 1.01,
+                mach+ ' #'+str(self.entry_shot.get())+' FILD'+str(self.diag),
                 ha='left', va='bottom', transform=self.ax1.transAxes, color='k')
         try:
             self.cbar1.remove()
@@ -824,7 +970,9 @@ class FILDvideoGUI:
             5. Generate secondary ax and cbar
             5. Sets canvas parameters
         '''
-        self.remaps = self.vid.remap_dat.frames.transpose('t','y','x')
+        self.remaps = self.vid.remap_dat.frames\
+            .sel(t=slice(self.tini,self.tfin))\
+            .transpose('t','y','x')
         xlabel, ylabel = 'Pitch angle [º]', 'Gyroradius [cm]'
         pad, right = 0.05, 0.5
 
@@ -840,8 +988,8 @@ class FILDvideoGUI:
         self.t_text2 = self.ax2.text(0.98, 1.01, 
                 f"{float(self.frames.t[self.current_frame].values):.3f}"+' s',
                 ha='right', va='bottom', transform=self.ax2.transAxes, color='k')
-        self.shot_text = self.ax2.text(0.02, 1.01, 
-                '#'+str(self.entry_shot.get()),
+        self.shot_text = self.ax2.text(0.02, 1.01,
+                mach+ ' #'+str(self.entry_shot.get())+' FILD'+str(self.diag),
                 ha='left', va='bottom', transform=self.ax2.transAxes, color='k')
         try:
             self.cbar2.remove()
@@ -855,6 +1003,7 @@ class FILDvideoGUI:
 
         self.canvas.draw_idle()
 
+    ## ---- Button enabling
     def enabling_after_loading(self):
         '''
         Activate/deactivate widgets after loading a video
@@ -874,8 +1023,9 @@ class FILDvideoGUI:
             self.btn_scint.configure(state=tk.NORMAL)
         else:
             self.btn_scint.configure(state=tk.DISABLED)
-        
-        self.btn_export.configure(state=tk.NORMAL)
+
+        self.btn_TT2.configure(state=tk.DISABLED)
+
 
     def enabling_after_remaping(self):
         '''
@@ -888,5 +1038,5 @@ class FILDvideoGUI:
         self.entry_vmin_r.bind("<Return>", lambda e: 
                              self.update_plot(self.current_frame))
         self.entry_vmax_r.bind("<Return>", lambda e: 
-                             self.update_plot(self.current_frame))
-        
+                             self.update_plot(self.current_frame)) 
+        self.btn_export.configure(state=tk.NORMAL)

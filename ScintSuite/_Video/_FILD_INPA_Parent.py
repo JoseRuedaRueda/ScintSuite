@@ -33,6 +33,10 @@ import ScintSuite._Paths as p
 from ScintSuite._Machine import machine
 pa = p.Path(machine)
 del p
+import tarfile
+import json
+import tempfile
+
 
 logger = logging.getLogger('ScintSuite.Video')
 
@@ -892,6 +896,7 @@ class FIV(BVO):
         magField = os.path.join(folder, 'Bfield.nc')
         magFieldAngles = os.path.join(folder, 'BfieldAngles.nc')
         strikemaps = os.path.join(folder, 'strikeMaps.nc')
+        frames = os.path.join(folder, 'frames.nc')
         remap = os.path.join(folder, 'remap.nc')
         calibration = os.path.join(folder, 'CameraCalibration.nc')
         versionFile = os.path.join(folder, 'version.txt')
@@ -917,6 +922,9 @@ class FIV(BVO):
             wroteFields = False
             pass
             # If the remap was done with a single smap, the angles are not calculated
+        self.return_to_original_frames()
+        self.exp_dat.attrs.clear()
+        self.exp_dat.to_netcdf(frames)
         self.remap_dat.to_netcdf(remap)
         self.CameraCalibration.save2netCDF(calibration)
         if 'frame_noise' in self.exp_dat:
@@ -939,6 +947,7 @@ class FIV(BVO):
             tar.add(magField, arcname='Bfield.nc')
             tar.add(magFieldAngles, arcname='BfieldAngles.nc')
             tar.add(strikemaps, arcname='strikeMaps.nc')
+        tar.add(frames, arcname='frames.nc')
         tar.add(remap, arcname='remap.nc')
         tar.add(calibration, arcname='CameraCalibration.nc')
         tar.add(versionFile, arcname='version.txt')
@@ -956,6 +965,75 @@ class FIV(BVO):
             os.remove(magField)
             os.remove(magFieldAngles)
             os.remove(strikemaps)
+            os.remove(frames)
             os.remove(remap)
             os.remove(calibration)
             os.remove(versionFile)
+
+    def import_remap(self, folder = None, extract_folder: str = None):
+        """
+        Import remap data from a previously exported .tar file.
+        """
+
+        if folder is None:
+            logger.error('No folder given')
+            return
+        
+        tarFile = os.path.join(folder, str(self.shot) + '_' + self.diag +
+                               str(self.diag_ID) + '_' + 'remap.tar')
+        # if not os.path.isfile(tarFile):
+        #     raise FileNotFoundError(f"{tarFile} not found")
+
+        # Folder where files will be extracted
+        if extract_folder is None:
+            extract_folder = tempfile.mkdtemp()
+
+        os.makedirs(extract_folder, exist_ok=True)
+
+        # Extract tar
+        with tarfile.open(tarFile, 'r') as tar:
+            tar.extractall(path=extract_folder)
+
+        # ----- Load NetCDF files -----
+        def safe_open_nc(name):
+            path = os.path.join(extract_folder, name)
+            return xr.open_dataset(path).load() if os.path.isfile(path) else None
+
+        self.exp_dat = safe_open_nc('frames.nc')
+        self.remap_dat = safe_open_nc('remap.nc')
+        self.Bfield = safe_open_nc('Bfield.nc')
+        self.BfieldAngles = safe_open_nc('BfieldAngles.nc')
+        self.strikeMaps = safe_open_nc('strikeMaps.nc')
+        self.noiseFrame = safe_open_nc('noiseFrame.nc')
+
+        # Calibration (depends on your class)
+        # calib_path = os.path.join(extract_folder, 'CameraCalibration.nc')
+        # if os.path.isfile(calib_path):
+        #     self.CameraCalibration.loadfromnetCDF(calib_path)
+
+        # ----- Load JSON files -----
+        def safe_load_json(name):
+            path = os.path.join(extract_folder, name)
+            if os.path.isfile(path):
+                with open(path, 'r') as f:
+                    return json.load(f)
+            return None
+
+        self.position = safe_load_json('position.json')
+        self.orientation = safe_load_json('orientation.json')
+        self.CameraData = safe_load_json('CameraData.json')
+
+        # ----- Load metadata -----
+        meta_path = os.path.join(extract_folder, 'metadata.txt')
+        if os.path.isfile(meta_path):
+            with open(meta_path, 'r') as f:
+                for line in f:
+                    if 'Shot:' in line:
+                        self.shot = int(line.split(':')[1])
+                    elif 'diag_ID:' in line:
+                        self.diag_ID = int(line.split(':')[1])
+                    elif 'geom_ID:' in line:
+                        self.geometryID = line.split(':')[1].strip()
+        logger.info('Data loaded')
+
+        return True
