@@ -13,14 +13,14 @@ __all__ = ['plot_flux_surfaces', 'plot2D_ECE']
 # -----------------------------------------------------------------------------
 # --- Flux surfaces plot.
 # -----------------------------------------------------------------------------
-def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
+def plot_flux_surfaces(shotnumber: int = None, time: float=1.53, ax=None,
                        linewidth: float = 1.2,
                        diag: str = 'EQH', exp: str = 'AUGD', ed: int = 0,
                        levels: float = None, label_surf: bool = True,
                        coord_type: str = 'rho_pol',
                        axis_ratio: str = 'equal',
                        units: str = 'm', color=None, view: str = 'pol',
-                       linestyle: str = '-'):
+                       linestyle: str = '-', shot: int = None):
     """
     Plot the flux surfaces of a given shot in AUG for a given time point.
 
@@ -29,7 +29,7 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
     Note: @todo, as this has diag and exp as input, maybe we need to rewrite it
     once we move to MAST-U or SMART, I do not know their format... (jrueda)
 
-    :param  shotnumber: shot number to get the equilibrium.
+    :param  shotnumber: shot number to get the equilibrium. Deprecated, use shot.
     :param  time: time point to retrieve the equilibrium.
     :param  ax: axis to plot the flux surfaces.
     :param  linewidth: line width for flux surfaces.
@@ -47,6 +47,12 @@ def plot_flux_surfaces(shotnumber: int, time: float, ax=None,
     
     Note: labeling does not work with toroidal view, neither colors, WIP @ TODO
     """
+    if shotnumber is not None:
+        print('WARNING: shotnumber is deprecated, use shot instead')
+        print('shotnumber will be removed in version 1.4.5')
+    if shot is not None:
+        shotnumber = shot
+    
     if units == 'm':
         factor = 1.
     elif units == 'cm':

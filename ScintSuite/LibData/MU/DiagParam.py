@@ -29,9 +29,11 @@ fild1 = {'adqfreq': lambda shot: 23 if shot < firstShotXIMEA else 500,  # not re
     'extension': lambda shot: '' if shot < firstShotXIMEA else '.nc', # Extension of the video
     'prefix': prefix, # Prefix of the file name
     'label': 'FILD1', 
-    'path': lambda shot:\
-    # '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShot else '/fild-data/XIMEAshotfiles'}
-    # '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShot else '/FILD1_remote_store'}
-    '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShotXIMEA else '/home/jqw5960/mastu/experiments/SHOTFILES_XIMEA'}
+    'path': lambda shot: f"$MAST_DATA/0{str(shot)[:2]}/{shot}/LATEST/xfx0{shot}.ncMASTU"    
+    }
+    # 'path': lambda shot:\
+    # # '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShot else '/fild-data/XIMEAshotfiles'}
+    # # '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShot else '/FILD1_remote_store'}
+    # '/home/jrivero/FILD_MASTu_data/FILD_CCD' if shot < firstShotXIMEA else '/home/jqw5960/mastu/experiments/SHOTFILES_XIMEA'}
 
 FILD = (fild1,)

@@ -9,6 +9,7 @@ import xarray as xr
 import ScintSuite._IO as ssio
 import ScintSuite._Plotting as ssplt
 import matplotlib.pyplot as plt
+from copy import deepcopy
 from tqdm import tqdm
 from ScintSuite._basicVariable import BasicSignalVariable
 
@@ -217,7 +218,7 @@ class TimeTrace(BasicSignalVariable):
             # Calculate the time trace
             if video is not None:
                 if t1 is None:
-                    time_base = video.exp_dat['t'].squeeze()
+                    time_base = deepcopy(video.exp_dat['t'].squeeze())
                     sum_of_roi, mean_of_roi, std_of_roi,\
                         max_of_roi = trace(video.exp_dat['frames'].values, mask)
                 else:
@@ -230,7 +231,7 @@ class TimeTrace(BasicSignalVariable):
                 # Save the trace in the data structure
                 self._data['sum_of_roi'] = \
                     xr.DataArray(sum_of_roi, dims=('t',),
-                                 coords={'t':time_base})
+                                 coords={'t':deepcopy(time_base)})
                 self._data['mean_of_roi'] = xr.DataArray(mean_of_roi, dims='t')
                 self._data['std_of_roi'] = xr.DataArray(std_of_roi, dims='t')
                 self._data['max_of_roi'] = xr.DataArray(max_of_roi, dims='t')
@@ -338,36 +339,36 @@ class TimeTrace(BasicSignalVariable):
             line_options['label'] = self._ROIname
         # --- Select the proper data:
         if data == 'sum':
-            y = self['sum_of_roi'].values.copy()
+            y = self['sum_of_roi'].copy()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = 'Counts [a.u.]'
                 else:
                     ax_params['ylabel'] = 'Counts'
         elif data == 'std':
-            y = self['std_of_roi'].values.copy()
+            y = self['std_of_roi'].copy()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = '$\\sigma [a.u.]$'
                 else:
                     ax_params['ylabel'] = '$\\sigma$'
         elif data == 'mean/absmax':
-            y = self['mean_of_roi'].values.copy() \
-                / self['max_of_roi'].values.max()
+            y = self['mean_of_roi'].copy() \
+                / self['max_of_roi'].max()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = '$Mean/absmax [a.u.]$'
                 else:
                     ax_params['ylabel'] = '$Mean/absmax$'
         elif data == 'max':
-            y = self['max_of_roi'].values.copy()
+            y = self['max_of_roi'].copy()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = '$Max$'
                 else:
                     ax_params['ylabel'] = '$Max [a.u.]$'
         else:
-            y = self['mean_of_roi'].values.copy()
+            y = self['mean_of_roi'].copy()
             if 'ylabel' not in ax_params:
                 if normalised:
                     ax_params['ylabel'] = 'Mean [a.u.]'
@@ -378,13 +379,13 @@ class TimeTrace(BasicSignalVariable):
             baseline_level = y[-15:-2].mean().astype(y.dtype)
             y += -baseline_level
             logger.info('Baseline corrected using the last points')
-            logger.info('Baseline level: %i' % round(baseline_level))
+            logger.info('Baseline level: %.0f' % baseline_level.values)
 
         elif correct_baseline == 'ini':
             baseline_level = y[3:8].mean().astype(y.dtype)
             y += -baseline_level
             logger.info('Baseline corrected using the initial points')
-            logger.info('Baseline level: %i' % round(baseline_level))
+            logger.info('Baseline level: %.0f' % baseline_level.values)
         else:
             logger.info('Not applying any baseline correction')
 
@@ -399,7 +400,7 @@ class TimeTrace(BasicSignalVariable):
         else:
             created_ax = False
         line_options.update(line_params)
-        ax.plot(self['t'], y, **line_options)
+        ax.plot(self['t'], y.values, **line_options)
         ax_options.update(ax_params)
         ax = ssplt.axis_beauty(ax, ax_options)
 
@@ -484,3 +485,6 @@ class TimeTrace(BasicSignalVariable):
         """
 
         return self._data['std_of_roi'].copy()
+
+    def __getitem__(self, item):
+        return self._data[item]

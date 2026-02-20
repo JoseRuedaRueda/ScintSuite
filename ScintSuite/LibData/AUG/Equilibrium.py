@@ -72,7 +72,7 @@ def get_mag_axis(shot, time: float = None, diag: str = 'GQH'):
 
 def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
             ed: int = 0, time: float = None, equ=None,
-            coord_out: str = 'rho_pol'):
+            coord_out: str = 'rho_pol', **kwargs):
     """
     Wrapp to get AUG normalised radius.
 

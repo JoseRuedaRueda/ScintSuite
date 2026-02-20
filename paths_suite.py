@@ -2,9 +2,10 @@
 
 import os
 import sys
+from ScintSuite._Machine import machine
 
 
-def paths_of_the_suite():
+def envPathExtend():
     """
     Add to the path all the necessary folders for the suite to run.
 
@@ -12,18 +13,6 @@ def paths_of_the_suite():
 
     @param machine: Machine where we are working
     """
-    if os.path.isdir('/common/uda-scratch'):
-        machine = 'MU'
-    elif os.path.isdir('/home/muadmin/package'):
-        machine = 'MU'
-    elif os.path.isdir('/afs/ipp/aug/ads-diags/common/python/lib'):
-        try:
-            import aug_sfutils
-            machine = 'AUG'
-        except ModuleNotFoundError:
-            machine = 'Generic'
-    else:
-        machine = 'Generic'
     # --- Section 0: Name of the auxiliary folders (located at home directory)
     SUITE_DIR = os.getcwd()
     Suite_LIBs = {
@@ -34,23 +23,17 @@ def paths_of_the_suite():
     # -- Machine dependent folders:
     Machine_libs = {
         'AUG': {
-            'AUG_Python': '/afs/ipp/aug/ads-diags/common/python/lib',
             'Giovanni': '/afs/ipp/home/g/git/python/fbm/',
-            'FIDASIM4': os.path.join(os.getenv("HOME"), 'FIDASIM4'),
-            'ihipsim': os.path.join(os.getenv("HOME"), 'ihibpsim', 'python'),
-            # 'Suite_AUG': os.path.join(SUITE_DIR, 'Lib/LibData/AUG')
-            'fakeSF': '/afs/ipp-garching.mpg.de/home/r/ruejo/aug_sfutilsJose',
-            'fakeSF2': '/afs/ipp-garching.mpg.de/home/r/ruejo/'
         },
         'MU': {
             # 'MU_Python': '/usr/local/modules/default/python',
             'MU_Python': '/usr/local/depot/Python-3.7/lib'
+        },
+        'D3D': {
         }
     }
 
     # --- Section 1: Add folders to path
-    # Extra python modules:
-
     # Suite directories:
     for lib in Suite_LIBs.keys():
         sys.path.extend([os.path.join(SUITE_DIR, Suite_LIBs[lib])])
@@ -73,4 +56,4 @@ def paths_of_the_suite():
 
 if __name__ == "__main__":
 
-    paths_of_the_suite()
+    envPathExtend()

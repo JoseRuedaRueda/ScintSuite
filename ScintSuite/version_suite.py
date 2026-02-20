@@ -6,21 +6,30 @@ import numpy as np
 from ScintSuite._Machine import machine
 from ScintSuite._Paths import Path
 
-version = '1.3.13'
+version = '1.4.5'
 
-codename = 'Anacardo'
+codename = 'Huki SX'
 
 
 logger = logging.getLogger('ScintSuite.Version')
 
 
-def exportVersion(filename)->str:
+def exportVersion(filename) -> str:
     """
-    Save the version of the suite into a file
+    Save the version of the suite into a file.
 
-    :param filename: Name of the file to save the version
+    Parameters
+    ----------
+    filename : str
+        Name of the file to save the version.
 
-    :return: Name of the file where the version is saved
+    Returns
+    -------
+    str
+        Name of the file where the version is saved.
+
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu  
     """
     v = version.split('.')
     v1 = int(v[0])
@@ -41,7 +50,23 @@ def exportVersion(filename)->str:
     return filename
 
 
-def readVersion(filename)->np.ndarray:
+def readVersion(filename) -> np.ndarray:
+    """
+    Read the version numbers from a file.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the file to read the version from.
+
+    Returns
+    -------
+    numpy.ndarray
+        Array containing the three version numbers.
+
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu  
+    """
     with open(filename, 'r') as f:
         v = np.zeros(3, dtype='int')
         for i in range(3):
@@ -49,11 +74,18 @@ def readVersion(filename)->np.ndarray:
     return v
 
 
-def readGITcommit()->dict:
+def readGITcommit() -> dict:
     """
-    Read the information of the latest Suite Commit
+    Read the information of the latest Suite Commit.
 
-    :return out: Dictionary containing the name and author of the commit
+    Returns
+    -------
+    dict
+        Dictionary containing branch name, commit hash, commit message,
+        date, author name, and author email.
+
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu  
     """
     p = Path(machine).ScintSuite
     repo = git.Repo(p)
@@ -69,15 +101,25 @@ def readGITcommit()->dict:
     return out
 
 
-def printGITcommit()->None:
+def printGITcommit() -> None:
     """
-    Print the information of the latest suite commit
-    :return:
+    Print the information of the latest suite commit.
+
+    Returns
+    -------
+    None
+
+    :Authors:
+        Jose Rueda - jruedaru@uci.edu  
     """
-    data = readGITcommit()
-    logger.info('Branch: %s', data['branch'])
-    logger.info('Commit: %s', data['latest_comit'])
-    logger.info('Commit message: %s', data['latest_comit_message'])
-    logger.info('Date: %s', data['date'])
-    logger.info('Commit responsible: %s', data['author'])
-    logger.info('Mail: %s', data['email'])
+    try:
+        data = readGITcommit()
+        logger.info('Branch: %s', data['branch'])
+        logger.info('Commit: %s', data['latest_comit'])
+        logger.info('Commit message: %s', data['latest_comit_message'])
+        logger.info('Date: %s', data['date'])
+        logger.info('Commit responsible: %s', data['author'])
+        logger.info('Mail: %s', data['email'])
+    except Exception as e:
+        logger.warning('Error reading the commit information: %s', e)
+        logger.warning('Please check the git repository')

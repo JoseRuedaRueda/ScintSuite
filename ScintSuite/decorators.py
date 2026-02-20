@@ -87,15 +87,22 @@ def deprecated(reason):
     else:
         raise TypeError(repr(type(reason)))
 
-def false_njit(func, *args0, **kwargs0):
+def false_njit(func=None, *args0, **kwargs0):
     """
     Used to mockup the njit. Basically, does nothing.
 
     Pablo Oyola - poyola@us.es
     """
 
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        func(*args, **kwargs)
+    def _decorator(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            return f(*args, **kwargs)
+        return wrapper
 
-    return wrapper
+    # If used as @false_njit without parameters, func is the function to wrap.
+    if callable(func):
+        return _decorator(func)
+
+    # If used as @false_njit(...), return the decorator to be applied to the function.
+    return _decorator

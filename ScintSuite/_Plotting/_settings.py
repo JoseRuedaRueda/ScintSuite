@@ -5,7 +5,7 @@ import os
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from ScintSuite._Paths import Path
-import f90nml
+import yaml
 import logging
 logger = logging.getLogger('ScintSuite.Plotting')
 try:
@@ -31,9 +31,14 @@ def plotSettings(plot_mode='software', usetex=False):
     :param  usetex: flag to use tex formating or not
     """
     # Load default plotting options
-    filename = os.path.join(paths.ScintSuite, 'Data', 'MyData',
-                            'plotting_default_param.cfg')
-    nml = f90nml.read(filename)
+    filename = os.path.join(paths.ScintSuite, 'Settings.yml')
+    with open(filename, 'r') as stream:
+        try:
+            settings = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+            raise Exception('Error reading the settings file')
+    nml = settings['UserPlotStyles']
 
     # Add font directories
     try:
@@ -52,7 +57,7 @@ def plotSettings(plot_mode='software', usetex=False):
 
     mpl.rcParams['svg.fonttype'] = 'none'  # to edit fonts in inkscape
 
-    mpl.rcParams["backend"] = 'Qt5Agg'
+    # mpl.rcParams["backend"] = 'Qt5Agg'
     # Try to set the font-types, only available in version > 3.5.2
     try:
         # for PDF backend
@@ -86,13 +91,17 @@ def plotSettings(plot_mode='software', usetex=False):
         'size': nml[mode]['axis_font_size']
     }
     mpl.rc('font', **opt)
-    mpl.rcParams['legend.fontsize'] = nml[mode]['legend_font_size']
-    mpl.rcParams['axes.titlesize'] = nml[mode]['title_font_size']
-    mpl.rcParams['axes.labelsize'] = nml[mode]['axis_font_size']
     try:
         mpl.rcParams['font.size'] = nml[mode]['inside_text_font_size']
     except KeyError:
-        mpl.rcParams['font.size'] = nml[mode]['axis_font_size'] - 2 # 2 points less than the axis label
+        mpl.rcParams['font.size'] = nml[mode]['axis_font_size']
+
+    mpl.rcParams['axes.titlesize'] = nml[mode]['title_font_size']
+    plt.rcParams['figure.titlesize'] = nml[mode]['title_font_size']
+    mpl.rcParams['axes.labelsize'] = nml[mode]['axis_font_size']
+    mpl.rcParams['xtick.labelsize'] = nml[mode]['tick_font_size']
+    mpl.rcParams['ytick.labelsize'] = nml[mode]['tick_font_size']
+    mpl.rcParams['legend.fontsize'] = nml[mode]['legend_font_size']
 
     mpl.rcParams['lines.linewidth'] = nml[mode]['line_width']
     mpl.rcParams['lines.markersize'] = nml[mode]['marker_size']
@@ -109,8 +118,8 @@ def plotSettings(plot_mode='software', usetex=False):
         mpl.rcParams['ytick.direction'] = nml[mode]['ytick_direction']
         mpl.rcParams['xtick.direction'] = nml[mode]['xtick_direction']
     except KeyError:
-        mpl.rcParams['ytick.direction'] = 'in'
-        mpl.rcParams['xtick.direction'] = 'in'
+        mpl.rcParams['ytick.direction'] = nml['default']['tick_direction']
+        mpl.rcParams['xtick.direction'] = nml['default']['tick_direction']
 
 
     # Print and return

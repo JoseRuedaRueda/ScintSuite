@@ -100,8 +100,7 @@ class INPA_logbook:
             url poiting to the internet logbook. It can be a path to a local
             excel)
         """
-        if verbose:
-            print('.-.. --- --. -... --- --- -.-')
+        logger.info('.-.. --- --. -... --- --- -.-')
         # Side attributes / space reservation
         self.logbookVersion = None
         # Load the camera database
@@ -139,7 +138,9 @@ class INPA_logbook:
             - Will set the internal variable logbookVersion
         """
         if verbose:
-            print('Looking for the position database: ', filename)
+            logger.warning('VERBOSE option is deprecated, please avoid using it. it will raise an error in 2.0.0')
+            
+        logger.info('Looking for the position database: ', filename)
         excelLogbook = pd.read_excel(filename, engine='odf', header=[0, 1])
         # dummy['shot'] = dummy.Shot.Shot.values.astype(int)
         self.logbookVersion = 0  # Up to now, this is no usefull as there is
@@ -167,7 +168,8 @@ class INPA_logbook:
 
         # Read the file
         if verbose:
-            print('Reading Geometry database from: ', filename)
+            logger.warning('VERBOSE option is deprecated, please avoid using it. it will raise an error in 2.0.0')
+        logger.info('Reading Geometry database from: ', filename)
         with open(filename) as f:
             for i in range(n_header):
                 dummy = f.readline()

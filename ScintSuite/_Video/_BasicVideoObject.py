@@ -28,7 +28,6 @@ import ScintSuite._Video._MP4files as mp4
 import ScintSuite._Video._MATfiles as mat
 import ScintSuite._Video._TIFfiles as tif
 import ScintSuite._Video._h5D3D as h5d3d
-import ScintSuite._Video._NetCDF4files as ncdf
 import ScintSuite._Utilities as ssutilities
 import ScintSuite._Video._AuxFunctions as aux
 from tqdm import tqdm                      # For waitbars
@@ -38,6 +37,10 @@ from ScintSuite._Machine import machine
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import Slider, Button, RadioButtons
 import gc
+from ScintSuite._Machine import machine as _machine
+if _machine == 'MU':
+    import ScintSuite._Video._NetCDF4files as ncdf
+
 
 # --- Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.Video')
@@ -132,42 +135,79 @@ class BVO:
         self.avg_dat = None
         ## Shot number
         self.shot = shot
+        ## Headers
+        self.header = None
+        ## Image header
+        self.imageheader = None
+        ## Settings
+        self.settings = None
+        ## Time base
+        self.timebase = None
+        ## Path to the file
+        self.path = None
+        ## File name
+        self.file_name = None
+        ## Full file name
+        self.file = None
+        
         if not empty:
             if shot is None:
                 self.shot = aux.guess_shot(file, ssdat.shot_number_length)
             # Fill the object depending if we have a .cin file or not
-            if os.path.isfile(file):
-                logger.info('Looking for the file: %s' % file)
-                ## Path to the file and filename
-                self.path, self.file_name = os.path.split(file)
-                ## Name of the file (full path)
-                self.file = file
+            # if os.path.isfile(file):
+            logger.info('Looking for the file: %s' % file)
+            ## Path to the file and filename
+            self.path, self.file_name = os.path.split(file)
+            ## Name of the file (full path)
+            self.file = file
 
-                # Check if the file is actually a .cin file
+            # Check if the file is actually a file:
+            # Quick Fix, MU now use files from the cloud, so they are not found
+            # by os.path.isfile, that is why we need to add there the .ncMASTU    
+            if os.path.isfile(file) or file.endswith('.ncMASTU'):
                 if file.endswith('.cin') or file.endswith('.cine'):
                     ## Header dictionary with the file info
                     self.header = cin.read_header(file)
                     ## Settings dictionary
                     self.settings = cin.read_settings(file,
-                                                      self.header['OffSetup'])
+                                                        self.header['OffSetup'])
                     ## Image Header dictionary
                     self.imageheader = cin.read_image_header(file, self.header[
                         'OffImageHeader'])
                     ## Time array
                     self.timebase = cin.read_time_base(file, self.header,
-                                                       self.settings)
+                                                        self.settings)
                     self.type_of_file = '.cin'
                 elif file.endswith('.png') or file.endswith('.tif'):
                     file, name = os.path.split(file)
                     self.path = file
-                elif file.endswith('.nc'):
+
+                elif file.endswith('.ncMASTU'):
+                    # initialising the video in mastu will already 
+                    # imply reading the frames, can't just read
+                    # header, settings and timebase
+                    self.connection = ncdf.client.get("/",file[:-5])
                     dummy, self.header, self.imageheader, self.settings,\
-                         = ncdf.read_file_anddata(file)
-                    # self.properties['width'] = dummy['width']
-                    # self.properties['height'] = dummy['height']
-                    # self.properties['fps'] = dummy['fps']
-                    # self.properties['exposure'] = dummy['exp']
-                    # self.properties['gain'] = dummy['gain']
+                            = ncdf.read_file_anddata(connection = self.connection)
+                    self.timebase = dummy['timebase']
+                    self.exp_dat = xr.Dataset()
+                    nx, ny, nt = dummy['frames'].shape
+                    px = np.arange(nx)
+                    py = np.arange(ny)
+                    logger.info('Reading frames from MASTU netcdf file, if you did not want to read the whole file, contact L.Velarde for a better solution')
+                    self.exp_dat['frames'] = \
+                        xr.DataArray(dummy['frames'][::-1, ...], dims=('px', 'py', 't'),
+                                        coords={'px': px,
+                                                'py': py,
+                                                't': self.timebase.squeeze()})
+                    self.exp_dat['frames'] = self.exp_dat['frames']
+                    self.type_of_file = '.ncMASTU'
+
+                elif file.endswith('.nc'):
+                    # this category was originally written for the MASTU netcdf
+                    # so same issue as before
+                    dummy, self.header, self.imageheader, self.settings,\
+                            = ncdf.read_file_anddata(filename = file)
                     self.timebase = dummy['timebase']
                     self.exp_dat = xr.Dataset()
                     nx, ny, nt = dummy['frames'].shape
@@ -176,15 +216,14 @@ class BVO:
 
                     self.exp_dat['frames'] = \
                         xr.DataArray(dummy['frames'], dims=('px', 'py', 't'),
-                                     coords={'px': px,
-                                             'py': py,
-                                             't': self.timebase.squeeze()})
-                    self.exp_dat['frames'] = self.exp_dat['frames']
+                                        coords={'px': px,
+                                                'py': py,
+                                                't': self.timebase.squeeze()})
                     self.type_of_file = '.nc'
-                
+
                 elif file.endswith('.h5') and machine == 'D3D':
                     self.header, self.imageheader, self.settings, self.timebase\
-                         = h5d3d.read_data(file)
+                            = h5d3d.read_data(file)
                     self.type_of_file = '.h5d3d'
                 
                 elif file.endswith('.mp4'):
@@ -201,24 +240,23 @@ class BVO:
 
                     self.exp_dat['frames'] = \
                         xr.DataArray(frames, dims=('t', 'px', 'py'),
-                                     coords={'t': self.timebase.squeeze(),
-                                             'px': px,
-                                             'py': py})
+                                        coords={'t': self.timebase.squeeze(),
+                                                'px': px,
+                                                'py': py})
                     self.exp_dat['frames'] = \
                         self.exp_dat['frames'].transpose('px', 'py', 't')
                     self.type_of_file = '.mp4'
                 elif file.endswith('.mat'):
-                    '''
-                    Matlab .mat files with video data are not a standard format, 
-                    Therefore use machine specific implementation to import data
-                    e.g. see TCV implementation
-                    '''
-                    mat_data = ssdat.read_MAT_video_data(file)
-                    self.timebase = mat_data['t'].data
-                    self.exp_dat['frames'] = mat_data['frames']
-                    self.type_of_file = '.mat'     
-                    self.settings = {'RealBPP': mat_data['RealBPP'].data}                     
-            
+                        '''
+                        Matlab .mat files with video data are not a standard format, 
+                        Therefore use machine specific implementation to import data
+                        e.g. see TCV implementation
+                        '''
+                        mat_data = ssdat.read_MAT_video_data(file)
+                        self.timebase = mat_data['t'].data
+                        self.exp_dat['frames'] = mat_data['frames']
+                        self.type_of_file = '.mat'     
+                        self.settings = {'RealBPP': mat_data['RealBPP'].data} 
                 else:
                     raise Exception('Not recognised file extension')
             else:
@@ -260,7 +298,7 @@ class BVO:
                             break
                 else:
                     raise Exception('Type of f variable not found. Please revise code.')
-                 # if we do not have .png or tiff, give an error
+                    # if we do not have .png or tiff, give an error
                 supported_type = ['.png', '.tif', '.b16', '.nc']
                 if self.type_of_file not in supported_type:
                     print(self.type_of_file)
@@ -275,10 +313,6 @@ class BVO:
                 elif self.type_of_file == '.b16':
                     self.header, self.imageheader, self.settings,\
                         self.timebase = pco.read_data(
-                            self.path, adfreq, t_trig)
-                elif self.type_of_file == '.nc':
-                    self.header, self.imageheader, self.settings,\
-                        self.timebase = ncdf.read_data(
                             self.path, adfreq, t_trig)
                 elif self.type_of_file == '.tif':
                     self.header, self.imageheader, self.settings,\
@@ -331,10 +365,10 @@ class BVO:
         >>> import Lib as ss
         >>> vid = ss.vid.INPAVideo(shot=41090)
         >>> vid.read_frame()  # To load all the video
+
+        :Note:
+        In MAST-U, initialising the video will have already read all frames
         """
-        # --- Clean video if needed
-        if 't' in self.exp_dat and internal:
-            self.exp_dat = xr.Dataset()
         # --- Select frames to load
         if (frames_number is not None) and (t1 is not None):
             raise errors.NotValidInput('You cannot give frames number and time')
@@ -355,39 +389,84 @@ class BVO:
             it2 = np.argmin(abs(self.timebase-t2))
             frames_number = np.arange(start=it1, stop=it2+1, step=1)
         logger.info('Reading frames: ')
+
+        # --- Clean video if needed
+        if 't' in self.exp_dat and internal and not self.type_of_file == '.ncMASTU':
+            self.exp_dat = xr.Dataset()
+        # --- Read the frames
         if self.type_of_file == '.cin':
             M = cin.read_frame(self, frames_number,
-                               limitation=limitation, limit=limit)
+                            limitation=limitation, limit=limit)
         elif self.type_of_file == '.png':
             M = png.read_frame(self, frames_number,
-                               limitation=limitation, limit=limit)
+                            limitation=limitation, limit=limit)
         elif self.type_of_file == '.tif':
             M = tif.read_frame(self, frames_number,
-                               limitation=limitation, limit=limit)
+                            limitation=limitation, limit=limit)
         elif self.type_of_file == '.b16':
             M = pco.read_frame(self, frames_number,
-                               limitation=limitation, limit=limit,
-                               verbose=verbose)
+                            limitation=limitation, limit=limit,
+                            verbose=verbose)
         elif self.type_of_file == '.mat':
             M = np.array(self.exp_dat['frames'][ :, :, frames_number])
-
         elif self.type_of_file == '.nc':
             M = ncdf.read_frame(self, frames_number,
-                               limitation=limitation, limit=limit,
-                               verbose=verbose)
+                            limitation=limitation, limit=limit,
+                            verbose=verbose)
         elif self.type_of_file == '.h5d3d':
             M = h5d3d.read_frame(self, frames_number,
-                                 limitation=limitation, limit=limit)
+                                limitation=limitation, limit=limit)
+        elif self.type_of_file == '.ncMASTU':
+            logger.debug(f'Frames number are: {frames_number}')
+            logger.debug(f"[read_frame] Called with:")
+            logger.debug(f"  t1 = {t1}, type = {type(t1)}, shape = {getattr(t1, 'shape', 'scalar')}")
+            logger.debug(f"  t2 = {t2}, type = {type(t2)}, shape = {getattr(t2, 'shape', 'scalar')}")
+            logger.debug(f"[read_frame] timebase min: {self.timebase.min()}, max: {self.timebase.max()}")
+            if frames_number is None:
+                # Use full dataset, do nothing
+                M = self.exp_dat['frames']
+                tbase = self.exp_dat['frames'].coords['t'].values
+                nbase = np.arange(M.shape[-1])  # Assuming original order
+            else:
+                M = self.exp_dat['frames'].values[:,:,frames_number]
+                if 't' in self.exp_dat and internal:
+                    self.exp_dat = xr.Dataset()
+
+                # Get the spatial axes
+                nx, ny, nt = M.shape
+                px = np.arange(nx)
+                py = np.arange(ny)
+                # Get the time axis
+                tframes = self.timebase[frames_number]
+                # Get the frames number
+                nframes = np.atleast_1d(frames_number)
+                # Quick solve for the case we have just one frame
+                tbase = np.atleast_1d(tframes).squeeze()
+                nbase = np.atleast_1d(nframes).squeeze()
+                if tbase.ndim > 1:
+                    tbase = tbase.squeeze()
+                    nbase = nbase.squeeze()
+                logger.debug(f"M.shape = {M.shape}")
+                logger.debug(f"type(tbase) = {type(tbase)}, tbase = {tbase}, tbase.shape = {getattr(tbase, 'shape', 'no shape')}")
+                logger.debug(f"type(px) = {type(px)}, px.shape = {px.shape}")
+                logger.debug(f"type(py) = {type(py)}, py.shape = {py.shape}")
+                # Store the sliced subset
+                self.exp_dat['frames'] = xr.DataArray(
+                    M, dims=('px', 'py', 't'),
+                    coords={'t': tbase, 'px': px, 'py': py}
+                )
+            # --- End here if we just want the frame
+            if not internal:
+                return M
+            self.exp_dat['nframes'] = xr.DataArray(nbase, 
+            dims=('t'), coords={'t': tbase})
+            # self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
+            dtype = self.exp_dat['frames'].dtype
         else:
             raise Exception('Not initialised / not implemented file type?')
         # --- End here if we just want the frame
         if not internal:
             return M
-
-        # --- Clean video if needed
-        if 't' in self.exp_dat and internal:
-            self.exp_dat = xr.Dataset()
- 
         # --- Save the stuff in the structure
         # Get the spatial axes
         nx, ny, nt = M.shape
@@ -444,13 +523,12 @@ class BVO:
                     px = py.copy()
                     py = px_tmp
 
-        # Storage it
+        # Store it
         self.exp_dat['frames'] = \
             xr.DataArray(M, dims=('px', 'py', 't'), coords={'t': tbase,
                                                             'px': px, 'py': py})
         self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
         self.exp_dat.attrs['dtype'] = dtype
-
 
         # --- Count saturated pixels
         max_scale_frames = 2 ** self.settings['RealBPP'] - 1
@@ -464,6 +542,7 @@ class BVO:
         self.exp_dat.attrs['threshold_for_counts'] = threshold_saturation
         logger.info('Maximum number of saturated pixels in a frame: %f',
                     n_pixels_saturated.max())
+
 
     def subtract_noise(self, t1: float = None, t2: float = None,
                        frame: np.ndarray = None, flag_copy: bool = False):
@@ -589,6 +668,9 @@ class BVO:
         """
         Filter the camera frames
 
+        Jose Rueda: jrrueda@us.es
+        Alex Reyner: areyvinn@alum.us.es
+
         :param  method: method to be used:
             -# jrr: neutron method of the extra package (not recommended,
                 extremelly slow)
@@ -637,23 +719,36 @@ class BVO:
                                                **jrr_options)
         elif method == 'median':
             logger.info('Median filter selected!')
+            logger.warning('If your video have not the time axis in the last position please write to jruedaru@uci.edu, as this will fail')
             # if footprint is present in the options given by user, delete size
             # from the default options, to avoid issues in the median filter
             if 'footprint' in options:
                 median_options['size'] = None
-            # Now update the options
             median_options.update(options)
-            for i in tqdm(range(nt)):
-                self.exp_dat['frames'][:, :, i] = \
-                    ndimage.median_filter(self.exp_dat['frames'].values[:, :, i],
-                                          **median_options)
+            self.exp_dat['frames'].values = \
+                ndimage.median_filter(self.exp_dat['frames'].values, 
+                                      size=(median_options['size'],
+                                            median_options['size'], 1))
+            # previous slower method
+            # for i in tqdm(range(nt)):
+            #     self.exp_dat['frames'][:, :, i] = \
+            #         ndimage.median_filter(self.exp_dat['frames'].values[:, :, i],
+            #                               **median_options)
+
         elif method == 'gaussian':
             logger.info('Gaussian filter selected!')
             gaussian_options.update(options)
-            for i in tqdm(range(nt)):
-                self.exp_dat['frames'][:, :, i] = \
-                    ndimage.gaussian_filter(self.exp_dat['frames'].values[:, :, i],
-                                            **gaussian_options)
+            logger.warning('If your video have not the time axis in the last position please write to jruedaru@uci.edu, as this will fail')
+            self.exp_dat['frames'].values = \
+                ndimage.gaussian_filter(self.exp_dat['frames'].values, 
+                                        sigma=(gaussian_options['sigma'], 
+                                               gaussian_options['sigma'], 1))
+            # previous slower method
+            # for i in tqdm(range(nt)):
+            #     self.exp_dat['frames'][:, :, i] = \
+            #         ndimage.gaussian_filter(self.exp_dat['frames'].values[:, :, i],
+            #                                 **gaussian_options)
+            
         logger.info('\\n-... -.-- . / -... -.-- .')
         return
 
@@ -832,7 +927,7 @@ class BVO:
         :param frame_number: Number of the frame to plot (option 1).
                If array: will average over the given frame frange
         :param ax: Axes where to plot, is none, just a new axes will be created
-        :param ccmap: colormap to be used, if none, Gamma_II from IDL
+        :param ccmap: colormap to be used, if none, default_cmap will be used
         :param t: time point to select the frame (option 2)
                   If array: will average over the given frame frange
         :param verbose: If true, info of the theta and phi used will be printed
@@ -936,7 +1031,7 @@ class BVO:
             extra_options = {'vmin': vmin, 'vmax': vmax}
         # --- Check the colormap
         if ccmap is None:
-            cmap = ssplt.Gamma_II()
+            cmap = ssplt.default_cmap()
         else:
             cmap = ccmap
 
@@ -1033,13 +1128,13 @@ class BVO:
             ssGUI.ApplicationShowVid(root, self.avg_dat, self.remap_dat,
                                      self.geometryID,
                                      self.CameraCalibration,
-                                     shot=self.shot, mask=mask)
+                                     shot=self.shot)
         else:
             ssGUI.ApplicationShowVid(root, self.exp_dat, self.remap_dat,
                                      GeomID=self.geometryID,
                                      calibration=self.CameraCalibration,
                                      scintillator=self.scintillator,
-                                     shot=self.shot, mask=mask)
+                                     shot=self.shot)
         root.mainloop()
         root.destroy()
         gc.collect()
@@ -1193,7 +1288,7 @@ class BVO:
                 raise Exception('Video frame has no meaning when loading averages')
         return t
 
-    def getTimeTrace(self, t: float = None, mask=None, ROIname: str =None, vmax: int=None):
+    def getTimeTrace(self, t: float = None, mask=None, ROIname: str =None, vmax: int=None, vmin: int=None, cmap=None):
         """
         Calculate the timeTrace of the video
 
@@ -1208,7 +1303,7 @@ class BVO:
         """
         if mask is None:
             # - Plot the frame
-            ax_ref = self.plot_frame(t=t, vmax=vmax)
+            ax_ref = self.plot_frame(t=t, vmin=vmin, vmax=vmax, ccmap=cmap)
             fig_ref = plt.gcf()
             # - Define roi
             roi = sstt.roipoly(fig_ref, ax_ref)
@@ -1323,3 +1418,38 @@ class BVO:
         logger.debug(f'Saving to file {fn}')
         mp4.write_file(fn=fn, video=data, bit_size=bits_size,
                        encoding=encoding, fps=fps)
+    
+    # --------------------------------------------------------------------------
+    # %% Cleaning
+    # --------------------------------------------------------------------------
+    def delFile(self, confirmation=True):
+        """
+        Delete the file associated to the video object
+
+        DANGER!!!! This is intended to delete the file associated with the 
+        video, this was created for machines like D3D or TCV, where the video 
+        is intalled in a server and downloaded each time to scratch. Use this 
+        to clean the tmp files creates. Do not use in places like AUG, were the 
+        file is stored in the server where the code is running, as this will 
+        delete the only copy from the server and destroy the experiment data!!!
+        
+        Jose Rueda: jrueda@uci.edu
+        
+        :param confirmation: if True, the user will be asked for confirmation
+            before deleting the file
+        """
+        if self.file is not None:
+            if not confirmation:
+                print('Deleting file: ', self.file)
+                os.remove(self.file)
+            else:
+                print('Deleting file: ', self.file)
+                ans = input('Are you sure you want to delete the file? [y/n]')
+                if ans == 'y':
+                    os.remove(self.file)
+                else:
+                    print('File not deleted')
+            # self.file = None
+        else:
+            raise Exception('No file to delete')
+        return

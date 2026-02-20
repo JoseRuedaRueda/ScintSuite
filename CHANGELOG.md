@@ -1,3 +1,52 @@
+# 1.4.5 Minor improvements
+- Improved video filter speed
+- Added allIn options to FILD video
+- Added relativistic energy calculations for gyroradius
+- Added new Colormaps
+
+# 1.4.4 Updated installation script
+- first_run.py deprecated, first_run_pip.py is now the only official installation script and was renamed to first_run.py
+- Added the missing settings template
+- corrected minor version labelling fault in pip
+
+# 1.4.3 Udated documentation
+- Updated first bunch or routiens to NumPy doc stile for our public release of documentation
+- Minor changes to readme 
+- Minor stability and functionality additions
+
+# 1.4.2 ALCON support added
+- Added support to read ALCON output files
+
+# 1.4.1 MAST-U read from UDA
+- MU FILD XIMEA videos can now be read from UDA (the cloud) so no need to download every video
+
+# 1.4.0 Major release
+## General
+- Easy initialization of the ScintSuite outside the home directory thanks to env variables
+- Added detrend signal
+## INPA and FILD Remap
+- allIn is no longer a bool, now 0,1,2 options are valid, so you can ask the user, calculate all maps or not calculate any
+- default path to store data separated for each dioagnostic
+- Advanced remap methods developed by TCV team are back! (J. Rueda Rueda eliminated them by mistake when merging TCVdev branch). These new methods are the recommended default!
+## MULTIPOW
+- Added module to read multipow files
+## MHD
+- Addep option to initialize the MHD object from OMFIT data
+## Plotting
+- Added radar plots
+- Changed the suite default style properties
+## GUIS
+- Added a button for fast channels
+## Fast channels
+- rewritten from scratch to make use of datatrees.
+## OWCF
+- Created module to read topological maps from OWCF
+## Minor improvements
+- Plate directory now controlled by a line in the custom paths, no longer hardcored
+- New calibration object for the fast channel, giving the ROI and mask for remaps and camera timetraces
+- Added a calibration kind for the situation where the tild is in the object space and not the image space
+
+
 # 1.3.13 
 ## Making the simulations easier
 - Added a check feature in the execution. Erased the problems with duplicity of mesh values
@@ -7,7 +56,7 @@
 
 ## MSE-constrained eq in MAST-U
 - By default it will now try to read the MSE-constrained equilibrium. If not possible, will read the standard one.
-- Fixed bug in MU beta angle when reading from file
+- Fixed bug in MU beta angle when reading from file (bug introduced in 1.3.12)
 
 # 1.3.12 Update of MASTU nc files - position and orientation read from file + new timebase
 - Updated default position and orientation for MU FILD
@@ -28,6 +77,7 @@
 - Plot mask option added to the GUI_frames
 - Included option to load both remap and video
 - Fixed the rotation of the frames when plotting for MU01
+
 
 # 1.3.9 D3D implementation
 ## General

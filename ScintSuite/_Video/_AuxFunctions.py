@@ -22,7 +22,11 @@ def rgb2gray(rgb):
     Note if the matrix include a transparency factor, 4 element of the RGB
     dimension, it will be ignored
     """
-    return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
+    # If the frame is 2D do nothing
+    if len(rgb.shape) == 2:
+        return rgb
+    else:
+        return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
 
 
 def check_timebase(timebase):

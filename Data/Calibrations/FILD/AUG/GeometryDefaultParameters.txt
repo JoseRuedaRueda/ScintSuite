@@ -102,7 +102,7 @@
 /
 
 ! Geom name: AUG06
-! Description: Double collimator FILD1
+! Description: Double collimator FILD1 (co- current)
 
 &AUG06
   R = 2.180
@@ -114,10 +114,69 @@
   phi_parking = 169.75
 
   alpha = 0.0
-  beta = 171.3
+  beta = -12
   gamma = 0.0
 
   max_insertion = 2000.0
   min_insertion = 0.0
 /
 
+! Geom name: AUG07
+! Description: Double collimator FILD1 (counter- current)
+
+&AUG07
+  R = 2.180
+  z = 0.328
+  phi = 169.75
+
+  R_parking = 4.015
+  z_parking = 0.328
+  phi_parking = 169.75
+
+  alpha = 0.0
+  beta = -12
+  gamma = 0.0
+
+  max_insertion = 2000.0
+  min_insertion = 0.0
+/
+
+! Geom name: AUG08
+! Description: Dummy double collimator
+
+&AUG08
+  R = 2.180
+  z = 0.328
+  phi = 169.75
+
+  R_parking = 4.015
+  z_parking = 0.328
+  phi_parking = 169.75
+
+  alpha = 0.0
+  beta = -12
+  gamma = 0.0
+
+  max_insertion = 2000.0
+  min_insertion = 0.0
+/
+
+! Geom name: AUG09
+! Description: Dummy double collimator
+
+&AUG09
+  R = 2.180
+  z = 0.328
+  phi = 169.75
+
+  R_parking = 4.015
+  z_parking = 0.328
+  phi_parking = 169.75
+
+  alpha = 0.0
+  beta = -12
+  gamma = 0.0
+
+  max_insertion = 2000.0
+  min_insertion = 0.0
+/
