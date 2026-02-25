@@ -1,3 +1,6 @@
+# 1.4.6 Forward modelling class
+- New faster routines FILD forward modelling are now in a class structure
+
 # 1.4.5 Minor improvements
 - Improved video filter speed
 - Added allIn options to FILD video
