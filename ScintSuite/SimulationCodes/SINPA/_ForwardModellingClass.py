@@ -1,17 +1,10 @@
 """
-Alex Reyner: alereyvinn@alum.us.es
+Alex Reyner: areyner@us.es
 
-Workflow:
-    0. Obtain the distribution and define the inputs: smap, scint, WF...
-    1. Run synthsig_xy to map the signal in the scintillator space
-    2. Insert noises, optic system and the camera with noise_optics_camera
-
-    - You can plot at any step given the frame and even plot each noise
-    - You can also directly compute the WF and remapped synthetic signals
-
-Functions. What can be done:
+Functions:
     - read_distribution: Read the ion distribution that will be used as input
     - obtain_WF: Obtain the weight function of the smap
+FMC class:
     - synthsig_pr: Compute remapped synthetic signal in pitch-gyroradius 
     - pr_space_to_pe_space: transform the remapped signal phase space
     - synthsig_xy: (wrap) compute synthetic signal in real scintillator space
