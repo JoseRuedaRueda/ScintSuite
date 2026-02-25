@@ -885,14 +885,16 @@ class FILDvideoGUI:
                                              'x':self.vid.remap_dat.frames.x})
             mask_da = mask_da.transpose('y','x')
             masked_remaps = self.remaps * mask_da
-            time_trace = masked_remaps.mean(dim=['y','x'])
+            tt = masked_remaps.sum(dim=['y','x'])
+            time_trace = tt/tt.mean('t')
             time_trace.plot(ax=self.ax4, ls='-')
         else:
             mask_da = xr.DataArray(self.roi_mask, dims=['px','py'],
                                    coords = {'py':self.vid.exp_dat.frames.py,
                                              'px':self.vid.exp_dat.frames.px})
             masked_frames = self.frames * mask_da
-            time_trace = masked_frames.mean(dim=['px','py'])
+            tt = masked_frames.sum(dim=['px','py'])
+            time_trace = tt/tt.mean('t')
             time_trace.plot(ax=self.ax3, ls='-')
 
         for ax in (self.ax3, self.ax4):
@@ -906,8 +908,8 @@ class FILDvideoGUI:
                                      np.max(time_trace.max())*1.2))
             ax.xaxis.set_tick_params(labelbottom=True)
             
-        self.ax3.set_ylabel("Mean of ROI (video)")
-        self.ax4.set_ylabel("Mean of ROI (remap)")
+        self.ax3.set_ylabel("ROI (video) [a.u.]")
+        self.ax4.set_ylabel("ROI (remap) [a.u.]")
 
         self.fig3.tight_layout()
         self.fig3.align_ylabels()

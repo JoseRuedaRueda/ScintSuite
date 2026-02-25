@@ -1120,10 +1120,10 @@ def plot_the_frame(frame, plot_smap = True, plot_scint = True, plot_FoV = False,
     # Initialize the plot
     fig, ax = plt.subplots(figsize=(8,5))
     
-    # frame_to_plot.plot.imshow(ax=ax, cmap=cmap, norm=LogNorm(vmin=1e14,vmax=1e22),
-    #                           **kwargs)
-    im = frame_to_plot.plot.imshow(ax=ax, cmap=cmap, vmin=0, vmax=max_count,
+    frame_to_plot.plot.imshow(ax=ax, cmap=cmap, norm=LogNorm(vmin=1e14,vmax=1e22),
                               **kwargs)
+    # im = frame_to_plot.plot.imshow(ax=ax, cmap=cmap, vmin=0, vmax=max_count,
+    #                           **kwargs)
 
     if plot_smap == True:
         smapplt.plot_pix(ax, labels=False, marker_params={'marker':None},
