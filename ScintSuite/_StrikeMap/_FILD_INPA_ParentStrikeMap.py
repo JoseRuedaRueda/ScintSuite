@@ -6,6 +6,7 @@ Jose Rueda: jrrueda@us.es
 Introduced in version 0.10.0
 """
 import os
+import unyt
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
@@ -22,7 +23,7 @@ from ScintSuite._Mapping._Common import _fit_to_model_
 from ScintSuite.SimulationCodes.Common.strikes import Strikes
 from ScintSuite._CustomFitModels import parseModelNames
 from ScintSuite._StrikeMap._ParentStrikeMap import GeneralStrikeMap
-from ScintSuite.SimulationCodes.FILDSIM.execution import get_energy
+from ScintSuite.SimulationCodes.Common import get_energy
 from ScintSuite.SimulationCodes.SINPA._execution import guess_strike_map_name
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -131,7 +132,13 @@ class FILDINPA_Smap(GeneralStrikeMap):
         :param  A: mass of the ion, in amu
         :param  Z: charge, in e units
         """
-        dummy = get_energy(self('gyroradius'), B=B, A=A, Z=Z) / 1000.0
+        if not isinstance(B, unyt.unyt_array):
+            B = B * unyt.T
+        if not isinstance(A, unyt.unyt_array):
+            A = A * unyt.amu
+        if not isinstance(Z, unyt.unyt_array):
+            Z = Z * unyt.electron_charge
+        dummy = get_energy(self('gyroradius'), B=B, A=A, Z=Z).to('keV').value
         self._data['e0'] = BasicVariable(name='e0', units='keV', data=dummy)
         self._optionsForEnergy = {
             'B': B,
@@ -676,19 +683,13 @@ class FILDINPA_Smap(GeneralStrikeMap):
             logger.warning('27: Interpolators not calcualted. Calculating them')
             self._calculate_mapping_interpolators()
         # --- Proceed to remap
-        # Get the shape of the map
-        nx, ny = strikes.shape
-        # Get the index of the colums containing the scintillation position
-        ix1 = strikes.header['info']['x1']['i']
-        ix2 = strikes.header['info']['x2']['i']
         # Try to get the pixel position
-        try:
-            ix1pix = strikes.header['info']['xcam']['i']
-            ix2pix = strikes.header['info']['ycam']['i']
+        if 'xcam' in strikes.df.keys() and 'ycam' in strikes.df.keys():
             camera = True
-        except KeyError:
+        else:
             camera = False
         # Loop over the deseired variables
+        results = {}
         for k in self._map_interpolators.keys():
             # See if we need to overwrite
             name = 'remap_' + k
@@ -702,43 +703,15 @@ class FILDINPA_Smap(GeneralStrikeMap):
                     logger.info('%s found in the object, skipping' % k)
                     continue
             # Loop over the strike points pairs
-            for ix in range(nx):
-                for iy in range(ny):
-                    if strikes.header['counters'][ix, iy] > 0:
-                        n_strikes = \
-                            strikes.header['counters'][ix, iy]
-                        remap_data = np.zeros((n_strikes, 1))
-                        if not k.endswith('pix'):
-                            remap_data[:, 0] = \
-                                self._map_interpolators[k](
-                                    strikes.data[ix, iy][:, [ix1, ix2]])
-
-                        elif k.endswith('pix') and camera:
-                            remap_data[:, 0] = \
-                                self._map_interpolators[k](
-                                    strikes.data[ix, iy][:, [ix1pix, ix2pix]])
-                        # self.strike_points.data[ip, ir][:, iiy])
-                        # append the remapped data to the object
-                        if was_there:
-                            strikes.data[ix, iy][:, ivar] = remap_data.squeeze()
-                        else:
-                            strikes.data[ix, iy] = \
-                                np.append(strikes.data[ix, iy],
-                                          remap_data, axis=1)
-            # Update the headers, if needed
-            if not was_there:
-                Old_number_colums = len(strikes.header['info'])
-                # Take the original variable as base for the dictionary
-                extra_column = dict.fromkeys([name, ])
-                extra_column[name] = {
-                    'i': Old_number_colums,
-                    'units': '@Todo',
-                    'longName': name,
-                    'shortName': name
-                }
-                extra_column[name]['i'] = Old_number_colums
-                # Update the header
-                strikes.header['info'].update(extra_column)
+            if k.endswith('pix') and not camera:
+                strikes.df[name] = self._map_interpolators[k]((strikes(('xcam','ycam')).value))
+            else:
+                strikes.df[name] = self._map_interpolators[k]((strikes(('x1','x2')).value))
+            
+            # Update the headers and info
+            strikes.df.attrs['units'][name] = '@Todo'
+            strikes.df.attrs['longName'][name] = name
+            strikes.df.attrs['shortName'][name] = name
 
     def  calculate_phaseSpace_to_pixelMatrix(self, gridPhaseSpace, gridPixel,
                                              limitation: float = 10.0,

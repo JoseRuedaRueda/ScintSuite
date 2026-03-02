@@ -45,13 +45,14 @@ UserPlotStyles:
     font: 'Arial'                       # Default font for axis
     transparent_background: true        # Set transparent background to export
     tick_direction: 'in'                # Set ticks direction inwards
-    default_line_colors: ['b', 'r', 'k', 'm', 'c', 'y']
+    default_line_colors: ['k', 'm', 'b', 'r', 'c', 'y']
   article:
     font_family: 'serif'                # Font family
     font_name: 'Latin Modern Roman'       # Font
     axis_font_size: 12                  # Size for axis labels
     legend_font_size: 11                # Size for legends
     title_font_size: 12                 # Size for titles
+    tick_font_size: 12
 
     Major_tick_length: 8                     # Major tick length (in points)
     Major_tick_width: 1                      # Major tick width (in points)
@@ -67,6 +68,7 @@ UserPlotStyles:
     axis_font_size: 16                  # Size for axis labels
     legend_font_size: 16                # Size for legends
     title_font_size: 16                 # Size for titles
+    tick_font_size: 12
 
     Major_tick_length: 8                # Major tick length (in points)
     Major_tick_width: 2                 # Major tick width (in points)
@@ -82,6 +84,7 @@ UserPlotStyles:
     axis_font_size: 10                  # Size for axis labels
     legend_font_size: 8                 # Size for legends
     title_font_size: 12                 # Size for titles
+    tick_font_size: 12
 
     Major_tick_length: 4                     # Major tick length (in points)
     Major_tick_width: 1                      # Major tick width (in points)

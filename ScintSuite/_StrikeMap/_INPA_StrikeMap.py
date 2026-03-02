@@ -16,7 +16,7 @@ from ScintSuite._Machine import machine
 from scipy.signal import convolve
 from ScintSuite._basicVariable import BasicVariable
 from ScintSuite._SideFunctions import createGrid, gkern, createGrid1D
-from ScintSuite.SimulationCodes.FILDSIM import get_energy
+from ScintSuite.SimulationCodes.Common import get_energy
 from ScintSuite.SimulationCodes.Common.strikes import Strikes
 from ScintSuite.SimulationCodes.SINPA._INPA_strike_points import INPAStrikes
 from ScintSuite._StrikeMap._FILD_INPA_ParentStrikeMap import FILDINPA_Smap
@@ -380,7 +380,8 @@ class Ismap(FILDINPA_Smap):
                     keyToEval = 'ys'
                 # Now move to energy
                 xToEval = self.instrument_function[keyToEval]
-                energyToEval = get_energy(xToEval.values, B, A, Z)
+                # @TODO: Check this units after chaingng to unyt, I think the fit expected ev? (if not it was wrong before)
+                energyToEval = get_energy(xToEval.values, B, A, Z).to('keV').value
                 scaleFactor = fit.eval(x=energyToEval)
 
             scaleFactor = xr.DataArray(scaleFactor, dims=keyToEval,

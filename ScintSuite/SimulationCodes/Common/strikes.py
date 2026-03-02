@@ -602,8 +602,8 @@ class Strikes:
         self.histograms[histName]['markers'].attrs['Description'] = \
             'Number of markers histogram'
         self.histograms[histName]['markers'].attrs['units'] = \
-            '#/(' + self.header['info'][varx]['units'] + '$\\cdot$' +\
-            self.header['info'][vary]['units'] + ')'
+            '#/(' + self.df.attrs['units'][varx] + '$\\cdot$' +\
+            self.df.attrs['units'][vary] + ')'
         self.histograms[histName]['markers'].attrs['long_name'] = 'Markers'
         if has_w:
             dataS /= deltax * deltay
@@ -614,9 +614,9 @@ class Strikes:
             self.histograms[histName]['w'].attrs['Description'] = \
                 'Weight at the scintillator'
             self.histograms[histName]['w'].attrs['units'] = \
-                self.header['info']['weight']['units'] +\
-                '/(' + self.header['info'][varx]['units'] + '$\\cdot$' +\
-                self.header['info'][vary]['units'] + ')'
+                self.df.attrs['units']['weight'] +\
+                '/(' + self.df.attrs['units'][varx] + '$\\cdot$' +\
+                self.df.attrs['units'][vary] + ')'
             self.histograms[histName]['w'].attrs['long_name'] = '$W_{Scint}$'
         if has_w0:
             data0 /= deltax * deltay
@@ -627,9 +627,9 @@ class Strikes:
             self.histograms[histName]['w0'].attrs['Description'] = \
                 'Weight at the pinhole'
             self.histograms[histName]['w0'].attrs['units'] = \
-                self.header['info']['weight0']['units'] +\
-                '/(' + self.header['info'][varx]['units'] + '$\\cdot$' +\
-                self.header['info'][vary]['units'] + ')'
+                self.df.attrs['units']['weight0'] +\
+                '/(' + self.df.attrs['units'][varx] + '$\\cdot$' +\
+                self.df.attrs['units'][vary] + ')'
             self.histograms[histName]['w0'].attrs['long_name'] = '$W_{Pin}$'
         if has_wcam:
             dataC /= deltax * deltay
@@ -642,16 +642,18 @@ class Strikes:
             self.histograms[histName]['wcam'].attrs['units'] = '[a.u.]'
             self.histograms[histName]['wcam'].attrs['long_name'] = '$W_{cam}$'
         # Set the variables attributes (use header when available for units/labels)
-        if varx in self.header.get('info', {}):
+        if varx in self.df.columns:
             self.histograms[histName]['x'].attrs['long_name'] = \
-                self.header['info'][varx]['shortName']
+                self.df.attrs['shortName'][varx]
             self.histograms[histName]['x'].attrs['units'] = \
-                self.header['info'][varx]['units']
-        if vary in self.header.get('info', {}):
+                self.df.attrs['units'][varx]
+        if vary in self.df.columns:
             self.histograms[histName]['y'].attrs['long_name'] = \
-                self.header['info'][vary]['shortName']
+                self.df.attrs['shortName'][vary]
             self.histograms[histName]['y'].attrs['units'] = \
-                self.header['info'][vary]['units']
+                self.df.attrs['units'][vary]
+            self.histograms[histName]['y'].attrs['long_name'] = \
+                self.df.attrs['shortName'][vary]
         self.histograms[histName]['kind'].attrs['long_name'] = 'Marker kind'
         # Set the attributes of the data set
         self.histograms[histName].attrs['xedges'] = xedges
@@ -1255,7 +1257,7 @@ class Strikes:
         XI_index: Optional[Union[int, List[int], np.ndarray]] = None,
         gyroradius: Optional[Union[float, List[float], np.ndarray]] = None,
         XI: Optional[Union[float, List[float], np.ndarray]] = None,
-    ) -> np.ndarray:
+    ) -> unyt.unyt_array:
         """
         Return an array with the values of 'var' for all strike points using
         the data stored in self.df (pandas.DataFrame).
@@ -1264,7 +1266,9 @@ class Strikes:
         - Use gyroradius_index and XI_index to select by header indices.
         - Use gyroradius and XI to select by actual parameter values.
 
-        :param  var: variable name (column in self.df) to return
+        :param  var: variable name (column in self.df) to return.
+            If a list is given, a pandas DataFrame with those columns will be returned instead. If a list is given, the returned units will 
+            always be dimensionless since different columns may have different units.
         :param  gyroradius_index: index or indices of gyroradii (see
             self.header['gyroradius']). None = all.
         :param  XI_index: index or indices of XI (see self.header['XI']).
@@ -1277,9 +1281,15 @@ class Strikes:
         """
         if self.df is None or not isinstance(self.df, pd.DataFrame):
             raise ValueError('self.df is not available or not a DataFrame')
-        if var not in self.df.columns:
-            print('Available columns: ', list(self.df.columns))
-            raise errors.NotFoundVariable(f'Variable "{var}" not in DataFrame')
+        if isinstance(var, list) or isinstance(var, tuple):
+            for v in var:
+                if v not in self.df.columns:
+                    print('Available columns: ', list(self.df.columns))
+                    raise errors.NotFoundVariable(f'Variable "{v}" not in DataFrame')
+        else:
+            if var not in self.df.columns:
+                print('Available columns: ', list(self.df.columns))
+                raise errors.NotFoundVariable(f'Variable "{var}" not in DataFrame')
         # Resolve selected gyroradius values
         if gyroradius is not None:
             sel_gyr = np.atleast_1d(gyroradius)
@@ -1299,10 +1309,14 @@ class Strikes:
         mask = (
             self.df['gyroradius'].isin(sel_gyr) & self.df['XI'].isin(sel_xi)
         )
-        return self.df.loc[mask, var].values
+        # Try to get the units
+        try:
+            units = unyt.Unit(self.df.attrs.get('units', {}).get(var, ''))
+        except unyt.exceptions.UnitParseError:
+            units = unyt.Unit('')
+        return self.df.loc[mask, var].values * units
 
-    def to_dataframe(self, gyroradius_index=None, XI_index=None,
-                     include_units: bool = True) -> pd.DataFrame:
+    def to_dataframe(self, gyroradius_index=None, XI_index=None,) -> pd.DataFrame:
         """
         Return all strike points as a single pandas DataFrame.
 
@@ -1339,7 +1353,7 @@ class Strikes:
                 key_x = tuple(int(x) for x in index_XI)
             except Exception:
                 key_x = ('all',)
-            cache_key = (key_g, key_x, bool(include_units))
+            cache_key = (key_g, key_x, bool(True))  # last element for future use (e.g. include_metadata)
             # Return cached copy if available
             cached = self.df.get(cache_key)
             if cached is not None:
@@ -1353,11 +1367,15 @@ class Strikes:
         max_i = max([v['i'] for v in info.values()]) if len(info) > 0 else -1
         col_names = [f'col_{i}' for i in range(max_i + 1)]
         units_map: Dict[str, str] = {}
+        long_names_map: Dict[str, str] = {}
+        short_names_map: Dict[str, str] = {}
         for name, meta in info.items():
             idx = meta['i']
             if idx <= max_i:
                 col_names[idx] = name
             units_map[name] = meta.get('units', '')
+            long_names_map[name] = meta.get('longName', '')
+            short_names_map[name] = meta.get('shortName', '')
 
         frames: List['pd.DataFrame'] = []
         for ig in index_gyr:
@@ -1381,8 +1399,9 @@ class Strikes:
         if len(frames) == 0:
             # empty dataframe with known columns
             df_empty = pd.DataFrame(columns=col_names + ['gyroradius', 'XI'])
-            if include_units:
-                df_empty.attrs['units'] = units_map
+            df_empty.attrs['units'] = units_map
+            df_empty.attrs['longName'] = long_names_map
+            df_empty.attrs['shortName'] = short_names_map
             # cache empty result as well
             try:
                 self.df[cache_key] = df_empty.copy()
@@ -1391,8 +1410,9 @@ class Strikes:
             return df_empty
 
         result = pd.concat(frames, ignore_index=True)
-        if include_units:
-            result.attrs['units'] = units_map
+        result.attrs['units'] = units_map
+        result.attrs['longName'] = long_names_map
+        result.attrs['shortName'] = short_names_map
         # Cache assembled dataframe for this selection
         try:
             self.df[cache_key] = result.copy()
@@ -1794,59 +1814,40 @@ class Strikes:
 
         warning: Only fully tested for SINPA strike points
         """
-        if self.header['FILDSIMmode']:
-            logger.warning('20: Only fully tested for SINPA strike points')
-        # See if there is already camera positions in the data
-        if 'xcam' in self.header['info'].keys():
-            text = 'The camera values are there, we will overwrite them'
-            logger.warning('11: %s' % text)
-            overwrite = True
-            iixcam = self.header['info']['xcam']['i']
-            iiycam = self.header['info']['ycam']['i']
-        else:
-            overwrite = False
-        iix = self.header['info']['x1']['i']
-        iiy = self.header['info']['x2']['i']
-        for ig in range(self.header['ngyr']):
-            for ia in range(self.header['nXI']):
-                if self.header['counters'][ia, ig] > 0:
-                    xp, yp = transform_to_pixel(self.data[ia, ig][:, iix],
-                                                self.data[ia, ig][:, iiy],
-                                                calibration)
-                    if overwrite:
-                        self.data[ia, ig][:, iixcam] = xp.copy()
-                        self.data[ia, ig][:, iiycam] = yp.copy()
-                    else:
-                        n_strikes = self.header['counters'][ia, ig]
-                        cam_data = np.zeros((n_strikes, 2))
-                        cam_data[:, 0] = xp.copy()
-                        cam_data[:, 1] = yp.copy()
-                        self.data[ia, ig] = \
-                            np.append(self.data[ia, ig], cam_data, axis=1)
-        if not overwrite:
-            Old_number_colums = len(self.header['info'])
-            extra_column = {
-                'xcam': {
-                    'i': Old_number_colums,  # Column index in the file
-                    'units': ' [px]',  # Units
-                    'longName': 'X camera position',
-                    'shortName': '$x_{cam}$',
-                },
-                'ycam': {
-                    'i': Old_number_colums + 1,  # Column index in the file
-                    'units': ' [px]',  # Units
-                    'longName': 'Y camera position',
-                    'shortName': '$y_{cam}$',
-                },
-            }
-            self.header['info'].update(extra_column)
+        if self.df is None or not isinstance(self.df, pd.DataFrame):
+            raise ValueError('self.df is not available or not a DataFrame')
+        xp, yp = transform_to_pixel(self.df['x1'], self.df['x2'], calibration)
+        self.df['xcam'] = xp
+        self.df['ycam'] = yp
+        # Set the attributes of the new columns in the header, if they are not there already
+        self.header['info']['xcam'] = {
+            'i': len(self.header['info']),  # Column index in the file
+            'units': ' [px]',  # Units
+            'longName': 'X camera position',
+            'shortName': '$x_{cam}$',
+        }
+        self.header['info']['ycam'] = {
+            'i': len(self.header['info']),  # Column index in the file
+            'units': ' [px]',  # Units
+            'longName': 'Y camera position',
+            'shortName': '$y_{cam}$',
+        }
+        # Set the same attributes to the panda dataframe
+        self.df.attrs['units'].update({
+            'xcam': 'px',
+            'ycam': 'px',
+        })
+        self.df.attrs['longName'].update({
+            'xcam': 'X camera position',
+            'ycam': 'Y camera position',
+        })
+        self.df.attrs['shortName'].update({
+            'xcam': '$x_{cam}$',
+            'ycam': '$y_{cam}$',
+        })
         # Now save the optical calibration for latter
         self.CameraCalibration = calibration
-        # Invalidate assembled DataFrame cache
-        try:
-            self._df_cache.clear()
-        except Exception:
-            self._df_cache = {}
+
 
     def applyGeometricTramission(self, F_object, cal):
         """
@@ -2167,12 +2168,6 @@ class Strikes:
     def shape(self):
         return self._shape
 
-    def __call__(self, var: str) -> unyt.array.unyt_array:
+    def __call__(self, var: str) -> unyt.unyt_array:
         """Call for the object"""
-        try:
-            out = self.get_from_df(var)
-        except errors.NotFoundVariable:
-            out = self.get(var)
-        except KeyError:
-            out = None
-        return out
+        return self.get_from_df(var)

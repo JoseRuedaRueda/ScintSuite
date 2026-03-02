@@ -7,6 +7,12 @@
 ## Strike object
 - Changed data handling to pandas dataframe
 
+## Plotting defaults
+- The default colors in the template for line plot were changed to black, magenta and blue. This help colorblinded people
+
+## FILDSIM code
+- Gyroscalar and gyroradius routines moved to the common package (they were in the execution one), as they are comon to synthetic INPA and FILD
+- get_gyroradius etc use now unyt for inputs and outputs
 
 # 1.4.5 Minor improvements
 - Improved video filter speed
