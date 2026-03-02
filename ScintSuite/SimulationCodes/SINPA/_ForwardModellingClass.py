@@ -448,13 +448,18 @@ class FMC:
         r_idx = np.clip(r_idx, 0, ny - 1)
         # Build the weight matrix
         w_matrix = np.zeros((nx, ny))
-        np.add.at(w_matrix, (p_idx, r_idx), (weight*eff)) # fill the weights
+        np.add.at(w_matrix, (p_idx, r_idx), (weight)) # fill the weights
         w_xrarray = xr.DataArray(w_matrix,
+                        coords={'y': y_val, 'x': x_val},
+                        dims=('x', 'y'))
+        weff_matrix = np.zeros((nx, ny))
+        np.add.at(weff_matrix, (p_idx, r_idx), (weight*eff)) # fill the weights
+        weff_xrarray = xr.DataArray(weff_matrix,
                         coords={'y': y_val, 'x': x_val},
                         dims=('x', 'y'))
         # Compute the matrices in the pinhole and scintillator vel.-spaces
         ssPH = w_xrarray /p_step /r_step
-        ssSC = ((self.WF*w_xrarray) * (2*np.pi/self.gyrophases)).sum({'x','y'})
+        ssSC = ((self.WF*weff_xrarray) * (2*np.pi/self.gyrophases)).sum({'x','y'})
         # Put data into Dataset and assign atributes
         synthetic_signal = xr.Dataset()
         synthetic_signal['ph'] = ssPH

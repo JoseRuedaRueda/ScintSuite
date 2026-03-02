@@ -1,7 +1,7 @@
 # 1.5.0 Forward modelling to class
 - The forward modelling module has bee updated into a class structure. Translation of 1.3.11
 - To be done:
-    - Appropiate adaptation of multiple pinhole/smaps synthetic signals
+    - Appropiate adaptation of multiple pinhole/smaps synthetic signals. Capability to introduce multiple strikemaps and inputs to generate double colimator synthetic frames.
     - General implementation of distortion, relative transmission and other parameters from ZEMAX (or other codes). Right now a function for distortion and two functions for relative transmission are included. Since there is no standard for the inputs, these are custom made.
     - Add a function to remap the synthetic signals generated
 ## Functions:
