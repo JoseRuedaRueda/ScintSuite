@@ -2,7 +2,7 @@
 - The forward modelling module has bee updated into a class structure. Translation of 1.3.11
 - To be done:
     - Appropiate adaptation of multiple pinhole/smaps synthetic signals
-    - General implementation of distortion, relative transmission and other parameters from ZEMAX (or other codes)
+    - General implementation of distortion, relative transmission and other parameters from ZEMAX (or other codes). Right now a function for distortion and two functions for relative transmission are included. Since there is no standard for the inputs, these are custom made.
     - Add a function to remap the synthetic signals generated
 ## Functions:
     - read_distribution: Read the ion distribution that will be used as input
