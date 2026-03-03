@@ -51,7 +51,8 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
     '''
     Read a distribution coming from ASCOT
 
-    Alex Reyner: alereyvinn@alum.us.es
+    Alex Reyner: areyner@us.es
+    Based on the origianl function by Jose Rueda and Anton J. van Vuuren
 
     Each version has a different type of input:
         - 5.5 with pitch in [VII/V] units
@@ -351,6 +352,7 @@ class FMC:
         Synthetic signal for pinhole and scintillator in pitch-gyroradius space
 
         Alex Reyner: areyner@us.es
+        Based on the origianl function by Jose Rueda and Anton J. van Vuuren
 
         :param  distro: distribution obtained with read_distribution()
         :param  mode: select what quantity you want
@@ -482,6 +484,7 @@ class FMC:
         Transfors the pitch-gyroradius signal to pitch-energy signal
 
         Alex Reyner: areyner@us.es
+        Based on the origianl function by Jose Rueda and Anton J. van Vuuren
 
         :param  synthetic_signal: xarrays with the signal in the pr space. 
             This must be one of the synthetic signals xarrays produced by this 
@@ -647,6 +650,9 @@ class FMC:
                         ):
         '''
         Apply the optics and camera to the frame_scintillator.
+
+        Alex Reyner: areyner@us.es
+        Based on the origianl function by Jose Rueda and Anton J. van Vuuren
 
         :param  cam_params: parameters of the camera
         :param  opt_params: parameters of the optics
@@ -873,6 +879,10 @@ class FMC:
     def _locate_smap_and_scint(self):
         '''
         This ubicates the scintillator and strikemap in the frame
+
+        Alex Reyner: areyner@us.es
+        Based on the origianl function by Jose Rueda and Anton J. van Vuuren
+
         '''
         logger.info('- Locating the smap and scintillator...')
         start = time.perf_counter()
@@ -944,6 +954,12 @@ class FMC:
         logger.info('   %.4f s', end-start)
 
     def _map_signal(self):
+        '''
+
+        Alex Reyner: areyner@us.es
+        Based on the origianl function by Jose Rueda and Anton J. van Vuuren
+
+        '''
         if not hasattr(self.pr_space, 'sc'):
            logger.warning('No remapped signal to map. Computing...')
            self.synthsig_pr(mode = self.mode)
@@ -997,6 +1013,10 @@ class FMC:
     def _scint_perim_area(self):
         '''
         Compute the scintillator perimeter and the area
+
+        Alex Reyner: areyner@us.es
+        Based on the origianl function by Jose Rueda and Anton J. van Vuuren
+
         '''
         
         logger.info('- Building the scintillator perimeter and area...')
