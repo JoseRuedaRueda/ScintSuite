@@ -15,6 +15,7 @@ import ScintSuite._Plotting as ssplt
 
 import ScintSuite.SimulationCodes.SINPA._ForwardModellingClass as fmod
 import ScintSuite.SimulationCodes.SINPA._forward_modelling as fmod2
+ssplt.plotSettings(plot_mode='default')
 
 matplotlib.use('QtAgg')
 plt.close('all')
@@ -82,12 +83,12 @@ optic_parameters = {'beta':None}
 camera_parameters = {'nx':1200, 'ny':900}
 
 # Call the synthetic signal method
-sig.synthsig_xy(pin_distro, mode = 'ions', 
+sig.synthsig_xy(pin_distro, mode = 'photons', 
                 pin_params = PH_params, sci_params = SC_params,
                 cam_params = camera_parameters,
                 opt_params = optic_parameters,
                 noi_params = noise_parameters,
-                smoother = 0, centering = False)
+                smoother = 2, centering = False)
 # Plot the image in the scintillator real space
 sig.plot_frame_scintillator(cmap = ssplt.Gamma_I(), 
                             plot_smap = True,
@@ -114,7 +115,7 @@ sig.synthsig_camera(pin_distro, mode='photons', centering=True,
                 opt_params=optic_parameters,
                 noi_params=noise_parameters,
                 rm_saturation=True,
-                smoother=5,
+                smoother=0,
                 )
 
 # Everything can be plotted afterwards
@@ -137,11 +138,6 @@ scint_synthetic_signal_params = {
         }
 # --- Small check with previous forward modelling function
 old_pr_space = fmod2.synthetic_signal_pr(pin_distro, WF=sig.WF, plot=True)
-fig, ax = plt.subplots(1,2)
-pin_diff = np.abs(sig.pr_space.ph - old_pr_space['PH'])/sig.pr_space.ph*100
-pin_diff.T.plot.imshow(ax=ax[0])
-sci_diff = np.abs(sig.pr_space.sc - old_pr_space['SC'])/sig.pr_space.sc*100
-sci_diff.T.plot.imshow(ax=ax[1])
 
 # The relative diference is negligible --> numeric effects
 xy_frame = fmod2.original_synthsig_xy(distro = pin_distro,
@@ -149,16 +145,11 @@ xy_frame = fmod2.original_synthsig_xy(distro = pin_distro,
                 cam_params = camera_parameters,
                 optic_params = optic_parameters,
                 scint_params = scint_synthetic_signal_params,
-                smoother = 5,
+                smoother = 0,
                 centering = True)
 fig, ax = fmod2.plot_the_frame(frame = xy_frame, cmap=ssplt.Gamma_I(),
                 cam_params = camera_parameters,
-                maxval=1, plot_smap=True, plot_scint=True,)   
-fig, ax = plt.subplots()
-diff = np.abs(sig.frame_scintillator.tot - xy_frame['signal_frame'])/sig.frame_scintillator.tot
-diff.plot.imshow(ax=ax,vmin=0, vmax=10)
-# The difference is also negligible, and not due to errors in the computation 
-# of the signal
+                maxval=1, plot_smap=True, plot_scint=True,)
 
 # finally the camera:
 camera_noise_frame = fmod2.noise_optics_camera(frame = xy_frame,
@@ -167,7 +158,47 @@ camera_noise_frame = fmod2.noise_optics_camera(frame = xy_frame,
             noise_params = noise_parameters,)
 fig, ax = fmod2.plot_the_frame(frame = camera_noise_frame,
             cam_params = camera_parameters, cmap=ssplt.Gamma_I())
-fig, ax = plt.subplots()
-diff = np.abs(sig.frame_camera.tot - camera_noise_frame['signal_frame'])/sig.frame_camera.tot
-diff.plot.imshow(ax=ax,vmin=0, vmax=10)
-# Difference is also negligible
+
+
+## Plots for comparison
+plt.close('all')
+
+fig,ax = plt.subplots(1,2,figsize=(14,5))
+old_pr_space['PH'].T.plot(ax=ax[0],cmap=ssplt.Gamma_I())
+sig.pr_space.ph.T.plot(ax=ax[1],cmap=ssplt.Gamma_I())
+for axs in ax:
+    axs.set_box_aspect(1)
+ax[0].set_title('OLD')
+ax[1].set_title('NEW')
+plt.tight_layout()
+fig.savefig('comp1.png', dpi=90)
+
+fig, ax = plt.subplots(1,2,figsize=(14,5))
+old_pr_space['SC'].T.plot(ax=ax[0], cmap=ssplt.Gamma_I())
+sig.pr_space.sc.T.plot(ax=ax[1], cmap=ssplt.Gamma_I())
+for axs in ax:
+    axs.set_box_aspect(1)
+ax[0].set_title('OLD')
+ax[1].set_title('NEW')
+plt.tight_layout()
+fig.savefig('comp2.png', dpi=90)
+
+fig, ax = plt.subplots(1,2,figsize=(14,5))
+xy_frame['signal_frame'].plot(ax=ax[0], cmap=ssplt.Gamma_I())
+sig.frame_scintillator.tot.plot(ax=ax[1], cmap=ssplt.Gamma_I())
+for axs in ax:
+    axs.set_aspect('equal', adjustable='box')
+ax[0].set_title('OLD')
+ax[1].set_title('NEW')
+plt.tight_layout()
+fig.savefig('comp3.png', dpi=90)
+
+fig, ax = plt.subplots(1,2,figsize=(14,5))
+camera_noise_frame['signal_frame'].plot(ax=ax[0], cmap=ssplt.Gamma_I(), add_colorbar=False)
+sig.frame_camera.tot.plot(ax=ax[1], cmap=ssplt.Gamma_I())
+for axs in ax:
+    axs.set_aspect('equal', adjustable='box')
+ax[0].set_title('OLD')
+ax[1].set_title('NEW')
+plt.tight_layout()
+fig.savefig('comp4.png', dpi=90)
