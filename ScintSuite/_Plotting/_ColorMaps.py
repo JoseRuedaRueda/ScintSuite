@@ -23,7 +23,7 @@ def Gamma_I(n=256):
     :param  n: numbers of levels of the output colormap
     """
     cmap = LinearSegmentedColormap.from_list(
-        'mycmap', ['black', 'blue', 'purple', 
+        'mycmap', ['black', 'navy', 'blue', 'purple', 
                    'red', 'orange', 'yellow'], N=n)
     
     return cmap
