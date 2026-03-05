@@ -22,3 +22,4 @@ from ScintSuite._Plotting._Others import *
 from ScintSuite._Plotting._settings import *
 from ScintSuite._Plotting._vessel import *
 from ScintSuite._Plotting._RadarPlots import radar_factory
+from ScintSuite._Plotting._mplfig import save_figure, load_figure

@@ -11,7 +11,11 @@ Contains:
 import os
 import yaml
 from matplotlib.colors import LinearSegmentedColormap
+<<<<<<< HEAD
 __all__ = ['Gamma_I', 'Gamma_II', 'Gamma_IIb', 'Gamma_III', 'Cai']
+=======
+__all__ = ['Gamma_I', 'Gamma_II', 'Gamma_IIb', 'Gamma_III', 'Cai', 'default_cmap']
+>>>>>>> origin/dev-branch
 
 
 def Gamma_I(n=256):
@@ -23,7 +27,7 @@ def Gamma_I(n=256):
     :param  n: numbers of levels of the output colormap
     """
     cmap = LinearSegmentedColormap.from_list(
-        'mycmap', ['black', 'blue', 'purple', 
+        'mycmap', ['black', 'navy', 'blue', 'purple', 
                    'red', 'orange', 'yellow'], N=n)
     
     return cmap
@@ -107,3 +111,13 @@ if 'defaultColorMap' in settings['UserPlotStyles'].keys():
         default_cmap = globals()[default_cmap_name]
     else:
         default_cmap = Gamma_II
+else:
+    default_cmap = Gamma_II
+
+def default_cmap_func(n=256):
+    """
+    Returns the default colormap function
+
+    :param n: number of levels
+    """
+    return default_cmap(n)

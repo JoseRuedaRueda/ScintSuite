@@ -12,11 +12,12 @@ import scipy.signal as signal
 import matplotlib.pyplot as plt
 import matplotlib.cm as colorMap
 import scipy
+from tqdm import tqdm
 from scipy.signal import get_window, istft
 from scipy.fftpack import fftfreq, rfft, ifft, fftshift
 from multiprocessing import cpu_count
 from scipy.fftpack import next_fast_len
-from scipy.interpolate import interp2d
+from scipy.interpolate import RectBivariateSpline
 from collections import defaultdict
 from ScintSuite._Plotting import p1D_shaded_error as plot_error_band
 from ScintSuite._SideFunctions import smooth
@@ -35,8 +36,8 @@ logger = logging.getLogger('ScintSuite.Freq')
 # -----------------------------------------------------------------------------
 # --- Fourier analysis. Taken from pyspecview
 # -----------------------------------------------------------------------------
-def sfft(tvec, x, nfft, resolution=1000, window='hann', fmin=0, fmax=np.infty,
-         tmin=-np.infty, tmax=np.infty, pass_DC=True, complex_spectrum=False):
+def sfft(tvec, x, nfft, resolution=1000, window='hann', fmin=0, fmax=1e20,
+         tmin=-1e20, tmax=1e20, pass_DC=True, complex_spectrum=False):
     """
     Short time Fourier Tranform. in the frequency domain done along 1. axis!
 
@@ -154,8 +155,8 @@ def sfft(tvec, x, nfft, resolution=1000, window='hann', fmin=0, fmax=np.infty,
     return spec, fvec, tvec
 
 
-def stft(tvec, x, nfft, resolution=1000, window='gauss', fmin=-np.infty,
-         fmax=np.infty, tmin=-np.infty, tmax=np.infty, pass_DC=True,
+def stft(tvec, x, nfft, resolution=1000, window='gauss', fmin=-1e20,
+         fmax=1e20, tmin=-1e20, tmax=1e20, pass_DC=True,
          complex_spectrum=False):
     """
     Short time Fourier Tranform. in time domain
@@ -476,7 +477,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                    target: float = None, freqLims: float = None,
                    timeLims: float = None, tOverlap: float = None,
                    graph_TimeConnect: float = 0.0, freqThr: float = np.inf,
-                   k_exp: float = 4.0, kt_exp: float = 1.0,
+                   k_exp: float = 2.0, kt_exp: float = 1.0,
                    peak_opts: dict = {},
                    costFunction=None, peakFilterFnc=None,
                    smooth: bool = True, smooth_opts: dict = {},
@@ -736,14 +737,14 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
 
         # Plotting the peaks
         for ii in peak_map:
-            ax.plot(peak_map[ii][0], peak_map[ii][1], 'r.')
+            ax.plot(peak_map[ii][0], peak_map[ii][1], 'g.', alpha = 0.1)
 
     ntime_peaks = kk - 1
     if verbose:
         print('#time slices = %d'%ntime_peaks)
     # --- Generating the graph: connecting the vertex
     # The graph will conect the timepoints with the next timepoints peaks only
-    for ii in range(ntime_peaks):
+    for ii in tqdm(range(ntime_peaks)):
         # Loop over the starting nodes.
         for jj, frm in enumerate(peak_data['timeList'][ii]):
             # Loop over the next nodes: we will connect every node all the
@@ -790,7 +791,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     peak_origin = { 'time': timeLims[0],
                     'freq': origin,
                     'width': 0.0,
-                    'spec_val': interp2d(time, freq2, spec2.T)\
+                    'spec_val': RectBivariateSpline(time, freq2, spec2)\
                                 (timeLims[0], origin),
                     'spec_norm': 0.0,
                 }
@@ -800,7 +801,8 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                           peak_origin['width'],
                           peak_origin['spec_val'],
                           peak_origin['spec_norm'])
-    for jj in range(0, nGraphConne):
+    print("getting the cost of the origin connections")
+    for jj in tqdm(range(0, nGraphConne)):
         for ii, to in enumerate(peak_data['timeList'][jj]):
             peak_nxt = { 'time': peak_data['time'][jj][ii],
                          'freq': peak_data['freq'][jj][ii],
@@ -859,6 +861,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     dgraph.Dijsktra(dgraph.get_vertex('origin'), verbose=False)
 
     # --- Getting the final point:
+    print('Getting the shortest path...')
     path = list()
     if target:
         path.append('target')
@@ -890,6 +893,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                    find the origin in the path backwards')
             distmin = np.inf
     # --- Translating the path into the curve (t, freq)
+    print('Translating the path into the frequency curve...')
     timecurve = list()
     freqcurve = list()
     ampcurve_norm  = list()
@@ -899,12 +903,11 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
         timecurve.append(np.atleast_1d(peak_map[ii][0])[:])
         freqcurve.append(np.atleast_1d(peak_map[ii][1])[:])
         ampcurve_norm.append(np.atleast_1d(peak_map[ii][2])[:])
-        ampcurve_total.append(np.atleast_1d(peak_map[ii][3])[:])
+        ampcurve_total.append(np.atleast_1d(peak_map[ii][3])[:].flatten())
         widths_curve.append(np.atleast_1d(peak_map[ii][4])[:])
 
             
-
-    print(ampcurve_total[-1][0])
+    print(path)
     output = { 'track': { 'time': np.flip(np.array(timecurve).flatten()),
                           'freq': np.flip(np.array(freqcurve).flatten()),
                           'Anorm': np.flip(np.array(ampcurve_norm).flatten()),
@@ -913,7 +916,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                         },
               'peak_data': peak_data,
               'peak_map': peak_map,
-              'path_by_graph': path.reverse(),
+              'path_by_graph': path[::-1],
               'cost': distmin
              }
     print(output['track']['time'])
@@ -925,9 +928,8 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                              y=output['track']['freq'], color='w',
                              u_up=output['track']['width']/2.0,
                              alpha=0.2, line=True, line_param=lineOpts)
-    del dgraph
 
-    return output, ax
+    return output, ax, dgraph
 
 # ----------------------------------------------------------------------------
 # --- Graph and vertex classes for shortest path algorithm.

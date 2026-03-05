@@ -181,9 +181,9 @@ del m
 ## ------------------------------------------------------------------------
 # --- PRINT SUITE VERSION
 # -------------------------------------------------------------------------
-logger.info('-... .. . -. ...- . -. .. -.. ---')
-logger.info('VERSION: ' + version + ' ' + codename)
-logger.info('.-- . .-.. .-.. -.-. --- -- .')
+Suite_logger.info('-... .. . -. ...- . -. .. -.. ---')
+Suite_logger.info('VERSION: ' + version + ' ' + codename)
+Suite_logger.info('.-- . .-.. .-.. -.-. --- -- .')
 ver.printGITcommit()
 ## ------------------------------------------------------------------------
 # --- Initialise plotting options
@@ -196,6 +196,6 @@ try:
     else:
         pltStyle = 'software'
     plt.plotSettings(pltStyle)
-except:
-   logger.warning('28: It was not possible to initialise the plotting ' +
-                  'settings')
+except Exception as e:
+   Suite_logger.warning('28: It was not possible to initialise the plotting ' +
+                  'settings. Exception found: ' + str(e))

@@ -130,7 +130,8 @@ class TopoMap:
                 logger.warning('No transit times in file')
 
     def calculateResonances(self, omega: float, n: int, p: float,
-                            threshold: float = 2.0, waiting_bar: bool=False):
+                            threshold: float = 2.0, waiting_bar: bool=False,
+                            maxMatrixSize: float=2.0):
         """
         Compute the resonance lines for a given set of (frequency, ntor, p).
 
@@ -162,7 +163,7 @@ class TopoMap:
         # Generating the output: log of the (\Omega_{nl}/omega_res)
         matrixShape = (n.size, p.size, omega.size, *self.data.Wpol.shape)
         matrixSize = np.prod(matrixShape)
-        if matrixSize*8/1024/1024/1024 > 1.0 :  # If the matrix is bigger than 1 GB
+        if matrixSize*8/1024/1024/1024 > maxMatrixSize :  # If the matrix is bigger than maxMatrixSize GB
             logger.warning('The resulting matrix is too big (%d MB). '
                            'Consider using a smaller range of n, p or omega.'
                            % (matrixSize*8/1024/1024))

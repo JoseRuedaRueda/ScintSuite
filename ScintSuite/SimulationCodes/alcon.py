@@ -88,11 +88,13 @@ class ALCON:
         return factor * int(number.replace('_', ''))
              
     def plot(self, ax=None, n: int = None,
-             flim=(0, 200), unit='kHz', color='k'):
+             flim=(0, 200), unit='kHz', color='k',
+             rotation=None):
         """
         Plot the ALCON data on the given axes.
         
         :param ax: The axes to plot on, if None, a new figure and axes will be created.
+        :param rotation: the rotation profile, in rad/s
         """
         if ax is None:
             fig, ax = plt.subplots(figsize=(10, 6))
@@ -109,7 +111,11 @@ class ALCON:
                 if n is not None:
                     if self._guess_n(var) != n:
                         continue
-                (self._data[var]*factor).plot(ax=ax, marker='o', linestyle='None', color=color)
+                toplot = self._data[var]*factor
+                if rotation is not None:
+                    rotIntoPlotBase = rotation.interp(rho=toplot.coords['rho_%s'%var].values, method='linear').rename({'rho': 'rho_%s'%var})
+                    toplot += n*rotIntoPlotBase*factor
+                toplot.plot(ax=ax, marker='o', linestyle='None', color=color)
         
         if created:
             ax.set_xlabel(r'$\rho$')
