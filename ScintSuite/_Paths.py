@@ -4,8 +4,6 @@ from ScintSuite._Machine import machine
 from ScintSuite._SideFunctions import update_case_insensitive
 import yaml
 
-from ScintSuite import home
-
 class Path:
     """
     Paths of the different codes and folders
@@ -19,6 +17,7 @@ class Path:
         """Initialise the class"""
         # home = os.getenv("HOME")
         home_dir_user = os.getenv("HOME")
+        home = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
         if machine == 'TCV':
             home_dir_user = home_dir_user + '/NoTivoli'
 
@@ -54,6 +53,7 @@ class Path:
                 '/usr/share/fonts/opentype',
             ]
         # Load the custom paths
+        print(f'Loading paths from {self.ScintSuite}/Settings.yml')
         filename = os.path.join(self.ScintSuite, 'Settings.yml')
         with open(filename, 'r') as stream:
             try:
