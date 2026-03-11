@@ -1,8 +1,13 @@
 from netCDF4 import Dataset
 import xarray as xr
 import numpy as np
-import MDSplus
-
+import logging
+logger = logging.getLogger('ScintSuite.SimulationCodes.TRANSP')
+try:
+    import MDSplus
+except ImportError:
+    logger.warning('MDSplus module not found, read_from_MDSplus function will not work')
+    
 def read_profiles(fn):
     """
     Read 1D plasma input in from a CDF file.
