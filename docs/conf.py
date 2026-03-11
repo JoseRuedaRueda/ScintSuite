@@ -9,6 +9,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
+    'sphinx.ext.autosummary',
 ]
 
 templates_path = ['_templates']
@@ -20,6 +21,10 @@ html_static_path = ['_static']
 # Autodoc options
 autodoc_member_order = 'bysource'
 autodoc_typehints = 'description'
+
+# Autosummary: generate stub pages for modules/classes/functions
+autosummary_generate = True
+
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:

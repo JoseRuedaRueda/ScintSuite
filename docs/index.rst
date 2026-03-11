@@ -6,6 +6,7 @@ Welcome to ScintSuite's documentation
    :caption: Contents:
 
    usage
+   api/modules
 
 
 Indices and tables
