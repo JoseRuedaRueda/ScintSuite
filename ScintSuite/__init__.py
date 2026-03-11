@@ -23,7 +23,7 @@ if home is None:
 # Get the path to this init file
 home = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 # ../Data/MyDataTemplates/Settings.yml
-defaultSettings = os.path.join(home, '..', 'Data', 'MyDataTemplates', 'Settings.yml')
+defaultSettings = os.path.join(home, 'Data', 'MyDataTemplates', 'Settings.yml')
 UserSettings = os.path.join(home, 'Settings.yml')
 print(f'Home: {home}')
 print(f'Default settings: {defaultSettings}')
