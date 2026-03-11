@@ -53,7 +53,6 @@ class Path:
                 '/usr/share/fonts/opentype',
             ]
         # Load the custom paths
-        print(f'Loading paths from {self.ScintSuite}/Settings.yml')
         filename = os.path.join(self.ScintSuite, 'Settings.yml')
         with open(filename, 'r') as stream:
             try:
