@@ -17,17 +17,20 @@ import shutil
 # -----------------------------------------------------------------------------
 # %% Read the settings file
 # -----------------------------------------------------------------------------
-# home = os.getenv("ScintSuitePath")
-# if home is None:
-#     home = os.path.join(os.getenv("HOME"), 'ScintSuite')
-# UserSettings = os.path.join(home, 'Settings.yml')
+home = os.getenv("ScintSuitePath")
+if home is None:
+    home = os.path.join(os.getenv("HOME"), 'ScintSuite')
 # Get the path to this init file
 home = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
-UserSettings = os.path.join(home, 'Settings.yml')
 # ../Data/MyDataTemplates/Settings.yml
-defaultSettings = os.path.join(home, 'Data', 'MyDataTemplates', 'Settings.yml')
+defaultSettings = os.path.join(home, '..', 'Data', 'MyDataTemplates', 'Settings.yml')
+UserSettings = os.path.join(home, 'Settings.yml')
+print(f'Home: {home}')
+print(f'Default settings: {defaultSettings}')
+print(f'User settings: {UserSettings}')
+
 # If the settings file does not exist, copy the default one
-if not os.path.exists(UserSettings):
+if not os.path.isfile(UserSettings):
     shutil.copy(defaultSettings, UserSettings)
 
 with open(UserSettings, 'r') as stream:
