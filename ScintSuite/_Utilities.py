@@ -361,6 +361,87 @@ def flatten(lst):
     ))
 
 # -----------------------------------------------------------------------------
+# %% Statistics
+# -----------------------------------------------------------------------------
+def weighted_mean(values, weights):
+    """
+    Return the weighted mean.
+
+    Taken from:
+    https://stackoverflow.com/questions/2413522/weighted-standard-deviation-in-numpy
+
+    :param  values: The values of which we want the weighted mean
+    :param  weights: The weights of the values
+    """
+    return np.average(values, weights=weights)
+
+def weighted_median(values, weights):
+    """
+    Return the weighted median.
+
+    inspired from:
+    https://stackoverflow.com/questions/2413522/weighted-standard-deviation-in-numpy
+
+    :param  values: The values of which we want the weighted median
+    :param  weights: The weights of the values
+    """
+    sorted_indices = np.argsort(values)
+    sorted_values = values[sorted_indices]
+    sorted_weights = weights[sorted_indices]
+    cumulative_weights = np.cumsum(sorted_weights)
+    cutoff = cumulative_weights[-1] / 2.0
+    median_index = np.searchsorted(cumulative_weights, cutoff)
+    return sorted_values[median_index]
+
+
+def weighted_variance(values, weights):
+    """
+    Return the weighted variance.
+
+    Taken from:
+    https://stackoverflow.com/questions/2413522/weighted-standard-deviation-in-numpy
+
+    :param  values: The values of which we want the weighted variance
+    :param  weights: The weights of the values
+    """
+    average = np.average(values, weights=weights)
+    variance = np.average((values-average)**2, weights=weights)
+    return variance
+
+
+def weighted_std(values, weights):
+    """
+    Return the weighted standard deviation.
+
+    Taken from:
+    https://stackoverflow.com/questions/2413522/weighted-standard-deviation-in-numpy
+
+    :param  values: The values of which we want the weighted std
+    :param  weights: The weights of the values
+    """
+    return np.sqrt(weighted_variance(values, weights))
+
+
+def weighted_quantile(values, weights, quantiles):
+    """
+    Return the weighted quantiles.
+
+    Taken from:
+    https://stackoverflow.com/questions/21844024/weighted-percentile-using-numpy
+
+    :param  values: The values of which we want the weighted quantiles
+    :param  weights: The weights of the values
+    :param  quantiles: The quantiles to be calculated, between 0 and 1
+    """
+    sorter = np.argsort(values)
+    values = values[sorter]
+    weights = weights[sorter]
+    cumulative_weights = np.cumsum(weights)
+    cumulative_weights /= cumulative_weights[-1]
+    return np.interp(quantiles, cumulative_weights, values)
+
+
+# -----------------------------------------------------------------------------
 # %% v2E and E2v
 # -----------------------------------------------------------------------------
 def E2v(E, A: float = 2.014):
