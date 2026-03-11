@@ -9,7 +9,7 @@ build:
     - python -m pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints sphinxcontrib-napoleon
     - python -m pip install -r docs/requirements.txt || true
     - python -m pip install .
-    - python -m sphinx.apidoc -o docs/api ScintSuite -f
+    - python -m sphinx.ext.apidoc -o docs/api ScintSuite -f
 
 python:
   install:
