@@ -25,6 +25,6 @@ autodoc_typehints = 'description'
 # Autosummary: generate stub pages for modules/classes/functions
 autosummary_generate = True
 
-copyright = '2025, Jose Rueda, Pablo Oyola, Lina Velarde, Javier Hidalgo'
+copyright = '2026, Jose Rueda, Pablo Oyola, Lina Velarde, Javier Hidalgo'
 author = 'Jose Rueda, Pablo Oyola, Lina Velarde, Javier Hidalgo'
 release = '1.4.3'

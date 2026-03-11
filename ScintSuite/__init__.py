@@ -22,14 +22,14 @@ import shutil
 #     home = os.path.join(os.getenv("HOME"), 'ScintSuite')
 # UserSettings = os.path.join(home, 'Settings.yml')
 # Get the path to this init file
-current_dir = os.path.dirname(os.path.abspath(__file__))
-UserSettings = os.path.join(current_dir, 'Settings.yml')
+home = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+UserSettings = os.path.join(home, 'Settings.yml')
 # ../Data/MyDataTemplates/Settings.yml
-defaultSettings = os.path.join(current_dir, '..', 'Data', 'MyDataTemplates', 'Settings.yml')
-if not os.path.exists(UserSettings):
-    shutil.copy(defaultSettings, UserSettings)
+defaultSettings = os.path.join(home, '..', 'Data', 'MyDataTemplates', 'Settings.yml')
 # If the settings file does not exist, copy the default one
 if not os.path.exists(UserSettings):
+    shutil.copy(defaultSettings, UserSettings)
+
 with open(UserSettings, 'r') as stream:
     try:
         settings = yaml.safe_load(stream)
