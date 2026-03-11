@@ -17,9 +17,9 @@ import shutil
 # -----------------------------------------------------------------------------
 # %% Read the settings file
 # -----------------------------------------------------------------------------
-home = os.getenv("ScintSuitePath")
-if home is None:
-    home = os.path.join(os.getenv("HOME"), 'ScintSuite')
+# home = os.getenv("ScintSuitePath")
+# if home is None:
+#     home = os.path.join(os.getenv("HOME"), 'ScintSuite')
 # Get the path to this init file
 home = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 # ../Data/MyDataTemplates/Settings.yml
