@@ -91,7 +91,7 @@ def Cai(n=256):
 
 # ----- SUITE default colormaps -----
 
-home = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+home = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 UserSettings = os.path.join(home, 'Settings.yml')
 with open(UserSettings, 'r') as stream:
     try:
