@@ -10,13 +10,4 @@ build:
     - python -m pip install -r docs/requirements.txt || true
     - python -m pip install .
     - python -m sphinx.ext.apidoc -o docs/api ScintSuite -f
-
-python:
-  install:
-    - method: pip
-      path: .
-    - requirements: docs/requirements.txt
-
-sphinx:
-  configuration: docs/conf.py
-  builder: html
+    - python -m sphinx -b html docs $READTHEDOCS_OUTPUT/html
