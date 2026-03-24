@@ -96,7 +96,7 @@ def createGrid(xmin: float, xmax: float, dx: float, ymin: float, ymax: float,
                dy: float):
     """
     Create the grid following the criteria stablished in the remap functions
-
+    
     :param  ...
 
     @Todo: finish the documentation
@@ -151,17 +151,40 @@ def gkern(l=int(4.5*6)+1, sig=4.5):
     return kernel / np.sum(kernel)
 
 
-def smooth(y, box_pts,mode='same', axis=-1):
+def smooth(y, box_pts: int, mode: str = 'same', axis: int = -1):
+    """Smooth signal by convolving with a box kernel.
+
+    Args:
+      y: ndarray or xarray.DataArray to smooth.
+      box_pts: positive integer length of box filter.
+      mode: convolution mode passed to np.convolve ('full','same','valid').
+      axis: axis along which to apply smoothing (default last axis).
+
+    Returns:
+      Smoothed array of same type as input (xarray DataArray preserves coords/dims).
     """
-    Smooth signals, just convoluting it with a box
-    """
-    box = np.ones(box_pts)/box_pts
-    if y.shape == 1:
-        y_smooth = np.convolve(y, box, mode=mode)
+    if box_pts is None:
+        raise ValueError('box_pts must be provided')
+    box_pts = int(box_pts)
+    if box_pts < 1:
+        raise ValueError('box_pts must be >= 1')
+    if box_pts == 1:
+        return y.copy() if isinstance(y, np.ndarray) else y.copy(deep=True)
+
+    box = np.ones(box_pts, dtype=float) / box_pts
+
+    is_xr = isinstance(y, xr.DataArray)
+    arr = y.values if is_xr else np.asarray(y)
+
+    if arr.ndim == 1:
+        out = np.convolve(arr, box, mode=mode)
     else:
-        y_smooth = np.apply_along_axis(
-            lambda m: np.convolve(m, box, mode=mode), axis, y)
-    return y_smooth
+        out = np.apply_along_axis(lambda m: np.convolve(m, box, mode=mode), axis, arr)
+
+    if is_xr:
+        # Try to restore original shape (np.convolve 'same' returns same length)
+        return xr.DataArray(out, dims=y.dims, coords=y.coords)
+    return out
 
 def detrend(x: xr.DataArray, type: str='linear',
             detrendSizeInterval: Optional[float]=0.001) -> xr.DataArray:
@@ -191,4 +214,4 @@ def detrend(x: xr.DataArray, type: str='linear',
         coords=x.coords
     )
 
-        
+

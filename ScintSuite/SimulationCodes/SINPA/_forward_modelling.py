@@ -28,8 +28,7 @@ Functions. What can be done:
 """
 
 import ScintSuite._Mapping as ssmapplting
-from ScintSuite.SimulationCodes.FILDSIM.execution import get_energy
-from ScintSuite.SimulationCodes.FILDSIM.execution import get_gyroradius
+from ScintSuite.SimulationCodes.Common import get_energy, get_gyroradius
 import ScintSuite.SimulationCodes.FILDSIM.forwardModelling as ssfM
 import ScintSuite.SimulationCodes.Common.geometry as geometry
 from ScintSuite._Plotting._ColorMaps import default_cmap
@@ -434,7 +433,7 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2,
     ssSC_pe = copy.deepcopy(ssSC_pr)
     # Get the coordinates of the gyroradius and transform them to energy.
     gyroradius = ssPH_pe.coords['y'].values
-    energy = get_energy(gyroradius,B=B,A=A,Z=Z)
+    energy = get_energy(gyroradius,B=B,A=A,Z=Z).to('eV').value
     ssPH_pe['y'] = energy #change coordinates from gyroradius to energy
     # Multiply each point in the distribution by the Jacobian, to mantain the
     # integral of the signal with the same value.
@@ -446,7 +445,7 @@ def pr_space_to_pe_space(synthetic_signal, B=4, A=2, Z=2,
     ssPH_pe = ssPH_pe.interp(y=e_interp, method='cubic')
     # Repeat for the scintillator image
     gyroradius = ssSC_pe.coords['ys'].values
-    energy = get_energy(gyroradius,B=B,A=A,Z=Z)
+    energy = get_energy(gyroradius,B=B,A=A,Z=Z).to('eV').value
     ssSC_pe['ys'] = energy 
     for j in range(len(energy)):
         ssSC_pe[:,j] = ssSC_pe[:,j] *gyroradius[j]/(2*energy[j])   

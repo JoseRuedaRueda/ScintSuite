@@ -13,7 +13,7 @@ import ScintSuite.LibData as ssdat
 import ScintSuite.errors as errors
 # import ScintSuite._StrikeMap as ssmap
 from ScintSuite.SimulationCodes.Common.strikes import Strikes
-from ScintSuite.SimulationCodes.FILDSIM.execution import get_gyroradius
+from ScintSuite.SimulationCodes.Common import get_gyroradius
 
 from ScintSuite._Optics import FnumberTransmission, defocus
 

@@ -45,7 +45,7 @@ def readCameraCalibrationDatabase(filename: str, n_header: int = 0,
         # ASDEX like calibration files, a txt with things
         # Read the file
         try:
-            database = pd.read_csv(filename, skiprows=n_header, sep = '\s+')
+            database = pd.read_csv(filename, skiprows=n_header, sep = r'\s+')
         except pd.errors.ParserError:
             database = {}
         # There are several ways of calling the colums, as some users have a
