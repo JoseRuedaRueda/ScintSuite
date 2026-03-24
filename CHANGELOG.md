@@ -19,6 +19,30 @@
 ## Fitting module.
 - A new routinep arseParamNames is created in the _CustomFitModels.py. Up to now, it is not called in the mapping and calculate reslolutions. It will be done in 2.0.1
 
+# 1.5.0 Forward modelling to class
+- The forward modelling module has bee updated into a class structure. Translation of 1.3.11
+- To be done:
+    - Appropiate adaptation of multiple pinhole/smaps synthetic signals. Capability to introduce multiple strikemaps and inputs to generate double colimator synthetic frames.
+    - General implementation of distortion, relative transmission and other parameters from ZEMAX (or other codes). Right now a function for distortion and two functions for relative transmission are included. Since there is no standard for the inputs, these are custom made.
+    - Add a function to remap the synthetic signals generated
+## Functions:
+    - read_distribution: Read the ion distribution that will be used as input
+    - obtain_WF: Obtain the weight function of the smap
+## FMC class:
+    - synthsig_pr: Compute remapped synthetic signal in pitch-gyroradius 
+    - pr_space_to_pe_space: transform the remapped signal phase space
+    - synthsig_xy: (wrap) compute synthetic signal in real scintillator space
+    - synthsig_camera: (wrap) compute synthetic signal in the camera
+    - apply_optics_camera_noise: apply the optic effects and camera noises
+    - _locate_smap_and_scint: locates the geometry elements in the frame
+    - _map_signal: maps the remapped signal to the strikemap
+    - _scint_perim_area: computes the scintilaltor convexhull and area covered
+    - _new_synthsig_xy: compute synthetic signal in real scintillator space
+    - _update_params: update dictionaries
+    - plot_distribution: plot the FI distributions in pinhole and scintillator
+    - plot_frame_scintillator: plot the frame in the scintillator (labels in cm)
+    - plot_frame_camera: plot the camera frame
+
 # 1.4.5 Minor improvements
 - Improved video filter speed
 - Added allIn options to FILD video
