@@ -1,6 +1,8 @@
 # 2.0.0 The big change
 - Clean the suite of secondary functions not used which divert the code for its main purpose and added unnecesary dependencies
 - Added unyt calls to the strike object
+- No longer env variable needed, the path is found by the file init address (needed for the the autodocumentation)
+
 ## Basic Variable
 - Added a method to crop signals in time
 
@@ -13,6 +15,9 @@
 ## FILDSIM code
 - Gyroscalar and gyroradius routines moved to the common package (they were in the execution one), as they are comon to synthetic INPA and FILD
 - get_gyroradius etc use now unyt for inputs and outputs
+
+## Fitting module.
+- A new routinep arseParamNames is created in the _CustomFitModels.py. Up to now, it is not called in the mapping and calculate reslolutions. It will be done in 2.0.1
 
 # 1.4.5 Minor improvements
 - Improved video filter speed

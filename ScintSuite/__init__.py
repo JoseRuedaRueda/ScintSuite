@@ -25,9 +25,7 @@ home = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 # ../Data/MyDataTemplates/Settings.yml
 defaultSettings = os.path.join(home, 'Data', 'MyDataTemplates', 'Settings.yml')
 UserSettings = os.path.join(home, 'Settings.yml')
-print(f'Home: {home}')
-print(f'Default settings: {defaultSettings}')
-print(f'User settings: {UserSettings}')
+
 
 # If the settings file does not exist, copy the default one
 if not os.path.isfile(UserSettings):

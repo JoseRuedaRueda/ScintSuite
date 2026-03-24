@@ -8,6 +8,7 @@ Introduced in version 0.10.0
 import os
 import unyt
 import logging
+import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as scipy_interp
@@ -369,6 +370,48 @@ class FILDINPA_Smap(GeneralStrikeMap):
         self._calculate_instrument_function_interpolators()
         # self._calculate_position_interpolators()
 
+    def export_phase_space_resolution(self, file: str = None, overwrite: bool = False):
+        """
+        Export the phase space resolution into a .h5 file
+
+        Jose Rueda: jruedaru@uci.edu
+        :param  file: file where to export the data. If None, the name will be
+            deduced from the strike map file, and it will be saved in the same
+            folder than the strike map
+        :param  overwrite: if true, the file will be overwritten if it already
+            exists
+        """
+        if self._resolutions is None:
+            raise Exception('No resolution calculated, cannot export')
+        if file is None:
+            filename, extension = self.file.rsplit('.', 1)
+            file = filename + '_resolution.h5'
+        if os.path.isfile(file) and not overwrite:
+            raise FileExistsError('File %s already exists, set overwrite to True to overwrite it' % file)
+        # Prepare the data to be exported
+        data = {}
+        # Avoid 'fit_', 'norm_' keys, as they are not needed in the export
+        # Only export data and uncertainties
+        variables = [v.name for v in self._to_remap]
+        for var in variables:
+            for key in self._resolutions[var].keys():
+                data[var + '_' + key] = self._resolutions[var][key]
+                try:
+                    data['unc_' + var + '_' + key] = self._resolutions['unc_' + var][key]
+                except KeyError:
+                    pass
+        # Save this to an h5 file
+        with h5py.File(file, 'w') as f:
+            for key in data.keys():
+                f.create_dataset(key, data=data[key])
+            # Add the x and y axis, ie, the variables
+            f.create_dataset('x', data=self.MC_variables[0].data)
+            f.create_dataset('y', data=self.MC_variables[1].data)
+            # Add the names of the variables
+            f.attrs['xname'] = self._to_remap[0].name
+            f.attrs['yname'] = self._to_remap[1].name
+        return
+    
     def _calculate_instrument_function_interpolators(self):
         """
         Calculate the interpolators from phase to resolution parameters
