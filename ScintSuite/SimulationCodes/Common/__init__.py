@@ -2,3 +2,4 @@
 from ScintSuite.SimulationCodes.Common.fields import fields as Fields
 from ScintSuite.SimulationCodes.Common.geometry import Geometry
 from ScintSuite.SimulationCodes.Common.strikes import Strikes
+from ScintSuite.SimulationCodes.Common.gyroscalar import *

@@ -24,19 +24,6 @@ pip install -e .
 ```
 This will install all requirements via pip. It is needed that your machine support pip installation of python packages
 
-> IMPORTANT: 
-> If you install the suite outside your home dir, you should create an environmental variable pointing towards the suite folder. Add to your bash (or similar file) the following:
-```bash
-export ScintSuitePath=<ParentFolderForSuite>/ScintSuite
-```
-For AUG people, if they followed the recommended route for the code:
-```bash
-export ScintSuitePath=/shares/departments/AUG/users/$USER/ScintSuite
-```
-> IMPORTANT: 
-> Each kind of terminal has its own command to define environmental variables. Please change the previous line as needed for your system.
-
-
 #### Advanced installation
 Things can go wrong if your system has some particular rights limitations and you are not allowed to change them using `pip install`. In these cases, a virtual environment could help:
 
@@ -45,7 +32,7 @@ Things can go wrong if your system has some particular rights limitations and yo
 3. Activate your virtual environment (remember to do this every time you are using ScintSuite or add it to your login script): `source SSvirtualenv/bin/activate`
 4. Force install the compatible versions using `pip install modulename==X.X.X`. A list of compatible versions is listed in Data/TestedEnv. There you can find the result of the command `pip list` in a python environment where the suite was tested and working fine. The files are labeled with the Suite version for which they were tested and 'Optx', meaning 'Option x', as different user can have different list of packages which could work.
 
-Once this is done, run the script `first_run.py` to create the folder `MyData` and the settings file `settings.yml`. This are the configuration files of the Suite, they are needed to import the Suite and can be modified (the one in the root folder only!!!) to change the behavior of the plotting, warning, paths... If this script fails, you can copy the settings template manually. The templates is in the folder: `Data/MyDataTemplates`
+Once this is done, run the script `first_run.py` to create the folder `MyData` and the settings file `Settings.yml`. This are the configuration files of the Suite, they are needed to import the Suite and can be modified (the one in the root folder only!!!) to change the behavior of the plotting, warning, paths... If this script fails, you can copy the settings template manually. The templates is in the folder: `Data/MyDataTemplates`
 
 ### Getting started
 **Importing the suite**
@@ -92,7 +79,7 @@ UserPaths:
 - FILDSIM code receive no more support since version 0.8.0. FILDSIM libraries will not be updated further, except some important bug is found. Please use the new code version (uFILDSIM/SINPA)
 
 ### Documentation
-- All objects and methods are documented such that the user can understand what is going on. NumPuy doc string is assumed. All new code since version 1.4.0 should be in this format
+- All objects and methods are documented such that the user can understand what is going on. 
 - As everything has doc-strings, you can always write in the python terminal <fname>? and you will get all the description of the <fname> method or object
 - The routines in the Example folder are intended to illustrate the use of the different tools in the suite. Please, if you want to play with them, make your own copy on 'MyRoutines', modifying the examples can cause merge conflicts in the future
 
@@ -116,7 +103,7 @@ Each release will be denoted by 3 numbers: a.b.c meaning:
 - 'tmp'-branch: linked to specific commits to include new features. Do not use these branches except you are the developer in charge of the new feature. Unicorns can appear
 
 ### Note for developers
-- Before changing anything in a module open a issue in GitLab to start a discussion
+- **Before** changing anything in a module open a issue in GitLab to start a discussion
 - Indentation must be done via 4 spaces!
 - PEP 8 guide is recommended, if some piece of code want to be merged without this standard, the maintainers could modify your code to adapt it to this standard (or completely deny your merge request)
   + maximum 80 character-long lines
@@ -140,16 +127,16 @@ If a new implementation is required, open the appropriate issue in the GIT and l
 - Minor priority: Label for maintainer, indicates that the request has low priority in the ToDo list
 
 ## Machine names
-All devices are identified by a string:
+All devices are identified by a string (in alphabetical order):
 - `AUG`: ASDEX Upgrade
+- `D3D`: DIII-D
 - `MU`: MAST Upgrade
+- `TCV`: TCV
 
 ## Useful links
-- FILDSIM code: <https://gitlab.mpcdf.mpg.de/jgq/FILDSIM.git>
-- SINPA (uFILDSIM) code: <https://gitlab.mpcdf.mpg.de/ruejo/SINPA>
+- SINPA (uFILDSIM) code: <https://github.com/JoseRuedaRueda/uFILDSIM>
 - i-HIBPSIM code: <https://gitlab.mpcdf.mpg.de/poyo/ihibpsim>
-- SMap library: <https://datashare.mpcdf.mpg.de/s/yyLR7hCKNBqK34W>
-- Phase correction for magnetics: <https://datashare.mpcdf.mpg.de/s/FiqRIixNMb82HTq>
+- Phase correction for magnetics in AUG: <https://datashare.mpcdf.mpg.de/s/FiqRIixNMb82HTq>
 
 ## Implementation of other machines
 The suite is thought to be machine independent, but some work must be done:
@@ -157,6 +144,6 @@ The suite is thought to be machine independent, but some work must be done:
 - Include your paths in paths_suite.py and LibPaths.py
 - Include the calling of your nice module in LibMachine
 - Cry a bit because some thing might still don't work
-- Send an e-mail to jrrueda@us.es (maybe also some chocolate?)
+- Send an e-mail to jruedaru@uci.edu (maybe also some chocolate?)
 - Wait a couple of days for him to solve the issues
 - Enjoy!

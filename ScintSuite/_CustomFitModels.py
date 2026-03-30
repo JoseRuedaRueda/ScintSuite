@@ -176,8 +176,37 @@ def parseModelNames(name:str)->Model:
         return WignerSemicircle()
     else:
         raise ValueError(f'Unknown model name: {name}')
+
+def parseParamNames(name:str, n:int)->list:
+    """
+    Parse the name of the model and return the proper parameter names
     
-    
+    Jose Rueda Rueda:jrrueda@uci.edu
+    :param name: (str) Name of the model to be parsed
+    :param n: (int) Number of components in the model (only used for multiGaussian or similar models)
+
+    :return out: list of parameter names corresponding to the model
+    """
+    if name.lower() == 'gaussian' or name.lower() == 'gauss':
+        return ['amplitude', 'center', 'sigma']
+    elif name.lower() == 'bivariategaussian':
+        return ['amp', 'mux', 'muy', 'sx', 'sy', 'rho']
+    elif name.lower() == 'multigaussian':
+        for i in range(n):
+            if i == 0:
+                param_names = ['g0_amplitude', 'g0_center', 'g0_sigma']
+            else:
+                param_names += ['g' + str(i) + '_amplitude', 'g' + str(i) + '_center', 'g' + str(i) + '_sigma']
+        return param_names
+    elif name.lower() == 'sgauss' or name.lower() == 'skewedgaussian':
+        return ['amplitude', 'center', 'sigma', 'gamma']
+    elif name.lower() == 'raisedcosine':
+        return ['amplitude', 'center', 'sigma', 'beta']
+    elif name.lower() == 'wignersemicircle':
+        return ['amplitude', 'center', 'sigma']
+    else:
+        raise ValueError(f'Unknown model name: {name}')
+
 # -----------------------------------------------------------------------------
 # %% Poisson distribution
 # -----------------------------------------------------------------------------

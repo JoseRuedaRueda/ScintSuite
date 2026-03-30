@@ -10,7 +10,7 @@ import xarray as xr
 from scipy.signal import convolve
 from ScintSuite._SideFunctions import createGrid, gkern
 from ScintSuite._StrikeMap._FILD_INPA_ParentStrikeMap import FILDINPA_Smap
-from ScintSuite.SimulationCodes.FILDSIM.execution import get_energy
+from ScintSuite.SimulationCodes.Common import get_energy
 import ScintSuite.errors as errors
 logger = logging.getLogger('ScintSuite.FILDsmap')
 try:
@@ -157,7 +157,7 @@ class Fsmap(FILDINPA_Smap):
                 if names[k] == 'energy' or names[k] == 'e0':
                     eff = efficiency(dummy).values
                 elif names[k] == 'gyroradius':
-                    energy = get_energy(dummy, B, A, Z) / 1000.0
+                    energy = get_energy(dummy, B, A, Z).to('keV').value
                     eff = efficiency(energy).values
             logger.info('Considering scintillator efficiency in W')
         else:
@@ -333,7 +333,7 @@ class Fsmap(FILDINPA_Smap):
                     continue
                 
                 if efficiency is not None:
-                    energy = get_energy(yCen[jypinhole], B, A, Z) / 1000.0
+                    energy = get_energy(yCen[jypinhole], B, A, Z).to('keV').value
                     eff = efficiency(energy).values
                 else:
                     eff = 1.0
@@ -399,7 +399,8 @@ class Fsmap(FILDINPA_Smap):
                     keyToEval = 'ys'
                 # Now move to energy
                 xToEval = self.instrument_function[keyToEval]
-                energyToEval = get_energy(xToEval.values, B, A, Z)
+                # @TODO: Check this units after chaingng to unyt, I think the fit expected ev? (if not it was wrong before)
+                energyToEval = get_energy(xToEval.values, B, A, Z).to('keV').value
                 scaleFactor = fit.eval(x=energyToEval)
 
             scaleFactor = xr.DataArray(scaleFactor, dims=keyToEval,

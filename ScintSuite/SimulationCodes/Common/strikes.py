@@ -10,11 +10,13 @@ import os
 import math
 import f90nml
 import logging
+import unyt
 import numpy as np
 import xarray as xr
 import ScintSuite.errors as errors
 import ScintSuite._Plotting as ssplt
 import matplotlib.pyplot as plt
+import pandas as pd
 from tqdm import tqdm
 from ScintSuite.version_suite import exportVersion
 from copy import deepcopy
@@ -446,6 +448,9 @@ class Strikes:
         self.histograms = {}
         ## Magnetic field at the detector
         self.B = None
+        # Assembly the dataframe
+        self.df = None
+        self.df = self.to_dataframe()
 
     # -------------------------------------------------------------------------
     # --- Histogram calculation
@@ -480,137 +485,109 @@ class Strikes:
             'H': Histogram matrix, [nx, ny], normalised to bin area
         """
         # --- Check if the variables we need actually exist
-        if (varx not in self.header['info'].keys()) or \
-           (vary not in self.header['info'].keys()):
-            print('Variables available: ', list(self.header['info'].keys()))
+        if self.df is None or not isinstance(self.df, pd.DataFrame):
+            raise ValueError('self.df is not available or not a DataFrame')
+        if (varx not in self.df.columns) or (vary not in self.df.columns):
+            print('Variables available: ', list(self.df.columns))
             raise Exception('Variables not found')
         # --- Check if the histogram is already there
         if (varx + '_' + vary) in self.histograms.keys():
             logger.warning('11: Histogram present, overwritting')
-        # --- Find the needed colums:
+        # --- Resolve x/y column names (camera frame remap)
         if not varx.endswith('cam'):
-            jx = self.header['info'][varx]['i']
-            jy = self.header['info'][vary]['i']
+            xcol = varx
+            ycol = vary
         else:
-            # This is to avoid issues with the remap of the camera frame, as
-            # latter we will adopt the IDL criteria for camera frames and all
-            #  is a bit messy. Sorry
             text = 'varx and vary exchanged'
             logger.warning('a3: %s' % text)
-            jx = self.header['info'][vary]['i']
-            jy = self.header['info'][varx]['i']
+            xcol = vary
+            ycol = varx
 
-        try:   # FILD strike points has no weight
-            jw = self.header['info']['weight']['i']
-        except KeyError:
-            jw = None
-        try:   # For 2.0 SINPA files with 2 weights
-            jw0 = self.header['info']['weight0']['i']
-        except KeyError:
-            jw0 = None
-        try:   # We can have optics in the camera, which include optical models
-            jwc = self.header['info']['wcam']['i']
-        except KeyError:
-            jwc = None
-        try:   # For 2.0 SINPA files with 2 weights
-            jk = self.header['info']['kind']['i']
-        except KeyError:
-            jk = None
-        # --- Define the grid for the histogram
+        # Optional weight/kind columns in self.df
+        has_w = 'weight' in self.df.columns
+        has_w0 = 'weight0' in self.df.columns
+        has_wcam = 'wcam' in self.df.columns
+        has_kind = 'kind' in self.df.columns
+
+        # --- Define the grid for the histogram from self.df
         if (binsx is None) or isinstance(binsx, int):
-            xmin = np.inf
-            xmax = -np.inf
-            for ig in range(self.header['ngyr']):
-                for ia in range(self.header['nXI']):
-                    if self.header['counters'][ia, ig] > 0:
-                        xmin = min(self.data[ia, ig][:, jx].min(), xmin)
-                        xmax = max(self.data[ia, ig][:, jx].max(), xmax)
+            xmin = self.df[xcol].min()
+            xmax = self.df[xcol].max()
+            if np.isnan(xmin) or np.isnan(xmax):
+                xmin, xmax = 0.0, 1.0
             if binsx is None:
                 edgesx = np.linspace(xmin, xmax, 25)
             else:
-                edgesx = np.linspace(xmin, xmax, binsx+1)
+                edgesx = np.linspace(xmin, xmax, binsx + 1)
         else:
-            edgesx = binsx
-        if (binsy is None) or isinstance(binsx, int):
-            ymin = np.inf
-            ymax = -np.inf
-            for ig in range(self.header['ngyr']):
-                for ia in range(self.header['nXI']):
-                    if self.header['counters'][ia, ig] > 0:
-                        ymin = min(self.data[ia, ig][:, jy].min(), ymin)
-                        ymax = max(self.data[ia, ig][:, jy].max(), ymax)
+            edgesx = np.asarray(binsx)
+        if (binsy is None) or isinstance(binsy, int):
+            ymin = self.df[ycol].min()
+            ymax = self.df[ycol].max()
+            if np.isnan(ymin) or np.isnan(ymax):
+                ymin, ymax = 0.0, 1.0
             if binsy is None:
                 edgesy = np.linspace(ymin, ymax, 25)
             else:
-                edgesy = np.linspace(ymin, ymax, binsy+1)
+                edgesy = np.linspace(ymin, ymax, binsy + 1)
         else:
-            edgesy = binsy
+            edgesy = np.asarray(binsy)
         # --- Preallocate the data
         histName = varx + '_' + vary
         self.histograms[histName] = xr.Dataset()
-        # kind of markers:
         supportedKinds = [0, 5, 6, 7, 8]
-        if self.header['FILDSIMmode'] or jk is None:
+        if self.header['FILDSIMmode'] or not has_kind:
             supportedKinds = [0,]
         nkinds = len(supportedKinds)
-        # Prepare the matrices
-        # Basic (counts)
         data = np.zeros((edgesx.size - 1, edgesy.size - 1, nkinds))
-        # For the weight at thedetecor entrance
-        if jw0 is not None:
+        if has_w0:
             data0 = np.zeros((edgesx.size - 1, edgesy.size - 1, nkinds))
-        # For the weight at the scintillator
-        if jw is not None:
+        if has_w:
             dataS = np.zeros((edgesx.size - 1, edgesy.size - 1, nkinds))
-        # For the weight of the camera
-        if jwc is not None:
+        if has_wcam:
             dataC = np.zeros((edgesx.size - 1, edgesy.size - 1, nkinds))
+        # Only (gyroradius, XI) groups with more than one marker (match original)
+        if 'gyroradius' in self.df.columns and 'XI' in self.df.columns:
+            group_sizes = self.df.groupby(['gyroradius', 'XI']).size()
+            valid_pairs = group_sizes[group_sizes > 1].index
+            valid_df = pd.DataFrame(list(valid_pairs), columns=['gyroradius', 'XI'])
+            df_hist = self.df.merge(valid_df, on=['gyroradius', 'XI'], how='inner')
+        else:
+            df_hist = self.df
         for ik, k in enumerate(supportedKinds):
-            logger.debug('Histograming kind %i'%k)
-            for ig in range(self.header['ngyr']):
-                for ia in range(self.header['nXI']):
-                    if self.header['counters'][ia, ig] > 1:
-                        # Skip if there are not markers of that kind
-                        if k != 0:
-                            f = self.data[ia, ig][:, jk].astype(int) == k
-                            if f.sum() == 0:
-                                continue
-                        else:
-                            f = np.ones(self.data[ia, ig][:, 0].size, bool)
-                        logger.debug('Matrix %i %i  flags %i'%(
-                            self.data[ia, ig].shape[0],
-                            self.data[ia, ig].shape[1],
-                            f.size
-                        ))
-                        # Count histogram
-                        H, xedges, yedges = \
-                            np.histogram2d(self.data[ia, ig][f, jx],
-                                           self.data[ia, ig][f, jy],
-                                           bins=(edgesx, edgesy))
-                        data[:, :, ik] += H
-                        # Weight histogram
-                        if jw is not None:
-                            H, xedges, yedges = \
-                                np.histogram2d(self.data[ia, ig][f, jx],
-                                               self.data[ia, ig][f, jy],
-                                               bins=(edgesx, edgesy),
-                                               weights=self.data[ia, ig][f, jw])
-                            dataS[:, :, ik] += H
-                        # Entrance weight histogram
-                        if jw0 is not None:
-                            H, xedges, yedges = \
-                                np.histogram2d(self.data[ia, ig][f, jx],
-                                               self.data[ia, ig][f, jy],
-                                               bins=(edgesx, edgesy),
-                                               weights=self.data[ia, ig][f, jw0])
-                            data0[:, :, ik] += H
-                        if jwc is not None:
-                            H, xedges, yedges = \
-                                np.histogram2d(self.data[ia, ig][f, jx],
-                                               self.data[ia, ig][f, jy],
-                                               bins=(edgesx, edgesy),
-                                               weights=self.data[ia, ig][f, jwc])
-                            dataC[:, :, ik] += H
+            logger.debug('Histograming kind %i' % k)
+            if k != 0 and has_kind:
+                mask = df_hist['kind'].astype(int) == k
+                if not mask.any():
+                    continue
+                sub = df_hist.loc[mask]
+            else:
+                sub = df_hist
+            if len(sub) == 0:
+                continue
+            logger.debug('Histogram rows %i' % len(sub))
+            H, xedges, yedges = np.histogram2d(
+                sub[xcol].values, sub[ycol].values, bins=(edgesx, edgesy)
+            )
+            data[:, :, ik] += H
+            if has_w:
+                H, xedges, yedges = np.histogram2d(
+                    sub[xcol].values, sub[ycol].values,
+                    bins=(edgesx, edgesy), weights=sub['weight'].values
+                )
+                dataS[:, :, ik] += H
+            if has_w0:
+                H, xedges, yedges = np.histogram2d(
+                    sub[xcol].values, sub[ycol].values,
+                    bins=(edgesx, edgesy), weights=sub['weight0'].values
+                )
+                data0[:, :, ik] += H
+            if has_wcam:
+                H, xedges, yedges = np.histogram2d(
+                    sub[xcol].values, sub[ycol].values,
+                    bins=(edgesx, edgesy), weights=sub['wcam'].values
+                )
+                dataC[:, :, ik] += H
         xcen = 0.5 * (xedges[1:] + xedges[:-1])
         ycen = 0.5 * (yedges[1:] + yedges[:-1])
         deltax = xcen[1] - xcen[0]
@@ -625,10 +602,10 @@ class Strikes:
         self.histograms[histName]['markers'].attrs['Description'] = \
             'Number of markers histogram'
         self.histograms[histName]['markers'].attrs['units'] = \
-            '#/(' + self.header['info'][varx]['units'] + '$\\cdot$' +\
-            self.header['info'][vary]['units'] + ')'
+            '#/(' + self.df.attrs['units'][varx] + '$\\cdot$' +\
+            self.df.attrs['units'][vary] + ')'
         self.histograms[histName]['markers'].attrs['long_name'] = 'Markers'
-        if jw is not None:
+        if has_w:
             dataS /= deltax * deltay
             self.histograms[histName]['w'] = xr.DataArray(
                 dataS, dims=('x', 'y', 'kind'),
@@ -637,11 +614,11 @@ class Strikes:
             self.histograms[histName]['w'].attrs['Description'] = \
                 'Weight at the scintillator'
             self.histograms[histName]['w'].attrs['units'] = \
-                self.header['info']['weight']['units'] +\
-                '/(' + self.header['info'][varx]['units'] + '$\\cdot$' +\
-                self.header['info'][vary]['units'] + ')'
+                self.df.attrs['units']['weight'] +\
+                '/(' + self.df.attrs['units'][varx] + '$\\cdot$' +\
+                self.df.attrs['units'][vary] + ')'
             self.histograms[histName]['w'].attrs['long_name'] = '$W_{Scint}$'
-        if jw0 is not None:
+        if has_w0:
             data0 /= deltax * deltay
             self.histograms[histName]['w0'] = xr.DataArray(
                 data0, dims=('x', 'y', 'kind'),
@@ -650,11 +627,11 @@ class Strikes:
             self.histograms[histName]['w0'].attrs['Description'] = \
                 'Weight at the pinhole'
             self.histograms[histName]['w0'].attrs['units'] = \
-                self.header['info']['weight0']['units'] +\
-                '/(' + self.header['info'][varx]['units'] + '$\\cdot$' +\
-                self.header['info'][vary]['units'] + ')'
+                self.df.attrs['units']['weight0'] +\
+                '/(' + self.df.attrs['units'][varx] + '$\\cdot$' +\
+                self.df.attrs['units'][vary] + ')'
             self.histograms[histName]['w0'].attrs['long_name'] = '$W_{Pin}$'
-        if jwc is not None:
+        if has_wcam:
             dataC /= deltax * deltay
             self.histograms[histName]['wcam'] = xr.DataArray(
                 dataC, dims=('x', 'y', 'kind'),
@@ -664,15 +641,19 @@ class Strikes:
                 'Weight at the camera'
             self.histograms[histName]['wcam'].attrs['units'] = '[a.u.]'
             self.histograms[histName]['wcam'].attrs['long_name'] = '$W_{cam}$'
-        # Set the variables attributes
-        self.histograms[histName]['x'].attrs['long_name'] = \
-            self.header['info'][varx]['shortName']
-        self.histograms[histName]['y'].attrs['long_name'] = \
-            self.header['info'][vary]['shortName']
-        self.histograms[histName]['x'].attrs['units'] = \
-            self.header['info'][varx]['units']
-        self.histograms[histName]['y'].attrs['units'] = \
-            self.header['info'][vary]['units']
+        # Set the variables attributes (use header when available for units/labels)
+        if varx in self.df.columns:
+            self.histograms[histName]['x'].attrs['long_name'] = \
+                self.df.attrs['shortName'][varx]
+            self.histograms[histName]['x'].attrs['units'] = \
+                self.df.attrs['units'][varx]
+        if vary in self.df.columns:
+            self.histograms[histName]['y'].attrs['long_name'] = \
+                self.df.attrs['shortName'][vary]
+            self.histograms[histName]['y'].attrs['units'] = \
+                self.df.attrs['units'][vary]
+            self.histograms[histName]['y'].attrs['long_name'] = \
+                self.df.attrs['shortName'][vary]
         self.histograms[histName]['kind'].attrs['long_name'] = 'Marker kind'
         # Set the attributes of the data set
         self.histograms[histName].attrs['xedges'] = xedges
@@ -703,102 +684,92 @@ class Strikes:
             'xedges': bin edges on the x axis,
             'H': Histogram array, [nx], normalised to bin area
         """
-        # --- Check if the variables we need actually exist
-        if (var not in self.header['info'].keys()):
-            print('Variables available: ', list(self.header['info'].keys()))
+        # --- Check if the variables we need actually exist (use self.df)
+        if self.df is None or not isinstance(self.df, pd.DataFrame):
+            raise ValueError('self.df is not available or not a DataFrame')
+        if var not in self.df.columns:
+            print('Variables available: ', list(self.df.columns))
             raise Exception('Variables not found')
         # --- Check if the histogram is already there
         if var in self.histograms.keys():
             logger.warning('11: Histogram present, overwritting')
-        # --- Find the needed colums:
-        dat = self(var)
-        w = self('weight')
-        w0 = self('weight0')
-        k = self('kind')
+        dat = self.df[var].values
+        w = self.df['weight'].values if 'weight' in self.df.columns else None
+        w0 = self.df['weight0'].values if 'weight0' in self.df.columns else None
+        k = self.df['kind'].values if 'kind' in self.df.columns else None
         # --- Define the grid for the histogram
         if (bins is None) or isinstance(bins, int):
-            xmin = dat.min()
-            xmax = dat.max()
+            xmin = np.nanmin(dat)
+            xmax = np.nanmax(dat)
+            if np.isnan(xmin) or np.isnan(xmax):
+                xmin, xmax = 0.0, 1.0
             if bins is None:
                 edgesx = np.linspace(xmin, xmax, 25)
             else:
-                edgesx = np.linspace(xmin, xmax, bins+1)
+                edgesx = np.linspace(xmin, xmax, bins + 1)
         else:
-            edgesx = bins
+            edgesx = np.asarray(bins)
         # --- Preallocate the data
         varw = var + '_w'
-        varw0 = var + 'w_0'
+        varw0 = var + '_w0'
         # Basic (counts)
         self.histograms[var] = \
             {0: {}, 5: {}, 6: {}, 7: {}, 8: {}}
-        # For the weight at thedetecor entrance
         if w0 is not None:
-            self.histograms[varw0] = \
-                {0: {}, 5: {}, 6: {}, 7: {}, 8: {}}
-        # For the weight at the scintillator
+            self.histograms[varw0] = {0: {}, 5: {}, 6: {}, 7: {}, 8: {}}
         if w is not None:
-            self.histograms[varw] = \
-                {0: {}, 5: {}, 6: {}, 7: {}, 8: {}}
-        # We could calculate the complete histogram (case k = 0) as the sum of
-        # the individual histogram, this will be more efficient but we would
-        # have the issue that the FILD strike points does not have this kind
-        # separation. So we would need to duplicate, for FILD straight
-        # calculation, and for INPA signal the sum. Computationally speaking is
-        # fast, so to simplify, I would perform the full calculation
-        H, xedges = \
-            np.histogram(dat, bins=edgesx)
+            self.histograms[varw] = {0: {}, 5: {}, 6: {}, 7: {}, 8: {}}
+        H, xedges = np.histogram(dat, bins=edgesx)
         xcen = 0.5 * (xedges[1:] + xedges[:-1])
-        deltax = xcen[1] - xcen[0]
+        deltax = xcen[1] - xcen[0] if len(xcen) > 1 else 1.0
         self.histograms[var][0] = {
             'xcen': xcen,
             'xedges': xedges,
-            'H': H.astype(float)/deltax
+            'H': H.astype(float) / deltax
         }
         if w is not None:
-            H, xedges = \
-                np.histogram(dat, bins=edgesx, weights=w)
+            H, xedges = np.histogram(dat, bins=edgesx, weights=w)
             self.histograms[varw][0] = {
                 'xcen': xcen,
                 'xedges': xedges,
-                'H': H.astype(float)/deltax
+                'H': H.astype(float) / deltax
             }
         if w0 is not None:
-            H, xedges = \
-                np.histogram(dat, bins=edgesx, weights=w0)
+            H, xedges = np.histogram(dat, bins=edgesx, weights=w0)
             self.histograms[varw0][0] = {
                 'xcen': xcen,
                 'xedges': xedges,
-                'H': H.astype(float)/deltax
+                'H': H.astype(float) / deltax
             }
         # Now repeat the same for the different kinds
         if k is not None:
             for kind in [5, 6, 7, 8]:
-                flags = k == kind
-                # Count histogram
+                flags = k.astype(int) == kind
+                if not np.any(flags):
+                    continue
                 H, xedges = np.histogram(dat[flags], bins=edgesx)
                 xcen = 0.5 * (xedges[1:] + xedges[:-1])
-                deltax = xcen[1] - xcen[0]
+                deltax = xcen[1] - xcen[0] if len(xcen) > 1 else 1.0
                 self.histograms[var][kind] = {
                     'xcen': xcen,
                     'xedges': xedges,
-                    'H': H.astype(float)/deltax
+                    'H': H.astype(float) / deltax
                 }
                 if w is not None:
-                    H, xedges = \
-                        np.histogram(dat[flags], bins=edgesx, weights=w[flags])
+                    H, xedges = np.histogram(dat[flags], bins=edgesx,
+                                             weights=w[flags])
                     self.histograms[varw][kind] = {
                         'xcen': xcen,
                         'xedges': xedges,
-                        'H': H.astype(float)/deltax
+                        'H': H.astype(float) / deltax
                     }
                 if w0 is not None:
-                    H, xedges = \
-                        np.histogram(dat[flags], bins=edgesx,
-                                     weights=w0[flags])
+                    H, xedges = np.histogram(dat[flags], bins=edgesx,
+                                             weights=w0[flags])
                     self.histograms[varw0][kind] = {
                         'xcen': xcen,
                         'xedges': xedges,
-                        'H': H.astype(float)/deltax
+                        'H': H.astype(float) / deltax
                     }
 
     def calculate_3d_histogram(self, varx: str = 'xcx', vary: str = 'yxc',
@@ -832,160 +803,106 @@ class Strikes:
             'yedges': bin edges on the y axis,
             'H': Histogram matrix, [nx, ny], normalised to bin area
         """
-        # --- Check if the variables we need actually exist
-        if (varx not in self.header['info'].keys()) or \
-           (vary not in self.header['info'].keys()) or \
-           (varz not in self.header['info'].keys()):
-            print('Variables available: ', list(self.header['info'].keys()))
+        # --- Check if the variables we need actually exist (use self.df)
+        if self.df is None or not isinstance(self.df, pd.DataFrame):
+            raise ValueError('self.df is not available or not a DataFrame')
+        if (varx not in self.df.columns) or (vary not in self.df.columns) or \
+           (varz not in self.df.columns):
+            print('Variables available: ', list(self.df.columns))
             raise Exception('Variables not found')
         # --- Check if the histogram is already there
         if (varx + '_' + vary + '_' + varz) in self.histograms.keys():
             logger.warning('11: Histogram present, overwritting')
-        # --- Find the needed colums:
+        # --- Resolve column names (camera frame remap)
         if not varx.endswith('cam'):
-            jx = self.header['info'][varx]['i']
-            jy = self.header['info'][vary]['i']
-            jz = self.header['info'][varz]['i']
+            xcol, ycol, zcol = varx, vary, varz
         else:
             if varz.endswith('cam'):
                 raise Exception('Sorry not implemented, permute variables')
-            # This is to avoid issues with the remap of the camera frame, as
-            # latter we will adopt the IDL criteria for camera frames and all
-            #  is a bit messy. Sorry
-            text = 'varx and vary exchanged'
-            logger.warning('a3: %s' % text)
-            jx = self.header['info'][vary]['i']
-            jy = self.header['info'][varx]['i']
-            jz = self.header['info'][varz]['i']
+            logger.warning('a3: varx and vary exchanged')
+            xcol, ycol, zcol = vary, varx, varz
 
-        try:   # FILD strike points has no weight
-            jw = self.header['info']['weight']['i']
-        except KeyError:
-            jw = None
-        try:   # For 2.0 SINPA files with 2 weights
-            jw0 = self.header['info']['weight0']['i']
-        except KeyError:
-            jw0 = None
-        try:   # We can have optics in the camera, which include optical models
-            jwc = self.header['info']['wcam']['i']
-        except KeyError:
-            jwc = None
-        try:   # For 2.0 SINPA files with 2 weights
-            jk = self.header['info']['kind']['i']
-        except KeyError:
-            jk = None
-        # --- Define the grid for the histogram
+        has_w = 'weight' in self.df.columns
+        has_w0 = 'weight0' in self.df.columns
+        has_wcam = 'wcam' in self.df.columns
+        has_kind = 'kind' in self.df.columns
+
+        # --- Define the grid for the histogram from self.df
         if (binsx is None) or isinstance(binsx, int):
-            xmin = np.inf
-            xmax = -np.inf
-            for ig in range(self.header['ngyr']):
-                for ia in range(self.header['nXI']):
-                    if self.header['counters'][ia, ig] > 0:
-                        xmin = min(self.data[ia, ig][:, jx].min(), xmin)
-                        xmax = max(self.data[ia, ig][:, jx].max(), xmax)
-            if binsx is None:
-                edgesx = np.linspace(xmin, xmax, 25)
-            else:
-                edgesx = np.linspace(xmin, xmax, binsx+1)
+            xmin, xmax = self.df[xcol].min(), self.df[xcol].max()
+            if np.isnan(xmin) or np.isnan(xmax):
+                xmin, xmax = 0.0, 1.0
+            edgesx = np.linspace(xmin, xmax, 25 if binsx is None else binsx + 1)
         else:
-            edgesx = binsx
+            edgesx = np.asarray(binsx)
         if (binsy is None) or isinstance(binsy, int):
-            ymin = np.inf
-            ymax = -np.inf
-            for ig in range(self.header['ngyr']):
-                for ia in range(self.header['nXI']):
-                    if self.header['counters'][ia, ig] > 0:
-                        ymin = min(self.data[ia, ig][:, jy].min(), ymin)
-                        ymax = max(self.data[ia, ig][:, jy].max(), ymax)
-            if binsy is None:
-                edgesy = np.linspace(ymin, ymax, 25)
-            else:
-                edgesy = np.linspace(ymin, ymax, binsy+1)
+            ymin, ymax = self.df[ycol].min(), self.df[ycol].max()
+            if np.isnan(ymin) or np.isnan(ymax):
+                ymin, ymax = 0.0, 1.0
+            edgesy = np.linspace(ymin, ymax, 25 if binsy is None else binsy + 1)
         else:
-            edgesy = binsy
+            edgesy = np.asarray(binsy)
         if (binsz is None) or isinstance(binsz, int):
-            zmin = np.inf
-            zmax = -np.inf
-            for ig in range(self.header['ngyr']):
-                for ia in range(self.header['nXI']):
-                    if self.header['counters'][ia, ig] > 0:
-                        zmin = min(self.data[ia, ig][:, jz].min(), zmin)
-                        zmax = max(self.data[ia, ig][:, jz].max(), zmax)
-            if binsz is None:
-                edgesz = np.linspace(zmin, zmax, 25)
-            else:
-                edgesz = np.linspace(zmin, zmax, binsz+1)
+            zmin, zmax = self.df[zcol].min(), self.df[zcol].max()
+            if np.isnan(zmin) or np.isnan(zmax):
+                zmin, zmax = 0.0, 1.0
+            edgesz = np.linspace(zmin, zmax, 25 if binsz is None else binsz + 1)
         else:
-            edgesz = binsz
+            edgesz = np.asarray(binsz)
         # --- Preallocate the data
         histName = varx + '_' + vary + '_' + varz
         self.histograms[histName] = xr.Dataset()
-        # kind of markers:
         supportedKinds = [0, 5, 6, 7, 8]
-        if self.header['FILDSIMmode']:
+        if self.header['FILDSIMmode'] or not has_kind:
             supportedKinds = [0,]
         nkinds = len(supportedKinds)
-        # Prepare the matrices
-        # Basic (counts)
-        data = np.zeros((edgesx.size - 1, edgesy.size - 1, 
-                         edgesz.size - 1, nkinds))
-
-        # For the weight at the detecor entrance
-        if jw0 is not None:
-            data0 = np.zeros((edgesx.size - 1, edgesy.size - 1, 
-                              edgesz.size - 1, nkinds))
-        # For the weight at the scintillator
-        if jw is not None:
-            dataS = np.zeros((edgesx.size - 1, edgesy.size - 1, 
-                              edgesz.size - 1, nkinds))
-        # For the weight of the camera
-        if jwc is not None:
-            dataC = np.zeros((edgesx.size - 1, edgesy.size - 1, 
-                              edgesz.size - 1, nkinds))
+        data = np.zeros((edgesx.size - 1, edgesy.size - 1, edgesz.size - 1, nkinds))
+        if has_w0:
+            data0 = np.zeros((edgesx.size - 1, edgesy.size - 1, edgesz.size - 1, nkinds))
+        if has_w:
+            dataS = np.zeros((edgesx.size - 1, edgesy.size - 1, edgesz.size - 1, nkinds))
+        if has_wcam:
+            dataC = np.zeros((edgesx.size - 1, edgesy.size - 1, edgesz.size - 1, nkinds))
+        if 'gyroradius' in self.df.columns and 'XI' in self.df.columns:
+            group_sizes = self.df.groupby(['gyroradius', 'XI']).size()
+            valid_pairs = group_sizes[group_sizes > 1].index
+            valid_df = pd.DataFrame(list(valid_pairs), columns=['gyroradius', 'XI'])
+            df_hist = self.df.merge(valid_df, on=['gyroradius', 'XI'], how='inner')
+        else:
+            df_hist = self.df
         for ik, k in enumerate(supportedKinds):
-            for ig in range(self.header['ngyr']):
-                for ia in range(self.header['nXI']):
-                    if self.header['counters'][ia, ig] > 1:
-                        # Skip if there are not markers of that kind
-                        if k != 0:
-                            f = self.data[ig, ia][:, jk].astype(int) == k
-                            if f.sum() == 0:
-                                continue
-                        else:
-                            f = np.ones(self.data[ig, ia][:, 0].size, bool)
-                        # Count histogram
-                        H, (xedges, yedges, zedges) = \
-                            np.histogramdd((self.data[ia, ig][f, jx],
-                                            self.data[ia, ig][f, jy],
-                                            self.data[ia, ig][f, jz]),
-                                           bins=(edgesx, edgesy, edgesz))
-                        data[:, :, :, ik] += H
-                        # Weight histogram
-                        if jw is not None:
-                            H, (xedges, yedges, zedges) = \
-                                np.histogramdd((self.data[ia, ig][f, jx],
-                                               self.data[ia, ig][f, jy],
-                                               self.data[ia, ig][f, jz]),
-                                               bins=(edgesx, edgesy, edgesz),
-                                               weights=self.data[ia, ig][f, jw])
-                            dataS[:, :, :, ik] += H
-                        # Entrance weight histogram
-                        if jw0 is not None:
-                            H, (xedges, yedges, zedges) = \
-                                np.histogramdd((self.data[ia, ig][f, jx],
-                                               self.data[ia, ig][f, jy],
-                                               self.data[ia, ig][f, jz]),
-                                               bins=(edgesx, edgesy, edgesz),
-                                               weights=self.data[ia, ig][f, jw0])
-                            data0[:, :, :, ik] += H
-                        if jwc is not None:
-                            H, (xedges, yedges, zedges) = \
-                                np.histogramdd((self.data[ia, ig][f, jx],
-                                               self.data[ia, ig][f, jy],
-                                               self.data[ia, ig][f, jz]),
-                                               bins=(edgesx, edgesy, edgesz),
-                                               weights=self.data[ia, ig][f, jwc])
-                            dataC[:, :, :, ik] += H
+            if k != 0 and has_kind:
+                mask = df_hist['kind'].astype(int) == k
+                if not mask.any():
+                    continue
+                sub = df_hist.loc[mask]
+            else:
+                sub = df_hist
+            if len(sub) == 0:
+                continue
+            H, (xedges, yedges, zedges) = np.histogramdd(
+                (sub[xcol].values, sub[ycol].values, sub[zcol].values),
+                bins=(edgesx, edgesy, edgesz)
+            )
+            data[:, :, :, ik] += H
+            if has_w:
+                H, _ = np.histogramdd(
+                    (sub[xcol].values, sub[ycol].values, sub[zcol].values),
+                    bins=(edgesx, edgesy, edgesz), weights=sub['weight'].values
+                )
+                dataS[:, :, :, ik] += H
+            if has_w0:
+                H, _ = np.histogramdd(
+                    (sub[xcol].values, sub[ycol].values, sub[zcol].values),
+                    bins=(edgesx, edgesy, edgesz), weights=sub['weight0'].values
+                )
+                data0[:, :, :, ik] += H
+            if has_wcam:
+                H, _ = np.histogramdd(
+                    (sub[xcol].values, sub[ycol].values, sub[zcol].values),
+                    bins=(edgesx, edgesy, edgesz), weights=sub['wcam'].values
+                )
+                dataC[:, :, :, ik] += H
         xcen = 0.5 * (xedges[1:] + xedges[:-1])
         ycen = 0.5 * (yedges[1:] + yedges[:-1])
         zcen = 0.5 * (zedges[1:] + zedges[:-1])
@@ -1007,8 +924,8 @@ class Strikes:
             self.header['info'][vary]['units'] + \
             self.header['info'][varz]['units'] + ')'
         self.histograms[histName]['markers'].attrs['long_name'] = 'Markers'
-        if jw is not None:
-            dataS /= deltax * deltay
+        if has_w:
+            dataS /= deltax * deltay * deltaz
             self.histograms[histName]['w'] = xr.DataArray(
                 dataS, dims=('x', 'y', 'z', 'kind'),
                 coords={'x': xcen, 'y': ycen, 'z': zcen, 
@@ -1022,8 +939,8 @@ class Strikes:
                 self.header['info'][vary]['units'] + \
                 self.header['info'][varz]['units'] + ')'
             self.histograms[histName]['w'].attrs['long_name'] = '$W_{Scint}$'
-        if jw0 is not None:
-            data0 /= deltax * deltay
+        if has_w0:
+            data0 /= deltax * deltay * deltaz
             self.histograms[histName]['w0'] = xr.DataArray(
                 data0, dims=('x', 'y', 'z', 'kind'),
                 coords={'x': xcen, 'y': ycen, 'z': zcen, 
@@ -1037,8 +954,8 @@ class Strikes:
                 self.header['info'][vary]['units'] + \
                 self.header['info'][varz]['units'] + ')'
             self.histograms[histName]['w0'].attrs['long_name'] = '$W_{Pin}$'
-        if jwc is not None:
-            dataC /= deltax * deltay
+        if has_wcam:
+            dataC /= deltax * deltay * deltaz
             self.histograms[histName]['wcam'] = xr.DataArray(
                 dataC, dims=('x', 'y', 'z', 'kind'),
                 coords={'x': xcen, 'y': ycen, 'z': zcen, 
@@ -1049,18 +966,21 @@ class Strikes:
             self.histograms[histName]['wcam'].attrs['units'] = '[a.u.]'
             self.histograms[histName]['wcam'].attrs['long_name'] = '$W_{cam}$'
         # Set the variables attributes
-        self.histograms[histName]['x'].attrs['long_name'] = \
-            self.header['info'][varx]['shortName']
-        self.histograms[histName]['y'].attrs['long_name'] = \
-            self.header['info'][vary]['shortName']
-        self.histograms[histName]['x'].attrs['units'] = \
-            self.header['info'][varx]['units']
-        self.histograms[histName]['y'].attrs['units'] = \
-            self.header['info'][vary]['units']        
-        self.histograms[histName]['z'].attrs['long_name'] = \
-            self.header['info'][varz]['shortName']
-        self.histograms[histName]['z'].attrs['units'] = \
-            self.header['info'][varz]['units']
+        if varx in self.header.get('info', {}):
+            self.histograms[histName]['x'].attrs['long_name'] = \
+                self.header['info'][varx]['shortName']
+            self.histograms[histName]['x'].attrs['units'] = \
+                self.header['info'][varx]['units']
+        if vary in self.header.get('info', {}):
+            self.histograms[histName]['y'].attrs['long_name'] = \
+                self.header['info'][vary]['shortName']
+            self.histograms[histName]['y'].attrs['units'] = \
+                self.header['info'][vary]['units']
+        if varz in self.header.get('info', {}):
+            self.histograms[histName]['z'].attrs['long_name'] = \
+                self.header['info'][varz]['shortName']
+            self.histograms[histName]['z'].attrs['units'] = \
+                self.header['info'][varz]['units']
         self.histograms[histName]['kind'].attrs['long_name'] = 'Marker kind'
         # Set the attributes of the data set
         self.histograms[histName].attrs['xedges'] = xedges
@@ -1092,181 +1012,102 @@ class Strikes:
         :param  binsx3: similar to binsx but for the x3 variable
         :param  binsx4: similar to binsx but for the x4 variable
         """
-        # --- Check if the variables we need actually exist
-        if (varx1 not in self.header['info'].keys()) or \
-           (varx2 not in self.header['info'].keys()) or \
-           (varx3 not in self.header['info'].keys()) or \
-           (varx4 not in self.header['info'].keys()):
-            print('Variables available: ', list(self.header['info'].keys()))
-            raise Exception('Variables not found')
-        # --- Check if the histogram is already there
+        # --- Check if the variables we need actually exist (use self.df)
+        if self.df is None or not isinstance(self.df, pd.DataFrame):
+            raise ValueError('self.df is not available or not a DataFrame')
+        for v in (varx1, varx2, varx3, varx4):
+            if v not in self.df.columns:
+                print('Variables available: ', list(self.df.columns))
+                raise Exception('Variables not found')
         histName = varx1 + '_' + varx2 + '_' + varx3 + '_' + varx4
         if histName in self.histograms.keys():
             logger.warning('11: Histogram present, overwritting')
-        # --- Find the needed colums:
+        # --- Resolve column names (camera frame remap)
         if not varx1.endswith('cam'):
-            jx = self.header['info'][varx1]['i']
-            jy = self.header['info'][varx2]['i']
-            jz = self.header['info'][varx3]['i']
-            jt = self.header['info'][varx4]['i']
+            col1, col2, col3, col4 = varx1, varx2, varx3, varx4
         else:
             if varx3.endswith('cam') or varx4.endswith('cam'):
                 raise Exception('Sorry not implemented, permute variables')
-            # This is to avoid issues with the remap of the camera frame, as
-            # latter we will adopt the IDL criteria for camera frames and all
-            #  is a bit messy. Sorry
-            text = 'varx and vary exchanged'
-            logger.warning('a3: %s' % text)
-            jx = self.header['info'][varx2]['i']
-            jy = self.header['info'][varx1]['i']
-            jz = self.header['info'][varx3]['i']
-            jt = self.header['info'][varx4]['i']
+            logger.warning('a3: varx and vary exchanged')
+            col1, col2, col3, col4 = varx2, varx1, varx3, varx4
 
-        try:   # FILD strike points has no weight
-            jw = self.header['info']['weight']['i']
-        except KeyError:
-            jw = None
-        try:   # For 2.0 SINPA files with 2 weights
-            jw0 = self.header['info']['weight0']['i']
-        except KeyError:
-            jw0 = None
-        try:   # We can have optics in the camera, which include optical models
-            jwc = self.header['info']['wcam']['i']
-        except KeyError:
-            jwc = None
-        try:   # For 2.0 SINPA files with 2 weights
-            jk = self.header['info']['kind']['i']
-        except KeyError:
-            jk = None
-        # --- Define the grid for the histogram
-        if (binsx1 is None) or isinstance(binsx1, int):
-            xmin = np.inf
-            xmax = -np.inf
-            for ig in range(self.header['ngyr']):
-                for ia in range(self.header['nXI']):
-                    if self.header['counters'][ia, ig] > 0:
-                        xmin = min(self.data[ia, ig][:, jx].min(), xmin)
-                        xmax = max(self.data[ia, ig][:, jx].max(), xmax)
-            if binsx1 is None:
-                edgesx = np.linspace(xmin, xmax, 25)
-            else:
-                edgesx = np.linspace(xmin, xmax, binsx1+1)
-        else:
-            edgesx = binsx1
-        if (binsx2 is None) or isinstance(binsx2, int):
-            ymin = np.inf
-            ymax = -np.inf
-            for ig in range(self.header['ngyr']):
-                for ia in range(self.header['nXI']):
-                    if self.header['counters'][ia, ig] > 0:
-                        ymin = min(self.data[ia, ig][:, jy].min(), ymin)
-                        ymax = max(self.data[ia, ig][:, jy].max(), ymax)
-            if binsx2 is None:
-                edgesy = np.linspace(ymin, ymax, 25)
-            else:
-                edgesy = np.linspace(ymin, ymax, binsx2+1)
-        else:
-            edgesy = binsx2
-        if (binsx3 is None) or isinstance(binsx3, int):
-            zmin = np.inf
-            zmax = -np.inf
-            for ig in range(self.header['ngyr']):
-                for ia in range(self.header['nXI']):
-                    if self.header['counters'][ia, ig] > 0:
-                        zmin = min(self.data[ia, ig][:, jz].min(), zmin)
-                        zmax = max(self.data[ia, ig][:, jz].max(), zmax)
-            if binsx3 is None:
-                edgesz = np.linspace(zmin, zmax, 25)
-            else:
-                edgesz = np.linspace(zmin, zmax, binsx3+1)
-        else:
-            edgesz = binsx3        
-        if (binsx4 is None) or isinstance(binsx4, int):
-            tmin = np.inf
-            tmax = -np.inf
-            for ig in range(self.header['ngyr']):
-                for ia in range(self.header['nXI']):
-                    if self.header['counters'][ia, ig] > 0:
-                        tmin = min(self.data[ia, ig][:, jt].min(), tmin)
-                        tmax = max(self.data[ia, ig][:, jt].max(), tmax)
-            if binsx4 is None:
-                edgest = np.linspace(tmin, tmax, 25)
-            else:
-                edgest = np.linspace(tmin, tmax, binsx4+1)
-        else:
-            edgest = binsx4
+        has_w = 'weight' in self.df.columns
+        has_w0 = 'weight0' in self.df.columns
+        has_wcam = 'wcam' in self.df.columns
+        has_kind = 'kind' in self.df.columns
+
+        # --- Define the grid for the histogram from self.df
+        def _edges(col, bins, default_n=25):
+            if (bins is None) or isinstance(bins, int):
+                lo, hi = self.df[col].min(), self.df[col].max()
+                if np.isnan(lo) or np.isnan(hi):
+                    lo, hi = 0.0, 1.0
+                return np.linspace(lo, hi, default_n if bins is None else bins + 1)
+            return np.asarray(bins)
+        edgesx = _edges(col1, binsx1)
+        edgesy = _edges(col2, binsx2)
+        edgesz = _edges(col3, binsx3)
+        edgest = _edges(col4, binsx4)
         # --- Preallocate the data
         self.histograms[histName] = xr.Dataset()
-        # kind of markers:
         supportedKinds = [0, 5, 6, 7, 8]
-        if self.header['FILDSIMmode']:
+        if self.header['FILDSIMmode'] or not has_kind:
             supportedKinds = [0,]
         nkinds = len(supportedKinds)
-        # Prepare the matrices
-        # Basic (counts)
-        data = np.zeros((edgesx.size - 1, edgesy.size - 1, 
+        data = np.zeros((edgesx.size - 1, edgesy.size - 1,
                          edgesz.size - 1, edgest.size - 1, nkinds))
-
-        # For the weight at the detecor entrance
-        if jw0 is not None:
-            data0 = np.zeros((edgesx.size - 1, edgesy.size - 1, 
+        if has_w0:
+            data0 = np.zeros((edgesx.size - 1, edgesy.size - 1,
                               edgesz.size - 1, edgest.size - 1, nkinds))
-        # For the weight at the scintillator
-        if jw is not None:
-            dataS = np.zeros((edgesx.size - 1, edgesy.size - 1, 
+        if has_w:
+            dataS = np.zeros((edgesx.size - 1, edgesy.size - 1,
                               edgesz.size - 1, edgest.size - 1, nkinds))
-        # For the weight of the camera
-        if jwc is not None:
-            dataC = np.zeros((edgesx.size - 1, edgesy.size - 1, 
+        if has_wcam:
+            dataC = np.zeros((edgesx.size - 1, edgesy.size - 1,
                               edgesz.size - 1, edgest.size - 1, nkinds))
+        if 'gyroradius' in self.df.columns and 'XI' in self.df.columns:
+            group_sizes = self.df.groupby(['gyroradius', 'XI']).size()
+            valid_pairs = group_sizes[group_sizes > 1].index
+            valid_df = pd.DataFrame(list(valid_pairs), columns=['gyroradius', 'XI'])
+            df_hist = self.df.merge(valid_df, on=['gyroradius', 'XI'], how='inner')
+        else:
+            df_hist = self.df
         for ik, k in enumerate(supportedKinds):
-            for ig in range(self.header['ngyr']):
-                for ia in range(self.header['nXI']):
-                    if self.header['counters'][ia, ig] > 1:
-                        # Skip if there are not markers of that kind
-                        if k != 0:
-                            f = self.data[ig, ia][:, jk].astype(int) == k
-                            if f.sum() == 0:
-                                continue
-                        else:
-                            f = np.ones(self.data[ig, ia][:, 0].size, bool)
-                        # Count histogram
-                        H, (xedges, yedges, zedges, tedges) = \
-                            np.histogramdd((self.data[ia, ig][f, jx],
-                                            self.data[ia, ig][f, jy],
-                                            self.data[ia, ig][f, jz],
-                                            self.data[ia, ig][f, jt]),
-                                           bins=(edgesx, edgesy, edgesz, edgest))
-                        data[:, :, :, :, ik] += H
-                        # Weight histogram
-                        if jw is not None:
-                            H, (xedges, yedges, zedges, tedges) = \
-                                np.histogramdd((self.data[ia, ig][f, jx],
-                                               self.data[ia, ig][f, jy],
-                                               self.data[ia, ig][f, jz],
-                                               self.data[ia, ig][f, jt]),
-                                               bins=(edgesx, edgesy, edgesz, edgest),
-                                               weights=self.data[ia, ig][f, jw])
-                            dataS[:, :, :, :, ik] += H
-                        # Entrance weight histogram
-                        if jw0 is not None:
-                            H, (xedges, yedges, zedges, tedges) = \
-                                np.histogramdd((self.data[ia, ig][f, jx],
-                                               self.data[ia, ig][f, jy],
-                                               self.data[ia, ig][f, jz],
-                                               self.data[ia, ig][f, jt]),
-                                               bins=(edgesx, edgesy, edgesz, edgest),
-                                               weights=self.data[ia, ig][f, jw0])
-                            data0[:, :, :, :, ik] += H
-                        if jwc is not None:
-                            H, (xedges, yedges, zedges, tedges) = \
-                                np.histogramdd((self.data[ia, ig][f, jx],
-                                               self.data[ia, ig][f, jy],
-                                               self.data[ia, ig][f, jz],
-                                               self.data[ia, ig][f, jt]),
-                                               bins=(edgesx, edgesy, edgesz, edgest),
-                                               weights=self.data[ia, ig][f, jwc])
-                            dataC[:, :, :, :, ik] += H
+            if k != 0 and has_kind:
+                mask = df_hist['kind'].astype(int) == k
+                if not mask.any():
+                    continue
+                sub = df_hist.loc[mask]
+            else:
+                sub = df_hist
+            if len(sub) == 0:
+                continue
+            H, (xedges, yedges, zedges, tedges) = np.histogramdd(
+                (sub[col1].values, sub[col2].values, sub[col3].values, sub[col4].values),
+                bins=(edgesx, edgesy, edgesz, edgest)
+            )
+            data[:, :, :, :, ik] += H
+            if has_w:
+                H, _ = np.histogramdd(
+                    (sub[col1].values, sub[col2].values, sub[col3].values, sub[col4].values),
+                    bins=(edgesx, edgesy, edgesz, edgest),
+                    weights=sub['weight'].values
+                )
+                dataS[:, :, :, :, ik] += H
+            if has_w0:
+                H, _ = np.histogramdd(
+                    (sub[col1].values, sub[col2].values, sub[col3].values, sub[col4].values),
+                    bins=(edgesx, edgesy, edgesz, edgest),
+                    weights=sub['weight0'].values
+                )
+                data0[:, :, :, :, ik] += H
+            if has_wcam:
+                H, _ = np.histogramdd(
+                    (sub[col1].values, sub[col2].values, sub[col3].values, sub[col4].values),
+                    bins=(edgesx, edgesy, edgesz, edgest),
+                    weights=sub['wcam'].values
+                )
+                dataC[:, :, :, :, ik] += H
         xcen = 0.5 * (xedges[1:] + xedges[:-1])
         ycen = 0.5 * (yedges[1:] + yedges[:-1])
         zcen = 0.5 * (zedges[1:] + zedges[:-1])
@@ -1291,7 +1132,7 @@ class Strikes:
             self.header['info'][varx3]['units'] + \
             self.header['info'][varx4]['units'] + ')'
         self.histograms[histName]['markers'].attrs['long_name'] = 'Markers'
-        if jw is not None:
+        if has_w:
             dataS /= deltax * deltay * deltaz * deltat
             self.histograms[histName]['w'] = xr.DataArray(
                 dataS, dims=('x1', 'x2', 'x3', 'x4', 'kind'),
@@ -1307,7 +1148,7 @@ class Strikes:
                 self.header['info'][varx3]['units'] + \
                 self.header['info'][varx4]['units'] + ')'
             self.histograms[histName]['w'].attrs['long_name'] = '$W_{Scint}$'
-        if jw0 is not None:
+        if has_w0:
             data0 /= deltax * deltay * deltaz * deltat
             self.histograms[histName]['w0'] = xr.DataArray(
                 data0, dims=('x1', 'x2', 'x3', 'x4', 'kind'),
@@ -1323,7 +1164,7 @@ class Strikes:
                 self.header['info'][varx3]['units'] + \
                 self.header['info'][varx4]['units'] + ')'
             self.histograms[histName]['w0'].attrs['long_name'] = '$W_{Pin}$'
-        if jwc is not None:
+        if has_wcam:
             dataC /= deltax * deltay * deltaz * deltat
             self.histograms[histName]['wcam'] = xr.DataArray(
                 dataC, dims=('x1', 'x2', 'x3', 'x4', 'kind'),
@@ -1335,18 +1176,19 @@ class Strikes:
             self.histograms[histName]['wcam'].attrs['units'] = '[a.u.]'
             self.histograms[histName]['wcam'].attrs['long_name'] = '$W_{cam}$'
         # Set the variables attributes
-        self.histograms[histName]['x1'].attrs['long_name'] = \
-            self.header['info'][varx1]['shortName']
-        self.histograms[histName]['x2'].attrs['long_name'] = \
-            self.header['info'][varx2]['shortName']
-        self.histograms[histName]['x1'].attrs['units'] = \
-            self.header['info'][varx2]['units']
-        self.histograms[histName]['x2'].attrs['units'] = \
-            self.header['info'][varx3]['units']        
-        self.histograms[histName]['x3'].attrs['long_name'] = \
-            self.header['info'][varx3]['shortName']
-        self.histograms[histName]['x3'].attrs['units'] = \
-            self.header['info'][varx3]['units']
+        info = self.header.get('info', {})
+        if varx1 in info:
+            self.histograms[histName]['x1'].attrs['long_name'] = info[varx1]['shortName']
+            self.histograms[histName]['x1'].attrs['units'] = info[varx1]['units']
+        if varx2 in info:
+            self.histograms[histName]['x2'].attrs['long_name'] = info[varx2]['shortName']
+            self.histograms[histName]['x2'].attrs['units'] = info[varx2]['units']
+        if varx3 in info:
+            self.histograms[histName]['x3'].attrs['long_name'] = info[varx3]['shortName']
+            self.histograms[histName]['x3'].attrs['units'] = info[varx3]['units']
+        if varx4 in info:
+            self.histograms[histName]['x4'].attrs['long_name'] = info[varx4]['shortName']
+            self.histograms[histName]['x4'].attrs['units'] = info[varx4]['units']
         self.histograms[histName]['kind'].attrs['long_name'] = 'Marker kind'
         # Set the attributes of the data set
         self.histograms[histName].attrs['x1edges'] = xedges
@@ -1358,6 +1200,7 @@ class Strikes:
     # -------------------------------------------------------------------------
     # --- Data handling block
     # -------------------------------------------------------------------------
+        
     def get(self, var, gyroradius_index=None, XI_index=None)->np.ndarray:
         """
         Return an array with the values of 'var' for all strike points.
@@ -1406,6 +1249,176 @@ class Strikes:
                 if self.header['counters'][ia, ig] > 0:
                     var.append(self.data[ia, ig][:, column_to_plot])
         return np.array(flatten(var))
+
+    def get_from_df(
+        self,
+        var: str,
+        gyroradius_index: Optional[Union[int, List[int], np.ndarray]] = None,
+        XI_index: Optional[Union[int, List[int], np.ndarray]] = None,
+        gyroradius: Optional[Union[float, List[float], np.ndarray]] = None,
+        XI: Optional[Union[float, List[float], np.ndarray]] = None,
+    ) -> unyt.unyt_array:
+        """
+        Return an array with the values of 'var' for all strike points using
+        the data stored in self.df (pandas.DataFrame).
+
+        Selection can be made either by indices or by direct values:
+        - Use gyroradius_index and XI_index to select by header indices.
+        - Use gyroradius and XI to select by actual parameter values.
+
+        :param  var: variable name (column in self.df) to return.
+            If a list is given, a pandas DataFrame with those columns will be returned instead. If a list is given, the returned units will 
+            always be dimensionless since different columns may have different units.
+        :param  gyroradius_index: index or indices of gyroradii (see
+            self.header['gyroradius']). None = all.
+        :param  XI_index: index or indices of XI (see self.header['XI']).
+            None = all.
+        :param  gyroradius: gyroradius value(s) to filter by. If given,
+            overrides gyroradius_index.
+        :param  XI: XI value(s) to filter by. If given, overrides XI_index.
+
+        :return: 1D array of values for the selected (gyroradius, XI) subset.
+        """
+        if self.df is None or not isinstance(self.df, pd.DataFrame):
+            raise ValueError('self.df is not available or not a DataFrame')
+        if isinstance(var, list) or isinstance(var, tuple):
+            for v in var:
+                if v not in self.df.columns:
+                    print('Available columns: ', list(self.df.columns))
+                    raise errors.NotFoundVariable(f'Variable "{v}" not in DataFrame')
+        else:
+            if var not in self.df.columns:
+                print('Available columns: ', list(self.df.columns))
+                raise errors.NotFoundVariable(f'Variable "{var}" not in DataFrame')
+        # Resolve selected gyroradius values
+        if gyroradius is not None:
+            sel_gyr = np.atleast_1d(gyroradius)
+        elif gyroradius_index is not None:
+            idx_g = np.atleast_1d(gyroradius_index)
+            sel_gyr = np.asarray(self.header['gyroradius'])[idx_g]
+        else:
+            sel_gyr = np.asarray(self.header['gyroradius'])
+        # Resolve selected XI values
+        if XI is not None:
+            sel_xi = np.atleast_1d(XI)
+        elif XI_index is not None:
+            idx_x = np.atleast_1d(XI_index)
+            sel_xi = np.asarray(self.header['XI'])[idx_x]
+        else:
+            sel_xi = np.asarray(self.header['XI'])
+        mask = (
+            self.df['gyroradius'].isin(sel_gyr) & self.df['XI'].isin(sel_xi)
+        )
+        # Try to get the units
+        try:
+            units = unyt.Unit(self.df.attrs.get('units', {}).get(var, ''))
+        except unyt.exceptions.UnitParseError:
+            units = unyt.Unit('')
+        return self.df.loc[mask, var].values * units
+
+    def to_dataframe(self, gyroradius_index=None, XI_index=None,) -> pd.DataFrame:
+        """
+        Return all strike points as a single pandas DataFrame.
+
+        Columns are taken from `self.header['info']` mapping. Two extra
+        columns are added: `gyroradius` and `XI` with the corresponding
+        parameter values for each marker.
+
+        If `include_units` is True, a mapping of column->unit strings will
+        be attached to `DataFrame.attrs['units']`.
+        """
+        # Build index selection similar to `get`
+        nXI, ngyr = self.header['counters'].shape
+        if gyroradius_index is None:
+            index_gyr = range(ngyr)
+        else:
+            if isinstance(gyroradius_index, (list, np.ndarray)):
+                index_gyr = gyroradius_index
+            else:
+                index_gyr = np.array([gyroradius_index])
+        if XI_index is None:
+            index_XI = range(nXI)
+        else:
+            if isinstance(XI_index, (list, np.ndarray)):
+                index_XI = XI_index
+            else:
+                index_XI = np.array([XI_index])
+            
+        if self.df is not None:
+            try:
+                key_g = tuple(int(x) for x in index_gyr)
+            except Exception:
+                key_g = ('all',)
+            try:
+                key_x = tuple(int(x) for x in index_XI)
+            except Exception:
+                key_x = ('all',)
+            cache_key = (key_g, key_x, bool(True))  # last element for future use (e.g. include_metadata)
+            # Return cached copy if available
+            cached = self.df.get(cache_key)
+            if cached is not None:
+                return cached.copy()
+
+        info = self.header.get('info', {})
+        if not info:
+            raise errors.NotFoundVariable('No header info available')
+
+        # Determine max column index and name mapping
+        max_i = max([v['i'] for v in info.values()]) if len(info) > 0 else -1
+        col_names = [f'col_{i}' for i in range(max_i + 1)]
+        units_map: Dict[str, str] = {}
+        long_names_map: Dict[str, str] = {}
+        short_names_map: Dict[str, str] = {}
+        for name, meta in info.items():
+            idx = meta['i']
+            if idx <= max_i:
+                col_names[idx] = name
+            units_map[name] = meta.get('units', '')
+            long_names_map[name] = meta.get('longName', '')
+            short_names_map[name] = meta.get('shortName', '')
+
+        frames: List['pd.DataFrame'] = []
+        for ig in index_gyr:
+            for ia in index_XI:
+                if self.header['counters'][ia, ig] > 0:
+                    arr = self.data[ia, ig]
+                    ncols = arr.shape[1]
+                    cols = col_names[:ncols]
+                    df = pd.DataFrame(arr, columns=cols)
+                    # add metadata columns
+                    try:
+                        df['gyroradius'] = self.header['gyroradius'][ig]
+                    except Exception:
+                        df['gyroradius'] = np.nan
+                    try:
+                        df['XI'] = self.header['XI'][ia]
+                    except Exception:
+                        df['XI'] = np.nan
+                    frames.append(df)
+
+        if len(frames) == 0:
+            # empty dataframe with known columns
+            df_empty = pd.DataFrame(columns=col_names + ['gyroradius', 'XI'])
+            df_empty.attrs['units'] = units_map
+            df_empty.attrs['longName'] = long_names_map
+            df_empty.attrs['shortName'] = short_names_map
+            # cache empty result as well
+            try:
+                self.df[cache_key] = df_empty.copy()
+            except Exception:
+                pass
+            return df_empty
+
+        result = pd.concat(frames, ignore_index=True)
+        result.attrs['units'] = units_map
+        result.attrs['longName'] = long_names_map
+        result.attrs['shortName'] = short_names_map
+        # Cache assembled dataframe for this selection
+        try:
+            self.df[cache_key] = result.copy()
+        except Exception:
+            pass
+        return result
 
     # -------------------------------------------------------------------------
     # --- Plotting functions
@@ -1801,54 +1814,40 @@ class Strikes:
 
         warning: Only fully tested for SINPA strike points
         """
-        if self.header['FILDSIMmode']:
-            logger.warning('20: Only fully tested for SINPA strike points')
-        # See if there is already camera positions in the data
-        if 'xcam' in self.header['info'].keys():
-            text = 'The camera values are there, we will overwrite them'
-            logger.warning('11: %s' % text)
-            overwrite = True
-            iixcam = self.header['info']['xcam']['i']
-            iiycam = self.header['info']['ycam']['i']
-        else:
-            overwrite = False
-        iix = self.header['info']['x1']['i']
-        iiy = self.header['info']['x2']['i']
-        for ig in range(self.header['ngyr']):
-            for ia in range(self.header['nXI']):
-                if self.header['counters'][ia, ig] > 0:
-                    xp, yp = transform_to_pixel(self.data[ia, ig][:, iix],
-                                                self.data[ia, ig][:, iiy],
-                                                calibration)
-                    if overwrite:
-                        self.data[ia, ig][:, iixcam] = xp.copy()
-                        self.data[ia, ig][:, iiycam] = yp.copy()
-                    else:
-                        n_strikes = self.header['counters'][ia, ig]
-                        cam_data = np.zeros((n_strikes, 2))
-                        cam_data[:, 0] = xp.copy()
-                        cam_data[:, 1] = yp.copy()
-                        self.data[ia, ig] = \
-                            np.append(self.data[ia, ig], cam_data, axis=1)
-        if not overwrite:
-            Old_number_colums = len(self.header['info'])
-            extra_column = {
-                'xcam': {
-                    'i': Old_number_colums,  # Column index in the file
-                    'units': ' [px]',  # Units
-                    'longName': 'X camera position',
-                    'shortName': '$x_{cam}$',
-                },
-                'ycam': {
-                    'i': Old_number_colums + 1,  # Column index in the file
-                    'units': ' [px]',  # Units
-                    'longName': 'Y camera position',
-                    'shortName': '$y_{cam}$',
-                },
-            }
-            self.header['info'].update(extra_column)
+        if self.df is None or not isinstance(self.df, pd.DataFrame):
+            raise ValueError('self.df is not available or not a DataFrame')
+        xp, yp = transform_to_pixel(self.df['x1'], self.df['x2'], calibration)
+        self.df['xcam'] = xp
+        self.df['ycam'] = yp
+        # Set the attributes of the new columns in the header, if they are not there already
+        self.header['info']['xcam'] = {
+            'i': len(self.header['info']),  # Column index in the file
+            'units': ' [px]',  # Units
+            'longName': 'X camera position',
+            'shortName': '$x_{cam}$',
+        }
+        self.header['info']['ycam'] = {
+            'i': len(self.header['info']),  # Column index in the file
+            'units': ' [px]',  # Units
+            'longName': 'Y camera position',
+            'shortName': '$y_{cam}$',
+        }
+        # Set the same attributes to the panda dataframe
+        self.df.attrs['units'].update({
+            'xcam': 'px',
+            'ycam': 'px',
+        })
+        self.df.attrs['longName'].update({
+            'xcam': 'X camera position',
+            'ycam': 'Y camera position',
+        })
+        self.df.attrs['shortName'].update({
+            'xcam': '$x_{cam}$',
+            'ycam': '$y_{cam}$',
+        })
         # Now save the optical calibration for latter
         self.CameraCalibration = calibration
+
 
     def applyGeometricTramission(self, F_object, cal):
         """
@@ -1904,6 +1903,12 @@ class Strikes:
                 },
             }
             self.header['info'].update(extra_column)
+
+        # Invalidate assembled DataFrame cache (columns changed)
+        try:
+            self._df_cache.clear()
+        except Exception:
+            self._df_cache = {}
 
     # -------------------------------------------------------------------------
     # --- Export block
@@ -2163,10 +2168,6 @@ class Strikes:
     def shape(self):
         return self._shape
 
-    def __call__(self, var: str) -> np.ndarray:
+    def __call__(self, var: str) -> unyt.unyt_array:
         """Call for the object"""
-        try:
-            out = self.get(var)
-        except KeyError:
-            out = None
-        return out
+        return self.get_from_df(var)
