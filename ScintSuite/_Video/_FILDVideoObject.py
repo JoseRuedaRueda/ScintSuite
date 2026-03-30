@@ -152,17 +152,20 @@ class FILDVideo(FIV):
                 except AttributeError:
                     t_trig = None
                 try:  # if the insertion is in the video file
-                    self.position = FILDlogbook.getPosition(shot, diag_ID, 
-                                                            insertion=self.header['insertion'])
+                    pass
+                    #self.position = FILDlogbook.getPosition(shot, diag_ID, 
+                    #                                        insertion=self.header['insertion'])
                 except KeyError:
                     try: # if the radial position is in the video file
-                        self.position = FILDlogbook.getPosition(shot, diag_ID, 
-                                                            RFILD=self.header['R_FILD'])
+                        pass
+                        #self.position = FILDlogbook.getPosition(shot, diag_ID, 
+                        #                                    RFILD=self.header['R_FILD'])
                     except KeyError:
                         self.position = FILDlogbook.getPosition(shot, diag_ID)
                 try:
-                    self.orientation = \
-                        FILDlogbook.getOrientation(shot, diag_ID, beta_angle=self.header['beta_angle'])
+                    pass
+                    #self.orientation = \
+                    #    FILDlogbook.getOrientation(shot, diag_ID, beta_angle=self.header['beta_angle'])
                 except KeyError:
                         self.orientation = FILDlogbook.getOrientation(shot, diag_ID)
                 self.geometryID = FILDlogbook.getGeomID(shot, diag_ID)
@@ -214,7 +217,7 @@ class FILDVideo(FIV):
                         # self.scintillator.code = 'fildsim'
                         self.scintillator.calculate_pixel_coordinates(
                                 self.CameraCalibration)
-                        self.ROIscintillator = self.scintillator.get_roi()
+                        #self.ROIscintillator = self.scintillator.get_roi() AJVV need to load videos now!
             else:
                 self.scintillator = None
                 self.ROIscintillator = None

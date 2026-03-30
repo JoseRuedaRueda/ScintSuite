@@ -99,8 +99,9 @@ def plotSettings(plot_mode='software', usetex=False):
     mpl.rcParams['axes.titlesize'] = nml[mode]['title_font_size']
     plt.rcParams['figure.titlesize'] = nml[mode]['title_font_size']
     mpl.rcParams['axes.labelsize'] = nml[mode]['axis_font_size']
-    mpl.rcParams['xtick.labelsize'] = nml[mode]['tick_font_size']
-    mpl.rcParams['ytick.labelsize'] = nml[mode]['tick_font_size']
+    ##AJVV problem in latest env, needed to comment for now
+    #mpl.rcParams['xtick.labelsize'] = nml[mode]['tick_font_size']
+    #mpl.rcParams['ytick.labelsize'] = nml[mode]['tick_font_size']
     mpl.rcParams['legend.fontsize'] = nml[mode]['legend_font_size']
 
     mpl.rcParams['lines.linewidth'] = nml[mode]['line_width']

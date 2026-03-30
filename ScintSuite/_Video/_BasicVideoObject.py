@@ -257,6 +257,10 @@ class BVO:
                         self.exp_dat['frames'] = mat_data['frames']
                         self.type_of_file = '.mat'     
                         self.settings = {'RealBPP': mat_data['RealBPP'].data} 
+                        #ad hoc/stop gap solution, because we need to load vidoes now
+                        self.header = {'insertion': 0,
+                                        'R_FILD': 0,
+                                        'beta_angle': 0}
                 else:
                     raise Exception('Not recognised file extension')
             else:
