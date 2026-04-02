@@ -91,7 +91,7 @@ def guess_shot(file, shot_number_length):
             flags[i] = True
     ntrues = np.sum(flags)
     if ntrues == 1:
-        shot = int(list[flags])
+        shot = int(list[flags][0])
     elif ntrues == 2:
         # Maybe just the file is saved in a folder named as the shot, so we
         # can have a second positive here
