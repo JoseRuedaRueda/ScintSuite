@@ -8,7 +8,7 @@ import numpy as np
 import h5py
 import xarray as xr
 
-def read_file(filename: str):
+def read_file_(filename: str):
     '''
     Function to .mat files of the XIMEA camera
     :param  filename: full path pointing to the .mat file
@@ -39,6 +39,27 @@ def read_file(filename: str):
     return ds_dict
 
 
+def read_file(filename: str):
+    ds_dict = {}
+
+    def get_ds_dictionaries(name, node):
+        fullname = node.name
+        if isinstance(node, h5py.Dataset):
+            try:
+                ds_dict[fullname] = node[()]
+            except Exception as e:
+                print(f"Skipping {fullname}: {e}")
+
+    try:
+        with h5py.File(filename, "r") as h5f:
+            h5f.visititems(get_ds_dictionaries)
+            print("\nDONE")
+    except OSError:
+        ds_dict = scio.loadmat(filename)
+
+    return ds_dict
+
+    
 def read_frame(video_object, frames_number=None, limitation: bool = True,
             limit: int = 2048, verbose: bool = True):
     pass

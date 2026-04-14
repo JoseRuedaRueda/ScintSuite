@@ -23,7 +23,7 @@ if os.path.isdir('/shares/departments/AUG'):
 #    detectedMachines.append('TCV')
 
 import socket
-if ('epfl' in socket.gethostname() or 'pcfild004' in socket.gethostname()):
+if ('epfl' in socket.gethostname()) or ('pcfild004' in socket.gethostname()):
     machine = 'TCV'
     detectedMachines.append('TCV')
 # ---- Check if we are at D3D
