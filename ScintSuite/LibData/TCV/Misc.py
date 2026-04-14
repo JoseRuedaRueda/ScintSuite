@@ -41,7 +41,8 @@ def read_MAT_video_data(file: str):
     Important: Need to be on LAC9 to acces videodata directory
     '''
     mat_out = xr.Dataset()
-    if ('pcfild002' in file) or ('pcfild004' in file):
+    import socket
+    if ('pcfild002' in file) or ('pcfild004' in file)  or ('pcfild004' in socket.gethostname()):
         dummy = mat.read_file(file)
         t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
         timebase = t0 + dummy['/b/secs'][0] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0] - dummy['/b/usecs'][0][0])*1e-6
