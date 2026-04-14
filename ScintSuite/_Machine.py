@@ -18,7 +18,12 @@ if os.path.isdir('/shares/departments/AUG'):
         machine = 'AUG'
     except ModuleNotFoundError:
         machine = 'Generic'
-if os.path.isdir('/NoTivoli'):
+#if os.path.isdir('/NoTivoli'):
+#    machine = 'TCV'
+#    detectedMachines.append('TCV')
+
+import socket
+if ('epfl' in socket.gethostname() or 'pcfild004' in socket.gethostname()):
     machine = 'TCV'
     detectedMachines.append('TCV')
 # ---- Check if we are at D3D
