@@ -453,12 +453,12 @@ class MHDmode():
         # self._ni = self._ni.interp(t=self._ne['t'], rho=self._ne['rho'],
         #                            method="linear")
         # Put the temperatures in ev
-        if self._te.attrs['units'] == 'keV':
+        if self._te.data.attrs['units'] == 'keV':
             self._te['data'] *= 1.0e3
-            self._te.attrs['units'] = 'eV'
-        if self._ti.attrs['units'] == 'keV':
+            self._te.data.attrs['units'] = 'eV'
+        if self._ti.data.attrs['units'] == 'keV':
             self._ti['data'] *= 1.0e3
-            self._ti.attrs['units'] = 'eV'
+            self._ti.data.attrs['units'] = 'eV'
 
 
 
