@@ -443,7 +443,13 @@ def get_tor_rotation_cxrs_fit(shotnumber: int, time: float = None,
         eq = eqtools.TCVLIUQEMATTree(shotnumber)
         eq.getTimeBase()
 
-        Rmid = eq.rho2rho('sqrtpsinorm', 'Rmid', rho, timebase).T
+        try:
+
+            Rmid = eq.rho2rho('sqrtpsinorm', 'Rmid', rho, timebase).T
+        except:
+            eq.getCurrentSign()
+            eq._currentSign *= -1
+            Rmid = eq.rho2rho('sqrtpsinorm', 'Rmid', rho, timebase).T
 
         v_omega = vtor/ (Rmid / 1000 )
 

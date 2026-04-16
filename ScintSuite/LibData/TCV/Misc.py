@@ -267,7 +267,7 @@ def plot_apd_camera_overview(
         time=time,
         sat_level=2**14 - 1,
         step=200,
-        mapping_matrix=mapping_matrix,
+        #mapping_matrix=mapping_matrix,
         dark_nframes=1000,
         clip_zero=False,
     )
