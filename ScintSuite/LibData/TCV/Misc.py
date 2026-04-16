@@ -155,7 +155,7 @@ def get_signal_generic(shot: int,
     return time, data
 
 #TODO
-add generic MDS reading function.
+#add generic MDS reading function.
 
 # -----------------------------------------------------------------------------
 # --- SIGNAL OF FAST CHANNELS.
