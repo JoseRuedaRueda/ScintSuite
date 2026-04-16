@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 import ScintSuite._Plotting as ssplt
 import ScintSuite.SimulationCodes.SINPA as sssinpa
 import ScintSuite._StrikeMap as ssmap
+import ScintSuite._IO as io
 from matplotlib.figure import Figure
 from tkinter import ttk
-
 
 class ApplicationShowVid:
     """Class to show the camera frames"""
@@ -181,9 +181,9 @@ class ApplicationShowVid:
         # APD button
         self.checkVar3 = tk.BooleanVar()
         self.checkVar3.set(False)
-        self.apd_button = tk.Button(master, text="Draw APD",
+        self.apd_button = tk.Button(master, text="load APD",
                                 command=self.apd_Button_change,
-                                takefocus=0, state=state)
+                                takefocus=0, state=tk.NORMAL)
         self.apd_button.grid(row=5, column=5)
         frame.grid()
 
