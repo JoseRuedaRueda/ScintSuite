@@ -6,7 +6,11 @@ Examples: rgb2gray or checking the timebase of the video
 Jose Rueda: jrrueda@us.es
 """
 import re
+import logging
 import numpy as np
+
+# --- Initialise the auxiliary objects
+logger = logging.getLogger('ScintSuite.Video')
 
 
 def rgb2gray(rgb):
@@ -95,12 +99,12 @@ def guess_shot(file, shot_number_length):
         if options[0] == options[1]:
             shot = int(options[0])
     elif ntrues == 0:
-        print('No shot number found in the name of the file')
-        print('Give the shot number as input when loading the file')
+        logger.warning('No shot number found in the name of the file')
+        logger.warning('Give the shot number as input when loading the file')
         shot = None
     else:
-        print('Several possibles shot number were found')
-        print('Give the shot number as input when loading the file')
-        print('Possible shot numbers ', list[flags])
+        logger.warning('Several possibles shot number were found')
+        logger.warning('Give the shot number as input when loading the file')
+        logger.warning('Possible shot numbers ', list[flags])
         shot = None
     return shot
