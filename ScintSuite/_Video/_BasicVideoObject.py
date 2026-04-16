@@ -395,7 +395,7 @@ class BVO:
         logger.info('Reading frames: ')
 
         # --- Clean video if needed
-        if 't' in self.exp_dat and internal and not self.type_of_file == '.ncMASTU':
+        if 't' in self.exp_dat and internal and not self.type_of_file == '.ncMASTU' and not self.type_of_file == '.mat':
             self.exp_dat = xr.Dataset()
         # --- Read the frames
         if self.type_of_file == '.cin':
@@ -412,7 +412,9 @@ class BVO:
                             limitation=limitation, limit=limit,
                             verbose=verbose)
         elif self.type_of_file == '.mat':
-            M = np.array(self.exp_dat['frames'][ :, :, frames_number])
+            M = self.exp_dat['frames'].sel(t=slice(t1, t2)).values
+            frames_number = np.arange(start=it1, stop=it2, step=1)
+            self.exp_dat = xr.Dataset()
         elif self.type_of_file == '.nc':
             M = ncdf.read_frame(self, frames_number,
                             limitation=limitation, limit=limit,
