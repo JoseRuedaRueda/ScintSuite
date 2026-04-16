@@ -240,7 +240,7 @@ class Scintillator(XYtoPixel):
             fig, ax = plt.subplots()
         xdum = self._coord_pix['x']
         ydum = self._coord_pix['y']
-        if self.code == 'fildsim':
+        if (self.code == 'fildsim') or (int(self.n_vertices/3)==len(self._coord_pix['x'])):  #AJVV: if we only have an outline, even if it is "sinpa" scintillator file format, we use this plotting option
             # FILDSIM geometry does not close the last line, so we have to add
             # it manually
             x = np.concatenate((xdum, np.array([self._coord_pix['x'][0]])))
