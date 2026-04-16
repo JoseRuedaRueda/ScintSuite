@@ -289,7 +289,6 @@ def get_q_profile_LIUQE(shot: int,
         'q_absolute': False
     }
     default_options.update(kwargs)
-
     eq = eqtools.TCVLIUQEMATTree(shot)
     eq.getTimeBase()
     timebasis =eq._time
