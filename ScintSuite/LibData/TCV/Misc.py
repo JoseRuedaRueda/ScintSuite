@@ -12,19 +12,22 @@ This library contains:
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 import xarray as xr
+from datetime import datetime
+import socket
 
 import ScintSuite.errors as errors
-
 import ScintSuite._Video._MATfiles as mat
+from ScintSuite._Paths import Path
+import ScintSuite.errors as errors
+
 try:
     import MDSplus as mds
 except:
     pass   
-from ScintSuite._Paths import Path
-import ScintSuite.errors as errors
-import xarray as xr
-from datetime import datetime
+
+
 
 pa = Path()
 
@@ -41,7 +44,7 @@ def read_MAT_video_data(file: str):
     Important: Need to be on LAC9 to acces videodata directory
     '''
     mat_out = xr.Dataset()
-    import socket
+    
     if ('pcfild002' in file) or ('pcfild004' in file)  or ('pcfild004' in socket.gethostname()):
         dummy = mat.read_file(file)
         t0 = dummy['/b/secs'][0][1] - dummy['/b/secs'][0][0] + (dummy['/b/usecs'][0][1] - dummy['/b/usecs'][0][0])*1e-6
@@ -151,6 +154,8 @@ def get_signal_generic(shot: int,
 
     return time, data
 
+#TODO
+add generic MDS reading function.
 
 # -----------------------------------------------------------------------------
 # --- SIGNAL OF FAST CHANNELS.
@@ -213,10 +218,13 @@ def get_APD(file: str):
     mapping_matrix = [
         [91, 20, 17,18, 56, 55, 127, 53, 59, 116, 113, 114, 24, 23, 95, 21],
         [19, 92, 89, 90, 128, 126, 54, 125, 115, 60, 57, 58, 96, 94, 22, 93],
+
         [14, 69, 13, 15, 41, 42, 43, 100, 110, 37, 109, 111, 9, 10, 11, 68],
         [70, 16, 72, 71, 97, 98, 99, 44, 38, 112, 40, 39, 65, 66, 67, 12],
+
         [76, 3, 2, 1, 103, 104, 48, 102, 108, 35, 34, 33, 7, 8, 80, 6],
         [4, 75, 74, 73, 47, 45, 101, 46, 36, 107, 106, 105, 79, 77, 5, 78],
+
         [29, 86, 30, 32, 122, 121, 124, 51, 61, 118, 62, 64, 26, 25, 28, 83],
         [85, 31, 87, 88, 50, 49, 52, 123, 117, 63, 119, 120, 82, 81, 84, 27]
         ]
@@ -226,6 +234,152 @@ def get_APD(file: str):
 
     return {'time': time, 'data': data_mapped, 'channels': np.arange(128)}
 
+
+def plot_apd_camera_overview(
+    data_mapped,
+    time=None,
+    sat_level=None,
+    step=1,
+    mapping_matrix=None,
+    dark_nframes=0,
+    clip_zero=False,
+):
+    """
+    data_mapped : array, shape (128, nt)
+        Channels already reordered with mapping_matrix.flatten().
+    time : array, optional
+        Time axis.
+    sat_level : float, optional
+        Saturation threshold; also used as upper y-limit if provided.
+    step : int, optional
+        Plot every `step`-th point.
+    mapping_matrix : array-like, shape (8, 16), optional
+        If given, channel numbers are used in subplot titles.
+    dark_nframes : int, optional
+        Number of first frames to average and subtract as dark offset.
+        If 0, no dark subtraction is applied.
+    clip_zero : bool, optional
+        If True, clip negative values to zero after dark subtraction.
+    
+    Use eg:
+    fig, axs = plot_apd_camera_overview(
+        data_mapped,
+        time=time,
+        sat_level=2**14 - 1,
+        step=200,
+        mapping_matrix=mapping_matrix,
+        dark_nframes=1000,
+        clip_zero=False,
+    )
+    plt.show(block=False)
+    
+    """
+
+    data_mapped = np.asarray(data_mapped)
+
+    nchan, nt = data_mapped.shape
+    if nchan != 128:
+        raise ValueError(f"Expected data_mapped with shape (128, nt), got {data_mapped.shape}")
+
+    if time is None:
+        time = np.arange(nt)
+
+    if len(time) != nt:
+        raise ValueError(f"time has length {len(time)}, but data has {nt} samples")
+
+    if step < 1:
+        raise ValueError("step must be >= 1")
+
+    if dark_nframes < 0:
+        raise ValueError("dark_nframes must be >= 0")
+
+    if dark_nframes > nt:
+        raise ValueError(f"dark_nframes={dark_nframes} is larger than nt={nt}")
+
+    if mapping_matrix is None:
+        mapping_matrix = np.array([
+            [91, 20, 17,18, 56, 55, 127, 53, 59, 116, 113, 114, 24, 23, 95, 21],
+            [19, 92, 89, 90, 128, 126, 54, 125, 115, 60, 57, 58, 96, 94, 22, 93],
+
+            [14, 69, 13, 15, 41, 42, 43, 100, 110, 37, 109, 111, 9, 10, 11, 68],
+            [70, 16, 72, 71, 97, 98, 99, 44, 38, 112, 40, 39, 65, 66, 67, 12],
+
+            [76, 3, 2, 1, 103, 104, 48, 102, 108, 35, 34, 33, 7, 8, 80, 6],
+            [4, 75, 74, 73, 47, 45, 101, 46, 36, 107, 106, 105, 79, 77, 5, 78],
+
+            [29, 86, 30, 32, 122, 121, 124, 51, 61, 118, 62, 64, 26, 25, 28, 83],
+            [85, 31, 87, 88, 50, 49, 52, 123, 117, 63, 119, 120, 82, 81, 84, 27]
+            ])
+
+
+    # Optional dark subtraction
+    data_plot = data_mapped.copy()
+    if dark_nframes > 0:
+        dark = np.mean(data_plot[:, :dark_nframes], axis=1, keepdims=True)
+        data_plot = data_plot - dark
+
+        if clip_zero:
+            data_plot = np.clip(data_plot, 0, None)
+
+    time_plot = time[::step]
+    cam = data_plot.reshape(8, 16, nt)
+
+    fig, axs = plt.subplots(
+        4, 8,
+        figsize=(18, 9),
+        sharex=True,
+        sharey=True,
+        constrained_layout=True
+    )
+
+    for sr in range(4):
+        for sc in range(8):
+            ax = axs[sr, sc]
+
+            r0 = 2 * sr
+            c0 = 2 * sc
+
+            traces = [
+                cam[r0,     c0,     :],
+                cam[r0,     c0 + 1, :],
+                cam[r0 + 1, c0,     :],
+                cam[r0 + 1, c0 + 1, :]
+            ]
+
+            saturated = False
+            if sat_level is not None:
+                saturated = any(np.any(y >= sat_level) for y in traces)
+
+            for y in traces:
+                ax.plot(time_plot, y[::step], lw=0.8)
+
+            if saturated:
+                ax.set_facecolor("mistyrose")
+
+            if sat_level is not None:
+                ax.set_ylim(0, sat_level)
+
+            if sr < 3:
+                ax.set_xticklabels([])
+            if sc > 0:
+                ax.set_yticklabels([])
+
+            ax.tick_params(length=2, pad=1)
+
+            if mapping_matrix is not None:
+                block = mapping_matrix[r0:r0+2, c0:c0+2].flatten()
+                ax.set_title(" ".join(str(x) for x in block), fontsize=7)
+
+    axs[-1, 0].set_xlabel("Time")
+    axs[0, 0].set_ylabel("Signal")
+
+    title = f"APD camera overview (step={step}"
+    if dark_nframes > 0:
+        title += f", dark_nframes={dark_nframes}"
+    title += ")"
+    fig.suptitle(title, fontsize=14)
+
+    return fig, axs
 
 # -----------------------------------------------------------------------------
 # --- ELMs
