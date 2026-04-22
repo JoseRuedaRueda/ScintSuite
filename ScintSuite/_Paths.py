@@ -17,14 +17,14 @@ class Path:
         """Initialise the class"""
         # home = os.getenv("HOME")
         home_dir_user = os.getenv("HOME")
-        home = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+        ScintSuite_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
         if machine == 'TCV':
             home_dir_user = home_dir_user + '/NoTivoli/'
 
         self.FILDSIM = os.path.join(home_dir_user, 'FILDSIM/')
         self.SINPA = os.path.join(home_dir_user, 'SINPA/')
         self.FIDASIM4 = os.path.join(home_dir_user, 'FIDASIM4/')
-        self.ScintSuite = home
+        self.ScintSuite = ScintSuite_dir
         self.Results = {
             'default': os.path.join(self.ScintSuite, 'Results')
         }
@@ -63,7 +63,9 @@ class Path:
                 print(exc)
                 raise Exception('Error reading the settings file')
         nml = settings['UserPaths']
-        update_case_insensitive(self.__dict__, nml)
+        if not machine == 'TCV':
+            #this function causes problems in TCV, so we will not use it there
+            update_case_insensitive(self.__dict__, nml)
     
     def __getitem__(self, key):
         """
