@@ -178,9 +178,14 @@ class BVO:
                     self.timebase = cin.read_time_base(file, self.header,
                                                         self.settings)
                     self.type_of_file = '.cin'
-                elif file.endswith('.png') or file.endswith('.tif'):
+                elif file.endswith('.png'):
                     file, name = os.path.split(file)
                     self.path = file
+                    self.type_of_file = '.png'
+                elif file.endswith('.tif'):
+                    file, name = os.path.split(file)
+                    self.path = file
+                    self.type_of_file = '.tif'
 
                 elif file.endswith('.ncMASTU'):
                     # initialising the video in mastu will already 
@@ -246,6 +251,7 @@ class BVO:
                     self.exp_dat['frames'] = \
                         self.exp_dat['frames'].transpose('px', 'py', 't')
                     self.type_of_file = '.mp4'
+
                 elif file.endswith('.mat'):
                         '''
                         Matlab .mat files with video data are not a standard format, 
@@ -261,6 +267,7 @@ class BVO:
                         self.header = {'insertion': 0,
                                         'R_FILD': 0,
                                         'beta_angle': 0}
+
                 else:
                     raise Exception('Not recognised file extension')
             else:
