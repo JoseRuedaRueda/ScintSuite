@@ -98,7 +98,7 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
                 continue
             else:
                 c = line.split()
-                # get pitch in degree
+                # get pitch in degree, account for co (+) and counter (-)
                 c[4] = math.acos(float(c[4]))*180.0/math.pi
                 
                 modified_line = f'{c[0]} {c[1]} {c[2]} {c[3]} \
@@ -134,7 +134,8 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
         for line in lines:
             if line.startswith('#'): #skips headers
                 continue
-            else:                             
+            else:
+                c = line.split()                         
                 modified_line = f'{c[0]} {c[1]} {c[2]} {c[3]} {c[4]}'
                 modified_lines.append(modified_line)    
 
@@ -326,7 +327,8 @@ class FMC:
         # Optic path
         self._def_opt_params = {'T': 1, # transmision
                         #    'beta': 0.2, # magnification, automatic
-                           'omega': 1,
+                           'NA': 1,
+                           'omega': np.pi,
                            'FoV': [0.5, 0.5, 33.5], # position in the scintillator and FoV radius [cm]
                            }
         # Noise parameters
@@ -581,9 +583,9 @@ class FMC:
         :return frame_scintillator atribute:
         '''
 
-        self._update_params(self.cam_params, cam_params, 'Camera')
-        self._update_params(self.opt_params, opt_params, 'Optic')
-        self._update_params(self.noi_params, noi_params, 'Noise')
+        self._update_params(self.cam_params, cam_params, 'camera')
+        self._update_params(self.opt_params, opt_params, 'optic')
+        self._update_params(self.noi_params, noi_params, 'noise')
 
         self.centering = centering
         self.smoother = smoother
@@ -605,6 +607,7 @@ class FMC:
                         centering: bool = False, smoother: int = 0,
                         rm_saturation = False,
                         radiometry = None, distortion = None,
+                        scint_degree = 0,
                     ):
         '''
         Wrap to compute synthetic signals in the camera space.
@@ -637,7 +640,8 @@ class FMC:
                          smoother = smoother)
         self.apply_optics_camera_noise(rm_saturation = rm_saturation,
                                        radiometry = radiometry,
-                                       distortion = distortion)
+                                       distortion = distortion,
+                                       scint_degree = scint_degree)
         end = time.perf_counter()
         logger.info('TOTAL CAMERA SS COMPUTING TIME %.4f s', end-start)
            
@@ -647,6 +651,7 @@ class FMC:
                         noi_params: dict | None = None,
                         rm_saturation = False,
                         radiometry = None, distortion = None,
+                        scint_degree = 0,
                         ):
         '''
         Apply the optics and camera to the frame_scintillator.
@@ -667,9 +672,9 @@ class FMC:
         # Update parameter dictionaries, in case scans in some parameters want 
         # to be done. Carefull with this. Routines is fast enough to not need 
         # this.     
-        self._update_params(self.cam_params, cam_params, 'Camera')
-        self._update_params(self.opt_params, opt_params, 'Optic')
-        self._update_params(self.noi_params, noi_params, 'Noise')
+        self._update_params(self.cam_params, cam_params, 'camera')
+        self._update_params(self.opt_params, opt_params, 'optic')
+        self._update_params(self.noi_params, noi_params, 'noise')
 
         # Copy the data coming from the xy mapping
         self.frame_camera = copy.deepcopy(self.frame_scintillator)
@@ -690,10 +695,11 @@ class FMC:
             # Adjust pixel sizes and beta (photons/m² to photons/pix)
             self.frame_camera[key] *= self.data['pix_scint_area']
             # Divide by 4\pi, ie, assume isotropic emission of the scintillator
-            self.frame_camera[key] *= 1 / 4 / np.pi
-            # Consider the solid angle covered by the optics and the transmission of
-            # the beam line through the lenses and mirrors:
-            self.frame_camera[key] *= self.opt_params['T'] * self.opt_params['omega']
+            # self.frame_camera[key] *= 1/(4*np.pi) * self.opt_params['omega']
+            # Advanced emission with angular dependece
+            self.frame_camera[key] *= 1/(4*np.pi)/np.cos(np.deg2rad(scint_degree))*np.pi*self.opt_params['NA']**2
+            # Consider the transmission of the beam line
+            self.frame_camera[key] *= self.opt_params['T'] 
             # Photon to electrons in the camera sensor (QE)
             self.frame_camera[key] *= self.cam_params['qe']
             # Electrons to counts in the camera sensor,
@@ -859,13 +865,14 @@ class FMC:
         # PREPARE THE OUTPUT
         # -----------------------------------------------------------------------
         logger.info('- Buildind the output...')    
-        # Cap the counts to the maximum counts
-        if rm_saturation == True:
-            final_frame = final_frame.where(final_frame < max_count, max_count) 
         # Transform the counts to integers    
         final_frame.data = final_frame.data.astype(int, copy=False)
         # Substitute the total frame
         self.frame_camera['tot'] = final_frame
+        # Cap the counts to the maximum counts
+        if rm_saturation == True:
+            self.frame_camera =  self.frame_camera\
+                .where(self.frame_camera <= max_count, max_count) 
         # Set variables in the full dataset
         for key in self.frame_camera:
             self.frame_camera[key].attrs['long_name'] = 'Pixel counts'
@@ -1160,6 +1167,17 @@ class FMC:
                     cur_params[k] = v
                     changed = True
 
+        # if either NA or omega is in the new dict, update the other. (NA prio)
+        if name == 'optic': 
+            if new_params.get('NA') is not None:
+                cur_params['NA'] = new_params['NA']
+                theta_max = np.arcsin(new_params['NA'])
+                cur_params['omega'] = 2*np.pi*(1-np.cos(theta_max))
+            elif new_params.get('omega') is not None:
+                cur_params['omega'] = new_params['omega']
+                theta_max = np.arccos(1-new_params['omega']/(2*np.pi))
+                cur_params['NA'] = np.sin(theta_max)
+
         if changed:
             logger.warning(f'{name} parameters updated')
 
@@ -1220,7 +1238,8 @@ class FMC:
                                                'linewidth':1.2, 
                                                'alpha':0.8})
         if plot_scint:
-            ax.plot(scint_perim[:,0],scint_perim[:,1], color ='w', linewidth=2)
+            ax.plot(scint_perim[:,0],scint_perim[:,1], color ='w', linewidth=2,
+                    alpha = 0.8)
 
         x_cm_pix = self.cam_params['px_x_size'] / self.opt_params['beta'] *100
         x_cm_max = len(plot_frame.x) * x_cm_pix
@@ -1245,22 +1264,30 @@ class FMC:
 
         return fig, ax
 
-    def plot_frame_camera(self, cmap = default_cmap(), vmax = None, 
+    def plot_frame_camera(self, cmap = default_cmap(), 
+                          norm = None,
                           plot_smap = True, plot_scint = True, 
                           plot_FoV = False,
                           **kwargs):
         logger.info('---- CAMERA PLOT -----')
         plot_frame = self.frame_camera.tot
         scint_perim = self.scint_perim
-        if vmax is None:
-            vmax = 2 ** self.cam_params['range'] - 1
-            logger.info('- Maximum set to camera range')
+        if norm is not None:
+            if getattr(norm, 'vmin', None) is None:
+                kwargs.setdefault('vmin', 0)
+            if getattr(norm, 'vmax', None) is None:
+                kwargs.setdefault('vmax', 2**self.cam_params['range']-1)
+            kwargs['norm'] = norm
         else:
-            logger.info('- Maximum set to %4.2f counts', vmax)
+            kwargs.setdefault('vmin', 0)
+            kwargs.setdefault('vmax', 2**self.cam_params['range']-1)
 
-        fig, ax = plt.subplots(figsize=(8,5))
-        kwargs['vmin'] = 0
-        kwargs['vmax'] = vmax
+        ax = kwargs.pop('ax', None)
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(8, 5))
+        else:
+            fig = ax.figure
+
         im = plot_frame.plot.imshow(ax=ax, cmap=cmap, **kwargs)
         if plot_smap:
             self.smapplt.plot_pix(ax, labels=False, 
@@ -1269,14 +1296,15 @@ class FMC:
                                                'linewidth': 1.2, 
                                                'alpha': 0.8})
         if plot_scint:
-            ax.plot(scint_perim[:,0],scint_perim[:,1], color ='w', linewidth=2)
+            ax.plot(scint_perim[:,0],scint_perim[:,1], color ='w', linewidth=2,
+                    alpha = 0.8)
         if plot_FoV:
             try:
                 ax.scatter(self.FoV_vector[0], self.FoV_vector[1],
                         marker='+',s=100,c='lime')
                 FoV = Circle((self.FoV_vector[0], self.FoV_vector[1]), 
                             radius=self.FoV_vector[2], 
-                            color='lime', fill=False, linewidth=2)
+                            color='lime', fill=False, linewidth=2, alpha=0.8)
                 ax.add_patch(FoV)
             except:
                 logger.info('- No FoV plotted beacuse whatever')

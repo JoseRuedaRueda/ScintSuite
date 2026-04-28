@@ -32,7 +32,7 @@ _fild1 = {'path': '/shares/experiments/aug-rawfiles/FIT/',  # Path for the video
           'channel': 'FILD3_',  # prefix of the name of each channel (shotfile)
           'nch': 20}  # Number of fast channels
 
-_fild2 = {'path': '/shares/experiments/aug-rawfiles/FIL/FILD2/',
+_fild2 = {'path': '/shares/departments/AUG/users/alrevi/AUGvideos/FILD2/',
           'extension': lambda shot: '', 'label': 'FILD2', 'diag': 'FHA',
           'channel': 'FIPM_',
           'nch': 20, 'camera': 'CCD'}
@@ -44,7 +44,7 @@ _fild3 = {'path': '/shares/experiments/aug-rawfiles/FIL/FILD3/',
 
 # FILD4 coil position from CAD. Coil dimensions in catholic units.
 # Parking position from FARO measurements
-_fild4 = {'path': '/shares/experiments/aug-rawfiles/FIL/FILD4/',
+_fild4 = {'path': '/shares/departments/AUG/users/alrevi/AUGvideos/FILD4/',
           'extension': lambda shot: '', 'label': 'FILD4', 'diag': 'FHD',
           'channel': 'Chan-',
           'nch': 32, 'camera': 'CCD', 'coil': {'R_coil': 2.2252,
@@ -55,7 +55,7 @@ _fild4 = {'path': '/shares/experiments/aug-rawfiles/FIL/FILD4/',
                                                'R_parking': 2.0824,
                                                'Z_parking': -0.437}}
 
-_fild5 = {'path': '/shares/experiments/aug-rawfiles/FIL/FILD5/',
+_fild5 = {'path': '/shares/departments/AUG/users/alrevi/AUGvideos/FILD5/',
           'extension': lambda shot: '', 'label': 'FILD5', 'diag': 'FHE',
           'channel': 'Chan-',
           'nch': 64, 'camera': 'CCD'}
