@@ -77,7 +77,7 @@ def readSINPAstrikes(filename: str, verbose: bool = False):
         logger.info('File %s'%filename)
         logger.info('SINPA version: %i.%i'%(header['versionID1'],
                                             header['versionID2']))
-        if header['versionID1'] <= 4:
+        if header['versionID1'] <= 5:
             # Keys of what we have in the file:
             header['runID'] = np.fromfile(fid, 'S50', 1)[:]
             header['ngyr'] = np.fromfile(fid, 'int32', 1)[0]

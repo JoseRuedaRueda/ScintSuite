@@ -1,3 +1,7 @@
+# 2.0.1 MU and FILDSIM5
+- Minor changes to the MU library to locate FILD files
+- Strike object compatible with FILDSIM 5.0
+
 # 2.0.0 The big change
 - Clean the suite of secondary functions not used which divert the code for its main purpose and added unnecesary dependencies
 - Added unyt calls to the strike object

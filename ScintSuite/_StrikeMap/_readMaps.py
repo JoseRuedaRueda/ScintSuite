@@ -46,6 +46,13 @@ SINPAinpaOrder = {
         'units': ['cm', 'rad', 'm', 'm', 'm', 'rad', '', '', 'degree', 'm',
                   'm', 'm', 'm'],
     },
+    5: {  # ID0 of the code version
+        'name': ['gyroradius', 'alpha', 'x3', 'x1', 'x2', 'avgIniGyrophase',
+                 'n_strike_points', 'collimator_factor', 'avgIncidentAngle',
+                 'x0', 'y0', 'z0', 'd0', 'pitch'],
+        'units': ['cm', 'rad', 'm', 'm', 'm', 'rad', '', '', 'degree', 'm',
+                  'm', 'm', 'm', ''],
+    },
 }
 
 
@@ -106,7 +113,7 @@ def _readSmapSINPA(filename: str):
     # check that the data has the proper number of colums
     nrow, ncol = dummy.shape
     if ncol != len(header['variables']['name']):
-        raise Exception('Wrong number of columns in the file')
+        raise Exception('Wrong number of columns in the file, expected %i, got %i' % (len(header['variables']['name']), ncol))
     # Take only rows where markers arrived
     ix = np.where(np.array(header['variables']['name']) == 'x3')
     ind = ~np.isnan(dummy[:, ix]).squeeze()
