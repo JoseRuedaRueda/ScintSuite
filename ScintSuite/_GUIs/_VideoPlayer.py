@@ -231,8 +231,7 @@ class ApplicationShowVid:
                 smap = ssmap.StrikeMap(0, self.full_name_smap)
 
         # Plot the scintillator:
-        if self.checkVar2.get():
-            self.scintillator.plot_pix(ax=self.canvas.figure.axes[0])
+
         if self.checkVar3.get():
             for i in range(len(self.apd_data)):
                 self.canvas.figure.axes[0].plot(self.apd_data[i][:,0], self.apd_data[i][:,1], 'r-')
@@ -241,6 +240,8 @@ class ApplicationShowVid:
             # remove the old one
             ssplt.remove_lines(self.canvas.figure.axes[0])
             self.PMTcalibration.plot_pix(ax=self.canvas.figure.axes[0], color='g')
+        if self.checkVar2.get():
+            self.scintillator.plot_pix(ax=self.canvas.figure.axes[0])
         self.canvas.draw()
 
     def set_scale(self):

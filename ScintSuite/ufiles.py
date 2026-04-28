@@ -139,7 +139,7 @@ class ufile:
 
         # Preparing the dimensions.
         dims = []
-        coords = ['X', 'Y', 'Z']
+        coords = ['X', 'Y', 'Z', 'X0', 'X1', 'X2']
         self.comment = ''
 
         n_coords = 0
@@ -206,12 +206,22 @@ class ufile:
 
         ind_split = np.cumsum(dims)
         if ndim == 1:
-            self.X['data'], farr = np.split(data, ind_split)
+            if 'X' in self.__dict__.keys():
+                self.X['data'] = data[:dims[0]]
+            else:
+                self.X0['data'], farr = np.split(data, ind_split)
         elif ndim == 2:
-            self.X['data'], self.Y['data'], farr = np.split(data, ind_split)
+            if 'X' in self.__dict__.keys() and 'Y' in self.__dict__.keys():
+                self.X['data'], self.Y['data'], farr = np.split(data, ind_split)
+            else:
+                self.X0['data'], self.X1['data'], farr = np.split(data, ind_split)
         elif ndim == 3:
-            self.X['data'], self.Y['data'], self.Z['data'], farr = \
-                np.split(data, ind_split)
+            if 'X' in self.__dict__.keys() and 'Y' in self.__dict__.keys() and 'Z' in self.__dict__.keys():
+                self.X['data'], self.Y['data'], self.Z['data'], farr = \
+                    np.split(data, ind_split)
+            else:
+                self.X0['data'], self.X1['data'], self.X2['data'], farr = \
+                    np.split(data, ind_split)
         self.f['data'] = farr.reshape(dims[::-1]).T
 
 
@@ -277,6 +287,15 @@ class ufile:
         if hasattr(self, 'Z'):
             coords.append('Z')
             dims.append(len(self.Z['data']))
+        if hasattr(self, 'X0'):
+            coords.append('X0')
+            dims.append(len(self.X0['data']))
+        if hasattr(self, 'X1'):
+            coords.append('X1')
+            dims.append(len(self.X1['data']))
+        if hasattr(self, 'X2'):
+            coords.append('X2')
+            dims.append(len(self.X2['data']))
 
         ndim = len(dims)
         if ndim != self.f['data'].ndim:

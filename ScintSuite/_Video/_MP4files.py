@@ -4,11 +4,19 @@ Routines to read mp4 files with ffmpeg.
 Written by Hannah Lindl: hannah.lindl@ipp.mpg.de
 
 """
+import logging
 import numpy as np
-import ffmpeg
+logger = logging.getLogger("ScintSuite.Video.MP4files")
+try:
+    import ffmpeg
+except ImportError:
+    logger.warning("0: FFmpeg is not installed. Please install it to use the MP4 module.")
 import os
-from skvideo.io import vread as video_read
-
+try:
+    from skvideo.io import vread as video_read
+except ImportError:
+    logger.warning("0: scikit-video is not installed. Please install it to use the MP4 module.")
+    
 def read_file(fn: str, force_gray: bool=True, bpp: int=None, pix_fmt: str=None,
               bits_size: int=None, **kwargs):
     """
