@@ -32,14 +32,18 @@ if os.path.isdir('/fusion/projects/xpsi'):
 if os.path.isdir('/common/uda-scratch') or os.path.isdir('/home/muadmin/package'):
     detectedMachines.append('MU')
     machine = 'MU'
+    import pyuda
+    from pyuda import ServerException
 else:
     try:
         import pyEquilibrium
+        import pyuda
+        from pyuda import ServerException
         detectedMachines.append('MU')
         machine = 'MU'
     except ModuleNotFoundError:
         pass
-# ---- Check that we only have one possitive
+# ---- Check that we only have one positive
 if len(detectedMachines) == 1:
     #  Best case, we found ourselves
     logger.info('Detected machine: %s' % detectedMachines[0])
