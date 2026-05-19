@@ -42,7 +42,10 @@ if _machine == 'MU':
     import ScintSuite._Video._NetCDF4files as ncdf
 
 import time
-
+try:
+    import cv2
+except ImportError:
+    raise ImportError("OpenCV not available")
 
 # --- Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.Video')
@@ -685,7 +688,7 @@ class BVO:
         return frame.astype(original_dtype)
 
     def filter_frames(self, method: str = 'median', options: dict = {},
-                      flag_copy: bool = False, speed_flag = False):
+                      flag_copy: bool = False, speed_flag = None):
         """
         Filter the camera frames
 
@@ -715,7 +718,6 @@ class BVO:
         >>> # Filter the frames
         >>> vid.filter_frames(method='median', options={'size': 2})
         """
-        import cv2 # Has to be imported here to skip compatibility issues
 
         logger.info('Filtering frames')
         # default options:
@@ -723,7 +725,7 @@ class BVO:
             'nsigma': 3
         }
         median_options = {
-            'size': 3
+            'size': 2
         }
         gaussian_options = {
             'sigma': 1
@@ -734,7 +736,7 @@ class BVO:
             logger.info('Not making a copy')
         # Filter frames
         nx, ny, nt = self.exp_dat['frames'].shape
-        frames = self.exp_dat['frames'].data
+        frames = self.exp_dat['frames'].values
         if method == 'jrr':
             logger.info('Removing pixels affected by neutrons')
             jrr_options.update(options)
@@ -755,7 +757,9 @@ class BVO:
                 ksize = median_options['size'] + 1
             else:
                 ksize = median_options['size']
-            if speed_flag:
+            if speed_flag is not None:
+                logger.warning('Speed_flag will dissappear in 2.1, ' \
+                'once this fast method become the official way')
                 try:
                     for i in tqdm(range(nt)):
                         frames[:, :, i] = cv2.medianBlur(
@@ -779,7 +783,9 @@ class BVO:
             gaussian_options.update(options)
             logger.warning('If your video have not the time axis in the last ' \
             'position please write to jruedaru@uci.edu, as this will fail')
-            if speed_flag:
+            if speed_flag is not None:
+                logger.warning('Speed_flag will dissappear in 2.1, ' \
+                'once this fast method become the official way')
                 try:
                     for i in tqdm(range(nt)):
                         frames[:, :, i] = cv2.GaussianBlur(
@@ -800,7 +806,6 @@ class BVO:
                             sigma = gaussian_options['sigma'])
         self.exp_dat['frames'].values = frames
 
-        logger.warning('Deprecated! Remove speed_flag if method is verified')
         logger.info('\\n-... -.-- . / -... -.-- .')
         return
 

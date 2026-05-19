@@ -35,8 +35,8 @@ logger = logging.getLogger('ScintSuite.Freq')
 # -----------------------------------------------------------------------------
 # --- Fourier analysis. Taken from pyspecview
 # -----------------------------------------------------------------------------
-def sfft(tvec, x, nfft, resolution=1000, window='hann', fmin=0, fmax=np.infty,
-         tmin=-np.infty, tmax=np.infty, pass_DC=True, complex_spectrum=False):
+def sfft(tvec, x, nfft, resolution=1000, window='hann', fmin=0, fmax=np.inf,
+         tmin=-np.inf, tmax=np.inf, pass_DC=True, complex_spectrum=False):
     """
     Short time Fourier Tranform. in the frequency domain done along 1. axis!
 
@@ -154,8 +154,8 @@ def sfft(tvec, x, nfft, resolution=1000, window='hann', fmin=0, fmax=np.infty,
     return spec, fvec, tvec
 
 
-def stft(tvec, x, nfft, resolution=1000, window='gauss', fmin=-np.infty,
-         fmax=np.infty, tmin=-np.infty, tmax=np.infty, pass_DC=True,
+def stft(tvec, x, nfft, resolution=1000, window='gauss', fmin=-np.inf,
+         fmax=np.inf, tmin=-np.inf, tmax=np.inf, pass_DC=True,
          complex_spectrum=False):
     """
     Short time Fourier Tranform. in time domain

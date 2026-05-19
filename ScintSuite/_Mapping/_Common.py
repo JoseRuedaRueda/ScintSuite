@@ -339,7 +339,8 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
 # -----------------------------------------------------------------------------
 # ---- Remap and profiles
 # -----------------------------------------------------------------------------
-def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
+def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC',
+          speed_flag = None):
     """
     Remap a frame.
 
@@ -483,10 +484,13 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         delta_y = ycenter[1] - ycenter[0]
         # Number of bins
         nx, ny = len(xcenter), len(ycenter)
+        H = np.zeros((nx, ny), dtype=float)
 
+        x_ip = x
+        y_ip = y
         # Find where each pixel values' phase space values would fit in the defined phase space grid.
-        x_index = np.searchsorted(xcenter, x, side = 'right')
-        y_index = np.searchsorted(ycenter, y, side = 'right')
+        x_index = np.searchsorted(xcenter, x_ip, side = 'right')
+        y_index = np.searchsorted(ycenter, y_ip, side = 'right')
 
         # Now remove edge cases
         mask_edges = (x_index == 0) | (x_index == len(xcenter)) | \
@@ -500,8 +504,8 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         x1, y1 = xcenter[x_index], ycenter[y_index]
             
         # Calculate the distances from the point to the sides of the cell
-        dx0, dx1 = x - x0, x1 - x
-        dy0, dy1 = y - y0, y1 - y
+        dx0, dx1 = x_ip - x0, x1 - x_ip
+        dy0, dy1 = y_ip - y0, y1 - y_ip
             
         # Precompute linear indices for the four neighbor bins
         ix0 = x_index - 1
@@ -509,27 +513,40 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
         iy0 = y_index - 1
         iy1 = y_index
 
-        # Convert indices to lineal indices
-        lin_bl = ix0 * ny + iy0
-        lin_br = ix1 * ny + iy0
-        lin_tr = ix1 * ny + iy1
-        lin_tl = ix0 * ny + iy1
-
-        # Calculate the weights 
-        area_total = delta_x * delta_y
-        wbl = z * (dx1 * dy1) / area_total    # (ix0, iy0)
-        wbr = z * (dx0 * dy1) / area_total   # (ix1, iy0)
-        wtr = z * (dx1 * dy0) / area_total      # (ix1, iy1)
-        wtl = z * (dx0 * dy0) / area_total       # (ix0, iy1)
-
-        # Concat weight and indices
-        all_lin = np.concatenate([lin_bl, lin_br, lin_tr, lin_tl])
-        all_w   = np.concatenate([wbl, wbr, wtr, wtl])
-        H_flat = np.bincount(all_lin, weights=all_w, minlength=nx*ny)
-        # Reconstruction of matrix
-        H = np.zeros((nx, ny), dtype=float)
-        H = H_flat.reshape(nx, ny)
-        H /= delta_x * delta_y
+        if speed_flag is not None:
+            # New method:
+            # Convert indices to lineal indices
+            lin_bl = ix0 * ny + iy0
+            lin_br = ix1 * ny + iy0
+            lin_tr = ix1 * ny + iy1
+            lin_tl = ix0 * ny + iy1
+            # Calculate the weights 
+            area_total = (delta_x * delta_y)
+            wbl = z * (dx1 * dy1) / area_total   # (ix0, iy0)
+            wbr = z * (dx0 * dy1) / area_total   # (ix1, iy0)
+            wtl = z * (dx1 * dy0) / area_total   # (ix1, iy1)
+            wtr = z * (dx0 * dy0) / area_total   # (ix0, iy1)
+            # Concat weight and indices
+            all_lin = np.concatenate([lin_bl, lin_br, lin_tr, lin_tl])
+            all_w = np.concatenate([wbl, wbr, wtr, wtl])
+            H_flat = np.bincount(all_lin, weights=all_w, minlength=nx*ny)
+            # Reconstruction of matrix
+            H = H_flat.reshape(nx, ny)
+            H /= delta_x * delta_y
+        else:
+            # Old method:
+            # Calculate the weights 
+            area_total = delta_x * delta_y
+            wbl = (dx1 * dy1) / area_total    # (ix0, iy0)
+            wbr = (dx0 * dy1) / area_total   # (ix1, iy0)
+            wtl = (dx1 * dy0) / area_total      # (ix1, iy1)
+            wtr = (dx0 * dy0) / area_total       # (ix0, iy1)
+            for ip in np.arange(x.shape[0]):
+                H[x_index[ip]-1, y_index[ip]-1] +=  z[ip] * wbl[ip]
+                H[x_index[ip] , y_index[ip]-1] += z[ip] * wbr[ip]
+                H[x_index[ip] , y_index[ip] ] += z[ip] * wtr[ip]
+                H[x_index[ip]-1, y_index[ip] ] += z[ip] * wtl[ip]
+            H /= delta_x * delta_y
 
     elif method.lower() == 'forward_warping_advanced': # should produce smoother histogram
         '''
