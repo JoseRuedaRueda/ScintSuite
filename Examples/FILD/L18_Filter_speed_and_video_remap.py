@@ -19,6 +19,7 @@ import copy
 import pickle
 import time as time
 from tabulate import tabulate
+plt.ion()
 
 ## REMAP FILD video and compare filter speed
 shot = 41256
@@ -81,12 +82,12 @@ par = {
     'decimals': 1, # Precision for the strike map (1 is more than enough)
     'allIn': 2,
     'remap_method': 'forward_warping_simple',
-    'speed_flag': True
     }   
 time1=time.time()
-vid.remap_loaded_frames(par)
+old_remap = copy.deepcopy(vid)
+old_remap.remap_loaded_frames(par)
 time2=time.time()
-elapsed_new = time2-time1
+elapsed_old = time2-time1
 
 par = {
     'ymin': 0.6,      # Minimum gyroradius [in cm]
@@ -100,10 +101,25 @@ par = {
     'decimals': 1, # Precision for the strike map (1 is more than enough)
     'allIn': 2,
     'remap_method': 'forward_warping_simple',
+    'speed_flag': True
     }   
 time1=time.time()
-vid.remap_loaded_frames(par)
+new_remap = copy.deepcopy(vid)
+new_remap.remap_loaded_frames(par)
 time2=time.time()
-elapsed_old = time2-time1
+elapsed_new = time2-time1
 
 print(f'Remapping time: NEW {elapsed_new:.2f} s vs. OLD {elapsed_old:.2f} s')
+
+plt.close('all')
+fig, ax = plt.subplots(1,3, figsize=(20,5),sharex=True, sharey=True)
+old = old_remap.remap_dat.frames.sel(t=1.420, method='nearest')
+old.T.plot.imshow(ax=ax[1])
+new = new_remap.remap_dat.frames.sel(t=1.420, method='nearest')
+new.T.plot.imshow(ax=ax[0])
+(new-old).T.plot.imshow(ax=ax[2])
+ax[0].set_title(f'Old method ({elapsed_old:.2f} s)')
+ax[1].set_title(f'Vectorized ({elapsed_new:.2f} s)')
+ax[2].set_title('Difference')
+plt.tight_layout()
+plt.show()
