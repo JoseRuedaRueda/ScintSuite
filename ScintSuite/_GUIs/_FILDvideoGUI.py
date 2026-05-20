@@ -214,8 +214,8 @@ class FILDvideoGUI:
         # ---- Strikemap options
         tk.Label(self.root, text="Smaps:")\
             .grid(row=crow, column=0, columnspan=1, sticky='w')
-        self.opts_smap = ["Computed", "Existing"]
-        self.opt_smap = tk.StringVar(value="Computed")
+        self.opts_smap = ["Compute", "Existing"]
+        self.opt_smap = tk.StringVar(value="Compute")
         self.menu_smap = tk.OptionMenu(self.root, 
                                        self.opt_smap, *self.opts_smap)
         self.menu_smap.grid(row=crow, column=1, columnspan=3, sticky='we')
@@ -597,7 +597,7 @@ class FILDvideoGUI:
             method = 'centers'
         elif remap_method == 'Fwrap_simple':
             method = 'forward_warping_simple'
-        if smap_opt == "Computed":
+        if smap_opt == "Compute":
             allIn = 2
         else:
             allIn = 1
@@ -605,7 +605,8 @@ class FILDvideoGUI:
             'method': 2,  # 2 Spline, 1 Linear
             'decimals': smap_precision,
             'allIn': allIn,
-            'remap_method': method
+            'remap_method': method,
+            'speed_flag': True
             }
         for key, entry in self.entry_params.items():
                 par[key] = float(entry.get())
