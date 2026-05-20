@@ -155,7 +155,8 @@ class FILDvideoGUI:
         self.btn_load.grid(row=crow, column=0, columnspan=2, sticky='we')
         self.btn_import = tk.Button(self.root, text="LoadH5", bg = 'blue',
                                      activebackground="#007BFF",
-                                  command=self.import_video)
+                                     state="disabled",
+                                     command=self.import_video)
         self.btn_import.grid(row=crow, column=2, columnspan=2, sticky='we')
         # ---- Background subtraction
         crow += 1

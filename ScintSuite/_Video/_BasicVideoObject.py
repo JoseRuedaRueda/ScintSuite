@@ -556,7 +556,7 @@ class BVO:
 
     def subtract_noise(self, t1: float = None, t2: float = None,
                        frame: np.ndarray = None, flag_copy: bool = False,
-                       speed_flag: bool =  False):
+                       speed_flag = None):
         """
         Subtract noise from camera frames.
 
@@ -658,7 +658,9 @@ class BVO:
         if 'original_frames' not in self.exp_dat and flag_copy:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
 
-        if speed_flag:
+        if speed_flag is not None:
+            logger.warning('Speed_flag will dissappear in 2.1, ' \
+                            'once this fast method become the official way')
             time1=time.time()
             # --- Subtract the noise
             frames_da = self.exp_dat['frames']
@@ -683,7 +685,6 @@ class BVO:
             time2 = time.time()
             logger.info('Slow method: %f s', time2-time1)
 
-        logger.warning('Deprecated! Remove speed_flag if method is verified')
         logger.info('-... -.-- . / -... -.-- .')
         return frame.astype(original_dtype)
 

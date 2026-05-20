@@ -879,7 +879,7 @@ class FIV(BVO):
         self.BField.to_netcdf(filename)
 
     def export_remap(self, folder: str = None, clean: bool = False,
-                     overwrite: bool = False):
+                     overwrite: bool = False, export_frames: bool = False):
         """
         Export remap file
 
@@ -887,6 +887,7 @@ class FIV(BVO):
             recommended to leave it as None
         :param  clean: delete the netCDF files and leave only the .tar file
         :param  overwrite: ignore old files, if present
+        :param  save_frames: save also the camera frames, if wanted
         """
         if folder is None:
             folder = os.path.join(pa.Results, str(self.shot), self.diag,
@@ -922,9 +923,6 @@ class FIV(BVO):
             wroteFields = False
             pass
             # If the remap was done with a single smap, the angles are not calculated
-        self.return_to_original_frames()
-        self.exp_dat.attrs.clear()
-        self.exp_dat.to_netcdf(frames)
         self.remap_dat.to_netcdf(remap)
         self.CameraCalibration.save2netCDF(calibration)
         if 'frame_noise' in self.exp_dat:
@@ -947,7 +945,15 @@ class FIV(BVO):
             tar.add(magField, arcname='Bfield.nc')
             tar.add(magFieldAngles, arcname='BfieldAngles.nc')
             tar.add(strikemaps, arcname='strikeMaps.nc')
-        tar.add(frames, arcname='frames.nc')
+        if export_frames:
+            logger.warning('Exporting camera frames. ' \
+                'This might be memory-heavy.')
+            self.exp_dat.attrs.clear()
+            self.exp_dat.to_netcdf(frames)
+            tar.add(frames, arcname='frames.nc')
+        else:
+            logger.info('To export the camera frames: export_frames = True. ' \
+                'Might be memory-heavy.')
         tar.add(remap, arcname='remap.nc')
         tar.add(calibration, arcname='CameraCalibration.nc')
         tar.add(versionFile, arcname='version.txt')
@@ -969,71 +975,3 @@ class FIV(BVO):
             os.remove(remap)
             os.remove(calibration)
             os.remove(versionFile)
-
-    def import_remap(self, folder = None, extract_folder: str = None):
-        """
-        Import remap data from a previously exported .tar file.
-        """
-
-        if folder is None:
-            logger.error('No folder given')
-            return
-        
-        tarFile = os.path.join(folder, str(self.shot) + '_' + self.diag +
-                               str(self.diag_ID) + '_' + 'remap.tar')
-        # if not os.path.isfile(tarFile):
-        #     raise FileNotFoundError(f"{tarFile} not found")
-
-        # Folder where files will be extracted
-        if extract_folder is None:
-            extract_folder = tempfile.mkdtemp()
-
-        os.makedirs(extract_folder, exist_ok=True)
-
-        # Extract tar
-        with tarfile.open(tarFile, 'r') as tar:
-            tar.extractall(path=extract_folder)
-
-        # ----- Load NetCDF files -----
-        def safe_open_nc(name):
-            path = os.path.join(extract_folder, name)
-            return xr.open_dataset(path).load() if os.path.isfile(path) else None
-
-        self.exp_dat = safe_open_nc('frames.nc')
-        self.remap_dat = safe_open_nc('remap.nc')
-        self.Bfield = safe_open_nc('Bfield.nc')
-        self.BfieldAngles = safe_open_nc('BfieldAngles.nc')
-        self.strikeMaps = safe_open_nc('strikeMaps.nc')
-        self.noiseFrame = safe_open_nc('noiseFrame.nc')
-
-        # Calibration (depends on your class)
-        # calib_path = os.path.join(extract_folder, 'CameraCalibration.nc')
-        # if os.path.isfile(calib_path):
-        #     self.CameraCalibration.loadfromnetCDF(calib_path)
-
-        # ----- Load JSON files -----
-        def safe_load_json(name):
-            path = os.path.join(extract_folder, name)
-            if os.path.isfile(path):
-                with open(path, 'r') as f:
-                    return json.load(f)
-            return None
-
-        self.position = safe_load_json('position.json')
-        self.orientation = safe_load_json('orientation.json')
-        self.CameraData = safe_load_json('CameraData.json')
-
-        # ----- Load metadata -----
-        meta_path = os.path.join(extract_folder, 'metadata.txt')
-        if os.path.isfile(meta_path):
-            with open(meta_path, 'r') as f:
-                for line in f:
-                    if 'Shot:' in line:
-                        self.shot = int(line.split(':')[1])
-                    elif 'diag_ID:' in line:
-                        self.diag_ID = int(line.split(':')[1])
-                    elif 'geom_ID:' in line:
-                        self.geometryID = line.split(':')[1].strip()
-        logger.info('Data loaded')
-
-        return True
