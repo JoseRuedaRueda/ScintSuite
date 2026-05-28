@@ -74,14 +74,15 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
             other interesting parameters from the ascot files
     '''
     logger.info('----- READING DISTRIBUTION ----- ')
-    logger.info('Reading file: %s', filename)
+    logger.info('- Reading file: %s', filename)
+    start = time.perf_counter()
 
     if pinhole_area == None or wetted_area == None:
         logger.error('Missing pinhole_area and/or wetted_area in input') 
         sys.exit()   
     else:
-        logger.info('- Wetted area: %.2f (mm²)', wetted_area)
-        logger.info('- Pinhole area: %.2f (mm²)', pinhole_area)
+        logger.info('   Wetted area: %.2f (mm²)', wetted_area)
+        logger.info('   Pinhole area: %.2f (mm²)', pinhole_area)
     
     out={}
 
@@ -200,10 +201,12 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
     ions_head = ion_flux * wetted_area
     ions_pinhole = ion_flux * pinhole_area
 
-    logger.info('- Ion den flux   -> %e (ions/s/m²)', ion_flux*1e6) # go to /m²
-    logger.info('- Power den flux -> %e (W/m²)', ion_power*1e6) # go to /m²
-    logger.info('- Wetted flux    -> %e (ions/s)', ions_head)
-    logger.info('- Pinhole flux   -> %e (ions/s)', ions_pinhole)
+    logger.info('   Ion den flux   = %e (ions/s/m²)', ion_flux*1e6) # go to /m²
+    logger.info('   Power den flux = %e (W/m²)', ion_power*1e6) # go to /m²
+    logger.info('   Wet. area flux = %e (ions/s)', ions_head)
+    logger.info('   Pinhole flux   = %e (ions/s)', ions_pinhole)
+    end = time.perf_counter()
+    logger.info('   (%.4f s)', end-start)
 
     return out
 
@@ -369,7 +372,7 @@ class FMC:
         logger.info('----- COMPUTING REMAPED SYNTHETIC SIGNAL USING WF -----')
 
         self.mode = mode
-        logger.info(f'- Mode: {self.mode}')
+        logger.info(f'   Mode: {self.mode}')
         self.data['distribution'] = distro
         self.gyrophases = gyrophases
         WFrecomputation = False
@@ -391,7 +394,7 @@ class FMC:
                                  sci_params=self.sci_params,)
             end = time.perf_counter()
             WFrecomputation = False
-            logger.warning('    %.4f s', end-start)
+            logger.warning('   %.4f s', end-start)
             
         # INPUT VERIFICATION
         # -----------------------------------------------------------------------
@@ -437,8 +440,8 @@ class FMC:
                 (gyro >= y_val.min()) & (gyro <= y_val.max()))
         pitch, gyro, weight, eff = pitch[mask], gyro[mask], weight[mask], eff[mask]
         masked_w = weight.sum()
-        logger.info('    Pinhole (ions/s): %e', total_w)
-        logger.info('    Lost ions to smap: %e (%.2f%%)', total_w-masked_w, 
+        logger.info('   Pinhole = %e (ions/s)', total_w)
+        logger.info('   Lost ions to smap = %e (%.2f%%)', total_w-masked_w, 
                     (total_w-masked_w)/total_w*100)
         # Calculate steps
         p_step = np.abs(x_val[1]-x_val[0])
@@ -474,10 +477,10 @@ class FMC:
         synthetic_signal.xs.attrs = {'units': 'º', 'long_name': 'Pitch'}
         synthetic_signal.y.attrs = {'units': 'cm', 'long_name': 'Gyroradius'}
         synthetic_signal.ys.attrs = {'units': 'cm', 'long_name': 'Gyroradius'}
-        logger.info('    Scintillator (%s/s): %e', self.mode, 
-                    synthetic_signal.sc.integrate(['xs', 'ys']))
+        logger.info('   Scintillator = %e (%s/s)', 
+                    synthetic_signal.sc.integrate(['xs', 'ys']), self.mode)
         end = time.perf_counter()
-        logger.info('    %.4f s', end-start)
+        logger.info('   (%.4f s)', end-start)
 
         self.pr_space = synthetic_signal
 
@@ -643,7 +646,7 @@ class FMC:
                                        distortion = distortion,
                                        scint_degree = scint_degree)
         end = time.perf_counter()
-        logger.info('TOTAL CAMERA SS COMPUTING TIME %.4f s', end-start)
+        logger.info('TOTAL CAMERA SS COMPUTING TIME: %.4f s', end-start)
            
     def apply_optics_camera_noise(self, 
                         cam_params: dict | None = None,
@@ -687,6 +690,9 @@ class FMC:
         
         # OPTICS
         # -----------------------------------------------------------------------
+        logger.info(f'   ß = {self.data['optics']['beta']:.2e}')
+        logger.info(f'   NA = {self.data['optics']['NA']:.2f}')
+        logger.info(f'   T = {self.data['optics']['T']:.2f}')
         # Compute the maximum counts for the camera
         max_count = 2 ** self.cam_params['range'] - 1
 
@@ -772,7 +778,7 @@ class FMC:
             except:
                 logger.info('- No FoV, or not good format of the input')
         end = time.perf_counter()
-        logger.info('    %.4f s', end-start)   
+        logger.info('   (%.4f s)', end-start)   
 
         # NOISES IN THE CAMERA  
         # -----------------------------------------------------------------------
@@ -864,7 +870,8 @@ class FMC:
 
         # PREPARE THE OUTPUT
         # -----------------------------------------------------------------------
-        logger.info('- Buildind the output...')    
+        logger.info('- Buildind the output...')
+        start = time.perf_counter()
         # Transform the counts to integers    
         final_frame.data = final_frame.data.astype(int, copy=False)
         # Substitute the total frame
@@ -880,6 +887,8 @@ class FMC:
             self.frame_camera[key].coords['x'].attrs['units'] = 'pix.'
             self.frame_camera[key].coords['y'].attrs['longname'] = 'Y'
             self.frame_camera[key].coords['y'].attrs['units'] = 'pix.'
+        end = time.perf_counter()
+        logger.info('   (%.4f s)', end-start)
 
     # --- Private routines
 
@@ -958,7 +967,7 @@ class FMC:
                             MC_number=0)
 
         end = time.perf_counter()
-        logger.info('   %.4f s', end-start)
+        logger.info('   (%.4f s)', end-start)
 
     def _map_signal(self):
         '''
@@ -1013,7 +1022,7 @@ class FMC:
         synthetic_frame = pixels_flat.reshape(g_grid.shape)
 
         end = time.perf_counter()
-        logger.info('   %.4f s', end-start)
+        logger.info('   (%.4f s)', end-start)
         
         return synthetic_frame
 
@@ -1041,7 +1050,7 @@ class FMC:
         dummy.values = dummy_vals.reshape(ny,nx)
         self.scint_area = copy.deepcopy(dummy)
         end = time.perf_counter()
-        logger.info('   %.4f s', end-start)
+        logger.info('   (%.4f s)', end-start)
 
     def _new_synthsig_xy(self):
         '''
@@ -1088,13 +1097,17 @@ class FMC:
 
         # BUILD THE OUTPUT
         # -----------------------------------------------------------------------
-        logger.info('- Apllying corrections...') 
+        logger.info('- Applying corrections...')
+        start = time.perf_counter()
         if self.smoother != None:
             dummy = copy.deepcopy(synthetic_frame)
             synthetic_frame = spnd.gaussian_filter(dummy, sigma=self.smoother)
+        end = time.perf_counter()
+        logger.info('   (%.4f s)', end-start)
 
         # Signal frame
         logger.info('- Building the frame_scintillator xarray...')
+        start = time.perf_counter()
         self.frame_scintillator = xr.Dataset()
         signal_frame = xr.DataArray(synthetic_frame, dims=('y', 'x'),
                 coords={'y': (np.linspace(1, self.cam_params['ny'], 
@@ -1105,6 +1118,8 @@ class FMC:
                         )
         signal_frame = signal_frame.where(signal_frame >= 0, 0)
         self.frame_scintillator['fil'] = signal_frame
+        end = time.perf_counter()
+        logger.info('   (%.4f s)', end-start)
         # Add scintillator to output
         self._scint_perim_area()
         
@@ -1146,8 +1161,8 @@ class FMC:
             integral_s = self.frame_scintillator[key].sum().item() * pix_osize
             self.frame_scintillator[key].attrs['rate'] = integral_s
 
-        logger.info('    Scintillator FIL (%s/s): %e', self.mode, 
-                    self.frame_scintillator.fil.rate)
+        logger.info('   Total signal = %e (%s/s)', 
+                    self.frame_scintillator.tot.rate, self.mode)
 
     def _update_params(self, cur_params: dict, new_params: dict, name: str):
         if not new_params:
