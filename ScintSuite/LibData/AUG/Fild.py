@@ -301,7 +301,7 @@ class FILD_logbook:
                 'GeomID': [], 'diag_ID': []}
 
         # Read the file
-        logger.info('Reading Geometry database from: {filename}')
+        logger.info('Reading Geometry database from: %s' % filename)
         with open(filename) as f:
             for i in range(n_header):
                 dummy = f.readline()
