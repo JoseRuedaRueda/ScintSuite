@@ -6,9 +6,9 @@ import numpy as np
 from ScintSuite._Machine import machine
 from ScintSuite._Paths import Path
 
-version = '1.4.5'
+version = '2.0.1'
 
-codename = 'Huki SX'
+codename = 'Huki SX1 Special' # Maybe one of the best SurfSkis ever build
 
 
 logger = logging.getLogger('ScintSuite.Version')

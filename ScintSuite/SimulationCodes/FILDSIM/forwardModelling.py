@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import ScintSuite._Mapping as ssmapping
 import ScintSuite.SimulationCodes.FILDSIM.execution as ssfildsimA
+from ScintSuite.SimulationCodes.Common import get_energy, get_gyroradius
 import ScintSuite._Plotting as ssplt
 import ScintSuite.LibData as ssdat
 import ScintSuite._Noise as ssnoise
@@ -56,7 +57,7 @@ def gaussian_input_distribution(r0, sr0, p0, sp0, B=1.8, A=2.0, Z=1, F=1e6,
             }
         }
     }
-    distro['energy'] = ssfildsimA.get_energy(distro['gyroradius'],
+    distro['energy'] = get_energy(distro['gyroradius'],
                                              B, A, Z)
     distro['n'] = len(distro['weight'])
     return distro
@@ -128,7 +129,7 @@ def read_ASCOT_distribution(file, version: int = 4, IpBt_sign=-1.0, B=None):
                 print('Not possible to calculate pitch')
         if 'gyroradius' not in out.keys():
             try:
-                r = ssfildsimA.get_gyroradius(out['energy'], out['B'],
+                r = get_gyroradius(out['energy'], out['B'],
                                               out['Anum'], out['Znum'])
                 out['gyroradius'] = r
             except KeyError:
@@ -746,7 +747,7 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
     # inside the loop:
     if efficiency is not None:
         eff = True
-        energy = ssfildsimA.get_energy(rpin, B, A, Z)
+        energy = get_energy(rpin, B, A, Z)
         eff = efficiency.interpolator(energy)
         print('Considering scintillator efficiency in W')
     else:

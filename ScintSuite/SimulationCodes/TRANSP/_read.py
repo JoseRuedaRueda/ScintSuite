@@ -1,7 +1,13 @@
 from netCDF4 import Dataset
 import xarray as xr
 import numpy as np
-
+import logging
+logger = logging.getLogger('ScintSuite.SimulationCodes.TRANSP')
+try:
+    import MDSplus
+except ImportError:
+    logger.warning('MDSplus module not found, read_from_MDSplus function will not work')
+    
 def read_profiles(fn):
     """
     Read 1D plasma input in from a CDF file.
@@ -45,3 +51,25 @@ def read_profiles(fn):
     a['omega'].attrs['long_name'] = tmp.variables['OMEGA'].long_name
     a['omega'].attrs['units'] = tmp.variables['OMEGA'].units
     return a
+
+
+def read_from_MDSplus(shot, signal, server='atlas.gat.com', tree='TRANSP'):
+    """
+    Read 1D plasma input in from MDSplus.
+    
+    :param shot: int, shot number of the TRANSP simulation (if runID=203041A01,
+                 shot number is 2030410101).
+    :param signal: str, signal name in MDSplus, can be a list
+    :param server: str, MDSplus server address.
+    :param tree: str, MDSplus tree name.
+    """
+    conn = MDSplus.Connection(server)
+    conn.openTree(tree, shot)
+    if isinstance(signal, str):
+        signal = [signal,]
+    data = {}
+    for s in signal:
+        print(f'Reading signal {s} from MDSplus...')
+        data[s] = np.array(conn.get('\\' + s))
+    return data
+

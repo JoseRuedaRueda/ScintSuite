@@ -17,10 +17,20 @@ import shutil
 # -----------------------------------------------------------------------------
 # %% Read the settings file
 # -----------------------------------------------------------------------------
-home = os.getenv("ScintSuitePath")
-if home is None:
-    home = os.path.join(os.getenv("HOME"), 'ScintSuite')
+# home = os.getenv("ScintSuitePath")
+# if home is None:
+#     home = os.path.join(os.getenv("HOME"), 'ScintSuite')
+# Get the path to this init file
+home = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+# ../Data/MyDataTemplates/Settings.yml
+defaultSettings = os.path.join(home, 'Data', 'MyDataTemplates', 'Settings.yml')
 UserSettings = os.path.join(home, 'Settings.yml')
+
+
+# If the settings file does not exist, copy the default one
+if not os.path.isfile(UserSettings):
+    shutil.copy(defaultSettings, UserSettings)
+
 with open(UserSettings, 'r') as stream:
     try:
         settings = yaml.safe_load(stream)
@@ -181,9 +191,9 @@ del m
 ## ------------------------------------------------------------------------
 # --- PRINT SUITE VERSION
 # -------------------------------------------------------------------------
-logger.info('-... .. . -. ...- . -. .. -.. ---')
-logger.info('VERSION: ' + version + ' ' + codename)
-logger.info('.-- . .-.. .-.. -.-. --- -- .')
+Suite_logger.info('-... .. . -. ...- . -. .. -.. ---')
+Suite_logger.info('VERSION: ' + version + ' ' + codename)
+Suite_logger.info('.-- . .-.. .-.. -.-. --- -- .')
 ver.printGITcommit()
 ## ------------------------------------------------------------------------
 # --- Initialise plotting options
@@ -196,6 +206,6 @@ try:
     else:
         pltStyle = 'software'
     plt.plotSettings(pltStyle)
-except:
-   logger.warning('28: It was not possible to initialise the plotting ' +
-                  'settings')
+except Exception as e:
+   Suite_logger.warning('28: It was not possible to initialise the plotting ' +
+                  'settings. Exception found: ' + str(e))

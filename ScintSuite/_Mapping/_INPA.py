@@ -156,6 +156,8 @@ def remapAllLoadedFrames(video,
         got_smap = False
     else:
         got_smap = True
+        if isinstance(map, str):
+            smap = Ismap(file = map)
         smap = map
         logger.info('A StrikeMap was given, we will remap all frames with it')
         logger.warning('24: Assuming you properly prepared the smap')
@@ -313,8 +315,8 @@ def remapAllLoadedFrames(video,
                          method=remap_method)
 
     toc = time.time()
-    logger.info('Whole time interval remapped in: ', toc-tic, ' s')
-    logger.info('Average time per frame: ', (toc-tic) / nframes, ' s')
+    logger.info('Whole time interval remapped in: %.2f s'%((toc-tic)))
+    logger.info('Average time per frame: %.2f s'%((toc-tic) / nframes))
 
     remap_dat = xr.Dataset()
     remap_dat['frames'] = \

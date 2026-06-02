@@ -5,18 +5,17 @@ Include band signal and other filtres aimed to reduce the noise
 """
 import numpy as np
 import xarray as xr
-import xarray as xr
-import heapq
 import logging
 import scipy.signal as signal
 import matplotlib.pyplot as plt
 import matplotlib.cm as colorMap
 import scipy
+from tqdm import tqdm
 from scipy.signal import get_window, istft
 from scipy.fftpack import fftfreq, rfft, ifft, fftshift
 from multiprocessing import cpu_count
 from scipy.fftpack import next_fast_len
-from scipy.interpolate import interp2d
+from scipy.interpolate import RectBivariateSpline
 from collections import defaultdict
 from ScintSuite._Plotting import p1D_shaded_error as plot_error_band
 from ScintSuite._SideFunctions import smooth
@@ -476,7 +475,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                    target: float = None, freqLims: float = None,
                    timeLims: float = None, tOverlap: float = None,
                    graph_TimeConnect: float = 0.0, freqThr: float = np.inf,
-                   k_exp: float = 4.0, kt_exp: float = 1.0,
+                   k_exp: float = 2.0, kt_exp: float = 1.0,
                    peak_opts: dict = {},
                    costFunction=None, peakFilterFnc=None,
                    smooth: bool = True, smooth_opts: dict = {},
@@ -736,14 +735,14 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
 
         # Plotting the peaks
         for ii in peak_map:
-            ax.plot(peak_map[ii][0], peak_map[ii][1], 'r.')
+            ax.plot(peak_map[ii][0], peak_map[ii][1], 'g.', alpha = 0.1)
 
     ntime_peaks = kk - 1
     if verbose:
         print('#time slices = %d'%ntime_peaks)
     # --- Generating the graph: connecting the vertex
     # The graph will conect the timepoints with the next timepoints peaks only
-    for ii in range(ntime_peaks):
+    for ii in tqdm(range(ntime_peaks)):
         # Loop over the starting nodes.
         for jj, frm in enumerate(peak_data['timeList'][ii]):
             # Loop over the next nodes: we will connect every node all the
@@ -790,7 +789,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     peak_origin = { 'time': timeLims[0],
                     'freq': origin,
                     'width': 0.0,
-                    'spec_val': interp2d(time, freq2, spec2.T)\
+                    'spec_val': RectBivariateSpline(time, freq2, spec2)\
                                 (timeLims[0], origin),
                     'spec_norm': 0.0,
                 }
@@ -800,7 +799,8 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                           peak_origin['width'],
                           peak_origin['spec_val'],
                           peak_origin['spec_norm'])
-    for jj in range(0, nGraphConne):
+    print("getting the cost of the origin connections")
+    for jj in tqdm(range(0, nGraphConne)):
         for ii, to in enumerate(peak_data['timeList'][jj]):
             peak_nxt = { 'time': peak_data['time'][jj][ii],
                          'freq': peak_data['freq'][jj][ii],
@@ -859,6 +859,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
     dgraph.Dijsktra(dgraph.get_vertex('origin'), verbose=False)
 
     # --- Getting the final point:
+    print('Getting the shortest path...')
     path = list()
     if target:
         path.append('target')
@@ -890,6 +891,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                    find the origin in the path backwards')
             distmin = np.inf
     # --- Translating the path into the curve (t, freq)
+    print('Translating the path into the frequency curve...')
     timecurve = list()
     freqcurve = list()
     ampcurve_norm  = list()
@@ -899,12 +901,11 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
         timecurve.append(np.atleast_1d(peak_map[ii][0])[:])
         freqcurve.append(np.atleast_1d(peak_map[ii][1])[:])
         ampcurve_norm.append(np.atleast_1d(peak_map[ii][2])[:])
-        ampcurve_total.append(np.atleast_1d(peak_map[ii][3])[:])
+        ampcurve_total.append(np.atleast_1d(peak_map[ii][3])[:].flatten())
         widths_curve.append(np.atleast_1d(peak_map[ii][4])[:])
 
             
-
-    print(ampcurve_total[-1][0])
+    print(path)
     output = { 'track': { 'time': np.flip(np.array(timecurve).flatten()),
                           'freq': np.flip(np.array(freqcurve).flatten()),
                           'Anorm': np.flip(np.array(ampcurve_norm).flatten()),
@@ -913,7 +914,7 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                         },
               'peak_data': peak_data,
               'peak_map': peak_map,
-              'path_by_graph': path.reverse(),
+              'path_by_graph': path[::-1],
               'cost': distmin
              }
     print(output['track']['time'])
@@ -925,293 +926,6 @@ def trackFrequency(time: float, freq: float, spec: float, origin: float,
                              y=output['track']['freq'], color='w',
                              u_up=output['track']['width']/2.0,
                              alpha=0.2, line=True, line_param=lineOpts)
-    del dgraph
 
-    return output, ax
-
-# ----------------------------------------------------------------------------
-# --- Graph and vertex classes for shortest path algorithm.
-# ----------------------------------------------------------------------------
-class Vertex:
-    """
-    Vertex class. A vertex is an element of a Graph. This class contains
-    the information of the neighbouring vertices and its distances.
-
-    Taken from:
-    https://www.bogotobogo.com/
-    """
-    def __init__(self, node):
-        """
-        Initializes the Vertex class with a given node identification.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-        :param  node: ID of the node.
-        """
-        self.id = node
-        self.adjacent = defaultdict(list)
-        # Set distance to infinity for all nodes
-        self.distance = np.inf
-        # Mark all nodes unvisited
-        self.visited = False
-        # Predecessor
-        self.previous = None
-
-    def __del__(self):
-        """
-        Destructor of the vertex content.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-        """
-        self.id = 0
-        self.adjacent = defaultdict(list)
-        self.distance = np.inf
-        self.visited = False
-        self.previous = None
-
-    def __lt__(self, b):
-        """
-        Compares the distance to the origin of two vertices.
-        """
-        return (self.distance < b.distance)
-
-    def __le__(self, b):
-        """
-        Compares the distance to the origin of two vertices.
-        """
-        return (self.distance <= b.distance)
-
-    def add_neighbor(self, neighbor, weight: float = 0.0):
-        """
-        Add a neighbour to the current vertex and adds its corresponding
-        weight.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-        :param  neighbor: identification of the neighbour (a string, number,...)
-        :param  weight: the weight to go from one point to the next. Only
-        non-negative values. 0 implies direct connection, Inf means no
-        connection at all. In the latter, it will not be added to the list.
-        """
-        if weight.size == 0:
-            raise Exception('The weight must be a number for neighbour= '+\
-                            str(neighbor.id))
-
-        if weight < 0.0:
-            raise Exception('Weigths must be non-negative numbers!')
-        elif weight == np.inf:
-            return
-
-        self.adjacent[neighbor] = weight
-
-    @property
-    def connections(self):
-        """
-        Returns the connections names as stored in the dictionary adjacent.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-        """
-        return self.adjacent.keys()
-
-    def get_weight(self, neighbor):
-        """
-        Returns the weigth for a given pair self->neighbor edge.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-        :param  neigbor: name or identification of the neighbour whose weight
-        is wanted to be known.
-        """
-        return self.adjacent[neighbor]
-
-    def __str__(self):
-        """
-        Converts the vertex relations to a string output. It will improve the
-        debugging.
-        """
-        return str(self.id) + ' adjacent: ' +  \
-               str([x.id for x in self.adjacent])
-
-
-class Graph:
-    """
-    The Graph class contains a set of vertices and their connections.
-
-    Taken from: https://www.bogotobogo.com/
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-    """
-
-    def __init__(self):
-        """
-        Initializes the vertex class with no nodes.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-        """
-        self.vert_dict = defaultdict(list)
-        self.nVertices = int(0)
-
-    def __iter__(self):
-        """
-        Defines the iterator over the vertices.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-        """
-        return iter(self.vert_dict.values())
-
-    def __del__(self):
-        """
-        Destructor of the class. This will call the destructor of all the
-        vertices contained.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-        """
-        for ii in self.vert_dict:
-            del ii
-
-        self.nVertices = 0
-
-    def add_vertex(self, node_id):
-        """
-        Add a new vertex to the list that will be identified with the ID
-        node_id, that must be unique.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-        :param  node_id: identificator of the node.
-        :return new_vertex: Vertex class created.
-        """
-
-        # --- Check that there are no collisions.
-        if node_id in self.vert_dict:
-            raise Exception('The vertex ID is repeated!')
-
-        # --- Creating the vertex.
-        new_vertex = Vertex(node_id)
-        self.vert_dict[node_id] = new_vertex  # Adding to the list.
-
-        self.nVertices += 1
-
-        return new_vertex
-
-    def get_vertex(self, node):
-        """
-        Get the vertex associated with the ID node.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-        :param  node: node identificator to get the Vertex class.
-        """
-        if node in self.vert_dict:
-            return self.vert_dict[node]
-        else:
-            return None
-
-    def add_edge(self, frm, to, cost: float=0.0, forceAdd: bool=True):
-        """
-        Add a connection between two vertices with a cost value of cost. It can
-        be forced to add the two vertices if they did not exist before.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-        :param  frm: node-id of the starting node.
-        :param  to:  node-id of the ending node.
-        :param  cost: weighting of the node-node connection.
-        :param  forceAdd: force to add the two new vertices 'frm'&'to' into the
-        list. By default it will add them.
-        """
-
-        if frm not in self.vert_dict:
-            if forceAdd:
-                self.add_vertex(frm)
-            else:
-                raise Exception('Node %s not available in the list'%frm)
-
-        if to not in self.vert_dict:
-            if forceAdd:
-                self.add_vertex(to)
-            else:
-                raise Exception('Node %s not available in the list'%to)
-
-        self.vert_dict[frm].add_neighbor(self.vert_dict[to], weight=cost)
-
-    def get_vertices(self):
-        """
-        Getting the vertices ids.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-        """
-
-        return self.vert_dict.keys()
-
-    def Dijsktra(self, start, verbose: bool=True):
-        """
-        Dijsktra algorithm to look for the shortest path in a Graph.
-
-        Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-        :param  agraph: graph class containing the collection of vertices.
-        :param  start: starting vertex.
-        """
-
-        # Set the distance to the origin of the starting vertex to 0
-        start.distance = 0.0
-
-        # Put tuple pair into the priority queue.
-        unvisited_queue = [(v.distance, v) \
-                           for v in iter(self.vert_dict.values())]
-        heapq.heapify(unvisited_queue)
-
-        while len(unvisited_queue):
-            # Pops a vertex with the smallest distance.
-            uv = heapq.heappop(unvisited_queue)
-            current = uv[1]
-            current.visited = True
-
-            for nxt in current.adjacent:
-                if nxt.visited:
-                    continue
-
-                new_dist = current.distance + current.get_weight(nxt)
-
-                if new_dist < nxt.distance:
-                    nxt.distance = new_dist
-                    nxt.previous = current
-                    if verbose:
-                        print('Updated: current = '+ str(current.id)+'\n' + \
-                                       'next = '    + str(nxt.id)   + '\n' + \
-                                       'new_dist = ' +str(nxt.distance)+ '\n')
-
-                else:
-                    if verbose:
-                        print('Non-updated: current = '+ str(current.id)+'\n'+\
-                              'next = '     + str(nxt.id)     + '\n' + \
-                                'new_dist = ' + str(nxt.distance) + '\n')
-
-            # Rebuild heap:
-            # 1. Pop every item.
-            while len(unvisited_queue):
-                heapq.heappop(unvisited_queue)
-
-            # 2. Put all vertices not visited into the queue.
-            unvisited_queue = [(v.distance, v) \
-                               for v in iter(self.vert_dict.values()) \
-                               if not v.visited]
-            heapq.heapify(unvisited_queue)
-
-def graph_shortest(v, path):
-    """
-    This searches for the path starting by the vertex 'v' and go backwards.
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    :param  v: ending vertex.
-    :param  path: vertex path back to the origin. A collection of the IDs.
-    """
-    if v.previous:
-        path.append(v.previous.id)
-        graph_shortest(v.previous, path)
-
-    return
-
+    return output, ax, dgraph
 

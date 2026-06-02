@@ -22,3 +22,6 @@ stl>=0.0.3
 tqdm>=4.65.0
 wand>=0.6.11
 xarray>=2023.3.0
+unyt
+h5py
+datetime

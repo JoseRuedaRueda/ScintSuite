@@ -1,1 +1,1 @@
-from ScintSuite.SimulationCodes.TRANSP._read import read_profiles
+from ScintSuite.SimulationCodes.TRANSP._read import read_profiles, read_from_MDSplus

@@ -41,6 +41,8 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
 
     To read from UDA:
     client.get("/", "$MAST_DATA/<kshot>/<shot>/LATEST/xfx<ishot>.nc")
+    kshot = first 3 digits, ie 050 for 50000-50999
+    ishot = first 6 digits, ie 050000 for 50000
 
     :param  shot: shot number
     :param  diag_ID: FILD manipulator number
@@ -48,6 +50,7 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
     :return file: the name of the file/folder
     """
     file = params.FILD[diag_ID-1]['path'](shot)
+    # file = file[:-5] # remove "MASTU" from the name
     # base_dir = params.FILD[diag_ID-1]['path'](shot)
     # extension = params.FILD[diag_ID-1]['extension'](shot)
     # prefix = params.FILD[diag_ID-1]['prefix'](shot)

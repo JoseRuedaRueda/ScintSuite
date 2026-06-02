@@ -420,39 +420,6 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC',
     
     elif method.lower() == 'griddata': # grid data interpolation
         raise NotImplementedError("This method was deprecated in ScintSuite 1.4.0")
-        logger.warning('This method does not conserve the signal integral. Avoid it')
-        namex = smap._to_remap[0].name
-        namey = smap._to_remap[1].name
-        # --- 1: Information of the calibration
-        # Get the phase variables at each pixel
-        x = smap._grid_interp[namex].flatten()
-        y = smap._grid_interp[namey].flatten()
-
-        idx_isnotnan = ~np.isnan(x)  #added by AJVV
-        x = x[idx_isnotnan]
-        y = y[idx_isnotnan]
-
-        dummy = np.column_stack((x, y))
-        # --- 2: Remap
-        xcenter = 0.5 * (x_edges[1:] + x_edges[:-1])
-        ycenter = 0.5 * (y_edges[1:] + y_edges[:-1])
-        XX, YY = np.meshgrid(xcenter, ycenter, indexing='ij')
-        if mask is None:
-            z = frame.flatten().astype(float)
-        else:
-            z = frame.copy().astype(float)
-            z[~mask] = 0
-            z = z.flatten()
-
-        z = z[idx_isnotnan]
-
-        H = griddata(dummy, z, (XX.flatten(), YY.flatten()),
-                     method='linear', fill_value=0).reshape(XX.shape)
-        # Normalise H to counts per unit of each axis
-        delta_x = xcenter[1] - xcenter[0]
-        delta_y = ycenter[1] - ycenter[0]
-        H /= delta_x * delta_y
-        
     elif method.lower() == 'forward_warping_simple': # should produce smoother histogram
         '''
         Use the grid iterpolators to translate each pixel to a phase-space value.

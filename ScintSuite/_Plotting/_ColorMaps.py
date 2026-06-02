@@ -11,7 +11,7 @@ Contains:
 import os
 import yaml
 from matplotlib.colors import LinearSegmentedColormap
-__all__ = ['Gamma_I', 'Gamma_II', 'Gamma_IIb', 'Gamma_III', 'Cai']
+__all__ = ['Gamma_I', 'Gamma_II', 'Gamma_IIb', 'Gamma_III', 'Cai', 'default_cmap']
 
 
 def Gamma_I(n=256):
@@ -23,7 +23,7 @@ def Gamma_I(n=256):
     :param  n: numbers of levels of the output colormap
     """
     cmap = LinearSegmentedColormap.from_list(
-        'mycmap', ['black', 'blue', 'purple', 
+        'mycmap', ['black', 'navy', 'blue', 'purple', 
                    'red', 'orange', 'yellow'], N=n)
     
     return cmap
@@ -91,9 +91,7 @@ def Cai(n=256):
 
 # ----- SUITE default colormaps -----
 
-home = os.getenv("ScintSuitePath")
-if home is None:
-    home = os.path.join(os.getenv("HOME"), 'ScintSuite')
+home = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 UserSettings = os.path.join(home, 'Settings.yml')
 with open(UserSettings, 'r') as stream:
     try:
@@ -107,3 +105,13 @@ if 'defaultColorMap' in settings['UserPlotStyles'].keys():
         default_cmap = globals()[default_cmap_name]
     else:
         default_cmap = Gamma_II
+else:
+    default_cmap = Gamma_II
+
+def default_cmap_func(n=256):
+    """
+    Returns the default colormap function
+
+    :param n: number of levels
+    """
+    return default_cmap(n)
