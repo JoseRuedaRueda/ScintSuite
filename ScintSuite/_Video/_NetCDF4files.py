@@ -230,6 +230,21 @@ def read_file_anddata(connection = None, filename = None):
     return frames, header, imageheader, settings
 
 
+def read_video(connection=None):
+    """
+    Alternative method of reading MAST-U videofiles from UDA. 
+
+    Should be compatible with old and new file types
+
+    Theo Gheorghiu - theo.gheorghiu@ukaea.uk
+
+    
+    """
+
+    return frames, header, imageheader, settings
+
+
+
 def load_nc(filename: str, frame_number: int = None):
     """
     Load the nc with an order compatible with IDL 
