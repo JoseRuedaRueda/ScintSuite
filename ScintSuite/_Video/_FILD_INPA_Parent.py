@@ -951,9 +951,7 @@ class FIV(BVO):
             self.exp_dat.attrs.clear()
             self.exp_dat.to_netcdf(frames)
             tar.add(frames, arcname='frames.nc')
-        else:
-            logger.info('To export the camera frames: export_frames = True. ' \
-                'Might be memory-heavy.')
+
         tar.add(remap, arcname='remap.nc')
         tar.add(calibration, arcname='CameraCalibration.nc')
         tar.add(versionFile, arcname='version.txt')
@@ -972,6 +970,8 @@ class FIV(BVO):
             os.remove(magFieldAngles)
             os.remove(strikemaps)
             os.remove(frames)
-            os.remove(remap)
             os.remove(calibration)
             os.remove(versionFile)
+            if export_frames:
+                os.remove(remap)
+                
