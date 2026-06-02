@@ -1,3 +1,9 @@
+# 2.0.2 Vectorization
+- Add vectoriced noise filters and vectorized remap.
+- Add option to export frames together with the remap
+- Clean/improve the FILD forward modelling library
+- Update AUG FILD paths
+  
 # 2.0.1 MU and FILDSIM5
 - Minor changes to the MU library to locate FILD files
 - Strike object compatible with FILDSIM 5.0
