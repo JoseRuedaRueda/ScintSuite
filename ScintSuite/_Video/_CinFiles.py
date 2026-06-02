@@ -110,7 +110,7 @@ def read_settings(filename: str, bit_pos: int, verbose: bool = False):
     fid = open(filename, 'r')
     if verbose:
         print('Reading .cin settings')
-    fid.seek(bit_pos)
+    fid.seek(bit_pos.item())
 
     # Requested frame rate
     cin_settings = {'FrameRate16': np.fromfile(fid, 'uint16', 1),
@@ -782,7 +782,7 @@ def read_image_header(filename: str, bit_pos: int, verbose: bool = False) -> dic
     fid = open(filename, 'r')
     if verbose:
         print('Reading .cin image header')
-    fid.seek(bit_pos)
+    fid.seek(bit_pos.item())
     # read the image header
     # number of bytes of the structure
     cin_image_header = {'biSize': np.fromfile(fid, 'uint32', 1),
@@ -831,7 +831,7 @@ def read_time_base(filename: str, header: dict, settings: dict):
     """
     # Open file and go to the position of the image header
     fid = open(filename, 'r')
-    fid.seek(header['OffSetup'] + settings['Length'])
+    fid.seek(header['OffSetup'].item() + settings['Length'].item())
 
     # There are different blocks order in a different way depending on the
     # version of the camera, we are interested in the block identified with a
@@ -847,15 +847,15 @@ def read_time_base(filename: str, header: dict, settings: dict):
         if id_number == 1002:
             np.fromfile(fid, 'uint16', 1)  # Reserved number
             dummy = np.fromfile(fid, 'uint32',
-                                int(2 * header['ImageCount'][:]))
+                                int(2 * header['ImageCount'][:].item()))
             cin_time: float = np.float64(dummy[1::2]) - \
-                np.float64(header['TriggerTime']['seconds']) + \
+                np.float64(header['TriggerTime']['seconds'].item()) + \
                 (np.float64(dummy[0::2])
-                 - np.float64(header['TriggerTime']['fractions'])) / 2.0 ** 32
+                 - np.float64(header['TriggerTime']['fractions'].item())) / 2.0 ** 32
             # return
             fid.close()
             return cin_time
-        fid.seek(header['OffSetup'] + settings['Length'] + cumulate_size)
+        fid.seek(header['OffSetup'].item() + settings['Length'].item() + cumulate_size.item())
 
 
 def read_frame(cin_object, frames_number, limitation: bool = True,
@@ -900,14 +900,14 @@ def read_frame(cin_object, frames_number, limitation: bool = True,
     # --- Section 1: Get frames position
     # Open file and go to the position of the image header
     fid = open(cin_object.file, 'r')
-    fid.seek(cin_object.header['OffImageOffsets'])
+    fid.seek(cin_object.header['OffImageOffsets'].item())
 
     if cin_object.header['Version'] == 0:  # old format
         position_array = np.fromfile(fid, 'int32',
-                                     int(cin_object.header['ImageCount']))
+                                     int(cin_object.header['ImageCount'].item()))
     else:
         position_array = np.fromfile(fid, 'int64',
-                                     int(cin_object.header['ImageCount']))
+                                     int(cin_object.header['ImageCount'].item()))
     # -------------------------------------------------------------------------
     # ---  Section 2: Read the images
 
@@ -926,11 +926,11 @@ def read_frame(cin_object, frames_number, limitation: bool = True,
     # Pre-allocate output array
     # To be in line with old FILDGUI and be able to use old FILD calibration
     # the matrix will be [height,width]
-    M = np.zeros((int(cin_object.imageheader['biHeight']),
-                  int(cin_object.imageheader['biWidth']), nframe),
+    M = np.zeros((int(cin_object.imageheader['biHeight'].item()),
+                  int(cin_object.imageheader['biWidth'].item()), nframe),
                  dtype=data_type)
-    img_size_header = int(cin_object.imageheader['biWidth']   # byte
-                          * cin_object.imageheader['biHeight'] * BPP / 8)
+    img_size_header = int(cin_object.imageheader['biWidth'].item()   # byte
+                          * cin_object.imageheader['biHeight'].item() * BPP / 8)
     npixels = cin_object.imageheader['biWidth'] * \
         cin_object.imageheader['biHeight']
     # Read the frames
@@ -940,7 +940,7 @@ def read_frame(cin_object, frames_number, limitation: bool = True,
         fid.seek(position_array[iframe])
         #  Skip header of the frame
         length_annotation = np.fromfile(fid, 'uint32', 1)
-        fid.seek(position_array[iframe] + length_annotation - 4)
+        fid.seek(position_array[iframe].item() + length_annotation.item() - 4)
         #  Read frame
         image_size = np.fromfile(fid, 'uint32', 1)  # In bytes
         if image_size != img_size_header:
@@ -948,9 +948,9 @@ def read_frame(cin_object, frames_number, limitation: bool = True,
             print(img_size_header)
             raise Exception('Image sizes (in bytes) does not coincides')
         M[:, :, i] = np.reshape(np.fromfile(fid, data_type,
-                                            int(npixels)),
-                                (int(cin_object.imageheader['biWidth']),
-                                 int(cin_object.imageheader['biHeight'])),
+                                            int(npixels.item())),
+                                (int(cin_object.imageheader['biWidth'].item()),
+                                 int(cin_object.imageheader['biHeight'].item())),
                                 order='F').transpose()
     fid.close()
     return M

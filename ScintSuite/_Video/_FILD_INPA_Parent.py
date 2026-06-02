@@ -33,6 +33,10 @@ import ScintSuite._Paths as p
 from ScintSuite._Machine import machine
 pa = p.Path(machine)
 del p
+import tarfile
+import json
+import tempfile
+
 
 logger = logging.getLogger('ScintSuite.Video')
 
@@ -875,7 +879,7 @@ class FIV(BVO):
         self.BField.to_netcdf(filename)
 
     def export_remap(self, folder: str = None, clean: bool = False,
-                     overwrite: bool = False):
+                     overwrite: bool = False, export_frames: bool = False):
         """
         Export remap file
 
@@ -883,6 +887,7 @@ class FIV(BVO):
             recommended to leave it as None
         :param  clean: delete the netCDF files and leave only the .tar file
         :param  overwrite: ignore old files, if present
+        :param  save_frames: save also the camera frames, if wanted
         """
         if folder is None:
             folder = os.path.join(pa.Results, str(self.shot), self.diag,
@@ -892,6 +897,7 @@ class FIV(BVO):
         magField = os.path.join(folder, 'Bfield.nc')
         magFieldAngles = os.path.join(folder, 'BfieldAngles.nc')
         strikemaps = os.path.join(folder, 'strikeMaps.nc')
+        frames = os.path.join(folder, 'frames.nc')
         remap = os.path.join(folder, 'remap.nc')
         calibration = os.path.join(folder, 'CameraCalibration.nc')
         versionFile = os.path.join(folder, 'version.txt')
@@ -939,6 +945,13 @@ class FIV(BVO):
             tar.add(magField, arcname='Bfield.nc')
             tar.add(magFieldAngles, arcname='BfieldAngles.nc')
             tar.add(strikemaps, arcname='strikeMaps.nc')
+        if export_frames:
+            logger.warning('Exporting camera frames. ' \
+                'This might be memory-heavy.')
+            self.exp_dat.attrs.clear()
+            self.exp_dat.to_netcdf(frames)
+            tar.add(frames, arcname='frames.nc')
+
         tar.add(remap, arcname='remap.nc')
         tar.add(calibration, arcname='CameraCalibration.nc')
         tar.add(versionFile, arcname='version.txt')
@@ -956,6 +969,9 @@ class FIV(BVO):
             os.remove(magField)
             os.remove(magFieldAngles)
             os.remove(strikemaps)
-            os.remove(remap)
+            os.remove(frames)
             os.remove(calibration)
             os.remove(versionFile)
+            if export_frames:
+                os.remove(remap)
+                

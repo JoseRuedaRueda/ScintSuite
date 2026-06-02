@@ -91,10 +91,10 @@ class GeneralStrikeMap(XYtoPixel):
             elif self._header['diagnostic'] == 'iHIBP':
                 variables_to_remap = ('x1', 'x2')
                 # ToDo. Set here the to proper iHIBP variables
-        self.setRemapVariables(variables_to_remap, verbose=False)
         self._grid_interp = None  # allocate the atribute for latter
         self._map_interpolators = None
-        # set tje shape of the map
+        self.setRemapVariables(variables_to_remap, verbose=False)
+        # set the shape of the map
         self._shape = self._header['shape']
         try:
             self._MC_variables = self._header['MC_variables']
@@ -121,7 +121,8 @@ class GeneralStrikeMap(XYtoPixel):
         
             raise errors.NotValidInput(text)
         self._remap_var_names = variables_to_remap
-        logger.warning('Please call interp_grid to update the interpolators')
+        if self._grid_interp is not None:
+            logger.warning('Please call interp_grid to update the interpolators')
 
     def interp_grid(self, frame_shape, method: int = 2,
                     verbose: bool = False,
@@ -210,7 +211,6 @@ class GeneralStrikeMap(XYtoPixel):
             new_dict = dict.fromkeys(variables_to_interpolate)
             self._grid_interp.update(new_dict)
             self._grid_interp['interpolators'].update(new_dict)
-
         for coso in variables_to_interpolate:  # For you lina ;)
             try:
                 dummy2 = \
@@ -235,7 +235,6 @@ class GeneralStrikeMap(XYtoPixel):
             self._calculate_transformation_matrix(
                 MC_number, variables_to_interpolate, grid_options,
                 frame_shape, limitation)
-
     def export_spatial_coordinates(self, Geom=None, units: str = 'mm',
                                    file_name_save: str = None,
                                    filename: str = 'Map.txt'):
