@@ -120,7 +120,7 @@ def read_file_anddata(connection = None, filename = None):
         n1 = vid.shape[1]
         n2 = vid.shape[2]
         vid = vid.flatten()
-        vid = np.reshape(vid, (n2, n1, n0))
+        vid = np.reshape(vid, (n2, n1, n0)) ## this flatten and reshape seems to scramble the image...
         time = connection['xfx']['time'].data 
         # in the standard format, there have been two different ways to write
         # the timebase. The first one was in ms and using the internal camera clock,
@@ -230,7 +230,7 @@ def read_file_anddata(connection = None, filename = None):
     return frames, header, imageheader, settings
 
 
-def read_video(connection=None):
+def read_video(video, time, fps, exposure, RFILD, FILDANGLE, analoguegain, diggain):
     """
     Alternative method of reading MAST-U videofiles from UDA. 
 
@@ -238,8 +238,100 @@ def read_video(connection=None):
 
     Theo Gheorghiu - theo.gheorghiu@ukaea.uk
 
-    
+
     """
+    logger.info("Loading FILD video from UDA...")
+    ## read in. Initially in 'height, width, time'
+    vid = video.data
+    ## rearrange such that it is in 'width, height, time'
+    vid = np.transpose(vid, (1, 0, 2)) 
+    time = time.data
+    min_raw = time.min()
+    max_raw = time.max()
+    range_raw = max_raw - min_raw
+
+    ## check if in old format...
+    if np.all(time > 0):
+        # if in old format, it is in counts. Convert these to seconds.
+        timebase = (time - time[0]) / 1e6 - 0.100
+        logger.info('Reading old format of the XIMEA timebase (all positive counts).')
+    ## if first is negative, then it is in seconds already.. but check ranges anyway
+    elif min_raw < 0:
+            # Check if range_raw is tiny (e.g. < 10 seconds) or huge (indicates not corrected)
+            if range_raw < 10:
+                timebase = time[:]
+                # logger.info('Reading new format of the XIMEA timebase.')
+            else:
+                # Large range means it's suspicious, probably ms => raise warning
+                timebase = (time - time[0]) / 1e6 - 0.100
+                logger.warning(f"Timebase range is suspiciously large ({range_raw}), \
+                    correcting to seconds. But it'd be better to check!")
+    else:
+        # Something else unexpected
+        raise ValueError("Timebase is not in the expected format. Please check the file.")
+
+    fps = fps.data[0]
+    exp = exposure.data[0]
+
+    try: 
+        RFILD = RFILD.data[0]
+    except KeyError:
+        logger.warning('No RFILD info in netcdf. Will look in the logbook.')
+    try: 
+        beta_angle = FILDANGLE.data[0]
+    except KeyError:
+        logger.warning('No beta angle info in netcdf. Will look in the logbook.')
+    try:
+        analoggain = analoguegain.data[0]
+    except KeyError:
+        logger.warning('No _analoggain_ field. Setting to 0.')
+        analoggain = 0
+    try:
+        digitalgain = diggain.data[0]
+    except KeyError:
+        logger.warning('No _diggain_ field. Setting to 0.')
+        digitalgain = 0
+
+    frames = {'nf': vid.shape[2],
+        'width': vid.shape[0], 
+        'height': vid.shape[1], 
+        'frames': vid,
+        'timebase': timebase}
+
+    imageheader = {
+        'biWidth': vid.shape[0],
+        'biHeight': vid.shape[1],
+        'framesDtype': vid.dtype}
+    if RFILD is None and beta_angle is None:
+        header = {'ImageCount': vid.shape[2]}
+    elif RFILD is not None and beta_angle is None:
+        header = {
+        'ImageCount': vid.shape[2],
+        'R_FILD': np.round(float(RFILD),4)}
+    elif beta_angle is not None and RFILD is None:
+        header = {
+        'ImageCount': vid.shape[2],
+        'beta_angle': np.round(beta_angle,4)}
+    else:
+        header = {
+        'ImageCount': vid.shape[2],
+        'R_FILD': np.round(float(RFILD),4),
+        'beta_angle': np.round(beta_angle,4)}
+
+    BPP = {'uint8': 8, 'uint16': 16, 'uint32': 32, 'int32': 32, 'uint64': 64}
+    settings = {
+            'fps': fps,
+            'exp': exp,
+            'digitalgain': digitalgain,
+            'analoggain': analoggain}
+    try:
+        settings['RealBPP'] = BPP[imageheader['framesDtype'].name]
+        text = 'In the nc there is no info about the real BitesPerPixel'\
+            + ' used in the camera. Assumed that the BPP coincides with'\
+            + ' the byte size of the variable.'
+        logger.warning(text)
+    except KeyError:
+        raise Exception('Expected uint8,16,32,64 in the frames')
 
     return frames, header, imageheader, settings
 
