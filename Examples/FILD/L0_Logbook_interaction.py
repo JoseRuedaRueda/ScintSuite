@@ -16,24 +16,24 @@ to initialise. Therefore the example lines around lines 21 can be different in
 your machine.
 Please have a look at the help of your logbook object
 """
-import ScintSuite.as ss
+import ScintSuite as ss
 from pprint import pprint
 
 # -----------------------------------------
-# --- Inpus
+# --- Inputs
 # -----------------------------------------
 geomID = 'MU01'
 shot = 44732
 
 # --- Initialise the logbook
-logbook = ss.dat.FILD_logbook()  # you can define your custom paths to the
+# logbook = ss.dat.FILD_logbook()  # you can define your custom paths to the
 #                                # excel containing the positions and the
 #                                # camera txt etc.
 # For example, if I want to load the camera calibration data base, from my own
 # file, 'MyCalib.txt':
 # logbook = ss.dat.FILD_logbook(cameraFile='MyCalib.txt')
 # if you want to load your particular excel file with the position
-# logbook = ss.dat.FILD_logbook(positionFile='MyNiceExcel.xls')
+logbook = ss.dat.FILD_logbook(positionFile="/home/fn2394/MAST-U_FILD_logbook_v3.xlsx")
 
 # --- get stuff
 # - Which head configuration was installed in FILD1 manipulator in #shot?

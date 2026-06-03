@@ -8,12 +8,12 @@ jose Rueda: jrrueda@us.es
 
 Note; Written for version 0.1.8.  Revised for version 1.0.0
 """
-import ScintSuite.as ss
+import ScintSuite as ss
 # -----------------------------------------------------------------------------
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 44732
+shot = 54287
 diag_ID = 1  # FILD manipulator number
 t1 = 0.9     # Initial time to be loaded, [s]
 t2 = 2.5     # Final time to be loaded [s]
