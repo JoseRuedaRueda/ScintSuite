@@ -186,25 +186,25 @@ class BVO:
                     # initialising the video in mastu will already 
                     # imply reading the frames, can't just read
                     # header, settings and timebase
-                    try:
-                        self.connection = ncdf.client.get("/",file[:-5])
-                        dummy, self.header, self.imageheader, self.settings,\
-                                = ncdf.read_file_anddata(connection = self.connection)
-                    except:
-                        ## get the things we need to pass to the new "reader"
-                        self.vvideo = ncdf.client.get("/xfx/video",file[:-5])
-                        self.vtime = ncdf.client.get("/xfx/time",file[:-5])
-                        self.vfps = ncdf.client.get("/devices/fps",file[:-5])
-                        self.vexposure = ncdf.client.get("/devices/exposure",file[:-5])
-                        self.vrfild = ncdf.client.get("/devices/RFILD",file[:-5])
-                        self.vfildangle = ncdf.client.get("/devices/FILDangle",file[:-5])
-                        self.vanaloguegain = ncdf.client.get("/devices/analoggain",file[:-5])
-                        self.vdigitalgain = ncdf.client.get("/devices/diggain",file[:-5])
-                        ## now call the read_video function
-                        dummy, self.header, self.imageheader, self.settings = ncdf.read_video(
-                            self.vvideo, self.vtime, self.vfps, self.vexposure, 
-                            self.vrfild, self.vfildangle, self.vanaloguegain, self.vdigitalgain
-                            )
+                    # try:
+                    #     self.connection = ncdf.client.get("/",file[:-5])
+                    #     dummy, self.header, self.imageheader, self.settings,\
+                    #             = ncdf.read_file_anddata(connection = self.connection)
+                    # except:
+                    ## get the things we need to pass to the new "reader"
+                    self.vvideo = ncdf.client.get("/xfx/video",file[:-5])
+                    self.vtime = ncdf.client.get("/xfx/time",file[:-5])
+                    self.vfps = ncdf.client.get("/devices/fps",file[:-5])
+                    self.vexposure = ncdf.client.get("/devices/exposure",file[:-5])
+                    self.vrfild = ncdf.client.get("/devices/RFILD",file[:-5])
+                    self.vfildangle = ncdf.client.get("/devices/FILDangle",file[:-5])
+                    self.vanaloguegain = ncdf.client.get("/devices/analoggain",file[:-5])
+                    self.vdigitalgain = ncdf.client.get("/devices/diggain",file[:-5])
+                    ## now call the read_video function
+                    dummy, self.header, self.imageheader, self.settings = ncdf.read_video(
+                        self.vvideo, self.vtime, self.vfps, self.vexposure, 
+                        self.vrfild, self.vfildangle, self.vanaloguegain, self.vdigitalgain
+                        )
 
                         
                     self.timebase = dummy['timebase']
