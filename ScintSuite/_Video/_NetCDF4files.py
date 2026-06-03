@@ -244,7 +244,7 @@ def read_video(video, time, fps, exposure, RFILD, FILDANGLE, analoguegain, digga
     ## read in. Initially in 'height, width, time'
     vid = video.data
     ## rearrange such that it is in 'width, height, time'
-    vid = np.transpose(vid, (1, 0, 2)) 
+    # vid = np.transpose(vid, (1, 0, 2)) 
     time = time.data
     min_raw = time.min()
     max_raw = time.max()
