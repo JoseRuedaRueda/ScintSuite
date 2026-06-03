@@ -15,15 +15,15 @@ import ScintSuite as ss
 # - General settings
 shot = 54287
 diag_ID = 1  # FILD manipulator number
-t1 = 0.9     # Initial time to be loaded, [s]
+t1 = 0.1     # Initial time to be loaded, [s]
 t2 = 2.5     # Final time to be loaded [s]
 limitation = True  # If true, the suite will not allow to load more than
 limit = 2048       # 'limit' Mb of data. To avoid overloading the resources
 
 # - Noise subtraction settings:
 subtract_noise = True   # Flag to apply noise subtraction
-tn1 = 0.9     # Initial time to average the frames for noise subtraction [s]
-tn2 = 1.0     # Final time to average the frames for noise subtraction [s]
+tn1 = 0.1     # Initial time to average the frames for noise subtraction [s]
+tn2 = 0.2     # Final time to average the frames for noise subtraction [s]
 
 # -----------------------------------------------------------------------------
 # --- Section 1: Load video
@@ -47,9 +47,9 @@ if subtract_noise:
 # --- Extra
 # -----------------------------------------------------------------------------
 # There are 2 main plotting routines one could use at this point:
-#       vid.GUI_frames()  # plot to see all the frames
-#       vid.plot_frame(t=2.5) # Plot a single frame, accept custom color map,
-#                             # Given ax to plot, etc...
+vid.GUI_frames()  # plot to see all the frames
+vid.plot_frame(t=2.5) # Plot a single frame, accept custom color map,
+                    # Given ax to plot, etc...
 #
 # Of course there are much more, like plotting the number of saturated counts
 # (usefult to see overheating) or other GUIS, just explore the different

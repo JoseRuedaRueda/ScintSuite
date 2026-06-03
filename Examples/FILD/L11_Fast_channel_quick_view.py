@@ -1,7 +1,7 @@
 """
 Plot time traces of FILD fast-channels
 """
-import ScintSuite.as ss
+import ScintSuite as ss
 import matplotlib.pyplot as plt
 # -----------------------------------------------------------------------------
 # --- Settings
