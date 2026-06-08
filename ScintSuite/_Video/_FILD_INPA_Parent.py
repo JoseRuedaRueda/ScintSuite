@@ -176,7 +176,7 @@ class FIV(BVO):
         self.BField.attrs['R'] = self.position[key1]
         self.BField.attrs['z'] = self.position[key2]
         self.BField.attrs['shot'] = self.shot
-        self.BField['flags'] = xr.DataArray(bnan, dims=('t'))
+        self.BField['flags'] = xr.DataArray(bnan[:,0], dims=('t'))
         self.BField['flags'].attrs['description'] = '1 if the magnetic field was not calculated, 0 otherwise'
         self.BField.attrs.update(extra_options)
 
