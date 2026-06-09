@@ -104,11 +104,11 @@ vid.plot_frame_remap(t=t0)
 if plot_profiles_in_time:
     b = vid.integrate_remap(xmax=par['xmax'],ymax=par['ymax']) # rL max is 18
     # Integral in XI
-    fig, ax = plt.subplots()
-    b['integral_over_x'].plot()
+    fig, axs = plt.subplots(ncols=2)
+    b['integral_over_x'].plot(ax=axs[0])
     # Integral in rL
-    fig2, ax2 = plt.subplots()
-    b['integral_over_y'].plot()
+    b['integral_over_y'].plot(ax=axs[1])
+    plt.show()
 
 # -----------------------------------------------------------------------------
 # --- Section 7: Export data
