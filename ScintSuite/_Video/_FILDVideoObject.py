@@ -282,7 +282,7 @@ class FILDVideo(FIV):
                                         'FILD', self.geometryID)
             else:
                 # @TODO< change this 0
-                smap_folder = os.path.join(paths.StrikeMapDatabase, self.geometryID)
+                smap_folder = os.path.join(paths.StrikeMapDatabase["FILD"], self.geometryID)
             logger.info('Looking for strikemaps in: %s', smap_folder)
             # -- Check which code generated the library
             namelistFile = os.path.join(smap_folder, 'parameters.cfg')

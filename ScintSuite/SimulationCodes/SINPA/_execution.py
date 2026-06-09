@@ -142,6 +142,10 @@ def find_strike_map_FILD(phi: float, theta: float, strike_path: str,
     field.tofile(fid)
     fid.close()
     # run the SINPA simulation
+    print("SINPA Path", paths.SINPA )
+    print("inputsDir Path", inputsDir )
+    print("resultsDir Path", resultsDir)
+    print("Run Path", run_path)
     bin_file = os.path.join(paths.SINPA, 'bin', 'SINPA.go')
     print('Executing SINPA')
     os.system(bin_file + ' ' + conf_file)
