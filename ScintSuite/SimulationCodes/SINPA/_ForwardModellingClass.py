@@ -106,6 +106,24 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
                     {c[4]} {c[5]} {c[6]} {c[7]} {c[8]} '
                 modified_lines.append(modified_line)    
 
+    if version == 'w7x':
+        names = ['R', 'Z', 'phi', 'weight', 'energy', 
+                 'pitch']
+
+        # FILE PREPARATION
+        with open(filename, 'r') as file:
+                lines = file.readlines()[2:]
+        modified_lines = []       
+        for line in lines:
+            if line.startswith('#'): #skips headers
+                continue
+            else:
+                c = line.split()
+                # get pitch in degree, account for co (+) and counter (-)
+                c[5] = math.acos(float(c[5]))*180.0/math.pi
+                
+                modified_line = f'{c[0]} {c[1]} {c[2]} {c[3]} {c[4]} {c[5]} '
+                modified_lines.append(modified_line)    
     
     if version == 'matlab':
         names = ['pitch', 'energy', 'weight']
@@ -169,12 +187,16 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
 
     # BUILD OUTPUT
     # -----------------------------------------------------------------------
-    filename2=filename[:-4]+'_procesed.dat'
-    with open(filename2, 'w') as file2:
-        file2.write('\n'.join(modified_lines))
+    # filename2=filename[:-4]+'_procesed.dat'
+    # with open(filename2, 'w') as file2:
+    #     file2.write('\n'.join(modified_lines))
+    # data = np.loadtxt(filename2)
+
+    from io import StringIO
+    buffer = StringIO('\n'.join(modified_lines))
+    data = np.loadtxt(buffer)
 
     # Load the data of this second file
-    data = np.loadtxt(filename2)
     for i in range(len(names)):
         out[names[i]] = data[:, i]
     out['n'] = len(data[:, 0])
@@ -280,7 +302,7 @@ class FMC:
     Alex Reyner: areyner@us.es
     '''
     def __init__(self, smap, scint, WF = None,
-                 smapplt = None,):
+                 smapplt = None, collimator = None):
         '''
         Docstring for __init__
         
@@ -299,6 +321,7 @@ class FMC:
             self.data['strikemap_plot'] = smap
         else:
             self.data['strikemap_plot'] = smapplt
+        self.collimator = collimator
 
         # --- Basic configuration for synthetic signal production
         # Parameters of the remapped signals
@@ -965,6 +988,26 @@ class FMC:
         self.smapplt.calculate_pixel_coordinates(transformation_params)
         self.smapplt.interp_grid((self.cam_params['ny'], self.cam_params['nx']),
                             MC_number=0)
+
+
+        try:
+            dcoll=copy.deepcopy(self.collimator)
+            dcoll._coord_real['x2'] -= y_scint_center
+            dcoll._coord_real['x1'] -= x_scint_center
+            # Calculate the pixel position of the scintillator vertices
+            transformation_params = ssmapplting.CalParams()
+            transformation_params.xscale = xscale
+            transformation_params.yscale = yscale
+            transformation_params.xshift = px_center
+            transformation_params.yshift = py_center
+            dcoll.calculate_pixel_coordinates(transformation_params)
+            # Build the scintillator perimeter and find the area in the pixel space
+            self.coll_perim = geometry.scint_ConvexHull(dcoll, coords='pix')
+            self.coll_geom = True
+            logger.info('- Collimator located and ready to plot')
+        except:
+            self.coll_geom = False
+            logger.info('- No collimator geometry given')
 
         end = time.perf_counter()
         logger.info('   (%.4f s)', end-start)
