@@ -888,3 +888,87 @@ def scint_ConvexHull(scint, coords='real'):
     scint_perim = np.column_stack((scint_x, scint_y))
 
     return scint_perim
+
+def get_scint_perimeter(scint, coords='real', smooth=False):
+    """
+    Reconstruct scintillator perimeter from raw coordinate lists.
+
+    Parameters
+    ----------
+    scint : object
+        Scintillator object with _coord_real or _coord_pix
+    coords : str
+        'real' or 'pix'
+    smooth : bool
+        Optional smoothing of the contour
+
+    Returns
+    -------
+    np.ndarray
+        Ordered perimeter points (N, 2)
+    """
+
+    # ------------------------------------------------------------
+    # 1. Extract coordinates
+    # ------------------------------------------------------------
+    if coords == 'real':
+        x1 = np.asarray(scint._coord_real['x1'])
+        x2 = np.asarray(scint._coord_real['x2'])
+    elif coords == 'pix':
+        x1 = np.asarray(scint._coord_pix['x'])
+        x2 = np.asarray(scint._coord_pix['y'])
+    else:
+        raise ValueError("coords must be 'real' or 'pix'")
+
+    # ------------------------------------------------------------
+    # 2. Build point cloud
+    # ------------------------------------------------------------
+    points = np.column_stack((x1, x2))
+
+    # remove invalid points
+    points = points[np.isfinite(points).all(axis=1)]
+
+    # remove duplicates
+    points = np.unique(points, axis=0)
+
+    # ------------------------------------------------------------
+    # 3. Fallback: if too few points -> convex hull
+    # ------------------------------------------------------------
+    if points.shape[0] < 3:
+        raise ValueError("Not enough points to build perimeter")
+
+    if points.shape[0] < 10:
+        hull = spsp.ConvexHull(points)
+        pts = points[hull.vertices]
+    else:
+        pts = points
+
+    # ------------------------------------------------------------
+    # 4. Order points angularly (main step)
+    # ------------------------------------------------------------
+    center = pts.mean(axis=0)
+    angles = np.arctan2(pts[:, 1] - center[1],
+                        pts[:, 0] - center[0])
+
+    order = np.argsort(angles)
+    perimeter = pts[order]
+
+    # close polygon
+    perimeter = np.vstack([perimeter, perimeter[0]])
+
+    # ------------------------------------------------------------
+    # 5. Optional smoothing
+    # ------------------------------------------------------------
+    if smooth:
+        from scipy.interpolate import splprep, splev
+
+        x, y = perimeter[:, 0], perimeter[:, 1]
+
+        # avoid duplicate closing point for spline
+        tck, u = splprep([x, y], s=0.0005, per=True)
+        u_new = np.linspace(0, 1, 200)
+
+        x_new, y_new = splev(u_new, tck)
+        perimeter = np.column_stack([x_new, y_new])
+
+    return perimeter

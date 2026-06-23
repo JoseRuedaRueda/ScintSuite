@@ -1080,7 +1080,7 @@ class FMC:
         
         logger.info('- Building the scintillator perimeter and area...')
         start = time.perf_counter()
-        self.scint_perim = geometry.scint_ConvexHull(self.scint, coords='pix')
+        self.scint_perim = geometry.get_scint_perimeter(self.scint, coords='pix')
 
         scint_path = Path(self.scint_perim, closed=True)
         nx, ny = self.cam_params['nx'], self.cam_params['ny']
@@ -1191,6 +1191,7 @@ class FMC:
         # BUILD THE OUTPUT
         # -----------------------------------------------------------------------
         # Compute the total frame
+        self.frame_scintillator *= self.scint_area
         self.frame_scintillator['tot'] = (
             self.frame_scintillator.to_array().sum('variable'))
         # Transform the output from pix units to m²
