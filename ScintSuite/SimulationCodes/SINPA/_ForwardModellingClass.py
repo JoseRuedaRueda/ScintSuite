@@ -22,8 +22,7 @@ FMC class:
 
 import ScintSuite as ss
 import ScintSuite._Mapping as ssmapplting
-from ScintSuite.SimulationCodes.FILDSIM.execution import get_energy
-from ScintSuite.SimulationCodes.FILDSIM.execution import get_gyroradius
+from ScintSuite.SimulationCodes.Common import get_energy, get_gyroradius
 import ScintSuite.SimulationCodes.Common.geometry as geometry
 import ScintSuite._Plotting as ssplt
 from ScintSuite._Plotting._ColorMaps import default_cmap
@@ -274,9 +273,12 @@ class FMC:
     introducing all system parameters.
 
     Alex Reyner: areyner@us.es
+    .ft. Jose Rueda
     '''
     def __init__(self, smap, scint, WF = None,
-                 smapplt = None,):
+                 smapplt = None, pinhole_params: dict = None, 
+                 scintillator_params: dict = None, B=4, A=4, Z=2,
+                 camera_params: dict = None, optics_params: dict = None, noise_params: dict = None,):
         '''
         Docstring for __init__
         
@@ -302,14 +304,14 @@ class FMC:
                            'ymin': 1, 'ymax': 10, 'dy': 0.1,}
         self._def_sci_params = {'xmin': 20, 'xmax': 90, 'dx': 1,
                              'ymin': 1, 'ymax': 10, 'dy': 0.1,}
-        self.pin_params = self._def_pin_params.copy()
-        self.sci_params = self._def_pin_params.copy()
+        self.pin_params = self._def_pin_params.update(pinhole_params) if pinhole_params else self._def_pin_params.copy()
+        self.sci_params = self._def_sci_params.update(scintillator_params) if scintillator_params else self._def_sci_params.copy()
         self.data['pin_grid'] = self.pin_params
         self.data['scint_grid'] = self.sci_params
         # Species
-        self.B = 4
-        self.A = 4
-        self.Z = 2
+        self.B = B
+        self.A = A
+        self.Z = Z
         # Camera parameters (PCO.edge 5.5)
         self._def_cam_params = {'px_x_size':6.5e-6, # pixel size
                            'px_y_size':6.5e-6,
@@ -323,17 +325,20 @@ class FMC:
                            'readout_noise_rmd':2.5, # 
                            'exposure': 0.01,
                            }
+        self._def_cam_params.update(camera_params if camera_params else {})
         # Optic path
         self._def_opt_params = {'T': 1, # transmision
-                        #    'beta': 0.2, # magnification, automatic
+                           #'beta': 0.2, # magnification
                            'omega': 1,
-                           'FoV': [0.5, 0.5, 33.5], # position in the scintillator and FoV radius [cm]
+                           'FoV': [0.5, 0.5, 33.5], # position in the scintillator and FoV radius [mm]
                            }
+        self._def_opt_params.update(optics_params if optics_params else {})
         # Noise parameters
         self._def_noi_params = {'neutrons': 0, # background neutronic noise in the scintillator (total photons)
                            'broken':0.01, # ratio of broken pixels
                            'camera_neutrons':0.001, # ratio of pixels afected by neutrons
                            }
+        self._def_noi_params.update(noise_params if noise_params else {})
         self.cam_params = self._def_cam_params.copy()
         self.opt_params = self._def_opt_params.copy()
         self.noi_params = self._def_noi_params.copy()
@@ -605,6 +610,7 @@ class FMC:
                         centering: bool = False, smoother: int = 0,
                         rm_saturation = False,
                         radiometry = None, distortion = None,
+                        gyrophases: float = np.pi,
                     ):
         '''
         Wrap to compute synthetic signals in the camera space.
@@ -634,7 +640,9 @@ class FMC:
                          opt_params = opt_params,
                          noi_params = noi_params,
                          centering = centering, 
-                         smoother = smoother)
+                         smoother = smoother,
+                         gyrophases = gyrophases,
+                         )
         self.apply_optics_camera_noise(rm_saturation = rm_saturation,
                                        radiometry = radiometry,
                                        distortion = distortion)
@@ -701,12 +709,13 @@ class FMC:
             # Consider the exposure time
             self.frame_camera[key] *= self.cam_params['exposure']
             # Apply distortion to the signal before the rest of optics and noises
-            try:
-                self.frame_camera[key] =\
-                    self.frame_camera[key].interp(x=distortion.x_new, 
-                                                y=distortion.y_new)
-            except:
-                pass
+            if distortion is not None:
+                try:
+                    self.frame_camera[key] =\
+                        self.frame_camera[key].interp(x=distortion.x_new, 
+                                                    y=distortion.y_new)
+                except:
+                    pass
 
         # -----------------------------------------------------------------------
         # Add the optic FoV and the radiometry filter (stored as a noise)
