@@ -46,6 +46,7 @@ def remapAllLoadedFrames(video,
                          A: float = 2.01410178, Z: float = 1.0,
                          transformationMatrixLimit: float = 10.0,
                          t0: float = None,
+                         speed_flag = None,
                          ) -> xr.Dataset:
     """
     Remap all loaded frames from a FILD video.
@@ -154,10 +155,10 @@ def remapAllLoadedFrames(video,
     else:
         wantP0 = False
     
-
     # -- Check the tipe of remap
-    if remap_method.lower() == 'centers':
+    if remap_method.lower() != 'mc':
         MC_number = 0  # to turn off the transformation matrix calculation
+
     # -- Prepare the frames
     if not use_average:
         if t0 is None:
@@ -323,7 +324,10 @@ def remapAllLoadedFrames(video,
     # --------------------------------------------------------------------------
     # -- Initialise the variables:
     remaped_frames = np.zeros((nx, ny, nframes))
+    time_interp = 0
     logger.info('Remapping frames ...')
+    logger.warning('Speed_flag will dissappear in 2.1, ' \
+                'once this fast method become the official way')
     for iframe in tqdm(range(nframes)):
         if not got_smap:
             if FILDSIM:
@@ -350,6 +354,7 @@ def remapAllLoadedFrames(video,
             smap.setRemapVariables(var_remap, verbose=False)
             # -- Calculate the pixel coordinates
             smap.calculate_pixel_coordinates(video.CameraCalibration)
+            t1_int = time.time()
             smap.interp_grid(frame_shape, method=method,
                              MC_number=MC_number,
                              grid_params={'ymin': ymin, 'ymax': ymax,
@@ -357,15 +362,18 @@ def remapAllLoadedFrames(video,
                                           'xmin': xmin, 'xmax': xmax,
                                           'dx': dx},
                              limitation=transformationMatrixLimit)
+            t2_int = time.time()
+            time_interp += (t2_int-t1_int)
         name_old = name
         # remap the frames
         remaped_frames[:, :, iframe] = \
             common.remap(smap, data['frames'].values[:, :, iframe],
                          x_edges=xedges, y_edges=yedges, mask=mask,
-                         method=remap_method)
+                         method=remap_method, speed_flag=speed_flag)
     toc = time.time()
-    logger.info('Whole time interval remapped in: %.2f s' %(toc-tic))
-    logger.info('Average time per frame: %.2f' %((toc-tic) / nframes))
+    logger.info('Whole time interval remapped in: %f s', toc-tic)
+    logger.info('Time spent in interpolators: %f s', time_interp)
+    logger.info('Average time per frame: %f s', (toc-tic) / nframes)
     # Construct the data set
     remap_dat = xr.Dataset()
     remap_dat['frames'] = \

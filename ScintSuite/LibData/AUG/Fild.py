@@ -50,7 +50,7 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
 
     :return file: the name of the file/folder
     """
-    base_dir = params.FILD[diag_ID-1]['path']
+    base_dir = params.FILD[diag_ID-1]['path'](shot)
     extension = params.FILD[diag_ID-1]['extension'](shot)
     shot_str = str(shot)
     name = shot_str + extension
@@ -272,7 +272,7 @@ class FILD_logbook:
         """
         if verbose:
             logger.warning('VERBOSE option is deprecated, please avoid using it. it will raise an error in 2.0.0')
-        logger.info('Looking for the position database: ', filename)
+        logger.info('Looking for the position database: %s'%filename)
         dummy = pd.read_excel(filename, engine='openpyxl', header=[0, 1])
         dummy['shot'] = dummy.Shot.Number.values.astype(int)
         # Check if there is information on the overheating in the file
@@ -301,7 +301,7 @@ class FILD_logbook:
                 'GeomID': [], 'diag_ID': []}
 
         # Read the file
-        logger.info('Reading Geometry database from: ', filename)
+        logger.info('Reading Geometry database from: %s' % filename)
         with open(filename) as f:
             for i in range(n_header):
                 dummy = f.readline()
