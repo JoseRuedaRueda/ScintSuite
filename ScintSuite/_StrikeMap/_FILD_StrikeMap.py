@@ -118,6 +118,7 @@ class Fsmap(FILDINPA_Smap):
             self.load_strike_points()
         if self._resolutions is None:
             self.calculate_phase_space_resolution()
+        logger.info('Starting the calculation of the FILD weight function')
         # --- Prepare the grid
         nxs, nys, xedgess, yedgess = createGrid(**grid_options_scint)
         xcenterss = (xedgess[:-1] + xedgess[1:]) * 0.5

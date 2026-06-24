@@ -494,14 +494,14 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
         if i in noise_params:
             noise_options[i].update(noise_params[i])
     # Distortion options
-    distortion_options = {
-        'model': 'WandImage',
-        'parameters': {
-            'method': 'barrel',
-            'arguments': (0.2, 0.1, 0.1, 0.6)
-        },
-    }
-    distortion_options.update(distortion_params)
+    # distortion_options = {
+    #     'model': 'WandImage',
+    #     'parameters': {
+    #         'method': 'barrel',
+    #         'arguments': (0.2, 0.1, 0.1, 0.6)
+    #     },
+    # }
+    # distortion_options.update(distortion_params)
     # Camera range:
     max_count = 2 ** camera_parameters['range'] - 1
     # --- Calculate the synthetic signal at the scintillator
@@ -546,7 +546,7 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     n_gyr = scint_signal['gyroradius'].size
     n_pitch = scint_signal['pitch'].size
     synthetic_frame = np.zeros(smap._grid_interp['gyroradius'].shape)
-    for ir in range(n_gyr):
+    for ir in tqdm(range(n_gyr)):
         # Gyroradius limits to integrate
         gmin = scint_signal['gyroradius'][ir] - scint_signal['dgyr'] / 2.
         gmax = scint_signal['gyroradius'][ir] + scint_signal['dgyr'] / 2.
@@ -577,8 +577,9 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     # Consider the exposure time
     synthetic_frame *= exp_time
     # Pass to integer, as we are dealing with counts
-    synthetic_frame = synthetic_frame.astype(int)
     original_frame = synthetic_frame.copy()
+    
+    synthetic_frame = synthetic_frame.astype(int)
     # --- Add noise
     noise = {
         'dark_readout': None,
@@ -606,7 +607,7 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
                                       camera_parameters['dark_noise'],
                                       camera_parameters['readout_noise'])
     else:
-        noise['dark_readout'] = np.zeros(synthetic_frame.shape)
+        noise['dark_readout'] = np.zeros(synthetic_frame.shape, dtype=int)
     noise['total'] += noise['dark_readout']
     # photon noise:
     print('Including photon noise')
@@ -641,8 +642,9 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     flags = synthetic_frame < 0
     synthetic_frame[flags] = 0
     # --- Apply distortion
-    distorted_frame = ssoptics.distort_image(synthetic_frame,
-                                             distortion_options)
+    # distorted_frame = ssoptics.distort_image(synthetic_frame,
+    #                                          distortion_options)
+    distorted_frame = synthetic_frame.copy()
     output = {
         'noise': noise,
         'camera_frame': distorted_frame,

@@ -8,6 +8,7 @@ import ScintSuite._Plotting as ssplt
 import ScintSuite.errors as errors
 import math
 from ScintSuite._Machine import machine
+from ScintSuite.SimulationCodes.efit import GFile
 import os
 import netCDF4 as nc
 
@@ -602,6 +603,95 @@ class fields:
         self.diag = diag
         self.exp = exp
 
+    def readBfromGfile(self, gFilePath:str,
+                    Rmin: float = 1.03, Rmax: float = 2.65,
+                    zmin: float = -1.224, zmax: float = 1.05,
+                    nR: int = 128, nz: int = 256,):
+        """
+        Read field from Efit File.
+
+        Pablo Oyola - pablo.oyola@ipp.mpg.de
+        ft.
+        Jose Rueda: jrrueda@us.es
+
+        :param  gFilePath: Path to the gfile from EFIT.
+        :param  edition: Edition of the equilibrium to retrieve. Set to 0 by
+        default, which will take from the AUG DB the latest version.
+        :param  Rmin: Minimum radius to get the magnetic equilibrium.
+        :param  Rmax: Maximum radius to get the magnetic equilibrium.
+        :param  zmin: Minimum Z to get the magnetic equilibrium.
+        :param  zmax: Maximum Z to get the magnetic equilibrium.
+        :param  nR: Number of points to define the B field grid in R direction.
+        :param  nz: Number of points to define the B field grid in Z direction.
+        
+        :Example:
+        >>> import ScintSuite.SimulationCodes.Common.fields as fields
+        >>> fields = fields()
+        >>> fields.readBfromEfit(gFilePath='path/to/gfile', Rmin=1.03, Rmax=2.65,
+        >>>                    zmin=-1.224, zmax=1.05, nR=128, nz=256)
+
+        """
+        self.bdims = 2
+        self.edims = 0
+        self.psipol_on = False
+
+        # Getting from the file.
+        gfile = GFile(gFilePath)
+        R = np.linspace(Rmin, Rmax, num=nR)
+        z = np.linspace(zmin, zmax, num=nz)
+        RR, zz = np.meshgrid(R, z)
+        grid_shape = RR.shape
+        br, bz, bt, = gfile.Bfield(RR.flatten(), zz.flatten())
+
+        del RR
+        del zz
+        Br = np.asfortranarray(np.reshape(br, grid_shape).T)
+        Bz = np.asfortranarray(np.reshape(bz, grid_shape).T)
+        Bt = np.asfortranarray(np.reshape(bt, grid_shape).T)
+        del br
+        del bt
+        del bz
+
+        # Storing the data in the class.
+        self.bdims = 2
+        self.Bfield['R'] = np.array(R, dtype=np.float64)
+        self.Bfield['z'] = np.array(z, dtype=np.float64)
+        self.Bfield['Rmin'] = np.array((Rmin), dtype=np.float64)
+        self.Bfield['Rmax'] = np.array((Rmax), dtype=np.float64)
+        self.Bfield['zmin'] = np.array((zmin), dtype=np.float64)
+        self.Bfield['zmax'] = np.array((zmax), dtype=np.float64)
+        self.Bfield['nR'] = np.array([nR], dtype=np.int32)
+        self.Bfield['nz'] = np.array([nz], dtype=np.int32)
+        self.Bfield['fr'] = Br.astype(dtype=np.float64)
+        self.Bfield['fz'] = Bz.astype(dtype=np.float64)
+        self.Bfield['ft'] = Bt.astype(dtype=np.float64)
+
+        del Br
+        del Bz
+        del Bt
+
+        # Creating the interpolating functions.
+        self.Brinterp = lambda r, z, phi, time: \
+            interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['fr'],
+                    (np.atleast_1d(r).flatten(), np.atleast_1d(z).flatten()))
+
+        self.Bzinterp = lambda r, z, phi, time: \
+            interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['fz'],
+                    (np.atleast_1d(r).flatten(), np.atleast_1d(z).flatten()))
+
+        self.Bphiinterp = lambda r, z, phi, time: \
+            interpn((self.Bfield['R'], self.Bfield['z']), self.Bfield['ft'],
+                    (np.atleast_1d(r).flatten(), np.atleast_1d(z).flatten()))
+
+
+        # Saving the input data to the class.
+        self.Bfield_from_shot_flag = False
+        self.shotnumber = None
+        self.timepoint = None
+        self.diag = None
+        self.exp = None
+        self.edition = None
+    
     def createFromSingleB(self, B: np.ndarray, Rmin: float = 1.6,
                           Rmax: float = 2.2,
                           zmin: float = 0.8, zmax: float = 1.2,

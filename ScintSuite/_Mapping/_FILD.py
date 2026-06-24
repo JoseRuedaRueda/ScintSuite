@@ -205,8 +205,7 @@ def remapAllLoadedFrames(video,
         # correct one
 
     if smap_folder is None:
-        smap_folder = os.path.join(paths.ScintSuite, 'Data', 'RemapStrikeMaps',
-                                   'FILD', video.geometryID)
+        smap_folder = os.path.join(paths.StrikeMapDatabase['FILD'], video.geometryID)
     # -- Check which code generated the library
     if not got_smap:
         namelistFile = os.path.join(smap_folder, 'parameters.cfg')

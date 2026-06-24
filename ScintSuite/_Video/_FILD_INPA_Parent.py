@@ -304,7 +304,9 @@ class FIV(BVO):
                    flagAverage:bool = False,
                    normalise=None,
                    smap_labels: bool = False,
-                   rotate_frame: bool = False):
+                   rotate_frame: bool = False,
+                   plot_scintillator=False,
+                   plot_fast_channels=False,):
         """
         Plot a frame from the loaded frames
 
@@ -361,8 +363,7 @@ class FIV(BVO):
             RemoveAxisTicksLabels=RemoveAxisTicksLabels,
             flagAverage=flagAverage,
             normalise=normalise, 
-            rotate_frame=rotate_frame
-        )
+            rotate_frame=rotate_frame, )
         # Get the frame number
         if t is not None:
             frame_index = np.argmin(abs(self.exp_dat['t'].values - t))
@@ -392,7 +393,11 @@ class FIV(BVO):
             # Plot the map
             smap.plot_pix(ax=ax, marker_params=smap_marker_params,
                           line_params=smap_line_params, labels=smap_labels)
-
+            
+        if plot_scintillator and self.scintillator is not None:
+            self.scintillator.plot_pix(ax=ax,)
+        if plot_fast_channels and self.PMTcalibration is not None:
+            self.PMTcalibration.plot_pix(ax=ax, color='w')
         # Set 'original' limits:
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)

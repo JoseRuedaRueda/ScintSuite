@@ -131,6 +131,7 @@ import ScintSuite.SimulationCodes.Common as simcom
 import ScintSuite.SimulationCodes.TRANSP as transp
 import ScintSuite.SimulationCodes.OWCF as OWCF
 import ScintSuite.SimulationCodes.alcon as alcon
+import ScintSuite.SimulationCodes.efit as efit
 from ScintSuite._MULTIPOW import MULTIPOW
 
 try:

@@ -252,3 +252,33 @@ def get_velocity(gyroradius, B: float = 1.9, A: float = 2.01410178, Z: float = 1
 
     return v.to('m/s')
 
+def get_gyrofrequency(B: float = 1.9, A: float = 2.01410178, Z: float = 1.0):
+    """
+    Calculate the gyrofrequency of a particle, given a magnetic field and particle properties
+    
+    Jose Rueda-Rueda: jruedaru@uci.edu
+    
+    :param  B: Magnetic field, [in T]
+    :param  A: Ion mass number (A=0 means electrons)
+    :param  Z: Ion charge [in e units] (if A=0, Z=1, electron charge)
+    :return f: gyrofrequency 
+    """
+    if not isinstance(B, unyt.unyt_array):
+        logger.warning('The input magnetic field does not have units, assuming T')
+        B = B * unyt.T
+    if not isinstance(A, unyt.unyt_array):
+        logger.warning('The input mass number does not have units, assuming amu')
+        A = A * unyt.amu
+    if not isinstance(Z, unyt.unyt_array):
+        logger.warning('The input charge number does not have units, assuming e')
+        Z = Z * unyt.elementary_charge
+    
+    if A == 0:
+        m = unyt.electron_mass
+        Z = unyt.elementary_charge
+    else:
+        m = A
+
+    f = (Z*B) / m
+
+    return f.to('Hz')

@@ -1,3 +1,12 @@
+# 2.0.2 Scintillator and fibers
+- Keyword added to the plot video to plot the scintillator and fibers
+- Efit reading added to the simulation codes Bfield object
+- Show figures no longer forced in geometry plot
+- get gyrofrequency added to gyroscalar module
+- Check noise in old forward modelling class
+- Efficiency in the scintillator do no longer extrapolate by default
+- Plot scintillator added to the video plot_frame
+
 # 2.0.1 MU and FILDSIM5
 - Minor changes to the MU library to locate FILD files
 - Strike object compatible with FILDSIM 5.0
