@@ -23,16 +23,64 @@ num_of_gyrotrons = 8  # Number of gyrotrons available in AUG.
 # -----------------------------------------------------------------------------
 #                           FILD PARAMETERS
 # -----------------------------------------------------------------------------
-_fild1 = {'path': '/shares/experiments/aug-rawfiles/FIT/',  # Path for the video files
-          'camera': 'PHANTOM',  # Type of used camera
-          'extension': lambda shot:\
-          '_v710.cin' if shot < 41202 else '_ID9404.cin',  # Extension of the video
+
+
+def _FILD1_path(shot=42000):
+    """
+    Contain hardcored paths of were FILD1 data is stored
+
+    Last update: 16/07/2026
+    """
+    if shot < 44444:
+        path = '/shares/experiments/aug-rawfiles/FIT/'
+    elif shot >= 44444:
+        path = '/shares/experiments/aug-rawfiles/FIL/FILD1/'
+    else:
+        raise errors.NotValidInput('Wrong shot number?')
+    return path
+
+
+def _FILD1_extension(shot=42000):
+    """
+    Contain hardcored extensions of were FILD1 data is stored
+
+    Last update: 16/07/2026
+    """
+    if shot < 41202:
+        ext = '_v710.cin'
+    elif 41202 <= shot < 44444:
+        ext = '_ID9404.cin'
+    elif shot >= 44444:
+        ext = '.nc'
+    else:
+        raise errors.NotValidInput('Wrong shot number?')
+    return ext
+
+
+def _FILD1_camera(shot=42000):
+    """
+    Contain hardcored extensions of FILD1 installed camera
+
+    Last update: 16/07/2026
+    """
+    if shot < 44444:
+        cam = 'PHANTOM'
+    elif shot >= 44444:
+        cam = 'XIMEA'
+    else:
+        raise errors.NotValidInput('Wrong shot number?')
+    return cam
+
+
+_fild1 = {'path': _FILD1_path,  # Path for the video files
+          'camera': _FILD1_camera,  # Type of used camera
+          'extension': _FILD1_extension,  # Extension of the video
           'label': 'FILD1',  # Label for the diagnostic, for FILD6 (rFILD)
           'diag': 'FHC',  # name of the diagnostic for the fast channel
           'channel': 'FILD3_',  # prefix of the name of each channel (shotfile)
           'nch': 20}  # Number of fast channels
 
-_fild2 = {'path': '/shares/departments/AUG/users/alrevi/AUGvideos/FILD2/',
+_fild2 = {'path': '/shares/experiments/aug-rawfiles/FIL/FILD2/',
           'extension': lambda shot: '', 'label': 'FILD2', 'diag': 'FHA',
           'channel': 'FIPM_',
           'nch': 20, 'camera': 'CCD'}
@@ -44,7 +92,7 @@ _fild3 = {'path': '/shares/experiments/aug-rawfiles/FIL/FILD3/',
 
 # FILD4 coil position from CAD. Coil dimensions in catholic units.
 # Parking position from FARO measurements
-_fild4 = {'path': '/shares/departments/AUG/users/alrevi/AUGvideos/FILD4/',
+_fild4 = {'path': '/shares/experiments/aug-rawfiles/FIL/FILD4/',
           'extension': lambda shot: '', 'label': 'FILD4', 'diag': 'FHD',
           'channel': 'Chan-',
           'nch': 32, 'camera': 'CCD', 'coil': {'R_coil': 2.2252,
@@ -55,7 +103,7 @@ _fild4 = {'path': '/shares/departments/AUG/users/alrevi/AUGvideos/FILD4/',
                                                'R_parking': 2.0824,
                                                'Z_parking': -0.437}}
 
-_fild5 = {'path': '/shares/departments/AUG/users/alrevi/AUGvideos/FILD5/',
+_fild5 = {'path': '/shares/experiments/aug-rawfiles/FIL/FILD5/',
           'extension': lambda shot: '', 'label': 'FILD5', 'diag': 'FHE',
           'channel': 'Chan-',
           'nch': 64, 'camera': 'CCD'}
