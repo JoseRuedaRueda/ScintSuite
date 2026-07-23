@@ -281,6 +281,7 @@ class MHDmode():
             logger.debug('Using transpFile: %s', transpFile)
             logger.warning('Using ni and Ti from TRANSP!!! ignoring loadTi and calcNi')
             self._read_from_database(q_prof_options=q_prof_options) # Read first eveything from the database
+            self._read_transp(transpFile) # overwrite the profiles with the transp ones
             
         else:
             self._read_from_database()
@@ -551,7 +552,9 @@ class MHDmode():
         Read from an omfit file
         """
         data = xr.open_dataset(transpFile)
+        data = data.assign_coords({'X': data['X'].isel(TIME3=0).values, 'XB': data['XB'].isel(TIME3=0).values})
         data = data.rename({'TIME3':'t', 'X': 'rho'})
+        
         # electron density
         self._ne = xr.Dataset()
         self._ne['data'] = data['NE']/1e13
@@ -574,7 +577,8 @@ class MHDmode():
         self._ti['uncertainty'] = 0.0
         # q-profile
         self._q = xr.Dataset()
-        self._q['data'] = data['Q']
+        self._q['rho'] = data['rho']
+        self._q['data'] = data['Q'].interp(XB=data['rho'])
         self._q.attrs['units'] = '1'
         self._q['uncertainty'] = 0.0
         # Rotation

@@ -33,6 +33,10 @@ import ScintSuite._Paths as p
 from ScintSuite._Machine import machine
 pa = p.Path(machine)
 del p
+import tarfile
+import json
+import tempfile
+
 
 logger = logging.getLogger('ScintSuite.Video')
 
@@ -304,7 +308,9 @@ class FIV(BVO):
                    flagAverage:bool = False,
                    normalise=None,
                    smap_labels: bool = False,
-                   rotate_frame: bool = False):
+                   rotate_frame: bool = False,
+                   plot_scintillator=False,
+                   plot_fast_channels=False,):
         """
         Plot a frame from the loaded frames
 
@@ -361,8 +367,7 @@ class FIV(BVO):
             RemoveAxisTicksLabels=RemoveAxisTicksLabels,
             flagAverage=flagAverage,
             normalise=normalise, 
-            rotate_frame=rotate_frame
-        )
+            rotate_frame=rotate_frame, )
         # Get the frame number
         if t is not None:
             frame_index = np.argmin(abs(self.exp_dat['t'].values - t))
@@ -392,7 +397,11 @@ class FIV(BVO):
             # Plot the map
             smap.plot_pix(ax=ax, marker_params=smap_marker_params,
                           line_params=smap_line_params, labels=smap_labels)
-
+            
+        if plot_scintillator and self.scintillator is not None:
+            self.scintillator.plot_pix(ax=ax,)
+        if plot_fast_channels and self.PMTcalibration is not None:
+            self.PMTcalibration.plot_pix(ax=ax, color='w')
         # Set 'original' limits:
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
@@ -875,7 +884,7 @@ class FIV(BVO):
         self.BField.to_netcdf(filename)
 
     def export_remap(self, folder: str = None, clean: bool = False,
-                     overwrite: bool = False):
+                     overwrite: bool = False, export_frames: bool = False):
         """
         Export remap file
 
@@ -883,6 +892,7 @@ class FIV(BVO):
             recommended to leave it as None
         :param  clean: delete the netCDF files and leave only the .tar file
         :param  overwrite: ignore old files, if present
+        :param  save_frames: save also the camera frames, if wanted
         """
         if folder is None:
             folder = os.path.join(pa.Results, str(self.shot), self.diag,
@@ -892,6 +902,7 @@ class FIV(BVO):
         magField = os.path.join(folder, 'Bfield.nc')
         magFieldAngles = os.path.join(folder, 'BfieldAngles.nc')
         strikemaps = os.path.join(folder, 'strikeMaps.nc')
+        frames = os.path.join(folder, 'frames.nc')
         remap = os.path.join(folder, 'remap.nc')
         calibration = os.path.join(folder, 'CameraCalibration.nc')
         versionFile = os.path.join(folder, 'version.txt')
@@ -939,6 +950,13 @@ class FIV(BVO):
             tar.add(magField, arcname='Bfield.nc')
             tar.add(magFieldAngles, arcname='BfieldAngles.nc')
             tar.add(strikemaps, arcname='strikeMaps.nc')
+        if export_frames:
+            logger.warning('Exporting camera frames. ' \
+                'This might be memory-heavy.')
+            self.exp_dat.attrs.clear()
+            self.exp_dat.to_netcdf(frames)
+            tar.add(frames, arcname='frames.nc')
+
         tar.add(remap, arcname='remap.nc')
         tar.add(calibration, arcname='CameraCalibration.nc')
         tar.add(versionFile, arcname='version.txt')
@@ -956,6 +974,9 @@ class FIV(BVO):
             os.remove(magField)
             os.remove(magFieldAngles)
             os.remove(strikemaps)
-            os.remove(remap)
+            os.remove(frames)
             os.remove(calibration)
             os.remove(versionFile)
+            if export_frames:
+                os.remove(remap)
+                

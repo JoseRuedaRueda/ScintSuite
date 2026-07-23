@@ -91,9 +91,7 @@ def Cai(n=256):
 
 # ----- SUITE default colormaps -----
 
-home = os.getenv("ScintSuitePath")
-if home is None:
-    home = os.path.join(os.getenv("HOME"), 'ScintSuite')
+home = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 UserSettings = os.path.join(home, 'Settings.yml')
 with open(UserSettings, 'r') as stream:
     try:

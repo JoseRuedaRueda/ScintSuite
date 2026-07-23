@@ -1,3 +1,43 @@
+# 2.0.3 Scintillator and fibers
+- Keyword added to the plot video to plot the scintillator and fibers
+- Efit reading added to the simulation codes Bfield object
+- Show figures no longer forced in geometry plot
+- get gyrofrequency added to gyroscalar module
+- Check noise in old forward modelling class
+- Efficiency in the scintillator do no longer extrapolate by default
+- Plot scintillator added to the video plot_frame
+
+# 2.0.2 Vectorization
+- Add vectoriced noise filters and vectorized remap.
+- Add option to export frames together with the remap
+- Clean/improve the FILD forward modelling library
+- Update AUG FILD paths
+  
+# 2.0.1 MU and FILDSIM5
+- Minor changes to the MU library to locate FILD files
+- Strike object compatible with FILDSIM 5.0
+
+# 2.0.0 The big change
+- Clean the suite of secondary functions not used which divert the code for its main purpose and added unnecesary dependencies
+- Added unyt calls to the strike object
+- No longer env variable needed, the path is found by the file init address (needed for the the autodocumentation)
+
+## Basic Variable
+- Added a method to crop signals in time
+
+## Strike object
+- Changed data handling to pandas dataframe
+
+## Plotting defaults
+- The default colors in the template for line plot were changed to black, magenta and blue. This help colorblinded people
+
+## FILDSIM code
+- Gyroscalar and gyroradius routines moved to the common package (they were in the execution one), as they are comon to synthetic INPA and FILD
+- get_gyroradius etc use now unyt for inputs and outputs
+
+## Fitting module.
+- A new routinep arseParamNames is created in the _CustomFitModels.py. Up to now, it is not called in the mapping and calculate reslolutions. It will be done in 2.0.1
+
 # 1.5.0 Forward modelling to class
 - The forward modelling module has bee updated into a class structure. Translation of 1.3.11
 - To be done:

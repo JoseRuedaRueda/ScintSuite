@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import ScintSuite._Mapping as ssmapping
 import ScintSuite.SimulationCodes.FILDSIM.execution as ssfildsimA
+from ScintSuite.SimulationCodes.Common import get_energy, get_gyroradius
 import ScintSuite._Plotting as ssplt
 import ScintSuite.LibData as ssdat
 import ScintSuite._Noise as ssnoise
@@ -56,7 +57,7 @@ def gaussian_input_distribution(r0, sr0, p0, sp0, B=1.8, A=2.0, Z=1, F=1e6,
             }
         }
     }
-    distro['energy'] = ssfildsimA.get_energy(distro['gyroradius'],
+    distro['energy'] = get_energy(distro['gyroradius'],
                                              B, A, Z)
     distro['n'] = len(distro['weight'])
     return distro
@@ -128,7 +129,7 @@ def read_ASCOT_distribution(file, version: int = 4, IpBt_sign=-1.0, B=None):
                 print('Not possible to calculate pitch')
         if 'gyroradius' not in out.keys():
             try:
-                r = ssfildsimA.get_gyroradius(out['energy'], out['B'],
+                r = get_gyroradius(out['energy'], out['B'],
                                               out['Anum'], out['Znum'])
                 out['gyroradius'] = r
             except KeyError:
@@ -493,14 +494,14 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
         if i in noise_params:
             noise_options[i].update(noise_params[i])
     # Distortion options
-    distortion_options = {
-        'model': 'WandImage',
-        'parameters': {
-            'method': 'barrel',
-            'arguments': (0.2, 0.1, 0.1, 0.6)
-        },
-    }
-    distortion_options.update(distortion_params)
+    # distortion_options = {
+    #     'model': 'WandImage',
+    #     'parameters': {
+    #         'method': 'barrel',
+    #         'arguments': (0.2, 0.1, 0.1, 0.6)
+    #     },
+    # }
+    # distortion_options.update(distortion_params)
     # Camera range:
     max_count = 2 ** camera_parameters['range'] - 1
     # --- Calculate the synthetic signal at the scintillator
@@ -545,7 +546,7 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     n_gyr = scint_signal['gyroradius'].size
     n_pitch = scint_signal['pitch'].size
     synthetic_frame = np.zeros(smap._grid_interp['gyroradius'].shape)
-    for ir in range(n_gyr):
+    for ir in tqdm(range(n_gyr)):
         # Gyroradius limits to integrate
         gmin = scint_signal['gyroradius'][ir] - scint_signal['dgyr'] / 2.
         gmax = scint_signal['gyroradius'][ir] + scint_signal['dgyr'] / 2.
@@ -576,8 +577,9 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     # Consider the exposure time
     synthetic_frame *= exp_time
     # Pass to integer, as we are dealing with counts
-    synthetic_frame = synthetic_frame.astype(int)
     original_frame = synthetic_frame.copy()
+    
+    synthetic_frame = synthetic_frame.astype(int)
     # --- Add noise
     noise = {
         'dark_readout': None,
@@ -605,7 +607,7 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
                                       camera_parameters['dark_noise'],
                                       camera_parameters['readout_noise'])
     else:
-        noise['dark_readout'] = np.zeros(synthetic_frame.shape)
+        noise['dark_readout'] = np.zeros(synthetic_frame.shape, dtype=int)
     noise['total'] += noise['dark_readout']
     # photon noise:
     print('Including photon noise')
@@ -640,8 +642,9 @@ def synthetic_signal(pinhole_distribution: dict, efficiency, optics_parameters,
     flags = synthetic_frame < 0
     synthetic_frame[flags] = 0
     # --- Apply distortion
-    distorted_frame = ssoptics.distort_image(synthetic_frame,
-                                             distortion_options)
+    # distorted_frame = ssoptics.distort_image(synthetic_frame,
+    #                                          distortion_options)
+    distorted_frame = synthetic_frame.copy()
     output = {
         'noise': noise,
         'camera_frame': distorted_frame,
@@ -746,7 +749,7 @@ def build_weight_matrix(smap, rscint, pscint, rpin, ppin,
     # inside the loop:
     if efficiency is not None:
         eff = True
-        energy = ssfildsimA.get_energy(rpin, B, A, Z)
+        energy = get_energy(rpin, B, A, Z)
         eff = efficiency.interpolator(energy)
         print('Considering scintillator efficiency in W')
     else:

@@ -41,6 +41,11 @@ from ScintSuite._Machine import machine as _machine
 # if _machine == 'MU':
 import ScintSuite._Video._NetCDF4files as ncdf
 
+import time
+try:
+    import cv2
+except ImportError:
+    raise ImportError("OpenCV not available")
 
 # --- Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.Video')
@@ -335,7 +340,7 @@ class BVO:
     def read_frame(self, frames_number=None, limitation: bool = True,
                    limit: int = 3072, internal: bool = True, t1: float = None,
                    t2: float = None, threshold_saturation: float = 0.95,
-                   verbose: bool = True):
+                   verbose: bool = True, flag_copy: bool = False):
         """
         Read the video frames
 
@@ -356,6 +361,7 @@ class BVO:
         :param  t2: Final time to load frames (alternative to frames number), if
             just t1 is given , only one frame will be loaded
         :param  verbose: flag to print the numer of saturated frames found
+        :param  flag_copy: If true, a copy of the frame will be stored
 
         :return M: 3D numpy array with the frames M[px,py,nframes] (if the
             internal flag is set to false)
@@ -530,6 +536,10 @@ class BVO:
         self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
         self.exp_dat.attrs['dtype'] = dtype
 
+        # Make a copy of the frames to recover them later
+        if 'original_frames' not in self.exp_dat and flag_copy:
+            self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
+
         # --- Count saturated pixels
         max_scale_frames = 2 ** self.settings['RealBPP'] - 1
         threshold = threshold_saturation * max_scale_frames
@@ -545,7 +555,8 @@ class BVO:
 
 
     def subtract_noise(self, t1: float = None, t2: float = None,
-                       frame: np.ndarray = None, flag_copy: bool = False):
+                       frame: np.ndarray = None, flag_copy: bool = False,
+                       speed_flag = None):
         """
         Subtract noise from camera frames.
 
@@ -564,6 +575,7 @@ class BVO:
         :param  t2: Maximum time to average the noise
         :param  frame: Optional, frame containing the noise to be subtracted
         :param  flag_copy: If true, a copy of the frame will be stored
+        :param  speed_flag: substantial improve in speed
 
         :return  frame: the frame used for the noise subtraction
 
@@ -590,11 +602,10 @@ class BVO:
         nx = self.exp_dat['px'].size
         ny = self.exp_dat['py'].size
         nt = self.exp_dat['t'].size
-        original_dtype = self.exp_dat['frames'].dtype
         # Get the initial and final time loaded in the video:
         t1_vid = self.exp_dat['t'].values[0]
         t2_vid = self.exp_dat['t'].values[-1]
-        # --- Get the nise frame
+        # --- Get the noise frame
         # Calculate the noise frame, if needed:
         if (t1 is not None) and (t2 is not None):
             if (t1 < t1_vid and t2 < t1_vid) or (t1 > t2_vid and t2 > t2_vid):
@@ -621,9 +632,6 @@ class BVO:
             logger.info('Using frames from the video')
             logger.info('%i frames will be used to average noise', it2 - it1 + 1)
             frame = self.exp_dat['frames'].isel(t=slice(it1, it2+1)).mean(dim='t')
-            #frame = np.mean(self.exp_dat['frames'].values[:, :, it1:(it2 + 1)],
-            #                dtype=original_dtype, axis=2)
-
         else:  # The frame is given by the user
             logger.info('Using noise frame provided by the user')
             try:
@@ -635,10 +643,10 @@ class BVO:
                 print(nx, nxf, ny, nyf)
                 text = 'The noise frame has not the correct shape'
                 raise errors.NotValidInput(text)
-
+            
         # Save the frame in the structure
         self.exp_dat['frame_noise'] = xr.DataArray(frame.squeeze(),
-                                                   dims=('px', 'py'))
+                                                dims=('px', 'py'))
         if t1 is not None:
             self.exp_dat['frame_noise'].attrs['t1_noise'] = t1
             self.exp_dat['frame_noise'].attrs['t2_noise'] = t2
@@ -646,25 +654,42 @@ class BVO:
             self.exp_dat['frame_noise'].attrs['t1_noise'] = -150.0
             self.exp_dat['frame_noise'].attrs['t2_noise'] = -150.0
         # --- Copy the original frame array:
+        original_dtype = self.exp_dat['frames'].dtype
         if 'original_frames' not in self.exp_dat and flag_copy:
             self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
-        # --- Subtract the noise
-        frame = frame.astype(float)  # Get the average as float to later
-        #                              subtract and not have issues with < 0
-        frameDA = xr.DataArray(frame, dims=('px', 'py'),
-                               coords = {'px': self.exp_dat['px'],
-                                         'py': self.exp_dat['py']})
-        #dummy = \
-        #    (self.exp_dat['frames'].values.astype(float) - frame[..., None])
-        dummy = self.exp_dat['frames'].astype(float) - frameDA
-        dummy.values[dummy.values < 0] = 0.0  # Clean the negative values
-        self.exp_dat['frames'].values = dummy.astype(original_dtype)
+
+        if speed_flag is not None:
+            logger.warning('Speed_flag will dissappear in 2.1, ' \
+                            'once this fast method become the official way')
+            time1=time.time()
+            # --- Subtract the noise
+            frames_da = self.exp_dat['frames']
+            frames_f = frames_da.data.astype(np.float32, copy=False)
+            bkg_f = frames_da.sel(t=slice(t1, t2)).mean(dim='t').data.astype(np.float32, copy=False)
+            np.subtract(frames_f, bkg_f[:, :, None], out=frames_f)
+            np.clip(frames_f, 0, None, out=frames_f)
+            frames_da.data[:] = frames_f.astype(original_dtype, copy=False)
+            time2=time.time()
+            logger.info('Fast method: %f s', time2-time1)
+        else: # original method
+            time1 = time.time()
+            # --- Subtract the noise
+            frame = frame.astype(float)  # Get the average as float to later
+            #                              subtract and not have issues with < 0
+            frameDA = xr.DataArray(frame, dims=('px', 'py'),
+                                coords = {'px': self.exp_dat['px'],
+                                            'py': self.exp_dat['py']})
+            dummy = self.exp_dat['frames'].astype(float) - frameDA
+            dummy.values[dummy.values < 0] = 0.0  # Clean the negative values
+            self.exp_dat['frames'].values = dummy.astype(original_dtype)
+            time2 = time.time()
+            logger.info('Slow method: %f s', time2-time1)
 
         logger.info('-... -.-- . / -... -.-- .')
         return frame.astype(original_dtype)
 
     def filter_frames(self, method: str = 'median', options: dict = {},
-                      flag_copy: bool = False):
+                      flag_copy: bool = False, speed_flag = None):
         """
         Filter the camera frames
 
@@ -682,6 +707,7 @@ class BVO:
             -# median:
                 size: 4, number of pixels considered
         :param  flag_copy: flag to copy or not the original frames
+        :param  speed_flag: substantial improve in speed
 
         :Example:
         >>> # Load a video from a diagnostic
@@ -693,6 +719,7 @@ class BVO:
         >>> # Filter the frames
         >>> vid.filter_frames(method='median', options={'size': 2})
         """
+
         logger.info('Filtering frames')
         # default options:
         jrr_options = {
@@ -710,34 +737,76 @@ class BVO:
             logger.info('Not making a copy')
         # Filter frames
         nx, ny, nt = self.exp_dat['frames'].shape
+        frames = self.exp_dat['frames'].values
         if method == 'jrr':
             logger.info('Removing pixels affected by neutrons')
             jrr_options.update(options)
             for i in tqdm(range(nt)):
-                self.exp_dat['frames'][:, :, i] = \
-                    ssutilities.neutron_filter(self.exp_dat['frames'].values[:, :, i],
+                frames[:, :, i] = \
+                    ssutilities.neutron_filter(frames[:, :, i],
                                                **jrr_options)
         elif method == 'median':
             logger.info('Median filter selected!')
-            logger.warning('If your video have not the time axis in the last position please write to jruedaru@uci.edu, as this will fail')
+            logger.warning('If your video have not the time axis in the last ' \
+            'position please write to jruedaru@uci.edu, as this will fail')
             # if footprint is present in the options given by user, delete size
             # from the default options, to avoid issues in the median filter
             if 'footprint' in options:
                 median_options['size'] = None
-            median_options.update(options)
-            self.exp_dat['frames'].values = \
-                ndimage.median_filter(self.exp_dat['frames'].values, 
-                                      size=(median_options['size'],
-                                            median_options['size'], 1))
+            median_options.update(options)        
+            if median_options['size'] % 2 == 0:
+                ksize = median_options['size'] + 1
+            else:
+                ksize = median_options['size']
+            if speed_flag is not None:
+                logger.warning('Speed_flag will dissappear in 2.1, ' \
+                'once this fast method become the official way')
+                try:
+                    for i in tqdm(range(nt)):
+                        frames[:, :, i] = cv2.medianBlur(
+                            frames[:, :, i], ksize=ksize)
+                except:
+                    logger.warning("Couldn't use cv2 library. Fall to slow method")
+                    for i in tqdm(range(nt)):
+                        self.exp_dat['frames'][:, :, i] = \
+                            ndimage.median_filter(
+                                self.exp_dat['frames'].values[:, :, i],
+                                size = median_options['size'])
+            else:
+                for i in tqdm(range(nt)):
+                    self.exp_dat['frames'][:, :, i] = \
+                        ndimage.median_filter(
+                            self.exp_dat['frames'].values[:, :, i],
+                            size = median_options['size'])
+
         elif method == 'gaussian':
             logger.info('Gaussian filter selected!')
             gaussian_options.update(options)
-            logger.warning('If your video have not the time axis in the last position please write to jruedaru@uci.edu, as this will fail')
-            self.exp_dat['frames'].values = \
-                ndimage.gaussian_filter(self.exp_dat['frames'].values, 
-                                        sigma=(gaussian_options['sigma'], 
-                                               gaussian_options['sigma'], 1))
-            
+            logger.warning('If your video have not the time axis in the last ' \
+            'position please write to jruedaru@uci.edu, as this will fail')
+            if speed_flag is not None:
+                logger.warning('Speed_flag will dissappear in 2.1, ' \
+                'once this fast method become the official way')
+                try:
+                    for i in tqdm(range(nt)):
+                        frames[:, :, i] = cv2.GaussianBlur(
+                            frames[:, :, i], ksize = (0,0), 
+                            sigmaX = gaussian_options['sigma'])
+                except:
+                    logger.warning("Couldn't use cv2 library. Fall to slow method")
+                    for i in tqdm(range(nt)):
+                        self.exp_dat['frames'][:, :, i] = \
+                            ndimage.gaussian_filter(
+                                self.exp_dat['frames'].values[:, :, i],
+                                sigma = gaussian_options['sigma'])                    
+            else:
+                for i in tqdm(range(nt)):
+                    self.exp_dat['frames'][:, :, i] = \
+                        ndimage.gaussian_filter(
+                            self.exp_dat['frames'].values[:, :, i],
+                            sigma = gaussian_options['sigma'])
+        self.exp_dat['frames'].values = frames
+
         logger.info('\\n-... -.-- . / -... -.-- .')
         return
 

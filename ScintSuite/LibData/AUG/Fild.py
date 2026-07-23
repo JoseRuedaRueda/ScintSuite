@@ -272,7 +272,7 @@ class FILD_logbook:
         """
         if verbose:
             logger.warning('VERBOSE option is deprecated, please avoid using it. it will raise an error in 2.0.0')
-        logger.info('Looking for the position database: ', filename)
+        logger.info('Looking for the position database: %s'%filename)
         dummy = pd.read_excel(filename, engine='openpyxl', header=[0, 1])
         dummy['shot'] = dummy.Shot.Number.values.astype(int)
         # Check if there is information on the overheating in the file
@@ -301,7 +301,7 @@ class FILD_logbook:
                 'GeomID': [], 'diag_ID': []}
 
         # Read the file
-        logger.info('Reading Geometry database from: ', filename)
+        logger.info('Reading Geometry database from: %s' % filename)
         with open(filename) as f:
             for i in range(n_header):
                 dummy = f.readline()

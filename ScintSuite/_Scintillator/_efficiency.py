@@ -108,11 +108,12 @@ class ScintillatorEfficiency:
         """
         Wrap the interpolator.
 
-        By default, extrapolation is selected
+        By default, clip to edge value is applied, but it can be changed by passing the `kwargs` dictionary to the interpolator.
+        
         :param E: input energy, in keV
         :param kwargs: optional arguments for the interpolator
         :return: interpolated vallues
         """
-        kwargs2 = {'fill_value': 'extrapolate'}
+        kwargs2 = {'fill_value': (self.data.values[0], self.data.values[-1])}
         kwargs2.update(kwargs)
-        return self.data.interp(E=E, kwargs=kwargs2)
+        return self.data.interp(E=E, kwargs=kwargs2,)

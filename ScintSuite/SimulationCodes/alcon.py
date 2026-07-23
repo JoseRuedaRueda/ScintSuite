@@ -9,8 +9,6 @@ import matplotlib.pyplot as plt
 import xarray as xr
 from ScintSuite._Utilities import flatten
 from ScintSuite._MHD import MHDmode
-from scipy.cluster.vq import kmeans2
-from sklearn.cluster import SpectralClustering, DBSCAN, OPTICS
 
 logger = logging.getLogger('ScintSuite.ALCON')
 

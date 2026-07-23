@@ -156,6 +156,8 @@ def remapAllLoadedFrames(video,
         got_smap = False
     else:
         got_smap = True
+        if isinstance(map, str):
+            smap = Ismap(file = map)
         smap = map
         logger.info('A StrikeMap was given, we will remap all frames with it')
         logger.warning('24: Assuming you properly prepared the smap')

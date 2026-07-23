@@ -586,7 +586,8 @@ class Geometry:
     def plot3Dfilled(self, surface_params: dict = {}, ax=None,
                      element_to_plot=[0, 1, 2], plot_pinhole: bool = True,
                      referenceSystem='absolute', units: str = 'cm',
-                     plot_scint_reference_point: bool = True):
+                     plot_scint_reference_point: bool = True,
+                     show: bool = True):
         """
         Plot the geometric elements.
 
@@ -686,7 +687,8 @@ class Geometry:
             ax.set_zlim((zmin - 0.1 * dz) * factor, (zmax + 0.1 * dz) * factor)
             axisEqual3D(ax)
             clean3Daxis(ax)
-            fig.show()
+            if show:
+                fig.show()
         return ax
 
     def plot2Dfilled(self, surface_params: dict = {}, ax=None,
