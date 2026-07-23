@@ -1,0 +1,18 @@
+diag: 4
+gaussian: 2
+median: 3
+method: Centers
+parameters:
+  dx: 1.0
+  dy: 0.1
+  xmax: 90.0
+  xmin: 20.0
+  ymax: 8.0
+  ymin: 1.0
+precision: 1
+shot: 43436
+smaps: Computed
+t1: 1.0
+t2: 2.0
+tn1: 0.0
+tn2: 0.2

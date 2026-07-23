@@ -38,8 +38,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import Slider, Button, RadioButtons
 import gc
 from ScintSuite._Machine import machine as _machine
-if _machine == 'MU':
-    import ScintSuite._Video._NetCDF4files as ncdf
+# if _machine == 'MU':
+import ScintSuite._Video._NetCDF4files as ncdf
 
 
 # --- Initialise the auxiliary objects

@@ -50,7 +50,7 @@ def guessFILDfilename(shot: int, diag_ID: int = 1):
 
     :return file: the name of the file/folder
     """
-    base_dir = params.FILD[diag_ID-1]['path']
+    base_dir = params.FILD[diag_ID-1]['path'](shot)
     extension = params.FILD[diag_ID-1]['extension'](shot)
     shot_str = str(shot)
     name = shot_str + extension

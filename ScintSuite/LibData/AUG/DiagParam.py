@@ -31,10 +31,10 @@ def _FILD1_path(shot=42000):
 
     Last update: 16/07/2026
     """
-    if shot < 44444:
+    if shot < 44300:
         path = '/shares/experiments/aug-rawfiles/FIT/'
-    elif shot >= 44444:
-        path = '/shares/experiments/aug-rawfiles/FIL/FILD1/'
+    elif shot >= 44300:
+        path = '/shares/departments/AUG/users/alrevi/ScintSuite/MyRoutines/ASDEX/FILD1/test_shots/'
     else:
         raise errors.NotValidInput('Wrong shot number?')
     return path
@@ -48,9 +48,9 @@ def _FILD1_extension(shot=42000):
     """
     if shot < 41202:
         ext = '_v710.cin'
-    elif 41202 <= shot < 44444:
+    elif 41202 <= shot < 44300:
         ext = '_ID9404.cin'
-    elif shot >= 44444:
+    elif shot >= 44300:
         ext = '.nc'
     else:
         raise errors.NotValidInput('Wrong shot number?')

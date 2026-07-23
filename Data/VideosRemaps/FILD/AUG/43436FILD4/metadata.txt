@@ -1,0 +1,4 @@
+Shot: 43436
+diag_ID: 4
+geom_ID: AUG04
+CameraFileBPP: 16
