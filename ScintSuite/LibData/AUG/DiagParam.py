@@ -34,7 +34,7 @@ def _FILD1_path(shot=42000):
     if shot < 44300:
         path = '/shares/experiments/aug-rawfiles/FIT/'
     elif shot >= 44300:
-        path = '/shares/departments/AUG/users/alrevi/ScintSuite/MyRoutines/ASDEX/FILD1/test_shots/'
+        path = '/shares/experiments/aug-rawfiles/FIL/FILD1'
     else:
         raise errors.NotValidInput('Wrong shot number?')
     return path
