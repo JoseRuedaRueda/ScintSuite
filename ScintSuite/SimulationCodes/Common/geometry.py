@@ -10,7 +10,10 @@ All interaction is recomended using the object Geometry, please do not use the
 single routines independently.
 """
 
+import ScintSuite as ss
 import os
+import shutil
+import re
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
@@ -974,3 +977,463 @@ def get_scint_perimeter(scint, coords='real', smooth=False):
         perimeter = np.column_stack([x_new, y_new])
 
     return perimeter
+
+
+## edit geometry files
+def _geometry_shift(geomID, new_geomID, shift=[0, 0, 0], ignore = None):
+    paths = ss.paths
+    geomfolder = os.path.join(paths.SINPA, 'Geometry', geomID)
+    new_geomfolder = os.path.join(paths.SINPA, 'Geometry', new_geomID)
+    os.makedirs(new_geomfolder, exist_ok=True)
+    dx, dy, dz = shift
+    files = [f for f in os.listdir(geomfolder) 
+            if 'Element' in f
+            and os.path.isfile(os.path.join(geomfolder, f))]
+    if ignore is None:
+        ignore_set = set()
+    elif isinstance(ignore, str):
+        ignore_set = {ignore}
+    else:
+        ignore_set = set(ignore)  
+    # Element files
+    for filename in files:
+        src_path = os.path.join(geomfolder, filename)
+        dst_path = os.path.join(new_geomfolder, filename)
+        if filename in ignore_set:
+            if src_path != dst_path:
+                    shutil.copy2(src_path, dst_path)
+        else:
+            with open(src_path, 'r') as file:
+                lines = file.readlines()
+            last_text_line = 5
+            text_lines = lines[0:last_text_line]
+            data_lines = lines[last_text_line:]
+            # Transformation
+            modified_lines = []
+            for line in data_lines:
+                columns = line.split()
+                if not columns:
+                    continue
+                x = float(columns[0]) + dx
+                y = float(columns[1]) + dy
+                z = float(columns[2]) + dz
+                extra_cols = " ".join(columns[3:])
+                if extra_cols:
+                    modified_line = f"{x} {y} {z} {extra_cols}\n"
+                else:
+                    modified_line = f"{x} {y} {z}\n"
+                modified_lines.append(modified_line)
+            # Write new file
+            with open(dst_path, 'w') as file2:
+                file2.writelines(text_lines)
+                file2.writelines(modified_lines)
+
+    # ExtraGeometryParams
+    src_path = os.path.join(geomfolder, 'ExtraGeometryParams.txt')
+    dst_path = os.path.join(new_geomfolder, 'ExtraGeometryParams.txt')
+    with open(src_path, 'r') as file:
+        lines = file.readlines()
+    # Transformation
+    modified_lines = []
+    for line in lines:
+        line_updated = line
+        match_pin = re.search(r'^\s*rPin\((\d+)\)\s*=\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)', line)
+        if match_pin:
+            idx = int(match_pin.group(1)) - 1
+            val_orig = float(match_pin.group(2))
+            val_new = val_orig + shift[idx]
+            line_updated = re.sub(r'=\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)', 
+                f'= {val_new:.6f}', line,  count=1)
+        modified_lines.append(line_updated)
+    # Write new file
+    with open(dst_path, 'w') as file2:
+        file2.writelines(modified_lines)  
+
+def _geometry_scaling(geomID, new_geomID, mult = 1, relocate = True, ignore = None):
+    paths = ss.paths
+    geomfolder = os.path.join(paths.SINPA, 'Geometry', geomID)
+    new_geomfolder = os.path.join(paths.SINPA, 'Geometry', new_geomID)
+    os.makedirs(new_geomfolder, exist_ok=True)
+    files = [f for f in os.listdir(geomfolder) 
+            if 'Element' in f
+            and os.path.isfile(os.path.join(geomfolder, f))]
+    if ignore is None:
+        ignore_set = set()
+    elif isinstance(ignore, str):
+        ignore_set = {ignore}
+    else:
+        ignore_set = set(ignore)  
+    # Element files
+    for filename in files:
+        src_path = os.path.join(geomfolder, filename)
+        dst_path = os.path.join(new_geomfolder, filename)
+        if filename in ignore_set:
+            if src_path != dst_path:
+                    shutil.copy2(src_path, dst_path)
+        else:
+            with open(src_path, 'r') as file:
+                lines = file.readlines()
+            last_text_line = 5
+            text_lines = lines[0:last_text_line]
+            data_lines = lines[last_text_line:]
+            # Transformation
+            modified_lines = []
+            for line in data_lines:
+                columns = line.split()
+                if not columns:
+                    continue
+                x = float(columns[0]) * mult
+                y = float(columns[1]) * mult
+                z = float(columns[2]) * mult
+                extra_cols = " ".join(columns[3:])
+                if extra_cols:
+                    modified_line = f"{x} {y} {z} {extra_cols}\n"
+                else:
+                    modified_line = f"{x} {y} {z}\n"
+                modified_lines.append(modified_line)
+            # Write new file
+            with open(dst_path, 'w') as file2:
+                file2.writelines(text_lines)
+                file2.writelines(modified_lines)
+
+    # ExtraGeometryParams
+    src_path = os.path.join(geomfolder, 'ExtraGeometryParams.txt')
+    dst_path = os.path.join(new_geomfolder, 'ExtraGeometryParams.txt')
+    with open(src_path, 'r') as file:
+        lines = file.readlines()
+    # Transformation
+    modified_lines = []
+    shift_vect = [0.0, 0.0, 0.0]
+    for line in lines:
+        line_updated = line
+        match_pin = re.search(r'^\s*rPin\((\d+)\)\s*=\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)', line)
+        match_dim = re.search(r'^\s*(d1|d2)\s*=\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)', line)
+        if match_pin:
+            idx = int(match_pin.group(1)) - 1
+            val_orig = float(match_pin.group(2))
+            val_new = val_orig * mult
+            shift_vect[idx] = -(val_new - val_orig)
+            line_updated = re.sub(r'=\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)', 
+                f'= {val_new:.6f}', line,  count=1)
+        elif match_dim:
+            val_orig = float(match_dim.group(2))
+            val_new = val_orig * mult
+            line_updated = re.sub(r'=\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)', 
+                f'= {val_new:.6f}', line, count=1)
+        modified_lines.append(line_updated)
+    # Write new file
+    with open(dst_path, 'w') as file2:
+        file2.writelines(modified_lines)
+    
+    if relocate:
+        _geometry_shift(new_geomID, new_geomID, shift_vect, ignore=ignore_set)
+
+def _geometry_mirror(geomID, new_geomID, ax = 'x', relocate = True, inversion = False, ignore = None):
+    paths = ss.paths
+    geomfolder = os.path.join(paths.SINPA, 'Geometry', geomID)
+    new_geomfolder = os.path.join(paths.SINPA, 'Geometry', new_geomID)
+    os.makedirs(new_geomfolder, exist_ok=True)
+    files = [f for f in os.listdir(geomfolder) 
+            if 'Element' in f
+            and os.path.isfile(os.path.join(geomfolder, f))]
+    if ignore is None:
+        ignore_set = set()
+    elif isinstance(ignore, str):
+        ignore_set = {ignore}
+    else:
+        ignore_set = set(ignore)  
+    ax = ax.lower()
+    mult = [-1 if 'x' in ax else 1, 
+            -1 if 'y' in ax else 1, 
+            -1 if 'z' in ax else 1]
+
+    # Element files
+    for filename in files:
+        src_path = os.path.join(geomfolder, filename)
+        dst_path = os.path.join(new_geomfolder, filename)
+        if filename in ignore_set:
+            if src_path != dst_path:
+                    shutil.copy2(src_path, dst_path)
+        else:
+            with open(src_path, 'r') as file:
+                lines = file.readlines()
+            last_text_line = 5
+            text_lines = lines[0:last_text_line]
+            data_lines = lines[last_text_line:]
+            # Transformation
+            modified_lines = []
+            for line in data_lines:
+                columns = line.split()
+                if not columns:
+                    continue
+                x = float(columns[0]) * mult[0]
+                y = float(columns[1]) * mult[1]
+                z = float(columns[2]) * mult[2]
+                extra_cols = " ".join(columns[3:])
+                if extra_cols:
+                    modified_line = f"{x} {y} {z} {extra_cols}\n"
+                else:
+                    modified_line = f"{x} {y} {z}\n"
+                modified_lines.append(modified_line)
+            # Write new file
+            with open(dst_path, 'w') as file2:
+                file2.writelines(text_lines)
+                file2.writelines(modified_lines)
+            if inversion == True:
+                _surface_inversion(dst_path)
+
+    # ExtraGeometryParams
+    src_path = os.path.join(geomfolder, 'ExtraGeometryParams.txt')
+    dst_path = os.path.join(new_geomfolder, 'ExtraGeometryParams.txt')
+    with open(src_path, 'r') as file:
+        lines = file.readlines()
+    # Transformation
+    modified_lines = []
+    shift_vect = [0.0, 0.0, 0.0]
+    for line in lines:
+        line_updated = line
+        match_pin = re.search(r'^\s*rPin\((\d+)\)\s*=\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)', line)
+        if match_pin:
+            idx = int(match_pin.group(1)) - 1
+            val_orig = float(match_pin.group(2))
+            val_new = val_orig * mult[idx]
+            shift_vect[idx] = -(val_new - val_orig)
+            line_updated = re.sub(r'=\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)', 
+                f'= {val_new:.6f}', line,  count=1)
+        modified_lines.append(line_updated)
+    # Write new file
+    with open(dst_path, 'w') as file2:
+        file2.writelines(modified_lines)  
+
+    if relocate:
+        _geometry_shift(new_geomID, new_geomID, shift_vect, ignore=ignore_set)
+
+def _surface_inversion(filepath,):
+    if 'Element' in filepath:
+        with open(filepath, 'r') as file:
+            lines = file.readlines()
+            last_text_line = 5
+            text_lines = lines[0:last_text_line]
+            lines = lines[last_text_line:]
+        modified_lines = []
+        for i in range(0, len(lines), 3):
+            tri = lines[i:i+3]
+            if len(tri) < 3:
+                continue
+            pts = []
+            for line in tri:
+                columns = line.split()
+                x = float(columns[0])
+                y = float(columns[1])
+                z = float(columns[2])
+                pts.append((x, y, z))
+            pts = [pts[0], pts[2], pts[1]]
+            for p in pts:
+                modified_lines.append(f"{p[0]} {p[1]} {p[2]}\n")
+        with open(filepath, 'w') as file:
+            file.writelines((text_lines))
+            file.write('\n'.join(modified_lines))
+    else:
+        print('Make sure the file corresponds to a geometry Element')
+
+def edit_geometry(geomID, new_geomID, shift = [0,0,0], mult = 1, ax = 'x',
+                  relocate = True, inversion = False, ignore = None):
+    '''
+    Wrap of functions that allow to shift, scale and mirror the geometry files
+    Works with the elements in the suite, no CAD files
+
+    Alex Reyner: areyner@us.es
+
+    :param  geomID: original geometry name (path not required)
+    :param  new_geomID: edited geometry name
+    :param  shift: x, y, z vector to displace the geometry. In m
+    :param  mult: scaling factor
+    :param  ax: direction we want to shift -> x, y, z, xy, xz, yz, xyz
+    :param  relocate: used to keep the pinhole in the original position after
+                scaling or mirroring
+    :param  inversion: change normal to surface. needed when mirroring the
+                scintillator
+    :param  ignore: list of elements to ignore
+    '''
+    _geometry_shift(geomID, new_geomID, shift=shift, ignore=ignore)
+    _geometry_scaling(new_geomID, new_geomID, mult=mult, 
+                     relocate=relocate, ignore=ignore)
+    _geometry_mirror(new_geomID, new_geomID, ax=ax, inversion=inversion, 
+                    relocate=relocate, ignore=ignore)
+
+
+## edit .stl and convert ot geometry files
+
+def decimate_stl(path, triangles):
+    '''
+    This permits to reduce the number of triangles in a geometry.
+    Will fit a geometry with the exact number of triangles to the current .stl,
+    as close as possible to the original.
+    CAREFUL!!!, if # triangles is too low, surface will be wrong.
+
+    Alex Reyner: areyner@us.es
+
+    :param  path: path to .stl
+    :param  triangles: number of triangles for the new file
+
+    :out    reduced .stl file in the same path, with _dec extension
+    '''
+    import os
+    import open3d as o3d
+    mesh = o3d.io.read_triangle_mesh(path)
+    # clean
+    mesh.remove_duplicated_vertices()
+    mesh.remove_duplicated_triangles()
+    mesh.remove_degenerate_triangles()
+    mesh.remove_non_manifold_edges()
+    # reduce
+    target_triangles = triangles
+    mesh = mesh.simplify_quadric_decimation(target_triangles)
+    mesh.compute_triangle_normals()
+    mesh.compute_vertex_normals()
+    # save
+    base, ext = os.path.splitext(path)
+    new_path = f"{base}_dec{ext}"
+    o3d.io.write_triangle_mesh(new_path, mesh)
+
+def _get_normal_vector(p1, p2, p3):
+    '''
+    '''
+    # These two vectors are in the plane
+    v1 = p3 - p1
+    v2 = p2 - p1
+    # the cross product is a vector normal to the plane
+    cp = np.cross(v1, v2)
+    cp = cp/(cp**2).sum()**0.5
+    return cp
+
+def stl2geometry(geomID: str, 
+                 scintillator_stl_files: dict = {},
+                 collimator_stl_files: dict = {}, 
+                 ps = [0,0,0], 
+                 u1_scint = [1,0,0], 
+                 scint_norm = [0,1,0], 
+                 pinhole: dict = {'pinholeKind': 1,
+                                  'pinholeCentre': np.array([0.04,0,0]),
+                                  'pinholeRadius': 0.1,
+                                  'points': np.array([
+                                      [39.5, -1, 0],
+                                      [40.5, -1, 0],
+                                      [40.5, 1, 0],
+                                      [39.5, 1, 0],
+                                    ]) 
+                                },
+                 plot_geom: bool = True,):
+
+    # create folder
+    paths = ss.paths
+    geomfolder = os.path.join(paths.SINPA, 'Geometry', geomID)
+    os.makedirs(geomfolder, exist_ok=True)
+    print(f'Making directory: {geomfolder}')
+
+    # choose points on scintillator for reference coordinate system
+    p1 = np.array([40, 0, 0]) * 0.001 #convert mm to m
+    p2 = np.array([0, 0, 0]) * 0.001 
+    p3 = np.array([0, 0, 0]) * 0.001
+    scint_norm = _get_normal_vector(p1, p2, p3)        
+    ps = p1 
+    u1_scint = (p2 - p1) / np.linalg.norm((p2 - p1))
+
+    # scintillator is file 1
+    element_nr = 1
+    for scint in scintillator_stl_files.keys():
+        scint_filename = geomfolder + '/Element%i.txt' %element_nr
+        print(scint_filename)
+        ##write geometory file "header"
+        with open(scint_filename, 'w') as f:
+            f.write(f"Scintillator file for SINPA FILDSIM\n"
+                    f"Scintillator stl file: {scint}\n"
+                    f"File by {os.getenv('USER', 'User')}\n"
+                    f"2  ! Kind of plate\n")
+        # Append triangle data from stl file
+        libcad.write_file_for_fortran_numpymesh(scintillator_stl_files[scint], 
+                                         scint_filename, 
+                                         convert_mm_2_m = True )    
+        rot = ss.sinpa.geometry.calculate_rotation_matrix(scint_norm, u1 = u1_scint
+                                                          ,verbose=False)[0]
+
+    rot = np.identity(3)
+
+    # collimator is file 2 and higher
+    for coll in collimator_stl_files.keys():
+        element_nr += 1
+        collimator_filename = geomfolder + '/Element%i.txt'%element_nr
+        print(collimator_filename)
+        with open(collimator_filename, 'w') as f:
+            f.write(f"Collimator file for SINPA FILDSIM\n"
+                    f"Run name is {geomID}\n"
+                    f"STL collimator {coll}\n"
+                    f"0  ! Kind of plate\n")
+        libcad.write_file_for_fortran_numpymesh(collimator_stl_files[coll],
+                                              collimator_filename, 
+                                              convert_mm_2_m = True )      
+
+    # pinhole properties
+    p_points = pinhole['points'] * 0.001 #convert Catia points to m
+    rPin = np.mean(p_points, axis=0)
+    if pinhole.get('pinholeKind', 1) == 1:
+        d1 = np.linalg.norm(p_points[1]-p_points[0])
+        u1 = (p_points[1]-p_points[0]) / d1
+        d2 = np.linalg.norm(p_points[2]-p_points[1])
+        u2 = (p_points[2]-p_points[1]) / d2
+    else:
+        d1 = pinhole.get('pinholeRadius', 0.1) * 1e-3
+        u1 = (p_points[1]-p_points[0]) / np.linalg.norm(p_points[1]-p_points[0])
+        d2 = 0
+        u2 = (p_points[2]-p_points[1]) / np.linalg.norm(p_points[2]-p_points[1])
+        rPin = pinhole.get('pinholeCentre', np.array([0, 0, 0])) * 1e-3
+    u3 = np.cross(u1, u2)
+    
+    extra_filename = geomfolder + '/ExtraGeometryParams.txt'
+    nGeomElements = element_nr
+    # make sure to convert all to m
+    f = open(extra_filename,'w')
+    f.write('&ExtraGeometryParams   ! Namelist with the extra geometric parameters\n')
+    f.write('  nGeomElements = ' + (str(nGeomElements)) + '\n')
+    f.write('  ! Pinhole\n')
+    f.write('  rPin(1) = ' + (str(np.round(rPin[0],6))) 
+            + ',        ! Position of the pinhole XYZ\n')
+    f.write('  rPin(2) = ' + (str(np.round(rPin[1],6))) + ',\n')
+    f.write('  rPin(3) = ' + (str(np.round(rPin[2],6))) + ',\n')
+    f.write('  pinholeKind = 1     ! 0 = Circular, 1 = rectangle\n')
+    f.write('  d1 = ' + (str(np.round(d1,6))) + '  ! Pinhole radius, or size along u1 (in m)\n')
+    f.write('  d2 = ' + (str(np.round(d2,6))) + '   ! Size along u2, not used if we have a circular pinhole\n\n')
+    f.write('  ! Unitary vectors:\n')
+    f.write('  u1(1) =  %f\n' %(u1[0]))
+    f.write('  u1(2) =  %f\n' %(u1[1]))
+    f.write('  u1(3) =  %f\n\n' %(u1[2]))
+    f.write('  u2(1) =  %f\n' %(u2[0]))
+    f.write('  u2(2) =  %f\n' %(u2[1]))
+    f.write('  u2(3) =  %f\n\n' %(u2[2]))
+    f.write('  u3(1) =  %f   ! Normal to the pinhole plane\n' %(u3[0]))
+    f.write('  u3(2) =  %f\n' %(u3[1]))
+    f.write('  u3(3) =  %f\n\n' %(u3[2]))
+    f.write('  ! Reference system of the Scintillator:\n')
+    f.write('  ps(1) =  ' + (str(np.round(ps[0] ,6))) + '\n')
+    f.write('  ps(2) =  ' + (str(np.round(ps[1] ,6))) + '\n')
+    f.write('  ps(3) =  ' + (str(np.round(ps[2] ,6))) + '\n\n')
+    f.write('  rotation(1,1) = ' + (str(np.round(rot[0,0],4))) + '\n')
+    f.write('  rotation(1,2) = ' + (str(np.round(rot[0,1],4))) + '\n')
+    f.write('  rotation(1,3) = ' + (str(np.round(rot[0,2],4))) + '\n')
+    f.write('  rotation(2,1) = ' + (str(np.round(rot[1,0],4))) + '\n')
+    f.write('  rotation(2,2) = ' + (str(np.round(rot[1,1],4))) + '\n')
+    f.write('  rotation(2,3) = ' + (str(np.round(rot[1,2],4))) + '\n')
+    f.write('  rotation(3,1) = ' + (str(np.round(rot[2,0],4))) + '\n')
+    f.write('  rotation(3,2) = ' + (str(np.round(rot[2,1],4))) + '\n')
+    f.write('  rotation(3,3) = ' + (str(np.round(rot[2,2],4))) + '\n\n')
+    f.write('/')
+    f.close()
+
+    if plot_geom:
+        Geometry = ss.simcom.Geometry(GeomID=geomID)
+        ax = Geometry.plot3Dfilled(element_to_plot=[0,2], units='mm')
+        Geometry.plot3Dlines(ax=ax, element_to_plot=[0], 
+                             line_params={'color':'k'}, units='mm')
+        Geometry.plot3Dlines(ax=ax, element_to_plot=[2], 
+                             line_params={'color':'r'}, units='mm')
+    return
