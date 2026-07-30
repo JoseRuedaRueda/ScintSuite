@@ -862,7 +862,7 @@ class Geometry:
                                                 + "_" + file_mod[ele['kind']],
                                                 viewScint = viewScint)
 
-##
+## routines to get external shape
 
 def scint_ConvexHull(scint, coords='real'):
     """
@@ -894,7 +894,7 @@ def scint_ConvexHull(scint, coords='real'):
 
     return scint_perim
 
-def get_scint_perimeter(scint, coords='real', smooth=False):
+def get_perimeter(scint, coords='real', smooth=False):
     """
     Reconstruct scintillator perimeter from raw coordinate lists.
 
@@ -981,7 +981,6 @@ def get_scint_perimeter(scint, coords='real', smooth=False):
 
 ## edit geometry files
 def _geometry_shift(geomID, new_geomID, shift=[0, 0, 0], ignore = None):
-    paths = ss.paths
     geomfolder = os.path.join(paths.SINPA, 'Geometry', geomID)
     new_geomfolder = os.path.join(paths.SINPA, 'Geometry', new_geomID)
     os.makedirs(new_geomfolder, exist_ok=True)
@@ -1050,7 +1049,6 @@ def _geometry_shift(geomID, new_geomID, shift=[0, 0, 0], ignore = None):
         file2.writelines(modified_lines)  
 
 def _geometry_scaling(geomID, new_geomID, mult = 1, relocate = True, ignore = None):
-    paths = ss.paths
     geomfolder = os.path.join(paths.SINPA, 'Geometry', geomID)
     new_geomfolder = os.path.join(paths.SINPA, 'Geometry', new_geomID)
     os.makedirs(new_geomfolder, exist_ok=True)
@@ -1129,7 +1127,6 @@ def _geometry_scaling(geomID, new_geomID, mult = 1, relocate = True, ignore = No
         _geometry_shift(new_geomID, new_geomID, shift_vect, ignore=ignore_set)
 
 def _geometry_mirror(geomID, new_geomID, ax = 'x', relocate = True, inversion = False, ignore = None):
-    paths = ss.paths
     geomfolder = os.path.join(paths.SINPA, 'Geometry', geomID)
     new_geomfolder = os.path.join(paths.SINPA, 'Geometry', new_geomID)
     os.makedirs(new_geomfolder, exist_ok=True)
@@ -1326,7 +1323,6 @@ def stl2geometry(geomID: str,
                  plot_geom: bool = True,):
 
     # create folder
-    paths = ss.paths
     geomfolder = os.path.join(paths.SINPA, 'Geometry', geomID)
     os.makedirs(geomfolder, exist_ok=True)
     print(f'Making directory: {geomfolder}')
@@ -1356,12 +1352,12 @@ def stl2geometry(geomID: str,
                                          convert_mm_2_m = True )    
         rot = ss.sinpa.geometry.calculate_rotation_matrix(scint_norm, u1 = u1_scint
                                                           ,verbose=False)[0]
+        element_nr += 1
 
     rot = np.identity(3)
 
     # collimator is file 2 and higher
     for coll in collimator_stl_files.keys():
-        element_nr += 1
         collimator_filename = geomfolder + '/Element%i.txt'%element_nr
         print(collimator_filename)
         with open(collimator_filename, 'w') as f:
@@ -1372,6 +1368,7 @@ def stl2geometry(geomID: str,
         libcad.write_file_for_fortran_numpymesh(collimator_stl_files[coll],
                                               collimator_filename, 
                                               convert_mm_2_m = True )      
+        element_nr += 1
 
     # pinhole properties
     p_points = pinhole['points'] * 0.001 #convert Catia points to m
