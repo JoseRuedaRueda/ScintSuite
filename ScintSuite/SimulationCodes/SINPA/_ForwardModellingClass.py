@@ -41,6 +41,7 @@ import sys
 import logging
 logger = logging.getLogger('ScintSuite.FModC')
 logging.basicConfig(level=logging.INFO)
+logging.getLogger('ScintSuite.SimulationCodes.Common.gyroscalar').setLevel(logging.ERROR)
 import time
 
 # -----------------------------------------------------------------------------
@@ -691,6 +692,8 @@ class FMC:
         :param  rm_satuation: remove saturated pixels
         :param  radiometry: relative transmission (from ZEMAX, experimental)
         :param  distortion: (from ZEMAX, experimental)
+        :param  scint_degree: angle of the scintillator efficency measurement.
+                    Accounts for non-isotropic emission. (experimental)
 
         :return frame_camera atribute:
         '''
@@ -1080,7 +1083,7 @@ class FMC:
         
         logger.info('- Building the scintillator perimeter and area...')
         start = time.perf_counter()
-        self.scint_perim = geometry.get_scint_perimeter(self.scint, coords='pix')
+        self.scint_perim = geometry.get_perimeter(self.scint, coords='pix')
 
         scint_path = Path(self.scint_perim, closed=True)
         nx, ny = self.cam_params['nx'], self.cam_params['ny']
@@ -1283,23 +1286,18 @@ class FMC:
         plt.show()
 
     def plot_frame_scintillator(self, cmap = default_cmap(),
-                          plot_smap = True, plot_scint = True,
+                          plot_smap = True, plot_scint = True, plot_coll = True,
                           **kwargs):
         logger.info('---- SCINTILLATOR PLOT -----')
         plot_frame = self.frame_scintillator.tot
-        scint_perim = self.scint_perim
         fig, ax = plt.subplots(figsize=(8,5))
         im = plot_frame.plot.imshow(ax=ax, cmap=cmap, **kwargs)
         if plot_smap:
-            self.smapplt.plot_pix(ax, labels=False, 
-                                  marker_params={'marker':None},
-                                  line_params={'color':'w', 
-                                               'linewidth':1.2, 
-                                               'alpha':0.8})
+            self._plot_strikemap(ax)
         if plot_scint:
-            ax.plot(scint_perim[:,0],scint_perim[:,1], color ='w', linewidth=2,
-                    alpha = 0.8)
-
+            self._plot_scintillator(ax, color ='w', linewidth=2, alpha = 0.8)
+        if plot_coll:
+            self._plot_collimator(ax)
         x_cm_pix = self.cam_params['px_x_size'] / self.opt_params['beta'] *100
         x_cm_max = len(plot_frame.x) * x_cm_pix
         xticks_cm = np.arange(0, x_cm_max, 1)
@@ -1325,7 +1323,7 @@ class FMC:
 
     def plot_frame_camera(self, cmap = default_cmap(), 
                           norm = None,
-                          plot_smap = True, plot_scint = True, 
+                          plot_smap = True, plot_scint = True, plot_coll = True,
                           plot_FoV = False,
                           **kwargs):
         logger.info('---- CAMERA PLOT -----')
@@ -1349,14 +1347,11 @@ class FMC:
 
         im = plot_frame.plot.imshow(ax=ax, cmap=cmap, **kwargs)
         if plot_smap:
-            self.smapplt.plot_pix(ax, labels=False, 
-                                  marker_params={'marker':None},
-                                  line_params={'color': 'w', 
-                                               'linewidth': 1.2, 
-                                               'alpha': 0.8})
+            self._plot_strikemap(ax)
         if plot_scint:
-            ax.plot(scint_perim[:,0],scint_perim[:,1], color ='w', linewidth=2,
-                    alpha = 0.8)
+            self._plot_scintillator(ax, color ='w', linewidth=2, alpha = 0.8)
+        if plot_coll:
+            self._plot_collimator(ax)
         if plot_FoV:
             try:
                 ax.scatter(self.FoV_vector[0], self.FoV_vector[1],
@@ -1374,6 +1369,115 @@ class FMC:
         plt.tight_layout()
 
         return fig, ax
+
+    def _plot_strikemap(self, ax, labels = False, marker_params={'marker':None},
+                        line_params={'color':'w', 'linewidth':1.2, 'alpha':0.8},
+                        **kwargs):
+        self.smapplt.plot_pix(ax, marker_params, line_params, labels, **kwargs)
+
+    def _plot_scintillator(self, ax, **kwargs):
+        ax.plot(self.scint_perim[:,0], self.scint_perim[:,1], **kwargs)
+
+    def _plot_collimator(self, ax, **kwargs):
+        if hasattr(self, 'coll_perim') and self.coll_perim is not None and len(self.coll_perim) > 0:
+            perim = self.coll_perim.value if hasattr(self.coll_perim, 'value') else self.coll_perim
+            fill_color = kwargs.pop('facecolor', kwargs.pop('color', 'deepskyblue'))
+            edge_color = kwargs.pop('edgecolor', 'deepskyblue')
+            alpha = kwargs.pop('alpha', 1)
+            ax.fill(perim[:, 0], perim[:, 1], facecolor=fill_color, alpha=alpha, **kwargs)
+            ax.plot(perim[:, 0], perim[:, 1], color=edge_color, **kwargs)
+        else:
+            logger.warning('No collimator to plot')
+
+
+def _sum_signals(signals: list = [], where = 'scintillator'):
+    '''
+    This function is used to sum the ion distribution and synthetic signal for
+    different synthetic signals computed with the FMC class.
+    The ion signal of all objects will be summed into the first one.
+
+    Alex Reyner: areyner@us.es
+
+    :param signals: list of signals
+    :param where: scintillator or camera? to be implemented 
+
+    :return sum: object containing the sum of     
+    '''
+
+    if len(signals) <= 1:
+        return signals[0]
+    else:
+        base = copy.deepcopy(signals[0])
+        for i, sig in enumerate(signals[1:]):
+            # Add distribution
+            for key in (base.data['distribution'].keys()):
+                if key == 'n':
+                    base.data['distribution'][key] += sig.data['distribution'][key]
+                else:
+                    base.data['distribution'][key] =\
+                        np.concatenate([base.data['distribution'][key], 
+                                         sig.data['distribution'][key]])
+            # Sum ion contributions
+            base.frame_scintillator['fil'] += sig.frame_scintillator['fil']
+        # Obtain again the total signal
+        base.frame_scintillator['tot'] = sum(base.frame_scintillator[v] 
+                                                for v in base.frame_scintillator.data_vars 
+                                                if v not in 'tot')
+        return base
+
+def plot_multiframe_scintillator(signals: list = [], cmap = default_cmap(),
+                          plot_smap = True, plot_scint = True, plot_coll = True, 
+                          **kwargs):
+    '''
+    Sums ion contributions and plots them toghether
+
+    Alex Reyner: areyner@us.es
+
+    :param signals: list of signals
+
+    :return sum: object containing the sum of     
+    '''
+    sigtot = _sum_signals(signals)
+    fig, ax = sigtot.plot_frame_scintillator(cmap=cmap, plot_smap = False,
+                                             plot_scint = plot_scint,
+                                             plot_coll = False,
+                                             **kwargs)
+    for sig in signals:
+        if plot_smap: sig._plot_strikemap(ax)
+        if plot_coll: sig._plot_collimator(ax, alpha=1)
+
+    return fig, ax
+
+
+def plot_multiframe_camera(signals: list = [], rm_saturation = False,
+                        radiometry = None, distortion = None, scint_degree = 0,
+                        cmap = default_cmap(),
+                        plot_smap = True, plot_scint = True, plot_coll = True, 
+                        **kwargs):
+    '''
+    Sums ion contributions and plots them toghether in the camera
+
+    Alex Reyner: areyner@us.es
+
+    :param signals: list of signals
+
+    :return sum: object containing the sum of     
+    '''
+    sigtot = _sum_signals(signals)
+    sigtot.apply_optics_camera_noise(rm_saturation = rm_saturation,
+                                       radiometry = radiometry,
+                                       distortion = distortion,
+                                       scint_degree = scint_degree)
+    fig, ax = sigtot.plot_frame_camera(cmap=cmap, plot_smap = False,
+                                             plot_scint = plot_scint,
+                                             plot_coll = False,
+                                             **kwargs)
+    for sig in signals:
+        if plot_smap: sig._plot_strikemap(ax)
+        if plot_coll: sig._plot_collimator(ax, alpha=1)
+
+    return fig, ax
+
 
 # -----------------------------------------------------------------------------
 ## --- Routines for the relative and deformation
