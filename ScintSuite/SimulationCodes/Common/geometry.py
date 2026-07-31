@@ -1139,10 +1139,13 @@ def _geometry_mirror(geomID, new_geomID, ax = 'x', relocate = True, inversion = 
         ignore_set = {ignore}
     else:
         ignore_set = set(ignore)  
-    ax = ax.lower()
-    mult = [-1 if 'x' in ax else 1, 
-            -1 if 'y' in ax else 1, 
-            -1 if 'z' in ax else 1]
+    if ax:
+        ax_str = str(ax).lower()
+        mult = [-1 if 'x' in ax_str else 1, 
+                -1 if 'y' in ax_str else 1, 
+                -1 if 'z' in ax_str else 1]
+    else:
+        mult = [1, 1, 1]
 
     # Element files
     for filename in files:
@@ -1233,7 +1236,7 @@ def _surface_inversion(filepath,):
     else:
         print('Make sure the file corresponds to a geometry Element')
 
-def edit_geometry(geomID, new_geomID, shift = [0,0,0], mult = 1, ax = 'x',
+def edit_geometry(geomID, new_geomID, shift = [0,0,0], mult = 1, mirror = None,
                   relocate = True, inversion = False, ignore = None):
     '''
     Wrap of functions that allow to shift, scale and mirror the geometry files
@@ -1255,7 +1258,7 @@ def edit_geometry(geomID, new_geomID, shift = [0,0,0], mult = 1, ax = 'x',
     _geometry_shift(geomID, new_geomID, shift=shift, ignore=ignore)
     _geometry_scaling(new_geomID, new_geomID, mult=mult, 
                      relocate=relocate, ignore=ignore)
-    _geometry_mirror(new_geomID, new_geomID, ax=ax, inversion=inversion, 
+    _geometry_mirror(new_geomID, new_geomID, ax=mirror, inversion=inversion, 
                     relocate=relocate, ignore=ignore)
 
 

@@ -1129,7 +1129,7 @@ class fields:
             # Write grid ends:
             np.array(self.Bfield['Rmin'], dtype='float64').tofile(fid)
             np.array(self.Bfield['Rmax'], dtype='float64').tofile(fid)
-            np.array( self.Bfield['zmin'], dtype='float64').tofile(fid)
+            np.array(self.Bfield['zmin'], dtype='float64').tofile(fid)
             np.array(self.Bfield['zmax'], dtype='float64').tofile(fid)
             np.array(self.Bfield['Phimin'], dtype='float64').tofile(fid)
             np.array(self.Bfield['Phimax'], dtype='float64').tofile(fid)
