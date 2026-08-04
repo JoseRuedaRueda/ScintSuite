@@ -11,6 +11,7 @@ from ScintSuite._Machine import machine
 from ScintSuite.SimulationCodes.efit import GFile
 import os
 import netCDF4 as nc
+import re
 
 
 class fields:
@@ -1264,6 +1265,96 @@ class fields:
         self.Bfield['ft'] = Bphi.astype(dtype=np.float64)
 
         self.bdims = 2
+
+    def from_xarray(self, source):
+        '''
+        Builds the 3D magnetic field from an xarray.
+        Has some flexibility over the variable names in the xarray.
+
+        Alex Reyner Viñolas: areyner@us.es
+
+        :param  source: xarray with the data
+        '''
+
+        # Possible names for variables
+        patterns = {
+            'R': ['r', 'R', 'radius', 'r_coord', 'r_grid'],
+            'z': ['z', 'Z', 'z_coord', 'z_grid'],
+            'br': ['br', 'bR', 'b_r', 'b_R', 'br_2d'],
+            'bz': ['bz', 'bz', 'b_z', 'b_Z', 'bz_2d'],
+            'bphi': ['bphi', 'bt', 'b_phi', 'b_tor', 'toroidal'],
+            'psi': ['psi', 'flux']
+        }
+
+        # Helper function to auto-detect a matching key in xarray source
+        def find_key(target_name):
+            available_keys = list(source.coords) + list(source.data_vars)
+            for pattern in patterns.get(target_name, [target_name]):
+                for key in available_keys:
+                    if re.search(pattern, key, re.IGNORECASE):
+                        return key
+            raise KeyError(
+                f"Could not automatically detect a key matching '{target_name}' in the xarray Dataset. "
+                f"Available keys: {available_keys}"
+            )
+        # Helper to extract 2D arrays, auto-transposing if shape is (z, r)
+        def extract_2d(key):
+            da = source[key]
+            if da.dims != (r_key, z_key) and set(da.dims) == {r_key, z_key}:
+                da = da.transpose(r_key, z_key)
+            return np.asfortranarray(da.values, dtype=np.float64)
+
+        # R and z
+        r_key = find_key('R')
+        z_key = find_key('z')
+        r_vals = np.asfortranarray(source[r_key].values, dtype=np.float64)
+        z_vals = np.asfortranarray(source[z_key].values, dtype=np.float64)
+        self.Bfield['R'] = r_vals
+        self.Bfield['z'] = z_vals
+
+        # Get the B components
+        br_key = find_key('br')
+        bz_key = find_key('bz')
+        bphi_key = find_key('bphi')
+        psi_key = find_key('psi')
+        br_2d   = extract_2d(br_key)
+        bz_2d   = extract_2d(bz_key)
+        bphi_2d = extract_2d(bphi_key)
+        psi_2d  = extract_2d(psi_key)
+        self.Bfield['br'] = br_2d
+        self.Bfield['bz'] = bz_2d
+        self.Bfield['bphi'] = bphi_2d
+        self.Bfield['psi'] = psi_2d
+
+        self.Bfield['nR'] = np.asfortranarray(len(r_vals), dtype=np.int32)
+        self.Bfield['nz'] = np.asfortranarray(len(z_vals), dtype=np.int32)
+        self.Bfield['Rmin'] = np.asfortranarray(r_vals[0], dtype=np.float64)
+        self.Bfield['Rmax'] = np.asfortranarray(r_vals[-1], dtype=np.float64)
+        self.Bfield['zmin'] = np.asfortranarray(z_vals[0], dtype=np.float64)
+        self.Bfield['zmax'] = np.asfortranarray(z_vals[-1], dtype=np.float64)
+
+        # Build the 3D magnetic field
+        n_phi = int(360)
+        nr, nz = bphi_2d.shape
+        br_2d = source['br'].values
+        bz_2d = source['bz'].values
+        bphi_2d = source['bphi'].values
+        shape_3d = (nr, n_phi, nz)
+        fr = np.empty(shape_3d, dtype=np.float64, order='F')
+        fz = np.empty(shape_3d, dtype=np.float64, order='F')
+        ft = np.empty(shape_3d, dtype=np.float64, order='F')
+        fr[:] = br_2d[:, None, :]
+        fz[:] = bz_2d[:, None, :]
+        ft[:] = bphi_2d[:, None, :]
+        self.Bfield['fr'] = fr
+        self.Bfield['fz'] = fz
+        self.Bfield['ft'] = ft
+        del fr, fz, ft
+
+        self.Bfield['nPhi']   = np.asfortranarray(n_phi, dtype=np.int32)
+        self.Bfield['Phimin'] = np.asfortranarray(0.0, dtype=np.float64)
+        self.Bfield['Phimax'] = np.asfortranarray(2.0 * np.pi * (1.0 - 1.0 / n_phi), dtype=np.float64)
+        self.bdims = 3
 
     def plot(self, fieldName: str, phiSlice: int = None, timeSlice: int = None,
              ax_options: dict = {}, ax=None, cmap=None, nLevels: int = 50,
