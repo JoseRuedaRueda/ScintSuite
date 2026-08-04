@@ -517,6 +517,39 @@ class GeneralStrikeMap(XYtoPixel):
         plt.draw()
         return ax
 
+    def plot_avgIniGyrophase(self, ax=None, bin_width: float = 0.01, **kwargs):
+        """
+        Plot the initial gyrophase of all markers.
+
+        Alex Reyner Viñolas: areyner@us.es
+
+        :param  ax: Axes where to plot
+        :param  bin_width: size of the gyrophase boxes 
+        """
+        if ax is None:
+            fig, ax = plt.subplots()
+
+        map = self.strike_points
+        column_to_plot = map.header['info']['beta']['i']
+        nalpha, ngyr = map.header['counters'].shape
+        index_gyr = range(ngyr)
+        index_pitch = range(nalpha)
+        gyros = np.empty(shape=1)
+        for ig in index_gyr:
+            for ia in index_pitch:
+                if map.header['counters'][ia, ig] > 6:
+                    dat = map.data[ia, ig][:, column_to_plot]
+                    gyros = np.append(gyros, dat)
+
+        bins = np.arange(0, 2*np.pi+bin_width, bin_width)
+        hist = np.histogram(gyros, bins)
+
+        ax.stairs(*hist, **kwargs)
+
+        return ax
+
+
+    
     # --------------------------------------------------------------------------
     # --- Private methods
     # --------------------------------------------------------------------------
