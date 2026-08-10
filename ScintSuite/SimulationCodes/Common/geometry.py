@@ -1326,9 +1326,12 @@ def stl2geometry(geomID: str,
                  plot_geom: bool = True,):
 
     # create folder
-    geomfolder = os.path.join(paths.SINPA, 'Geometry', geomID)
+    geomfolder = os.path.join(paths.SINPA, "Geometry", geomID)
+    if os.path.exists(geomfolder):
+        print(f"Removing existing directory: {geomfolder}")
+        shutil.rmtree(geomfolder)
     os.makedirs(geomfolder, exist_ok=True)
-    print(f'Making directory: {geomfolder}')
+    print(f"Making directory: {geomfolder}")
 
     # choose points on scintillator for reference coordinate system
     p1 = np.array([40, 0, 0]) * 0.001 #convert mm to m
@@ -1390,7 +1393,7 @@ def stl2geometry(geomID: str,
     u3 = np.cross(u1, u2)
     
     extra_filename = geomfolder + '/ExtraGeometryParams.txt'
-    nGeomElements = element_nr
+    nGeomElements = element_nr-1
     # make sure to convert all to m
     f = open(extra_filename,'w')
     f.write('&ExtraGeometryParams   ! Namelist with the extra geometric parameters\n')
@@ -1432,8 +1435,5 @@ def stl2geometry(geomID: str,
     if plot_geom:
         Geometry = ss.simcom.Geometry(GeomID=geomID)
         ax = Geometry.plot3Dfilled(element_to_plot=[0,2], units='mm')
-        Geometry.plot3Dlines(ax=ax, element_to_plot=[0], 
-                             line_params={'color':'k'}, units='mm')
-        Geometry.plot3Dlines(ax=ax, element_to_plot=[2], 
-                             line_params={'color':'r'}, units='mm')
+        
     return
