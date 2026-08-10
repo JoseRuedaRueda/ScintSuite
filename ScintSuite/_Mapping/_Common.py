@@ -339,8 +339,7 @@ def _fit_to_model_(data, bins: int = 20, model: str = 'Gauss',
 # -----------------------------------------------------------------------------
 # ---- Remap and profiles
 # -----------------------------------------------------------------------------
-def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC',
-          speed_flag = None):
+def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC'):
     """
     Remap a frame.
 
@@ -480,40 +479,25 @@ def remap(smap, frame, x_edges=None, y_edges=None, mask=None, method='MC',
         iy0 = y_index - 1
         iy1 = y_index
 
-        if speed_flag is not None:
-            # New method:
-            # Convert indices to lineal indices
-            lin_bl = ix0 * ny + iy0
-            lin_br = ix1 * ny + iy0
-            lin_tr = ix1 * ny + iy1
-            lin_tl = ix0 * ny + iy1
-            # Calculate the weights 
-            area_total = (delta_x * delta_y)
-            wbl = z * (dx1 * dy1) / area_total   # (ix0, iy0)
-            wbr = z * (dx0 * dy1) / area_total   # (ix1, iy0)
-            wtl = z * (dx1 * dy0) / area_total   # (ix1, iy1)
-            wtr = z * (dx0 * dy0) / area_total   # (ix0, iy1)
-            # Concat weight and indices
-            all_lin = np.concatenate([lin_bl, lin_br, lin_tr, lin_tl])
-            all_w = np.concatenate([wbl, wbr, wtr, wtl])
-            H_flat = np.bincount(all_lin, weights=all_w, minlength=nx*ny)
-            # Reconstruction of matrix
-            H = H_flat.reshape(nx, ny)
-            H /= delta_x * delta_y
-        else:
-            # Old method:
-            # Calculate the weights 
-            area_total = delta_x * delta_y
-            wbl = (dx1 * dy1) / area_total    # (ix0, iy0)
-            wbr = (dx0 * dy1) / area_total   # (ix1, iy0)
-            wtl = (dx1 * dy0) / area_total      # (ix1, iy1)
-            wtr = (dx0 * dy0) / area_total       # (ix0, iy1)
-            for ip in np.arange(x.shape[0]):
-                H[x_index[ip]-1, y_index[ip]-1] +=  z[ip] * wbl[ip]
-                H[x_index[ip] , y_index[ip]-1] += z[ip] * wbr[ip]
-                H[x_index[ip] , y_index[ip] ] += z[ip] * wtr[ip]
-                H[x_index[ip]-1, y_index[ip] ] += z[ip] * wtl[ip]
-            H /= delta_x * delta_y
+        # New method:
+        # Convert indices to lineal indices
+        lin_bl = ix0 * ny + iy0
+        lin_br = ix1 * ny + iy0
+        lin_tr = ix1 * ny + iy1
+        lin_tl = ix0 * ny + iy1
+        # Calculate the weights 
+        area_total = (delta_x * delta_y)
+        wbl = z * (dx1 * dy1) / area_total   # (ix0, iy0)
+        wbr = z * (dx0 * dy1) / area_total   # (ix1, iy0)
+        wtl = z * (dx1 * dy0) / area_total   # (ix1, iy1)
+        wtr = z * (dx0 * dy0) / area_total   # (ix0, iy1)
+        # Concat weight and indices
+        all_lin = np.concatenate([lin_bl, lin_br, lin_tr, lin_tl])
+        all_w = np.concatenate([wbl, wbr, wtr, wtl])
+        H_flat = np.bincount(all_lin, weights=all_w, minlength=nx*ny)
+        # Reconstruction of matrix
+        H = H_flat.reshape(nx, ny)
+        H /= delta_x * delta_y
 
     elif method.lower() == 'forward_warping_advanced': # should produce smoother histogram
         '''

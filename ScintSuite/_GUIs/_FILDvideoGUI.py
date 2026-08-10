@@ -558,7 +558,7 @@ class FILDvideoGUI:
             tn1 = float(self.entry_tn1.get())
             tn2 = float(self.entry_tn2.get())
             if tn2 >= tn1:
-                self.vid.subtract_noise(t1=tn1, t2=tn2, speed_flag=True) #from BVO
+                self.vid.subtract_noise(t1=tn1, t2=tn2) #from BVO
             else: logger.warning('No background substracted')
         except: logger.warning('No background substracted')
         # Median filter
@@ -566,8 +566,7 @@ class FILDvideoGUI:
         if m_filt:
             m_val = int(self.entry_median.get())
             self.vid.filter_frames(method = 'median', 
-                                   options = {'size': m_val},
-                                   speed_flag=True)
+                                   options = {'size': m_val})
         else:
             logger.warning('No median filter')
         # Gaussian filter
@@ -575,8 +574,7 @@ class FILDvideoGUI:
         if g_filt:
             g_val = int(self.entry_gauss.get())
             self.vid.filter_frames(method = 'gaussian', 
-                                   options = {'sigma': g_val},
-                                   speed_flag=True)
+                                   options = {'sigma': g_val})
         else:
             logger.warning('No gaussian filter')
 
@@ -606,7 +604,6 @@ class FILDvideoGUI:
             'decimals': smap_precision,
             'allIn': allIn,
             'remap_method': method,
-            'speed_flag': True
             }
         for key, entry in self.entry_params.items():
                 par[key] = float(entry.get())

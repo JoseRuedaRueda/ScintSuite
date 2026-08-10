@@ -46,7 +46,6 @@ def remapAllLoadedFrames(video,
                          A: float = 2.01410178, Z: float = 1.0,
                          transformationMatrixLimit: float = 10.0,
                          t0: float = None,
-                         speed_flag = None,
                          ) -> xr.Dataset:
     """
     Remap all loaded frames from a FILD video.
@@ -326,8 +325,6 @@ def remapAllLoadedFrames(video,
     remaped_frames = np.zeros((nx, ny, nframes))
     time_interp = 0
     logger.info('Remapping frames ...')
-    logger.warning('Speed_flag will dissappear in 2.1, ' \
-                'once this fast method become the official way')
     for iframe in tqdm(range(nframes)):
         if not got_smap:
             if FILDSIM:
@@ -369,7 +366,7 @@ def remapAllLoadedFrames(video,
         remaped_frames[:, :, iframe] = \
             common.remap(smap, data['frames'].values[:, :, iframe],
                          x_edges=xedges, y_edges=yedges, mask=mask,
-                         method=remap_method, speed_flag=speed_flag)
+                         method=remap_method)
     toc = time.time()
     logger.info('Whole time interval remapped in: %f s', toc-tic)
     logger.info('Time spent in interpolators: %f s', time_interp)
