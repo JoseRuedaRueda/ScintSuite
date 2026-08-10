@@ -41,7 +41,6 @@ import sys
 import logging
 logger = logging.getLogger('ScintSuite.FModC')
 logging.basicConfig(level=logging.INFO)
-logging.getLogger('ScintSuite.SimulationCodes.Common.gyroscalar').setLevel(logging.ERROR)
 import time
 
 # -----------------------------------------------------------------------------
@@ -143,7 +142,6 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
                     f'{c[0]} {c[1]} {c[2]}'
                 modified_lines.append(modified_line)    
 
-
     if version == 'manual':
         names = ['energy', 'pitch', 'Anum', 'Znum', 'weight']
         
@@ -159,9 +157,8 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
                 modified_line = f'{c[0]} {c[1]} {c[2]} {c[3]} {c[4]}'
                 modified_lines.append(modified_line)    
 
-
     if version == 'locust':
-        names = ['R', 'z', 'phi', 'vR', 'vZ', 'vphi', 'pitch', 'energy', 
+        names = ['R', 'z', 'phi', 'vR', 'vz', 'vphi', 'pitch', 'energy', 
                  'rho_Larmor', 'weight', 'gyrophase', 'ID_FILD']
         
         if A==None or Z==None:
@@ -181,6 +178,29 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
                 c[6] = math.acos(float(c[6]))*180.0/math.pi
                 # get energy in eV
                 c[7] = float(c[7])*1e6
+                                
+                modified_line = f'{c[0]} {c[1]} {c[2]} {c[3]} {c[4]} {c[5]} \
+                      {c[6]} {c[7]} {c[8]} {c[9]} {c[10]} {c[11]}'
+                modified_lines.append(modified_line)    
+
+    if version == 'locust_jet':
+        names = ['R', 'phi', 'z', 'vR', 'vphi', 'vZ', 'v_par/v', 'pitch',
+                 'energy', 'rho_Larmor', 'gyroradius', 'weight']
+        if A==None or Z==None:
+            logger.error('No A and/or B as input. STOPING')      
+            sys.exit()   
+        
+        # FILE PREPARATION
+        with open(filename, 'r') as file:
+                lines = file.readlines()
+        modified_lines = []        
+        for line in lines:
+            if line.startswith('#'): #skips headers
+                continue
+            else:
+                c = line.split()
+                # get energy in eV
+                c[8] = float(c[8])*1e6
                                 
                 modified_line = f'{c[0]} {c[1]} {c[2]} {c[3]} {c[4]} {c[5]} \
                       {c[6]} {c[7]} {c[8]} {c[9]} {c[10]} {c[11]}'
@@ -210,10 +230,13 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
     if 'B' not in out:
         out['B'] = np.full(out['n'], B)
     # Compute gyroradius
-    vect_get_gyroradius = np.vectorize(get_gyroradius)
-    out['gyroradius'] = vect_get_gyroradius(out['energy'], 
-                                            out['B'], out['Anum'], out['Znum'], 
-                                            relativistic=True)
+    if "gyroradius" not in out:
+        vect_get_gyroradius = np.vectorize(get_gyroradius)
+        out['gyroradius'] = vect_get_gyroradius(out['energy'], 
+                                                out['B'], 
+                                                out['Anum'], 
+                                                out['Znum'], 
+                                                relativistic=True)
     # Adjust marker weight to strict pinhole area
     out['weight'] = out['weight'] / wetted_area * pinhole_area
     # Calculate the power by each marker in the pinhole
@@ -634,7 +657,7 @@ class FMC:
                         centering: bool = False, smoother: int = 0,
                         rm_saturation = False,
                         radiometry = None, distortion = None,
-                        scint_degree = 0,
+                        emmision_law = {'n':0, 'theta':0},
                     ):
         '''
         Wrap to compute synthetic signals in the camera space.
@@ -654,6 +677,9 @@ class FMC:
         :param  rm_satuation: remove saturated pixels
         :param  radiometry: relative transmission (from ZEMAX, experimental)
         :param  distortion: (from ZEMAX, experimental)
+        :param  emmision_law: n of the angular emission law and 
+                    angle of the scintillator efficency measurement.
+                    Accounts for non-isotropic emission. (experimental)
 
         :return frame_scintillator and frame_camera atributes:
         '''
@@ -668,7 +694,7 @@ class FMC:
         self.apply_optics_camera_noise(rm_saturation = rm_saturation,
                                        radiometry = radiometry,
                                        distortion = distortion,
-                                       scint_degree = scint_degree)
+                                       emmision_law = emmision_law)
         end = time.perf_counter()
         logger.info('TOTAL CAMERA SS COMPUTING TIME: %.4f s', end-start)
            
@@ -678,7 +704,7 @@ class FMC:
                         noi_params: dict | None = None,
                         rm_saturation = False,
                         radiometry = None, distortion = None,
-                        scint_degree = 0,
+                        emmision_law = {'n':0, 'theta':0},
                         ):
         '''
         Apply the optics and camera to the frame_scintillator.
@@ -692,7 +718,8 @@ class FMC:
         :param  rm_satuation: remove saturated pixels
         :param  radiometry: relative transmission (from ZEMAX, experimental)
         :param  distortion: (from ZEMAX, experimental)
-        :param  scint_degree: angle of the scintillator efficency measurement.
+        :param  emmision_law: n of the angular emission law and 
+                    angle of the scintillator efficency measurement.
                     Accounts for non-isotropic emission. (experimental)
 
         :return frame_camera atribute:
@@ -729,7 +756,12 @@ class FMC:
             # Divide by 4\pi, ie, assume isotropic emission of the scintillator
             # self.frame_camera[key] *= 1/(4*np.pi) * self.opt_params['omega']
             # Advanced emission with angular dependece
-            self.frame_camera[key] *= 1/(4*np.pi)/np.cos(np.deg2rad(scint_degree))*np.pi*self.opt_params['NA']**2
+            self.frame_camera[key] *= 1/(4*np.pi)
+            factor = 1 / np.cos(emmision_law['theta'])**emmision_law['n']
+            self.frame_camera[key] *=\
+                  _integrated_emission(e0 = factor, 
+                                       n = emmision_law['n'], 
+                                       NA = self.data['optics']['NA']) 
             # Consider the transmission of the beam line
             self.frame_camera[key] *= self.opt_params['T'] 
             # Photon to electrons in the camera sensor (QE)
@@ -1450,7 +1482,8 @@ def plot_multiframe_scintillator(signals: list = [], cmap = default_cmap(),
 
 
 def plot_multiframe_camera(signals: list = [], rm_saturation = False,
-                        radiometry = None, distortion = None, scint_degree = 0,
+                        radiometry = None, distortion = None, 
+                        emmision_law = {'n':0, 'theta':0},
                         cmap = default_cmap(),
                         plot_smap = True, plot_scint = True, plot_coll = True, 
                         **kwargs):
@@ -1467,7 +1500,7 @@ def plot_multiframe_camera(signals: list = [], rm_saturation = False,
     sigtot.apply_optics_camera_noise(rm_saturation = rm_saturation,
                                        radiometry = radiometry,
                                        distortion = distortion,
-                                       scint_degree = scint_degree)
+                                       emmision_law = emmision_law)
     fig, ax = sigtot.plot_frame_camera(cmap=cmap, plot_smap = False,
                                              plot_scint = plot_scint,
                                              plot_coll = False,
@@ -1631,3 +1664,17 @@ def Deformation(file_path, cam_params, opt_params, plot=False):
 
     return deformation_pix
 
+def _integrated_emission(e0, n, NA):
+    '''
+    Computed the integrated emission of the scintillator, given the normal
+    emission, the n coeficient of the emission law, and the numerical 
+    aperture of the system.
+
+    Alex Reyner Viñolas: areyner@us.es
+
+    :param  e0: normal emission of the scintillator
+    :param  n: n factor of the emission law (if uniform emission: 0)
+    :param  NA: numerical aperture
+    '''
+    int = (2*np.pi*e0) / (n+1) * (1-(1-NA**2)**((n+1)/2))
+    return int

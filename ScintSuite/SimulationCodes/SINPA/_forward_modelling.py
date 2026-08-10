@@ -24,8 +24,8 @@ Functions. What can be done:
 """
 
 import ScintSuite._Mapping as ssmapplting
-from ScintSuite.SimulationCodes.FILDSIM.execution import get_energy
-from ScintSuite.SimulationCodes.FILDSIM.execution import get_gyroradius
+from ScintSuite.SimulationCodes.Common.gyroscalar import get_energy
+from ScintSuite.SimulationCodes.Common.gyroscalar import get_gyroradius
 import ScintSuite.SimulationCodes.FILDSIM.forwardModelling as ssfM
 import ScintSuite.SimulationCodes.Common.geometry as geometry
 import ScintSuite._Plotting as ssplt
