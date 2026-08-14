@@ -273,15 +273,12 @@ class FILDINPA_Smap(GeneralStrikeMap):
         namex = 'remap_' + variables[0]
         namey = 'remap_' + variables[1]
         # Get the physical units
-        unitsx = self.strike_points.header['info'][namex]['units']
-        unitsy = self.strike_points.header['info'][namey]['units']
+        unitsx = self.strike_points.df.attrs['units'][namex]
+        unitsy = self.strike_points.df.attrs['units'][namey]
         # first check if the remapped strike points are there
-        if (namex not in self.strike_points.header['info'].keys()
-                or namey not in self.strike_points.header['info'].keys()):
+        if (namex not in self.strike_points.df.keys()
+                or namey not in self.strike_points.df.keys()):
             raise Exception('Non remap data in the strike points object!')
-        else:
-            iix = self.strike_points.header['info'][namex]['i']
-            iiy = self.strike_points.header['info'][namey]['i']
         # Get the names of the variables to fit
         xModel = parseModelNames(diag_options['x_method'])
         yModel = parseModelNames(diag_options['y_method'])
@@ -315,33 +312,34 @@ class FILDINPA_Smap(GeneralStrikeMap):
         for ix in tqdm(range(nx), disable=tqdm_disable):
             for iy in range(ny):
                 # -- Select the data:
-                data = self.strike_points.data[ix, iy]
+                datax = self.strike_points.get_from_df(namex, XI_index=ix, gyroradius_index=iy)
+                datay = self.strike_points.get_from_df(namey, XI_index=ix, gyroradius_index=iy)
                 # if there is no enough data, skip this point
-                if self.strike_points.header['counters'][ix, iy] < min_statistics:
+                if len(datax) < min_statistics:
                     continue
                 # -- Prepare the basic bin edges
                 # Prepare the bin edges according to the desired width                    
                 if adaptative:
-                    sigmax = np.std(data[:, iix])
+                    sigmax = np.std(datax)
                     dx = sigmax / float(bin_per_sigma)
-                    sigmay = np.std(data[:, iiy])
+                    sigmay = np.std(datay)
                     dy = sigmay / float(bin_per_sigma)
                 else:
                     dx = diag_options['dx']
                     dy = diag_options['dy']
                 xedges = \
-                    np.arange(start=data[:, iix].min() - dx,
-                              stop=data[:, iix].max() + dx,
+                    np.arange(start=datax.min() - dx,
+                              stop=datax.max() + dx,
                               step=dx)
                 yedges = \
-                    np.arange(start=data[:, iiy].min() - dy,
-                              stop=data[:, iiy].max() + dy,
+                    np.arange(start=datay.min() - dy,
+                              stop=datay.max() + dy,
                               step=dy)
                 # -- fit the x variable
                 params, self._resolutions['fits_' + variables[0]][ix, iy], \
                     self._resolutions['norm_' + variables[0]][ix, iy], unc = \
                     _fit_to_model_(
-                        data[:, iix], bins=xedges,
+                        datax, bins=xedges,
                         model=diag_options['x_method'],
                         confidence_level=confidence_level,
                         uncertainties=calculate_uncertainties)
@@ -356,7 +354,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 params, self._resolutions['fits_' + variables[1]][ix, iy], \
                     self._resolutions['norm_' + variables[1]][ix, iy], unc = \
                     _fit_to_model_(
-                        data[:, iiy], bins=yedges,
+                        datay, bins=yedges,
                         model=diag_options['y_method'],
                         confidence_level=confidence_level,
                         uncertainties=calculate_uncertainties)
@@ -652,14 +650,9 @@ class FILDINPA_Smap(GeneralStrikeMap):
         # Get the shape of the map
         nx, ny = self.shape
         # Get the index of the colums containing the scintillation position
-        if not remap_in_pixel_space:
-            ix1 = self.strike_points.header['info']['x1']['i']
-            ix2 = self.strike_points.header['info']['x2']['i']
-        else:
-            ix1 = self.strike_points.header['info']['xcam']['i']
-            ix2 = self.strike_points.header['info']['ycam']['i']
         # Loop over the deseired variables
         var_list = [k for k in self._map_interpolators.keys() if k.endswith('pix')==False]
+        camera = True if 'xcam' in self.strike_points.df.keys() else False
         for k in var_list:
             # See if we need to overwrite
             name = 'remap_' + k
@@ -669,48 +662,26 @@ class FILDINPA_Smap(GeneralStrikeMap):
             else:
                 interpolator = k
             was_there = False
-            if name in self.strike_points.header['info'].keys():
+            if name in self.strike_points.df.keys():
                 was_there = True
                 if overwrite:
                     logger.warning('%s found in the object, overwritting' % k)
-                    ivar = self.strike_points.header['info'][name]['i']
                 else:
                     logger.info('%s found in the object, skipping' % k)
                     continue
             # Loop over the strike points pairs
-            for ix in range(nx):
-                for iy in range(ny):
-                    if self.strike_points.header['counters'][ix, iy] > 0:
-                        n_strikes = \
-                            self.strike_points.header['counters'][ix, iy]
-                        remap_data = np.zeros((n_strikes, 1))
-                        remap_data[:, 0] = \
-                            self._map_interpolators[interpolator](
-                                self.strike_points.data[ix, iy][:, [ix1, ix2]])
-                        # self.strike_points.data[ip, ir][:, iiy])
-                        # append the remapped data to the object
-                        if was_there:
-                            self.strike_points.data[ix, iy][:, ivar] = \
-                                remap_data
-                        else:
-                            self.strike_points.data[ix, iy] = \
-                                np.append(self.strike_points.data[ix, iy],
-                                          remap_data, axis=1)
-            # Update the headers, if needed
-            if not was_there:
-                Old_number_colums = len(self.strike_points.header['info'])
-                # Take the original variable as base for the dictionary
-                extra_column = dict.fromkeys([name, ])
-                extra_column[name] = {
-                    'i': Old_number_colums,
-                    'units': '@Todo',
-                    'lonName': name,
-                    'shortName': name
-                }
-                extra_column[name]['i'] = Old_number_colums
-                # Update the header
-                self.strike_points.header['info'].update(extra_column)
-
+            if k.endswith('pix') and camera:
+                self.strike_points.df[name] = self._map_interpolators[k]((self.strike_points(('xcam','ycam')).value))
+            elif k.endswith('pix') and not camera:
+                logger.warning('Cannot remap %s in pixel space, no camera data' % k)
+            else:
+                self.strike_points.df[name] = self._map_interpolators[k]((self.strike_points(('x1','x2')).value))
+            
+            # Update the headers and info
+            self.strike_points.df.attrs['units'][name] = '@Todo'
+            self.strike_points.df.attrs['longName'][name] = name
+            self.strike_points.df.attrs['shortName'][name] = name
+            
     def remap_external_strike_points(self, strikes, overwrite: bool = True):
         """
         Remap the signal (or any external) StrikePoints
@@ -746,7 +717,7 @@ class FILDINPA_Smap(GeneralStrikeMap):
                     logger.info('%s found in the object, skipping' % k)
                     continue
             # Loop over the strike points pairs
-            if k.endswith('pix') and not camera:
+            if k.endswith('pix') and camera:
                 strikes.df[name] = self._map_interpolators[k]((strikes(('xcam','ycam')).value))
             else:
                 strikes.df[name] = self._map_interpolators[k]((strikes(('x1','x2')).value))

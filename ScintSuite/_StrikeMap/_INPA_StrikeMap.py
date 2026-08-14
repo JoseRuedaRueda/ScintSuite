@@ -173,6 +173,7 @@ class Ismap(FILDINPA_Smap):
                                     B: float = 1.8,
                                     Z: float = 1.0,
                                     A: float = 2.01410,
+                                    fitSplines: bool = False
                                     ) -> None:
         """
         Build the INPA weight function.
@@ -246,13 +247,7 @@ class Ismap(FILDINPA_Smap):
         Tmatrix = self._grid_interp['transformation_matrix'][nameT]
         gridT = self._grid_interp['transformation_matrix'][nameT+'_grid']
         camera_frame = Tmatrix.shape[2:4]
-        # --- Get the index of the different colums
-        jpx = self.secondaryStrikes.header['info']['ycam']['i']
-        jpy = self.secondaryStrikes.header['info']['xcam']['i']
-        jX = self.secondaryStrikes.header['info'][variablesFI[0]]['i']
-        jY = self.secondaryStrikes.header['info'][variablesFI[1]]['i']
-        jkind = self.secondaryStrikes.header['info']['kind']['i']
-        jw = self.secondaryStrikes.header['info'][weight]['i']
+
         # Block 1: Preparation phase -------------------------------------------
         # --- Prepare the grids
         # - Edges
@@ -274,13 +269,13 @@ class Ismap(FILDINPA_Smap):
         nStrikes = self.secondaryStrikes.data[0, 0].shape[0]
         dummy = np.zeros((nStrikes, 5))
 
-        dummy[:, 0] = self.secondaryStrikes.data[0, 0][:, jpx]
-        dummy[:, 1] = self.secondaryStrikes.data[0, 0][:, jpy]
-        dummy[:, 2] = self.secondaryStrikes.data[0, 0][:, jX]
-        dummy[:, 3] = self.secondaryStrikes.data[0, 0][:, jY]
-        dummy[:, 4] = self.secondaryStrikes.data[0, 0][:, jkind]
+        dummy[:, 0] = self.secondaryStrikes('ycam').value
+        dummy[:, 1] = self.secondaryStrikes('xcam').value
+        dummy[:, 2] = self.secondaryStrikes(variablesFI[0]).value
+        dummy[:, 3] = self.secondaryStrikes(variablesFI[1]).value
+        dummy[:, 4] = self.secondaryStrikes('kind').value
         if weight is not None:
-            w = self.secondaryStrikes.data[0, 0][:, jw]
+            w = self.secondaryStrikes(weight).value
         else:
             w = np.ones(nStrikes)
 
@@ -293,6 +288,8 @@ class Ismap(FILDINPA_Smap):
                 bins=edges,
                 weights=w,
         )
+        logger.info('Total weight of the histogram: %f', H.sum())
+        logger.info('Total weight of the original strikes: %f', w.sum())
         # check there is nothing negative
         totalWeightBeforeOptics = H.sum()
         # Add the finite focus of the optics
@@ -311,7 +308,7 @@ class Ismap(FILDINPA_Smap):
             deltaWeight = abs(totalWeightAfterOptics-totalWeightBeforeOptics)\
                 / totalWeightBeforeOptics
             logger.debug('Change of weight due to optics: %f ' % deltaWeight)
-            if deltaWeight > 0.001:
+            if deltaWeight > 0.01:
                 logger.error('Total Wegith before the optic focus: %f',
                              totalWeightBeforeOptics)
                 logger.error('Total Wegith after the optic focus: %f',
@@ -411,40 +408,43 @@ class Ismap(FILDINPA_Smap):
         self.instrument_function.attrs['A'] = A
 
         # ---- Perform fitting
-        logger.info('Fitting to bivariant Normal distributions')
-        # Allocate a copy
-        self.instrument_function_fit = self.instrument_function.copy()
-        self.instrument_function_fit.attrs['Info'] = \
-            'Fitted to a BivariateNormal'
-        # Prepare the model
-        model = ssmodels.BivariateNormalDistribution
-        # Prepare grids
-        XX, YY = np.meshgrid(self.instrument_function.x,
-                             self.instrument_function.y,
-                             indexing='ij')
-        # Perfom the loop
-        for jk in range(self.instrument_function.kind.size):
-            if self.instrument_function.isel(kind=jk).sum() < 1.0e-8:  # So zero
-                continue
-            # Fit a bivariant spline for each scintilaltor position
-            for ixs in range(self.instrument_function.xs.size):
-                for iys in range(self.instrument_function.ys.size):
-                    matrix = self.instrument_function.isel(kind=jk,
-                                                           xs=ixs,
-                                                           ys=iys).values.copy()
-                    sumMatrix = matrix.sum()
-                    if sumMatrix < 1.0e-8:
-                        continue
-                    matrix /= sumMatrix
-                    try:
-                        params = ssmodels.guessParamsBivariateNormalDistribution(
-                            XX.flatten(), YY.flatten(), matrix.flatten())
-                        result = model.fit(data=matrix.flatten(),
-                                        params=params, x=XX.flatten(),
-                                        y=YY.flatten())
-                        self.instrument_function_fit.values[ixs, iys, :, :, jk] = \
-                            result.eval(x=XX.flatten(), y=YY.flatten()).reshape(
-                                XX.shape) * sumMatrix
-                    except:
-                        self.instrument_function_fit.values[ixs, iys, :, :, jk] =0.0
+        if fitSplines:
+            logger.info('Fitting to bivariant Normal distributions')
+            # Allocate a copy
+            self.instrument_function_fit = self.instrument_function.copy()
+            self.instrument_function_fit.attrs['Info'] = \
+                'Fitted to a BivariateNormal'
+            # Prepare the model
+            model = ssmodels.BivariateNormalDistribution
+            # Prepare grids
+            XX, YY = np.meshgrid(self.instrument_function.x,
+                                self.instrument_function.y,
+                                indexing='ij')
+            # Perfom the loop
+            for jk in range(self.instrument_function.kind.size):
+                if self.instrument_function.isel(kind=jk).sum() < 1.0e-8:  # So zero
+                    continue
+                # Fit a bivariant spline for each scintilaltor position
+                for ixs in range(self.instrument_function.xs.size):
+                    for iys in range(self.instrument_function.ys.size):
+                        matrix = self.instrument_function.isel(kind=jk,
+                                                            xs=ixs,
+                                                            ys=iys).values.copy()
+                        sumMatrix = matrix.sum()
+                        if sumMatrix < 1.0e-8:
+                            continue
+                        matrix /= sumMatrix
+                        try:
+                            params = ssmodels.guessParamsBivariateNormalDistribution(
+                                XX.flatten(), YY.flatten(), matrix.flatten())
+                            result = model.fit(data=matrix.flatten(),
+                                            params=params, x=XX.flatten(),
+                                            y=YY.flatten())
+                            self.instrument_function_fit.values[ixs, iys, :, :, jk] = \
+                                result.eval(x=XX.flatten(), y=YY.flatten()).reshape(
+                                    XX.shape) * sumMatrix
+                        except:
+                            self.instrument_function_fit.values[ixs, iys, :, :, jk] =0.0
+        else:
+            self.instrument_function_fit = None
         return

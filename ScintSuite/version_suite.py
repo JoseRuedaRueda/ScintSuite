@@ -6,7 +6,7 @@ import numpy as np
 from ScintSuite._Machine import machine
 from ScintSuite._Paths import Path
 
-version = '2.0.3'
+version = '2.0.4'
 
 codename = 'Huki SX1 Special' # Maybe one of the best SurfSkis ever build
 

@@ -57,7 +57,8 @@ def trace(frames, mask):
     max_of_roi = np.zeros((nt,), dtype='float64')
     
     nmask_valid = frames[mask, 0].size
-    
+    if nmask_valid == 0:
+        raise Exception('The mask is empty, no pixels to calculate the trace')
     for it in range(nt):
         sum_of_roi[it]  = frames[mask, it].astype('float64').sum()
         mean_of_roi[it] = sum_of_roi[it] / nmask_valid

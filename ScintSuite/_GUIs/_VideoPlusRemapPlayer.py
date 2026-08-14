@@ -271,7 +271,7 @@ class ApplicationShowVidRemap:
             # Plot the map
             self.xlim = self.canvas.figure.axes[0].get_xlim()
             self.ylim = self.canvas.figure.axes[0].get_ylim()
-            smap.plot_pix(ax=self.canvas.figure.axes[0])
+            smap.plot_pix(ax=self.canvas.figure.axes[0], labels=False,)
             self.canvas.figure.axes[0].set_xlim(self.xlim[0], self.xlim[1])
             self.canvas.figure.axes[0].set_ylim(self.ylim[0], self.ylim[1])
         self.canvas.draw()

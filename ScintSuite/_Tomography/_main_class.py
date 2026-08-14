@@ -513,7 +513,7 @@ class Tomography():
         self.inversion['cimmino']['time'].attrs['long_name'] = '$t (s)$'
 
 
-    def tikhonov0(self, alpha, weights=None, **kargs) -> None:
+    def tikhonov0(self, alpha, weights=None, nsmooth=0, **kargs) -> None:
         """
         Perform a 0th order Tikonov regularized regression
 
@@ -523,7 +523,10 @@ class Tomography():
             a list or array. In this latter case, the regression will be done
             for each value in the list (array)
         :param  weights: weights, placeholder for the future
+        :param  nsmooth: size of the smoothing window, if > 0 the solution is smoothed with a median filter. This is higly not recomended as it is not going to conserve the total number of EP, this is just a quick 
+        and dirty hack to get something usable during exploratory scans
         :param  **kargs: extra arguments to initialise skitlearn ridge regressor
+        
         """
         # --- Ensure we have an array or iterable:
         if isinstance(alpha, (list, np.ndarray)):
@@ -562,12 +565,20 @@ class Tomography():
         # --- Save it in the dataset
         self.inversion['tikhonov0'] = xr.Dataset()
         if self.Wndims == 4:
+            if nsmooth > 0:
+                from scipy.ndimage import median_filter
+                for i in range(n_alpha):
+                    beta_shaped[..., i] = median_filter(beta_shaped[..., i], size=nsmooth)
             self.inversion['tikhonov0']['F'] = xr.DataArray(
                     beta_shaped, dims=('x', 'y', 'alpha'),
                     coords={'x': self.W['x'], 'y': self.W['y'],
                             'alpha': alp}
             )
         else:
+            if nsmooth > 0:
+                from scipy.ndimage import median_filter
+                for i in range(n_alpha):
+                    beta_shaped[..., i] = median_filter(beta_shaped[..., i], size=nsmooth)
             self.inversion['tikhonov0']['F'] = xr.DataArray(
                     beta_shaped, dims=('x', 'y', 'z', 'alpha'),
                     coords={'x': self.W['x'], 'y': self.W['y'], 'z': self.W['z'],
@@ -1248,9 +1259,10 @@ class Tomography():
                 ax[1, 1].set_title('alpha: %.2e' % Eprof.alpha[ialpha])
             lineE.set_ydata(E2plot)
             lineR.set_ydata(R2plot)
-            pointRes.set_xdata(MSE.sel(method='nearest',
-                               **slider_vars_val).values)
-            pointRes.set_ydata(Total.sel(method='nearest',**slider_vars_val).values)
+
+            pointRes.set_xdata(np.atleast_1d(MSE.sel(method='nearest',
+                               **slider_vars_val).values))
+            pointRes.set_ydata(np.atleast_1d(Total.sel(method='nearest',**slider_vars_val).values))
 
             img.set_data(data.sel(method='nearest',**slider_vars_val ).values.T)
             

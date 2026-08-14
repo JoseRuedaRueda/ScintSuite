@@ -268,7 +268,7 @@ def remapAllLoadedFrames(video,
     logger.info('Remapping frames ...')
     logger.debug('Number of MC markers: %i', MC_number)
     for iframe in tqdm(range(nframes)):
-        if video.BField['B'].values[iframe] < epsB:
+        if video.BField['B'].values[iframe] < epsB and not got_smap:
             continue
         if not got_smap:
             name = ssSINPA.execution.find_strike_map_INPA(

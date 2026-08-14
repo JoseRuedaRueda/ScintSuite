@@ -280,6 +280,8 @@ class MHDmode():
         elif transpFile is not None:
             logger.debug('Using transpFile: %s', transpFile)
             logger.warning('Using ni and Ti from TRANSP!!! ignoring loadTi and calcNi')
+            self.calcNi = False
+            self.loadTi = False
             self._read_from_database(q_prof_options=q_prof_options) # Read first eveything from the database
             self._read_transp(transpFile) # overwrite the profiles with the transp ones
             

@@ -133,6 +133,7 @@ class FILDVideo(FIV):
             # Initialise the logbook
             self.logbookOptions = logbookOptions
             FILDlogbook = ssdat.FILD_logbook(**logbookOptions)  # Logbook
+            self.logbook = FILDlogbook
             AdqFreq = None
             t_trig = None
             # initialise the parent class
@@ -411,10 +412,16 @@ class FILDVideo(FIV):
         # Check if the magnetic field and the angles are ready, only if the map
         # is not given
         if 'map' not in options.keys():
+            if 'decimals' in options.keys():
+                decimals = options['decimals']
+            else:
+                decimals = 1
             if self.BField is None:
                 self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles is None:
-                self._getBangles(use_average=use_avg, allIn = aIn)
+
+                self._getBangles(use_average=use_avg, allIn = aIn,
+                                 decimals=decimals)
             # Check if we need to recalculate them because they do not
             # have the proper length (ie they were calculated for the exp_dat
             # not the average)
@@ -423,7 +430,7 @@ class FILDVideo(FIV):
                 self._getB(self.BFieldOptions, use_average=use_avg)
             if self.Bangles['phi'].size != nt:
                 logger.warning('Need to recalculate the angles. Doing it now')
-                self._getBangles(use_average=use_avg, allIn = aIn)
+                self._getBangles(use_average=use_avg, allIn = aIn, decimals=decimals)
         self.remap_dat = ssmap.remapAllLoadedFrames(self, **options)
 
         # Calculate the integral of the remap

@@ -1,3 +1,6 @@
+# 2.0.4 Fix 
+- calculate_phase_space_resolution() to use dataframe object
+
 # 2.0.3 Scintillator and fibers
 - Keyword added to the plot video to plot the scintillator and fibers
 - Efit reading added to the simulation codes Bfield object
