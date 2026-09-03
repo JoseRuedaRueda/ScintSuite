@@ -1,4 +1,6 @@
-"""Magnetic coils data"""
+"""
+Magnetic coils data
+"""
 
 import os
 import logging
@@ -6,6 +8,9 @@ import numpy as np
 import aug_sfutils as SF
 import ScintSuite.errors as errors
 import ScintSuite.LibData.AUG.DiagParam as params
+from .Misc import to_dict_with_metadata
+import xarray as xr
+xr.set_options(keep_attrs=True)
 
 # import dd                # Module to load shotfiles
 from tqdm import tqdm
@@ -37,8 +42,69 @@ paths = Path(machine='AUG')
 logger = logging.getLogger('ScintSuite.Magnetics')
 
 # ----------------------------------------------------------------------------
-# --- Coils corrections routines.
+# --- Coils corrections routines. (update 02/10/2026)
 # ----------------------------------------------------------------------------
+def get_magnetics(shot, coilNumber: int = 14, coilGroup: str = 'B31', 
+                  correction = False, xArrayOutput: bool = True):
+    """
+    Retrieve from the shot file the magnetic data information.
+
+    Pablo Oyola - pablo.oyola@ipp.mpg.de
+
+    :param  shotnumber: Shot number to get the data.
+    :param  coilNumber: Coil number in the coil array.
+    :param  coilGroup: can be B31, B17, C09,... by default set to B31
+    (ballooning coils)
+    :param  timeWindow: Time window to get the magnetic data. If None, all the
+    time window will be obtained.
+    :return output: magnetic data (time traces and position.)
+    """
+    if shot <= 33739: diag = 'MHA'
+    else: diag = 'MHI'
+    name = '%s-%02d' % (coilGroup, coilNumber)
+
+    try:
+        coils = SF.SFREAD(shot, diag)
+    except:
+        raise errors.DatabaseError(
+            'Shotfile not existent for ' + diag + ' #' + str(shot))
+    try:
+        t = np.array(coils.gettimebase(name), dtype='f4')
+        coil = np.array(coils(name), dtype='f4')
+    except:
+        raise errors.DatabaseError(name+' not available in shotfile.')
+
+    # --- Getting the calibration factors from the CMH shotfile.
+    # In the new sf utils, there is no last shot option, so we put a loop
+    flag = True
+    shot2 = shot
+    logging.disable(logging.CRITICAL)
+    while flag:
+        sfcal = SF.SFREAD('CMH', shot2)
+        if sfcal.status:
+            flag = False
+        else:
+            shot2 += -1
+    cal_name = 'C'+name
+    cal = sfcal.getparset(cal_name)
+    logging.disable(logging.NOTSET)
+
+    attrs = {'long_name': name, 'units': 'T/s', 'shot': shot, 'diag': diag, 
+             'signal': name, 'R': cal['R'].item(), 'z': cal['z'].item(), 
+             'phi': cal['phi'].item(), 'theta': cal['theta'].item(), 
+             'area': cal['EffArea'].item(),}
+    if correction: # --- Pick-up coils phase correction
+        attrs['phase_corr'] = magneticPhaseCorrection(
+            coilNumber, coilGroup, shotnumber=shot)
+
+    obj = xr.DataArray(coil, dims=['t'], 
+                       coords={'t': ('t', t, {'long_name': 'Time', 'units': 's'})}, 
+                       attrs=attrs,
+    )
+
+    if xArrayOutput: return obj
+    else: return to_dict_with_metadata(obj)
+
 def magneticPhaseCorrection(coilnumber: int, coilgrp: str, freq: float = None,
                             shotnumber: int = None):
     """
@@ -150,89 +216,6 @@ def magneticPhaseCorrection(coilnumber: int, coilgrp: str, freq: float = None,
                             assume_sorted=True)
     }
     return output
-
-
-def get_magnetics(shotnumber: int, coilNumber: int, coilGroup: str = 'B31',
-                  timeWindow: Optional[list] = None, sfh: Optional[str] = None):
-    """
-    Retrieve from the shot file the magnetic data information.
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    :param  shotnumber: Shot number to get the data.
-    :param  coilNumber: Coil number in the coil array.
-    :param  coilGroup: can be B31, B17, C09,... by default set to B31
-    (ballooning coils)
-    :param  timeWindow: Time window to get the magnetic data. If None, all the
-    time window will be obtained.
-    :return output: magnetic data (time traces and position.)
-    """
-    if shotnumber <= 33739:
-        diag = 'MHA'
-    else:
-        diag = 'MHI'
-
-    exp = 'AUGD'  # Only the AUGD data retrieve is supported with the dd.
-
-    try:
-        if sfh is None:
-            sf = SF.SFREAD(diag, shotnumber, experiment=exp,  edition=0)
-        else:
-            sf = SF.SFREAD(sfh=sfh)
-    except:
-        raise errors.DatabaseError(
-            'Shotfile not existent for ' + diag + ' #' + str(shotnumber))
-
-    try:
-        # Getting the time base.
-        time = sf('Time')
-    except:
-        raise errors.DatabaseError('Time base not available in shotfile!')
-
-    if timeWindow is None:
-        timeWindow = [time[0], time[-1]]
-
-    timeWindow[0] = np.maximum(time[0], timeWindow[0])
-    timeWindow[1] = np.minimum(time[-1], timeWindow[1])
-
-    name = '%s-%02d' % (coilGroup, coilNumber)
-    try:
-        # Getting the time base.
-        mhi = sf(name)
-    except:
-        raise errors.DatabaseError(name+' not available in shotfile.')
-
-    # --- Getting the calibration factors from the CMH shotfile.
-    # In the new sf utils, there is no last shot option, so we put a loop
-    flag = True
-    shot2 = shotnumber
-    while flag:
-        sfcal = SF.SFREAD('CMH', shot2)
-        if sfcal.status:
-            flag = False
-        else:
-            shot2 += -1
-    cal_name = 'C'+name
-    cal = sfcal.getparset(cal_name)
-    timebase = sf.gettimebase(name)
-    t0 = np.abs(timebase-timeWindow[0]).argmin()
-    t1 = np.abs(timebase-timeWindow[-1]).argmin()
-    output = {
-        'time': timebase[t0:t1],
-        'data': np.array(mhi.data[t0:t1]),
-        'R': cal['R'],
-        'z': cal['z'],
-        'phi': cal['phi'],
-        'theta': cal['theta'],
-        'area': cal['EffArea']
-    }
-
-    # --- Pick-up coils phase correction
-    output['phase_corr'] = magneticPhaseCorrection(coilNumber, coilGroup,
-                                                   shotnumber=shotnumber)
-
-    return output
-
 
 def get_magnetic_poloidal_grp(shotnumber: int, timeWindow: float,
                               coilGrp: int = None):
