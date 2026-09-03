@@ -9,7 +9,10 @@ Due to an issue with the FILD4 computer, the trajectories are stored in
 Javier Hidalgo's computer (javih). If you cannot access the required folders
 (found in the path) contact him.
 
+Update from 31.07.2026 -> mdrs files stored in /FIL/FILD4_coil
+
 Javier Hidalgo-Salaverri: jhsalaverri@us.es
+Alex Reyner Viñolas: areyner@us.es
 """
 
 import os
