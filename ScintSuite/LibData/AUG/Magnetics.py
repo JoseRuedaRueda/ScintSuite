@@ -55,9 +55,6 @@ def get_magnetics(shot, coilNumber: int = 14, coilGroup: str = 'B31',
     :param  coilNumber: Coil number in the coil array.
     :param  coilGroup: can be B31, B17, C09,... by default set to B31
     (ballooning coils)
-    :param  timeWindow: Time window to get the magnetic data. If None, all the
-    time window will be obtained.
-    :return output: magnetic data (time traces and position.)
     """
     if shot <= 33739: diag = 'MHA'
     else: diag = 'MHI'
