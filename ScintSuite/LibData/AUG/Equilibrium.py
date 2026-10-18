@@ -4,6 +4,7 @@ Routines for the magnetic equilibrium
 import warnings
 import numpy as np
 import xarray as xr
+xr.set_options(keep_attrs=True)
 import aug_sfutils as sf
 import ScintSuite.errors as errors
 from scipy.interpolate import interpn, interp1d
@@ -14,8 +15,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 from matplotlib.offsetbox import AnchoredOffsetbox, TextArea, VPacker
 
-xr.set_options(keep_attrs=True)
-from .Misc import to_dict_with_metadata
+from ._common import safe_sfread, safe_equ, _clean_val, to_dict_with_metadata
 
 
 # -----------------------------------------------------------------------------
@@ -51,14 +51,16 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     # If the equilibrium object is not an input, let create it
     # created = False
     if equ is None:
-        equ = sf.EQU(shot, diag=diag, ed=ed, exp=exp)
+        equ = safe_equ(shot, diag=diag, exp=exp, ed=ed)
+    if equ is None or sf is None:
+        return None, None, None, None
+    
     # Now calculate the field
     # br, bz, bt = equ.rz2brzt(Rin, zin, t_in=time)
     br, bz, bt = sf.rz2brzt(equ, r_in=Rin, z_in=zin, t_in=time)
     bp = np.hypot(br, bz)
 
     return br, bz, bt, bp
-
 
 # -----------------------------------------------------------------------------
 # --- Flux coordinate
@@ -67,7 +69,10 @@ def get_mag_axis(shot, time: float = None, diag: str = 'GQH'):
     """
     Get the coordinates of the magnetic axis
     """
-    sfo = sf.SFREAD(diag, shot)
+    sfo = safe_sfread(diag, shot)
+    if sfo is None:
+        return None, None, None
+    
     rmag = sfo('Rmag')
     zmag = sfo('Zmag')
     timebase = sfo.gettimebase('Rmag')
@@ -75,8 +80,8 @@ def get_mag_axis(shot, time: float = None, diag: str = 'GQH'):
         rmag = interp1d(timebase, rmag)(time)
         zmag = interp1d(timebase, zmag)(time)
         timebase = time
-    return rmag, zmag, time
 
+    return rmag, zmag, time
 
 def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
             ed: int = 0, time: float = None, equ=None,
@@ -101,13 +106,15 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     """
     # If the equilibrium object is not an input, let create it
     if equ is None:
-        equ = sf.EQU(shot, diag=diag, exp=exp, ed=ed)
+        equ = safe_equ(shot, diag=diag, exp=exp, ed=ed)
+    if equ is None or sf is None:
+        return None
+
     # Now calculate the field
     rho = sf.rz2rho(equ, Rin, zin, t_in=time, coord_out=coord_out,
                     extrapolate=True)
-
+    
     return rho
-
 
 def get_rho2rz(shot: int, flxlabel: float, diag: str = 'EQH',
                exp: str = 'AUGD', ed: int = 0, time: float = None,
@@ -129,7 +136,9 @@ def get_rho2rz(shot: int, flxlabel: float, diag: str = 'EQH',
     """
     # If the equilibrium object is not an input, let create it
     if equ is None:
-        equ = sf.EQU(shot, diag=diag, exp=exp, ed=ed)
+        equ = safe_equ(shot, diag=diag, exp=exp, ed=ed)
+    if equ is None or sf is None:
+        return None, None, None
 
     R, z = sf.rho2rz(equ, t_in=time, rho_in=flxlabel, coord_in=coord_out,
                      all_lines=False)
@@ -140,7 +149,6 @@ def get_rho2rz(shot: int, flxlabel: float, diag: str = 'EQH',
         tout = time
 
     return R, z, tout
-
 
 def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
                ed: int = 0, time: float = None, equ=None):
@@ -165,7 +173,9 @@ def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
     """
     # If the equilibrium object is not an input, let create it
     if equ is None:
-        equ = sf.EQU(shot, diag=diag, exp=exp, ed=ed)
+        equ = safe_equ(shot, diag=diag, exp=exp, ed=ed)
+    if equ is None:
+        return None
 
     # equ.read_pfm()
     i = np.argmin(np.abs(equ.time - time))
@@ -173,7 +183,6 @@ def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
     psipol = interpn((equ.Rmesh, equ.Zmesh), PFM, (Rin, zin), fill_value=0.0)
 
     return psipol
-
 
 # -----------------------------------------------------------------------------
 # --- Basic shot information (update 03/10/2026)
@@ -197,12 +206,9 @@ def get_shot_basics(shot: int = None, diag: str = 'EQH',
     obtained.
     """
     # Checking the inputs.
-    new_equ_opened = False
-    try:
-        sfo = sf.SFREAD(diag, shot, experiment=exp, edition=edition)
-        new_equ_opened = True
-    except:
-        raise errors.DatabaseError('EQU shotfile cannot be opened.')
+    sfo = safe_sfread(diag, shot, experiment=exp, edition=edition)
+    if sfo is None:
+        return None
 
     # Deactivate the nasty warnings for a while.
     eqh_time = np.asarray(sfo('time'))  # Time data.
@@ -290,7 +296,10 @@ def get_shot_basics(shot: int = None, diag: str = 'EQH',
     return ssq
 
 def get_Ip(shot, plot = False, xArrayOutput: bool = True):
-    MAG = sf.SFREAD(shot, 'MAG')
+    MAG = safe_sfread('MAG', shot)
+    if MAG is None:
+        return None
+    
     name = 'Ipa'
     I = np.array(MAG(name), dtype='f4') / 1.0e6
     t = np.array(MAG.gettimebase(name), dtype='f4')
@@ -302,11 +311,13 @@ def get_Ip(shot, plot = False, xArrayOutput: bool = True):
     if plot:
         fig, ax = plt.subplots()
         obj.plot(ax=ax)
-    if xArrayOutput: return obj
-    else: return to_dict_with_metadata(obj)
+
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
 
 def get_Bt(shot, plot = False, xArrayOutput: bool = True):
-    MAI = sf.SFREAD(shot, 'MAI')
+    MAI = safe_sfread('MAI', shot)
+    if MAI is None:
+        return None
     name = 'BTF'
     B = np.array(MAI(name), dtype='f4') * -1.0
     t = np.array(MAI.gettimebase(name), dtype='f4')
@@ -318,8 +329,9 @@ def get_Bt(shot, plot = False, xArrayOutput: bool = True):
     if plot:
         fig, ax = plt.subplots()
         obj.plot(ax=ax)
-    if xArrayOutput: return obj
-    else: return to_dict_with_metadata(obj)
+        
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
+
 
 # -----------------------------------------------------------------------------
 # --- q_profile (update 03/10/2026)
@@ -339,28 +351,37 @@ def get_q_profile(shot, diag: str = 'EQH', plot = False,
     """
 
     diags_to_try = ['FPG', 'EQH'] if diag == 'FPG' else ['EQH', 'FPG']
-    errors = {}
+    obj = None
+    used_diag = None
+
     for d in diags_to_try:
         try:
             if d == 'EQH': obj = get_qprof_EQH(shot)
             elif d == 'FPG': obj = get_qprof_FPG(shot)
-            break
-        except Exception as e:
-            errors[d] = e
+            if obj is not None:
+                used_diag = d
+                break
+        except Exception:
+            continue
+
+    if obj is None:
+        return None
 
     if plot:
         fig, ax = plt.subplots()
-        if d == 'FPG':
+        if used_diag == 'FPG':
             obj.to_array().plot.line(x='t', hue='variable')
-        elif d == 'EQH':
+        elif used_diag == 'EQH':
             obj.plot.imshow(robust=True)
     
-    if xArrayOutput: return obj
-    else: return to_dict_with_metadata(obj)
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
 
 def get_qprof_EQH(shot):
 
-    EQH = sf.SFREAD('EQH', shot)
+    EQH = safe_sfread('EQH', shot)
+    if EQH is None:
+        return None
+    
     qpsi = np.array(EQH('Qpsi'), dtype='f4') *-1
     pfl = np.array(EQH('PFL'), dtype='f4')
     t = np.array(EQH('time'), dtype='f4')
@@ -395,7 +416,11 @@ def get_qprof_EQH(shot):
     return obj
 
 def get_qprof_FPG(shot):
-    FPG = sf.SFREAD('FPG', shot)
+
+    FPG = safe_sfread('FPG', shot)
+    if FPG is None:
+        return None
+    
     t = np.array(FPG.gettimebase('q95'), dtype='f4')
     rhos = np.array([0, 25, 50, 75, 95])
     obj = xr.Dataset(coords={'t': ('t', t, {'long_name': 'Time', 'units': 's'})},
@@ -411,3 +436,6 @@ def get_qprof_FPG(shot):
                 )
     return obj
 
+# Alias for the function
+get_q_profile_EQH = get_qprof_EQH
+get_q_profile_FPG = get_qprof_FPG

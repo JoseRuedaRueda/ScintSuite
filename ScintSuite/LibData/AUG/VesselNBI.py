@@ -22,11 +22,6 @@ except ModuleNotFoundError:
 else:
     import ScintSuite.LibData.AUG._nbi_geom as nbigeom
     REAL_NBI_GEOM = True
-    
-try:
-    import aug_sfutils as sfutils
-except ModuleNotFoundError:
-    logging.warning('You somehow got here without AUG utils')
 
 pa = Path()
 
@@ -34,34 +29,33 @@ pa = Path()
 # -----------------------------------------------------------------------------
 # --- Vessel
 # -----------------------------------------------------------------------------
-def poloidal_vessel(shot: int = 30585, simplified: bool = False):
+def get_poloidal_vessel(shot: int = 30585, simplified: bool = False):
     """
-    Get coordinate of the poloidal projection of the vessel
+    Return the coordinates of the AUG vessel
 
     Jose Rueda: jrrueda@us.es
+    Alex Reyner: areyner@us.es
 
     :param  shot: shot number to be used
     :param  simplified: if true, a 'basic' shape of the poloidal vessel will be
     loaded, ideal for generate a 3D revolution surface from it
     """
+    
     if simplified is not True:
-        r = []
-        z = []
-        # Get vessel coordinates
-        gc_d =  sfutils.getgc(shot)
-        for gc in gc_d.values():
-            # print(key)
-            r += list(gc.r)
-            r.append(np.nan)
-            z += list(gc.z)
-            z.append(np.nan)
-        return np.array((r, z)).transpose()
+        if shot < 41638:
+            doc = 'AUG_pol.txt'
+        else:
+            doc = 'AUG_2div_pol.txt'
     else:
-        file = os.path.join(pa.ScintSuite, 'Data', 'Vessel', 'AUG_pol.txt')
-        return np.loadtxt(file, skiprows=4)
+        if shot < 41638:
+            doc = 'AUG_pol_simple.txt'
+        else:
+            doc = 'AUG_2div_pol_simple.txt'
 
+    file = os.path.join(pa.ScintSuite, 'ScintSuite', 'LibData', 'AUG', 'Vessel', doc)
+    return np.loadtxt(file, skiprows=4)
 
-def toroidal_vessel(rot: float = -np.pi/8.0*3.0):
+def get_toroidal_vessel(rot: float = -np.pi/8.0*3.0):
     """
     Return the coordinates of the AUG vessel
 
@@ -76,7 +70,7 @@ def toroidal_vessel(rot: float = -np.pi/8.0*3.0):
     # The files are a series of 'blocks' representing each piece of the vessel,
     # each block is separated by an empty line. I will scan the file line by
     # line looking for the position of those empty lines:
-    file = os.path.join(pa.ScintSuite, 'Data', 'Vessel', 'AUG_tor.txt')
+    file = os.path.join(pa.ScintSuite, 'ScintSuite', 'LibData', 'AUG', 'Vessel', 'AUG_tor.txt')
     cc = 0
     nmax = 2000
     xy_vessel = np.zeros((nmax, 2))
@@ -102,6 +96,9 @@ def toroidal_vessel(rot: float = -np.pi/8.0*3.0):
             cc += 1
     return xy_vessel[:cc-1, :]
 
+# Alias
+poloidal_vessel = get_poloidal_vessel
+toroidal_vessel = get_toroidal_vessel
 
 # -----------------------------------------------------------------------------
 # --- NBI coordinates
@@ -159,122 +156,95 @@ def NBI_diaggeom_coordinates(nnbi):
               'length': length[nnbi-1]}
     return coords
 
-
-def getNBIwindow(timeWindow: float, shotnumber: int,
-                 nbion: int, nbioff: int = None,
-                 simul: bool = True, pthreshold: float = 2.0):
+from .Misc import get_NBI
+def get_NBIwindow(shot, timeWindow: float = None,
+                  nbion: int = None, nbioff: int = None, 
+                  simul: bool = True, pthreshold: float = 0.5):
     """
     Get the time window within the limits provide within the timeWindow that
     corresponds to the list nbiON that are turned on and the list nbioff.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Alex Reyner: areyner@us.es
 
-    :param  timeWindow: window of time to retrieve the NBI data (len=2).
-    :param  shotnumber: Shot number from where to take the NBI timetraces.
+    :param  shot: Shot number from where to take the NBI timetraces.
     :param  nbion: list with the NBI number that should be ON.
     :param  nbioff: list with the NBIs that should be OFF.
+    :param  timeWindow: window of time to retrieve the NBI data (len=2).
     :param  simul: simultaneous flag. If True all the NBIs of nbion should be
     ON simultaenously.
     :param  pthreshold: power threshold to consider the beam is ON [MW].
-    Default to 2.0 MW (to choose the 2.5MW standard beam.)
+    Default to 0.5 MW (to choose the 2.5MW standard beam.)
     """
-    # --- Checking the time inputs.
-    if len(timeWindow) == 1:
-        timeWindow = np.array((timeWindow, np.inf))
+    
+    nbi = get_NBI(shot)
 
-    elif np.mod(len(timeWindow), 2) != 0:
-        timeWindow[len(timeWindow)] = np.inf
+    # --- Checking the time inputs ---
+    if timeWindow is None:
+        t_start, t_end = None, None
+    else:
+        if isinstance(timeWindow, (int, float)):
+            timeWindow = [timeWindow]
+        timeWindow = np.asarray(timeWindow)
+        if len(timeWindow) == 1:
+            t_start, t_end = timeWindow[0], np.inf
+        else:
+            t_start, t_end = timeWindow[0], timeWindow[1]
+            
+    nbi_beams = nbi.power.sel(t=slice(t_start, t_end))
 
     # Transforming the nbi inputs into ndarrays.
-    if isinstance(nbion, np.ndarray):
-        pass
-    elif isinstance(nbion, (list, tuple)):
-        nbion = np.array(nbion)
-    else:
-        nbion = np.array([nbion])  # it should be just a number
-    if isinstance(nbioff, np.ndarray):
-        pass
-    elif isinstance(nbioff, (list, tuple)):
-        nbioff = np.array(nbioff)
-    else:
-        nbioff = np.array([nbioff])  # it should be just a number
-
-    # --- Opening the NBIs shotfile.
-    try:
-        sf = sfutils.SFREAD('NIS', shotnumber,
-                            experiment='AUGD', edition=0)
-    except:
-        raise errors.DatabaseError(
-            'Could not open NIS shotfile for #$05d' % shotnumber)
-
-    # --- Transforming the indices of the NBIs into the AUG system (BOX, Beam)
-    nbion_box = np.asarray(np.floor((nbion-1)/4), dtype=int)
-    nbion_idx = np.asarray(nbion - (nbion_box)*4 - 1, dtype=int)
-    if nbioff is not None:
-        nbioff_box = np.asarray(np.floor(nbioff/4), dtype=int)
-        nbioff_idx = np.asarray(nbioff - (nbioff_box+1)*4 - 1, dtype=int)
-
-    # --- Reading the NBI data.
-    pniq = sf('PNIQ')*1.0e-6
-    timebase = sf.gettimebase('PNIQ')
-    print(pniq.shape)
-    t0_0 = np.abs(timebase-timeWindow[0]).argmin()
-    t1_0 = np.abs(timebase-timeWindow[-1]).argmin()
-    # Selecting the NBIs.
-    pniq_on = pniq[t0_0:t1_0, nbion_idx, nbion_box] > pthreshold
-    print(pniq_on.shape)
-    if nbioff is not None:
-        pniq_off = pniq[t0_0:t1_0, nbioff_idx, nbioff_box] > pthreshold
-    timebase = timebase[t0_0:t1_0]
-
-    # --- Reshaping the PNIQ into a 2D matrix for easier handling.
-
-    if len(nbion) == 1:
-        pniq_on = np.reshape(pniq_on, (len(pniq_on), 1))
-    else:
-        pniq_on = pniq_on.reshape((pniq_on.shape[0],
-                                   pniq_on.shape[1]*pniq_on.shape[2]))
-
-    if nbioff is not None:
-        if len(nbioff) == 1:
-            pniq_off = np.reshape(pniq_off, (len(pniq_off), 1))
+    if nbion is not None:
+        if isinstance(nbion, np.ndarray):
+            pass
+        elif isinstance(nbion, (list, tuple)):
+            nbion = np.array(nbion)
         else:
-            pniq_off = pniq_off.reshape((pniq_off.shape[0],
-                                         pniq_off.shape[1]*pniq_off.shape[2]))
+            nbion = np.array([nbion])  # it should be just a number
 
-    if simul:  # if all the NBIs must be simultaneously ON.
-        auxON = np.all(pniq_on, axis=1)
-    else:  # if only one of the beams must be turned on.
-        auxON = np.any(pniq_on, axis=1)
-
-    # We take out the times at which the NBI_OFF are ON.
     if nbioff is not None:
-        auxOFF = np.logical_not(np.any(pniq_off, axis=1))
+        if isinstance(nbioff, np.ndarray):
+            pass
+        elif isinstance(nbioff, (list, tuple)):
+            nbioff = np.array(nbioff)
+        else:
+            nbioff = np.array([nbioff])  # it should be just a number
 
-        # Making the AND operation for all the times.
-        aux = np.logical_and(auxON, auxOFF)
+    # Select nbi on
+    if nbion is not None:
+        if isinstance(nbion, (list, tuple)):
+            nbion = np.array(nbion)
+        elif not isinstance(nbion, np.ndarray):
+            nbion = np.array([nbion])
+        
+        on = nbi_beams.sel(beam=nbion) > pthreshold
+        all_on = on.all(dim='beam') if simul else on.any(dim='beam')
     else:
-        aux = auxON
+        all_on = True
 
-    # --- Loop over the time windows.
-    nwindows = int(np.floor(len(timeWindow)/2))
-    flags = np.zeros((pniq_on.shape[0],), dtype=bool)
-    for ii in range(nwindows):
-        t0 = np.abs(timebase-timeWindow[2*ii]).argmin()
-        t1 = np.abs(timebase-timeWindow[2*ii + 1]).argmin()
+    # Select nbi off
+    if nbioff is not None:
+        if isinstance(nbioff, (list, tuple)):
+            nbioff = np.array(nbioff)
+        elif not isinstance(nbioff, np.ndarray):
+            nbioff = np.array([nbioff])
+        
+        off = nbi_beams.sel(beam=nbioff) < pthreshold
+        all_off = off.all(dim='beam')
+    else:
+        all_off = True
 
-        flags[t0:t1] = True
+    # Get the time windoes start and end
+    mask = np.logical_and(all_on, all_off)
+    if not np.any(mask):
+        return np.empty((0, 2))
+    padded_mask = np.concatenate(([False], mask, [False]))
+    changes = np.diff(padded_mask.astype(int))
+    start_idx = np.where(changes == 1)[0]
+    end_idx = np.where(changes == -1)[0] - 1
+    windows = np.column_stack((nbi.t[start_idx], nbi.t[end_idx]))
 
-    # --- Filtering the outputs.
-    aux = np.logical_and(flags, aux)
-    data = pniq[t0_0:t1_0, nbion_idx, nbion_box]
-    output = {
-        'timewindow': timeWindow,
-        'flags': aux,
-        'time': timebase[aux],
-        'data': data[aux, ...]
-             }
-    return output
+    return windows
 
 
 class NBI:

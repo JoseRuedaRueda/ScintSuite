@@ -44,14 +44,14 @@ def get_FILD1_pmt(shot, xArrayOutput = True):
 
 def get_FILD4_apd(shot, fps, APD_dir='/shares/departments/AUG/users/juaord/',
                   plot = False, xArrayOutput = True):
-    '''
+    """
     Docstring for get_FILD4_APD
     
     :param  shot: shot number
     :param  fs: fps of the camera (to be standarized)
     :param  APD_dir: path to where the files are stored
     :param  plot: immediately plot the timetraces
-    '''
+    """
     data_dir = os.path.join(APD_dir, str(shot))
     apd = xr.DataArray(dims={'t','channel',},
                         coords={'t':np.arange(fps*10)/fps,
@@ -76,9 +76,9 @@ def get_FILD4_apd(shot, fps, APD_dir='/shares/departments/AUG/users/juaord/',
     else: return to_dict_with_metadata(apd)
 
 def plot_FILD1_pmt(pmt, roll=100, **kwargs):
-    '''
+    """
     Plots all channels for fild1 pmt
-    '''
+    """
     xr.set_options(keep_attrs=True)
     data = pmt.coarsen(t=100, boundary='trim').mean().sel(t=slice(0,10))
 
@@ -106,9 +106,9 @@ def plot_FILD1_pmt(pmt, roll=100, **kwargs):
     plt.tight_layout()
 
 def plot_FILD4_apd(apd, roll=100, **kwargs):
-    '''
+    """
     Plots all channels for an APD shotfile
-    '''
+    """
     apd = apd - apd.sel(t=slice(8,9)).mean('t')
     # APDnoise = apd.sel(t=slice(1,2)).std('t')
     # apd = apd/APDnoise

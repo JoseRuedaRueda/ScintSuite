@@ -1,13 +1,15 @@
 """Routines to interact with the AUG database."""
 import numpy as np
 import xarray as xr
-import aug_sfutils as sfutils
-import ScintSuite.errors as errors
+xr.set_options(keep_attrs=True)
+import aug_sfutils as sf
 from typing import Optional
 from ScintSuite._Paths import Path
 from scipy.interpolate import interp1d, interp2d, UnivariateSpline
+import matplotlib.pyplot as plt
 
 from ScintSuite.LibData.AUG.Equilibrium import get_rho, get_shot_basics
+from ._common import safe_sfread, safe_equ, _clean_val, to_dict_with_metadata
 import logging
 logger = logging.getLogger('ScintSuite.Data')
 pa = Path()
@@ -16,471 +18,189 @@ pa = Path()
 # -----------------------------------------------------------------------------
 # --- Electron density and temperature profiles.
 # -----------------------------------------------------------------------------
-def get_ne(shotnumber: int, time: float = None, exp: str = 'AUGD',
-           diag: str = 'IDA', edition: int = 0, sf=None,
-           xArrayOutput: bool = False, **kwargs):
+
+def get_ne_core(shot, diag = 'VTA', xArrayOutput: bool = True):
     """
-    Wrap the different diagnostics to read the electron density profile.
+    Wrap to get AUG core electron density, or the line integrated DC
 
-    It supports IDA and PED profiles.
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de and J. Rueda: jrrueda@us.es
-
-    :param  shot: Shot number
-    :param  time: Time point to read the profile.
-    :param  exp: Experiment name.
-    :param  diag: diagnostic from which 'ne' will extracted.
-    :param  edition: edition of the shotfile to be read.
-    :param  xArrayOutput: flag to return the output as dictionary of xarray
-
-    :return output: a dictionary containing the electron density evaluated
-        in the input times and the corresponding rhopol base.
-
-
-    Use example:
-        >>> import Lib as ss
-        >>> ne = ss.dat.get_ne(41091, 3.55, xArrayOutput=True)
+    Alex Reyner: areyner@us.es
     """
-    if diag not in ('IDA', 'PED'):
-        raise Exception('Diagnostic non supported!')
-
-    if diag == 'PED':
-        return get_ne_ped(shotnumber=shotnumber, time=time, exp=exp,
-                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
-    elif diag == 'IDA':
-        return get_ne_ida(shotnumber=shotnumber, time=time, exp=exp,
-                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
-
-
-def get_ne_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None, xArrayOutput: bool = False):
-    """
-    Reads from the PED shotfile the electron density profile.
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    :param  shotnumber: shot number to get the data.
-    :param  time: time window to retrieve the toroidal rotation data.
-    :param  exp: experiment name where the shotfile is stored.
-    :param  edition: edition of the shotfile.
-    :param  sf: shotfile opened for the PED.
-    """
-
-    # --- Opening the shotfile.
-    if sf is None:
-        sf = sfutils.SFREAD(shotnumber, 'PED', edition=edition, exp=exp)
-
-        if not sf.status:
-            raise Exception('Cannot open PED shotfile for #%05d' % shotnumber)
-
-    # --- Trying to read the toroidal rotation.
     try:
-        ne = np.array(sf('neFit'))
-        ne_unc = np.array(sf('dneFit'))
-        rhop = np.array(sf('rhoFit'))
-        timebase = np.array(sf('time'))
-    except:
-        raise Exception('Cannot read ne in #05d' % shotnumber)
+        if diag == 'VTA':
+            vta = get_VTA(shot)
+            out =  vta[['ne', 'ne_unc']].mean('channel')
+        elif diag == 'IDA':
+            ida = get_IDA(shot)
+            out =  ida[['ne', 'ne_unc']].sel(rho=0, method='nearest')
+        elif diag in ['DCK', 'DCN']:
+            out = get_ne_DC(shot, diag)
+    except Exception: return
+    return out if xArrayOutput else to_dict_with_metadata(out)
 
-    if time is not None:
-        time = np.atleast_1d(time)
-        if (timebase > time.max()) or (timebase < time.min()):
-            raise Exception('Time window cannot be located in PED shotfile!')
-
-    if not xArrayOutput:
-        output = {
-            'rhop': rhop,
-            'data': ne,
-            'uncertainty': ne_unc,
-            'time': timebase,
-                 }
-    else:
-        output = xr.Dataset()
-        output['data'] = xr.DataArray(
-            ne.T, dims=('rho', 't'),
-            coords={'rho': rhop, 't': timebase})
-        output['data'].attrs['long_name'] = '$n_e$'
-        output['data'].attrs['units'] = '$10^{19} m^3$'
-        output['uncertainty'] = xr.DataArray(ne_unc.T, dims=('rho', 't'))
-        output['uncertainty'].attrs['long_name'] = '$\\Delta n_e$'
-        output['uncertainty'].attrs['units'] = '$10^{19} m^3$'
-
-        output['rho'].attrs['long_name'] = '$\\rho_p$'
-        output['t'].attrs['long_name'] = 'Time'
-        output['t'].attrs['units'] = 's'
-        output.attrs['diag'] = 'PED'
-        output.attrs['shot'] = shotnumber
-    return output
-
-
-def get_ne_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None, xArrayOutput: bool = False):
+def get_ne(shot, xArrayOutput: bool = True):
     """
-    Wrap to get AUG electron density using the IDA profiles.
+    Wrap to get AUG electron density profile
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    :param  shot: Shot number
-    :param  time: Time point to read the profile.
-    :param  exp: Experiment name.
-    :param  edition: edition of the shotfile to be read.
-    :param  sf: shotfile opened with the IDA to be accessed.
-
-    :return output: a dictionary containing the electron density evaluated
-    in the input times and the corresponding rhopol base.
+    Alex Reyner: areyner@us.es
     """
-    # --- Opening the shotfile.
-    if sf is None:
-        sf = sfutils.SFREAD(shotnumber, 'IDA', edition=edition, exp=exp)
-
-        if not sf.status:
-            raise Exception('Cannot open IDA shotfile for #%05d' % shotnumber)
-
-    # --- Reading from the database
     try:
-        ne = np.array(sf('ne')).T
-        ne_unc = np.array(sf('ne_unc')).T
-        rhop = np.array(sf.getareabase('ne'))
-        timebase = np.array(sf('time'))
-    except:
-        raise Exception('Cannot read the density from the IDA #%05d'%shotnumber)
+        ida = get_IDA(shot)
+        out =  ida[['ne', 'ne_unc']]
+    except Exception: return
+    return out if xArrayOutput else to_dict_with_metadata(out)
 
-    # We will return the data in the same spatial basis as provided by IDA.
-    if time is None:
-        time = timebase
-        tmp_ne = ne
-        tmp_unc = ne_unc
-    else:
-        tmp_ne = interp1d(timebase, ne, kind='linear', axis=0,
-                          bounds_error=False, fill_value=np.nan,
-                          assume_sorted=True)(time).T
-        tmp_unc = interp1d(timebase, ne_unc,
-                           kind='linear', axis=0,
-                           bounds_error=False,
-                           fill_value=np.nan,
-                           assume_sorted=True)(time).T
-
-    if not xArrayOutput:
-        output = {
-            'rhop': rhop[:, 0],
-            'time': time,
-            'uncertainty': tmp_unc,
-            'data': tmp_ne
-        }
-    else:
-        tmp_ne = np.atleast_2d(tmp_ne)
-        tmp_unc = np.atleast_2d(tmp_unc)
-        time = np.atleast_1d(time)
-
-        output = xr.Dataset()
-        output['data'] = xr.DataArray(
-            tmp_ne.T/1.0e19, dims=('rho', 't'),
-            coords={'rho': rhop[:, 0], 't': time})
-        output['data'].attrs['long_name'] = '$n_e$'
-        output['data'].attrs['units'] = '$10^{19} m^3$'
-        output['uncertainty'] = xr.DataArray(tmp_unc.T/1.0e19, dims=('rho',
-                                                                     't'))
-        output['uncertainty'].attrs['long_name'] = '$\\Delta n_e$'
-        output['uncertainty'].attrs['units'] = '$10^{19} m^3$'
-
-        output['rho'].attrs['long_name'] = '$\\rho_p$'
-        output['t'].attrs['long_name'] = 'Time'
-        output['t'].attrs['units'] = 's'
-        output.attrs['diag'] = 'IDA'
-        output.attrs['shot'] = shotnumber
-    return output
-
-
-def get_Te(shotnumber: int, time: float = None, exp: str = 'AUGD',
-           diag: str = 'IDA', edition: int = 0, sf=None,
-           xArrayOutput: bool = False):
-
+def get_Te_core(shot, diag = 'VTA', xArrayOutput: bool = True):
     """
-    Wrapper to the different diagnostics to read the electron density profile.
-    It supports IDA and PED profiles.
+    Wrap to get AUG core electron temperature.
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    :param  shot: Shot number
-    :param  time: Time point to read the profile.
-    :param  exp: Experiment name.
-    :param  diag: diagnostic from which 'ne' will extracted.
-    :param  edition: edition of the shotfile to be read.
-
-    :return output: a dictionary containing the electron density evaluated
-    in the input times and the corresponding rhopol base.
+    Alex Reyner: areyner@us.es
     """
-
-    if diag not in ('IDA', 'PED'):
-        raise Exception('Diagnostic non supported!')
-
-    if diag == 'PED':
-        return get_Te_ped(shotnumber=shotnumber, time=time, exp=exp,
-                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
-    elif diag == 'IDA':
-        return get_Te_ida(shotnumber=shotnumber, time=time, exp=exp,
-                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
-
-
-def get_Te_ped(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None, xArrayOutput: bool = False):
-    """
-    Reads from the PED shotfile the electron density profile.
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    :param  shotnumber: shot number to get the data.
-    :param  time: time window to retrieve the toroidal rotation data.
-    :param  exp: experiment name where the shotfile is stored.
-    :param  edition: edition of the shotfile.
-    :param  sf: shotfile opened for the PED.
-    """
-
-    # --- Opening the shotfile.
-    if sf is None:
-        sf = sfutils.SFREAD(shotnumber, 'PED', edition=edition, exp=exp)
-
-        if not sf.status:
-            raise Exception('Cannot open PED shotfile for #%05d' % shotnumber)
-    # --- Trying to read the timebasis.
     try:
-        timebasis = sf(name='time')
-    except:
-        raise Exception('Cannot read the timebasis for vT in #%05d'%shotnumber)
+        if diag == 'VTA':
+            vta = get_VTA(shot)
+            out =  vta[['Te', 'Te_unc']].mean('channel')
+        elif diag == 'IDA':
+            ida = get_IDA(shot)
+            out =  ida[['Te', 'Te_unc']].sel(rho=0, method='nearest')
+    except Exception: return
+    return out if xArrayOutput else to_dict_with_metadata(out)
 
-    # --- Trying to read the toroidal rotation.
-    try:
-        te = np.array(sf('TeFit'))
-        te_unc = np.array(sf('dTeFit'))
-        rhop = np.array(sf('rhoFit'))
-    except:
-        sf.close()
-        raise Exception('Cannot read Te in #%05d' % shotnumber)
-    if not xArrayOutput:
-        output = {
-            'rhop': rhop,
-            'data': te,
-            'uncertainty': te_unc,
-            'time': timebasis
-                 }
-    else:
-        output = xr.Dataset()
-        output['data'] = xr.DataArray(
-            te.T, dims=('rho', 't'),
-            coords={'rho': rhop[:, 0], 't': timebasis})
-        output['data'].attrs['long_name'] = '$T_e$'
-        output['data'].attrs['units'] = 'eV'
-        output['uncertainty'] = xr.DataArray(te_unc.T, dims=('rho', 't'))
-        output['uncertainty'].attrs['long_name'] = '$\\Delta T_e$'
-        output['uncertainty'].attrs['units'] = '$eV$'
-
-        output['rho'].attrs['long_name'] = '$\\rho_p$'
-        output['t'].attrs['long_name'] = 'Time'
-        output['t'].attrs['units'] = 's'
-        output.attrs['diag'] = 'PED'
-        output.attrs['shot'] = shotnumber
-
-    return output
-
-
-def get_Te_ida(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None, xArrayOutput: bool = False):
+def get_Te(shot, xArrayOutput: bool = True):
     """
-    Wrap to get AUG electron temperature from the IDA shotfile.
+    Wrap to get AUG electron temperature profile
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    :param  shot: Shot number
-    :param  time: Time point to read the profile.
-    :param  exp: Experiment name.
-    :param  diag: diagnostic from which 'Te' will extracted.
-    :param  edition: edition of the shotfile to be read.
-
-    :return output: a dictionary containing the electron temp. evaluated
-    in the input times and the corresponding rhopol base.
+    Alex Reyner: areyner@us.es
     """
-
-    # --- Opening the shotfile.
-    if sf is None:
-        sf = sfutils.SFREAD(shotnumber, 'IDA', edition=edition, exp=exp)
-
-        if not sf.status:
-            raise Exception('Cannot open IDA shotfile for #%05d' % shotnumber)
-
-    # Reading from the database
     try:
-        te = np.array(sf('Te')).T
-        te_unc = np.array(sf('Te_unc')).T
-        gradTe = np.array(sf('dTe_dr')).T
-        rhop = np.array(sf.getareabase('Te'))
-        timebase = np.array(sf('time'))
-
-    except:
-        raise Exception('Cannot read the temperature from the IDA #%05d'%shotnumber)
-
-
-    # We will return the data in the same spatial basis as provided by IDA.
-    if time is None:
-        time = timebase
-        tmp_te = te
-        tmp_unc = te_unc
-        tmp_dTe = gradTe
-    else:
-        tmp_te = interp1d(timebase, te, kind='linear', axis=0,
-                          bounds_error=False, fill_value=np.nan,
-                          assume_sorted=True)(time).T
-        tmp_unc = interp1d(timebase, te_unc,
-                           kind='linear', axis=0,
-                           bounds_error=False, fill_value=np.nan,
-                           assume_sorted=True)(time).T
-        tmp_dTe = interp1d(timebase, gradTe,
-                           kind='linear', axis=0,
-                           bounds_error=False, fill_value=np.nan,
-                           assume_sorted=True)(time).T
-    if not xArrayOutput:
-        output = {
-            'rhop': rhop[:, 0],
-            'time': time,
-            'data': tmp_te,
-            'uncertainty': tmp_unc,
-            'gradient': tmp_dTe}
-    else:
-        output = xr.Dataset()
-        tmp_te = np.atleast_2d(tmp_te)
-        time = np.atleast_1d(time)
-        output['data'] = xr.DataArray(
-            tmp_te.T, dims=('rho', 't'),
-            coords={'rho': rhop[:, 0], 't': time})
-        output['data'].attrs['long_name'] = '$T_e$'
-        output['data'].attrs['units'] = 'eV'
-        tmp_unc = np.atleast_2d(tmp_unc)
-        output['uncertainty'] = xr.DataArray(tmp_unc.T, dims=('rho', 't'))
-        output['uncertainty'].attrs['long_name'] = '$\\Delta T_e$'
-        output['uncertainty'].attrs['units'] = '$eV$'
-        tmp_dTe = np.atleast_2d(tmp_dTe)
-        output['gradient'] = xr.DataArray(tmp_dTe.T, dims=('rho', 't'))
-        # output['gradient'].attrs['long_name'] = '$\\Nabla T_e$'
-        # output['gradient'].attrs['units'] = '$eV$'
-
-        output['rho'].attrs['long_name'] = '$\\rho_p$'
-        output['t'].attrs['long_name'] = 'Time'
-        output['t'].attrs['units'] = 's'
-        output.attrs['diag'] = 'IDA'
-        output.attrs['shot'] = shotnumber
-
-    return output
+        ida = get_IDA(shot)
+        out =  ida[['Te', 'Te_unc']]
+    except Exception: return
+    return out if xArrayOutput else to_dict_with_metadata(out)
 
 
 # -----------------------------------------------------------------------------
 # --- Ion temperature
 # -----------------------------------------------------------------------------
-def get_Ti(shot: int, time: float = None, diag: str = 'IDI', exp: str = 'AUGD',
-           edition: int = 0, sf=None, xArrayOutput: bool = False):
+def get_Ti(shot, xArrayOutput: bool = True):
+    """
+    Wrap to get AUG ion temperature profile from IDI
+
+    Alex Reyner: areyner@us.es
+    """
+    try:
+        idi = get_IDI(shot)
+        out =  idi[['Ti', 'Ti_unc']]
+    except Exception: return
+    return out if xArrayOutput else to_dict_with_metadata(out)
+
+def get_Ti_core(shot: int, diag = 'CEZ', xArrayOutput: bool = True):
     """"
-    Wrapper to all the routines to read the ion temperature.
+    Wrapper to all the routines to read the ion core temperature.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Alex Reyner: areyner@us.es
 
     :param  shot: Shot number
-    :param  time: Time point to read the profile.
-    :param  diag: diagnostic to read the ion temperature. By default, IDI.
-    :param  exp: Experiment name.
-    :param  diag: diagnostic from which 'Te' will extracted.
-    :param  edition: edition of the shotfile to be read.
-
-    :return output: a dictionary containing the electron temp. evaluated
-    in the input times and the corresponding rhopol base.
+    :param  diag: diagnostic from which 'Ti' will extracted.
     """
-    if diag not in ('IDI', 'CXRS'):
+    if diag not in ('IDI', 'CEZ', 'CXRS'):
         raise Exception('Diagnostic non supported!')
 
-    if diag == 'IDI':
-        return get_Ti_idi(shotnumber=shot, time=time, exp=exp,
-                          edition=edition, sf=sf, xArrayOutput=xArrayOutput)
-    elif diag == 'CXRS':
-        return get_Ti_cxrs(shotnumber=shot, time=time, exp=exp,
-                           edition=edition, xArrayOutput=xArrayOutput)
-    else:
-        raise Exception('Diagnostic non supported!')
+    try:
+        if diag == 'IDI':
+            idi = get_IDI(shot).sel(rho_ti=0, method='nearest')
+            out = idi[['Ti', 'Ti_unc']]
+        else:
+            cxrs = get_CXRS(shot, diag).isel(line=0)
+            out = cxrs[['Ti', 'Ti_unc']]
+    except Exception: return
+    
+    return out if xArrayOutput else to_dict_with_metadata(out)
 
-
-def get_Ti_idi(shotnumber: int, time: float = None, exp: str = 'AUGD',
-               edition: int = 0, sf=None, xArrayOutput: bool = False):
+def get_Ti_CXRS_new(shot, time: float = None, tavg: float = 0.05, 
+                    nrho: int = 1000, rhop0: float = 0, rhop1: float = 1.1, 
+                    smooth_factor: float = 100,
+                    plot = False, xArrayOutput: bool = True):
     """
-    Wrap to get AUG ion temperature from the IDI shotfile.
+    Updated CXRS temperature measurement. Extract profile given a certain time
 
     Jose Rueda: jrrueda@us.es
+    Alex Reyner: areyner@us.es
 
-    Copy of get_Te_ida
-
-    :param  shot: Shot number
-    :param  time: Time point to read the profile.
-    :param  exp: Experiment name.
-    :param  diag: diagnostic from which 'Te' will extracted.
-    :param  edition: edition of the shotfile to be read.
-
-    :return output: a dictionary containing the electron temp. evaluated
-    in the input times and the corresponding rhopol base.
+    :param  shot: shotnumber to read.
+    :param  time: time window to get the data.
+    :param  tavg: averaging time in seconds. 50 ms by default.
+    :param  nrho: number of points in rho_pol to calculate the smoothed profile
+    :param  rhop0, rhop1: rhop limits
+    :param  smooth_factor: smoothing factor to send to the UnivariateSpline
+    class to perform the smoothing regression.
+    :param  dr: correction in the radial direction. Can be just a number or a
+    dict containing a correction for each diagnostic
+    :param  dz: correction in the z direction
     """
-    # --- Opening the shotfile.
-    if sf is None:
-        sf = sfutils.SFREAD(shotnumber, 'IDI', edition=edition, exp=exp)
 
-        if not sf.status:
-            raise Exception('Cannot open IDI shotfile for #%05d' % shotnumber)
-    # Reading from the database
-    try:
-        ti = np.array(sf('Ti'))
-        ti_unc = np.array(sf('Ti_unc'))
-        rhop = np.array(sf.getareabase('Ti'))
-        timebase = np.array(sf('time'))
-    except:
-        raise Exception('Cannot read the density from the IDA #%05d' % shotnumber)
+    datasets = []
+    diags = ['CMZ', 'CEZ', 'CUZ', 'COZ']
+    for diag in diags:
+        ds = get_CXRS(shot, diag)
+        if ds is not None:
+            datasets.append(ds)
+    if not datasets:
+        return
+    ds_full = xr.concat(datasets, dim='line').sortby('R')
+    ds_full.attrs['diag'] = 'CXRS'
 
-    # We will return the data in the same spatial basis as provided by IDI.
-
+    # --- Checking the time input.
     if time is None:
-        time = timebase
-        tmp_ti = ti
-        tmp_unc = ti_unc
+        time = np.array((0, 3600.0))  # Dummy limits.
     else:
-        tmp_ti = interp1d(timebase, ti, kind='linear', axis=0,
-                          bounds_error=False, fill_value=np.nan,
-                          assume_sorted=True)(time).T
-        tmp_unc = interp1d(timebase, ti_unc,
-                           kind='linear', axis=0,
-                           bounds_error=False, fill_value=np.nan,
-                           assume_sorted=True)(time).T
-    if not xArrayOutput:
-        output = {
-            'rhop': rhop[:, 0],
-            'time': time,
-            'data': tmp_ti,
-            'uncertainty': tmp_unc
-        }
-    else:
-        output = xr.Dataset()
-        tmp_ti = np.atleast_2d(tmp_ti)
-        tmp_unc = np.atleast_2d(tmp_unc)
         time = np.atleast_1d(time)
-        output['data'] = xr.DataArray(
-            tmp_ti.T, dims=('rho', 't'),
-            coords={'rho': rhop[:, 0], 't': time})
-        output['data'].attrs['long_name'] = '$T_i$'
-        output['data'].attrs['units'] = 'eV'
-        output['uncertainty'] = xr.DataArray(tmp_unc.T, dims=('rho', 't'))
-        output['uncertainty'].attrs['long_name'] = '$\\Delta T_i$'
-        output['uncertainty'].attrs['units'] = '$eV$'
+        # For a single time point, we choose a time window of the size
+        # of the averaging window.
+        if len(time) == 1:
+            time = np.array([time.item() - tavg/2, time.item() + tavg/2])
+        # For more than two points, we get the extreme ones.
+        elif len(time) > 2:
+            time = np.array([time.min(), time.max()])
 
-        output['rho'].attrs['long_name'] = '$\\rho_p$'
-        output['t'].attrs['long_name'] = 'Time'
-        output['t'].attrs['units'] = 's'
-        output.attrs['diag'] = 'IDI'
-        output.attrs['shot'] = shotnumber
-    return output
+    # --- Mean over the time window and transforming line -> rho
+    ds_win = ds_full.sel(t=slice(*time))
+    nt = ds_win.t.size
 
+    data = ds_win.mean('t')
+    data['Ti_unc'] = np.sqrt((ds_win['Ti_unc']**2).sum('t'))/nt
+    data = data.swap_dims({'line': 'rho'}).sortby('rho')
 
-def get_Ti_cxrs(shotnumber: int, time: float = None,
+    # --- Fitting the profile
+    rho_vals = data['rho'].values
+    ti_vals = data['Ti'].values
+    err_vals = data['Ti_unc'].values
+    ti_fitted, rhop_out = _fit_profile(rho=rho_vals, data=ti_vals, err=err_vals,
+                                       nrho=nrho, rho0=rhop0, rho1=rhop1, 
+                                       smooth_factor=smooth_factor)
+
+    # Add fit to dataset
+    data['Ti_fit'] = (('rhop',), ti_fitted, {'signal': 'Ti_fit', 
+                                             'long_name': r'$T_i$', 
+                                             'units': 'keV',})
+    data = data.assign_coords(rhop=rhop_out)
+    data['rhop'].attrs['long_name'] = r'$\rho_{pol}$'
+
+    if plot:
+        fig, ax = plt.subplots()
+        plt.errorbar(data['rho'].values, data['Ti'].values, 
+                     yerr=data['Ti_unc'].values,
+                     fmt='o', capsize=3, linestyle='none')
+        data.Ti_fit.plot()
+        ax.set_xlim(data.rhop[0], data.rhop[-1])
+        ax.set_ylim([0,None])
+
+    if xArrayOutput: return data
+    else: return to_dict_with_metadata(ds_full)
+
+get_Ti_CXRS_profile = get_Ti_CXRS_new
+
+def get_Ti_CXRS_old(shotnumber: int, time: float = None,
                 exp: str = 'AUGD', edition: int = 0,
                 tavg: float = 50.0, nrho: int = 200,
                 smooth_factor: float = 500.0,
@@ -527,15 +247,15 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
 
     # --- Opening the shotfiles.
     nshotfiles = 0
-    sf = list()
+    sfo = list()
     for ii in diags:
-        sf_aux = sfutils.SFREAD(shotnumber, ii, exp=exp, edition=edition)
+        sf_aux = sf.SFREAD(shotnumber, ii, exp=exp, edition=edition)
         if not sf_aux.status:
             print('Cannot open %s for shot #%05d\n' % (ii, shotnumber))
             continue
 
         nshotfiles += 1
-        sf.append(sf_aux)
+        sfo.append(sf_aux)
 
     if nshotfiles == 0:
         raise Exception('Ti not available!')
@@ -560,18 +280,18 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
     rhopol = list()
     Ti_err = list()
     dt = list()
-    for ii in np.arange(len(sf), dtype=int):
-        Ti_data = np.array(sf[ii](signals[ii])).squeeze()
-        zaux = np.array(sf[ii](name='z')).squeeze()
-        Raux = np.array(sf[ii](name='R')).squeeze()
-        err_aux = np.array(sf[ii](name=error_signals[ii])).squeeze()
-        time_aux = np.array(sf[ii].gettimebase(signals[ii]))
+    for ii in np.arange(len(sfo), dtype=int):
+        Ti_data = np.array(sfo[ii](signals[ii])).squeeze()
+        zaux = np.array(sfo[ii](name='z')).squeeze()
+        Raux = np.array(sfo[ii](name='R')).squeeze()
+        err_aux = np.array(sfo[ii](name=error_signals[ii])).squeeze()
+        time_aux = np.array(sfo[ii].gettimebase(signals[ii]))
 
         if Ti_data.size == 0:
             nshotfiles -= 1
             continue
 
-        if len(sf) == 0:
+        if len(sfo) == 0:
             raise Exception('Ti not available!')
 
         if ii == 0:
@@ -591,7 +311,7 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
                 nshotfiles -= 1
                 continue
 
-            if len(sf) == 0:
+            if len(sfo) == 0:
                 raise Exception('Ti not available!')
 
             # Some channels are broken. For those R = 0, and we can easily
@@ -651,7 +371,7 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
                 nshotfiles -= 1
                 continue
 
-            if len(sf) == 0:
+            if len(sfo) == 0:
                 raise Exception('Ti not available!')
 
             # If the major radius is zero, that channel should be taken
@@ -793,106 +513,116 @@ def get_Ti_cxrs(shotnumber: int, time: float = None,
 
     return output
 
-
 # -----------------------------------------------------------------------------
 # --- Toroidal rotation velocity
 # -----------------------------------------------------------------------------
-def get_tor_rotation(shotnumber: int, time: float = None, diag: str = 'IDI',
-                     exp: str = 'AUGD', edition: int=0, **kwargs):
+def get_tor_rotation(shot, diag = 'IDI', xArrayOutput: bool = True):
     """
     Retrieves from the database the toroidal velocity velocity (omega_tor).
     To get the linear velocity (i.e., vtor) multiply by the major radius.
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Alex Reyner: areyner@us.es
 
-    :param  shotnumber: shotnumber to read.
-    :param  time: time window to get the data. If None, all the available times
-    are read.
-    :param  diag: the diagnostic can only be 'IDI' or 'CXRS'. In the first, the
-    profiles are obtained directly from the IDI reconstruction. For the option
-    CXRS the diagnostics 'CEZ'/'CMZ' are used.
-    :param  exp: experiment under which the shotfile is stored.
-    :param  edition: edition of the shotfile to read
     :param  cxrs_options: extra parameters to send to the fitting procedure
     that reads all the rotation velocities.
     """
 
-    if diag == 'IDI':
-        return get_tor_rotation_idi(shotnumber, time, exp, edition, **kwargs)
-    elif diag == 'CXRS':
-        return get_tor_rotation_cxrs(shotnumber, time, exp, edition, **kwargs)
-    elif diag == 'PED':
-        return get_tor_rotation_ped(shotnumber, time, exp, edition)
-    else:
-        raise NameError('Diagnostic not available for the toroidal rotation')
+    try:
+        if diag == 'IDI':
+            idi = get_IDI(shot).sel(rho_ti=0, method='nearest')
+            out = idi[['vt', 'vt_unc']]
+        else:
+            cxrs = get_CXRS(shot, diag).isel(line=0)
+            out = cxrs[['vt', 'vt_unc']]
+    except Exception: return
+    
+    return out if xArrayOutput else to_dict_with_metadata(out)
 
-
-def get_tor_rotation_idi(shotnumber: int, time: float = None,
-                         exp: str = 'AUGD', edition: int = 0, sf=None,
-                         xArrayOutput: bool = False):
-
+def get_tor_rotation_CXRS_new(shot, time: float = None, tavg: float = 0.05, 
+                    nrho: int = 1000, rhop0: float = 0, rhop1: float = 1.1, 
+                    smooth_factor: float = 100,
+                    plot = False, xArrayOutput: bool = True):
     """
-    Reads from the IDI shotfile the toroidal rotation velocity.
+    Updated CXRS ion rotation measurement. Extract profile given a certain time
 
     Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Alex Reyner: areyner@us.es
 
-    :param  shotnumber: shotnumber to read.
-    :param  time: time window to get the data. If None, all the available times
-    are read.
-    :param  exp: experiment under which the shotfile is stored.
-    :param  edition: edition of the shotfile to read
+    :param  shot: shotnumber to read.
+    :param  time: time window to get the data.
+    :param  tavg: averaging time in seconds. 50 ms by default.
+    :param  nrho: number of points in rho_pol to calculate the smoothed profile
+    :param  rhop0, rhop1: rhop limits
+    :param  smooth_factor: smoothing factor to send to the UnivariateSpline
+    class to perform the smoothing regression.
+    :param  dr: correction in the radial direction. Can be just a number or a
+    dict containing a correction for each diagnostic
+    :param  dz: correction in the z direction
     """
 
-    # --- Opening the shotfile.
-    if sf is None:
-        sf = sfutils.SFREAD(shotnumber, 'IDI', edition=edition, exp=exp)
+    datasets = []
+    diags = ['CMZ', 'CEZ', 'CUZ', 'COZ']
+    for diag in diags:
+        ds = get_CXRS(shot, diag)
+        if ds is not None:
+            datasets.append(ds)
+    if not datasets:
+        return
+    ds_full = xr.concat(datasets, dim='line').sortby('R')
+    ds_full.attrs['diag'] = 'CXRS'
 
-        if not sf.status:
-            raise errors.DatabaseError('Cannot open IDI shotfile for #%05d' %
-                                       shotnumber)
-
-    # --- Getting the data
-    data = np.array(sf('vt'))
-    unc = np.array(sf('vt_unc'))
-    timebase = np.array(sf.gettimebase('vt'))
-
-    # --- If a time window is provided, we cut out the data.
-    if time is not None:
-        t0, t1 = timebase.searchsorted(time)
-        data = data[t0:t1, :]
-        unc = unc[t0:t1, :]
-        timebase = timebase[t0:t1]
-
-    # --- Saving to a dictionary and output:
-    if not xArrayOutput:
-        output = {
-            'data': data,
-            'time': timebase,
-            'rhop': np.array(sf.getareabase('vt')[t0, ...])
-        }
+    # --- Checking the time input.
+    if time is None:
+        time = np.array((0, 3600.0))  # Dummy limits.
     else:
-        output = xr.Dataset()
-        time = np.atleast_1d(timebase)
-        output['data'] = xr.DataArray(
-                data.T, dims=('rho', 't'),
-                coords={'rho': np.array(sf.getareabase('vt')[..., 0]),
-                        't': timebase})
-        output['uncertainty'] = xr.DataArray(unc.T, dims=('rho', 't'))
-        output['rho'].attrs['long_name'] = '$\\rho_p$'
-        output['t'].attrs['long_name'] = 'Time'
-        output['t'].attrs['units'] = 's'
-        output['data'].attrs['long_name'] = '$\\omega$'
-        output['data'].attrs['units'] = 'rad/s'
-        output.attrs['units'] = 'rad/s'
-        output['uncertainty'].attrs['long_name'] = '$\\sigma\\omega$'
-        output['uncertainty'].attrs['units'] = 'rad/s'
-        output.attrs['diag'] = 'IDI'
-        output.attrs['shot'] = shotnumber
+        time = np.atleast_1d(time)
+        # For a single time point, we choose a time window of the size
+        # of the averaging window.
+        if len(time) == 1:
+            time = np.array([time.item() - tavg/2, time.item() + tavg/2])
+        # For more than two points, we get the extreme ones.
+        elif len(time) > 2:
+            time = np.array([time.min(), time.max()])
 
-    return output
+    # --- Mean over the time window and transforming line -> rho
+    ds_win = ds_full.sel(t=slice(*time))
+    nt = ds_win.t.size
 
+    data = ds_win.mean('t')
+    data['vt_unc'] = np.sqrt((ds_win['vt_unc']**2).sum('t'))/nt
+    data = data.swap_dims({'line': 'rho'}).sortby('rho')
 
-def get_tor_rotation_cxrs(shotnumber: int, time: float = None,
+    # --- Fitting the profile
+    rho_vals = data['rho'].values
+    vt_vals = data['vt'].values
+    err_vals = data['vt_unc'].values
+    ti_fitted, rhop_out = _fit_profile(rho=rho_vals, data=vt_vals, err=err_vals,
+                                       nrho=nrho, rho0=rhop0, rho1=rhop1, 
+                                       smooth_factor=smooth_factor)
+
+    # Add fit to dataset
+    data['vt_fit'] = (('rhop',), ti_fitted, {'signal': 'vt_fit', 
+                                             'long_name': r'$\omega$', 
+                                             'units': 'rad/s',})
+    data = data.assign_coords(rhop=rhop_out)
+    data['rhop'].attrs['long_name'] = r'$\rho_{pol}$'
+
+    if plot:
+        fig, ax = plt.subplots()
+        plt.errorbar(data['rho'].values, data['vt'].values, 
+                     yerr=data['vt_unc'].values,
+                     fmt='o', capsize=3, linestyle='none')
+        data.vt_fit.plot()
+        ax.set_xlim(data.rhop[0], data.rhop[-1])
+        ax.set_ylim([0,None])
+
+    if xArrayOutput: return data
+    else: return to_dict_with_metadata(ds_full)
+
+get_tor_rotation_CXRS_profile = get_tor_rotation_CXRS_new
+
+def get_tor_rotation_cxrs_old(shotnumber: int, time: float = None,
                           exp: str = 'AUGD', edition: int = 0,
                           tavg: float = 2.0, nrho: int = 200,
                           smooth_factor: float = 500.0,
@@ -933,15 +663,15 @@ def get_tor_rotation_cxrs(shotnumber: int, time: float = None,
 
     # --- Opening the shotfiles.
     nshotfiles = 0
-    sf = list()
+    sfo = list()
     for ii in diags:
-        sf_aux = sfutils.SFREAD(shotnumber, ii, exp=exp, edition=edition)
+        sf_aux = sf.SFREAD(shotnumber, ii, exp=exp, edition=edition)
         if not sf_aux.status:
             print('Cannot open %s for shot #%05d\n' % (ii, shotnumber))
             continue
 
         nshotfiles += 1
-        sf.append(sf_aux)
+        sfo.append(sf_aux)
 
     if nshotfiles == 0:
         raise Exception('Toroidal rotation velocity not available!')
@@ -966,18 +696,18 @@ def get_tor_rotation_cxrs(shotnumber: int, time: float = None,
     rhopol = list()
     vt_err = list()
     dt = list()
-    for ii in range(len(sf)):
-        vtor_data = np.array(sf[ii](signals[ii])).squeeze()
-        zaux = np.array(sf[ii](name='z')).squeeze()
-        Raux = np.array(sf[ii](name='R')).squeeze()
-        err_aux = np.array(sf[ii](name=error_signals[ii])).squeeze()
-        time_aux = np.array(sf[ii].gettimebase(signals[ii]))
+    for ii in range(len(sfo)):
+        vtor_data = np.array(sfo[ii](signals[ii])).squeeze()
+        zaux = np.array(sfo[ii](name='z')).squeeze()
+        Raux = np.array(sfo[ii](name='R')).squeeze()
+        err_aux = np.array(sfo[ii](name=error_signals[ii])).squeeze()
+        time_aux = np.array(sfo[ii].gettimebase(signals[ii]))
 
         if vtor_data.size == 0:
             nshotfiles -= 1
             continue
 
-        if len(sf) == 0:
+        if len(sfo) == 0:
             raise Exception('Toroidal rotation velocity not available!')
         if ii == 0:
             # Cut only the interesting time window.
@@ -993,7 +723,7 @@ def get_tor_rotation_cxrs(shotnumber: int, time: float = None,
             if len(time_aux) == 0:
                 nshotfiles -= 1
                 continue
-            if len(sf) == 0:
+            if len(sfo) == 0:
                 raise Exception('Toroidal rotation velocity not available!')
 
             # Some channels are broken. For those R = 0, and we can easily
@@ -1054,7 +784,7 @@ def get_tor_rotation_cxrs(shotnumber: int, time: float = None,
             if len(time_aux) == 0:
                 nshotfiles -= 1
                 continue
-            if len(sf) == 0:
+            if len(sfo) == 0:
                 raise Exception('Toroidal rotation velocity not available!')
 
             # If the major radius is zero, that channel should be taken
@@ -1204,52 +934,6 @@ def get_tor_rotation_cxrs(shotnumber: int, time: float = None,
 
     return output
 
-
-def get_tor_rotation_ped(shotnumber: int, time: float = None,
-                         exp: str = 'AUGD', edition: int = 0, sf=None):
-    """
-    Reads from the shotfile created with augped the toroidal rotation.
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-    :param  shotnumber: shot number to get the data.
-    :param  time: time window to retrieve the toroidal rotation data.
-    :param  exp: experiment name where the shotfile is stored.
-    :param  edition: edition of the shotfile.
-    """
-
-    # --- Opening the shotfile.
-    if sf is None:
-        sf = sfutils.SFREAD(shotnumber, 'PED', edition=edition, exp=exp)
-
-        if not sf.status:
-            raise Exception('Cannot open PED shotfile for #%05d' % shotnumber)
-
-
-    # --- Trying to read the timebasis.
-    try:
-        timebasis = np.array(sf('time'))
-    except:
-        raise Exception('Cannot read the timebasis for vT in #05d'% shotnumber)
-
-    # --- Trying to read the toroidal rotation.
-    try:
-        vT_sig = sf('vTFit')
-        vT = np.array(vT_sig)
-        rhop = np.array(sf.getareabase('vTFit'))
-    except:
-        sf.close()
-        raise Exception('Cannot read vT in #05d' % shotnumber)
-
-    output = {
-        'rhop': rhop,
-        'data': vT,
-        'time': timebasis
-    }
-
-    return output
-
-
 def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
                   equ_diag: dict = None, prof_diag: dict = None):
     """
@@ -1295,7 +979,7 @@ def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
     zaxis = shotbasics['Zmag']
 
     # Getting the poloidal flux matrix:
-    equ = sfutils.EQU(shotnumber, diag=equ_diag['diag'],
+    equ = sf.EQU(shotnumber, diag=equ_diag['diag'],
                       exp=equ_diag['exp'], ed=equ_diag['edition'])
 
     Rpfm = equ.Rmesh
@@ -1348,11 +1032,364 @@ def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
 
     return output
 
+# -----------------------------------------------------------------------------
+# %% IDA, IDI and other group diagnostic
+# -----------------------------------------------------------------------------
+def get_IDA(shot, plot = False, xArrayOutput: bool = True):
+    """
+    Returns some of the IDA quantities. IDA is not available in all shots
+
+    Alex Reyner: areyner@us.es
+    """
+
+    IDA = safe_sfread('IDA', shot)
+    if IDA is None:
+        return None
+    t = np.array(IDA.gettimebase('Te'), dtype='f4')
+    rho_grid = np.array(IDA.getareabase('Te'), dtype='f4')
+
+    obj = xr.Dataset(
+        coords={'t': ('t', t, {'long_name': 'Time', 'units': 's'}),
+                'rho': ('rho', rho_grid[:,0], {'long_name': r'$\rho_{pol}$'}),
+                },
+        attrs={'shot': shot, 'diag': 'IDA'}
+    )
+
+    for signal in ['Te', 'Te_up', 'Te_lo', 'Te_unc', 'dTe_r',
+                   'ne', 'ne_up', 'ne_lo', 'ne_unc', 'dne_r',
+                   'pe', 'pe_up', 'pe_lo', 'pe_unc', 'dpe_r']:
+        try:
+            data = np.array(IDA(signal), dtype='f4')       
+            if 'Te' in signal:
+                data /= 1e3
+                units = 'keV'
+                long_name = r'$T_e$'
+            elif 'ne' in signal:
+                data /= 1e19
+                units = r'$10^{19}$ /m^3'
+                long_name = r'$n_e$'
+            elif 'pe' in signal:
+                data = data
+                units = 'Pa'
+                long_name = r'$p_e$'
+            if '_r' in signal:
+                long_name = long_name + 'grad.'
+                units = ''
+            if 'unc' in signal:
+                long_name = r'$\Delta$ '+long_name
+            obj[signal] = (['rho', 't'], data, 
+                           {'signal': signal, 'long_name': long_name, 
+                            'units': units,},
+                    )
+        except:
+            continue
+    obj = obj.where(obj >= 0, 0) # no negative values
+
+    if plot:
+        fig, ax = plt.subplots(3, 1, sharex = True)
+        obj.Te.plot.imshow(ax=ax[0], robust=True, vmin=0)
+        obj.ne.plot.imshow(ax=ax[1], robust=True, vmin=0)
+        obj.pe.plot.imshow(ax=ax[2], robust=True, vmin=0)
+        for axs in ax[:-1]: 
+            axs.set_xlabel('')
+            axs.set_xlim([0,10])
+
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
+
+def get_IDI(shot, plot = False, xArrayOutput: bool = True):
+    """
+    Same as IDA, but for ions.
+
+    Alex Reyner: areyner@us.es
+    """
+
+    IDI = safe_sfread('IDI', shot)
+    if IDI is None:
+        return None
+    t = np.array(IDI.gettimebase('Ti'), dtype='f4')
+    rho_Ti = np.array(IDI.getareabase('Ti'), dtype='f4')
+    rho_vt = np.array(IDI.getareabase('vt'), dtype='f4')
+
+    obj = xr.Dataset(
+        coords={'t': ('t', t, {'long_name': 'Time', 'units': 's'}),
+                'rho_ti': ('rho_ti', rho_Ti[:,0], {'long_name': r'$\rho_{pol}$'}),
+                'rho_vt': ('rho_vt', rho_vt[:,0], {'long_name': r'$\rho_{pol}$'}),
+                },
+        attrs={'shot': shot, 'diag': 'IDI'}
+    )
+
+    for signal in ['Ti', 'Ti_unc']:
+        try:
+            data = np.array(IDI(signal), dtype='f4') / 1e3
+            units = 'keV'
+            long_name = r'$T_i$'
+            if 'unc' in signal: long_name = r'$\Delta$'+long_name
+            obj[signal] = (['rho_ti', 't'], data.T, 
+                           {'signal': signal, 'long_name': long_name, 
+                            'units': units,},
+                    )
+        except:
+            continue
+    for signal in ['vt', 'vt_unc']:
+        try:
+            data = np.array(IDI(signal), dtype='f4')
+            units = 'rad/s'
+            long_name = r'$\omega$'
+            if 'unc' in signal: long_name = r'$\sigma\omega$'
+            obj[signal] = (['rho_vt', 't'], data.T, 
+                           {'signal': signal, 'long_name': long_name, 
+                            'units': units,},
+                    )
+        except:
+            continue
+    obj = obj.where(obj >= 0, 0) # no negative values
+
+    if plot:
+        fig, ax = plt.subplots(2, 1, sharex = True)
+        obj.Ti.plot.imshow(ax=ax[0], robust=True, vmin=0)
+        obj.vt.plot.imshow(ax=ax[1], robust=True, vmin=0)
+        for axs in ax[:-1]: 
+            axs.set_xlabel('')
+            axs.set_xlim([0,10])
+        
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
+
+def get_VTA(shot, plot = False, xArrayOutput: bool = True):
+    """
+    Thompson diagnostic    
+    """
+
+    VTA = safe_sfread('VTA', shot)
+    if VTA is None:
+        return None
+    t = np.array(VTA.gettimebase('Te_c'), dtype=np.float32)
+
+    obj = xr.Dataset(
+        coords={'t': ('t', t, {'long_name': 'Time', 'units': 's'}),
+                'channel': ('channel', np.arange(1,17), {'long_name': 'Channel'})},
+        attrs={'shot': shot, 'diag': 'VTA',},
+    )
+    # data = np.array(VTA('Te_c'), dtype=np.float32)/1e3
+    # data_mean = data.mean(axis=1, dtype=np.float32)
+    obj['Te'] = (['channel','t'], np.array(VTA('Te_c'), dtype=np.float32).T/1e3, 
+                 {'signal': 'Te_c', 'long_name': r'$T_{e,c}$', 'units': 'keV'},)
+    obj['Te_unc'] = (['channel','t'], np.array(VTA('SigTe_c'), dtype=np.float32).T/1e3, 
+                 {'signal': 'SigTe_c', 'long_name': r'$T_{e,c}$', 'units': 'keV'},)
+
+    obj['ne'] = (['channel','t'], np.array(VTA('Ne_c'), dtype=np.float32).T/1e19, 
+                 {'signal': 'Ne_c', 'long_name': r'$n_{e,c}$', 
+                  'units': r'$10^{19}$ /m^3'},)
+    obj['ne_unc'] = (['channel','t'], np.array(VTA('SigNe_c'), dtype=np.float32).T/1e19, 
+                 {'signal': 'SigTe_c', 'long_name': r'$n_{e,c}$', 
+                  'units': r'$10^{19}$ /m^3'},)
+
+    if plot:
+        fig, ax = plt.subplots(2, 1, sharex=True)
+        val = obj.mean('channel').rolling(t=10, center=True, min_periods=1).mean()
+        ax[0].fill_between(val.t, val.Te+val.Te_unc, val.Te-val.Te_unc, alpha=0.3)
+        val.Te.plot(ax=ax[0])
+        ax[0].set_ylim([0,20])
+        ax[1].fill_between(val.t, val.ne+val.ne_unc, val.ne-val.ne_unc, alpha=0.3)
+        val.ne.plot(ax=ax[1])
+        ax[1].set_ylim([0,12])
+        for axs in ax[:-1]: 
+            axs.set_xlabel('')
+            axs.set_xlim([0,10])
+
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
+
+def get_ne_DC(shot, diag = 'DCK', xArrayOutput: bool = True):
+    """
+    Gets de integrated density
+    """
+
+    if diag not in ('DCN', 'DCK'):
+        raise ValueError(f'Invalid diagnostic. Supported: DCN or DCK.')
+
+    DC = safe_sfread(diag, shot)
+    if DC is None:
+        return None
+    t = np.array(DC.gettimebase('H-0'),dtype='f4')
+
+    names = ['H-0','H-1','H-2','H-4','H-5']
+    obj = xr.Dataset(
+        coords={'t': ('t', t, {'long_name': 'Time', 'units': 's'}),},
+        attrs={'shot': shot, 'diag': diag,},
+    )
+    for n in names:
+        data = np.array(DC(n), dtype='f4') / 1e19
+        var_name = n.replace('-', '')
+        obj[var_name] = (['t'], data, 
+                         {'signal': n, 'long_name': r'$n_e$', 
+                          'units': r'$10^{19}\ \mathrm{/m^2}$',})
+
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
+
+def get_CXRS(shot, diag = 'CEZ',
+             xArrayOutput: bool = True):
+    """
+    Imports one of the CXRS diagnostics
+
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shotnumber to read.
+    :param  daig: CXRS diagnostic to import
+    """
+    cxrs = safe_sfread(diag, shot)
+    if cxrs is None:
+        return None
+    
+    t = np.array(cxrs.gettimebase('Ti_c'), dtype='f4')
+    R = np.array(cxrs('R'), dtype='f4').squeeze()
+    z = np.array(cxrs('z'), dtype='f4').squeeze()
+    line = np.arange(len(R))+1
+    rhopol_vals = get_rho(shot=shot, Rin=R, zin=z, time=t)
+
+    obj = xr.Dataset(
+        coords={'t': ('t', t, {'long_name': 'Time', 'units': 's'}),
+                'line': ('line', line, {'long_name': 'LOS',}),
+                },
+        attrs={'shot': shot, 'diag': diag}
+    )
+
+    obj['Ti'] = (['line','t'], np.array(cxrs('Ti_c'), dtype='f4').T /1e3, 
+                    {'signal': 'Ti_c', 'long_name': r'$T_i$', 
+                    'units': 'keV',},
+            )
+    obj['Ti_unc'] = (['line','t'], np.array(cxrs('err_Ti_c'), dtype='f4').T /1e3,
+                    {'signal': 'err_Ti_c', 'long_name': r'$\Delta T_i$', 
+                    'units': 'keV',},
+            )
+    obj['vt'] = (['line','t'], np.array(cxrs('vr_c')/R, dtype='f4').T, 
+                    {'signal': 'vr_c', 'long_name': r'$\omega$', 
+                    'units': 'rad/s',},
+            ) 
+    obj['vt_unc'] = (['line','t'], np.array(cxrs('err_vr_c')/R, dtype='f4').T, 
+                    {'signal': 'err_vr_c', 'long_name': r'$\sigma\omega$', 
+                    'units': 'rad/s',},
+            )
+    obj['z'] = (['line'], z, {'long_name': 'z', 'units': 'm'})
+    obj['R'] = (['line'], R, {'long_name': 'R', 'units': 'm'})
+    obj['rho'] = (['line','t'], rhopol_vals.T, {'long_name': r'\rho_{pol}'})
+
+    valid_channels = (obj.R > 1.0) & (obj.R != 0) & (obj.z != 0)
+    obj = obj.sel(line=valid_channels).sortby('R')
+
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
+
+def _fit_profile(rho, data, err, nrho, rho0, rho1, smooth_factor):
+    """
+    Fitss profile data with UnivariateSpline, returns line
+    """
+    # Calcular pesos (inverso de la incertidumbre)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        weight_vals = 1.0 / err
+
+    # Filtrar valores inválidos, ceros o nulos
+    flags = (np.isnan(rho) | np.isnan(data) | np.isnan(err) | 
+             (err == np.inf) | (err == 0.0) | (data == 0.0) | 
+             np.isinf(rho) | np.isinf(data))
+            
+    rho_clean = rho[~flags]
+    data_clean = data[~flags]
+    err_clean = weight_vals[~flags]
+
+    # Definir rejilla de salida rhop_out
+    if rho0 is None:
+        rho0 = float(rho_clean.min())
+    if rho1 is None:
+        rho1 = float(rho_clean.max())
+    rho_out = np.linspace(rho0, rho1, num=nrho)
+
+    if len(rho_clean) >= 8:
+        # Ordenar por seguridad antes de ajustar
+        sorted_idx = np.argsort(rho_clean)
+        rho_clean = rho_clean[sorted_idx]
+        data_clean = data_clean[sorted_idx]
+        err_clean = err_clean[sorted_idx]
+
+        # Spline de suavizado
+        splineFun = UnivariateSpline(x=rho_clean, y=data_clean, w=err_clean, 
+                                     s=smooth_factor, ext=0.0)
+        data_fitted = splineFun(rho_out)
+
+        # Descartar extrapolaciones fuera del rango medido
+        eps = 0
+        extrap_flags = (rho_out < (rho_clean.min()-eps)) | (rho_out > (rho_clean.max()+eps))
+        data_fitted[extrap_flags] = np.nan
+    else:
+        data_fitted = np.full_like(rho_out, np.nan)
+
+    return data_fitted, rho_out
+
 
 # -----------------------------------------------------------------------------
 # %% ECE data.
 # -----------------------------------------------------------------------------
-def get_ECE(shotnumber: int, timeWindow: Optional[list] = None, 
+
+def get_ECE(shot, xArrayOutput: bool = True):
+    '''
+    Get data from ECE
+
+    Alex Reyner: areyner@us.es
+    '''
+
+    CEC = safe_sfread('CEC', shot)
+    if CEC is None:
+        return None
+    
+    RMC = safe_sfread('RMC', shot)
+    if RMC is None:
+        return None
+    
+    try:
+        flag = True
+        shot2 = shot
+        while flag:
+            RMD = sf.SFREAD('RMD', shot2)
+            if RMD.status:
+                flag = False
+            else:
+                shot2 += -1
+    except:
+        raise Exception('Could not retrieve the ECE calibration')
+    
+    Temp = np.clip(np.array(CEC('Trad-A'), dtype='f4')/1e3, 0, None)
+    t_T = np.array(CEC.gettimebase('Trad-A'), dtype='f4')
+
+    pos_R = np.array(CEC('R-A'), dtype='f4')
+    pos_Z = np.array(CEC('z-A'), dtype='f4')
+    t_pos = np.array(CEC.gettimebase('R-A'), dtype='f4')
+
+    n_channels = Temp.shape[1] if Temp.ndim > 1 else 60
+    channels = np.arange(n_channels)
+
+    obj = xr.Dataset(
+        coords={
+            't': ('t', t_T, {'long_name': 'Time', 'units': 's'}),
+            't2': ('t2', t_pos, {'long_name': 'Time', 'units': 's'}),
+            'channel': ('channel', channels, {'long_name': 'Channel'}),
+        },
+        attrs={'shot': shot, 'diag': 'CEC'},
+    )
+
+    obj['Trad'] = (['channel', 't'], Temp.T, 
+                   {'signal': 'Trad', 'long_name': r'$T_e$', 'units': 'keV',},)
+    obj['R'] = (['channel', 't2'], pos_R.T, 
+                   {'signal': 'R', 'long_name': r'$R$', 'units': 'm',},)
+    obj['z'] = (['channel', 't2'], pos_Z.T, 
+                   {'signal': 'z', 'long_name': r'$z$', 'units': 'm',},)
+
+
+    rhopol_vals = get_rho(shot=shot, Rin=obj['R'].mean('t2').values, 
+                          zin=obj['z'].mean('t2').values, time=obj['t2'].mean().values,)
+
+    obj['rho'] = (['channel'], rhopol_vals.flatten(), 
+                  {'long_name': r'$\rho_{pol}$', 'units': 'a.u.',},)
+    
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
+
+def get_ECE_old(shotnumber: int, timeWindow: Optional[list] = None, 
             fast: bool = True,
             rhopLimits: Optional[float] = None, 
             safetyChecks: bool = True):
@@ -1378,20 +1415,20 @@ def get_ECE(shotnumber: int, timeWindow: Optional[list] = None,
     dt = 2*5.0e-3  # To get a bit more on the edges to make a better interp.
     method = 'linear'  # Interpolation method
     try:
-        sf_cec = sfutils.SFREAD('CEC', shotnumber, experiment=exp,  edition=0) # Slow channel - ECE data.
-        sf_rmc = sfutils.SFREAD('RMC', shotnumber, experiment=exp,  edition=0) # Fast channel - ECE data.
+        sf_cec = sf.SFREAD('CEC', shotnumber, experiment=exp,  edition=0) # Slow channel - ECE data.
+        sf_rmc = sf.SFREAD('RMC', shotnumber, experiment=exp,  edition=0) # Fast channel - ECE data.
     except:
         raise Exception('Shotfile not existent for ECE/RMD/RMC')
 
-    # eqh = sfutils.SFREAD('EQH', shotnumber, experiment=exp, edition=0)
-    equ = sfutils.EQU(shotnumber, diag='EQH', exp='AUGD', ed=0)
+    # eqh = sf.SFREAD('EQH', shotnumber, experiment=exp, edition=0)
+    equ = sf.EQU(shotnumber, diag='EQH', exp='AUGD', ed=0)
 
     # Getting the calibration.
     try:
         flag = True
         shot2 = shotnumber
         while flag:
-            sf_rmd = sfutils.SFREAD('RMD', shot2)
+            sf_rmd = sf.SFREAD('RMD', shot2)
             if sf_rmd.status:
                 flag = False
             else:
@@ -1460,43 +1497,12 @@ def get_ECE(shotnumber: int, timeWindow: Optional[list] = None,
             zA = np.mean(zA_rmd.data[itmin:(itmin + 1)], axis=0)
         
         time_avg = np.mean(timeWindow)
-        rhop = sfutils.rz2rho(equ, rA, zA, t_in=time_avg, coord_out='rho_pol',
+        rhop = sf.rz2rho(equ, rA, zA, t_in=time_avg, coord_out='rho_pol',
                         extrapolate=True).flatten()
-        rhot = sfutils.rz2rho(equ, rA, zA, t_in=time_avg, coord_out='rho_tor',
+        rhot = sf.rz2rho(equ, rA, zA, t_in=time_avg, coord_out='rho_tor',
                         extrapolate=True).flatten()
 
     else:
-
-        # # As the R and z are not calculated for all the points that ECE is
-        # # measuring, we build here an interpolator.
-        # rA_interp = interp1d(rA_rmd.time, rA_rmd.data, axis=0,
-        #                       fill_value=np.nan, kind=method,
-        #                       assume_sorted=True, bounds_error=False)
-        # zA_interp = interp1d(zA_rmd.time, zA_rmd.data, axis=0,
-        #                       fill_value=np.nan, kind=method,
-        #                       assume_sorted=True, bounds_error=False)
-
-        # # Getting the rho_pol equivalent to the positions.
-
-        # rhop = np.zeros(rA_rmd.data.shape)
-        # rhot = np.zeros(rA_rmd.data.shape)
-        # for ii in tqdm(np.arange(rA_rmd.data.shape[0])):
-        #     rhop[ii, :] = equ.rz2rho(rA_rmd.data[ii, :], zA_rmd.data[ii, :],
-        #                               t_in=rA_rmd.time[ii],
-        #                               coord_out='rho_pol',
-        #                               extrapolate=True)
-        #     rhot[ii, :] = equ.rz2rho(rA_rmd.data[ii, :], zA_rmd.data[ii, :],
-        #                               t_in=rA_rmd.time[ii],
-        #                               coord_out='rho_tor',
-        #                               extrapolate=True)
-
-        # # Creating the interpolators.
-        # rhop_interp = interp1d(rA_rmd.time, rhop, axis=0,
-        #                         fill_value=np.nan, kind=method,
-        #                         assume_sorted=True, bounds_error=False)
-        # rhot_interp = interp1d(rA_rmd.time, rhot, axis=0,
-        #                         fill_value=np.nan, kind=method,
-        #                         assume_sorted=True, bounds_error=False)
         raise Exception('Not supportted')
 
     # --- Getting the electron temperature from the RMC shotfile.
@@ -1516,14 +1522,6 @@ def get_ECE(shotnumber: int, timeWindow: Optional[list] = None,
         RhoP_ece = rhop
         RhoT_ece = rhot
     else:
-        # Rece = rA_interp(time)
-        # Zece = zA_interp(time)
-        # RhoP_ece = rhop_interp(time)
-        # RhoT_ece = rhot_interp(time)
-        # del rA_interp
-        # del zA_interp
-        # del rhop_interp
-        # del rhot_interp
         pass  # We raised the exception above
 
     del Trad_rmc1  # Releasing some memory.
@@ -1582,28 +1580,10 @@ def get_ECE(shotnumber: int, timeWindow: Optional[list] = None,
         Trad_norm = Trad_norm[:, avail_flag]
     else:
         pass
-        # flags = ((RhoP_ece > rhopLimits[0]) & (RhoP_ece < rhopLimits[1]))
-        # avail_flag &= np.all(flags, axis=0)  # If the channel is continuously
-        # #                                    # outside, then discard it.
-        # Rece = Rece[:, avail_flag]
-        # Zece = Zece[:, avail_flag]
-        # RhoP_ece = RhoP_ece[:, avail_flag]
-        # RhoT_ece = RhoT_ece[:, avail_flag]
-        # Trad = Trad[:, avail_flag]
-        # Trad_norm = Trad_norm[:, avail_flag]
-
-        # # Now, set to NaN the values that are outside the limits.
-        # flags = not flags[:, avail_flag]
-        # Rece[flags] = np.nan
-        # Zece[flags] = np.nan
-        # RhoP_ece[flags] = np.nan
-        # RhoT_ece[flags] = np.nan
-        # Trad[flags] = np.nan
-        # Trad_norm[flags] = np.nan
 
     # --- Adding a conventional sign to the rhopol and rhotor.
     # Getting the axis center.
-    sfo = sfutils.SFREAD('GQH', shotnumber)
+    sfo = sf.SFREAD('GQH', shotnumber)
     rmag = sfo('Rmag')
     # zmag = sfo('Zmag')
     timebaseR = sfo.gettimebase('Rmag')
@@ -1615,15 +1595,6 @@ def get_ECE(shotnumber: int, timeWindow: Optional[list] = None,
         sign_array = Rece < Raxis
         RhoP_ece[sign_array] = - RhoP_ece[sign_array]
     else:
-        # eqh_time = eqh_time[t0:t1]
-        # Raxis = interp1d(eqh_time, Raxis_eqh,
-        #                   fill_value='extrapolate', kind=method,
-        #                   assume_sorted=True, bounds_error=False)(time)
-
-        # # If R_ECE < R(magnetic axis), then the rhopol is negative.
-        # for ii in range(Trad.shape[1]):
-        #     sign_array = Rece[:, ii] < Raxis
-        #     RhoP_ece[sign_array, ii] = - RhoP_ece[sign_array, ii]
         pass
 
     # --- Saving output.
@@ -1675,7 +1646,7 @@ def correctShineThroughECE(ecedata: dict, diag: str = 'IDA', exp: str = 'AUGD',
         # name_rhop = 'rhoFit'
         # using_PED = True
     else:
-        sf = sfutils.SFREAD('IDA',ecedata['shotnumber'])
+        sf = sf.SFREAD('IDA',ecedata['shotnumber'])
 
         name_te = 'dTe_dr'
         name_rhop = 'rhop'
@@ -1736,24 +1707,34 @@ def correctShineThroughECE(ecedata: dict, diag: str = 'IDA', exp: str = 'AUGD',
             ecedata['fft']['spec_dte'][:, ii, :] /= dte_eval
     return ecedata
 
+def get_Zeff(shot, plot = False, xArrayOutput: bool = True):
 
-# -----------------------------------------------------------------------------
-# %% ECE data.
-# -----------------------------------------------------------------------------
-def get_Zeff(shot: int):
-    """
-    Get the Zeff effective profile from IDZ
-    """
-    IDZ = sfutils.SFREAD('IDZ', shot)
-    if not IDZ.status:
-        raise errors.DatabaseError('Not shotfile')
-    Zeff = IDZ ('Zeff')
-    t = IDZ.gettimebase('Zeff')
-    rho = IDZ.getareabase('Zeff')
-    unc = IDZ('Zeff_unc')
-    z = xr.Dataset()
-    z['data'] = xr.DataArray(Zeff, dims=('t', 'rho'), 
-                             coords={'t':t, 'rho':rho[:, 0]})
-    z['uncertainty'] = xr.DataArray(unc, dims=('t', 'rho'), 
-                             coords={'t':t, 'rho':rho[:, 0]})
-    return z
+    IDZ = safe_sfread('IDZ', shot)
+    if IDZ is None:
+        return None
+    
+    t = np.array(IDZ.gettimebase('Zeff'), dtype='f4')
+
+    obj = xr.Dataset(coords={'t': ('t', t, {'long_name': 'Time', 'units': 's'}),},
+                     attrs={'shot': shot, 'diag': 'IDZ'})
+
+    for signal in ['Zeff', 'Zeff_unc']:
+        try:
+            data = np.array(IDZ(signal), dtype='f4')
+            units = 'q'
+            long_name = r'$Z_eff$'
+            if 'unc' in signal: long_name = r'$\Delta$'+long_name
+            obj[signal] = (['t'], data[:,0], 
+                           {'signal': signal, 'long_name': long_name, 
+                            'units': units,},
+                    )
+        except:
+            continue 
+
+    if plot:
+        fig, ax = plt.subplots()
+        ax.fill_between(obj.t, obj.Zeff+obj.Zeff_unc, obj.Zeff-obj.Zeff_unc, 
+                           alpha=0.3)
+        obj.Zeff.plot(ax=ax)
+
+    return obj if xArrayOutput else to_dict_with_metadata(obj)

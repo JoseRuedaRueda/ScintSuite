@@ -31,44 +31,8 @@ import xml.etree.ElementTree as et
 import os
 pa = Path()
 
-# -----------------------------------------------------------------------------
-# --- Return function (update 02/10/2026)
-# -----------------------------------------------------------------------------
-def _safe_get(func, shot, xArrayOutput: bool = True):
-    try: return func(shot, xArrayOutput=xArrayOutput)
-    except: return None
+from ._common import safe_sfread, safe_equ, _clean_val, to_dict_with_metadata
 
-def _clean_val(v):
-    '''
-    Converts objects to values
-    '''
-    if hasattr(v, "item") and np.ndim(v) == 0:
-        return v.item()
-    return v
-
-def to_dict_with_metadata(obj):
-    '''
-    Converts Dataset or DataArray into a dictionary
-
-    Keeps local and global atributes
-    '''
-    output = {}
-    for k, v in obj.attrs.items(): output[k] = _clean_val(v)
-
-    if isinstance(obj, xr.Dataset): # If its a Dataset
-        for var_name, var_da in obj.data_vars.items():
-            output[var_name] = var_da.values
-            for attr_k, attr_v in var_da.attrs.items():
-                output[f"{var_name}_{attr_k}"] = _clean_val(attr_v)
-    else: # If its a DataArray
-        output["data"] = obj.values
-
-    for coord_name, coord_da in obj.coords.items():
-        output[coord_name] = coord_da.values
-        for attr_k, attr_v in coord_da.attrs.items():
-            output[f"{coord_name}_{attr_k}"] = _clean_val(attr_v)
-
-    return output
 
 ##
 # -----------------------------------------------------------------------------
@@ -118,7 +82,6 @@ def get_signal_generic(shot: int, diag: str, signame: str, exp: str = 'AUGD',
     time = np.array(time[t0:t1, ...], dtype=float)
 
     return time, data
-
 
 # -----------------------------------------------------------------------------
 # --- SIGNAL OF FAST CHANNELS.
@@ -193,26 +156,33 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
     return {'time': time, 'data': data, 'channels': ch}
 
 
+##
 # -----------------------------------------------------------------------------
 # --- ELMs and edge (update 10/08/2026)
 # -----------------------------------------------------------------------------
 def get_ELM(shot, plot = False, xArrayOutput: bool = True):
-    '''
+    """
     Returns an xarray with ELM related quantities
 
     Alex Reyner Vñolas
 
     :returns duration, enery lost, Wmhd and an on/off mask
-    '''
+    """
 
-    ELM = sf.SFREAD(shot,'ELM')
-    beg = np.array(ELM('t_begELM'), dtype='f4')
-    end = np.array(ELM('t_endELM'), dtype='f4')
-    dur = np.array(ELM('dt_ELM'), dtype='f4')
-    t_max = np.array(ELM('t_maxELM'), dtype='f4')
-    t_elm = np.array(ELM.gettimebase('ELMENER'), dtype='f4')
+    ELM = safe_sfread('ELM', shot)
+    if ELM is None:
+        return None
+    
+    try:
+        beg = np.array(ELM('t_begELM'), dtype='f4')
+        end = np.array(ELM('t_endELM'), dtype='f4')
+        dur = np.array(ELM('dt_ELM'), dtype='f4')
+        t_max = np.array(ELM('t_maxELM'), dtype='f4')
+        t_elm = np.array(ELM.gettimebase('ELMENER'), dtype='f4')
+    except Exception: 
+        return None
 
-    t = np.arange(0,10,0.1e-5)
+    t = np.arange(0,10,1e-6)
     start_idx = np.searchsorted(t, beg, side='left')
     end_idx = np.searchsorted(t, end, side='left')
     indices = np.arange(len(t))
@@ -245,12 +215,14 @@ def get_ELM(shot, plot = False, xArrayOutput: bool = True):
         obj.duration.plot(ax=ax2, color='r', alpha=0.5)
         ax.set_zorder(ax2.get_zorder() + 1)
         ax.patch.set_visible(False)
+        ax.set_xlim([0,10])
 
-    if xArrayOutput: return obj
-    else: return to_dict_with_metadata(obj)
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
 
 def get_Ipol(shot, plot = False, xArrayOutput: bool = True):
-    MAC = sf.SFREAD(shot, 'MAC')
+    MAC = safe_sfread('MAC', shot)
+    if MAC is None:
+        None
     inner = np.array(MAC('Ipolsoli')/1000)
     outer = np.array(MAC('Ipolsola')/1000)
     t = np.array(MAC.gettimebase('Ipolsola'), dtype='f4')
@@ -265,13 +237,15 @@ def get_Ipol(shot, plot = False, xArrayOutput: bool = True):
     )
     if plot:
         fig, ax = plt.subplots()
-        obj.Ipolsoli.plot(ax=ax)
-        obj.Ipolsola.plot(ax=ax)
-    if xArrayOutput: return obj
-    else: return to_dict_with_metadata(obj)
+        obj.Ipolsoli.coarsen(t=10,boundary='trim').mean().plot(ax=ax)
+        obj.Ipolsola.coarsen(t=10,boundary='trim').mean().plot(ax=ax)
+        ax.set_xlim([0,10])
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
 
 def get_Raus(shot, plot = False, xArrayOutput: bool = True):
-    FPG = sf.SFREAD(shot, 'FPG')
+    FPG = safe_sfread('FPG', shot)
+    if FPG is None:
+        return None
     name = 'Raus'
     R = np.array(FPG(name), dtype='f4')
     t = np.array(FPG.gettimebase(name), dtype='f4')
@@ -283,42 +257,48 @@ def get_Raus(shot, plot = False, xArrayOutput: bool = True):
     if plot:
         fig, ax = plt.subplots()
         obj.plot(ax=ax)
-    if xArrayOutput: return obj
-    else: return to_dict_with_metadata(obj)
+        ax.set_xlim([0,10])
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
 
 
 # -----------------------------------------------------------------------------
 # --- HEATING (update 10/08/2026)
 # -----------------------------------------------------------------------------
 def get_NBI(shot, plot = False, xArrayOutput: bool = True):
-    '''
+    """
     Returns an xarray with NBI power and parameters from NIS shotfile
 
     Alex Reyner Viñolas: areyner@us.es
-    '''
+    """
 
-    NIS = sf.SFREAD(shot, 'NIS')
+    NIS = safe_sfread('NIS', shot)
+    if NIS is None:
+        return None
     name = 'PNIQ'
     pNBI = NIS(name) / 1.0e6
     tNBI = np.array(NIS.gettimebase(name), dtype='f4')
-
+    
     obj = xr.Dataset(
         coords={'t': ('t', tNBI, {'long_name': 'Time', 'units': 's'}), 
-                'b': ('b', np.arange(1, 9), {'long_name': 'Beam'}),
+                'beam': ('beam', np.arange(1, 9), {'long_name': 'Beam'}),
             },
         attrs={'shot': shot, 'diag': 'NIS'}
     )
 
-    power_data = np.moveaxis(pNBI, 0, -1).reshape(8, -1)
-    obj['power'] = (('b', 't'), power_data, 
+    power_matrix = np.zeros((8, len(tNBI)), dtype='f4')
+    for bx in range(2):
+        for bm in range(4):
+            beam_idx = (bx * 4) + bm
+            power_matrix[beam_idx, :] = pNBI[:, bm, bx]
+    obj['power'] = (('beam', 't'), power_matrix,
                     {'signal': name, 'long_name': '$P_{NB}$', 'units': 'MW'}
                 )
-    obj['total'] = obj.power.sum('b')
+    obj['total'] = obj.power.sum('beam')
     
     ion = np.concatenate([NIS('INJ1')['MQ'],NIS('INJ2')['MQ']], dtype='f4')
     ene = np.concatenate([NIS('INJ1')['UEXQSOLL'],NIS('INJ2')['UEXQSOLL']], dtype='f4')
-    obj['ion'] = (('b',), ion, {'long_name': 'Ion', 'units': 'A'})
-    obj['ene'] = (('b',), ene, {'long_name': 'Inj. energy', 'units': 'keV'})
+    obj['ion'] = (('beam',), ion, {'long_name': 'Ion', 'units': 'A'})
+    obj['ene'] = (('beam',), ene, {'long_name': 'Inj. energy', 'units': 'keV'})
     # nbi stat: 1=H, 2=D, 3=T
     obj['stat'] = obj['ion'].where(obj['power'] >= 0.2)
     obj['stat'].attrs.update({'long_name': 'Active species', 'units': 'Z'})
@@ -338,22 +318,24 @@ def get_NBI(shot, plot = False, xArrayOutput: bool = True):
             ax2.axhline(y=beam+0.5,c='grey',lw=1,ls='--',alpha=0.5)
         ax.set_zorder(ax2.get_zorder() + 1)
         ax.patch.set_visible(False)
+        ax.set_xlim([0,10])
 
-    if xArrayOutput: return obj
-    else: return to_dict_with_metadata(obj)
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
 
 def get_ICRH(shot, coupled = False, plot = False, xArrayOutput: bool = True):
-    '''
+    """
     Returns an xarray with coupled ICRH power parameters
 
     Alex Reyner Viñolas: areyner@us.es
-    '''
+    """
 
-    ICP = sf.SFREAD(shot, 'ICP')
+    ICP = safe_sfread('ICP', shot)
+    if ICP is None:
+        return None
     name = 'PICRFc' if coupled else 'PICRN'
     pICRH = np.array(ICP(name), dtype='f4') / 1.0e6
     tICRH = np.array(ICP.gettimebase(name), dtype='f4')
-
+    
     obj = xr.Dataset(
         coords={'t': ('t', tICRH, {'long_name': 'Time', 'units': 's'}),
                 'antenna': ('antenna', [1, 2, 3, 4], {'long_name': 'Antenna'}),
@@ -390,22 +372,23 @@ def get_ICRH(shot, coupled = False, plot = False, xArrayOutput: bool = True):
             ax2.axhline(y=antena+0.5,c='grey',lw=1,ls='--',alpha=0.5)
         ax.set_zorder(ax2.get_zorder() + 1)
         ax.patch.set_visible(False)
+        ax.set_xlim([0,10])
 
-    if xArrayOutput: return obj
-    else: return to_dict_with_metadata(obj)
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
 
 def get_ECRH(shot, plot = False, xArrayOutput: bool = True):
-    '''
+    """
     Returns an xarray with ECS power and parameters from NIS shotfile
     
     Alex Reyner Viñolas: areyner@us.es
-    '''
+    """
 
-    ECS = sf.SFREAD(shot, 'ECS')
+    ECS = safe_sfread('ECS', shot)
+    if ECS is None:
+        return None
     name = 'PECRH'
     pECRH = np.array(ECS(name), dtype='f4') / 1.0e6
     tECRH = np.array(ECS.gettimebase(name), dtype='f4')
-
 
     obj = xr.Dataset(
         coords={'t': ('t', tECRH, {'long_name': 'Time', 'units': 's'}), 
@@ -466,17 +449,17 @@ def get_ECRH(shot, plot = False, xArrayOutput: bool = True):
             ax2.axhline(y=gyrotron+0.5,c='grey',lw=1,ls='--',alpha=0.5)
         ax.set_zorder(ax2.get_zorder() + 1)
         ax.patch.set_visible(False)
+        ax.set_xlim([0,10])
 
-    if xArrayOutput: return obj
-    else: return to_dict_with_metadata(obj)
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
 
 def get_heating(shot, xArrayOutput: bool = True):
-    '''
+    """
     Wrap to obtain the external heating
-    '''
-    nbi = _safe_get(get_NBI, shot, xArrayOutput=xArrayOutput)
-    icrh = _safe_get(get_ICRH, shot, xArrayOutput=xArrayOutput)
-    ecrh = _safe_get(get_ECRH, shot, xArrayOutput=xArrayOutput)
+    """
+    nbi = get_NBI(shot, xArrayOutput=xArrayOutput)
+    icrh = get_ICRH(shot, xArrayOutput=xArrayOutput)
+    ecrh = get_ECRH(shot, xArrayOutput=xArrayOutput)
 
     return nbi, icrh, ecrh
 
@@ -489,11 +472,13 @@ def get_Prad(shot, plot = False, xArrayOutput: bool = True):
     :param  shot: shotnumber
     """
 
-    BPD = sf.SFREAD(shot, 'BPD')
+    BPD = safe_sfread('BPD', shot)
+    if BPD is None:
+        return None
     name = 'Pradtot'
     pBPD = np.array(BPD(name), dtype='f4') / 1.0e6
     tBPD = np.array(BPD.gettimebase(name), dtype='f4')
-
+    
     obj = xr.DataArray(pBPD, dims=['t'], 
         coords={'t': ('t', tBPD, {'long_name': 'Time', 'units': 's'})},
         attrs={'units': 'MW', 'long_name': '$P_{rad}$', 
@@ -503,9 +488,9 @@ def get_Prad(shot, plot = False, xArrayOutput: bool = True):
     if plot:
         fig, ax = plt.subplots()
         obj.plot(ax=ax)
+        ax.set_xlim([0,10])
 
-    if xArrayOutput: return obj
-    else: return to_dict_with_metadata(obj)
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
 
 
 # -----------------------------------------------------------------------------
@@ -540,9 +525,9 @@ def compute_phase(signal, n):
     phase = (phase + 90) % 360  # shift to 0-360
     return phase
 
-def get_MP(shot, diag='SSV', unit = 'I', coars = 10, phase = True, 
+def get_MP(shot, diag='MAW', unit = 'I', coars = 10, phase = True, 
            plot = False, xArrayOutput: bool = True):
-    '''
+    """
     Gets the currents in the RMP coils
 
     Alex Reyner Viñolas: areyner@us.es
@@ -550,20 +535,18 @@ def get_MP(shot, diag='SSV', unit = 'I', coars = 10, phase = True,
     :param  diag: SVV or MAW, depending on the user. SVV has the base data
     :param  unit: for MAW, I or U
     :param  phase: add the diferential and toroidal phases
-    '''
+    """
 
     if unit != 'I' or 'U':
         unit = 'I'
 
     diags_to_try = ['MAW', 'SSV'] if diag == 'MAW' else ['SSV', 'MAW']
-    errors = {}
     for d in diags_to_try:
-        try:
-            if d == 'SSV': obj = get_MP_SSV(shot)
-            elif d == 'MAW': obj = get_MP_MAW(shot, unit)
+        if d == 'SSV': obj = get_MP_SSV(shot)
+        elif d == 'MAW': obj = get_MP_MAW(shot, unit)
+        if obj is not None:
             break
-        except Exception as e:
-            errors[d] = e
+    if obj is None: return
 
     # individual coils
     for p in ['u', 'l']:
@@ -628,17 +611,20 @@ def get_MP(shot, diag='SSV', unit = 'I', coars = 10, phase = True,
         ax.set_yticks([1,8,10,17])
         ax.set_yticklabels(['Bl1','Bl8','Bu1','Bu8'])
         ax.tick_params(axis='y', labelsize=12)
+        ax.set_xlim([0,10])
     
-    if xArrayOutput: return obj
-    else: return to_dict_with_metadata(obj)
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
 
 def get_MP_MAW(shot, unit = 'I'):
-    if unit != 'I' or 'U':
-        unit = 'I'
-    MAW = sf.SFREAD(shot, 'MAW')
+
+    MAW = safe_sfread('MAW', shot)
+    if MAW is None:
+        return None
     t = np.array(MAW.gettimebase('IBl1'), dtype='f4')
     coils = np.arange(1,9)
-
+    
+    if unit != 'I' or 'U':
+        unit = 'I'
     obj = xr.Dataset(coords={'t': ('t', t, {'long_name': 'Time', 'units': 's'}), 
                              'coil': ('coil', coils, {'long_name': 'Coil Number'}),},
                      attrs={'shot': shot, 'diag': 'MAW'}
@@ -658,8 +644,11 @@ def get_MP_MAW(shot, unit = 'I'):
 
 def get_MP_SSV(shot):
 
-    SSV = sf.SFREAD(shot, 'SSV')
+    SSV = safe_sfread('SSV', shot)
+    if SSV is None:
+        return None
     t = np.array(SSV.gettimebase('Iact1'), dtype='f4')
+
     number = np.arange(1, 17)
     coils = np.arange(1,9)
     obj = xr.Dataset(coords={'t': ('t', t, {'long_name': 'Time', 'units': 's'}), 
@@ -699,7 +688,10 @@ def get_neutrons(shot, plot = False, xArrayOutput: bool = True):
 
     Alex Reyner Viñolas: areyner@us.es
     """
-    ENR = sf.SFREAD(shot, 'ENR')
+
+    ENR = safe_sfread('ENR', shot)
+    if ENR is None:
+        return None
     t = np.array(ENR.gettimebase('NRATE'), dtype='f4')
     signal_name = 'NRATE_II' if 'NRATE_II' in ENR.getlist() else 'NRATE'
 
@@ -719,9 +711,9 @@ def get_neutrons(shot, plot = False, xArrayOutput: bool = True):
     if plot:
         fig, ax = plt.subplots()
         obj.rate.plot(ax=ax)
+        ax.set_xlim([0,10])
 
-    if xArrayOutput: return obj
-    else: return to_dict_with_metadata(obj)
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
 
 def get_neutron_history(shot_0: int, shot_1: int, plot = True, 
                         xArrayOutput: bool = True):
@@ -753,8 +745,7 @@ def get_neutron_history(shot_0: int, shot_1: int, plot = True,
         fig, ax = plt.subplots()
         obj.plot(ax=ax)
 
-    if xArrayOutput: return obj
-    else: return to_dict_with_metadata(obj)
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
     
 def get_NPA(shot, xArrayOutput: bool = True):
     """
@@ -762,15 +753,17 @@ def get_NPA(shot, xArrayOutput: bool = True):
 
     Alex Reyner Viñolas: areyner@us.es
     """
-    
-    CXF = sf.SFREAD(shot, 'CXF')
+
+    CXF = safe_sfread('CXF', shot)
+    if CXF is None:
+        return None
     species = ['RH','LH','RD','LD']
     t = np.array(CXF.gettimebase('RfluxH'), dtype='f4')
+
     obj = xr.Dataset(
         coords={'t': ('t', t, {'long_name': 'Time', 'units': 's'})},
         attrs={'shot': shot, 'diag': 'CXF'}
     )
-
     for sp in species:
         name = f'{sp[0]}flux{sp[1]}'
         elabel = f'{sp[0]}energy{sp[1]}'
@@ -795,64 +788,64 @@ def get_NPA(shot, xArrayOutput: bool = True):
     h2d_data = np.array(CXF('H2HD'), dtype='f4')
     obj['H2HD'] = (('t',), h2d_data, {'long_name': 'H ratio', 'units': ''})
 
-    if xArrayOutput: return obj
-    else: return to_dict_with_metadata(obj)
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_IDA(shot, xArrayOutput: bool = True):
-    IDA = sf.SFREAD(shot, 'IDA')
-    obj = xr.Dataset(attrs={'shot': shot, 'diag': 'IDA'})
+def get_VRT_camera(shot, camera, quantity = 'temperature', 
+                   xArrayOutput: bool = True):
+    import cv2
+    path = f'/shares/experiments/aug-rawfiles/VRT/{shot//1000}/S{shot}'
+    npy_filepath = path + f'/S{shot}_' + camera + '.npy'
+    mp4_filepath = path + f'/S{shot}_' + camera + '.mp4'
+# 1. Intento de carga desde archivo .npy
+    if os.path.exists(npy_filepath):
+        video_array = np.load(npy_filepath, allow_pickle=True)
+        timestamps = np.array([item[0] for item in video_array], dtype=float)
+        timestamps -= timestamps[0]
+        timestamps /= 1e9  # Nanosegundos a segundos
+        frames = np.stack([item[1] for item in video_array])
 
-    for signal in ['Te','Te_up','Te_lo','Te_unc',
-                   'ne','ne_up','ne_lo','ne_unc',
-                   'pe','pe_up','pe_lo','pe_unc']:
-        try:
-            data = IDA(signal)
-            area = IDA.getareabase(signal)
-            t = np.array(IDA.gettimebase(signal), dtype='f4')
-            label = 'rhop'
-            dummy = xr.DataArray(data,
-                                dims={'t', label,}, 
-                                coords={'t':t, label:area[:,0],})
-            dummy = dummy.transpose(label,'t')
-            dummy.coords['rhop'].attrs['long_name'] = '$\\rho_{pol}$'
-            dummy.attrs['long_name'] = signal          
-            if 'Te' in signal:
-                dummy = dummy/1000
-                dummy.attrs['units'] = 'keV'
-            elif 'ne' in signal:
-                dummy.attrs['units'] = '1/m³'
-            elif 'pe' in signal:
-                dummy.attrs['units'] = 'Pa'
-            obj[signal] = dummy
-        except:
-            continue
-    
-    for signal in IDA.getlist_by_type('SignalGroup'):
-        if 'dcn_' not in signal: continue
-        try:
-            data = IDA(signal)
-            area = IDA.getareabase(signal)
-            t = np.array(IDA.gettimebase(signal), dtype='f4')
-            dummy = xr.DataArray(data, 
-                                dims={'x_dcn', 'mmm', 't', }, 
-                                coords={'x_dcn':[1,2,3,4,5,6,7,8],
-                                        'mmm':[1,2,3,4,5,6,7,8,9,10,11],
-                                        't':t,})
-            dummy.coords['x_dcn'].attrs['long_name'] = 'line'
-            dummy.attrs['long_name'] = signal          
-            obj[signal] = dummy
-        except:
-            continue
+    # 2. Alternativa: Carga desde archivo .mp4 si el .npy no existe
+    elif os.path.exists(mp4_filepath):
+        cap = cv2.VideoCapture(mp4_filepath)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
+        frames_list = []
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            # Convertir BGR (OpenCV) a Grayscale
+            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            frames_list.append(gray_frame)
 
-    obj.coords['t'].attrs['long_name'] = 'Time'
-    obj.coords['t'].attrs['units'] = 's'
+        cap.release()
 
-    if xArrayOutput: return obj
-    else: return to_dict_with_metadata(obj)
+        frames = np.array(frames_list)  # Forma: (t, y, x)
+
+        # Generar timestamps ficticios en base a los FPS si no hay marcas de tiempo exactas
+        if fps > 0:
+            timestamps = np.arange(len(frames)) / fps
+        else:
+            timestamps = np.arange(len(frames), dtype=float)
+
+    else:
+        raise FileNotFoundError(f"No se encontró ni .npy ni .mp4 en la ruta: {path}")
+
+    obj = xr.DataArray(frames[:, ::-1, :], dims=['t', 'y', 'x'],
+                    coords={'t': timestamps, 
+                            'y': np.arange(len(frames[0,:,0])),
+                            'x': np.arange(len(frames[0,0,:]))},
+                    attrs={'shot': shot,
+                            'camera': camera,
+                            'units': 'ADU',
+                            },
+    )
+
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
 
 def get_VRT_roi(shot, camera = '06Bul2', name = 'ICRHS2', 
-                quantity = 'temperature', plot = True, 
+                quantity = 'temperature', plot = False, 
                 xArrayOutput: bool = True):
     class calibrated_camera:
         def __init__(self,configXML,args):

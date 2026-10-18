@@ -67,9 +67,9 @@ def get_INPA_pmt(shot, diag='npi', channels=np.arange(1,8+1),
     else: return to_dict_with_metadata(inpa)
 
 def plot_INPA_pmt(inpa, roll=100, ignore_channel = 6, **kwargs):
-    '''
+    """
     Plots all channels for inpa pmt
-    '''
+    """
     xr.set_options(keep_attrs=True)
     data = inpa.pmt.coarsen(t=100, boundary='trim').mean().sel(t=slice(0,10))
     data = data - data.min('t')
@@ -99,9 +99,9 @@ def plot_INPA_pmt(inpa, roll=100, ignore_channel = 6, **kwargs):
     plt.tight_layout()
 
 def plot_INPA_shutter(inpa, ax=None, **kwargs):
-    '''
+    """
     Plots inpa shutter information
-    '''
+    """
     if ax == None: 
         fig, ax = plt.subplots(4,1,figsize=(8,8), sharex=True)
         # return fig, ax

@@ -7,25 +7,23 @@ from .Misc import to_dict_with_metadata
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
+from ._common import safe_sfread, safe_equ, _clean_val, to_dict_with_metadata
 
 
 
 def get_pellets(shot, coars = 1000, plot = True, xArrayOutput: bool = True,):
-    '''
+    """
     Return the pellets time trace in terms of programmed value and pellets
     that reached the plasma.
 
-    :param shot: AUG shot number
-    :param avg_window: Window size for block averaging to downsample high-frequency signal
-    :param remove_offset: Correct the real value signal offset using pre-shot baseline
-    :param xArrayOutput: Return xarray.Dataset if True, else converted dictionary
-    '''
+    Alex Reyner: areyner@us.es
+    """
 
-    PID = sf.SFREAD(shot, 'PID')
+    PID = safe_sfread('PID', shot)
     t = np.array(PID.gettimebase('5Co'), dtype='f4')
     real = np.array(PID('5Co'), dtype='f4')
     prog = np.array(PID('Pelarr'), dtype='f4')
-
+    
     obj = xr.Dataset(
         data_vars={
             'real_value': (['t'], real,

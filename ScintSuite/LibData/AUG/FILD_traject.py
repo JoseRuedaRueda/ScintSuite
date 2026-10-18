@@ -205,8 +205,8 @@ class FILD4_traject:
         :param  polyorder: polyorder of the Savgol filter
         """
         if path_ps == '':
-            path_ps = os.path.join(paths.FILD4_trajectories,
-                                   'output_power_supply', str(self.shot)[0:2],
+            path_ps = os.path.join(paths.FILD4_trajectories, 
+                                   str(self.shot)[0:2],
                                    'FILD_MDRS_'+str(self.shot)+'.txt')
         print('path is ' + path_ps)
         data = np.loadtxt(path_ps, delimiter='\t')

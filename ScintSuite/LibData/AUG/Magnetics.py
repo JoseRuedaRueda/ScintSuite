@@ -8,7 +8,7 @@ import numpy as np
 import aug_sfutils as SF
 import ScintSuite.errors as errors
 import ScintSuite.LibData.AUG.DiagParam as params
-from .Misc import to_dict_with_metadata
+from ._common import safe_sfread, safe_equ, _clean_val, to_dict_with_metadata
 import xarray as xr
 xr.set_options(keep_attrs=True)
 
@@ -39,7 +39,6 @@ except ModuleNotFoundError:
 # %% Auxiliary objects
 # ----------------------------------------------------------------------------
 paths = Path(machine='AUG')
-logger = logging.getLogger('ScintSuite.Magnetics')
 
 # ----------------------------------------------------------------------------
 # --- Coils corrections routines. (update 02/10/2026)

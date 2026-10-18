@@ -18,5 +18,4 @@ from ScintSuite.LibData.AUG._FILD import *
 import ScintSuite.LibData.AUG.FILD_traject as FILD_traject
 import ScintSuite.LibData.AUG.FILD_fastchannel as FILD_fastchannel
 from ScintSuite.LibData.AUG._INPA import *
-import ScintSuite.LibData.AUG.INPA_fastchannel as FILD_fastchannel
-from ScintSuite._pySpecView import pySpecView
+import ScintSuite.LibData.AUG.INPA_fastchannel as INPA_fastchannel
