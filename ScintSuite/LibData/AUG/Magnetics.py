@@ -6,24 +6,18 @@ import os
 import logging
 import numpy as np
 import aug_sfutils as SF
-import ScintSuite.errors as errors
-import ScintSuite.LibData.AUG.DiagParam as params
-from ._common import safe_sfread, safe_equ, _clean_val, to_dict_with_metadata
 import xarray as xr
-xr.set_options(keep_attrs=True)
 
 # import dd                # Module to load shotfiles
 from tqdm import tqdm
 from typing import Optional
 from ScintSuite._Paths import Path
 from scipy.interpolate import interp1d
-
 try:
     import requests
 except ModuleNotFoundError:
     print('request package is not installed. Install it to read '
           + 'the magnetic phase corrections.')
-
 try:
     import re
 except ModuleNotFoundError:
@@ -35,6 +29,16 @@ except ModuleNotFoundError:
     print('shutil package is not installed. Install it to read '
           + 'the magnetic phase corrections.')
 
+import ScintSuite.errors as errors
+import ScintSuite.LibData.AUG.DiagParam as params
+
+from ._common import safe_sfread, safe_equ, _clean_val, to_dict_with_metadata
+
+xr.set_options(keep_attrs=True)
+import logging
+logger = logging.getLogger(__name__)
+
+
 # ----------------------------------------------------------------------------
 # %% Auxiliary objects
 # ----------------------------------------------------------------------------
@@ -44,26 +48,29 @@ paths = Path(machine='AUG')
 # --- Coils corrections routines. (update 02/10/2026)
 # ----------------------------------------------------------------------------
 def get_magnetics(shot, coilNumber: int = 14, coilGroup: str = 'B31', 
-                  correction = False, xArrayOutput: bool = True):
+                  correction = False, xArrayOutput: bool = True, **kwargs):
     """
-    Retrieve from the shot file the magnetic data information.
+    Retrieve from the shot file the magnetic data information. 
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Based on the old routine written by P. Oyola, slightly changed
+
+    Alex Reyner: areyner@us.es
 
     :param  shotnumber: Shot number to get the data.
     :param  coilNumber: Coil number in the coil array.
     :param  coilGroup: can be B31, B17, C09,... by default set to B31
     (ballooning coils)
+    :param  correction: get coils phase correction
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
     if shot <= 33739: diag = 'MHA'
     else: diag = 'MHI'
     name = '%s-%02d' % (coilGroup, coilNumber)
 
-    try:
-        coils = SF.SFREAD(shot, diag)
-    except:
-        raise errors.DatabaseError(
-            'Shotfile not existent for ' + diag + ' #' + str(shot))
+    coils = safe_sfread(diag, shot, **kwargs)
+    if coils is None:
+        return None
+
     try:
         t = np.array(coils.gettimebase(name), dtype='f4')
         coil = np.array(coils(name), dtype='f4')
@@ -94,7 +101,8 @@ def get_magnetics(shot, coilNumber: int = 14, coilGroup: str = 'B31',
             coilNumber, coilGroup, shotnumber=shot)
 
     obj = xr.DataArray(coil, dims=['t'], 
-                       coords={'t': ('t', t, {'long_name': 'Time', 'units': 's'})}, 
+                       coords={'t': ('t', t, {'long_name': 'Time', 
+                                              'units': 's'})}, 
                        attrs=attrs,
     )
 
