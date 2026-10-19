@@ -1,29 +1,47 @@
-"""Routines to interact with the AUG database."""
+"""
+Originally written by Pablo Oyola (pablo.oyola@ipp.mpg.de). Reimplemented by 
+Jose Rueda (jrrueda@us.es) and Alex Reyner (areyner@us.es)
+
+Routines to interact with the AUG database. Contains:
+
+- electron quantities (density and temperature)
+- ion quantities (temperature an rotation)
+- IDA, IDI, CXRS, interferometer (DCN, DCK) and Thompson (VTA) imports
+- ECE and Zeff
+"""
+
 import numpy as np
 import xarray as xr
-xr.set_options(keep_attrs=True)
 import aug_sfutils as sf
+
 from typing import Optional
-from ScintSuite._Paths import Path
-from scipy.interpolate import interp1d, interp2d, UnivariateSpline
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d, interp2d, UnivariateSpline
 
 from ScintSuite.LibData.AUG.Equilibrium import get_rho, get_shot_basics
-from ._common import safe_sfread, safe_equ, _clean_val, to_dict_with_metadata
-import logging
-logger = logging.getLogger('ScintSuite.Data')
+from ScintSuite._Paths import Path
 pa = Path()
 
+from ._common import safe_sfread, safe_equ, _clean_val, to_dict_with_metadata
+
+xr.set_options(keep_attrs=True)
+import logging
+logger = logging.getLogger(__name__)
+
 
 # -----------------------------------------------------------------------------
-# --- Electron density and temperature profiles.
+# --- Electron density and temperature profiles (update 19/10/2026)
 # -----------------------------------------------------------------------------
-
 def get_ne_core(shot, diag = 'VTA', xArrayOutput: bool = True):
     """
-    Wrap to get AUG core electron density, or the line integrated DC
+    Wrap to get AUG core electron density
+    Supports IDA and VTA (Thompson) and DCX (line integrated)
 
     Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  diag: diagnostic from which 'ne' will extracted (default VTA)
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
     try:
         if diag == 'VTA':
@@ -33,18 +51,24 @@ def get_ne_core(shot, diag = 'VTA', xArrayOutput: bool = True):
             ida = get_IDA(shot)
             out =  ida[['ne', 'ne_unc']].sel(rho=0, method='nearest')
         elif diag in ['DCK', 'DCN']:
-            out = get_ne_DC(shot, diag)
+            out = get_DCX(shot, diag)
     except Exception: return
     return out if xArrayOutput else to_dict_with_metadata(out)
 
-def get_ne(shot, xArrayOutput: bool = True):
+def get_ne(shot, xArrayOutput: bool = True, **kwargs):
     """
-    Wrap to get AUG electron density profile
+    Wrap to get AUG electron density profile.
+    Supports IDA
+
+    Based on the old routine written by P. Oyola
 
     Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
     try:
-        ida = get_IDA(shot)
+        ida = get_IDA(shot, **kwargs)
         out =  ida[['ne', 'ne_unc']]
     except Exception: return
     return out if xArrayOutput else to_dict_with_metadata(out)
@@ -52,8 +76,13 @@ def get_ne(shot, xArrayOutput: bool = True):
 def get_Te_core(shot, diag = 'VTA', xArrayOutput: bool = True):
     """
     Wrap to get AUG core electron temperature.
+    Supports IDA and VTA (Thompson)
 
     Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  diag: diagnostic from which 'Te' will extracted (default VTA)
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
     try:
         if diag == 'VTA':
@@ -65,47 +94,63 @@ def get_Te_core(shot, diag = 'VTA', xArrayOutput: bool = True):
     except Exception: return
     return out if xArrayOutput else to_dict_with_metadata(out)
 
-def get_Te(shot, xArrayOutput: bool = True):
+def get_Te(shot, xArrayOutput: bool = True, **kwargs):
     """
     Wrap to get AUG electron temperature profile
+    Supports IDA
+
+    Based on the old routine written by P. Oyola
 
     Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
     try:
-        ida = get_IDA(shot)
+        ida = get_IDA(shot, **kwargs)
         out =  ida[['Te', 'Te_unc']]
     except Exception: return
     return out if xArrayOutput else to_dict_with_metadata(out)
 
 
 # -----------------------------------------------------------------------------
-# --- Ion temperature
+# --- Ion temperature (update 19/10/2026)
 # -----------------------------------------------------------------------------
-def get_Ti(shot, xArrayOutput: bool = True):
+def get_Ti(shot, diag = 'IDI', xArrayOutput: bool = True, **kwargs):
     """
-    Wrap to get AUG ion temperature profile from IDI
+    Retrieves from the database the ion temperature.
+
+    Based on the old routine written by P. Oyola
 
     Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  diag: diagnostic from which 'Ti' will extracted.
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
     try:
-        idi = get_IDI(shot)
-        out =  idi[['Ti', 'Ti_unc']]
+        if diag == 'IDI':
+            idi = get_IDI(shot, **kwargs)
+            out =  idi[['Ti', 'Ti_unc']]
+        else:
+            cxrs = get_CXRS(shot, diag, **kwargs).isel(line=0)
+            out = cxrs[['Ti', 'Ti_unc']]
     except Exception: return
     return out if xArrayOutput else to_dict_with_metadata(out)
 
-def get_Ti_core(shot: int, diag = 'CEZ', xArrayOutput: bool = True):
+def get_Ti_core(shot: int, diag = 'IDI', xArrayOutput: bool = True):
     """"
     Wrapper to all the routines to read the ion core temperature.
+    Supports CXRS and IDI
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Based on the old routine written by P. Oyola
+
     Alex Reyner: areyner@us.es
 
-    :param  shot: Shot number
+    :param  shot: shot number
     :param  diag: diagnostic from which 'Ti' will extracted.
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
-    if diag not in ('IDI', 'CEZ', 'CXRS'):
-        raise Exception('Diagnostic non supported!')
-
     try:
         if diag == 'IDI':
             idi = get_IDI(shot).sel(rho_ti=0, method='nearest')
@@ -122,11 +167,12 @@ def get_Ti_CXRS_new(shot, time: float = None, tavg: float = 0.05,
                     smooth_factor: float = 100,
                     plot = False, xArrayOutput: bool = True):
     """
-    Updated CXRS temperature measurement. Extract profile given a certain time
+    Retrieves from the CXRS the ion temperature profile.
 
-    Jose Rueda: jrrueda@us.es
+    Based on the old routine written by P. Oyola
+
     Alex Reyner: areyner@us.es
-
+    
     :param  shot: shotnumber to read.
     :param  time: time window to get the data.
     :param  tavg: averaging time in seconds. 50 ms by default.
@@ -513,30 +559,31 @@ def get_Ti_CXRS_old(shotnumber: int, time: float = None,
 
     return output
 
+
 # -----------------------------------------------------------------------------
-# --- Toroidal rotation velocity
+# --- Toroidal rotation velocity (update 19/10/2026)
 # -----------------------------------------------------------------------------
-def get_tor_rotation(shot, diag = 'IDI', xArrayOutput: bool = True):
+def get_tor_rotation(shot, diag = 'IDI', xArrayOutput: bool = True, **kwargs):
     """
     Retrieves from the database the toroidal velocity velocity (omega_tor).
     To get the linear velocity (i.e., vtor) multiply by the major radius.
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Based on the old routine written by P. Oyola
+
     Alex Reyner: areyner@us.es
 
-    :param  cxrs_options: extra parameters to send to the fitting procedure
-    that reads all the rotation velocities.
+    :param  shot: shot number
+    :param  diag: either IDI or any CXRS
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
-
     try:
         if diag == 'IDI':
-            idi = get_IDI(shot).sel(rho_ti=0, method='nearest')
+            idi = get_IDI(shot, **kwargs).sel(rho_ti=0, method='nearest')
             out = idi[['vt', 'vt_unc']]
         else:
-            cxrs = get_CXRS(shot, diag).isel(line=0)
+            cxrs = get_CXRS(shot, diag, **kwargs).isel(line=0)
             out = cxrs[['vt', 'vt_unc']]
     except Exception: return
-    
     return out if xArrayOutput else to_dict_with_metadata(out)
 
 def get_tor_rotation_CXRS_new(shot, time: float = None, tavg: float = 0.05, 
@@ -544,9 +591,11 @@ def get_tor_rotation_CXRS_new(shot, time: float = None, tavg: float = 0.05,
                     smooth_factor: float = 100,
                     plot = False, xArrayOutput: bool = True):
     """
-    Updated CXRS ion rotation measurement. Extract profile given a certain time
+    Retrieves from the CXRS the toroidal velocity profile (omega_tor).
+    To get the linear velocity (i.e., vtor) multiply by the major radius.
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Based on the old routine written by P. Oyola
+
     Alex Reyner: areyner@us.es
 
     :param  shot: shotnumber to read.
@@ -1032,17 +1081,22 @@ def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
 
     return output
 
+
 # -----------------------------------------------------------------------------
-# %% IDA, IDI and other group diagnostic
+# --- IDA, IDI and other group diagnostic (update 19/10/2026)
 # -----------------------------------------------------------------------------
-def get_IDA(shot, plot = False, xArrayOutput: bool = True):
+def get_IDA(shot, plot = False, xArrayOutput: bool = True, **kwargs):
     """
     Returns some of the IDA quantities. IDA is not available in all shots
 
     Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
 
-    IDA = safe_sfread('IDA', shot)
+    IDA = safe_sfread('IDA', shot, **kwargs)
     if IDA is None:
         return None
     t = np.array(IDA.gettimebase('Te'), dtype='f4')
@@ -1096,14 +1150,18 @@ def get_IDA(shot, plot = False, xArrayOutput: bool = True):
 
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_IDI(shot, plot = False, xArrayOutput: bool = True):
+def get_IDI(shot, plot = False, xArrayOutput: bool = True, **kwargs):
     """
     Same as IDA, but for ions.
 
     Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
 
-    IDI = safe_sfread('IDI', shot)
+    IDI = safe_sfread('IDI', shot, **kwargs)
     if IDI is None:
         return None
     t = np.array(IDI.gettimebase('Ti'), dtype='f4')
@@ -1154,12 +1212,18 @@ def get_IDI(shot, plot = False, xArrayOutput: bool = True):
         
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_VTA(shot, plot = False, xArrayOutput: bool = True):
+def get_VTA(shot, plot = False, xArrayOutput: bool = True, **kwargs):
     """
-    Thompson diagnostic    
+    Thompson diagnostic
+
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
 
-    VTA = safe_sfread('VTA', shot)
+    VTA = safe_sfread('VTA', shot, **kwargs)
     if VTA is None:
         return None
     t = np.array(VTA.gettimebase('Te_c'), dtype=np.float32)
@@ -1198,15 +1262,21 @@ def get_VTA(shot, plot = False, xArrayOutput: bool = True):
 
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_ne_DC(shot, diag = 'DCK', xArrayOutput: bool = True):
+def get_DCX(shot, diag = 'DCK', xArrayOutput: bool = True, **kwargs):
     """
-    Gets de integrated density
+    Gets de integrated density form the interferometers
+
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  diag: interferometer diagnostic (default DCK)
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
 
     if diag not in ('DCN', 'DCK'):
         raise ValueError(f'Invalid diagnostic. Supported: DCN or DCK.')
 
-    DC = safe_sfread(diag, shot)
+    DC = safe_sfread(diag, shot, **kwargs)
     if DC is None:
         return None
     t = np.array(DC.gettimebase('H-0'),dtype='f4')
@@ -1225,17 +1295,20 @@ def get_ne_DC(shot, diag = 'DCK', xArrayOutput: bool = True):
 
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_CXRS(shot, diag = 'CEZ',
-             xArrayOutput: bool = True):
+def get_CXRS(shot, diag = 'CEZ', xArrayOutput: bool = True, **kwargs):
     """
     Imports one of the CXRS diagnostics
 
     Alex Reyner: areyner@us.es
 
     :param  shot: shotnumber to read.
-    :param  daig: CXRS diagnostic to import
+    :param  diag: CXRS diagnostic to import
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
-    cxrs = safe_sfread(diag, shot)
+    if diag not in ('IDI', 'CEZ', 'CUZ', 'COZ'):
+        raise Exception('Diagnostic not supported!')
+    
+    cxrs = safe_sfread(diag, shot, **kwargs)
     if cxrs is None:
         return None
     
@@ -1280,12 +1353,20 @@ def get_CXRS(shot, diag = 'CEZ',
 def _fit_profile(rho, data, err, nrho, rho0, rho1, smooth_factor):
     """
     Fitss profile data with UnivariateSpline, returns line
+
+    :param  rho: input rho values
+    :param  data: values to fit
+    :param  err: associated error values
+    :param  nrho: number output rho values
+    :param  rho0: initial output rho
+    :param  rho1: final output rho
+    :param  smooth_factor: to smooth the curve
     """
-    # Calcular pesos (inverso de la incertidumbre)
+    # Computes weights
     with np.errstate(divide='ignore', invalid='ignore'):
         weight_vals = 1.0 / err
 
-    # Filtrar valores inválidos, ceros o nulos
+    # Filter invalid numbers and zeros
     flags = (np.isnan(rho) | np.isnan(data) | np.isnan(err) | 
              (err == np.inf) | (err == 0.0) | (data == 0.0) | 
              np.isinf(rho) | np.isinf(data))
@@ -1294,7 +1375,7 @@ def _fit_profile(rho, data, err, nrho, rho0, rho1, smooth_factor):
     data_clean = data[~flags]
     err_clean = weight_vals[~flags]
 
-    # Definir rejilla de salida rhop_out
+    # Define output mesh
     if rho0 is None:
         rho0 = float(rho_clean.min())
     if rho1 is None:
@@ -1302,18 +1383,16 @@ def _fit_profile(rho, data, err, nrho, rho0, rho1, smooth_factor):
     rho_out = np.linspace(rho0, rho1, num=nrho)
 
     if len(rho_clean) >= 8:
-        # Ordenar por seguridad antes de ajustar
+        # Sort
         sorted_idx = np.argsort(rho_clean)
         rho_clean = rho_clean[sorted_idx]
         data_clean = data_clean[sorted_idx]
         err_clean = err_clean[sorted_idx]
-
-        # Spline de suavizado
+        # Spline
         splineFun = UnivariateSpline(x=rho_clean, y=data_clean, w=err_clean, 
                                      s=smooth_factor, ext=0.0)
         data_fitted = splineFun(rho_out)
-
-        # Descartar extrapolaciones fuera del rango medido
+        # Remove data out of range
         eps = 0
         extrap_flags = (rho_out < (rho_clean.min()-eps)) | (rho_out > (rho_clean.max()+eps))
         data_fitted[extrap_flags] = np.nan
@@ -1324,14 +1403,18 @@ def _fit_profile(rho, data, err, nrho, rho0, rho1, smooth_factor):
 
 
 # -----------------------------------------------------------------------------
-# %% ECE data.
+# --- ECE data (update 19/10/2026)
 # -----------------------------------------------------------------------------
-
 def get_ECE(shot, xArrayOutput: bool = True):
     '''
     Get data from ECE
 
+    Based on the old routine written by P. Oyola
+
     Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  xArrayOutput: get the output in xarray format or dictionary
     '''
 
     CEC = safe_sfread('CEC', shot)
@@ -1708,6 +1791,17 @@ def correctShineThroughECE(ecedata: dict, diag: str = 'IDA', exp: str = 'AUGD',
     return ecedata
 
 def get_Zeff(shot, plot = False, xArrayOutput: bool = True):
+    '''
+    Get the Zeff effective profile from IDZ
+
+    Based on the old routine written by P. Oyola
+
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
+    '''
 
     IDZ = safe_sfread('IDZ', shot)
     if IDZ is None:
