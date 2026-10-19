@@ -19,3 +19,11 @@ import ScintSuite.LibData.AUG.FILD_traject as FILD_traject
 import ScintSuite.LibData.AUG.FILD_fastchannel as FILD_fastchannel
 from ScintSuite.LibData.AUG._INPA import *
 import ScintSuite.LibData.AUG.INPA_fastchannel as INPA_fastchannel
+
+def __getattr__(name):
+    if name == "pySpecView":
+        warnings.warn("pySpecView import from here will deprecated in 2.2", 
+                      DeprecationWarning, stacklevel=2)
+        from ScintSuite._pySpecView import pySpecView
+        return pySpecView
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
