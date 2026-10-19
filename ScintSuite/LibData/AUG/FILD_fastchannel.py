@@ -1,28 +1,44 @@
 """
 Routines to load and work with FILD fast channels (pmt or apd).
-Also contains the routines for the INPA
-(update 02/10/2026)
+(update 19/10/2026)
 
 Alex Reyner Viñolas: areyner@us.es
 """
 
-import matplotlib.pyplot as plt
+import os
 import numpy as np
 import xarray as xr
-import ScintSuite.LibData.AUG.Misc as misc
-from .Misc import to_dict_with_metadata
-xr.set_options(keep_attrs=True)
 import aug_sfutils as sf
-import os
 
+import matplotlib.pyplot as plt
+
+import ScintSuite.LibData.AUG.Misc as misc
+from ScintSuite._Paths import Path
+from ScintSuite._Machine import machine
+paths = Path(machine)
+from ._common import safe_sfread, safe_equ, _clean_val, to_dict_with_metadata
+
+xr.set_options(keep_attrs=True)
+import logging
+logger = logging.getLogger(__name__)
 
 def get_FILD1_pmt(shot, xArrayOutput = True):
+    """
+    Get FILD1 fast channels
+
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  xArrayOutput: get the output in xarray format or dictionary
+    """
     if shot >= 30000:
-        FHX = sf.SFREAD(shot, 'FHC')
+        FHX = safe_sfread('FHC', shot)
         mult = 1.00000000000000000
     else:
-        FHX = sf.SFREAD(shot, 'FHA')
+        FHX = safe_sfread('FHA', shot)
         mult = 0.10000000000000000
+    if FHX is None:
+        return None
 
     slist = [s for s in FHX.getlist() if 'FI' in s][:20]
     t = FHX.gettimebase(slist[0])
@@ -42,7 +58,7 @@ def get_FILD1_pmt(shot, xArrayOutput = True):
     if xArrayOutput: return fild
     else: return to_dict_with_metadata(fild)
 
-def get_FILD4_apd(shot, fps, APD_dir='/shares/departments/AUG/users/juaord/',
+def get_FILD4_apd(shot, fps, APD_dir=paths.FILD4_trajectories,
                   plot = False, xArrayOutput = True):
     """
     Docstring for get_FILD4_APD
@@ -51,6 +67,7 @@ def get_FILD4_apd(shot, fps, APD_dir='/shares/departments/AUG/users/juaord/',
     :param  fs: fps of the camera (to be standarized)
     :param  APD_dir: path to where the files are stored
     :param  plot: immediately plot the timetraces
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
     data_dir = os.path.join(APD_dir, str(shot))
     apd = xr.DataArray(dims={'t','channel',},
@@ -77,7 +94,12 @@ def get_FILD4_apd(shot, fps, APD_dir='/shares/departments/AUG/users/juaord/',
 
 def plot_FILD1_pmt(pmt, roll=100, **kwargs):
     """
-    Plots all channels for fild1 pmt
+    Plot all FILD1 fast channels
+
+    Alex Reyner: areyner@us.es
+
+    :param  pmt: dataset obtained with get_FILD1_pmt
+    :param  roll: filters data
     """
     xr.set_options(keep_attrs=True)
     data = pmt.coarsen(t=100, boundary='trim').mean().sel(t=slice(0,10))
@@ -107,7 +129,12 @@ def plot_FILD1_pmt(pmt, roll=100, **kwargs):
 
 def plot_FILD4_apd(apd, roll=100, **kwargs):
     """
-    Plots all channels for an APD shotfile
+    Plot all FILD4 APD channels
+
+    Alex Reyner: areyner@us.es
+
+    :param  pmt: dataset obtained with get_FILD1_pmt
+    :param  roll: filters data
     """
     apd = apd - apd.sel(t=slice(8,9)).mean('t')
     # APDnoise = apd.sel(t=slice(1,2)).std('t')

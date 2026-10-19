@@ -6,19 +6,34 @@ Also contains the routines for the INPA
 Alex Reyner Viñolas: areyner@us.es
 """
 
-import matplotlib.pyplot as plt
+import os
 import numpy as np
 import xarray as xr
-import ScintSuite.LibData.AUG.Misc as misc
-from .Misc import to_dict_with_metadata
-xr.set_options(keep_attrs=True)
 import aug_sfutils as sf
-import os
 
+import matplotlib.pyplot as plt
 
-def get_INPA_pmt(shot, diag='npi', channels=np.arange(1,8+1), 
+from ._common import safe_sfread, safe_equ, _clean_val, to_dict_with_metadata
+
+xr.set_options(keep_attrs=True)
+import logging
+logger = logging.getLogger(__name__)
+
+def get_INPA_pmt(shot, channels=np.arange(1,8+1), 
                  xArrayOutput = True):
-    NPI = sf.SFREAD(shot, diag)
+    """
+    Get INPA fast channels
+
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  channels: select channels, as only 9 out 16 are used
+    :param  xArrayOutput: get the output in xarray format or dictionary
+    """
+    NPI = safe_sfread('NPI', shot)
+    if NPI is None:
+        return None
+    
     open = NPI('ShutOpen')
     closed = NPI('ShutClos')
     ucoil = NPI('UCoil')
@@ -60,7 +75,7 @@ def get_INPA_pmt(shot, diag='npi', channels=np.arange(1,8+1),
     inpa['pmt'].attrs['long_name'] = 'INPA pmt'
     inpa['pmt'].attrs['units'] = 'a.u.'
     inpa.attrs['shot'] = shot
-    inpa.attrs['diag'] = diag
+    inpa.attrs['diag'] = 'NPI'
     inpa['sample_rate'] = t[1]-t[0]
 
     if xArrayOutput: return inpa
@@ -68,7 +83,13 @@ def get_INPA_pmt(shot, diag='npi', channels=np.arange(1,8+1),
 
 def plot_INPA_pmt(inpa, roll=100, ignore_channel = 6, **kwargs):
     """
-    Plots all channels for inpa pmt
+    Plots all channels for INPA pmt
+
+    Alex Reyner: areyner@us.es
+
+    :param  inpa: datset obtained with get_INPA_pmt
+    :param  roll: filters data
+    :param  ignore channel: ignore a channel in the plot
     """
     xr.set_options(keep_attrs=True)
     data = inpa.pmt.coarsen(t=100, boundary='trim').mean().sel(t=slice(0,10))
@@ -101,6 +122,11 @@ def plot_INPA_pmt(inpa, roll=100, ignore_channel = 6, **kwargs):
 def plot_INPA_shutter(inpa, ax=None, **kwargs):
     """
     Plots inpa shutter information
+
+    Alex Reyner: areyner@us.es
+
+    :param  inpa: datset obtained with get_INPA_pmt
+    :param  ax: axis to plot
     """
     if ax == None: 
         fig, ax = plt.subplots(4,1,figsize=(8,8), sharex=True)

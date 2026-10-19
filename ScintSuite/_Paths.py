@@ -41,6 +41,7 @@ class Path:
                                                   'Data',
                                                   'Magnetics')
             self.FILD4_trajectories = '/shares/experiments/aug-rawfiles/FIL/FILD4_coil'
+            self.FILD4_apd = '/shares/experiments/aug-rawfiles/FIL/FILD4_APD'
             self.fonts = [
                 '/usr/share/fonts/truetype',
                 '/usr/share/fonts/truetype/ms-corefonts',

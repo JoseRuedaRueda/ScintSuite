@@ -34,6 +34,8 @@ try:
 except ModuleNotFoundError:
     pass
 
+import logging
+logger = logging.getLogger(__name__)
 
 def get_dist2sep(shot: int = None, R: float = None, z: float = None,
                  t: float = None, diag: str = 'EQH', plot_sep: bool = True,
