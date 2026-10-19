@@ -4,7 +4,6 @@ Routines for the magnetic equilibrium
 import warnings
 import numpy as np
 import xarray as xr
-xr.set_options(keep_attrs=True)
 import aug_sfutils as sf
 import ScintSuite.errors as errors
 from scipy.interpolate import interpn, interp1d
@@ -17,6 +16,9 @@ from matplotlib.offsetbox import AnchoredOffsetbox, TextArea, VPacker
 
 from ._common import safe_sfread, safe_equ, _clean_val, to_dict_with_metadata
 
+xr.set_options(keep_attrs=True)
+import logging
+logger = logging.getLogger(__name__)
 
 # -----------------------------------------------------------------------------
 # --- Magnetic field
@@ -185,11 +187,11 @@ def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
     return psipol
 
 # -----------------------------------------------------------------------------
-# --- Basic shot information (update 03/10/2026)
+# --- Basic shot information (update 19/10/2026)
 # -----------------------------------------------------------------------------
 def get_shot_basics(shot: int = None, diag: str = 'EQH',
                     exp: str = 'AUGD', edition: int = 0,
-                    time: float = None):
+                    time: float = None, shotnumber: int = None):
     """
     Retrieves from the equilibrium reconstruction the basic data stored into
     a dictionary. Technically, it reads the SSQ from the equilibrium
@@ -206,6 +208,7 @@ def get_shot_basics(shot: int = None, diag: str = 'EQH',
     obtained.
     """
     # Checking the inputs.
+    if shotnumber is not None: shot = shotnumber
     sfo = safe_sfread(diag, shot, experiment=exp, edition=edition)
     if sfo is None:
         return None
@@ -296,6 +299,15 @@ def get_shot_basics(shot: int = None, diag: str = 'EQH',
     return ssq
 
 def get_Ip(shot, plot = False, xArrayOutput: bool = True):
+    """
+    Plasma current
+
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
+    """
     MAG = safe_sfread('MAG', shot)
     if MAG is None:
         return None
@@ -315,6 +327,15 @@ def get_Ip(shot, plot = False, xArrayOutput: bool = True):
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
 def get_Bt(shot, plot = False, xArrayOutput: bool = True):
+    """
+    Plasma magnetic field
+
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
+    """
     MAI = safe_sfread('MAI', shot)
     if MAI is None:
         return None
@@ -334,20 +355,21 @@ def get_Bt(shot, plot = False, xArrayOutput: bool = True):
 
 
 # -----------------------------------------------------------------------------
-# --- q_profile (update 03/10/2026)
+# --- q_profile (update 19/10/2026)
 # -----------------------------------------------------------------------------
 def get_q_profile(shot, diag: str = 'EQH', plot = False, 
-                  xArrayOutput: bool = True):
+                  xArrayOutput: bool = True, **kwargs):
     """
     Reads from the database the q-profile as reconstrusted from an experiment.
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Based on the old routine written by P. Oyola
+
     Alex Reyner: areyner@us.es
 
-    :param  shot: Shot number
-    :param  diag: Diag for AUG database, default EQH
-
-    :return
+    :param  shot: shot number
+    :param  diag: diag for AUG database, default EQH
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
 
     diags_to_try = ['FPG', 'EQH'] if diag == 'FPG' else ['EQH', 'FPG']
@@ -356,8 +378,8 @@ def get_q_profile(shot, diag: str = 'EQH', plot = False,
 
     for d in diags_to_try:
         try:
-            if d == 'EQH': obj = get_qprof_EQH(shot)
-            elif d == 'FPG': obj = get_qprof_FPG(shot)
+            if d == 'EQH': obj = _get_qprof_EQH(shot, **kwargs)
+            elif d == 'FPG': obj = _get_qprof_FPG(shot, **kwargs)
             if obj is not None:
                 used_diag = d
                 break
@@ -376,9 +398,17 @@ def get_q_profile(shot, diag: str = 'EQH', plot = False,
     
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_qprof_EQH(shot):
+def _get_qprof_EQH(shot, **kwargs):
+    """
+    Gets q profile from EQH diagnostic
 
-    EQH = safe_sfread('EQH', shot)
+    Based on the old routine written by P. Oyola
+
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    """
+    EQH = safe_sfread('EQH', shot, **kwargs)
     if EQH is None:
         return None
     
@@ -415,9 +445,16 @@ def get_qprof_EQH(shot):
 
     return obj
 
-def get_qprof_FPG(shot):
+def _get_qprof_FPG(shot, **kwargs):
+    """
+    Gets q profile from FPG diagnostic
 
-    FPG = safe_sfread('FPG', shot)
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    """
+
+    FPG = safe_sfread('FPG', shot, **kwargs)
     if FPG is None:
         return None
     
@@ -437,5 +474,5 @@ def get_qprof_FPG(shot):
     return obj
 
 # Alias for the function
-get_q_profile_EQH = get_qprof_EQH
-get_q_profile_FPG = get_qprof_FPG
+_get_q_profile_EQH = _get_qprof_EQH
+_get_q_profile_FPG = _get_qprof_FPG
