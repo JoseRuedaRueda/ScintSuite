@@ -12,7 +12,7 @@ import ScintSuite.errors as errors
 from ScintSuite._Paths import Path
 
 import logging
-logger = logging.getLogger('ScintSuite.Data')
+logger = logging.getLogger(__name__)
 
 try:
     import numba
