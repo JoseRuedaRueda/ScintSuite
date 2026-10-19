@@ -2,13 +2,17 @@
 Routines to work with the pellets
 """
 import aug_sfutils as sf
-import matplotlib.pyplot as plt
-from .Misc import to_dict_with_metadata
-import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
+
+import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
+
 from ._common import safe_sfread, safe_equ, _clean_val, to_dict_with_metadata
 
+xr.set_options(keep_attrs=True)
+import logging
+logger = logging.getLogger(__name__)
 
 
 def get_pellets(shot, coars = 1000, plot = True, xArrayOutput: bool = True,):
@@ -16,7 +20,14 @@ def get_pellets(shot, coars = 1000, plot = True, xArrayOutput: bool = True,):
     Return the pellets time trace in terms of programmed value and pellets
     that reached the plasma.
 
+    Based on the old routine written by P. Oyola
+
     Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  coars: reduce data points (default 1000)
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
 
     PID = safe_sfread('PID', shot)
