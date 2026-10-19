@@ -1273,8 +1273,11 @@ class fields:
 
         Alex Reyner Viñolas: areyner@us.es
 
-        :param  source: xarray with the data
+        :param  source: xarray with the data. Alternatively, path to the file
         '''
+
+        if isinstance(source, (str, os.PathLike)):
+            source = xr.load_dataset(source)
 
         # Possible names for variables
         patterns = {
