@@ -836,6 +836,8 @@ class Geometry:
                         f.writelines([str(self[0]['triangles'][j, 0]) + ' ',
                                       str(self[0]['triangles'][j, 1]) + '\n'])
 
+
+
     def elements_to_stl(self, element_to_save=[0, 1, 2], units: str = 'cm'
                            ,file_name_save: str = 'Test',
                            viewScint = False):
@@ -862,7 +864,7 @@ class Geometry:
 
 ## routines to get external shape
 
-def scint_ConvexHull(geom, coords='real'):
+def scint_ConvexHull(scint, coords='real'):
     """
     Calculates a convex shape around the scintillator perimeter.
 
@@ -871,17 +873,17 @@ def scint_ConvexHull(geom, coords='real'):
     This is very useful for the plots of synthetic signals, where we don't want
     to manually give the scintillator edges or have lots of lines in the middle
 
-    :param  geom: scintillator object from the suite, with the geometry file
+    :param  scint: scintillator object from the suite, with the geometry file
     :param  coords: what coordinates you want to plot: real or pix
 
     :return scint_perim: scintillator contour shape
     """
     if coords == 'real':
-        xdum = geom._coord_real['x1']
-        ydum = geom._coord_real['x2'] 
+        xdum = scint._coord_real['x1']
+        ydum = scint._coord_real['x2'] 
     elif coords == 'pix':
-        xdum = geom._coord_pix['x']
-        ydum = geom._coord_pix['y'] 
+        xdum = scint._coord_pix['x']
+        ydum = scint._coord_pix['y'] 
     allPts = np.column_stack((xdum,ydum))
     hullPts = spsp.ConvexHull(allPts)
     scint_x = np.concatenate((allPts[hullPts.vertices,0],\
@@ -892,11 +894,11 @@ def scint_ConvexHull(geom, coords='real'):
 
     return scint_perim
 
-def get_perimeter(geom, coords='real', smooth=False):
+def get_perimeter(scint, coords='real', smooth=False):
     """
-    Reconstruct geometry perimeter from raw coordinate lists.
+    Reconstruct scintillator perimeter from raw coordinate lists.
 
-    :param  geom: geometry object
+    :param  scint: geometry object
     :param  coords: str 'real' or 'pix'
     :param  smooth: smoothing of the contour
     """
@@ -905,11 +907,11 @@ def get_perimeter(geom, coords='real', smooth=False):
     # 1. Extract coordinates
     # ------------------------------------------------------------
     if coords == 'real':
-        x1 = np.asarray(geom._coord_real['x1'])
-        x2 = np.asarray(geom._coord_real['x2'])
+        x1 = np.asarray(scint._coord_real['x1'])
+        x2 = np.asarray(scint._coord_real['x2'])
     elif coords == 'pix':
-        x1 = np.asarray(geom._coord_pix['x'])
-        x2 = np.asarray(geom._coord_pix['y'])
+        x1 = np.asarray(scint._coord_pix['x'])
+        x2 = np.asarray(scint._coord_pix['y'])
     else:
         raise ValueError("coords must be 'real' or 'pix'")
 
@@ -1138,7 +1140,6 @@ def _geometry_scaling(geomID, new_geomID, mult = 1, relocate = True, ignore = No
     if relocate:
         _geometry_shift(new_geomID, new_geomID, shift_vect, ignore=ignore_set)
 
-
 def _geometry_mirror(geomID, new_geomID, ax = 'x', relocate = True, inversion = False, ignore = None):
     """
     Works with the FILDSIM geometry files.
@@ -1359,7 +1360,6 @@ def stl2geometry(geomID: str,
                                     ]) 
                                 },
                  plot_geom: bool = True,):
-
     """
     This is a wrap to ease converting .stl files into a FILDSIM geometry. Writes
     a gemetry folder in SINPA.
