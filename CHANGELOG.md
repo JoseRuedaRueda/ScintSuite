@@ -1,9 +1,11 @@
-# 2.0.5 AUG LibData
+# 2.1.0 AUG LibData
 - update of LibData AUG to xarray format
 - uniformization of function names and variables
 - change of FILD4 mdrs files (uploaded in the shares now)
 - improvement of FILD and INPA fast channel data imports
 - inclusion of new vessel geometries and MP coils coordinates
+- forward modelling class (FMC) includes anisotropic scintillator emission
+- multiple FMC obkects can be summed easily to produce multi pinhole frames
 
 # 2.0.4 Fix 
 - calculate_phase_space_resolution() to use dataframe object
