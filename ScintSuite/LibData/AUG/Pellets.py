@@ -15,7 +15,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_pellets(shot, coars = 1000, plot = True, xArrayOutput: bool = True,):
+def get_pellets(shot: int = None, coars = 1000, plot = True, xArrayOutput: bool = True,):
     """
     Return the pellets time trace in terms of programmed value and pellets
     that reached the plasma.

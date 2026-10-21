@@ -298,7 +298,7 @@ def get_shot_basics(shot: int = None, diag: str = 'EQH',
 
     return ssq
 
-def get_Ip(shot, plot = False, xArrayOutput: bool = True):
+def get_Ip(shot: int = None, plot = False, xArrayOutput: bool = True):
     """
     Plasma current
 
@@ -326,7 +326,7 @@ def get_Ip(shot, plot = False, xArrayOutput: bool = True):
 
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_Bt(shot, plot = False, xArrayOutput: bool = True):
+def get_Bt(shot: int = None, plot = False, xArrayOutput: bool = True):
     """
     Plasma magnetic field
 
@@ -357,7 +357,7 @@ def get_Bt(shot, plot = False, xArrayOutput: bool = True):
 # -----------------------------------------------------------------------------
 # --- q_profile (update 19/10/2026)
 # -----------------------------------------------------------------------------
-def get_q_profile(shot, diag: str = 'EQH', plot = False, 
+def get_q_profile(shot: int = None, diag: str = 'EQH', plot = False, 
                   xArrayOutput: bool = True, **kwargs):
     """
     Reads from the database the q-profile as reconstrusted from an experiment.
@@ -398,7 +398,7 @@ def get_q_profile(shot, diag: str = 'EQH', plot = False,
     
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def _get_qprof_EQH(shot, **kwargs):
+def _get_qprof_EQH(shot: int = None, **kwargs):
     """
     Gets q profile from EQH diagnostic
 
@@ -445,7 +445,7 @@ def _get_qprof_EQH(shot, **kwargs):
 
     return obj
 
-def _get_qprof_FPG(shot, **kwargs):
+def _get_qprof_FPG(shot: int = None, **kwargs):
     """
     Gets q profile from FPG diagnostic
 

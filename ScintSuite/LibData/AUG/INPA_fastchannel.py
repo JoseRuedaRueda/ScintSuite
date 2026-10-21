@@ -19,7 +19,7 @@ xr.set_options(keep_attrs=True)
 import logging
 logger = logging.getLogger(__name__)
 
-def get_INPA_pmt(shot, channels=np.arange(1,8+1), 
+def get_INPA_pmt(shot: int = None, channels=np.arange(1,8+1), 
                  xArrayOutput = True):
     """
     Get INPA fast channels

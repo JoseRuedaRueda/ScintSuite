@@ -25,7 +25,12 @@ def safe_sfread(diag: str, shot: int, experiment: str = 'AUGD',
     :param edition: Edition of the shotfile
     :return: Shotfile reader object, or None on failure
     """
+    # for retrocompatibility, if shotnumber is used, shot parameter is updated 
+    if 'shotnumber' in kwargs:
+        shot = kwargs.pop('shotnumber')
+
     if sf is None or shot is None or diag is None:
+        logger.warning('Check sfutils, shot number or diagnostic!!')
         return None
     try:
         sfo = sf.SFREAD(diag, int(shot), experiment=experiment, edition=edition, **kwargs)
@@ -53,7 +58,11 @@ def safe_equ(shot: int, diag: str = 'EQH', exp: str = 'AUGD', ed: int = 0, **kwa
     :param ed: Edition (default 0)
     :return: EQU object or None
     """
+    if 'shotnumber' in kwargs:
+        shot = kwargs.pop('shotnumber')
+    
     if sf is None or shot is None:
+        logger.warning('Check sfutils, shot number!!')
         return None
 
     try:

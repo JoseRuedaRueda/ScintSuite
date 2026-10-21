@@ -1,37 +1,37 @@
 """
-Other routines.
+Originally written by Pablo Oyola (pablo.oyola@ipp.mpg.de). Reimplemented by 
+Jose Rueda (jrrueda@us.es) and Alex Reyner (areyner@us.es)
 
 This library will contain routines that because of its nature do not belong to
-a particular category.
-This library contains:
+a particular category. This library contains:
 
 - ELM and other edge quantities
 - Power anh heating
 - MPs
 - other diagnostics from AUG
-
 """
 
+import os
 import numpy as np
 import xarray as xr
 import aug_sfutils as sf
-import ScintSuite.errors as errors
-import ScintSuite.LibData.AUG.DiagParam as params
 
-from ScintSuite._Paths import Path
-import ScintSuite.errors as errors
-import xarray as xr
-xr.set_options(keep_attrs=True)
-from datetime import datetime
-import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import xml.etree.ElementTree as et
 
-import os
+import ScintSuite.errors as errors
+import ScintSuite.errors as errors
+import ScintSuite.LibData.AUG.DiagParam as params
+from ScintSuite._Paths import Path
 pa = Path()
 
 from ._common import safe_sfread, safe_equ, _clean_val, to_dict_with_metadata
+
+xr.set_options(keep_attrs=True)
+import logging
+logger = logging.getLogger(__name__)
+
 
 
 ##
@@ -158,18 +158,23 @@ def get_fast_channel(diag: str, diag_number: int, channels, shot: int,
 
 ##
 # -----------------------------------------------------------------------------
-# --- ELMs and edge (update 10/08/2026)
+# --- ELMs and edge (update 19/10/2026)
 # -----------------------------------------------------------------------------
-def get_ELM(shot, plot = False, xArrayOutput: bool = True):
+def get_ELM(shot: int = None, plot = False, xArrayOutput: bool = True, **kwargs):
     """
-    Returns an xarray with ELM related quantities
+    Returns an xarray with ELM related quantities: duration, energy loss, 
+    mhd work, and an ELM mask
 
-    Alex Reyner Vñolas
+    Based on the old routine written by P. Oyola
 
-    :returns duration, enery lost, Wmhd and an on/off mask
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
 
-    ELM = safe_sfread('ELM', shot)
+    ELM = safe_sfread('ELM', shot, **kwargs)
     if ELM is None:
         return None
     
@@ -219,8 +224,18 @@ def get_ELM(shot, plot = False, xArrayOutput: bool = True):
 
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_Ipol(shot, plot = False, xArrayOutput: bool = True):
-    MAC = safe_sfread('MAC', shot)
+def get_Ipol(shot: int = None, plot = False, xArrayOutput: bool = True, **kwargs):
+    """
+    Returns divertor currents
+
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
+    """
+    
+    MAC = safe_sfread('MAC', shot, **kwargs)
     if MAC is None:
         None
     inner = np.array(MAC('Ipolsoli')/1000)
@@ -235,15 +250,28 @@ def get_Ipol(shot, plot = False, xArrayOutput: bool = True):
         coords = {'t': ('t', t, {'long_name': 'Time', 'units': 's'})},
         attrs={'shot': shot, 'diag': 'MAC'}
     )
+
     if plot:
         fig, ax = plt.subplots()
         obj.Ipolsoli.coarsen(t=10,boundary='trim').mean().plot(ax=ax)
         obj.Ipolsola.coarsen(t=10,boundary='trim').mean().plot(ax=ax)
         ax.set_xlim([0,10])
+
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_Raus(shot, plot = False, xArrayOutput: bool = True):
-    FPG = safe_sfread('FPG', shot)
+def get_Raus(shot: int = None, plot = False, xArrayOutput: bool = True, **kwargs):
+    """
+    Returns plasma outermost radial point.
+    Could be upgraded to include other quantities
+
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
+    """
+
+    FPG = safe_sfread('FPG', shot, **kwargs)
     if FPG is None:
         return None
     name = 'Raus'
@@ -254,21 +282,29 @@ def get_Raus(shot, plot = False, xArrayOutput: bool = True):
         attrs={'units': 'cm', 'long_name': '$R_{aus}$', 
                'shot': shot, 'diag': 'FPG', 'signal': name}
     )
+
     if plot:
         fig, ax = plt.subplots()
         obj.plot(ax=ax)
         ax.set_xlim([0,10])
+
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
 
 # -----------------------------------------------------------------------------
-# --- HEATING (update 10/08/2026)
+# --- HEATING (update 19/10/2026)
 # -----------------------------------------------------------------------------
-def get_NBI(shot, plot = False, xArrayOutput: bool = True):
+def get_NBI(shot: int = None, plot = False, xArrayOutput: bool = True):
     """
     Returns an xarray with NBI power and parameters from NIS shotfile
 
+    Based on the old routine written by P. Oyola
+
     Alex Reyner Viñolas: areyner@us.es
+
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
 
     NIS = safe_sfread('NIS', shot)
@@ -322,11 +358,18 @@ def get_NBI(shot, plot = False, xArrayOutput: bool = True):
 
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_ICRH(shot, coupled = False, plot = False, xArrayOutput: bool = True):
+def get_ICRH(shot: int = None, coupled = False, plot = False, xArrayOutput: bool = True):
     """
     Returns an xarray with coupled ICRH power parameters
 
+    Based on the old routine written by P. Oyola
+
     Alex Reyner Viñolas: areyner@us.es
+
+    :param  shot: shot number
+    :param  coupled: option to work with the coupled power instead
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
 
     ICP = safe_sfread('ICP', shot)
@@ -376,11 +419,18 @@ def get_ICRH(shot, coupled = False, plot = False, xArrayOutput: bool = True):
 
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_ECRH(shot, plot = False, xArrayOutput: bool = True):
+def get_ECRH(shot: int = None, launchers = [3, 2], plot = False, xArrayOutput: bool = True):
     """
     Returns an xarray with ECS power and parameters from NIS shotfile
+
+    Based on the old routine written by P. Oyola
     
     Alex Reyner Viñolas: areyner@us.es
+
+    :param  shot: shot number
+    :param  launchers: which launchers are being used (default 3(1) and 2(2))
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
 
     ECS = safe_sfread('ECS', shot)
@@ -402,11 +452,10 @@ def get_ECRH(shot, plot = False, xArrayOutput: bool = True):
 
     pecs_list = []
     freq_list = []
-    for box in range(2):
-        sy = box + 1
+    for sy in launchers:
         for source in range(4):
             gy = source + 1
-            sig_name = f'PG{gy}' if sy == 1 else f'PG{gy}N'
+            sig_name = f'PG{gy}' if sy in [1, 3] else f'PG{gy}N'
             pecs_list.append(np.array(ECS(sig_name), dtype='f4') / 1.0e6)
             freq_list.append(np.array(ECS(f'P_sy{sy}_g{gy}')['gyr_freq'], dtype='f4') / 1.0e9)
     obj['power'] = (('gyrotron', 't'), np.array(pecs_list, dtype='f4'), 
@@ -453,23 +502,83 @@ def get_ECRH(shot, plot = False, xArrayOutput: bool = True):
 
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_heating(shot, xArrayOutput: bool = True):
+def get_heating(shot: int = None, plot = False, xArrayOutput: bool = True):
     """
     Wrap to obtain the external heating
+    
+    Alex Reyner Viñolas: areyner@us.es
+
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
     nbi = get_NBI(shot, xArrayOutput=xArrayOutput)
     icrh = get_ICRH(shot, xArrayOutput=xArrayOutput)
     ecrh = get_ECRH(shot, xArrayOutput=xArrayOutput)
 
+    if plot:
+        fig, axs = plt.subplots(3, 1, figsize = (8,8), sharex = True)
+
+        ax = axs[0]
+        discrete_map = mcolors.ListedColormap(['gold','red','orchid'])
+        norm_discrete = mcolors.BoundaryNorm([0.5,1.5,2.5,3.5], discrete_map.N)
+        ax2=ax.twinx()
+        nbi.total.rolling(t=3).mean().plot(ax=ax, label='$P_{NB}$', color='k')
+        im = nbi.stat.plot.imshow(ax=ax2, alpha=0.5, 
+                                cmap=discrete_map, norm=norm_discrete, 
+                                add_colorbar=False, zorder=1)
+        ax2.set_yticks([1,2,3,4,5,6,7,8])
+        ax2.tick_params(axis='y', labelsize=12)
+        for beam in np.arange(8):
+            ax2.axhline(y=beam+0.5,c='grey',lw=1,ls='--',alpha=0.5)
+        ax.set_zorder(ax2.get_zorder() + 1)
+        ax.patch.set_visible(False)   
+        
+        ax = axs[1]
+        discrete_map = mcolors.ListedColormap(['cornflowerblue','navy',])
+        norm_discrete = mcolors.BoundaryNorm([0,40,100], discrete_map.N)
+        ax2=ax.twinx()
+        icrh.total.rolling(t=3).mean().plot(ax=ax, label='$P_{NB}$', color='k')
+        im = icrh.stat.plot.imshow(ax=ax2, alpha=0.5, 
+                                    cmap=discrete_map, norm=norm_discrete, 
+                                    add_colorbar=False, zorder=1)
+        ax2.set_yticks([1,2,3,4])
+        ax2.tick_params(axis='y', labelsize=12)
+        for antena in np.arange(4):
+            ax2.axhline(y=antena+0.5,c='grey',lw=1,ls='--',alpha=0.5)
+        ax.set_zorder(ax2.get_zorder() + 1)
+        ax.patch.set_visible(False)
+
+        ax = axs[2]
+        discrete_map = mcolors.ListedColormap(['lightgreen','darkgreen',])
+        norm_discrete = mcolors.BoundaryNorm([90,120,160], discrete_map.N)
+        ax2=ax.twinx()
+        ecrh.total.rolling(t=3).mean().plot(ax=ax, label='$P_{NB}$', color='k')
+        im = ecrh.stat.plot.imshow(ax=ax2, alpha=0.5, 
+                                    cmap=discrete_map, norm=norm_discrete, 
+                                    add_colorbar=False, zorder=1)
+        ax2.set_yticks([1,2,3,4,5,6,7,8])
+        ax2.tick_params(axis='y', labelsize=12)
+        for gyrotron in np.arange(8):
+            ax2.axhline(y=gyrotron+0.5,c='grey',lw=1,ls='--',alpha=0.5)
+        ax.set_zorder(ax2.get_zorder() + 1)
+        ax.patch.set_visible(False)
+
+        for ax in axs[:-1]:
+            ax.set_xlabel('')
+            ax.set_xlim([0,10])
+
     return nbi, icrh, ecrh
 
-def get_Prad(shot, plot = False, xArrayOutput: bool = True):
+def get_Prad(shot: int = None, plot = False, xArrayOutput: bool = True):
     """
     Return the total radiated power from the BPD shotfile in AUG.
-
+    
     Alex Reyner Viñolas: areyner@us.es
 
-    :param  shot: shotnumber
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
 
     BPD = safe_sfread('BPD', shot)
@@ -494,9 +603,13 @@ def get_Prad(shot, plot = False, xArrayOutput: bool = True):
 
 
 # -----------------------------------------------------------------------------
-# --- MPs (update 10/08/2026)
+# --- MPs (update 19/10/2026)
 # -----------------------------------------------------------------------------
 def _count_zero_crossings_cyclic(vec):
+    """
+    Count zero-crossings of a vector relative to its mean, 
+    including a cyclic check between the last and first elements.
+    """
     if vec.size == 0 or np.all(np.isnan(vec)):
         ans = np.nan
     else:
@@ -508,7 +621,10 @@ def _count_zero_crossings_cyclic(vec):
         ans = np.sum(crossings) + cyclic_cross
     return ans
 
-def compute_phase(signal, n):
+def _compute_phase(signal, n):
+    """
+    Computes the phase of the Bcoil set
+    """
     x = np.linspace(0, n*(2*np.pi), 8, endpoint=False)  # sampling points
     mask = ~np.isnan(signal)
     if np.sum(mask) < 2:
@@ -525,16 +641,24 @@ def compute_phase(signal, n):
     phase = (phase + 90) % 360  # shift to 0-360
     return phase
 
-def get_MP(shot, diag='MAW', unit = 'I', coars = 10, phase = True, 
+def get_MP(shot: int = None, diag='MAW', unit = 'I', coars = 10, phase = True, 
+           coil_geometry: str = None,
            plot = False, xArrayOutput: bool = True):
     """
-    Gets the currents in the RMP coils
+    Gets the currents in the RMP coils. There is an option to also compute the
+    toroidal and differential phases and the add the geometry of the coils into
+    the dataset.
 
     Alex Reyner Viñolas: areyner@us.es
 
+    :param  shot: shot number
     :param  diag: SVV or MAW, depending on the user. SVV has the base data
     :param  unit: for MAW, I or U
+    :param  coars: apply a coarsen filter to reduce data points (default 10)
     :param  phase: add the diferential and toroidal phases
+    :param  coil_geometry: path to folder containing coil geometries
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
 
     if unit != 'I' or 'U':
@@ -542,13 +666,12 @@ def get_MP(shot, diag='MAW', unit = 'I', coars = 10, phase = True,
 
     diags_to_try = ['MAW', 'SSV'] if diag == 'MAW' else ['SSV', 'MAW']
     for d in diags_to_try:
-        if d == 'SSV': obj = get_MP_SSV(shot)
-        elif d == 'MAW': obj = get_MP_MAW(shot, unit)
+        if d == 'SSV': obj = _get_MP_SSV(shot)
+        elif d == 'MAW': obj = _get_MP_MAW(shot, unit)
         if obj is not None:
             break
     if obj is None: return
 
-    # individual coils
     for p in ['u', 'l']:
         for i, n in enumerate(obj.coil.values):
             name = f'B{p}{n}'
@@ -556,13 +679,18 @@ def get_MP(shot, diag='MAW', unit = 'I', coars = 10, phase = True,
                             {'signal': name, 'long_name': f'Coil {name}', 
                             'units': 'kA',},
             )
-            folder_path = pa.ScintSuite + '/ScintSuite/LibData/AUG/Bcoils'
-            file_path = os.path.join(folder_path, name+'.txt')
-            R, z, phi = np.loadtxt(file_path, unpack=True, dtype='f4')
-            obj[name].attrs['R'] = R
-            obj[name].attrs['Z'] = z
-            obj[name].attrs['phi'] = phi
-    
+            # If the path to the coil geometry folder is given, import the data
+            if coil_geometry is not None:
+                try:
+                    file_path = os.path.join(coil_geometry, name+'.txt')
+                    R, z, phi = np.loadtxt(file_path, unpack=True, dtype='f4')
+                    obj[name].attrs['R'] = R
+                    obj[name].attrs['Z'] = z
+                    obj[name].attrs['phi'] = phi
+                except:
+                    logger.warning('Wrong or non-existent folder')
+                    coil_geometry = None
+        
     obj = obj.coarsen(t=coars,boundary='trim').mean()
     rmp_on = np.abs(obj['Bu']).sum('coil') > 0.2
     obj = obj.where(rmp_on, np.nan)
@@ -580,10 +708,10 @@ def get_MP(shot, diag='MAW', unit = 'I', coars = 10, phase = True,
             n_l = l_osc.max()
 
             u_phi = xr.DataArray(
-                [compute_phase(Bu[:,t].values, n_u) for t in range(len(Bu.t))],
+                [_compute_phase(Bu[:,t].values, n_u) for t in range(len(Bu.t))],
                 dims=('t',), coords={'t': Bu.t})
             l_phi = xr.DataArray(
-                [compute_phase(Bl[:,t].values, n_l) for t in range(len(Bl.t))],
+                [_compute_phase(Bl[:,t].values, n_l) for t in range(len(Bl.t))],
                 dims=('t',), coords={'t': Bl.t})
             
             obj['phi_u'] = u_phi
@@ -615,8 +743,15 @@ def get_MP(shot, diag='MAW', unit = 'I', coars = 10, phase = True,
     
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_MP_MAW(shot, unit = 'I'):
+def _get_MP_MAW(shot: int = None, unit = 'I'):
+    """
+    Import data from the MAW diagnostic.
 
+    Alex Reyner Viñolas: areyner@us.es
+
+    :param  shot: shot number
+    :param  unit: for MAW, I or U
+    """
     MAW = safe_sfread('MAW', shot)
     if MAW is None:
         return None
@@ -642,7 +777,14 @@ def get_MP_MAW(shot, unit = 'I'):
 
     return obj
 
-def get_MP_SSV(shot):
+def _get_MP_SSV(shot: int = None):
+    """
+    Import current data from the SSV diagnostic.
+
+    Alex Reyner Viñolas: areyner@us.es
+
+    :param  shot: shot number
+    """
 
     SSV = safe_sfread('SSV', shot)
     if SSV is None:
@@ -680,16 +822,22 @@ def get_MP_SSV(shot):
     return obj
 
 # -----------------------------------------------------------------------------
-# --- OTHER USEFUL SIGNALS. (update 10/08/2026)
+# --- OTHER USEFUL SIGNALS. (update 19/10/2026)
 # -----------------------------------------------------------------------------
-def get_neutrons(shot, plot = False, xArrayOutput: bool = True):
+def get_neutrons(shot: int = None, plot = False, xArrayOutput: bool = True, **kwargs):
     """
-    Gets neutron flux during shot and total
+    Gets neutron flux during shot and the total value
 
-    Alex Reyner Viñolas: areyner@us.es
+    Based on the old routine written by P. Oyola
+
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
 
-    ENR = safe_sfread('ENR', shot)
+    ENR = safe_sfread('ENR', shot, **kwargs)
     if ENR is None:
         return None
     t = np.array(ENR.gettimebase('NRATE'), dtype='f4')
@@ -716,23 +864,26 @@ def get_neutrons(shot, plot = False, xArrayOutput: bool = True):
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
 def get_neutron_history(shot_0: int, shot_1: int, plot = True, 
-                        xArrayOutput: bool = True):
+                        xArrayOutput: bool = True, **kwargs):
     """
     Compute for all the shot in the range of shots given, the evolution of the
     neutron emitted.
 
-    Pablo Oyola - poyola@us.es
-    Alex Reyner Viñolas: areyner@us.es
+    Based on the old routine written by P. Oyola
 
-    :param shot_0: starting shot.
-    :param shot_1: ending shot to return.
+    Alex Reyner: areyner@us.es
+
+    :param  shot0: intitial shot number
+    :param  shot1: end shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
 
     shots = np.arange(shot_0, shot_1 + 1) if shot_0 != shot_1 else np.array([shot_0])
     totals = []
     for shot in shots:
         try:
-            neut = get_neutrons(shot)
+            neut = get_neutrons(shot, **kwargs)
             totals.append(neut.attrs['total'] if hasattr(neut, 'attrs') and 'total' in neut.attrs else neut.total)
         except Exception:
             totals.append(np.nan)
@@ -747,11 +898,15 @@ def get_neutron_history(shot_0: int, shot_1: int, plot = True,
 
     return obj if xArrayOutput else to_dict_with_metadata(obj)
     
-def get_NPA(shot, xArrayOutput: bool = True):
+def get_NPA(shot: int = None, xArrayOutput: bool = True):
     """
-    Gets NPA data with H2D ratio
+    Gets NPA data and the H2D ratio
 
-    Alex Reyner Viñolas: areyner@us.es
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
 
     CXF = safe_sfread('CXF', shot)
@@ -796,7 +951,7 @@ def get_VRT_camera(shot, camera, quantity = 'temperature',
     path = f'/shares/experiments/aug-rawfiles/VRT/{shot//1000}/S{shot}'
     npy_filepath = path + f'/S{shot}_' + camera + '.npy'
     mp4_filepath = path + f'/S{shot}_' + camera + '.mp4'
-# 1. Intento de carga desde archivo .npy
+    # 1. Intento de carga desde archivo .npy
     if os.path.exists(npy_filepath):
         video_array = np.load(npy_filepath, allow_pickle=True)
         timestamps = np.array([item[0] for item in video_array], dtype=float)

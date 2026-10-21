@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------------------
 # --- Electron density and temperature profiles (update 19/10/2026)
 # -----------------------------------------------------------------------------
-def get_ne_core(shot, diag = 'VTA', xArrayOutput: bool = True):
+def get_ne_core(shot: int = None, diag = 'VTA', xArrayOutput: bool = True):
     """
     Wrap to get AUG core electron density
     Supports IDA and VTA (Thompson) and DCX (line integrated)
@@ -55,7 +55,7 @@ def get_ne_core(shot, diag = 'VTA', xArrayOutput: bool = True):
     except Exception: return
     return out if xArrayOutput else to_dict_with_metadata(out)
 
-def get_ne(shot, xArrayOutput: bool = True, **kwargs):
+def get_ne(shot: int = None, xArrayOutput: bool = True, **kwargs):
     """
     Wrap to get AUG electron density profile.
     Supports IDA
@@ -73,7 +73,7 @@ def get_ne(shot, xArrayOutput: bool = True, **kwargs):
     except Exception: return
     return out if xArrayOutput else to_dict_with_metadata(out)
 
-def get_Te_core(shot, diag = 'VTA', xArrayOutput: bool = True):
+def get_Te_core(shot: int = None, diag = 'VTA', xArrayOutput: bool = True):
     """
     Wrap to get AUG core electron temperature.
     Supports IDA and VTA (Thompson)
@@ -94,7 +94,7 @@ def get_Te_core(shot, diag = 'VTA', xArrayOutput: bool = True):
     except Exception: return
     return out if xArrayOutput else to_dict_with_metadata(out)
 
-def get_Te(shot, xArrayOutput: bool = True, **kwargs):
+def get_Te(shot: int = None, xArrayOutput: bool = True, **kwargs):
     """
     Wrap to get AUG electron temperature profile
     Supports IDA
@@ -116,7 +116,7 @@ def get_Te(shot, xArrayOutput: bool = True, **kwargs):
 # -----------------------------------------------------------------------------
 # --- Ion temperature (update 19/10/2026)
 # -----------------------------------------------------------------------------
-def get_Ti(shot, diag = 'IDI', xArrayOutput: bool = True, **kwargs):
+def get_Ti(shot: int = None, diag = 'IDI', xArrayOutput: bool = True, **kwargs):
     """
     Retrieves from the database the ion temperature.
 
@@ -138,7 +138,7 @@ def get_Ti(shot, diag = 'IDI', xArrayOutput: bool = True, **kwargs):
     except Exception: return
     return out if xArrayOutput else to_dict_with_metadata(out)
 
-def get_Ti_core(shot: int, diag = 'IDI', xArrayOutput: bool = True):
+def get_Ti_core(shot: int = None, diag = 'IDI', xArrayOutput: bool = True):
     """"
     Wrapper to all the routines to read the ion core temperature.
     Supports CXRS and IDI
@@ -162,7 +162,7 @@ def get_Ti_core(shot: int, diag = 'IDI', xArrayOutput: bool = True):
     
     return out if xArrayOutput else to_dict_with_metadata(out)
 
-def get_Ti_CXRS_new(shot, time: float = None, tavg: float = 0.05, 
+def get_Ti_CXRS_new(shot: int = None, time: float = None, tavg: float = 0.05, 
                     nrho: int = 1000, rhop0: float = 0, rhop1: float = 1.1, 
                     smooth_factor: float = 100,
                     plot = False, xArrayOutput: bool = True):
@@ -563,7 +563,7 @@ def get_Ti_CXRS_old(shotnumber: int, time: float = None,
 # -----------------------------------------------------------------------------
 # --- Toroidal rotation velocity (update 19/10/2026)
 # -----------------------------------------------------------------------------
-def get_tor_rotation(shot, diag = 'IDI', xArrayOutput: bool = True, **kwargs):
+def get_tor_rotation(shot: int = None, diag = 'IDI', xArrayOutput: bool = True, **kwargs):
     """
     Retrieves from the database the toroidal velocity velocity (omega_tor).
     To get the linear velocity (i.e., vtor) multiply by the major radius.
@@ -586,7 +586,7 @@ def get_tor_rotation(shot, diag = 'IDI', xArrayOutput: bool = True, **kwargs):
     except Exception: return
     return out if xArrayOutput else to_dict_with_metadata(out)
 
-def get_tor_rotation_CXRS_new(shot, time: float = None, tavg: float = 0.05, 
+def get_tor_rotation_CXRS_new(shot: int = None, time: float = None, tavg: float = 0.05, 
                     nrho: int = 1000, rhop0: float = 0, rhop1: float = 1.1, 
                     smooth_factor: float = 100,
                     plot = False, xArrayOutput: bool = True):
@@ -1085,7 +1085,7 @@ def get_diag_freq(shotnumber: int, tBegin: float, tEnd: float,
 # -----------------------------------------------------------------------------
 # --- IDA, IDI and other group diagnostic (update 19/10/2026)
 # -----------------------------------------------------------------------------
-def get_IDA(shot, plot = False, xArrayOutput: bool = True, **kwargs):
+def get_IDA(shot: int = None, plot = False, xArrayOutput: bool = True, **kwargs):
     """
     Returns some of the IDA quantities. IDA is not available in all shots
 
@@ -1150,7 +1150,7 @@ def get_IDA(shot, plot = False, xArrayOutput: bool = True, **kwargs):
 
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_IDI(shot, plot = False, xArrayOutput: bool = True, **kwargs):
+def get_IDI(shot: int = None, plot = False, xArrayOutput: bool = True, **kwargs):
     """
     Same as IDA, but for ions.
 
@@ -1212,7 +1212,7 @@ def get_IDI(shot, plot = False, xArrayOutput: bool = True, **kwargs):
         
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_VTA(shot, plot = False, xArrayOutput: bool = True, **kwargs):
+def get_VTA(shot: int = None, plot = False, xArrayOutput: bool = True, **kwargs):
     """
     Thompson diagnostic
 
@@ -1262,7 +1262,7 @@ def get_VTA(shot, plot = False, xArrayOutput: bool = True, **kwargs):
 
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_DCX(shot, diag = 'DCK', xArrayOutput: bool = True, **kwargs):
+def get_DCX(shot: int = None, diag = 'DCK', xArrayOutput: bool = True, **kwargs):
     """
     Gets de integrated density form the interferometers
 
@@ -1295,7 +1295,7 @@ def get_DCX(shot, diag = 'DCK', xArrayOutput: bool = True, **kwargs):
 
     return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-def get_CXRS(shot, diag = 'CEZ', xArrayOutput: bool = True, **kwargs):
+def get_CXRS(shot: int = None, diag = 'CEZ', xArrayOutput: bool = True, **kwargs):
     """
     Imports one of the CXRS diagnostics
 
@@ -1405,7 +1405,7 @@ def _fit_profile(rho, data, err, nrho, rho0, rho1, smooth_factor):
 # -----------------------------------------------------------------------------
 # --- ECE data (update 19/10/2026)
 # -----------------------------------------------------------------------------
-def get_ECE(shot, xArrayOutput: bool = True):
+def get_ECE(shot: int = None, xArrayOutput: bool = True):
     '''
     Get data from ECE
 
@@ -1790,7 +1790,7 @@ def correctShineThroughECE(ecedata: dict, diag: str = 'IDA', exp: str = 'AUGD',
             ecedata['fft']['spec_dte'][:, ii, :] /= dte_eval
     return ecedata
 
-def get_Zeff(shot, plot = False, xArrayOutput: bool = True):
+def get_Zeff(shot: int = None, plot = False, xArrayOutput: bool = True):
     '''
     Get the Zeff effective profile from IDZ
 

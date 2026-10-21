@@ -47,7 +47,7 @@ paths = Path(machine='AUG')
 # ----------------------------------------------------------------------------
 # --- Coils corrections routines. (update 02/10/2026)
 # ----------------------------------------------------------------------------
-def get_magnetics(shot, coilNumber: int = 14, coilGroup: str = 'B31', 
+def get_magnetics(shot: int = None, coilNumber: int = 14, coilGroup: str = 'B31', 
                   correction = False, xArrayOutput: bool = True, **kwargs):
     """
     Retrieve from the shot file the magnetic data information. 

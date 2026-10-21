@@ -22,7 +22,7 @@ xr.set_options(keep_attrs=True)
 import logging
 logger = logging.getLogger(__name__)
 
-def get_FILD1_pmt(shot, xArrayOutput = True):
+def get_FILD1_pmt(shot: int = None, xArrayOutput = True):
     """
     Get FILD1 fast channels
 
@@ -58,7 +58,7 @@ def get_FILD1_pmt(shot, xArrayOutput = True):
     if xArrayOutput: return fild
     else: return to_dict_with_metadata(fild)
 
-def get_FILD4_apd(shot, fps, APD_dir=paths.FILD4_trajectories,
+def get_FILD4_apd(shot: int = None, fps=1e6, APD_dir=paths.FILD4_trajectories,
                   plot = False, xArrayOutput = True):
     """
     Docstring for get_FILD4_APD
