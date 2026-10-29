@@ -158,7 +158,7 @@ class SAWc():
     
     def plot(self, t: float, ax: Optional[plt.Axes] = None, 
              line_params: dict={}, 
-             units: str = 'kHz', rotationCorrected=True,)-> plt.Axes:
+             units: str = 'kHz', rotationCorrected=True,fmax = None)-> plt.Axes:
         """
         Plot the SAW on the given axis
         """
@@ -166,8 +166,9 @@ class SAWc():
         plot_options = {
             'lw': '0.75',
             'color': 'k',
-            'ls': '--',
-            'label': '__no_name__'
+            'ls': '-',
+            'label': '__no_name__',
+            # 'marker': 'o',
         }
         plot_options.update(line_params)
         # Prepare the scale factor
@@ -195,10 +196,20 @@ class SAWc():
                 self.data['fMin%s'%keyToPlot].sel(t=t, method='nearest')
                 *factors[units],
                 **plot_options)
-        ax.plot(self.data.rho, 
-                self.data['fMax%s'%keyToPlot].sel(t=t, method='nearest')
-                *factors[units],
-                **plot_options)
+        plot_options['label'] = '__no_name__'
+        if fmax is not None:
+            freqs = self.data['fMax%s'%keyToPlot].sel(t=t, method='nearest') * factors[units]
+            for i in range(freqs.shape[1]):
+                flags = freqs[:, i] < fmax
+                ax.plot(self.data.rho[flags], 
+                        freqs[:, i][flags],
+                        **plot_options)
+        else:
+
+            ax.plot(self.data.rho, 
+                    (self.data['fMax%s'%keyToPlot].sel(t=t, method='nearest')
+                    *factors[units]),
+                    **plot_options)
         if corrected:
             color = plot_options.pop('color')
             colors = ['r', 'g', 'y', 'k']
@@ -223,7 +234,7 @@ class SAWc():
         else:
             ax.set_xlim(oldXlim)
             ax.set_ylim(oldYlim)
-        fig.show()
+        # fig.show()
         return ax
 
     def to_h5(self, filename: str):
@@ -474,7 +485,7 @@ class MHDmode():
         """
         data = xr.load_dataset(omfitFile)
         data = data.rename({'time':'t'})
-        data['t'].values[:] /= 1.0e3
+        data = data.assign_coords({'t': data['t'].values.astype(float)/1000.0})
         # --- Densities
         if 'n_e' in data:
             logger.debug('Using n_e from omfit file')

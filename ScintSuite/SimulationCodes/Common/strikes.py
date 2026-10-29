@@ -1250,6 +1250,7 @@ class Strikes:
                     var.append(self.data[ia, ig][:, column_to_plot])
         return np.array(flatten(var))
 
+
     def get_from_df(
         self,
         var: str,
@@ -1267,7 +1268,7 @@ class Strikes:
         - Use gyroradius and XI to select by actual parameter values.
 
         :param  var: variable name (column in self.df) to return.
-            If a list is given, a pandas DataFrame with those columns will be returned instead. If a list is given, the returned units will 
+            If a list is given, those columns will be returned instead. If a list is given, the returned units will 
             always be dimensionless since different columns may have different units.
         :param  gyroradius_index: index or indices of gyroradii (see
             self.header['gyroradius']). None = all.
@@ -1277,7 +1278,7 @@ class Strikes:
             overrides gyroradius_index.
         :param  XI: XI value(s) to filter by. If given, overrides XI_index.
 
-        :return: 1D array of values for the selected (gyroradius, XI) subset.
+        :return: 1D (or 2D)array of values for the selected (gyroradius, XI) subset.
         """
         if self.df is None or not isinstance(self.df, pd.DataFrame):
             raise ValueError('self.df is not available or not a DataFrame')
@@ -1290,6 +1291,16 @@ class Strikes:
             if var not in self.df.columns:
                 print('Available columns: ', list(self.df.columns))
                 raise errors.NotFoundVariable(f'Variable "{var}" not in DataFrame')
+        # Try to get the units
+        try:
+            units = unyt.Unit(self.df.attrs.get('units', {}).get(var, ''))
+        except:
+            units = unyt.Unit('')
+        # No selection requested: skip mask computation entirely
+        no_gyr_filter = gyroradius is None and gyroradius_index is None
+        no_xi_filter = XI is None and XI_index is None
+        if no_gyr_filter and no_xi_filter:
+            return self.df[var].to_numpy() * units
         # Resolve selected gyroradius values
         if gyroradius is not None:
             sel_gyr = np.atleast_1d(gyroradius)
@@ -1297,7 +1308,7 @@ class Strikes:
             idx_g = np.atleast_1d(gyroradius_index)
             sel_gyr = np.asarray(self.header['gyroradius'])[idx_g]
         else:
-            sel_gyr = np.asarray(self.header['gyroradius'])
+            sel_gyr = None
         # Resolve selected XI values
         if XI is not None:
             sel_xi = np.atleast_1d(XI)
@@ -1305,16 +1316,81 @@ class Strikes:
             idx_x = np.atleast_1d(XI_index)
             sel_xi = np.asarray(self.header['XI'])[idx_x]
         else:
-            sel_xi = np.asarray(self.header['XI'])
-        mask = (
-            self.df['gyroradius'].isin(sel_gyr) & self.df['XI'].isin(sel_xi)
-        )
-        # Try to get the units
-        try:
-            units = unyt.Unit(self.df.attrs.get('units', {}).get(var, ''))
-        except unyt.exceptions.UnitParseError:
-            units = unyt.Unit('')
-        return self.df.loc[mask, var].values * units
+            sel_xi = None
+        # Only build/combine the masks that are actually needed
+        if sel_gyr is not None:
+            mask = self.df['gyroradius'].to_numpy() 
+            mask = np.isin(mask, sel_gyr)
+        if sel_xi is not None:
+            xi_mask = np.isin(self.df['XI'].to_numpy(), sel_xi)
+            mask = xi_mask if sel_gyr is None else (mask & xi_mask)
+        return self.df[var].to_numpy()[mask] * units
+
+    # def get_from_df(
+    #     self,
+    #     var: str,
+    #     gyroradius_index: Optional[Union[int, List[int], np.ndarray]] = None,
+    #     XI_index: Optional[Union[int, List[int], np.ndarray]] = None,
+    #     gyroradius: Optional[Union[float, List[float], np.ndarray]] = None,
+    #     XI: Optional[Union[float, List[float], np.ndarray]] = None,
+    # ) -> unyt.unyt_array:
+    #     """
+    #     Return an array with the values of 'var' for all strike points using
+    #     the data stored in self.df (pandas.DataFrame).
+
+    #     Selection can be made either by indices or by direct values:
+    #     - Use gyroradius_index and XI_index to select by header indices.
+    #     - Use gyroradius and XI to select by actual parameter values.
+
+    #     :param  var: variable name (column in self.df) to return.
+    #         If a list is given, a pandas DataFrame with those columns will be returned instead. If a list is given, the returned units will 
+    #         always be dimensionless since different columns may have different units.
+    #     :param  gyroradius_index: index or indices of gyroradii (see
+    #         self.header['gyroradius']). None = all.
+    #     :param  XI_index: index or indices of XI (see self.header['XI']).
+    #         None = all.
+    #     :param  gyroradius: gyroradius value(s) to filter by. If given,
+    #         overrides gyroradius_index.
+    #     :param  XI: XI value(s) to filter by. If given, overrides XI_index.
+
+    #     :return: 1D array of values for the selected (gyroradius, XI) subset.
+    #     """
+    #     if self.df is None or not isinstance(self.df, pd.DataFrame):
+    #         raise ValueError('self.df is not available or not a DataFrame')
+    #     if isinstance(var, list) or isinstance(var, tuple):
+    #         for v in var:
+    #             if v not in self.df.columns:
+    #                 print('Available columns: ', list(self.df.columns))
+    #                 raise errors.NotFoundVariable(f'Variable "{v}" not in DataFrame')
+    #     else:
+    #         if var not in self.df.columns:
+    #             print('Available columns: ', list(self.df.columns))
+    #             raise errors.NotFoundVariable(f'Variable "{var}" not in DataFrame')
+    #     # Resolve selected gyroradius values
+    #     if gyroradius is not None:
+    #         sel_gyr = np.atleast_1d(gyroradius)
+    #     elif gyroradius_index is not None:
+    #         idx_g = np.atleast_1d(gyroradius_index)
+    #         sel_gyr = np.asarray(self.header['gyroradius'])[idx_g]
+    #     else:
+    #         sel_gyr = np.asarray(self.header['gyroradius'])
+    #     # Resolve selected XI values
+    #     if XI is not None:
+    #         sel_xi = np.atleast_1d(XI)
+    #     elif XI_index is not None:
+    #         idx_x = np.atleast_1d(XI_index)
+    #         sel_xi = np.asarray(self.header['XI'])[idx_x]
+    #     else:
+    #         sel_xi = np.asarray(self.header['XI'])
+    #     mask = (
+    #         self.df['gyroradius'].isin(sel_gyr) & self.df['XI'].isin(sel_xi)
+    #     )
+    #     # Try to get the units
+    #     try:
+    #         units = unyt.Unit(self.df.attrs.get('units', {}).get(var, ''))
+    #     except unyt.exceptions.UnitParseError:
+    #         units = unyt.Unit('')
+    #     return self.df.loc[mask, var].values * units
 
     def to_dataframe(self, gyroradius_index=None, XI_index=None,) -> pd.DataFrame:
         """

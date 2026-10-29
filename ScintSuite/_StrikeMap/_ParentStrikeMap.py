@@ -524,7 +524,7 @@ class GeneralStrikeMap(XYtoPixel):
                                          variables: tuple,
                                          grid_options: dict,
                                          frame_shape: tuple,
-                                         limitation: float = 12.0,
+                                         limitation: float = 50.0,
                                          overwrite: bool = True):
         """
         Calculate the transformation matrix from camera pixel to phase space

@@ -282,7 +282,7 @@ class Fsmap(FILDINPA_Smap):
         else:
             logger.info('Using Smap strikes')
         # --- Calculate camera position, if not done outside:
-        if 'xcam' not in self.strike_points.header['info'].keys():
+        if 'xcam' not in self.strike_points.df.keys():
             self.strike_points.calculate_pixel_coordinates(
                 self.CameraCalibration)
         else:
@@ -296,10 +296,6 @@ class Fsmap(FILDINPA_Smap):
         gridT = self._grid_interp['transformation_matrix'][nameT+'_grid']
         camera_frame = Tmatrix.shape[2:4]
         # --- Get the index of the different colums
-        jpx = self.strike_points.header['info']['ycam']['i']
-        jpy = self.strike_points.header['info']['xcam']['i']
-        jX = self.strike_points.header['info']['remap_pitch']['i']
-        jY = self.strike_points.header['info']['remap_gyroradius']['i']
         # Block 1: Preparation phase -------------------------------------------
         # --- Prepare the grids
         # - Edges
@@ -342,8 +338,12 @@ class Fsmap(FILDINPA_Smap):
 
                 # --- Get the ideal camera frame
                 H, xpixel, ypixel = np.histogram2d(
-                    self.strike_points.data[jxpinhole, jypinhole][:, jpx],
-                    self.strike_points.data[jxpinhole, jypinhole][:, jpy],
+                    self.strike_points.get_from_df('ycam',
+                                                    gyroradius_index=jypinhole,
+                                                    XI_index=jxpinhole).value,
+                    self.strike_points.get_from_df('xcam',
+                                                    gyroradius_index=jypinhole,
+                                                    XI_index=jxpinhole).value,
                     bins=[pxEdges, pyEdges], weights=w)
                 # --- Defocus camera frame if needed
                 if sigmaOptics > 0.01:

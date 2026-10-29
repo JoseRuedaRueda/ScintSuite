@@ -290,5 +290,12 @@ class Scintillator(XYtoPixel):
             fig, ax = plt.subplots()
         ax.plot(self._coord_real['x1']*factor,
                 self._coord_real['x2']*factor, **plt_options)
+        if self.code.lower() == 'fildsim':
+            # Join the first and last point, as FILDSIM does not close the geometry
+            ax.plot([self._coord_real['x1'][0]*factor,
+                     self._coord_real['x1'][-1]*factor],
+                    [self._coord_real['x2'][0]*factor,
+                     self._coord_real['x2'][-1]*factor], **plt_options)
+
         plt.draw()
         return ax

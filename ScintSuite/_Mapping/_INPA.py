@@ -28,6 +28,40 @@ paths = p.Path(machine)
 del p
 logger = logging.getLogger('ScintSuite.INPAMapping')
 
+def _guess_smap_folder(basepath: str, NBI: xr.Dataset = None, 
+                       time: float = None, onThreshold: float = 1.0e4):
+    """
+    Guess the folder where to look for the strike maps
+
+    Note! in case 2 NBIs are on at the same time, the code will take the first one found in the NBI dataset. same in case none of them are on
+
+    :param     basepath: Base path of the ScintSuite
+    :param     NBI: NBI number (1, 2, 3 or 4)
+    :param     time: Time of the frame to remap
+    :param     onThreshold: Threshold to consider the NBI is on, in NBI units
+    
+    :return   smap_folder: Folder where to look for the strike maps
+    """
+    if NBI is None:
+        smap_folder = basepath
+    else:
+        NBItime = NBI.sel(t=time, method='nearest')
+        # See which NBI is on
+        if 'default' in NBI.attrs:
+            defaultNBI = NBI.attrs['default']
+        else:
+            defaultNBI = list(NBI.keys())[0]
+        for key in NBItime.keys():
+            if NBItime[key] > onThreshold:
+                name = str(key).lower()
+                break
+        else:
+            name = str(defaultNBI).lower()
+        smap_folder = basepath + '_' + name
+        
+    return smap_folder
+
+
 # --- Remapping function
 def remapAllLoadedFrames(video,
                          ymin: float = 1., ymax: float = 5.0, dy: float = 0.05,
@@ -46,7 +80,8 @@ def remapAllLoadedFrames(video,
                          use_average: bool = False,
                          variables_to_remap: tuple = ('R0', 'gyroradius'),
                          A: float = 2.01410178, Z: float = 1.0,
-                         transformationMatrixLimit: float = 10.0) -> xr.Dataset:
+                         transformationMatrixLimit: float = 10.0,
+                         nbi_dataset: xr.Dataset = None) -> xr.Dataset:
     """
     Remap all loaded frames from an INPA video.
 
@@ -165,6 +200,8 @@ def remapAllLoadedFrames(video,
     if smap_folder is None:
         smap_folder = os.path.join(paths.ScintSuite, 'Data', 'RemapStrikeMaps',
                                    'INPA', video.geometryID)
+    if not got_smap:
+        name_maps = []
     logger.debug('Looking for strike maps in: %s', smap_folder)
     # -- Check the mask
     if type(mask) is str:
@@ -216,7 +253,8 @@ def remapAllLoadedFrames(video,
                 decimals=decimals
                 )
             # See if the strike map exist
-            if os.path.isfile(os.path.join(smap_folder, name)):
+            smap_path = _guess_smap_folder(smap_folder, nbi_dataset, video.exp_dat.t.values[iframe])
+            if os.path.isfile(os.path.join(smap_path, name)):
                 exist[iframe] = True
         # -- See how many we need to calculate
         nnSmap = np.sum(~exist)  # Number of Smaps missing
@@ -271,8 +309,9 @@ def remapAllLoadedFrames(video,
         if video.BField['B'].values[iframe] < epsB and not got_smap:
             continue
         if not got_smap:
+            smap_path = _guess_smap_folder(smap_folder, nbi_dataset, video.exp_dat.t.values[iframe])
             name = ssSINPA.execution.find_strike_map_INPA(
-                phi_used[iframe], theta_used[iframe], smap_folder,
+                phi_used[iframe], theta_used[iframe], smap_path,
                 video.orientation['s1'],
                 video.orientation['s2'],
                 video.orientation['s3'],
@@ -291,7 +330,7 @@ def remapAllLoadedFrames(video,
         else:
             Bflag = True
         if name != name_old or Bflag and not got_smap:
-            smap = Ismap(os.path.join(smap_folder, name))
+            smap = Ismap(os.path.join(smap_path, name))
             if wantEnergy:
                 smap.calculate_energy(video.BField['B'].values[iframe], A, Z)
             if wantRho:
@@ -308,6 +347,7 @@ def remapAllLoadedFrames(video,
                                           'dx': dx},
                              limitation=transformationMatrixLimit)
         name_old = name
+        name_maps.append(os.path.join(smap_path,name))
         # remap the frames
         remaped_frames[:, :, iframe] = \
             common.remap(smap, data['frames'].values[:, :, iframe],
@@ -364,5 +404,17 @@ def remapAllLoadedFrames(video,
     remap_dat['nframes'] = video.exp_dat['nframes'].copy()
 
     remap_dat['existing_smaps'] = xr.DataArray(exist, dims=('t'))
+    # handle the name  of the strike maps, as they can have different lengths, 
+    # I will paddle with spaces to the right, and then save them as a 2D array of characters
+    maxlen = np.max([len(n) for n in name_maps])
+    name_maps = [n.ljust(maxlen) for n in name_maps]
+    name_maps = np.array([list(n) for n in name_maps])
+    # name_maps = name_maps.flatten().reshape((nframes, maxlen))
+    # # Check dimensions
+    # if name_maps.shape[0] != nframes:
+    #     raise errors.NotValidInput('Something went wrong with the strike map names')
+    # if name_maps.shape[1] != maxlen:
+    #     raise errors.NotValidInput('Something went wrong with the strike map names')
+    # remap_dat['smap_names'] = xr.DataArray(name_maps, dims=('t','dummy'))
 
     return remap_dat

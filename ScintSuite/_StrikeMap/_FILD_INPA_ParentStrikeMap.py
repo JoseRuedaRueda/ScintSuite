@@ -671,11 +671,11 @@ class FILDINPA_Smap(GeneralStrikeMap):
                     continue
             # Loop over the strike points pairs
             if k.endswith('pix') and camera:
-                self.strike_points.df[name] = self._map_interpolators[k]((self.strike_points(('xcam','ycam')).value))
+                self.strike_points.df[name] = self._map_interpolators[k]((self.strike_points(['xcam','ycam']).value))
             elif k.endswith('pix') and not camera:
                 logger.warning('Cannot remap %s in pixel space, no camera data' % k)
             else:
-                self.strike_points.df[name] = self._map_interpolators[k]((self.strike_points(('x1','x2')).value))
+                self.strike_points.df[name] = self._map_interpolators[k]((self.strike_points(['x1','x2']).value))
             
             # Update the headers and info
             self.strike_points.df.attrs['units'][name] = '@Todo'
@@ -872,7 +872,8 @@ class FILDINPA_Smap(GeneralStrikeMap):
                 cont = subplot.contourf(
                     xAxisPlot, yAxisPlot,
                     res_matrix,
-                    levels=nlev, cmap=cmap
+                    levels=nlev_new, cmap=cmap,
+                    vmin=0, vmax=cmap_lim.get(key, None)
                 )
                 subplot = ssplt.axis_beauty(subplot, ax_options)
                 # Now place the color var in the proper position

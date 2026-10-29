@@ -296,6 +296,7 @@ class INPAVideo(FIV):
                                      xmax=self.remap_dat['x'].values[-1],
                                      ymin=self.remap_dat['y'].values[0],
                                      ymax=self.remap_dat['y'].values[-1])
+        
         self.remap_dat = xr.merge([self.remap_dat, ouput])
 
     def calculateBangles(self, t='all', verbose: bool = True):

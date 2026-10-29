@@ -1005,7 +1005,7 @@ class Tomography():
     # ------------------------------------------------------------------------
     # %% Potting block
     # ------------------------------------------------------------------------
-    def plotLcurve(self, inversion: str='maxEntropy', ax=None,
+    def plotLcurveAndCurvature(self, inversion: str='nntikhonov0', ax=None,
                    line_params: dict = {}) -> plt.Axes:
         """
         Plot the L curve and the MSE
@@ -1059,6 +1059,41 @@ class Tomography():
                    **line_options)
         ax[0, 0].get_figure().show()
         return ax
+
+    def plotLcurve(self, inversion: str='nntikhonov0', ax=None,
+                   line_params: dict = {}) -> plt.Axes:
+        """
+        Plot the L curve
+
+        Jose Rueda: jruedaru@uci.edu
+
+        :param inversion: name of the inversion to plot.
+        :param ax: axes to plot the data.
+        
+        :return ax: axes where the data has been plotted, list of 2 axes
+        """
+        # ---- Initialise the settings
+        line_options = {
+            'lw': 0.75,
+            'marker': '+',
+            'ms': 3,
+        }
+        line_options.update(line_params)
+        if 'label' not in line_options.keys():
+            line_options['label'] = inversion
+        if ax is None:
+            fig, ax = plt.subplots()
+            ax.set_xlabel('MSE')
+            ax.set_ylabel('|FI|')            
+            ax.set_xscale('log')
+            ax.set_yscale('log')
+
+        # ---- Plot the data
+        ax.plot(self.inversion[inversion].MSE,
+                   np.sqrt((self.inversion[inversion].F)**2).sum(dim=('x', 'y')),
+                   **line_options)
+        return ax
+
 
     def GUIprofiles(self, inversion: str= 'nntikhonov0', true_solution= None, jl1=None):
         """

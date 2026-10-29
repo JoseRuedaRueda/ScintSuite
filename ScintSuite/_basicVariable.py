@@ -78,8 +78,12 @@ class BasicSignalVariable():
 
     @ToDo add time units
     """
-    def __init__(self):
-        self._data = xr.DataTree()
+    def __init__(self, filename: Optional[str] = None):
+        if filename is None:
+            self._data = xr.DataTree()
+        else:
+            self._data = xr.open_datatree(filename, engine='h5netcdf', invalid_netcdf=True)
+        
     
     def cropSignals(self, t1: Optional[float] = None,
                     t2: Optional[float] = None):
@@ -446,3 +450,24 @@ class BasicSignalVariable():
         :return: list of signal names
         """
         return [k for k in self._data['signals'].dataset.keys()]
+    
+    # --------------------------------------------------------------------------
+    # %%  Prune
+    # --------------------------------------------------------------------------
+    def prune(self, nodes_to_prune: list):
+        """
+        Prune the nodes of the data tree that we don't want to keep
+        
+        :param nodes_to_prune: list of nodes to prune. The nodes should be the names of the nodes in the data tree
+        """
+        # Ensure that nodes_to_prune is a list and not a string
+        if isinstance(nodes_to_prune, str):
+            nodes = [nodes_to_prune,]
+        else:
+            nodes = nodes_to_prune
+        for node in nodes:
+            if node in self._data.keys():
+                del self._data[node]
+            else:
+                logger.warning(f'Node {node} not found in the data tree, cannot prune')
+        

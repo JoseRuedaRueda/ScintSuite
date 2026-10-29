@@ -163,6 +163,7 @@ class pySpecView:
                         self._dat['fvec'][0]/1000.0, self._dat['fvec'][-1]/1000.0],
                 origin='lower', aspect='auto', cmap=cmap, **extra_options)
         else:
+            print('Plotting the cross-phasogram')
             dummy0 = self._dat['cross-phasogram']
             dummy = self._gammaTransform(dummy0)
             # # Taken from Giovanni's code
