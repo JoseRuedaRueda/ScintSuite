@@ -1,4 +1,6 @@
-"""Routines for the magnetic equilibrium"""
+"""
+Routines for the magnetic equilibrium
+"""
 import warnings
 import numpy as np
 import xarray as xr
@@ -6,9 +8,17 @@ import aug_sfutils as sf
 import ScintSuite.errors as errors
 from scipy.interpolate import interpn, interp1d
 
-# --- Module hardcored parameters
-ECRH_POWER_THRESHOLD = 0.05  # Threshold to consider ECRH on [MW]
+from pprint import pprint
 
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
+from matplotlib.offsetbox import AnchoredOffsetbox, TextArea, VPacker
+
+from ._common import safe_sfread, safe_equ, _clean_val, to_dict_with_metadata
+
+xr.set_options(keep_attrs=True)
+import logging
+logger = logging.getLogger(__name__)
 
 # -----------------------------------------------------------------------------
 # --- Magnetic field
@@ -43,14 +53,16 @@ def get_mag_field(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     # If the equilibrium object is not an input, let create it
     # created = False
     if equ is None:
-        equ = sf.EQU(shot, diag=diag, ed=ed, exp=exp)
+        equ = safe_equ(shot, diag=diag, exp=exp, ed=ed)
+    if equ is None or sf is None:
+        return None, None, None, None
+    
     # Now calculate the field
     # br, bz, bt = equ.rz2brzt(Rin, zin, t_in=time)
     br, bz, bt = sf.rz2brzt(equ, r_in=Rin, z_in=zin, t_in=time)
     bp = np.hypot(br, bz)
 
     return br, bz, bt, bp
-
 
 # -----------------------------------------------------------------------------
 # --- Flux coordinate
@@ -59,7 +71,10 @@ def get_mag_axis(shot, time: float = None, diag: str = 'GQH'):
     """
     Get the coordinates of the magnetic axis
     """
-    sfo = sf.SFREAD(diag, shot)
+    sfo = safe_sfread(diag, shot)
+    if sfo is None:
+        return None, None, None
+    
     rmag = sfo('Rmag')
     zmag = sfo('Zmag')
     timebase = sfo.gettimebase('Rmag')
@@ -67,8 +82,8 @@ def get_mag_axis(shot, time: float = None, diag: str = 'GQH'):
         rmag = interp1d(timebase, rmag)(time)
         zmag = interp1d(timebase, zmag)(time)
         timebase = time
-    return rmag, zmag, time
 
+    return rmag, zmag, time
 
 def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
             ed: int = 0, time: float = None, equ=None,
@@ -93,13 +108,15 @@ def get_rho(shot: int, Rin, zin, diag: str = 'EQH', exp: str = 'AUGD',
     """
     # If the equilibrium object is not an input, let create it
     if equ is None:
-        equ = sf.EQU(shot, diag=diag, exp=exp, ed=ed)
+        equ = safe_equ(shot, diag=diag, exp=exp, ed=ed)
+    if equ is None or sf is None:
+        return None
+
     # Now calculate the field
     rho = sf.rz2rho(equ, Rin, zin, t_in=time, coord_out=coord_out,
                     extrapolate=True)
-
+    
     return rho
-
 
 def get_rho2rz(shot: int, flxlabel: float, diag: str = 'EQH',
                exp: str = 'AUGD', ed: int = 0, time: float = None,
@@ -121,7 +138,9 @@ def get_rho2rz(shot: int, flxlabel: float, diag: str = 'EQH',
     """
     # If the equilibrium object is not an input, let create it
     if equ is None:
-        equ = sf.EQU(shot, diag=diag, exp=exp, ed=ed)
+        equ = safe_equ(shot, diag=diag, exp=exp, ed=ed)
+    if equ is None or sf is None:
+        return None, None, None
 
     R, z = sf.rho2rz(equ, t_in=time, rho_in=flxlabel, coord_in=coord_out,
                      all_lines=False)
@@ -132,7 +151,6 @@ def get_rho2rz(shot: int, flxlabel: float, diag: str = 'EQH',
         tout = time
 
     return R, z, tout
-
 
 def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
                ed: int = 0, time: float = None, equ=None):
@@ -157,7 +175,9 @@ def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
     """
     # If the equilibrium object is not an input, let create it
     if equ is None:
-        equ = sf.EQU(shot, diag=diag, exp=exp, ed=ed)
+        equ = safe_equ(shot, diag=diag, exp=exp, ed=ed)
+    if equ is None:
+        return None
 
     # equ.read_pfm()
     i = np.argmin(np.abs(equ.time - time))
@@ -166,13 +186,12 @@ def get_psipol(shot: int, Rin, zin, diag='EQH', exp: str = 'AUGD',
 
     return psipol
 
-
 # -----------------------------------------------------------------------------
-# --- Basic shot information
+# --- Basic shot information (update 19/10/2026)
 # -----------------------------------------------------------------------------
-def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
+def get_shot_basics(shot: int = None, diag: str = 'EQH',
                     exp: str = 'AUGD', edition: int = 0,
-                    time: float = None):
+                    time: float = None, shotnumber: int = None):
     """
     Retrieves from the equilibrium reconstruction the basic data stored into
     a dictionary. Technically, it reads the SSQ from the equilibrium
@@ -189,12 +208,10 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
     obtained.
     """
     # Checking the inputs.
-    new_equ_opened = False
-    try:
-        sfo = sf.SFREAD(diag, shotnumber, experiment=exp, edition=edition)
-        new_equ_opened = True
-    except:
-        raise errors.DatabaseError('EQU shotfile cannot be opened.')
+    if shotnumber is not None: shot = shotnumber
+    sfo = safe_sfread(diag, shot, experiment=exp, edition=edition)
+    if sfo is None:
+        return None
 
     # Deactivate the nasty warnings for a while.
     eqh_time = np.asarray(sfo('time'))  # Time data.
@@ -241,7 +258,7 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
     ssq['time'] = np.atleast_1d(eqh_time[t0:t1])
     # --- Reading the plasma current.
     try:
-        sfo = sf.SFREAD('MAG', shotnumber, experiment='AUGD', edition=edition)
+        sfo = sf.SFREAD('MAG', shot, experiment='AUGD', edition=edition)
     except:
         raise errors.DatabaseError('Error loading the MAG shotfile')
 
@@ -261,7 +278,7 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
 
     # --- Getting the magnetic field at the axis.
     try:
-        sfo = sf.SFREAD('MAI', shotnumber, experiment='AUGD',
+        sfo = sf.SFREAD('MAI', shot, experiment='AUGD',
                         edition=edition)
     except:
         raise errors.DatabaseError('MAI shotfile could not be loaded!')
@@ -281,300 +298,181 @@ def get_shot_basics(shotnumber: int = None, diag: str = 'EQH',
 
     return ssq
 
+def get_Ip(shot: int = None, plot = False, xArrayOutput: bool = True):
+    """
+    Plasma current
+
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
+    """
+    MAG = safe_sfread('MAG', shot)
+    if MAG is None:
+        return None
+    
+    name = 'Ipa'
+    I = np.array(MAG(name), dtype='f4') / 1.0e6
+    t = np.array(MAG.gettimebase(name), dtype='f4')
+    obj = xr.DataArray(I, dims=['t'], 
+                       coords={'t': ('t', t, {'long_name': 'Time', 'units': 's'})},
+                       attrs={'units': 'MA', 'long_name': '$I_p$', 
+                              'shot': shot, 'diag': 'MAG', 'signal': name}
+    )
+    if plot:
+        fig, ax = plt.subplots()
+        obj.plot(ax=ax)
+
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
+
+def get_Bt(shot: int = None, plot = False, xArrayOutput: bool = True):
+    """
+    Plasma magnetic field
+
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
+    """
+    MAI = safe_sfread('MAI', shot)
+    if MAI is None:
+        return None
+    name = 'BTF'
+    B = np.array(MAI(name), dtype='f4') * -1.0
+    t = np.array(MAI.gettimebase(name), dtype='f4')
+    obj = xr.DataArray(B, dims=['t'],
+                       coords={'t': ('t', t, {'long_name': 'Time', 'units': 's'})}, 
+                       attrs={'units': 'T', 'long_name': '$B_t$', 
+                              'shot': shot, 'diag': 'MAI', 'signal': name        }
+    )
+    if plot:
+        fig, ax = plt.subplots()
+        obj.plot(ax=ax)
+        
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
+
 
 # -----------------------------------------------------------------------------
-# --- q_profile
+# --- q_profile (update 19/10/2026)
 # -----------------------------------------------------------------------------
-def get_q_profile(shot: int, diag: str = 'EQH', exp: str = 'AUGD',
-                  ed: int = 0, time: float = None, sfo=None,
+def get_q_profile(shot: int = None, diag: str = 'EQH', plot = False, 
                   xArrayOutput: bool = True, **kwargs):
     """
     Reads from the database the q-profile as reconstrusted from an experiment.
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Based on the old routine written by P. Oyola
 
-    :param  shot: Shot number
-    :param  diag: Diag for AUG database, default EQH
-    :param  exp: experiment, default AUGD
-    :param  ed: edition, default 0 (last)
-    :param  time: Array of times where we want to calculate the field
-    :param  sf: shotfile accessing the data from the equilibrium.
+    Alex Reyner: areyner@us.es
 
-    :return
+    :param  shot: shot number
+    :param  diag: diag for AUG database, default EQH
+    :param  plot: quick plot of the data
+    :param  xArrayOutput: get the output in xarray format or dictionary
     """
-    if sfo is None:
+
+    diags_to_try = ['FPG', 'EQH'] if diag == 'FPG' else ['EQH', 'FPG']
+    obj = None
+    used_diag = None
+
+    for d in diags_to_try:
         try:
-            sfo = sf.SFREAD(diag, shot, experiment=exp, edition=ed)
-        except:
-            raise errors.DatabaseError(
-                'Cannot open %05d:%s.%d to get the q-prof' % (shot, diag, ed))
-    qpsi = sfo('Qpsi')
-    pfl = sfo('PFL')
-    timebasis = sfo('time')
-    PFxx = sfo('PFxx')
-    ikCAT = np.argmin(abs(PFxx[1:, :] - PFxx[0, :]), axis=0) + 1
-    psi_ax = PFxx[0, ...]
-    psi_edge = [PFxx[iflux, ii] for ii, iflux in enumerate(ikCAT)]
-    psi_edge = np.tile(np.array(psi_edge), (pfl.shape[0], 1))
-    rhop = np.sqrt((pfl - psi_ax)/(psi_edge-psi_ax)).squeeze()
-    output = {}
-
-    if time is not None:
-        time = np.atleast_1d(time)
-
-    if not xArrayOutput:
-        if time is None:
-            output = {
-                'data': qpsi,
-                'time': timebasis,
-                'rhop': rhop
-            }
-
-        elif len(time) == 1:
-            output = {
-                'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
-                'time': time.squeeze(),
-                'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze()
-            }
-        elif len(time) == 2:
-            t0, t1 = np.searchsorted(timebasis, time)
-            output = {
-                'data': qpsi[t0:t1, ...].squeeze(),
-                'time': timebasis[t0:t1].squeeze(),
-                'rhop': rhop[t0:t1, ...].squeeze(),
-            }
-        else:
-            output = {
-                'data': interp1d(timebasis, qpsi, axis=0)(time).squeeze(),
-                'time': time.squeeze(),
-                'rhop': interp1d(timebasis, rhop, axis=0)(time).squeeze(),
-            }
-
-        output['source'] = {
-            'diagnostic': diag,
-            'experiment': exp,
-            'edition': ed,
-            'pulseNumber': shot
-        }
-    else:
-        output = xr.Dataset()
-        found = False
-        counter = 0
-        while not found:
-            try:
-                jend = np.where(np.isnan(rhop[:, counter]))[0][0]
-                found = True
-            except IndexError:
-                counter += 1
-                if counter == rhop.shape[1]:
-                    print(counter)
-                    raise Exception('problem with the base')
-
-        output['data'] = xr.DataArray(qpsi[:jend, :], dims=('rho', 't'),
-                                      coords={'rho': rhop[:jend, 0],
-                                      't': timebasis})
-        output['data'].attrs['long_name'] = 'q'
-        output['rho'].attrs['long_name'] = '$\\rho_p$'
-        output['t'].attrs['long_name'] = 'Time'
-        output['t'].attrs['units'] = 's'
-
-        output.attrs['diag'] = diag
-        output.attrs['exp'] = exp
-        output.attrs['ed'] = ed
-        output.attrs['shot'] = shot
-    return output
-
-
-def get_ECRH_traces(shot: int, time: float = None, ec_list: list = None):
-    """
-    Retrieves from the AUG database the ECRH timetraces with the power of the
-    ECRH. The power and the injection angles are retrieved from the ECS
-    shotfile while the actual position of the gyrotrons is obtained from TBM
-    shotfile.
-
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
-
-
-    :param  shot: Shot number
-    :param  ed: edition, default 0 (last)
-    :param  time: Array of times where we want to calculate the field. If None,
-    the whole time array is retrieved.
-    :param  ec_list: list with the ECRH gyrotrons to use. If None, all the
-    gyrotrons are read.
-    """
-
-    if ec_list is None:
-        ec_list = (1, 2, 3, 4, 5, 6, 7, 8)
-
-    ec_list = np.atleast_1d(ec_list)
-
-    try:
-        sfecs = sf.SFREAD(shot, 'ECS', edition=0, experiment='AUGD')
-
-        sftbm = sf.SFREAD(shot, 'TBM', edition=0, experiment='AUGD')
-    except:
-        raise errors.DatabaseError(
-            'EC shotfiles cannot be opened for #%05d' % shot)
-
-    output = dict()
-    flag_first = False
-
-    # --- Reading the data for all the gyrotrons in the list.
-    warnings.filterwarnings('ignore', category=RuntimeWarning)
-    for iecrh, ecrh_num in enumerate(ec_list):
-        if ecrh_num <= 4:
-            power_name = 'PG%d' % ecrh_num
-        else:
-            power_name = 'PG%dN' % (ecrh_num-4)
-
-        # Getting the power of the gyrotron.
-        power = sfecs(power_name)
-
-        if np.all(power*1e-6 < ECRH_POWER_THRESHOLD):
+            if d == 'EQH': obj = _get_qprof_EQH(shot, **kwargs)
+            elif d == 'FPG': obj = _get_qprof_FPG(shot, **kwargs)
+            if obj is not None:
+                used_diag = d
+                break
+        except Exception:
             continue
 
-        poloidal_angle_name = 'thpl-G%d' % ecrh_num
-        toroidal_angle_name = 'phtr-G%d' % ecrh_num
+    if obj is None:
+        return None
 
-        pol_ang = sfecs(poloidal_angle_name)
-        tor_ang = sfecs(toroidal_angle_name)
-        time_ang = sfecs('T-C')
-        time_power = sfecs('T-B')
+    if plot:
+        fig, ax = plt.subplots()
+        if used_diag == 'FPG':
+            obj.to_array().plot.line(x='t', hue='variable')
+        elif used_diag == 'EQH':
+            obj.plot.imshow(robust=True)
+    
+    return obj if xArrayOutput else to_dict_with_metadata(obj)
 
-        if not flag_first:
-            flag_first = True
-            timebase = time_ang
-
-        power_data = interp1d(time_power, power, bounds_error=False,
-                              fill_value=0.0, assume_sorted=True)(timebase)
-
-        polang_data = interp1d(time_ang, pol_ang, bounds_error=False,
-                               fill_value=0.0, assume_sorted=True)(timebase)
-
-        torang_data = interp1d(time_ang, tor_ang, bounds_error=False,
-                               fill_value=0.0, assume_sorted=True)(timebase)
-
-        del power
-
-        output[int(ecrh_num)] = {
-            'time': timebase,
-            'power': power_data*1e-6,
-            'pol_ang': polang_data,
-            'tor_ang': torang_data,
-        }
-
-        # Getting the deposition position according to the RT controller.
-        rhopol = sftbm('rhoout%d' % ecrh_num)
-        Recrh = sftbm('R_out%d' % ecrh_num)
-        zecrh = sftbm('z_out%d' % ecrh_num)
-        rhoptime = sftbm('time_c')
-
-        output[int(ecrh_num)]['time_pos'] = rhoptime
-        output[int(ecrh_num)]['rhopol'] = rhopol
-        output[int(ecrh_num)]['R'] = Recrh
-        output[int(ecrh_num)]['z'] = zecrh
-
-    # Reading the total power
-    name = 'PECRH'
-    pecrh = sfecs(name=name)
-    output['total'] = {
-        'time': timebase,
-        'power': interp1d(time_power, pecrh, bounds_error=False,
-                          fill_value=0.0)(timebase)*1.e-6
-    }
-    return output
-
-
-def getECRH_total(shot: int, tBeg: float = None, tEnd: float = None,
-                  xArrayOutput: bool = False):
+def _get_qprof_EQH(shot: int = None, **kwargs):
     """
-    Returns the total ECRH power from the ECS shotfile in AUG.
+    Gets q profile from EQH diagnostic
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Based on the old routine written by P. Oyola
 
-    :param  shot: shotnumber to get the ECRH power.
-    :param  tBeg: initial time to get the timetrace. If None, the initial time
-    stored in the shotfile will be returned.
-    :param  tEnd: final time to get the timetrace. If None, the final time
-    stored in the shotfile will be returned.
+    Alex Reyner: areyner@us.es
+
+    :param  shot: shot number
     """
+    EQH = safe_sfread('EQH', shot, **kwargs)
+    if EQH is None:
+        return None
+    
+    qpsi = np.array(EQH('Qpsi'), dtype='f4') *-1
+    pfl = np.array(EQH('PFL'), dtype='f4')
+    t = np.array(EQH('time'), dtype='f4')
+    PFxx = np.array(EQH('PFxx'), dtype='f4')
 
-    sf_ecs = sf.SFREAD('ECS', shot)
-    if not sf_ecs.status:
-        raise errors.DatabaseError(
-            'Cannot get the ECS shotfile for #%05d' % shot)
+    ikCAT = np.argmin(np.abs(PFxx[1:, :] - PFxx[0, :]), axis=0) + 1
+    psi_ax = PFxx[0, :]
+    psi_edge = PFxx[ikCAT, np.arange(PFxx.shape[1])]
 
-    pecrh = sf_ecs(name='PECRH')
-    time = sf_ecs.gettimebase('PECRH')
+    rhop = np.sqrt((pfl - psi_ax[None, :]) / 
+                   (psi_edge[None, :] - psi_ax[None, :])).squeeze()
 
-
-    if tBeg is None:
-        t0 = 0
+    nan_mask = np.isnan(rhop)
+    if nan_mask.any():
+        valid_counts = (~nan_mask).all(axis=1)
+        jend = (np.argmin(valid_counts) 
+                if not valid_counts.all() else rhop.shape[0])
     else:
-        t0 = np.abs(time - tBeg).argmin()
+        jend = rhop.shape[0]
 
-    if tEnd is None:
-        t1 = len(time)
-    else:
-        t1 = np.abs(time - tEnd).argmin()
+    if jend == 0:
+        raise RuntimeError(f"Invalid magnetic grid reconstruction in EQH for shot {shot}")
 
-    # cutting the data to the desired time range.
-    pecrh = pecrh[t0:t1]
-    time = time[t0:t1]
+    rho_grid = rhop[:jend, 0]
 
-    if xArrayOutput:
-        output = xr.DataArray(pecrh/1.0e6, dims='t', coords={'t': time})
-        output.attrs['long_name'] = '$P_{ECRH}$'
-        output.attrs['units'] = 'MW'
-        output.attrs['diag'] = 'ECS'
-        output.attrs['signal'] = 'PECRH'
-    else:
-        output = {
-            'power': pecrh,
-            'time': time
-        }
+    obj = xr.DataArray(qpsi[:jend, :], dims=['rho', 't'],
+        coords={'rho': ('rho', rho_grid, {'long_name': r'$\rho_p$', 'units': ''}), 
+                't': ('t', t, {'long_name': 'Time', 'units': 's'}),},
+        attrs={'long_name': 'Safety factor', 'shot': shot, 'diag': 'EQH',},
+    )
 
-    return output
+    return obj
 
-
-def getPrad_total(shot: int, tBeg: float = None, tEnd: float = None):
+def _get_qprof_FPG(shot: int = None, **kwargs):
     """
-    Return the total radiated power from the BPD shotfile in AUG.
+    Gets q profile from FPG diagnostic
 
-    Pablo Oyola - pablo.oyola@ipp.mpg.de
+    Alex Reyner: areyner@us.es
 
-    :param  shot: shotnumber to get the ECRH power.
-    :param  tBeg: initial time to get the timetrace. If None, the initial time
-    stored in the shotfile will be returned.
-    :param  tEnd: final time to get the timetrace. If None, the final time
-    stored in the shotfile will be returned.
+    :param  shot: shot number
     """
 
-    sf_bpd = sf.SFREAD('BPD', shot)
-    if not sf_bpd.status:
-        raise errors.DatabaseError(
-            'Cannot get the BPD shotfile for #%05d' % shot)
+    FPG = safe_sfread('FPG', shot, **kwargs)
+    if FPG is None:
+        return None
+    
+    t = np.array(FPG.gettimebase('q95'), dtype='f4')
+    rhos = np.array([0, 25, 50, 75, 95])
+    obj = xr.Dataset(coords={'t': ('t', t, {'long_name': 'Time', 'units': 's'})},
+                     attrs={'shot': shot, 'diag': 'FPG'}
+    )
+    for rho in rhos:
+        name = f'q{rho}'
+        data = np.array(FPG(name), dtype='f4') * -1.0
 
-    prad = sf_bpd(name='Pradtot')
-    time = sf_bpd.gettimebase('Pradtot')
+        obj[name] = (['t'], data, 
+                     {'long_name': rf'$q_{{{rho}}}$', 'units': '', 
+                      'signal': name},
+                )
+    return obj
 
-    if tBeg is None:
-        t0 = 0
-    else:
-        t0 = np.abs(time - tBeg).argmin()
-
-    if tEnd is None:
-        t1 = len(time)
-    else:
-        t1 = np.abs(time - tEnd).argmin()
-
-    # cutting the data to the desired time range.
-    prad = prad[t0:t1]
-    time = time[t0:t1]
-
-    output = {
-        'power': prad,
-        'time': time
-    }
-
-    return output
+# Alias for the function
+_get_q_profile_EQH = _get_qprof_EQH
+_get_q_profile_FPG = _get_qprof_FPG

@@ -4,14 +4,18 @@ Contains custom color maps included in the suite
 Jose Rueda Rueda: jrrueda@us.es
 
 Contains:
+    -Gamma_I: Same as Gamma_II, but no white at the top
     -Gamma_II: Similar to IDL colormap with the same name
+    -Gamma_IIb: Improved Gamma_II
     -Gamma_III: Same as Gamma_II, but with grey at the bottom for contrast
+    -jet_black: jet colormap with black at the bottom
     -Cai: Color map with the colors of Cadiz
 """
 import os
 import yaml
 from matplotlib.colors import LinearSegmentedColormap
-__all__ = ['Gamma_I', 'Gamma_II', 'Gamma_IIb', 'Gamma_III', 'Cai', 'default_cmap']
+__all__ = ['Gamma_I', 'Gamma_II', 'Gamma_IIb', 'Gamma_III', 'jet_black',
+           'Cai', 'default_cmap']
 
 
 def Gamma_I(n=256):
@@ -73,6 +77,21 @@ def Gamma_III(n=256):
 
     cmap = LinearSegmentedColormap.from_list(
         "mycmap", list(zip(color_positions, colors)),N=n)
+    return cmap
+
+def jet_black(n=256):
+    '''
+    Similar to jet colormap, but includes black at the bottom.
+
+    Alex Reyner: areyner@us.es
+
+    :param  n: numbers of levels of the output colormap
+    '''
+
+    cmap = LinearSegmentedColormap.from_list(
+        'mycmap', ['k', '#00007f', '#0000fe', '#0060ff', '#00d4ff', 
+                   '#4cffaa', '#aaff4c', '#ffe500', '#ff7a00', 
+                   '#fe1200', '#7f0000'], N=n)
     return cmap
 
 def Cai(n=256):

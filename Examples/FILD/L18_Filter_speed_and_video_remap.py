@@ -37,7 +37,7 @@ vid = ss.vid.FILDVideo(shot=shot, diag_ID=diag_ID)
 vid.read_frame(t1=t1, t2=t2, limitation=limitation, limit=limit)
 """ Substract noise """
 if subtract_noise:
-    frame = vid.subtract_noise(t1=tn1, t2=tn2, speed_flag = True) #from BVO
+    frame = vid.subtract_noise(t1=tn1, t2=tn2) #from BVO
 
 cvid = copy.deepcopy(vid) # copy of the video to apply old and new filters in the same conditions
 
@@ -45,8 +45,7 @@ cvid = copy.deepcopy(vid) # copy of the video to apply old and new filters in th
 if apply_filter:
     for filter in kind_of_filter:
         time1=time.time()
-        vid.filter_frames(method = filter, options = options_filter,
-                            speed_flag = True)
+        vid.filter_frames(method = filter, options = options_filter)
         time2=time.time()
         elapsed = time2-time1
         globals()[f'new_{filter}_time'] = elapsed
@@ -100,8 +99,7 @@ par = {
     'method': 2,  # 2 Spline, 1 Linear
     'decimals': 1, # Precision for the strike map (1 is more than enough)
     'allIn': 2,
-    'remap_method': 'forward_warping_simple',
-    'speed_flag': True
+    'remap_method': 'forward_warping_simple'
     }   
 time1=time.time()
 new_remap = copy.deepcopy(vid)

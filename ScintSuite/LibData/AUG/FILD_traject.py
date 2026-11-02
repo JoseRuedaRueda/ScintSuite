@@ -9,7 +9,10 @@ Due to an issue with the FILD4 computer, the trajectories are stored in
 Javier Hidalgo's computer (javih). If you cannot access the required folders
 (found in the path) contact him.
 
+Update from 31.07.2026 -> mdrs files stored in /FIL/FILD4_coil
+
 Javier Hidalgo-Salaverri: jhsalaverri@us.es
+Alex Reyner Viñolas: areyner@us.es
 """
 
 import os
@@ -31,6 +34,8 @@ try:
 except ModuleNotFoundError:
     pass
 
+import logging
+logger = logging.getLogger(__name__)
 
 def get_dist2sep(shot: int = None, R: float = None, z: float = None,
                  t: float = None, diag: str = 'EQH', plot_sep: bool = True,
@@ -202,8 +207,8 @@ class FILD4_traject:
         :param  polyorder: polyorder of the Savgol filter
         """
         if path_ps == '':
-            path_ps = os.path.join(paths.FILD4_trajectories,
-                                   'output_power_supply', str(self.shot)[0:2],
+            path_ps = os.path.join(paths.FILD4_trajectories, 
+                                   str(self.shot)[0:2],
                                    'FILD_MDRS_'+str(self.shot)+'.txt')
         print('path is ' + path_ps)
         data = np.loadtxt(path_ps, delimiter='\t')

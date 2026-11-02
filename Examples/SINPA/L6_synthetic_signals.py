@@ -15,6 +15,7 @@ import ScintSuite._Plotting as ssplt
 
 import ScintSuite.SimulationCodes.SINPA._ForwardModellingClass as fmod
 import ScintSuite.SimulationCodes.SINPA._forward_modelling as fmod2
+import copy
 ssplt.plotSettings(plot_mode='default')
 
 matplotlib.use('QtAgg')
@@ -125,6 +126,22 @@ sig.plot_frame_scintillator(cmap = ssplt.Gamma_I(),
 sig.plot_frame_camera(cmap=ssplt.Gamma_I(),
                       plot_smap=True, plot_scint=True, plot_FoV=True)
 
+
+# ----------------------------------------------------------------------------
+# %% Plot multiple signals in the same plot
+# ----------------------------------------------------------------------------
+# This is specially interesting if you have different species (H, D) and the
+# signals are computed separately; or have multiple pinholes
+# CAREFUL! sums the xarrays. To make it work properly both objects need to be
+# 'equal'. Same geometry, same optic parameters, ... but diferent signal
+sig2 = copy.deepcopy(sig)
+
+# --- This routines will allow you to plot different signals at the same time
+
+# Plots both scintillator signals with their corresponding strikemap
+fmod.plot_multiframe_scintillator([sig,sig],)
+
+# Plots both signals with their corresponding strikemap in the camera
 
 
 # ----------------------------------------------------------------------------

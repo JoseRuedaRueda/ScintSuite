@@ -104,7 +104,7 @@ class ScintillatorEfficiency:
         self.data = read_scintillator_efficiency(file, verbose)
         logger.info('Reading efficiency file: ' + file)
 
-    def __call__(self, E, kwargs: dict = {}):
+    def __call__(self, E, **kwargs):
         """
         Wrap the interpolator.
 
@@ -114,6 +114,7 @@ class ScintillatorEfficiency:
         :param kwargs: optional arguments for the interpolator
         :return: interpolated vallues
         """
+        method = kwargs.pop('method', 'linear')
         kwargs2 = {'fill_value': (self.data.values[0], self.data.values[-1])}
         kwargs2.update(kwargs)
-        return self.data.interp(E=E, kwargs=kwargs2,)
+        return self.data.interp(E=E, method=method, kwargs=kwargs2,)

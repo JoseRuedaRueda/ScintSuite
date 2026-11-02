@@ -1,6 +1,10 @@
 '''
 Alex Reyner: areyner@us.es
 
+This object is based on the routines elaborated by:
+        Jose Rueda - jruedaru@uci.edu
+        Antonin J. van Vuuren - anton.jansenvanvuuren@epfl.ch
+
 Functions:
     - read_distribution: Read the ion distribution that will be used as input
     - obtain_WF: Obtain the weight function of the smap
@@ -22,7 +26,8 @@ FMC class:
 
 import ScintSuite as ss
 import ScintSuite._Mapping as ssmapplting
-from ScintSuite.SimulationCodes.Common import get_energy, get_gyroradius
+from ScintSuite.SimulationCodes.Common.gyroscalar import get_energy
+from ScintSuite.SimulationCodes.Common.gyroscalar import get_gyroradius
 import ScintSuite.SimulationCodes.Common.geometry as geometry
 import ScintSuite._Plotting as ssplt
 from ScintSuite._Plotting._ColorMaps import default_cmap
@@ -36,6 +41,7 @@ import scipy.ndimage as spnd
 import math
 import copy
 import sys
+import unyt
 
 import logging
 logger = logging.getLogger('ScintSuite.FModC')
@@ -73,14 +79,21 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
             other interesting parameters from the ascot files
     '''
     logger.info('----- READING DISTRIBUTION ----- ')
-    logger.info('Reading file: %s', filename)
+    logger.info('- Reading file: %s', filename)
+    start = time.perf_counter()
 
     if pinhole_area == None or wetted_area == None:
         logger.error('Missing pinhole_area and/or wetted_area in input') 
         sys.exit()   
     else:
-        logger.info('- Wetted area: %.2f (mm²)', wetted_area)
-        logger.info('- Pinhole area: %.2f (mm²)', pinhole_area)
+        if not isinstance(wetted_area, unyt.unyt_array):
+            logger.warning('The input wetted_area does not have units, assuming mm²')
+            wetted_area = wetted_area * unyt.mm**2
+        if not isinstance(pinhole_area, unyt.unyt_array):
+            logger.warning('The input pinhole_area does not have units, assuming mm²')
+            pinhole_area = pinhole_area * unyt.mm**2
+        logger.info('   Wetted area    = %.3e %s', wetted_area, wetted_area.units)
+        logger.info('   Pinhole area   = %.3e %s', pinhole_area, pinhole_area.units)
     
     out={}
 
@@ -97,13 +110,31 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
                 continue
             else:
                 c = line.split()
-                # get pitch in degree
+                # get pitch in degree, account for co (+) and counter (-)
                 c[4] = math.acos(float(c[4]))*180.0/math.pi
                 
                 modified_line = f'{c[0]} {c[1]} {c[2]} {c[3]} \
                     {c[4]} {c[5]} {c[6]} {c[7]} {c[8]} '
                 modified_lines.append(modified_line)    
 
+    if version == 'w7x':
+        names = ['R', 'Z', 'phi', 'weight', 'energy', 
+                 'pitch']
+
+        # FILE PREPARATION
+        with open(filename, 'r') as file:
+                lines = file.readlines()[2:]
+        modified_lines = []       
+        for line in lines:
+            if line.startswith('#'): #skips headers
+                continue
+            else:
+                c = line.split()
+                # get pitch in degree, account for co (+) and counter (-)
+                c[5] = math.acos(float(c[5]))*180.0/math.pi
+                
+                modified_line = f'{c[0]} {c[1]} {c[2]} {c[3]} {c[4]} {c[5]} '
+                modified_lines.append(modified_line)    
     
     if version == 'matlab':
         names = ['pitch', 'energy', 'weight']
@@ -122,7 +153,6 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
                     f'{c[0]} {c[1]} {c[2]}'
                 modified_lines.append(modified_line)    
 
-
     if version == 'manual':
         names = ['energy', 'pitch', 'Anum', 'Znum', 'weight']
         
@@ -133,13 +163,13 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
         for line in lines:
             if line.startswith('#'): #skips headers
                 continue
-            else:                             
+            else:
+                c = line.split()                         
                 modified_line = f'{c[0]} {c[1]} {c[2]} {c[3]} {c[4]}'
                 modified_lines.append(modified_line)    
 
-
     if version == 'locust':
-        names = ['R', 'z', 'phi', 'vR', 'vZ', 'vphi', 'pitch', 'energy', 
+        names = ['R', 'z', 'phi', 'vR', 'vz', 'vphi', 'pitch', 'energy', 
                  'rho_Larmor', 'weight', 'gyrophase', 'ID_FILD']
         
         if A==None or Z==None:
@@ -164,14 +194,37 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
                       {c[6]} {c[7]} {c[8]} {c[9]} {c[10]} {c[11]}'
                 modified_lines.append(modified_line)    
 
+    if version == 'locust_jet':
+        names = ['R', 'phi', 'z', 'vR', 'vphi', 'vZ', 'v_par/v', 'pitch',
+                 'energy', 'rho_Larmor', 'gyroradius', 'weight']
+        if A==None or Z==None:
+            logger.error('No A and/or B as input. STOPING')      
+            sys.exit()   
+        
+        # FILE PREPARATION
+        with open(filename, 'r') as file:
+                lines = file.readlines()
+        modified_lines = []        
+        for line in lines:
+            if line.startswith('#'): #skips headers
+                continue
+            else:
+                c = line.split()
+                # get energy in eV
+                c[8] = float(c[8])*1e6
+                                
+                modified_line = f'{c[0]} {c[1]} {c[2]} {c[3]} {c[4]} {c[5]} \
+                      {c[6]} {c[7]} {c[8]} {c[9]} {c[10]} {c[11]}'
+                modified_lines.append(modified_line)    
+
     # BUILD OUTPUT
     # -----------------------------------------------------------------------
-    filename2=filename[:-4]+'_procesed.dat'
-    with open(filename2, 'w') as file2:
-        file2.write('\n'.join(modified_lines))
+
+    from io import StringIO
+    buffer = StringIO('\n'.join(modified_lines))
+    data = np.loadtxt(buffer)
 
     # Load the data of this second file
-    data = np.loadtxt(filename2)
     for i in range(len(names)):
         out[names[i]] = data[:, i]
     out['n'] = len(data[:, 0])
@@ -183,25 +236,65 @@ def read_distribution(filename, pinhole_area = None, wetted_area = None,
         out['Znum'] = np.full(out['n'], Z)
     if 'B' not in out:
         out['B'] = np.full(out['n'], B)
-    # Compute gyroradius
-    vect_get_gyroradius = np.vectorize(get_gyroradius)
-    out['gyroradius'] = vect_get_gyroradius(out['energy'], 
-                                            out['B'], out['Anum'], out['Znum'], 
-                                            relativistic=True)
+
+    # Assign units if missing and compute gyroradius
+    if 'R' in out and not isinstance(out['R'], unyt.unyt_array):
+        logger.warning('The input R does not have units, assuming m')
+        out['R'] = out['R'] * unyt.m
+    if 'phi' in out and not isinstance(out['phi'], unyt.unyt_array):
+        logger.warning('The input phi does not have units, assuming deg')
+        out['phi'] = out['phi'] * unyt.deg
+    if 'Z' in out and not isinstance(out['Z'], unyt.unyt_array):
+        logger.warning('The input Z does not have units, assuming m')
+        out['Z'] = out['Z'] * unyt.m
+    if not isinstance(out['pitch'], unyt.unyt_array):
+        logger.warning('The input pitch does not have units, assuming deg')
+        out['pitch'] = out['pitch'] * unyt.deg
+    if not isinstance(out['B'], unyt.unyt_array):
+        logger.warning('The input magnetic field does not have units, assuming T')
+        out['B'] = out['B'] * unyt.T
+    if not isinstance(out['Anum'], unyt.unyt_array):
+        logger.warning('The input mass number does not have units, assuming amu')
+        out['Anum'] = out['Anum'] * unyt.amu
+    if not isinstance(out['Znum'], unyt.unyt_array):
+        logger.warning('The input charge number does not have units, assuming e')
+        out['Znum'] = out['Znum'] * unyt.electron_charge *-1
+    if not isinstance(out['energy'], unyt.unyt_array):
+        logger.warning('The input energy does not have units, assuming eV')
+        out['energy'] = out['energy'] * unyt.eV
+    if 'gyroradius' not in out:
+        # Asegurar que todas las entradas se puedan iterar
+        e_list = np.atleast_1d(out['energy'])
+        b_list = np.atleast_1d(out['B'])
+        a_list = np.atleast_1d(out['Anum'])
+        z_list = np.atleast_1d(out['Znum'])
+        results = [get_gyroradius(e, b, a, z, relativistic=True) 
+                   for e, b, a, z in zip(e_list, b_list, a_list, z_list)]
+        out['gyroradius'] = results
+    if not isinstance(out['gyroradius'], unyt.unyt_array):
+        logger.warning('The input gyroradius does not have units, assuming cm')
+        out['gyroradius'] = out['gyroradius'] * unyt.cm
+
     # Adjust marker weight to strict pinhole area
+    if not isinstance(out['weight'], unyt.unyt_array):
+        logger.warning('The input weight does not have units, assuming 1/s')
+        out['weight'] = out['weight'] * (1/unyt.s)
     out['weight'] = out['weight'] / wetted_area * pinhole_area
     # Calculate the power by each marker in the pinhole
-    out['power'] = out['weight'] * out['energy'] * 1.602176634e-19 # eV to J
+    out['power'] = out['weight'] * out['energy'].to('J')
+    out['power'] = out['power']
 
-    ion_flux = np.sum(out['weight']) / pinhole_area # per unit of area
-    ion_power = np.sum(out['power']) / pinhole_area # per unit of area
+    ion_flux = np.sum(out['weight']) / pinhole_area.to('m**2') # per unit of area
+    ion_power = np.sum(out['power']) / pinhole_area.to('m**2') # per unit of area
     ions_head = ion_flux * wetted_area
     ions_pinhole = ion_flux * pinhole_area
 
-    logger.info('- Ion den flux   -> %e (ions/s/m²)', ion_flux*1e6) # go to /m²
-    logger.info('- Power den flux -> %e (W/m²)', ion_power*1e6) # go to /m²
-    logger.info('- Wetted flux    -> %e (ions/s)', ions_head)
-    logger.info('- Pinhole flux   -> %e (ions/s)', ions_pinhole)
+    logger.info('   Ion den flux   = %.3e %s', ion_flux, ion_flux.units)
+    logger.info('   Power den flux = %.3e %s', ion_power, ion_power.units)
+    logger.info('   Wet. area flux = %.3e %s', ions_head, ions_head.units)
+    logger.info('   Pinhole flux   = %.3e %s', ions_pinhole, ions_pinhole.units)
+    end = time.perf_counter()
+    logger.info('   (%.4f s)', end-start)
 
     return out
 
@@ -273,12 +366,9 @@ class FMC:
     introducing all system parameters.
 
     Alex Reyner: areyner@us.es
-    .ft. Jose Rueda
     '''
     def __init__(self, smap, scint, WF = None,
-                 smapplt = None, pinhole_params: dict = None, 
-                 scintillator_params: dict = None, B=4, A=4, Z=2,
-                 camera_params: dict = None, optics_params: dict = None, noise_params: dict = None,):
+                 smapplt = None, collimator = None):
         '''
         Docstring for __init__
         
@@ -297,6 +387,7 @@ class FMC:
             self.data['strikemap_plot'] = smap
         else:
             self.data['strikemap_plot'] = smapplt
+        self.collimator = collimator
 
         # --- Basic configuration for synthetic signal production
         # Parameters of the remapped signals
@@ -304,14 +395,14 @@ class FMC:
                            'ymin': 1, 'ymax': 10, 'dy': 0.1,}
         self._def_sci_params = {'xmin': 20, 'xmax': 90, 'dx': 1,
                              'ymin': 1, 'ymax': 10, 'dy': 0.1,}
-        self.pin_params = self._def_pin_params.update(pinhole_params) if pinhole_params else self._def_pin_params.copy()
-        self.sci_params = self._def_sci_params.update(scintillator_params) if scintillator_params else self._def_sci_params.copy()
+        self.pin_params = self._def_pin_params.copy()
+        self.sci_params = self._def_pin_params.copy()
         self.data['pin_grid'] = self.pin_params
         self.data['scint_grid'] = self.sci_params
         # Species
-        self.B = B
-        self.A = A
-        self.Z = Z
+        self.B = 4
+        self.A = 4
+        self.Z = 2
         # Camera parameters (PCO.edge 5.5)
         self._def_cam_params = {'px_x_size':6.5e-6, # pixel size
                            'px_y_size':6.5e-6,
@@ -325,20 +416,18 @@ class FMC:
                            'readout_noise_rmd':2.5, # 
                            'exposure': 0.01,
                            }
-        self._def_cam_params.update(camera_params if camera_params else {})
         # Optic path
         self._def_opt_params = {'T': 1, # transmision
-                           #'beta': 0.2, # magnification
-                           'omega': 1,
-                           'FoV': [0.5, 0.5, 33.5], # position in the scintillator and FoV radius [mm]
+                        #    'beta': 0.2, # magnification, automatic
+                           'NA': 1,
+                           'omega': np.pi,
+                           'FoV': [0.5, 0.5, 33.5], # position in the scintillator and FoV radius [cm]
                            }
-        self._def_opt_params.update(optics_params if optics_params else {})
         # Noise parameters
         self._def_noi_params = {'neutrons': 0, # background neutronic noise in the scintillator (total photons)
                            'broken':0.01, # ratio of broken pixels
                            'camera_neutrons':0.001, # ratio of pixels afected by neutrons
                            }
-        self._def_noi_params.update(noise_params if noise_params else {})
         self.cam_params = self._def_cam_params.copy()
         self.opt_params = self._def_opt_params.copy()
         self.noi_params = self._def_noi_params.copy()
@@ -372,7 +461,7 @@ class FMC:
         logger.info('----- COMPUTING REMAPED SYNTHETIC SIGNAL USING WF -----')
 
         self.mode = mode
-        logger.info(f'- Mode: {self.mode}')
+        logger.info(f'   Mode: {self.mode}')
         self.data['distribution'] = distro
         self.gyrophases = gyrophases
         WFrecomputation = False
@@ -394,18 +483,18 @@ class FMC:
                                  sci_params=self.sci_params,)
             end = time.perf_counter()
             WFrecomputation = False
-            logger.warning('    %.4f s', end-start)
+            logger.warning('   %.4f s', end-start)
             
         # INPUT VERIFICATION
         # -----------------------------------------------------------------------
-        pitch = self.data['distribution']['pitch']
-        gyro = self.data['distribution']['gyroradius']
-        energy = self.data['distribution']['energy']
-        B = self.data['distribution']['B']
-        Anum = self.data['distribution']['Anum']
-        Znum = self.data['distribution']['Znum']
+        pitch = self.data['distribution']['pitch'].value
+        gyro = self.data['distribution']['gyroradius'].value
+        energy = self.data['distribution']['energy'].value
+        B = self.data['distribution']['B'].value
+        Anum = self.data['distribution']['Anum'].value
+        Znum = self.data['distribution']['Znum'].value
 
-        if mode == 'photons':
+        if self.mode in ('photons', 'counts'):
             if 'energy' in self.data['distribution'].keys() or 'e0' in self.data['distribution'].keys():
                 eff = self.data['scintillator'].efficiency(energy/1e3).values
             elif 'gyroradius' in self.data['distribution'].keys():
@@ -416,16 +505,16 @@ class FMC:
                 sys.exit() 
             weight = self.data['distribution']['weight']
             cbar_units = 'photons / s cm º'
-        elif mode == 'ions': # to see the flux of ions in the scintillator
+        elif self.mode == 'ions': # to see the flux of ions in the scintillator
             eff = np.ones(self.data['distribution']['n']) # eficency is 1
             weight = self.data['distribution']['weight']
             cbar_units = 'ions / s cm º'
-        elif mode == 'power': # to compute the deposited power (beta feature)
+        elif self.mode == 'power': # to compute the deposited power (beta feature)
             eff = np.ones(self.data['distribution']['n']) # eficency is 1
             weight = self.data['distribution']['power']
             cbar_units = 'W / cm º'
         else:
-            logger.error('Wrong mode, select either: photons, ions or power')
+            logger.error('Wrong mode, select either: photons (or counts), ions or power')
 
         # VECTORIZED MAPPING
         # -----------------------------------------------------------------------
@@ -440,8 +529,8 @@ class FMC:
                 (gyro >= y_val.min()) & (gyro <= y_val.max()))
         pitch, gyro, weight, eff = pitch[mask], gyro[mask], weight[mask], eff[mask]
         masked_w = weight.sum()
-        logger.info('    Pinhole (ions/s): %e', total_w)
-        logger.info('    Lost ions to smap: %e (%.2f%%)', total_w-masked_w, 
+        logger.info('   Pinhole = %.3e %s', total_w, total_w.units)
+        logger.info('   Lost ions to smap = %.2f%%', 
                     (total_w-masked_w)/total_w*100)
         # Calculate steps
         p_step = np.abs(x_val[1]-x_val[0])
@@ -455,12 +544,12 @@ class FMC:
         r_idx = np.clip(r_idx, 0, ny - 1)
         # Build the weight matrix
         w_matrix = np.zeros((nx, ny))
-        np.add.at(w_matrix, (p_idx, r_idx), (weight)) # fill the weights
+        np.add.at(w_matrix, (p_idx, r_idx), (weight.value)) # fill the weights
         w_xrarray = xr.DataArray(w_matrix,
                         coords={'y': y_val, 'x': x_val},
                         dims=('x', 'y'))
         weff_matrix = np.zeros((nx, ny))
-        np.add.at(weff_matrix, (p_idx, r_idx), (weight*eff)) # fill the weights
+        np.add.at(weff_matrix, (p_idx, r_idx), (weight.value*eff)) # fill the weights
         weff_xrarray = xr.DataArray(weff_matrix,
                         coords={'y': y_val, 'x': x_val},
                         dims=('x', 'y'))
@@ -477,10 +566,12 @@ class FMC:
         synthetic_signal.xs.attrs = {'units': 'º', 'long_name': 'Pitch'}
         synthetic_signal.y.attrs = {'units': 'cm', 'long_name': 'Gyroradius'}
         synthetic_signal.ys.attrs = {'units': 'cm', 'long_name': 'Gyroradius'}
-        logger.info('    Scintillator (%s/s): %e', self.mode, 
-                    synthetic_signal.sc.integrate(['xs', 'ys']))
+
+        unit_str = 'photons' if self.mode == 'counts' else self.mode
+        logger.info('   Scintillator = %e (%s/s)', 
+                    synthetic_signal.sc.integrate(['xs', 'ys']), unit_str)
         end = time.perf_counter()
-        logger.info('    %.4f s', end-start)
+        logger.info('   (%.4f s)', end-start)
 
         self.pr_space = synthetic_signal
 
@@ -570,6 +661,9 @@ class FMC:
         '''
         Wrap to compute synthetic signals in the scintillator real space.
 
+        Alex Reyner: areyner@us.es
+        Based on the origianl function by Jose Rueda and Anton J. van Vuuren
+
         :param  distro: distribution obtained with read_distribution()
         :param  mode: select what quantity you want
                     - photons: includes scintillator response (default)
@@ -586,9 +680,9 @@ class FMC:
         :return frame_scintillator atribute:
         '''
 
-        self._update_params(self.cam_params, cam_params, 'Camera')
-        self._update_params(self.opt_params, opt_params, 'Optic')
-        self._update_params(self.noi_params, noi_params, 'Noise')
+        self._update_params(self.cam_params, cam_params, 'camera')
+        self._update_params(self.opt_params, opt_params, 'optic')
+        self._update_params(self.noi_params, noi_params, 'noise')
 
         self.centering = centering
         self.smoother = smoother
@@ -601,7 +695,7 @@ class FMC:
         if hasattr(self,'frame_camera'):
             del self.frame_camera
 
-    def synthsig_camera(self, distro, mode: str = 'photons',
+    def synthsig_camera(self, distro, mode: str = 'counts',
                         pin_params: dict | None = None,
                         sci_params: dict | None = None,
                         cam_params: dict | None = None,
@@ -610,14 +704,18 @@ class FMC:
                         centering: bool = False, smoother: int = 0,
                         rm_saturation = False,
                         radiometry = None, distortion = None,
-                        gyrophases: float = np.pi,
+                        emission_law = {'n':0, 'theta':0},
                     ):
         '''
         Wrap to compute synthetic signals in the camera space.
 
+        Alex Reyner: areyner@us.es
+        Based on the origianl function by Jose Rueda and Anton J. van Vuuren
+
         :param  distro: distribution obtained with read_distribution()
         :param  mode: select what quantity you want
-                    - photons: includes scintillator response (default)
+                    - counts: camera pixel counts (default)
+                    - photons: photons reaching the camera
                     - ions: ion flux in the scintillator
                     - power: power flux deposited in the scintillator
         :param  pin_params: pinhole grid for the synthetic signal 
@@ -630,6 +728,9 @@ class FMC:
         :param  rm_satuation: remove saturated pixels
         :param  radiometry: relative transmission (from ZEMAX, experimental)
         :param  distortion: (from ZEMAX, experimental)
+        :param  emission_law: n of the angular emission law and 
+                    angle of the scintillator efficency measurement.
+                    Accounts for non-isotropic emission. (experimental)
 
         :return frame_scintillator and frame_camera atributes:
         '''
@@ -640,14 +741,13 @@ class FMC:
                          opt_params = opt_params,
                          noi_params = noi_params,
                          centering = centering, 
-                         smoother = smoother,
-                         gyrophases = gyrophases,
-                         )
+                         smoother = smoother)
         self.apply_optics_camera_noise(rm_saturation = rm_saturation,
                                        radiometry = radiometry,
-                                       distortion = distortion)
+                                       distortion = distortion,
+                                       emission_law = emission_law)
         end = time.perf_counter()
-        logger.info('TOTAL CAMERA SS COMPUTING TIME %.4f s', end-start)
+        logger.info('TOTAL CAMERA SS COMPUTING TIME: %.4f s', end-start)
            
     def apply_optics_camera_noise(self, 
                         cam_params: dict | None = None,
@@ -655,6 +755,7 @@ class FMC:
                         noi_params: dict | None = None,
                         rm_saturation = False,
                         radiometry = None, distortion = None,
+                        emission_law = {'n':0, 'theta':0},
                         ):
         '''
         Apply the optics and camera to the frame_scintillator.
@@ -668,6 +769,9 @@ class FMC:
         :param  rm_satuation: remove saturated pixels
         :param  radiometry: relative transmission (from ZEMAX, experimental)
         :param  distortion: (from ZEMAX, experimental)
+        :param  emission_law: n of the angular emission law and 
+                    angle of the scintillator efficency measurement.
+                    Accounts for non-isotropic emission. (experimental)
 
         :return frame_camera atribute:
         '''
@@ -675,9 +779,17 @@ class FMC:
         # Update parameter dictionaries, in case scans in some parameters want 
         # to be done. Carefull with this. Routines is fast enough to not need 
         # this.     
-        self._update_params(self.cam_params, cam_params, 'Camera')
-        self._update_params(self.opt_params, opt_params, 'Optic')
-        self._update_params(self.noi_params, noi_params, 'Noise')
+        self._update_params(self.cam_params, cam_params, 'camera')
+        self._update_params(self.opt_params, opt_params, 'optic')
+        self._update_params(self.noi_params, noi_params, 'noise')
+        if self.mode == 'counts': # pixel counts
+            cbar_units = 'Pixel counts'
+        elif self.mode == 'photons': # photons flux reaching the camera
+            cbar_units = 'photons / m²'
+        elif self.mode == 'ions': # photons flux reaching the camera
+            cbar_units = 'ions / m²'
+        else:
+            logger.error('Wrong mode, select either: counts, photons or ions')
 
         # Copy the data coming from the xy mapping
         self.frame_camera = copy.deepcopy(self.frame_scintillator)
@@ -690,32 +802,42 @@ class FMC:
         
         # OPTICS
         # -----------------------------------------------------------------------
+        logger.info(f'   ß = {self.data['optics']['beta']:.2e}')
+        logger.info(f'   NA = {self.data['optics']['NA']:.2f}')
+        logger.info(f'   T = {self.data['optics']['T']:.2f}')
         # Compute the maximum counts for the camera
         max_count = 2 ** self.cam_params['range'] - 1
 
         # Now apply all variables in the result
         for key in self.frame_camera:
+            # Divide by 4\pi, ie, assume isotropic emission of the scintillator
+            # self.frame_camera[key] *= 1/(4*np.pi) * self.opt_params['omega']
+            # Advanced emission with angular dependece
+            self.frame_camera[key] *= 1/(4*np.pi)
+            factor = 1 / np.cos(emission_law['theta'])**emission_law['n']
+            self.frame_camera[key] *=\
+                  _integrated_emission(e0 = factor, 
+                                       n = emission_law['n'], 
+                                       NA = self.data['optics']['NA']) 
+            # Consider the transmission of the beam line
+            self.frame_camera[key] *= self.opt_params['T'] 
             # Adjust pixel sizes and beta (photons/m² to photons/pix)
             self.frame_camera[key] *= self.data['pix_scint_area']
-            # Divide by 4\pi, ie, assume isotropic emission of the scintillator
-            self.frame_camera[key] *= 1 / 4 / np.pi
-            # Consider the solid angle covered by the optics and the transmission of
-            # the beam line through the lenses and mirrors:
-            self.frame_camera[key] *= self.opt_params['T'] * self.opt_params['omega']
-            # Photon to electrons in the camera sensor (QE)
-            self.frame_camera[key] *= self.cam_params['qe']
-            # Electrons to counts in the camera sensor,
-            self.frame_camera[key] /= self.cam_params['ad_gain']
+            if self.mode == 'counts':
+                # Photon to electrons in the camera sensor (QE)
+                self.frame_camera[key] *= self.cam_params['qe']
+                # Electrons to counts in the camera sensor,
+                self.frame_camera[key] /= self.cam_params['ad_gain']
             # Consider the exposure time
             self.frame_camera[key] *= self.cam_params['exposure']
             # Apply distortion to the signal before the rest of optics and noises
-            if distortion is not None:
-                try:
-                    self.frame_camera[key] =\
-                        self.frame_camera[key].interp(x=distortion.x_new, 
-                                                    y=distortion.y_new)
-                except:
-                    pass
+            try:
+                self.frame_camera[key] =\
+                    self.frame_camera[key].interp(x=distortion.x_new, 
+                                                y=distortion.y_new).transpose()
+                logger.info('- Deformation applied')
+            except:
+                pass
 
         # -----------------------------------------------------------------------
         # Add the optic FoV and the radiometry filter (stored as a noise)
@@ -756,6 +878,7 @@ class FMC:
             self.FoV_vector = [x_FoV,y_FoV,r_FoV]
             logger.info('- FoV determined: (x,y,r) = (%4.1f,%4.1f,%4.1f) pix',
                         x_FoV,y_FoV,r_FoV)
+            logger.info('- Radiometry applied')
         except: # Try to at least define the FoV
             try:
                 # Find the FoV in the scintillator using the % respect SW corner
@@ -775,113 +898,118 @@ class FMC:
             except:
                 logger.info('- No FoV, or not good format of the input')
         end = time.perf_counter()
-        logger.info('    %.4f s', end-start)   
+        logger.info('   (%.4f s)', end-start)   
 
-        # NOISES IN THE CAMERA  
+        # NOISES IN THE CAMERA (only if counts is considered) 
         # -----------------------------------------------------------------------
         final_frame = copy.deepcopy(self.frame_camera['tot'])
-        # Neutron impact noise
-        '''
-        Add noise due to neutron impact on the sensor
-        '''
-        if self.noi_params['camera_neutrons'] > 0:
-            start = time.perf_counter()
-            rand = np.random.default_rng()
-            hit = rand.uniform(size = final_frame.shape)
-            intensity = rand.uniform(size=final_frame.shape)
-            # noise frame, select only the pixels with the noise
-            dummy = copy.deepcopy(final_frame)*0
-            dummy += (2**self.cam_params['range'] - 1)
-            dummy *= intensity 
-            dummy = dummy.where(hit <= self.noi_params['camera_neutrons'], 0)
-            # eliminate those same frames from the noise frame and add noise
-            final_frame = final_frame\
-                .where(hit > self.noi_params['camera_neutrons'], 0)
-            final_frame += dummy
-            self.frame_camera['camera_neutrons'] = dummy
-            end = time.perf_counter()
-            logger.info('- Neutrons hitting the sensor (%.4f s)', end-start)    
-        # Broken pixels
-        '''
-        Simulate broken pixels
-        '''
-        if self.noi_params['broken'] > 0:
-            start = time.perf_counter()
-            rand = np.random.default_rng()
-            broken = rand.uniform(size = final_frame.shape)
-            # eliminate the pixels
-            dummy = copy.deepcopy(final_frame)*0 + broken
-            dummy = dummy.where(broken > self.noi_params['broken'], 0) #the broken
-            dummy = dummy.where(broken <= self.noi_params['broken'], 1) #the okay
-            final_frame = final_frame.where(broken > self.noi_params['broken'], 0)
-            self.frame_camera['broken'] = dummy
-            end = time.perf_counter()
-            logger.info('- Some pixel are broken (%.4f s)', end-start)    
+        if self.mode == 'counts':
+            # Neutron impact noise
+            '''
+            Add noise due to neutron impact on the sensor
+            '''
+            if self.noi_params['camera_neutrons'] > 0:
+                start = time.perf_counter()
+                rand = np.random.default_rng()
+                hit = rand.uniform(size = final_frame.shape)
+                intensity = rand.uniform(size=final_frame.shape)
+                # noise frame, select only the pixels with the noise
+                dummy = copy.deepcopy(final_frame)*0
+                dummy += (2**self.cam_params['range'] - 1)
+                dummy *= intensity 
+                dummy = dummy.where(hit <= self.noi_params['camera_neutrons'], 0)
+                # eliminate those same frames from the noise frame and add noise
+                final_frame = final_frame\
+                    .where(hit > self.noi_params['camera_neutrons'], 0)
+                final_frame += dummy
+                self.frame_camera['camera_neutrons'] = dummy
+                end = time.perf_counter()
+                logger.info('- Neutrons hitting the sensor (%.4f s)', end-start)    
+            # Broken pixels
+            '''
+            Simulate broken pixels
+            '''
+            if self.noi_params['broken'] > 0:
+                start = time.perf_counter()
+                rand = np.random.default_rng()
+                broken = rand.uniform(size = final_frame.shape)
+                # eliminate the pixels
+                dummy = copy.deepcopy(final_frame)*0 + broken
+                dummy = dummy.where(broken > self.noi_params['broken'], 0) #the broken
+                dummy = dummy.where(broken <= self.noi_params['broken'], 1) #the okay
+                final_frame = final_frame.where(broken > self.noi_params['broken'], 0)
+                self.frame_camera['broken'] = dummy
+                end = time.perf_counter()
+                logger.info('- Some pixel are broken (%.4f s)', end-start)    
 
-        # Add the camera noise if both needed parameters are included
-        '''
-        Notice: dark current and readout noise are effects always present. It is
-        imposible to measure them independently, so they will be modelled as a
-        single gaussian noise with centroid 'dark_centroid' and sigma
-        'sigma_readout'. Both parameters to be measured for the used camera
-        '''
-        if 'readout_noise_med' in self.cam_params and 'readout_noise_rmd' in self.cam_params:
-            start = time.perf_counter()
-            rand = np.random.default_rng()
-            gauss = rand.standard_normal
-            dummy = self.cam_params['readout_noise_med'] + \
-                self.cam_params['readout_noise_rmd'] * gauss(final_frame.shape) #readjust the sigma
-            dummy /= self.cam_params['ad_gain']
-            readout_noise = copy.deepcopy(final_frame)*0 + dummy
-            readout_noise = readout_noise.where(readout_noise > 0 ,0) # needed
-            final_frame += readout_noise
-            self.frame_camera['readout_noise'] = readout_noise        
-            end = time.perf_counter()
-            logger.info('- Gaussian readout noise custom (%.4f s)', end-start)
-        elif 'readout_noise' in self.cam_params and 'dark_noise' in self.cam_params:
-            start = time.perf_counter()
-            rand = np.random.default_rng()
-            gauss = rand.standard_normal
-            dummy = self.cam_params['dark_noise'] + \
-                self.cam_params['readout_noise'] * gauss(final_frame.shape)
-            dummy /= self.cam_params['ad_gain']
-            readout_noise = copy.deepcopy(final_frame)*0 + np.round(dummy).astype(int)
-            readout_noise = readout_noise.where(readout_noise > 0 ,0) # needed
-            final_frame += readout_noise
-            self.frame_camera['readout_noise'] = readout_noise
-            end = time.perf_counter()
-            logger.info('- Gaussian readout noise standard (%.4f s)', end-start)
+            # Add the camera noise if both needed parameters are included
+            '''
+            Notice: dark current and readout noise are effects always present. It is
+            imposible to measure them independently, so they will be modelled as a
+            single gaussian noise with centroid 'dark_centroid' and sigma
+            'sigma_readout'. Both parameters to be measured for the used camera
+            '''
+            if 'readout_noise_med' in self.cam_params and 'readout_noise_rmd' in self.cam_params:
+                start = time.perf_counter()
+                rand = np.random.default_rng()
+                gauss = rand.standard_normal
+                dummy = self.cam_params['readout_noise_med'] + \
+                    self.cam_params['readout_noise_rmd'] * gauss(final_frame.shape) #readjust the sigma
+                dummy /= self.cam_params['ad_gain']
+                readout_noise = copy.deepcopy(final_frame)*0 + dummy
+                readout_noise = readout_noise.where(readout_noise > 0 ,0) # needed
+                final_frame += readout_noise
+                self.frame_camera['readout_noise'] = readout_noise        
+                end = time.perf_counter()
+                logger.info('- Gaussian readout noise custom (%.4f s)', end-start)
+            elif 'readout_noise' in self.cam_params and 'dark_noise' in self.cam_params:
+                start = time.perf_counter()
+                rand = np.random.default_rng()
+                gauss = rand.standard_normal
+                dummy = self.cam_params['dark_noise'] + \
+                    self.cam_params['readout_noise'] * gauss(final_frame.shape)
+                dummy /= self.cam_params['ad_gain']
+                readout_noise = copy.deepcopy(final_frame)*0 + np.round(dummy).astype(int)
+                readout_noise = readout_noise.where(readout_noise > 0 ,0) # needed
+                final_frame += readout_noise
+                self.frame_camera['readout_noise'] = readout_noise
+                end = time.perf_counter()
+                logger.info('- Gaussian readout noise standard (%.4f s)', end-start)
 
-        if 'dark_noise' in self.cam_params and 'readout_noise' not in self.cam_params:
-            start = time.perf_counter()
-            rand = np.random.default_rng()
-            poiss = rand.poisson
-            dummy = poiss(lam = self.cam_params['dark_noise'], 
-                          size=final_frame.shape)
-            dark_current = copy.deepcopy(final_frame)*0 + dummy
-            dark_current = dark_current.where(dark_current > 0 ,0) # needed
-            final_frame += dark_current
-            self.frame_camera['dark_current'] = dark_current
-            end = time.perf_counter()
-            logger.info('- Dark current noise (%.4f s)', end-start)
+            if 'dark_noise' in self.cam_params and 'readout_noise' not in self.cam_params:
+                start = time.perf_counter()
+                rand = np.random.default_rng()
+                poiss = rand.poisson
+                dummy = poiss(lam = self.cam_params['dark_noise'], 
+                            size=final_frame.shape)
+                dark_current = copy.deepcopy(final_frame)*0 + dummy
+                dark_current = dark_current.where(dark_current > 0 ,0) # needed
+                final_frame += dark_current
+                self.frame_camera['dark_current'] = dark_current
+                end = time.perf_counter()
+                logger.info('- Dark current noise (%.4f s)', end-start)
 
         # PREPARE THE OUTPUT
         # -----------------------------------------------------------------------
-        logger.info('- Buildind the output...')    
-        # Cap the counts to the maximum counts
-        if rm_saturation == True:
-            final_frame = final_frame.where(final_frame < max_count, max_count) 
+        logger.info('- Buildind the output...')
+        start = time.perf_counter()
         # Transform the counts to integers    
         final_frame.data = final_frame.data.astype(int, copy=False)
         # Substitute the total frame
         self.frame_camera['tot'] = final_frame
+        # Cap the counts to the maximum counts
+        if rm_saturation == True:
+            self.frame_camera =  self.frame_camera\
+                .where(self.frame_camera <= max_count, max_count) 
         # Set variables in the full dataset
         for key in self.frame_camera:
-            self.frame_camera[key].attrs['long_name'] = 'Pixel counts'
+            self.frame_camera[key].attrs['long_name'] = cbar_units
             self.frame_camera[key].coords['x'].attrs['longname'] = 'X'
             self.frame_camera[key].coords['x'].attrs['units'] = 'pix.'
             self.frame_camera[key].coords['y'].attrs['longname'] = 'Y'
             self.frame_camera[key].coords['y'].attrs['units'] = 'pix.'
+        end = time.perf_counter()
+        logger.info('   (%.4f s)', end-start)
 
     # --- Private routines
 
@@ -959,8 +1087,28 @@ class FMC:
         self.smapplt.interp_grid((self.cam_params['ny'], self.cam_params['nx']),
                             MC_number=0)
 
+
+        try:
+            dcoll=copy.deepcopy(self.collimator)
+            dcoll._coord_real['x2'] -= y_scint_center
+            dcoll._coord_real['x1'] -= x_scint_center
+            # Calculate the pixel position of the scintillator vertices
+            transformation_params = ssmapplting.CalParams()
+            transformation_params.xscale = xscale
+            transformation_params.yscale = yscale
+            transformation_params.xshift = px_center
+            transformation_params.yshift = py_center
+            dcoll.calculate_pixel_coordinates(transformation_params)
+            # Build the scintillator perimeter and find the area in the pixel space
+            self.coll_perim = geometry.scint_ConvexHull(dcoll, coords='pix')
+            self.coll_geom = True
+            logger.info('- Collimator located and ready to plot')
+        except:
+            self.coll_geom = False
+            logger.info('- No collimator geometry given')
+
         end = time.perf_counter()
-        logger.info('   %.4f s', end-start)
+        logger.info('   (%.4f s)', end-start)
 
     def _map_signal(self):
         '''
@@ -1015,7 +1163,7 @@ class FMC:
         synthetic_frame = pixels_flat.reshape(g_grid.shape)
 
         end = time.perf_counter()
-        logger.info('   %.4f s', end-start)
+        logger.info('   (%.4f s)', end-start)
         
         return synthetic_frame
 
@@ -1030,7 +1178,7 @@ class FMC:
         
         logger.info('- Building the scintillator perimeter and area...')
         start = time.perf_counter()
-        self.scint_perim = geometry.scint_ConvexHull(self.scint, coords='pix')
+        self.scint_perim = geometry.get_perimeter(self.scint, coords='pix')
 
         scint_path = Path(self.scint_perim, closed=True)
         nx, ny = self.cam_params['nx'], self.cam_params['ny']
@@ -1043,7 +1191,7 @@ class FMC:
         dummy.values = dummy_vals.reshape(ny,nx)
         self.scint_area = copy.deepcopy(dummy)
         end = time.perf_counter()
-        logger.info('   %.4f s', end-start)
+        logger.info('   (%.4f s)', end-start)
 
     def _new_synthsig_xy(self):
         '''
@@ -1069,7 +1217,7 @@ class FMC:
         self.smap = copy.deepcopy(self.data['strikemap'])
         self.smapplt = copy.deepcopy(self.data['strikemap_plot'])
         self.scint = copy.deepcopy(self.data['scintillator'])
-        if self.mode == 'photons': # the usual, photons after scintillator response
+        if self.mode in ('photons', 'counts'): # the usual, photons after scintillator response
             cbar_units = 'photons / s m²'
         elif self.mode == 'ions': # to see the flux of ions in the scintillator
             cbar_units = 'ions / s m²'
@@ -1077,7 +1225,7 @@ class FMC:
             cbar_units = 'W / m²'
             self.data['distribution']['weight'] = self.data['distribution']['power']
         else:
-            logger.error('Wrong mode, select either: photons, ions or power')
+            logger.error('Wrong mode, select either: photons (or counts), ions or power')
 
         # LOCATE AND CENTER THE SCINTILLATOR AND SMAP
         # -----------------------------------------------------------------------
@@ -1090,13 +1238,17 @@ class FMC:
 
         # BUILD THE OUTPUT
         # -----------------------------------------------------------------------
-        logger.info('- Apllying corrections...') 
+        logger.info('- Applying corrections...')
+        start = time.perf_counter()
         if self.smoother != None:
             dummy = copy.deepcopy(synthetic_frame)
             synthetic_frame = spnd.gaussian_filter(dummy, sigma=self.smoother)
+        end = time.perf_counter()
+        logger.info('   (%.4f s)', end-start)
 
         # Signal frame
         logger.info('- Building the frame_scintillator xarray...')
+        start = time.perf_counter()
         self.frame_scintillator = xr.Dataset()
         signal_frame = xr.DataArray(synthetic_frame, dims=('y', 'x'),
                 coords={'y': (np.linspace(1, self.cam_params['ny'], 
@@ -1107,6 +1259,8 @@ class FMC:
                         )
         signal_frame = signal_frame.where(signal_frame >= 0, 0)
         self.frame_scintillator['fil'] = signal_frame
+        end = time.perf_counter()
+        logger.info('   (%.4f s)', end-start)
         # Add scintillator to output
         self._scint_perim_area()
         
@@ -1135,6 +1289,7 @@ class FMC:
         # BUILD THE OUTPUT
         # -----------------------------------------------------------------------
         # Compute the total frame
+        self.frame_scintillator *= self.scint_area
         self.frame_scintillator['tot'] = (
             self.frame_scintillator.to_array().sum('variable'))
         # Transform the output from pix units to m²
@@ -1148,8 +1303,9 @@ class FMC:
             integral_s = self.frame_scintillator[key].sum().item() * pix_osize
             self.frame_scintillator[key].attrs['rate'] = integral_s
 
-        logger.info('    Scintillator FIL (%s/s): %e', self.mode, 
-                    self.frame_scintillator.fil.rate)
+        unit_str = 'photons' if self.mode == 'counts' else self.mode
+        logger.info('   Total signal = %e (%s/s)', 
+                    self.frame_scintillator.tot.rate, unit_str)
 
     def _update_params(self, cur_params: dict, new_params: dict, name: str):
         if not new_params:
@@ -1169,9 +1325,20 @@ class FMC:
                     cur_params[k] = v
                     changed = True
 
+        # if either NA or omega is in the new dict, update the other. (NA prio)
+        if name == 'optic': 
+            if new_params.get('NA') is not None:
+                cur_params['NA'] = new_params['NA']
+                theta_max = np.arcsin(new_params['NA'])
+                cur_params['omega'] = 2*np.pi*(1-np.cos(theta_max))
+            elif new_params.get('omega') is not None:
+                cur_params['omega'] = new_params['omega']
+                theta_max = np.arccos(1-new_params['omega']/(2*np.pi))
+                cur_params['NA'] = np.sin(theta_max)
+
         if changed:
             logger.warning(f'{name} parameters updated')
-
+  
     # --- Routines for plotting
 
     def plot_distribution(self, cmap = default_cmap(), **kwargs):
@@ -1181,14 +1348,16 @@ class FMC:
         # Plot of the synthetic signals, pinhole and scintillator
         ax_param = {'xlabel': 'Pitch [º]', 'ylabel': 'Gyroradius [cm]'}         
         self.pr_space.ph.T.plot.imshow(ax=ax[0,0], cmap=cmap,
-                                       vmax=0.5*self.pr_space.ph.max().item(),
+                                       vmax=self.pr_space.ph.max().item(),
                                        cbar_kwargs={'label': 'ions / s cm º'})
         ax[0,0] = ssplt.axis_beauty(ax[0,0], ax_param)
         ax[0,0].set_title('Pinhole')    
         self.pr_space.sc.T.plot.imshow(ax=ax[0,1], cmap=cmap,
-                                       vmax=0.5*self.pr_space.sc.max().item())
+                                       vmax=self.pr_space.sc.max().item())
         ax[0,1] = ssplt.axis_beauty(ax[0,1], ax_param)
         ax[0,1].set_title('Scintillator')
+        ax[0,0].grid()
+        ax[0,1].grid()
 
         # Plot of the distributions of pitch and gyroradius
         ax_options_profiles = {'ylabel': 'Signal [a.u.]'}
@@ -1215,22 +1384,18 @@ class FMC:
         plt.show()
 
     def plot_frame_scintillator(self, cmap = default_cmap(),
-                          plot_smap = True, plot_scint = True,
+                          plot_smap = True, plot_scint = True, plot_coll = True,
                           **kwargs):
         logger.info('---- SCINTILLATOR PLOT -----')
         plot_frame = self.frame_scintillator.tot
-        scint_perim = self.scint_perim
         fig, ax = plt.subplots(figsize=(8,5))
         im = plot_frame.plot.imshow(ax=ax, cmap=cmap, **kwargs)
         if plot_smap:
-            self.smapplt.plot_pix(ax, labels=False, 
-                                  marker_params={'marker':None},
-                                  line_params={'color':'w', 
-                                               'linewidth':1.2, 
-                                               'alpha':0.8})
+            self._plot_strikemap(ax)
         if plot_scint:
-            ax.plot(scint_perim[:,0],scint_perim[:,1], color ='w', linewidth=2)
-
+            self._plot_scintillator(ax, color ='w', linewidth=2, alpha = 0.8)
+        if plot_coll:
+            self._plot_collimator(ax)
         x_cm_pix = self.cam_params['px_x_size'] / self.opt_params['beta'] *100
         x_cm_max = len(plot_frame.x) * x_cm_pix
         xticks_cm = np.arange(0, x_cm_max, 1)
@@ -1254,38 +1419,43 @@ class FMC:
 
         return fig, ax
 
-    def plot_frame_camera(self, cmap = default_cmap(), vmax = None, 
-                          plot_smap = True, plot_scint = True, 
+    def plot_frame_camera(self, cmap = default_cmap(), 
+                          norm = None,
+                          plot_smap = True, plot_scint = True, plot_coll = True,
                           plot_FoV = False,
                           **kwargs):
         logger.info('---- CAMERA PLOT -----')
         plot_frame = self.frame_camera.tot
-        scint_perim = self.scint_perim
-        if vmax is None:
-            vmax = 2 ** self.cam_params['range'] - 1
-            logger.info('- Maximum set to camera range')
+        if norm is not None:
+            if getattr(norm, 'vmin', None) is None:
+                kwargs.setdefault('vmin', 0)
+            if getattr(norm, 'vmax', None) is None:
+                kwargs.setdefault('vmax', 2**self.cam_params['range']-1)
+            kwargs['norm'] = norm
         else:
-            logger.info('- Maximum set to %4.2f counts', vmax)
+            kwargs.setdefault('vmin', 0)
+            kwargs.setdefault('vmax', 2**self.cam_params['range']-1)
 
-        fig, ax = plt.subplots(figsize=(8,5))
-        kwargs['vmin'] = 0
-        kwargs['vmax'] = vmax
+        ax = kwargs.pop('ax', None)
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(8, 5))
+        else:
+            fig = ax.figure
+
         im = plot_frame.plot.imshow(ax=ax, cmap=cmap, **kwargs)
         if plot_smap:
-            self.smapplt.plot_pix(ax, labels=False, 
-                                  marker_params={'marker':None},
-                                  line_params={'color': 'w', 
-                                               'linewidth': 1.2, 
-                                               'alpha': 0.8})
+            self._plot_strikemap(ax)
         if plot_scint:
-            ax.plot(scint_perim[:,0],scint_perim[:,1], color ='w', linewidth=2)
+            self._plot_scintillator(ax=ax, color ='w', linewidth=2, alpha = 0.8)
+        if plot_coll:
+            self._plot_collimator(ax)
         if plot_FoV:
             try:
                 ax.scatter(self.FoV_vector[0], self.FoV_vector[1],
                         marker='+',s=100,c='lime')
                 FoV = Circle((self.FoV_vector[0], self.FoV_vector[1]), 
                             radius=self.FoV_vector[2], 
-                            color='lime', fill=False, linewidth=2)
+                            color='lime', fill=False, linewidth=2, alpha=0.8)
                 ax.add_patch(FoV)
             except:
                 logger.info('- No FoV plotted beacuse whatever')
@@ -1297,8 +1467,139 @@ class FMC:
 
         return fig, ax
 
+    def _plot_strikemap(self, ax, labels = False, marker_params={'marker':None},
+                        line_params={'color':'w', 'linewidth':1.2, 'alpha':0.8},
+                        **kwargs):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(8, 5))
+        else:
+            fig = ax.figure
+        self.smapplt.plot_pix(ax, marker_params, line_params, labels, **kwargs)
+
+    def _plot_scintillator(self, ax, **kwargs):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(8, 5))
+        else:
+            fig = ax.figure
+        ax.plot(self.scint_perim[:,0], self.scint_perim[:,1], **kwargs)
+
+    def _plot_collimator(self, ax, **kwargs):
+        if hasattr(self, 'coll_perim') and self.coll_perim is not None and len(self.coll_perim) > 0:
+            perim = self.coll_perim.value if hasattr(self.coll_perim, 'value') else self.coll_perim
+            fill_color = kwargs.pop('facecolor', kwargs.pop('color', 'deepskyblue'))
+            edge_color = kwargs.pop('edgecolor', 'deepskyblue')
+            alpha = kwargs.pop('alpha', 1)
+            ax.fill(perim[:, 0], perim[:, 1], facecolor=fill_color, alpha=alpha, **kwargs)
+            ax.plot(perim[:, 0], perim[:, 1], color=edge_color, **kwargs)
+        else:
+            logger.warning('No collimator to plot')
+
+
+def _sum_signals(signals: list = [], where = 'scintillator'):
+    '''
+    This function is used to sum the ion distribution and synthetic signal for
+    different synthetic signals computed with the FMC class.
+    The ion signal of all objects will be summed into the first one.
+
+    Alex Reyner: areyner@us.es
+
+    :param signals: list of signals
+    :param where: scintillator or camera? to be implemented 
+
+    :return sum: object containing the sum of     
+    '''
+
+    if len(signals) <= 1:
+        return signals[0]
+    else:
+        base = copy.deepcopy(signals[0])
+        for i, sig in enumerate(signals[1:]):
+            # Add distribution
+            for key in (base.data['distribution'].keys()):
+                if key == 'n':
+                    base.data['distribution'][key] += sig.data['distribution'][key]
+                else:
+                    base.data['distribution'][key] =\
+                        np.concatenate([base.data['distribution'][key], 
+                                         sig.data['distribution'][key]])
+            # Sum ion contributions
+            base.frame_scintillator['fil'] += sig.frame_scintillator['fil']
+        # Obtain again the total signal
+        base.frame_scintillator['tot'] = sum(base.frame_scintillator[v] 
+                                                for v in base.frame_scintillator.data_vars 
+                                                if v not in 'tot')
+        return base
+
+def plot_multiframe_scintillator(signals: list = [], cmap = default_cmap(),
+                          plot_smap = True, plot_scint = True, plot_coll = True, 
+                          **kwargs):
+    '''
+    Sums ion contributions and plots them toghether
+
+    Alex Reyner: areyner@us.es
+
+    :param signals: list of signals
+
+    :return sum: object containing the sum of     
+    '''
+    sigtot = _sum_signals(signals)
+    fig, ax = sigtot.plot_frame_scintillator(cmap=cmap, plot_smap = False,
+                                             plot_scint = plot_scint,
+                                             plot_coll = False,
+                                             **kwargs)
+    for sig in signals:
+        if plot_smap: sig._plot_strikemap(ax)
+        if plot_coll: sig._plot_collimator(ax, alpha=1)
+
+    return fig, ax
+
+def plot_multiframe_camera(signals: list = [], rm_saturation = False,
+                        radiometry = None, distortion = None, 
+                        emission_law = {'n':0, 'theta':0},
+                        cmap = default_cmap(),
+                        plot_smap = True, plot_scint = True, plot_coll = True, 
+                        **kwargs):
+    '''
+    Sums ion contributions and plots them toghether in the camera
+
+    Alex Reyner: areyner@us.es
+
+    :param signals: list of signals
+
+    :return sum: object containing the sum of     
+    '''
+    sigtot = _sum_signals(signals)
+    sigtot.apply_optics_camera_noise(rm_saturation = rm_saturation,
+                                       radiometry = radiometry,
+                                       distortion = distortion,
+                                       emission_law = emission_law)
+    fig, ax = sigtot.plot_frame_camera(cmap=cmap, plot_smap = False,
+                                             plot_scint = plot_scint,
+                                             plot_coll = False,
+                                             **kwargs)
+    for sig in signals:
+        if plot_smap: sig._plot_strikemap(ax)
+        if plot_coll: sig._plot_collimator(ax, alpha=1)
+
+    return fig, ax
+
+def _integrated_emission(e0, n, NA):
+    '''
+    Computed the integrated emission of the scintillator, given the normal
+    emission, the n coeficient of the emission law, and the numerical 
+    aperture of the system.
+
+    Alex Reyner Viñolas: areyner@us.es
+
+    :param  e0: normal emission of the scintillator
+    :param  n: n factor of the emission law (if uniform emission: 0)
+    :param  NA: numerical aperture
+    '''
+    int = (2*np.pi*e0) / (n+1) * (1-(1-NA**2)**((n+1)/2))
+    return int
+
 # -----------------------------------------------------------------------------
-## --- Routines for the relative and deformation
+# --- Routines for the relative emssion and deformation
 # -----------------------------------------------------------------------------
 # This section is work in progress. Difficult to make it uniform for every user
 # since it depends on the ZEMAX information.
@@ -1448,4 +1749,3 @@ def Deformation(file_path, cam_params, opt_params, plot=False):
         plt.tight_layout()
 
     return deformation_pix
-
