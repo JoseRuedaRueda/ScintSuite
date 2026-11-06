@@ -37,6 +37,8 @@ class VRTVideo(BVO):
 
     Javier Hidalgo-Salaverri (jhsalaverri@us.es)
 
+    Updated by Alex Reyner (areyner@us.es) to the shares
+
     """
     def __init__(self, camera: str, shot: int):
         """
@@ -47,7 +49,7 @@ class VRTVideo(BVO):
 
         """
         # Initialise the parent class
-        folder= '/afs/ipp/u/augd/rawfiles/VRT/'+str(shot)[0:2]+'/S'+str(shot)
+        folder= '/shares/experiments/aug-rawfiles/VRT/'+str(shot)[0:2]+'/S'+str(shot)
         self.path_video = folder+'/S'+str(shot)+'_'+camera+'.mp4'
         self.path_time = folder+'/Prot/FrameProt/'+camera+'_FrameProt.xml'
         self.properties = {}

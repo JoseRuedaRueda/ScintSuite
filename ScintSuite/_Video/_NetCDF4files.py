@@ -2,12 +2,15 @@
 Routines to read XIMEA (.nc) files.
 
 Written by Jose Rueda: jrrueda@us.es
-Adapted by Lina Velarde: lvelarde@us.es
+Adapted by Lina Velarde: lvelarde@us.es and Alex Reyner: areynerv@us.es
+
 """
 import os
 import pyuda
 import logging
 import numpy as np
+import xarray as xr
+
 logger = logging.getLogger('ScintSuite.Video')
 try:
     import netCDF4 as nc
@@ -17,8 +20,53 @@ except ModuleNotFoundError:
 client = pyuda.Client()
 
 
+def read_file_and_data_AUG(filename = None):
+    """
+    Read netCDF4 files from AUG.
 
-def read_file_anddata(connection = None, filename = None):
+    Based on MU function by Lina Velarde - lvelarde@us.es
+
+    :param filename: path+filename of the camera data
+ 
+    @return image_header: dictionary containing the info about the image size,
+    and shape
+    @return header: main camera parameters
+    contains the exposition time)
+    Outputs:
+        timebase array in s
+        fps
+        exposure in us
+    """ 
+    # load the .nc file
+    data = xr.open_dataset(filename)
+
+    # extract attributes as header
+    raw_attrs = data.attrs
+    settings = {
+        'fps': raw_attrs['fps'],
+        'exp': raw_attrs['exposure'],
+        'biWidth': raw_attrs['width'],
+        'biHeight': raw_attrs['height'],
+        'analoggain': raw_attrs['gain_analog'],
+        'digitalgain': raw_attrs['gain_digital'],
+        'RealBPP': raw_attrs['bit_depth'],
+        'framesDtype': data.frames.dtype
+    }
+
+    # 2. Metadatos del disparo y el equipo
+    header = {
+        'camera_name': raw_attrs['camera_name'],
+        'temperature': raw_attrs['temperature'],
+        'ImageCount': raw_attrs['nframes']
+    }
+    # remove attributes before 
+    data.attrs.clear()
+    exp_dat = data
+
+    return exp_dat, header, settings
+
+
+def read_file_and_data_MU(connection = None, filename = None):
     """
     Read netCDF4 files from MU format. 
     It will try to read the old format (before shot ~48580), and if that fails will

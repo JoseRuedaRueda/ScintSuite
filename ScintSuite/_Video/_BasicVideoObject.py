@@ -169,7 +169,7 @@ class BVO:
             # Check if the file is actually a file:
             # Quick Fix, MU now use files from the cloud, so they are not found
             # by os.path.isfile, that is why we need to add there the .ncMASTU    
-            if os.path.isfile(file) or file.endswith('.ncMASTU'):
+            if os.path.isfile(file) or file.endswith('.ncMASTU') or file.endswith('.ncAUG'):
                 if file.endswith('.cin') or file.endswith('.cine'):
                     ## Header dictionary with the file info
                     self.header = cin.read_header(file)
@@ -183,6 +183,7 @@ class BVO:
                     self.timebase = cin.read_time_base(file, self.header,
                                                         self.settings)
                     self.type_of_file = '.cin'
+
                 elif file.endswith('.png') or file.endswith('.tif'):
                     file, name = os.path.split(file)
                     self.path = file
@@ -193,7 +194,7 @@ class BVO:
                     # header, settings and timebase
                     self.connection = ncdf.client.get("/",file[:-5])
                     dummy, self.header, self.imageheader, self.settings,\
-                            = ncdf.read_file_anddata(connection = self.connection)
+                            = ncdf.read_file_and_data_MU(connection = self.connection)
                     self.timebase = dummy['timebase']
                     self.exp_dat = xr.Dataset()
                     nx, ny, nt = dummy['frames'].shape
@@ -208,11 +209,22 @@ class BVO:
                     self.exp_dat['frames'] = self.exp_dat['frames']
                     self.type_of_file = '.ncMASTU'
 
+                elif file.endswith('.ncAUG'):
+                    # this category is written for the AUG XIMEA videos
+                    # The difference with the MASTU files is that they are
+                    # stored in a way that the import is immediate.
+                    # Importing the video implies reading the frames
+
+                    self.exp_dat, self.header, self.settings\
+                            = ncdf.read_file_and_data_AUG(filename = file)
+                    self.type_of_file = '.ncAUG'
+                    self.timebase = self.exp_dat.t.values
+
                 elif file.endswith('.nc'):
                     # this category was originally written for the MASTU netcdf
                     # so same issue as before
                     dummy, self.header, self.imageheader, self.settings,\
-                            = ncdf.read_file_anddata(filename = file)
+                            = ncdf.read_file_and_data_MU(filename = file)
                     self.timebase = dummy['timebase']
                     self.exp_dat = xr.Dataset()
                     nx, ny, nt = dummy['frames'].shape
@@ -251,6 +263,7 @@ class BVO:
                     self.exp_dat['frames'] = \
                         self.exp_dat['frames'].transpose('px', 'py', 't')
                     self.type_of_file = '.mp4'
+
                 elif file.endswith('.mat'):
                         '''
                         Matlab .mat files with video data are not a standard format, 
@@ -262,6 +275,7 @@ class BVO:
                         self.exp_dat['frames'] = mat_data['frames']
                         self.type_of_file = '.mat'     
                         self.settings = {'RealBPP': mat_data['RealBPP'].data} 
+                        
                 else:
                     raise Exception('Not recognised file extension')
             else:
@@ -324,9 +338,9 @@ class BVO:
                         self.timebase = tif.read_data(self.path)
             if self.type_of_file is None:
                 raise Exception('Not file found!')
-        ## Geometry of the diagnostic head used to record the video
+        # Geometry of the diagnostic head used to record the video
         self.geometryID = None
-        ## Camera calibration to relate the scintillator and the camera sensor,
+        # Camera calibration to relate the scintillator and the camera sensor,
         # each diagnostic will read its camera calibration from its database
         self.CameraCalibration = None
         self.CameraData = None
@@ -374,6 +388,7 @@ class BVO:
 
         :Note:
         In MAST-U, initialising the video will have already read all frames
+        In AUG, initialising the video will have already read all frames
         """
         # --- Select frames to load
         if (frames_number is not None) and (t1 is not None):
@@ -397,7 +412,9 @@ class BVO:
         logger.info('Reading frames: ')
 
         # --- Clean video if needed
-        if 't' in self.exp_dat and internal and not self.type_of_file == '.ncMASTU':
+        if 't' in self.exp_dat and internal and \
+                not self.type_of_file == '.ncMASTU' and \
+                not self.type_of_file == '.ncAUG':
             self.exp_dat = xr.Dataset()
         # --- Read the frames
         if self.type_of_file == '.cin':
@@ -468,6 +485,39 @@ class BVO:
             dims=('t'), coords={'t': tbase})
             # self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
             dtype = self.exp_dat['frames'].dtype
+
+        elif self.type_of_file == '.ncAUG':
+            logger.info(f"timebase min: {self.timebase.min()}, max: {self.timebase.max()}")
+            logger.info(f"reading from: {t1} to {t2} s.")
+
+            if frames_number is not None:
+                self.exp_dat = self.exp_dat.sel(t=slice(t1,t2))
+
+            M = self.exp_dat['frames']
+            self.exp_dat.attrs['dtype'] = self.exp_dat['frames'].dtype
+
+            # --- Make a copy of the frames to recover them later
+            if 'original_frames' not in self.exp_dat and flag_copy:
+                self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
+            
+            # --- Count saturated pixels
+            max_scale_frames = 2 ** self.settings['RealBPP'] - 1
+            threshold = threshold_saturation * max_scale_frames
+            logger.info('Counting "saturated" pixels')
+            logger.info('The threshold is set to: %f counts', threshold)
+            n_pixels_saturated = \
+                np.sum(self.exp_dat['frames'].values >= threshold, axis=(0, 1))
+            self.exp_dat['n_pixels_gt_threshold'] = xr.DataArray(
+                n_pixels_saturated.astype('int32'), dims=('t'))
+            self.exp_dat.attrs['threshold_for_counts'] = threshold_saturation
+            logger.info('Maximum number of saturated pixels in a frame: %f',
+                        n_pixels_saturated.max())
+
+            if not internal:
+                return M
+            else:
+                return
+            
         else:
             raise Exception('Not initialised / not implemented file type?')
         # --- End here if we just want the frame
@@ -552,7 +602,6 @@ class BVO:
         self.exp_dat.attrs['threshold_for_counts'] = threshold_saturation
         logger.info('Maximum number of saturated pixels in a frame: %f',
                     n_pixels_saturated.max())
-
 
     def subtract_noise(self, t1: float = None, t2: float = None,
                        frame: np.ndarray = None, flag_copy: bool = False):
