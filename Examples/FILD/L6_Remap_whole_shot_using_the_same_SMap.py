@@ -21,7 +21,7 @@ from time import time
 # --- Section 0: Settings
 # -----------------------------------------------------------------------------
 # - General settings
-shot = 44732
+shot = 54277
 diag_ID = 1  # 6 for rFILD
 t1 = 0.1     # Initial time to be loaded, [s]
 t2 = 0.6     # Final time to be loaded [s]
