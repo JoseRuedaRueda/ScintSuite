@@ -38,7 +38,7 @@ def read_file_and_data_AUG(filename = None):
         exposure in us
     """ 
     # load the .nc file
-    data = xr.open_dataset(filename)
+    data = xr.open_dataset(filename, engine='netcdf4')
 
     # extract attributes as header
     raw_attrs = data.attrs
