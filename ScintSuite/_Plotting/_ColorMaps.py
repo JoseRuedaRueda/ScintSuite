@@ -14,7 +14,8 @@ Contains:
 import os
 import yaml
 from matplotlib.colors import LinearSegmentedColormap
-__all__ = ['Gamma_I', 'Gamma_II', 'Gamma_IIb', 'Gamma_III', 'jet_black',
+__all__ = ['Gamma_I', 'Gamma_II', 'Gamma_IIb', 'Gamma_III', 'Gamma_center',
+           'jet_black', 'jet_white',
            'Cai', 'default_cmap']
 
 
@@ -79,6 +80,35 @@ def Gamma_III(n=256):
         "mycmap", list(zip(color_positions, colors)),N=n)
     return cmap
 
+def Gamma_center(n=256):
+    """
+    Similar to Gamma, with black in the middle 
+
+    Alex Reyner: alereyvinn@alum.us.es
+
+    :param  n: numbers of levels of the output colormap
+    """
+    cmap = LinearSegmentedColormap.from_list(
+        'mycmap', ['cyan', 'dodgerblue', 'blue', 
+                   'black', 
+                   'red', 'orange', 'yellow'], N=n)
+    return cmap
+
+def jet_white(n=256):
+    '''
+    Similar to jet colormap, but includes white at the bottom.
+
+    Alex Reyner: areyner@us.es
+
+    :param  n: numbers of levels of the output colormap
+    '''
+
+    cmap = LinearSegmentedColormap.from_list(
+        'mycmap', ['w', '#00007f', '#0000fe', '#0060ff', '#00d4ff', 
+                   '#4cffaa', '#aaff4c', '#ffe500', '#ff7a00', 
+                   '#fe1200', '#7f0000'], N=n)
+    return cmap
+
 def jet_black(n=256):
     '''
     Similar to jet colormap, but includes black at the bottom.
@@ -93,6 +123,7 @@ def jet_black(n=256):
                    '#4cffaa', '#aaff4c', '#ffe500', '#ff7a00', 
                    '#fe1200', '#7f0000'], N=n)
     return cmap
+
 
 def Cai(n=256):
     """

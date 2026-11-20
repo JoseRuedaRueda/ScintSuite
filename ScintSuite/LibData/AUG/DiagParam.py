@@ -51,7 +51,7 @@ def _FILD1_extension(shot=42000):
     elif 41202 <= shot < 44300:
         ext = '_ID9404.cin'
     elif shot >= 44300:
-        ext = '.nc'
+        ext = '.ncAUG'
     else:
         raise errors.NotValidInput('Wrong shot number?')
     return ext

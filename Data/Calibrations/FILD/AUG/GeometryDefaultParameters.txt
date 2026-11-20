@@ -23,7 +23,6 @@
 
 ! Geom name: AUG02
 ! Description: Default FILD1 collimator
-
 &AUG02
   R = 2.180
   z = 0.328
@@ -43,7 +42,6 @@
 
 ! Geom name: AUG03
 ! Description: Default FILD2 collimator
-
 &AUG03
   R = 2.18
   z = 0.3
@@ -63,7 +61,6 @@
 
 ! Geom name: AUG04
 ! Description: Default FILD4 collimator
-
 &AUG04
   R = 2.035
   z = -0.437

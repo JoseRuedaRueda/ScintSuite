@@ -16,8 +16,126 @@ try:
     from skvideo.io import vread as video_read
 except ImportError:
     logger.warning("0: scikit-video is not installed. Please install it to use the MP4 module.")
-    
+try:
+    import av
+except ImportError:
+    logger.warning("0: av is not installed. Please install it to use the MP4 module.")
+
 def read_file(fn: str, force_gray: bool=True, bpp: int=None, pix_fmt: str=None,
+              bits_size: int=None, **kwargs):
+    """
+    Wrap to use the reading rutines
+
+    Alex Reyner: areyner@us.es
+    """
+
+    functions = (('PyAV', read_file_pyav), ('ffmpeg', read_file_ffmpeg),)
+
+    last_error = None
+    for name, reader in functions:
+        try:
+            return reader(fn=fn, force_gray=force_gray, bpp=bpp, 
+                          pix_fmt=pix_fmt, bits_size=bits_size, **kwargs,)
+        except Exception as err:
+            last_error = err
+            logger.warning(f'{name} failed: {err}')
+
+    raise RuntimeError(f'All mp4 read_file failed for {fn}') from last_error
+
+def read_file_pyav(fn: str, force_gray: bool=True, bpp: int=None, pix_fmt: str=None,
+              bits_size: int=None, **kwargs):
+    """
+    Load the data with av
+    Issue, truncates to 8bit data
+
+    Alex Reyner: areynerv@us.es
+
+    :param fn: path/filename of the camera data.
+    :param force_gray: if the data is originally RGB, this will transform it
+    into a gray scale.
+    :param bpp: bits per pixel. If None, the full size of the video is considered
+    as useful data.
+    :param pix_fmt: pixel format. If None, the pixel format of the video is
+    considered.
+    :param bits_size: bits per pixel to actually read from the file. If None,
+    the full size of the video is considered as useful data.
+    :param kwargs: stub.
+    """
+
+    container = av.open(fn)
+    try:
+        stream = container.streams.video[0]
+        fps_raw = float(stream.average_rate) if stream.average_rate else 0.0
+        frame_count = int(stream.frames) if stream.frames else 0
+
+        frames_list = []
+
+        for packet in container.demux(stream):
+            for frame in packet.decode():
+                # Keep full bit depth when converting pixel format
+                target_fmt = 'gray16le' if force_gray else 'rgb48le'
+                arr = frame.to_ndarray(format=target_fmt)
+
+                # If original sample depth fits in 8 bits, keep uint8; otherwise uint16
+                src_bits = frame.format.components[0].bits if frame.format.components else 8
+                if src_bits <= 8:
+                    arr = (arr >> 8).astype(np.uint8)
+                else:
+                    # gray16le / rgb48le places high-bit samples in MSB-aligned 16-bit words
+                    shift = max(0, 16 - src_bits)
+                    arr = (arr >> shift).astype(np.uint16)
+
+                frames_list.append(arr.squeeze())
+    finally:
+        container.close()
+
+    if not frames_list:
+        raise ValueError(f'No frames could be read from: {fn}')
+
+    video = np.stack(frames_list, axis=0)
+
+    nf = len(video)
+    height = video.shape[1]
+    width = video.shape[2]
+
+    if (bpp is None) and (pix_fmt is None) and (bits_size is None):
+        if video.dtype == np.uint8:
+            out_dtype = np.float16
+        elif video.dtype == np.uint16:
+            out_dtype = np.float32
+        elif video.dtype == np.uint32:
+            out_dtype = np.float64
+        elif np.issubdtype(video.dtype, np.floating):
+            out_dtype = video.dtype
+        else:
+            out_dtype = float
+
+        frames = video.astype(dtype=out_dtype)
+    else:
+        if bits_size is None:
+            bits_size = video.dtype.itemsize * 8
+
+        target_dtype = {8: np.uint8, 16: np.uint16}.get(bits_size, video.dtype)
+        arr = video.astype(target_dtype, copy=False)
+
+        shift = 0 if bpp is None else max(0, bits_size - bpp)
+        if shift > 0:
+            arr = np.right_shift(arr, shift)
+
+        frames = arr.squeeze()
+
+    return {
+        'nf': nf if frame_count <= 0 else min(nf, frame_count),
+        'width': width,
+        'height': height,
+        'frames': frames,
+        'fps': int(round(fps_raw)) if fps_raw > 0 else 0,
+        'colored': frames.ndim > 3,
+        'transformed_to_gray': force_gray,
+        'bits_per_pixel': bpp,
+    }
+
+def read_file_ffmpeg(fn: str, force_gray: bool=True, bpp: int=None, pix_fmt: str=None,
               bits_size: int=None, **kwargs):
     """
     Load the data from the video using the ffmpeg package.

@@ -2,6 +2,7 @@
 Contain the Basic Video Object (BVO)
 
 Jose Rueda Rueda: jrrueda@us.es
+Updates by Lina Velarde: lvelarde@us.es, and Alex Reyner: areyner@us.es
 
 Contain the main class of the video object from where the other video object
 will be derived. Each of these derived video object will contain the individual
@@ -50,6 +51,13 @@ except ImportError:
 # --- Initialise the auxiliary objects
 logger = logging.getLogger('ScintSuite.Video')
 
+
+
+from tkinter import ttk
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+from matplotlib.colors import LogNorm, Normalize, PowerNorm
 
 # ------------------------------------------------------------------------------
 # --- Main class of the video object
@@ -169,7 +177,7 @@ class BVO:
             # Check if the file is actually a file:
             # Quick Fix, MU now use files from the cloud, so they are not found
             # by os.path.isfile, that is why we need to add there the .ncMASTU    
-            if os.path.isfile(file) or file.endswith('.ncMASTU'):
+            if os.path.isfile(file) or file.endswith('.ncMASTU') or file.endswith('.ncAUG'):
                 if file.endswith('.cin') or file.endswith('.cine'):
                     ## Header dictionary with the file info
                     self.header = cin.read_header(file)
@@ -183,6 +191,7 @@ class BVO:
                     self.timebase = cin.read_time_base(file, self.header,
                                                         self.settings)
                     self.type_of_file = '.cin'
+
                 elif file.endswith('.png') or file.endswith('.tif'):
                     file, name = os.path.split(file)
                     self.path = file
@@ -193,7 +202,7 @@ class BVO:
                     # header, settings and timebase
                     self.connection = ncdf.client.get("/",file[:-5])
                     dummy, self.header, self.imageheader, self.settings,\
-                            = ncdf.read_file_anddata(connection = self.connection)
+                            = ncdf.read_file_and_data_MU(connection = self.connection)
                     self.timebase = dummy['timebase']
                     self.exp_dat = xr.Dataset()
                     nx, ny, nt = dummy['frames'].shape
@@ -208,11 +217,22 @@ class BVO:
                     self.exp_dat['frames'] = self.exp_dat['frames']
                     self.type_of_file = '.ncMASTU'
 
+                elif file.endswith('.ncAUG'):
+                    # this category is written for the AUG XIMEA videos
+                    # The difference with the MASTU files is that they are
+                    # stored in a way that the import is immediate.
+                    # Importing the video implies reading the frames
+
+                    self.exp_dat, self.header, self.settings\
+                            = ncdf.read_file_and_data_AUG(filename = file)
+                    self.type_of_file = '.ncAUG'
+                    self.timebase = self.exp_dat.t.values
+
                 elif file.endswith('.nc'):
                     # this category was originally written for the MASTU netcdf
                     # so same issue as before
                     dummy, self.header, self.imageheader, self.settings,\
-                            = ncdf.read_file_anddata(filename = file)
+                            = ncdf.read_file_and_data_MU(filename = file)
                     self.timebase = dummy['timebase']
                     self.exp_dat = xr.Dataset()
                     nx, ny, nt = dummy['frames'].shape
@@ -243,14 +263,38 @@ class BVO:
                     px = np.arange(nx)
                     py = np.arange(ny)
 
+                    self.timebase = np.arange(dummy['nf'])/dummy['fps']
                     self.exp_dat['frames'] = \
-                        xr.DataArray(frames, dims=('t', 'px', 'py'),
+                        xr.DataArray(frames[:, ::-1, :], dims=('t', 'px', 'py'),
                                         coords={'t': self.timebase.squeeze(),
                                                 'px': px,
                                                 'py': py})
                     self.exp_dat['frames'] = \
                         self.exp_dat['frames'].transpose('px', 'py', 't')
                     self.type_of_file = '.mp4'
+
+                elif file.endswith('.npy'):
+                    video_array = np.load(file, allow_pickle=True)
+                    timestamps = np.array([item[0] for item in video_array], dtype=float)
+                    timestamps -= timestamps[0]
+                    timestamps /= 1e9  # Nanoseconds to seconds
+                    frames = np.stack([item[1] for item in video_array])
+
+                    nt, ny, nx = frames.shape
+                    px = np.arange(nx)
+                    py = np.arange(ny)
+
+                    self.exp_dat['frames'] = \
+                        xr.DataArray(frames[:, ::-1, :], dims=['t', 'px', 'py'],
+                                    coords={'t': timestamps, 
+                                            'px': py,
+                                            'py': px},)
+                    self.exp_dat['frames'] = \
+                        self.exp_dat['frames'].transpose('px', 'py', 't')
+                    self.type_of_file = '.npy'
+                    self.timebase = self.exp_dat.t.values
+                    self.exp_dat['nframes'] = ('t', np.arange(nt))
+
                 elif file.endswith('.mat'):
                         '''
                         Matlab .mat files with video data are not a standard format, 
@@ -262,6 +306,7 @@ class BVO:
                         self.exp_dat['frames'] = mat_data['frames']
                         self.type_of_file = '.mat'     
                         self.settings = {'RealBPP': mat_data['RealBPP'].data} 
+                        
                 else:
                     raise Exception('Not recognised file extension')
             else:
@@ -324,9 +369,9 @@ class BVO:
                         self.timebase = tif.read_data(self.path)
             if self.type_of_file is None:
                 raise Exception('Not file found!')
-        ## Geometry of the diagnostic head used to record the video
+        # Geometry of the diagnostic head used to record the video
         self.geometryID = None
-        ## Camera calibration to relate the scintillator and the camera sensor,
+        # Camera calibration to relate the scintillator and the camera sensor,
         # each diagnostic will read its camera calibration from its database
         self.CameraCalibration = None
         self.CameraData = None
@@ -374,6 +419,7 @@ class BVO:
 
         :Note:
         In MAST-U, initialising the video will have already read all frames
+        In AUG, initialising the video will have already read all frames
         """
         # --- Select frames to load
         if (frames_number is not None) and (t1 is not None):
@@ -397,7 +443,9 @@ class BVO:
         logger.info('Reading frames: ')
 
         # --- Clean video if needed
-        if 't' in self.exp_dat and internal and not self.type_of_file == '.ncMASTU':
+        if 't' in self.exp_dat and internal and \
+                not self.type_of_file == '.ncMASTU' and \
+                not self.type_of_file == '.ncAUG':
             self.exp_dat = xr.Dataset()
         # --- Read the frames
         if self.type_of_file == '.cin':
@@ -468,6 +516,39 @@ class BVO:
             dims=('t'), coords={'t': tbase})
             # self.exp_dat['nframes'] = xr.DataArray(nbase, dims=('t'))
             dtype = self.exp_dat['frames'].dtype
+
+        elif self.type_of_file == '.ncAUG':
+            logger.info(f"timebase min: {self.timebase.min()}, max: {self.timebase.max()}")
+            logger.info(f"reading from: {t1} to {t2} s.")
+
+            if frames_number is not None:
+                self.exp_dat = self.exp_dat.sel(t=slice(t1,t2))
+
+            M = self.exp_dat['frames']
+            self.exp_dat.attrs['dtype'] = self.exp_dat['frames'].dtype
+
+            # --- Make a copy of the frames to recover them later
+            if 'original_frames' not in self.exp_dat and flag_copy:
+                self.exp_dat['original_frames'] = self.exp_dat['frames'].copy()
+            
+            # --- Count saturated pixels
+            max_scale_frames = 2 ** self.settings['RealBPP'] - 1
+            threshold = threshold_saturation * max_scale_frames
+            logger.info('Counting "saturated" pixels')
+            logger.info('The threshold is set to: %f counts', threshold)
+            n_pixels_saturated = \
+                np.sum(self.exp_dat['frames'].values >= threshold, axis=(0, 1))
+            self.exp_dat['n_pixels_gt_threshold'] = xr.DataArray(
+                n_pixels_saturated.astype('int32'), dims=('t'))
+            self.exp_dat.attrs['threshold_for_counts'] = threshold_saturation
+            logger.info('Maximum number of saturated pixels in a frame: %f',
+                        n_pixels_saturated.max())
+
+            if not internal:
+                return M
+            else:
+                return
+            
         else:
             raise Exception('Not initialised / not implemented file type?')
         # --- End here if we just want the frame
@@ -552,7 +633,6 @@ class BVO:
         self.exp_dat.attrs['threshold_for_counts'] = threshold_saturation
         logger.info('Maximum number of saturated pixels in a frame: %f',
                     n_pixels_saturated.max())
-
 
     def subtract_noise(self, t1: float = None, t2: float = None,
                        frame: np.ndarray = None, flag_copy: bool = False):
@@ -1216,6 +1296,262 @@ class BVO:
         gc.collect()
         return ax, slider
 
+    def GUI_timetrace(self):
+        """
+        Interactive GUI to explore a video and the time-trace
+        Able to distinguish between VRT and FILD/INPA
+
+        Alex Reyner: areyner@us.es
+        """
+        data = self.exp_dat['frames']
+        shot = self.shot
+        class_source = type(self).__name__
+
+        if 'VRT' in class_source:
+            diag = 'VRT'
+            diag_id = f' {self.camera}'
+            cmap = 'afmhot'
+        elif 'FILD' in class_source:
+            diag = 'FILD'
+            diag_id = self.diag_ID
+            cmap = ssplt.Gamma_IIb()
+        elif 'FILD' in class_source:
+            diag = 'INPA'
+            diag_id = ''
+            cmap = ssplt.Gamma_IIb()
+
+        rename_map = {}
+        if 'px' in data.dims:
+            rename_map['px'] = 'x'
+        if 'py' in data.dims:
+            rename_map['py'] = 'y'
+        if rename_map:
+            data = data.rename(rename_map)
+
+        t_axis = data.get_axis_num('t')
+        data_vals = np.moveaxis(data.values, t_axis, 0)
+        t_vals = data.t.values
+
+        manual_xlim = None
+        manual_ylim = None
+
+        def format_info_text(idx):
+            return f'{diag}{diag_id}\n#{shot}\n@{t_vals[idx]:.3f}'
+
+        def build_norm(scale_mode, vmin, vmax):
+            """Return a Matplotlib norm for linear, square-root, or log scaling."""
+            if vmax <= vmin:
+                vmax = vmin + 1.0
+
+            if scale_mode == 'sqrt':
+                return PowerNorm(gamma=0.5, vmin=max(0.0, vmin), vmax=max(1e-6, vmax))
+            if scale_mode == 'log':
+                safe_vmin = vmin if vmin > 0 else 1e-3
+                safe_vmax = max(vmax, safe_vmin * 10.0)
+                return LogNorm(vmin=safe_vmin, vmax=safe_vmax)
+            return Normalize(vmin=vmin, vmax=vmax)
+
+        def get_clim_bounds(idx):
+            """Read vmin/vmax from entries or fall back to frame defaults."""
+            try:
+                vmax = float(entry_vmax.get())
+            except ValueError:
+                vmax = float(np.nanmax(data_vals[idx]))
+
+            try:
+                vmin = float(entry_vmin.get())
+            except ValueError:
+                vmin = 1.0 if scale_var.get() == 'log' else 0.0
+
+            return vmin, vmax
+
+        root = tk.Tk()
+        root.title('Video GUI explorer')
+
+        # --- Top figure: Time series ---
+        fig_top = Figure(figsize=(10, 3))
+        ax_top = fig_top.add_subplot(111)
+
+        initial_tt = data.sum(dim=['x', 'y'])
+        (line_tt,) = ax_top.plot(t_vals, initial_tt.values, color='k')
+        v_line = ax_top.axvline(x=t_vals[0], color='red', linestyle='--', alpha=0.7)
+
+        ax_top.set_xlabel('Time [s]')
+        ax_top.set_ylabel('Time Trace [a.u.]')
+        ax_top.set_xlim([t_vals.min(), t_vals.max()])
+
+        max_val = float(initial_tt.max()) if initial_tt.any() else 1.0
+        ax_top.set_ylim([0, max_val * 1.2])
+
+        # --- Bottom figure: 2D map ---
+        fig_bot = Figure(figsize=(10, 5))
+        ax = fig_bot.add_subplot(111)
+        im = data.mean('t').plot.imshow(ax=ax, cmap=cmap)
+        ax.set_aspect('equal', adjustable='box')
+
+        info_text = ax.text( 0.02, 0.98, format_info_text(0),
+                            transform=ax.transAxes, ha='left', va='top', 
+                            color='white',)
+
+        # ------------------------------------------------------------------
+        # Update logic and callbacks
+        # ------------------------------------------------------------------
+        def update_tt():
+            """Recalculate the time trace within the current 2D zoom limits."""
+            xlim, ylim = ax.get_xlim(), ax.get_ylim()
+            x_min, x_max = min(xlim), max(xlim)
+            y_min, y_max = min(ylim), max(ylim)
+
+            sliced_data = data.sel(x=slice(x_min, x_max), y=slice(y_min, y_max))
+            if sliced_data.x.size == 0 or sliced_data.y.size == 0:
+                return
+
+            time_trace = sliced_data.sum(dim=['x', 'y'])
+
+            try:
+                window_size = int(entry_coars.get())
+                if window_size > 1:
+                    time_trace = time_trace.rolling(
+                        t=window_size, center=True, min_periods=1
+                    ).mean()
+            except ValueError:
+                pass
+
+            line_tt.set_ydata(time_trace.values)
+
+            tt_max = float(time_trace.max())
+            if tt_max > 0:
+                ax_top.set_ylim([0, tt_max * 1.2])
+
+            can_top.draw_idle()
+
+        def update_frame(val):
+            """Update the 2D frame, color scale, normalization mode, and info text."""
+            nonlocal manual_xlim, manual_ylim
+
+            idx = int(float(val))
+            vmin, vmax = get_clim_bounds(idx)
+
+            frame_data = data_vals[idx]
+            if scale_var.get() == 'log':
+                frame_data = np.where(frame_data > 0, frame_data, np.nan)
+
+            im.set_data(frame_data)
+            im.set_norm(build_norm(scale_var.get(), vmin, vmax))
+            info_text.set_text(format_info_text(idx))
+
+            if manual_xlim is not None:
+                ax.set_xlim(manual_xlim)
+            if manual_ylim is not None:
+                ax.set_ylim(manual_ylim)
+
+            v_line.set_xdata([t_vals[idx], t_vals[idx]])
+
+            can_top.draw_idle()
+            can_bot.draw_idle()
+
+        def apply_clim():
+            update_frame(slider.get())
+
+        def key_press(event):
+            idx = int(slider.get())
+            if event.keysym == 'Right' and idx < len(t_vals) - 1:
+                idx += 1
+            elif event.keysym == 'Left' and idx > 0:
+                idx -= 1
+            else:
+                return
+            slider.set(idx)
+            update_frame(idx)
+
+        def on_xlim_changed(axes):
+            nonlocal manual_xlim
+            manual_xlim = axes.get_xlim()
+            update_tt()
+
+        def on_ylim_changed(axes):
+            nonlocal manual_ylim
+            manual_ylim = axes.get_ylim()
+            update_tt()
+
+        ax.callbacks.connect('xlim_changed', on_xlim_changed)
+        ax.callbacks.connect('ylim_changed', on_ylim_changed)
+
+        # ------------------------------------------------------------------
+        # Tkinter layout
+        # ------------------------------------------------------------------
+        can_top = FigureCanvasTkAgg(fig_top, master=root)
+        can_top.get_tk_widget().grid(row=0, column=0, columnspan=6, sticky='nsew')
+
+        # Top toolbar and rolling filter controls
+        toolbar_top_frame = tk.Frame(root)
+        toolbar_top_frame.grid(row=1, column=0, columnspan=3, sticky='we', padx=2)
+        toolbar_top = NavigationToolbar2Tk(can_top, toolbar_top_frame)
+        toolbar_top.update()
+
+        tk.Label(root, text='Filter:').grid(row=1, column=3, padx=(5, 2), sticky='e')
+
+        entry_coars = tk.Entry(root, width=6)
+        entry_coars.insert(0, '1')
+        entry_coars.grid(row=1, column=4, padx=2, sticky='we')
+
+        tk.Button(root, text='Redo TT', command=update_tt).grid(
+            row=1, column=5, padx=2, sticky='we'
+        )
+
+        # Bottom canvas
+        can_bot = FigureCanvasTkAgg(fig_bot, master=root)
+        can_bot.get_tk_widget().grid(row=2, column=0, columnspan=6, sticky='nsew')
+
+        # Time slider
+        slider = tk.Scale(
+            root,
+            from_=0,
+            to=len(t_vals) - 1,
+            orient=tk.HORIZONTAL,
+            length=400,
+            label='Camera frame slider:',
+            command=update_frame,
+        )
+        slider.grid(row=3, column=0, columnspan=6, padx=10, sticky='we')
+
+        # Bottom toolbar and color scale controls
+        toolbar_bot_frame = tk.Frame(root)
+        toolbar_bot_frame.grid(row=4, column=0, columnspan=1, rowspan=2, sticky='we', padx=2)
+        toolbar_bot = NavigationToolbar2Tk(can_bot, toolbar_bot_frame)
+        toolbar_bot.update()
+
+        scale_var = tk.StringVar(value='lin')
+        tk.Label(root, text='Scale:').grid(row=4, column=1, sticky='e')
+        scale_menu = tk.OptionMenu(
+            root, scale_var, 'lin', 'sqrt', 'log', command=lambda _: apply_clim()
+        )
+        scale_menu.grid(row=4, column=2, rowspan=2, padx=2, sticky='we')
+
+        tk.Label(root, text='vmin:').grid(row=4, column=3, sticky='e')
+        entry_vmin = tk.Entry(root, width=6)
+        entry_vmin.grid(row=4, column=4, padx=2, sticky='we')
+
+        tk.Label(root, text='vmax:').grid(row=4, column=5, sticky='e')
+        entry_vmax = tk.Entry(root, width=6)
+        entry_vmax.grid(row=4, column=6, padx=2, sticky='we')
+
+        tk.Button(root, text='Apply Scale', command=apply_clim).grid(
+            row=5, column=3, columnspan=4, padx=2, sticky='we'
+        )
+
+        # Grid weights and keyboard bindings
+        root.rowconfigure(0, weight=1)
+        root.rowconfigure(2, weight=2)
+        root.columnconfigure(0, weight=1)
+
+        root.bind('<Left>', key_press)
+        root.bind('<Right>', key_press)
+
+        fig_top.tight_layout()
+        fig_bot.tight_layout()
+
+        root.mainloop()
 
     # --------------------------------------------------------------------------
     # --- Properties
@@ -1325,7 +1661,7 @@ class BVO:
         """
         if mask is None:
             # - Plot the frame
-            ax_ref = self.plot_frame(t=t, vmin=vmin, vmax=vmax, ccmap=cmap)
+            ax_ref = self.plot_frame(t=t, vmin=vmin, vmax=vmax, cmap=cmap)
             fig_ref = plt.gcf()
             # - Define roi
             roi = sstt.roipoly(fig_ref, ax_ref)

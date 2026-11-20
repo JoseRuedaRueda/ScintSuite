@@ -1301,11 +1301,11 @@ class FMC:
             self.frame_scintillator[key].attrs['mode'] = self.mode
             self.frame_scintillator[key].attrs['long_name'] = cbar_units
             integral_s = self.frame_scintillator[key].sum().item() * pix_osize
-            self.frame_scintillator[key].attrs['rate'] = integral_s
+            self.frame_scintillator[key].attrs['total'] = integral_s
 
         unit_str = 'photons' if self.mode == 'counts' else self.mode
-        logger.info('   Total signal = %e (%s/s)', 
-                    self.frame_scintillator.tot.rate, unit_str)
+        logger.info('   Total signal = %e (%s ·m²)', 
+                    self.frame_scintillator.tot.total, cbar_units)
 
     def _update_params(self, cur_params: dict, new_params: dict, name: str):
         if not new_params:

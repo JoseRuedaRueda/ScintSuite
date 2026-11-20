@@ -1,3 +1,11 @@
+# 2.1.1 VRT cameras
+- updated .mp4 reading with PyAV, avoiding issues with ffmpeg
+- merge of the different VRT files into the VRTVideo class. Compatible with the same BVO routines than FILDVideos
+- updated VRT class to the new shares and data formats
+- BVO GUI that includes automatic rt ROI. Distinguishes between FILD/INPA and VRT
+- Implementation of AUG XIMEA file reading for future videos
+
+
 # 2.1.0 AUG LibData
 - update of LibData AUG to xarray format
 - uniformization of function names and variables
