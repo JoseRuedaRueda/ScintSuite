@@ -699,13 +699,15 @@ def get_MP(shot: int = None, diag='MAW', unit = 'I', coars = 10, phase = True,
         Bu = obj['Bu']
         Bl = obj['Bl']
         try:
-            num_osc = [_count_zero_crossings_cyclic(Bu.sel(t=ti).values)//2 for ti in obj.t]
-            u_osc = xr.DataArray(num_osc, dims='t', coords={'t': obj.t})
-            n_u = u_osc.max()
+            bu_vals = Bu.values  
+            bl_vals = Bl.values
+            num_t = bu_vals.shape[1]
 
-            num_osc = [_count_zero_crossings_cyclic(Bl.sel(t=ti).values)//2 for ti in obj.t]
-            l_osc = xr.DataArray(num_osc, dims='t', coords={'t': obj.t})
-            n_l = l_osc.max()
+            num_osc_u = [_count_zero_crossings_cyclic(bu_vals[:, t]) // 2 for t in range(num_t)]
+            n_u = int(xr.DataArray(num_osc_u).max().item())
+
+            num_osc_l = [_count_zero_crossings_cyclic(bl_vals[:, t]) // 2 for t in range(num_t)]
+            n_l = int(xr.DataArray(num_osc_l).max().item())
 
             u_phi = xr.DataArray(
                 [_compute_phase(Bu[:,t].values, n_u) for t in range(len(Bu.t))],
@@ -717,8 +719,10 @@ def get_MP(shot: int = None, diag='MAW', unit = 'I', coars = 10, phase = True,
             obj['phi_u'] = u_phi
             obj['phi_l'] = l_phi
             obj['phi0'] = l_phi
-            delta = (u_phi - l_phi)
-            obj['dphi'] = (delta) % 360
+            delta_rad = np.radians(u_phi - l_phi)
+            delta_circ = np.degrees(np.arctan2(np.sin(delta_rad), np.cos(delta_rad))) % 360
+            mask_near_zero = (delta_circ <= 5) | (delta_circ >= 355)
+            obj['dphi'] = delta_circ.where(~mask_near_zero, 0)
 
         except:
             print('Not able to extract phases')
